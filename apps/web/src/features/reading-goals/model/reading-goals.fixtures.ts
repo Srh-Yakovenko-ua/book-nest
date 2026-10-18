@@ -1,9 +1,26 @@
 import type {
+  ReadingGoalActivityView,
   ReadingGoalBookView,
+  ReadingGoalCheckpoint,
   ReadingGoalDetail,
+  ReadingGoalListItem,
   ReadingGoalMetrics,
+  ReadingGoalsOverview,
   ReadingGoalView,
 } from "@app/shared";
+
+export function makeReadingGoalActivity(
+  overrides: Partial<ReadingGoalActivityView> = {},
+): ReadingGoalActivityView {
+  return {
+    book: { id: "book-1", title: "Бігуни" },
+    createdAt: "2026-11-03T12:00:00.000Z",
+    id: "activity-1",
+    metadata: null,
+    type: "book_counted",
+    ...overrides,
+  };
+}
 
 export function makeReadingGoalBook(
   overrides: Partial<ReadingGoalBookView> = {},
@@ -28,6 +45,19 @@ export function makeReadingGoalBook(
   };
 }
 
+export function makeReadingGoalCheckpoint(
+  overrides: Partial<ReadingGoalCheckpoint> = {},
+): ReadingGoalCheckpoint {
+  return {
+    achievedAt: null,
+    currentCompletedCount: 5,
+    dueDate: "2026-10-15",
+    status: "upcoming",
+    targetCount: 4,
+    ...overrides,
+  };
+}
+
 export function makeReadingGoalDetail(
   overrides: Partial<ReadingGoalDetail> = {},
 ): ReadingGoalDetail {
@@ -42,6 +72,12 @@ export function makeReadingGoalDetail(
     snapshotBookCount: 8,
     ...overrides,
   };
+}
+
+export function makeReadingGoalListItem(
+  overrides: Partial<ReadingGoalListItem> = {},
+): ReadingGoalListItem {
+  return { ...makeReadingGoalView(), ...makeReadingGoalMetrics(), ...overrides };
 }
 
 export function makeReadingGoalMetrics(
@@ -70,6 +106,20 @@ export function makeReadingGoalMetrics(
     riskLevel: "none",
     riskReasons: [],
     totalDays: 37,
+    ...overrides,
+  };
+}
+
+export function makeReadingGoalsOverview(
+  overrides: Partial<ReadingGoalsOverview> = {},
+): ReadingGoalsOverview {
+  return {
+    active: { needsAttention: 1, onTrack: 2, total: 3 },
+    attention: [],
+    bestResult: null,
+    booksCounted: { currentYear: 14 },
+    completed: { completedOnOrBeforeDeadline: 4, total: 5 },
+    success: { finishedGoals: 6, successfulGoals: 5, successRatePercent: 83.3 },
     ...overrides,
   };
 }

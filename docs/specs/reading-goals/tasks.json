@@ -1,0 +1,746 @@
+{
+  "schemaVersion": 1,
+  "project": "Book Nest — Reading Goals",
+  "baseBranch": "dev",
+  "baseCommit": "6de68b54a1b84dc0200a1f91188987e1c4905967",
+  "primarySpec": "spec.md",
+  "source": "Reading Goals task pack v2 (LOW_MEMORY_EXECUTION), full reference spec kept outside the repo",
+  "repoWorkflow": "Rebased on origin/dev 2b60663f whose CLAUDE.md §9 and spec-to-ship Stage 4 already forbid per-slice gates and run /check once at the end; the LOW_MEMORY opt-in note was therefore dropped from both rule files (they equal origin/dev). Deviation kept by the task's approval: one consolidated final review instead of per-slice reviews.",
+  "openDecisions": [],
+  "excluded": [
+    {
+      "requirement": "Backend schemas, migrations, server algorithms, generated code",
+      "reason": "Existing backend API covers required product; FE-only refactor"
+    },
+    {
+      "requirement": "Goals without lists, recurring goals, pages/minutes, snapshot editor",
+      "reason": "Not supported by contract or product scope"
+    },
+    {
+      "requirement": "Server q search/facets, arbitrary quick-filter counts",
+      "reason": "No API support; prevent misleading client-side filtering"
+    },
+    {
+      "requirement": "Remove 500-goal backend scanning cap",
+      "reason": "Known backend scaling limit; separate server workstream"
+    },
+    {
+      "requirement": "Run entire local Vitest/build/knip/E2E suite",
+      "reason": "CLAUDE.md reserves expensive full suite for CI or explicit request"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "F01",
+      "stage": 1,
+      "layer": "frontend",
+      "files": [
+        "apps/web/src/features/reading-goals/model/goal-form.ts",
+        "apps/web/src/features/reading-goals/components/goal-form-dialog.tsx",
+        "apps/web/src/features/reading-goals/components/goal-details-view.tsx"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "Edit max uses snapshotBookCount",
+        "Name-only PATCH omits deadline and targetCount",
+        "Changed deadline validates as future; empty changed name sends null; no-diff submission disabled"
+      ],
+      "covers": ["BUG-02", "BUG-03", "RG-07", "RG-08", "AC-02", "AC-06", "AC-09", "AC-10", "AC-23"],
+      "status": "done",
+      "proof": {
+        "files": [
+          "apps/web/src/features/reading-goals/model/goal-form.ts",
+          "apps/web/src/features/reading-goals/components/goal-form-dialog.tsx",
+          "apps/web/src/features/reading-goals/components/goal-details-view.tsx"
+        ],
+        "notes": [
+          "goal-detail-actions.tsx:114 passes bookCount={goal.snapshotBookCount} to the edit dialog; create keeps the list bookCount (list-goal-card.tsx:60, goals-catalog.tsx:95)",
+          "createGoalFormSchema refine: value === initialDeadline || isFutureIsoDate(value)",
+          "toUpdateGoalInput({ initial, values }) emits only changed fields; trimmed-empty changed name -> null",
+          "Save disabled while hasGoalChanges(diff) is false in edit mode; onSubmit guards too",
+          "Edit copy uses snapshotBooks/snapshotHint/errors.snapshotTargetMax"
+        ],
+        "tests": [
+          "goal-form-dialog.test.tsx: caps the target at the books fixed in the goal; keeps save locked until something changes; sends only the name when only the name changed; renames an expired goal without re-checking its old deadline; shows a deadline the server rejected; clears a name -> { name: null }",
+          "goal-details.test.tsx: caps the edited target at the books fixed in the goal, not the current list"
+        ],
+        "verified": true,
+        "gates": {
+          "targetedTests": "VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run <17 files> -> exit 0, 17 files, 165/165 passed (after rebase on origin/dev 2b60663f)",
+          "typecheck": "bash .claude/scripts/gates.sh -> ok typecheck (turbo, all packages)",
+          "format": "bash .claude/scripts/gates.sh -> ok format (prettier on the diff)",
+          "lint": "pnpm exec eslint --max-warnings=0 on the 63 changed apps/web .ts/.tsx files -> exit 0 (gates.sh lint-web step itself breaks on the unquoted (app) path at gates.sh:61, tooling bug)"
+        }
+      }
+    },
+    {
+      "id": "F02",
+      "stage": 1,
+      "layer": "frontend",
+      "files": [
+        "apps/web/src/features/reading-goals/components/list-goal-card.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "Fetch error visibly has Retry and never masquerades as no goal",
+        "Text reflects inclusive goal calendar-day range"
+      ],
+      "covers": ["BUG-04", "BUG-07", "RG-18", "AC-15"],
+      "status": "done",
+      "proof": {
+        "files": [
+          "apps/web/src/features/reading-goals/components/list-goal-card.tsx",
+          "apps/web/src/messages/uk.json",
+          "apps/web/src/messages/en.json"
+        ],
+        "notes": [
+          "resolveState uses query status: pending -> loading, error -> error (loadError + Retry -> refetch), null -> empty",
+          "goals.form.explanation and goals.detail.countedEmptyHint describe the snapshot and the inclusive created-day..deadline-day window"
+        ],
+        "tests": [
+          "list-goal-card.test.tsx: offers a retry instead of a create button; caps the target at the books currently in the list"
+        ],
+        "verified": true,
+        "gates": {
+          "targetedTests": "VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run <17 files> -> exit 0, 17 files, 165/165 passed (after rebase on origin/dev 2b60663f)",
+          "typecheck": "bash .claude/scripts/gates.sh -> ok typecheck (turbo, all packages)",
+          "format": "bash .claude/scripts/gates.sh -> ok format (prettier on the diff)",
+          "lint": "pnpm exec eslint --max-warnings=0 on the 63 changed apps/web .ts/.tsx files -> exit 0 (gates.sh lint-web step itself breaks on the unquoted (app) path at gates.sh:61, tooling bug)"
+        }
+      }
+    },
+    {
+      "id": "F03",
+      "stage": 1,
+      "layer": "frontend",
+      "files": [
+        "apps/web/src/features/reading-goals/api/goal-keys.ts",
+        "apps/web/src/features/reading-goals/api/use-create-goal.ts",
+        "apps/web/src/features/reading-goals/api/use-update-goal.ts",
+        "apps/web/src/features/reading-goals/api/use-archive-goal.ts",
+        "apps/web/src/features/reading-goals/api/use-delete-goal.ts",
+        "apps/web/src/features/books/api/use-reading-progress.ts",
+        "apps/web/src/features/books/api/use-book-actions.ts",
+        "apps/web/src/features/books/api/use-update-book.ts",
+        "apps/web/src/features/lists/api/use-list-book-actions.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "Goal mutations invalidate catalog/overview/detail/list as appropriate",
+        "Relevant completed reading updates invalidate goal tree without global indiscriminate cache reset",
+        "Existing statistics invalidation preserved"
+      ],
+      "covers": ["BUG-05", "RG-17", "AC-17"],
+      "status": "done",
+      "proof": {
+        "files": [
+          "apps/web/src/features/reading-goals/api/goal-keys.ts",
+          "apps/web/src/features/reading-goals/api/use-create-goal.ts",
+          "apps/web/src/features/reading-goals/api/use-update-goal.ts",
+          "apps/web/src/features/reading-goals/api/use-archive-goal.ts",
+          "apps/web/src/features/reading-goals/api/use-delete-goal.ts",
+          "apps/web/src/features/books/api/use-reading-progress.ts",
+          "apps/web/src/features/books/api/use-book-actions.ts",
+          "apps/web/src/features/books/api/use-update-book.ts",
+          "apps/web/src/features/lists/api/use-list-book-actions.ts"
+        ],
+        "notes": [
+          "goalKeys: root, scope(goalId), detail, books, activity, catalogIndex, catalog(params), overview, forList; invalidateGoalQueries(queryClient)",
+          "Goal mutations invalidate goalKeys.root plus statistics; delete removes goalKeys.scope(goalId) first",
+          "Reading points: useChangeReadingStatus, useUpdateReadingProgress, useBulkReadingStatus, useDeleteBook, useBulkDeleteBooks, useSetListBookReadingStatus, useUpdateBook (only when readingStatus/readingProgress sent). useBookMutationSync untouched (also used by delivery/loan/ownership)"
+        ],
+        "tests": ["api/goal-invalidation.test.tsx (4 tests)"],
+        "verified": true,
+        "gates": {
+          "targetedTests": "VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run <17 files> -> exit 0, 17 files, 165/165 passed (after rebase on origin/dev 2b60663f)",
+          "typecheck": "bash .claude/scripts/gates.sh -> ok typecheck (turbo, all packages)",
+          "format": "bash .claude/scripts/gates.sh -> ok format (prettier on the diff)",
+          "lint": "pnpm exec eslint --max-warnings=0 on the 63 changed apps/web .ts/.tsx files -> exit 0 (gates.sh lint-web step itself breaks on the unquoted (app) path at gates.sh:61, tooling bug)"
+        }
+      }
+    },
+    {
+      "id": "C01",
+      "stage": 2,
+      "layer": "frontend",
+      "files": [
+        "apps/web/src/app/[locale]/(app)/goals/page.tsx",
+        "apps/web/src/components/app-nav.ts"
+      ],
+      "dependsOn": ["F03"],
+      "mandatory": true,
+      "doneWhen": [
+        "/goals route loads through locale app shell",
+        "Nav item after Lists; existing statistics CTA resolves"
+      ],
+      "covers": ["BUG-01", "RG-16"],
+      "status": "done",
+      "proof": {
+        "files": [
+          "apps/web/src/app/[locale]/(app)/goals/page.tsx",
+          "apps/web/src/components/app-nav.ts",
+          "apps/web/src/components/app-nav.test.ts"
+        ],
+        "notes": [
+          "Locale-guarded page with generateMetadata goals.catalog.metaTitle",
+          "nav.goals (Target icon) right after nav.lists in the Books group; statistics reading-goal-card links to /goals now resolve"
+        ],
+        "verified": true,
+        "gates": {
+          "targetedTests": "VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run <17 files> -> exit 0, 17 files, 165/165 passed (after rebase on origin/dev 2b60663f)",
+          "typecheck": "bash .claude/scripts/gates.sh -> ok typecheck (turbo, all packages)",
+          "format": "bash .claude/scripts/gates.sh -> ok format (prettier on the diff)",
+          "lint": "pnpm exec eslint --max-warnings=0 on the 63 changed apps/web .ts/.tsx files -> exit 0 (gates.sh lint-web step itself breaks on the unquoted (app) path at gates.sh:61, tooling bug)"
+        }
+      }
+    },
+    {
+      "id": "C02",
+      "stage": 2,
+      "layer": "frontend",
+      "files": [
+        "apps/web/src/features/reading-goals/api/use-goals-catalog.ts",
+        "apps/web/src/features/reading-goals/api/use-goals-overview.ts",
+        "apps/web/src/features/reading-goals/api/goal-keys.ts"
+      ],
+      "dependsOn": ["F03"],
+      "mandatory": true,
+      "doneWhen": [
+        "Typed catalog/overview from generated endpoints and shared Zod",
+        "useInfiniteQuery pageParam sends opaque nextCursor, 20/page; overview separate key"
+      ],
+      "covers": ["RG-02", "RG-10", "RG-11", "RG-24"],
+      "status": "done",
+      "proof": {
+        "files": [
+          "apps/web/src/features/reading-goals/api/use-goals-catalog.ts",
+          "apps/web/src/features/reading-goals/api/use-goals-overview.ts"
+        ],
+        "notes": [
+          "useInfiniteQuery keyed goalKeys.catalog(params without cursor), initialPageParam undefined, getNextPageParam nextCursor ?? undefined, limit READING_GOAL_PAGE_SIZE.default, ReadingGoalListResponseSchema.parse",
+          "useGoalsOverview on goalKeys.overview with ReadingGoalsOverviewSchema"
+        ],
+        "verified": true,
+        "gates": {
+          "targetedTests": "VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run <17 files> -> exit 0, 17 files, 165/165 passed (after rebase on origin/dev 2b60663f)",
+          "typecheck": "bash .claude/scripts/gates.sh -> ok typecheck (turbo, all packages)",
+          "format": "bash .claude/scripts/gates.sh -> ok format (prettier on the diff)",
+          "lint": "pnpm exec eslint --max-warnings=0 on the 63 changed apps/web .ts/.tsx files -> exit 0 (gates.sh lint-web step itself breaks on the unquoted (app) path at gates.sh:61, tooling bug)"
+        }
+      }
+    },
+    {
+      "id": "C03",
+      "stage": 2,
+      "layer": "frontend",
+      "files": [
+        "apps/web/src/features/reading-goals/model/goals-query.ts",
+        "apps/web/src/features/reading-goals/model/use-goals-query.ts",
+        "apps/web/src/features/reading-goals/components/goals-toolbar.tsx"
+      ],
+      "dependsOn": ["C02"],
+      "mandatory": true,
+      "doneWhen": [
+        "nuqs status/sort/view canonical defaults, invalid fallback and back/forward",
+        "All seven server sorts and four statuses; no q/client filtering",
+        "Filter change resets cursor automatically through key"
+      ],
+      "covers": ["RG-10", "RG-11", "AC-14"],
+      "status": "done",
+      "proof": {
+        "files": [
+          "apps/web/src/features/reading-goals/model/goals-query.ts",
+          "apps/web/src/features/reading-goals/model/use-goals-query.ts",
+          "apps/web/src/features/reading-goals/components/goals-toolbar.tsx"
+        ],
+        "notes": [
+          "nuqs parsers from generated sort/status enums, sort default created_desc, view grid|list default grid, status optional",
+          "useQueryStates with history push",
+          "Toolbar: status chips without counts, Select with 7 sorts, Segmented grid/list"
+        ],
+        "tests": ["model/goals-query.test.ts"],
+        "verified": true,
+        "gates": {
+          "targetedTests": "VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run <17 files> -> exit 0, 17 files, 165/165 passed (after rebase on origin/dev 2b60663f)",
+          "typecheck": "bash .claude/scripts/gates.sh -> ok typecheck (turbo, all packages)",
+          "format": "bash .claude/scripts/gates.sh -> ok format (prettier on the diff)",
+          "lint": "pnpm exec eslint --max-warnings=0 on the 63 changed apps/web .ts/.tsx files -> exit 0 (gates.sh lint-web step itself breaks on the unquoted (app) path at gates.sh:61, tooling bug)"
+        }
+      }
+    },
+    {
+      "id": "C04",
+      "stage": 2,
+      "layer": "frontend",
+      "files": [
+        "apps/web/src/features/reading-goals/components/goals-catalog.tsx",
+        "apps/web/src/features/reading-goals/components/goal-catalog-card.tsx"
+      ],
+      "dependsOn": ["C02", "C03"],
+      "mandatory": true,
+      "doneWhen": [
+        "Four overview KPI including no-sample successRate state",
+        "Grid/list cards display backend progress/risk/pace; no invented counts",
+        "Cards link correctly without nested action navigation"
+      ],
+      "covers": ["RG-10", "RG-24", "AC-16", "AC-21"],
+      "status": "done",
+      "proof": {
+        "files": [
+          "apps/web/src/features/reading-goals/components/goals-catalog.tsx",
+          "apps/web/src/features/reading-goals/components/goals-catalog-view.tsx",
+          "apps/web/src/features/reading-goals/components/goal-catalog-card.tsx",
+          "apps/web/src/features/reading-goals/components/goals-overview.tsx"
+        ],
+        "notes": [
+          "4 KPI: active.total, completed.total, active.needsAttention, success.successRatePercent ('—' + hint when finishedGoals is 0)",
+          "Card/row: name or fallbackName, source list or listDeleted, status badge + separate result badge for archived (result null -> none), server progressPercent, pace/risk badges, deadline + daysLeft",
+          "Stretched title link; source-list link sits above it with relative z-10, not nested"
+        ],
+        "tests": ["components/goals-catalog.test.tsx"],
+        "verified": true,
+        "gates": {
+          "targetedTests": "VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run <17 files> -> exit 0, 17 files, 165/165 passed (after rebase on origin/dev 2b60663f)",
+          "typecheck": "bash .claude/scripts/gates.sh -> ok typecheck (turbo, all packages)",
+          "format": "bash .claude/scripts/gates.sh -> ok format (prettier on the diff)",
+          "lint": "pnpm exec eslint --max-warnings=0 on the 63 changed apps/web .ts/.tsx files -> exit 0 (gates.sh lint-web step itself breaks on the unquoted (app) path at gates.sh:61, tooling bug)"
+        }
+      }
+    },
+    {
+      "id": "C05",
+      "stage": 2,
+      "layer": "frontend",
+      "files": [
+        "apps/web/src/features/reading-goals/components/goal-list-picker.tsx",
+        "apps/web/src/features/reading-goals/components/goal-form-dialog.tsx"
+      ],
+      "dependsOn": ["F01", "C01"],
+      "mandatory": true,
+      "doneWhen": [
+        "List picker uses existing paged list API and its bookCount, no N+1",
+        "One selected-list goal lookup; active goal redirects, closed previous shows create flow",
+        "Same dialog on success routes to newly created goal"
+      ],
+      "covers": ["RG-01", "RG-03", "RG-04", "RG-09", "RG-23", "AC-01", "AC-03", "AC-04", "AC-18"],
+      "status": "done",
+      "proof": {
+        "files": [
+          "apps/web/src/features/reading-goals/components/goal-list-picker.tsx",
+          "apps/web/src/features/reading-goals/model/goal-list-choice.ts",
+          "apps/web/src/features/reading-goals/model/goal-list-picker-content.ts",
+          "apps/web/src/features/reading-goals/api/use-list-goal.ts",
+          "apps/web/src/features/reading-goals/components/goal-form-dialog.tsx",
+          "apps/web/src/features/reading-goals/components/list-goal-card.tsx",
+          "apps/web/src/features/reading-goals/components/goals-catalog.tsx",
+          "apps/web/src/features/reading-goals/components/goals-catalog-view.tsx"
+        ],
+        "notes": [
+          "Picker uses existing useLists (page-number) with fill=[with_books] + existing DebouncedSearchInput; rows show CustomListCard.bookCount; no per-row goal lookups",
+          "Selection: one queryClient.fetchQuery(listGoalQueryOptions(id)) with staleTime 0; active -> toast.info + push /goals/{id}; completed/expired -> same GoalFormDialog with autoArchive hint; null/archived -> create",
+          "GoalFormDialog onCreated(goal) -> catalog pushes /goals/{newId}; create mode carries previousOutcome (also passed by ListGoalCard closed state); no frontend archive call",
+          "Flow state: closed | picking | creating{list, previousOutcome}"
+        ],
+        "tests": [
+          "components/goal-list-picker.test.tsx",
+          "list-goal-card.test.tsx (+2 auto-archive hint)"
+        ],
+        "verified": true,
+        "gates": {
+          "targetedTests": "VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run <17 files> -> exit 0, 17 files, 165/165 passed (after rebase on origin/dev 2b60663f)",
+          "typecheck": "bash .claude/scripts/gates.sh -> ok typecheck (turbo, all packages)",
+          "format": "bash .claude/scripts/gates.sh -> ok format (prettier on the diff)",
+          "lint": "pnpm exec eslint --max-warnings=0 on the 63 changed apps/web .ts/.tsx files -> exit 0 (gates.sh lint-web step itself breaks on the unquoted (app) path at gates.sh:61, tooling bug)"
+        }
+      }
+    },
+    {
+      "id": "C06",
+      "stage": 2,
+      "layer": "frontend",
+      "files": [
+        "apps/web/src/features/reading-goals/components/goals-catalog.tsx",
+        "apps/web/src/features/reading-goals/components/goals-toolbar.tsx"
+      ],
+      "dependsOn": ["C02", "C03"],
+      "mandatory": true,
+      "doneWhen": [
+        "Real empty vs filtered empty vs network error; retry",
+        "Cursor next-page error preserves previous loaded pages; load-more footer"
+      ],
+      "covers": ["RG-18", "AC-15"],
+      "status": "done",
+      "proof": {
+        "files": [
+          "apps/web/src/features/reading-goals/model/goals-catalog-content.ts",
+          "apps/web/src/features/reading-goals/components/goals-catalog-view.tsx"
+        ],
+        "notes": [
+          "Discriminated content: loading / empty / filtered-empty / error (isError && !isFetchNextPageError) / goals with footer state",
+          "InfiniteScrollFooter idle/loading/error/none, next-page error keeps loaded pages"
+        ],
+        "tests": ["components/goals-catalog.test.tsx"],
+        "verified": true,
+        "gates": {
+          "targetedTests": "VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run <17 files> -> exit 0, 17 files, 165/165 passed (after rebase on origin/dev 2b60663f)",
+          "typecheck": "bash .claude/scripts/gates.sh -> ok typecheck (turbo, all packages)",
+          "format": "bash .claude/scripts/gates.sh -> ok format (prettier on the diff)",
+          "lint": "pnpm exec eslint --max-warnings=0 on the 63 changed apps/web .ts/.tsx files -> exit 0 (gates.sh lint-web step itself breaks on the unquoted (app) path at gates.sh:61, tooling bug)"
+        }
+      }
+    },
+    {
+      "id": "C07",
+      "stage": 2,
+      "layer": "frontend",
+      "files": ["apps/web/src/features/reading-goals/components/goals-catalog.tsx"],
+      "dependsOn": ["C04"],
+      "mandatory": false,
+      "doneWhen": [
+        "If existing layout supports it cheaply, display server attention<=5 and bestResult unobtrusively; otherwise document omission"
+      ],
+      "covers": ["RG-10"],
+      "status": "done",
+      "proof": {
+        "files": ["apps/web/src/features/reading-goals/components/goals-overview-highlights.tsx"],
+        "notes": [
+          "attention (server items, localized by reason, numeric messageData only) and bestResult blocks",
+          "500-goal scan cap note skipped: the API does not say whether the cap was hit"
+        ],
+        "verified": true,
+        "gates": {
+          "targetedTests": "VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run <17 files> -> exit 0, 17 files, 165/165 passed (after rebase on origin/dev 2b60663f)",
+          "typecheck": "bash .claude/scripts/gates.sh -> ok typecheck (turbo, all packages)",
+          "format": "bash .claude/scripts/gates.sh -> ok format (prettier on the diff)",
+          "lint": "pnpm exec eslint --max-warnings=0 on the 63 changed apps/web .ts/.tsx files -> exit 0 (gates.sh lint-web step itself breaks on the unquoted (app) path at gates.sh:61, tooling bug)"
+        }
+      }
+    },
+    {
+      "id": "D01",
+      "stage": 3,
+      "layer": "frontend",
+      "files": [
+        "apps/web/src/features/reading-goals/components/goal-details-view.tsx",
+        "apps/web/src/features/reading-goals/model/goal-detail-query.ts"
+      ],
+      "dependsOn": ["C01", "F01"],
+      "mandatory": true,
+      "doneWhen": [
+        "Header and single shared progress + tabs URL-state; stale params removed",
+        "Archived read-only, separate result/null, archive/delete confirms",
+        "Delete routes to /goals and null list back fallback"
+      ],
+      "covers": ["BUG-08", "RG-12", "RG-21", "AC-11", "AC-19", "AC-22"],
+      "status": "done",
+      "proof": {
+        "files": [
+          "apps/web/src/features/reading-goals/model/goal-detail-query.ts",
+          "apps/web/src/features/reading-goals/model/use-goal-detail-query.ts",
+          "apps/web/src/features/reading-goals/components/goal-details-view.tsx",
+          "apps/web/src/features/reading-goals/components/goal-detail-header.tsx",
+          "apps/web/src/features/reading-goals/components/goal-detail-actions.tsx",
+          "apps/web/src/features/reading-goals/components/goal-details.tsx",
+          "apps/web/src/features/reading-goals/model/use-goal-time-note.ts"
+        ],
+        "notes": [
+          "nuqs tab=overview|books|activity (default absent), scope only for books, activityType only for activity; toGoalDetailTabPatch clears foreign params; history push",
+          "PageTabs with a single mounted panel: inactive tabs never mount, so they never fetch",
+          "Header: back to /lists/{id} or /goals; status badge + separate archived result (null -> none); one server progressPercent block",
+          "Edit/archive hidden for archived; delete confirm -> router.replace('/goals'); not-found/error screen back to /goals",
+          "goal-counted-books.tsx (capped preview shown as a full list) deleted"
+        ],
+        "tests": [
+          "model/goal-detail-query.test.ts",
+          "components/goal-details.test.tsx (rewritten with NuqsTestingAdapter)"
+        ],
+        "verified": true,
+        "gates": {
+          "targetedTests": "VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run <17 files> -> exit 0, 17 files, 165/165 passed (after rebase on origin/dev 2b60663f)",
+          "typecheck": "bash .claude/scripts/gates.sh -> ok typecheck (turbo, all packages)",
+          "format": "bash .claude/scripts/gates.sh -> ok format (prettier on the diff)",
+          "lint": "pnpm exec eslint --max-warnings=0 on the 63 changed apps/web .ts/.tsx files -> exit 0 (gates.sh lint-web step itself breaks on the unquoted (app) path at gates.sh:61, tooling bug)"
+        }
+      }
+    },
+    {
+      "id": "D02",
+      "stage": 3,
+      "layer": "frontend",
+      "files": ["apps/web/src/features/reading-goals/components/goal-overview-tab.tsx"],
+      "dependsOn": ["D01"],
+      "mandatory": true,
+      "doneWhen": [
+        "Server-derived pace/risk/projection/checkpoints presented with null/low-confidence guard",
+        "Checkpoint missed+achievedAt retains both status/date"
+      ],
+      "covers": ["RG-13", "AC-16", "AC-21"],
+      "status": "done",
+      "proof": {
+        "files": [
+          "apps/web/src/features/reading-goals/components/goal-overview-tab.tsx",
+          "apps/web/src/features/reading-goals/components/goal-checkpoint-list.tsx",
+          "apps/web/src/features/reading-goals/components/goal-activity-preview.tsx",
+          "apps/web/src/features/reading-goals/model/goal-status.ts"
+        ],
+        "notes": [
+          "Server metrics only: pace/paceDeltaBooks, actual vs required pace, riskLevel + riskReasons, last counted",
+          "Projection date only for medium/high confidence; low -> rough wording without a date; none -> not enough data",
+          "Checkpoint missed + achievedAt shows both states",
+          "activityPreview presented as recent activity with a button to the activity tab"
+        ],
+        "tests": [
+          "components/goal-details.test.tsx (low confidence, missed+achievedAt, risk reasons)"
+        ],
+        "verified": true,
+        "gates": {
+          "targetedTests": "VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run <17 files> -> exit 0, 17 files, 165/165 passed (after rebase on origin/dev 2b60663f)",
+          "typecheck": "bash .claude/scripts/gates.sh -> ok typecheck (turbo, all packages)",
+          "format": "bash .claude/scripts/gates.sh -> ok format (prettier on the diff)",
+          "lint": "pnpm exec eslint --max-warnings=0 on the 63 changed apps/web .ts/.tsx files -> exit 0 (gates.sh lint-web step itself breaks on the unquoted (app) path at gates.sh:61, tooling bug)"
+        }
+      }
+    },
+    {
+      "id": "D03",
+      "stage": 3,
+      "layer": "frontend",
+      "files": [
+        "apps/web/src/features/reading-goals/components/goal-books-tab.tsx",
+        "apps/web/src/features/reading-goals/api/use-goal-books.ts"
+      ],
+      "dependsOn": ["D01"],
+      "mandatory": true,
+      "doneWhen": [
+        "Server cursor book list 20/page, all/counted/remaining, error/retry",
+        "Correct qualify and countedFinishedAt, snapshot hint, safe unavailable book",
+        "Not using capped detail preview as full collection"
+      ],
+      "covers": ["BUG-06", "RG-14", "RG-22", "AC-05", "AC-06", "AC-07", "AC-08", "AC-12"],
+      "status": "done",
+      "proof": {
+        "files": [
+          "apps/web/src/features/reading-goals/api/use-goal-books.ts",
+          "apps/web/src/features/reading-goals/components/goal-books-tab.tsx",
+          "apps/web/src/features/reading-goals/components/goal-book-row.tsx",
+          "apps/web/src/features/reading-goals/model/goal-book-state.ts"
+        ],
+        "notes": [
+          "GET /goals/:id/books via useInfiniteQuery keyed goalKeys.books(goalId, {limit 20, scope}); nextCursor pageParam",
+          "Scope chips all/counted/remaining; snapshot hint; row distinguishes counted (countedFinishedAt) vs finished outside the window vs in progress (currentPage/pagesCount)",
+          "detail.countedBooks/remainingBooks previews no longer rendered as lists"
+        ],
+        "tests": ["components/goal-books-tab.test.tsx (8 cases)"],
+        "verified": true,
+        "gates": {
+          "targetedTests": "VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run <17 files> -> exit 0, 17 files, 165/165 passed (after rebase on origin/dev 2b60663f)",
+          "typecheck": "bash .claude/scripts/gates.sh -> ok typecheck (turbo, all packages)",
+          "format": "bash .claude/scripts/gates.sh -> ok format (prettier on the diff)",
+          "lint": "pnpm exec eslint --max-warnings=0 on the 63 changed apps/web .ts/.tsx files -> exit 0 (gates.sh lint-web step itself breaks on the unquoted (app) path at gates.sh:61, tooling bug)"
+        }
+      }
+    },
+    {
+      "id": "D04",
+      "stage": 3,
+      "layer": "frontend",
+      "files": [
+        "apps/web/src/features/reading-goals/components/goal-activity-tab.tsx",
+        "apps/web/src/features/reading-goals/api/use-goal-activity.ts"
+      ],
+      "dependsOn": ["D01"],
+      "mandatory": true,
+      "doneWhen": [
+        "Server cursor activity 20/page, single type filter URL-state",
+        "All known nine event types localized; unknown metadata/null safe",
+        "Book link only with provided book ref"
+      ],
+      "covers": ["RG-15", "AC-13"],
+      "status": "done",
+      "proof": {
+        "files": [
+          "apps/web/src/features/reading-goals/api/use-goal-activity.ts",
+          "apps/web/src/features/reading-goals/components/goal-activity-tab.tsx",
+          "apps/web/src/features/reading-goals/components/goal-activity-row.tsx",
+          "apps/web/src/features/reading-goals/model/goal-activity-detail.ts",
+          "apps/web/src/features/reading-goals/components/goal-activity-preview.tsx"
+        ],
+        "notes": [
+          "GET /goals/:id/activity cursor 20, single type filter bound to activityType URL param (type omitted when null)",
+          "All 9 types localized; metadata narrowed per type with a Zod discriminated union safeParse, generic sentence on mismatch/null",
+          "Book link rendered only when activity.book is present"
+        ],
+        "tests": ["components/goal-activity-tab.test.tsx (7 cases)"],
+        "verified": true,
+        "gates": {
+          "targetedTests": "VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run <17 files> -> exit 0, 17 files, 165/165 passed (after rebase on origin/dev 2b60663f)",
+          "typecheck": "bash .claude/scripts/gates.sh -> ok typecheck (turbo, all packages)",
+          "format": "bash .claude/scripts/gates.sh -> ok format (prettier on the diff)",
+          "lint": "pnpm exec eslint --max-warnings=0 on the 63 changed apps/web .ts/.tsx files -> exit 0 (gates.sh lint-web step itself breaks on the unquoted (app) path at gates.sh:61, tooling bug)"
+        }
+      }
+    },
+    {
+      "id": "D05",
+      "stage": 3,
+      "layer": "frontend",
+      "files": [
+        "apps/web/src/features/reading-goals/components/goal-details-view.tsx",
+        "apps/web/src/features/reading-goals/components/goal-books-tab.tsx",
+        "apps/web/src/features/reading-goals/components/goal-activity-tab.tsx"
+      ],
+      "dependsOn": ["D02", "D03", "D04"],
+      "mandatory": true,
+      "doneWhen": [
+        "Skeleton/empty/fetch error/next-page error independent per tab",
+        "Inactive tabs do not fetch all cursor pages prematurely"
+      ],
+      "covers": ["RG-18", "AC-15"],
+      "status": "done",
+      "proof": {
+        "files": [
+          "apps/web/src/features/reading-goals/model/goal-cursor-content.ts",
+          "apps/web/src/features/reading-goals/components/goal-books-tab.tsx",
+          "apps/web/src/features/reading-goals/components/goal-activity-tab.tsx",
+          "apps/web/src/features/reading-goals/components/goal-details-view.tsx"
+        ],
+        "notes": [
+          "Per-tab loading/empty/error(retry)/next-page error keeping rows via resolveGoalCursorContent + InfiniteScrollFooter",
+          "Only the active tab is mounted, so inactive tabs do not fetch"
+        ],
+        "verified": true,
+        "gates": {
+          "targetedTests": "VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run <17 files> -> exit 0, 17 files, 165/165 passed (after rebase on origin/dev 2b60663f)",
+          "typecheck": "bash .claude/scripts/gates.sh -> ok typecheck (turbo, all packages)",
+          "format": "bash .claude/scripts/gates.sh -> ok format (prettier on the diff)",
+          "lint": "pnpm exec eslint --max-warnings=0 on the 63 changed apps/web .ts/.tsx files -> exit 0 (gates.sh lint-web step itself breaks on the unquoted (app) path at gates.sh:61, tooling bug)"
+        }
+      }
+    },
+    {
+      "id": "P01",
+      "stage": 4,
+      "layer": "frontend",
+      "files": ["apps/web/src/features/reading-goals/components/goal-form-dialog.tsx"],
+      "dependsOn": ["C05", "D01"],
+      "mandatory": true,
+      "doneWhen": [
+        "Targets presets valid within list/snapshot max; deadline shortcuts future-only",
+        "Auto-archive informational copy for closed previous goal, no extra server archive",
+        "Same RHF form; i18n complete"
+      ],
+      "covers": ["RG-05", "RG-06", "RG-09", "AC-04"],
+      "status": "done",
+      "proof": {
+        "verified": true,
+        "gates": {
+          "targetedTests": "VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run <17 files> -> exit 0, 17 files, 165/165 passed (after rebase on origin/dev 2b60663f)",
+          "typecheck": "bash .claude/scripts/gates.sh -> ok typecheck (turbo, all packages)",
+          "format": "bash .claude/scripts/gates.sh -> ok format (prettier on the diff)",
+          "lint": "pnpm exec eslint --max-warnings=0 on the 63 changed apps/web .ts/.tsx files -> exit 0 (gates.sh lint-web step itself breaks on the unquoted (app) path at gates.sh:61, tooling bug)"
+        },
+        "files": [
+          "apps/web/src/features/reading-goals/model/goal-form.ts",
+          "apps/web/src/features/reading-goals/components/goal-form-quick-picks.tsx",
+          "apps/web/src/features/reading-goals/components/goal-form-dialog.tsx"
+        ],
+        "notes": [
+          "goalTargetPresets 3/5/10/all capped at min(bookCount,1000); goalDeadlineShortcuts future-only (end of month, +3 months, end of year) via date-fns + dateToIsoDay",
+          "setValue with dirty/touch/validate in the same RHF form; auto-archive hint for completed/expired previous goal, no archive call"
+        ],
+        "tests": ["goal-form-dialog.test.tsx: 4 preset cases, 3 deadline shortcut cases"]
+      }
+    },
+    {
+      "id": "P02",
+      "stage": 4,
+      "layer": "frontend",
+      "files": [
+        "apps/web/src/features/reading-goals/components/goal-form-dialog.tsx",
+        "apps/web/src/features/reading-goals/components/goals-catalog.tsx",
+        "apps/web/src/features/reading-goals/components/goal-details-view.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["P01", "D05", "C06"],
+      "mandatory": true,
+      "doneWhen": [
+        "No modal/button overflow on desktop/mobile, 24px responsive sections",
+        "Focus return, progress aria, accessible status, uk/en strings",
+        "Snapshot language matches server inclusion dates"
+      ],
+      "covers": ["RG-19", "RG-20", "AC-20"],
+      "status": "partial",
+      "proof": {
+        "verified": true,
+        "gates": {
+          "targetedTests": "VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run <17 files> -> exit 0, 17 files, 165/165 passed (after rebase on origin/dev 2b60663f)",
+          "typecheck": "bash .claude/scripts/gates.sh -> ok typecheck (turbo, all packages)",
+          "format": "bash .claude/scripts/gates.sh -> ok format (prettier on the diff)",
+          "lint": "pnpm exec eslint --max-warnings=0 on the 63 changed apps/web .ts/.tsx files -> exit 0 (gates.sh lint-web step itself breaks on the unquoted (app) path at gates.sh:61, tooling bug)"
+        },
+        "knownGaps": "Known low gap: after 'show all' buttons (activity preview, books empty scope) focus falls back to body; PageTabs exposes no stable trigger id without a broken aria-controls. Modal focus return is implemented.",
+        "blockedBy": "Mobile/narrow overflow and safe-area not visually verified (no running dev environment); low a11y gap: focus falls to body after the show-all buttons (goal-activity-preview.tsx:26, goal-books-tab.tsx:90,154)"
+      }
+    },
+    {
+      "id": "P03",
+      "stage": 4,
+      "layer": "frontend",
+      "files": [
+        "apps/web/src/features/reading-goals/api/",
+        "apps/web/src/features/reading-goals/components/",
+        "apps/web/src/features/reading-goals/model/"
+      ],
+      "dependsOn": ["P02"],
+      "mandatory": true,
+      "doneWhen": [
+        "Every mandatory acceptance and RG requirement mapped to actual code proof or explicit blocker",
+        "All required targeted tests and repository gates performed once at the end, sequentially according to LOW_MEMORY_POLICY.md; visual check only if environment available",
+        "No backend change/new dependency; repo policy opt-in accurately reflected in diff; no commit or push"
+      ],
+      "covers": ["RG-02", "RG-17", "RG-18", "RG-24", "AC-01", "AC-23"],
+      "status": "partial",
+      "proof": {
+        "verified": true,
+        "gates": {
+          "targetedTests": "VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run <17 files> -> exit 0, 17 files, 165/165 passed (after rebase on origin/dev 2b60663f)",
+          "typecheck": "bash .claude/scripts/gates.sh -> ok typecheck (turbo, all packages)",
+          "format": "bash .claude/scripts/gates.sh -> ok format (prettier on the diff)",
+          "lint": "pnpm exec eslint --max-warnings=0 on the 63 changed apps/web .ts/.tsx files -> exit 0 (gates.sh lint-web step itself breaks on the unquoted (app) path at gates.sh:61, tooling bug)"
+        },
+        "knownGaps": "Visual check: no running dev environment, not started per LOW_MEMORY_POLICY; UI not visually verified. No backend/shared/generated edits, no new dependency, no commit/push.",
+        "blockedBy": "UI not visually verified; lint/format ran diff-scoped through the repo /check gate (CLAUDE.md §9 on origin/dev) instead of global pnpm lint / pnpm format:check"
+      }
+    }
+  ],
+  "qualityPolicy": {
+    "name": "LOW_MEMORY_EXECUTION",
+    "source": "LOW_MEMORY_POLICY.md",
+    "timing": "final_only",
+    "stageChecks": "none (read-only diff inspection only)",
+    "statusBeforeFinal": "implemented_pending_verification",
+    "finalChecks": [
+      "targeted Vitest once, single worker",
+      "pnpm exec turbo run typecheck --concurrency=1",
+      "pnpm lint",
+      "pnpm format:check"
+    ],
+    "parallelHeavyProcesses": false,
+    "doNotCommitOrPush": true,
+    "verificationState": "spec_verify_done",
+    "checksRun": [
+      "VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run <17 files> -> exit 0, 17 files, 165/165 passed (after rebase on origin/dev 2b60663f)",
+      "goal-books-tab.test.tsx alone -> 9/9 after fixing the >100 books test (needed network latency so the sentinel sees a loading state between pages)",
+      "bash .claude/scripts/gates.sh (run 1) -> FAIL typecheck goal-book-state.ts:15, FAIL format 8 files, FAIL lint-web (script quoting)",
+      "bash .claude/scripts/gates.sh (run 2) -> ok typecheck, ok format, FAIL lint-web (script quoting only)",
+      "pnpm exec eslint --max-warnings=0 on the 63 changed apps/web .ts/.tsx files -> exit 0 (gates.sh lint-web step itself breaks on the unquoted (app) path at gates.sh:61, tooling bug)"
+    ],
+    "specVerify": "spec-auditor VERIFY once: 16 done, P02 partial (visual + focus after show-all), P03 partial (visual, diff-scoped lint/format); invariants hold; no forbidden paths; rule files equal origin/dev"
+  }
+}
