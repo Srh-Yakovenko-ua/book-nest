@@ -96,6 +96,23 @@ describe("EditionDetailsSection clearing optional fields", () => {
 
     expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ isbn: null });
   });
+
+  it("shows the placeholder and sends null once the publication year is cleared", async () => {
+    const { onSubmit } = renderSection({ publicationYear: 2019 });
+    expect(screen.getByRole("button", { name: fields.publicationYear })).toHaveTextContent("2019");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: messages.books.library.filters.yearPicker.clear }),
+    );
+    expect(screen.getByRole("button", { name: fields.publicationYear })).toHaveTextContent(
+      fields.publicationYearPlaceholder,
+    );
+
+    await submit();
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ publicationYear: null });
+  });
 });
 
 describe("EditionDetailsSection untouched saved values", () => {

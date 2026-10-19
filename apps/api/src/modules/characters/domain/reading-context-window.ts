@@ -1,70 +1,21 @@
-import type { Nullable, ReadingPosition } from "@app/shared";
-
 import type { ContextBookReader } from "./context-books.js";
-import type { ReadingPositionGate } from "./reading-position.js";
 
 import { resolveReadingContext } from "./context-books.js";
-import { buildReadingPositionGate, isHiddenByReadingPosition } from "./reading-position.js";
 
-export type CharacterScopedAppearance = ContextualAppearance & { characterId: string };
+export type CharacterScopedAppearance = { bookId: string; characterId: string };
 
-export type ContextualAppearance = {
-  bookId: string;
-  firstAppearanceAudioSeconds: Nullable<number>;
-  firstAppearanceChapter: Nullable<string>;
-  firstAppearancePage: Nullable<number>;
-  hidePresenceAsSpoiler: boolean;
-};
+export type ReadingContextWindow = ContextBooksWindow | { kind: "unrestricted" };
 
-export type ReadingContextWindow = PositionedReadingContextWindow | { kind: "unrestricted" };
-
-export type RosterVisibility =
-  | { kind: "beyond_reading_position" }
-  | { kind: "within_reading_position"; positionHiddenIds: string[] };
+export type RosterVisibility = { kind: "outside_context_window" } | { kind: "ungated" };
 
 export const UNRESTRICTED_READING_CONTEXT_WINDOW: ReadingContextWindow = { kind: "unrestricted" };
 
-export const UNGATED_ROSTER_VISIBILITY: RosterVisibility = {
-  kind: "within_reading_position",
-  positionHiddenIds: [],
-};
+export const UNGATED_ROSTER_VISIBILITY: RosterVisibility = { kind: "ungated" };
 
-type PositionedReadingContextWindow = {
+type ContextBooksWindow = {
   allowedBookIds: ReadonlySet<string>;
-  kind: "reading_position";
-  positionGate: Nullable<ReadingPositionGate>;
+  kind: "context_books";
 };
-
-export function buildReadingContextWindow({
-  allowedBookIds,
-  contextBookId,
-  readingPosition,
-}: {
-  allowedBookIds: string[];
-  contextBookId: Nullable<string>;
-  readingPosition: ReadingPosition | undefined;
-}): PositionedReadingContextWindow {
-  return {
-    allowedBookIds: new Set(allowedBookIds),
-    kind: "reading_position",
-    positionGate:
-      contextBookId === null
-        ? null
-        : buildReadingPositionGate({ contextBookId, reader: readingPosition }),
-  };
-}
-
-export function collectPositionHiddenAppearanceIds<Appearance extends ContextualAppearance>({
-  appearances,
-  window,
-}: {
-  appearances: (Appearance & { id: string })[];
-  window: ReadingContextWindow;
-}): string[] {
-  return appearances
-    .filter((appearance) => !isAppearanceRevealable({ appearance, window }))
-    .map((appearance) => appearance.id);
-}
 
 export function collectUnreachableCharacterIds({
   appearances,
@@ -77,48 +28,11 @@ export function collectUnreachableCharacterIds({
 }): Set<string> {
   const unreachable = new Set(characterIds);
   for (const appearance of appearances) {
-    if (isAppearanceRevealable({ appearance, window })) {
+    if (isBookWithinReadingContextWindow({ bookId: appearance.bookId, window })) {
       unreachable.delete(appearance.characterId);
     }
   }
   return unreachable;
-}
-
-export function isAppearanceRevealable({
-  appearance,
-  window,
-}: {
-  appearance: ContextualAppearance;
-  window: ReadingContextWindow;
-}): boolean {
-  if (appearance.hidePresenceAsSpoiler) {
-    return false;
-  }
-  return isAppearanceWithinReadingWindow({ appearance, window });
-}
-
-export function isAppearanceWithinReadingWindow({
-  appearance,
-  window,
-}: {
-  appearance: ContextualAppearance;
-  window: ReadingContextWindow;
-}): boolean {
-  if (window.kind === "unrestricted") {
-    return true;
-  }
-  if (!window.allowedBookIds.has(appearance.bookId)) {
-    return false;
-  }
-  return !isHiddenByReadingPosition({
-    content: {
-      audioSeconds: appearance.firstAppearanceAudioSeconds,
-      chapter: appearance.firstAppearanceChapter,
-      page: appearance.firstAppearancePage,
-    },
-    contentBookId: appearance.bookId,
-    gate: window.positionGate,
-  });
 }
 
 export function isBookWithinReadingContextWindow({
@@ -135,24 +49,18 @@ export async function resolveReadingContextWindow({
   bookReader,
   contextBookId,
   notFoundCode,
-  readingPosition,
   userId,
 }: {
   bookReader: ContextBookReader;
   contextBookId: string;
   notFoundCode: string;
-  readingPosition: ReadingPosition | undefined;
   userId: string;
-}): Promise<PositionedReadingContextWindow> {
+}): Promise<ContextBooksWindow> {
   const context = await resolveReadingContext({
     contextBookId,
     notFoundCode,
     reader: bookReader,
     userId,
   });
-  return buildReadingContextWindow({
-    allowedBookIds: context.allowedBookIds,
-    contextBookId,
-    readingPosition,
-  });
+  return { allowedBookIds: new Set(context.allowedBookIds), kind: "context_books" };
 }

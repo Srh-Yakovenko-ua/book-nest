@@ -43,20 +43,18 @@ afterAll(async () => {
 
 async function addCharacter({
   bookId,
-  character,
   name,
   profile,
   token,
 }: {
   bookId: string;
-  character?: Record<string, unknown>;
   name: string;
   profile?: Record<string, unknown>;
   token: string;
 }): Promise<string> {
   const res = await authed("post", `/api/books/${bookId}/characters`, token).send({
     bookProfile: { importance: "central", ...profile },
-    character: { name, ...character },
+    character: { name },
     mode: "new",
   });
   expect(res.status).toBe(HttpStatus.CREATED);
@@ -110,86 +108,41 @@ async function listTheories(token: string, query = ""): Promise<TheoriesBody> {
   return res.body;
 }
 
-describe("character theories reading-position gating", () => {
-  it("hides a theory whose character first appears in a later chapter", async () => {
+describe("character theories in a reading context", () => {
+  it("lists theories whatever their character's first-appearance chapter, page or audio position", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const { secondBook } = await createSeries(accessToken);
-    const early = await addCharacter({
-      bookId: secondBook,
-      name: "Duncan Idaho",
-      profile: { firstAppearanceChapter: "2" },
-      token: accessToken,
-    });
-    const late = await addCharacter({
-      bookId: secondBook,
-      name: "Alia Atreides",
-      profile: { firstAppearanceChapter: "40" },
-      token: accessToken,
-    });
-    await createTheory({ characterId: early, text: "Idaho is a ghola", token: accessToken });
-    await createTheory({ characterId: late, text: "Alia is possessed", token: accessToken });
+    for (const seed of [
+      { name: "Duncan Idaho", profile: { firstAppearanceChapter: "2" }, text: "Idaho is a ghola" },
+      {
+        name: "Alia Atreides",
+        profile: { firstAppearanceChapter: "40" },
+        text: "Alia is possessed",
+      },
+      { name: "Hayt", profile: { firstAppearancePage: 420 }, text: "Hayt remembers" },
+      { name: "Scytale", profile: { firstAppearanceAudioSeconds: 36000 }, text: "Scytale plots" },
+    ]) {
+      const characterId = await addCharacter({
+        bookId: secondBook,
+        name: seed.name,
+        profile: seed.profile,
+        token: accessToken,
+      });
+      await createTheory({ characterId, text: seed.text, token: accessToken });
+    }
 
-    const ungated = await listTheories(accessToken, `?contextBookId=${secondBook}`);
-    expect(ungated.totalCount).toBe(2);
+    const listed = await listTheories(accessToken, `?contextBookId=${secondBook}`);
 
-    const gated = await listTheories(accessToken, `?contextBookId=${secondBook}&contextChapter=5`);
-    expect(gated.totalCount).toBe(1);
-    expect(gated.items.map((theory) => theory.text)).toEqual(["Idaho is a ghola"]);
-    expect(JSON.stringify(gated)).not.toContain("Alia Atreides");
-    expect(JSON.stringify(gated)).not.toContain("Alia is possessed");
-
-    const reached = await listTheories(
-      accessToken,
-      `?contextBookId=${secondBook}&contextChapter=40`,
-    );
-    expect(reached.totalCount).toBe(2);
+    expect(listed.totalCount).toBe(4);
+    expect(listed.items.map((theory) => theory.text).sort()).toEqual([
+      "Alia is possessed",
+      "Hayt remembers",
+      "Idaho is a ghola",
+      "Scytale plots",
+    ]);
   });
 
-  it("hides a theory whose character first appears on a later page", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
-    const { secondBook } = await createSeries(accessToken);
-    const late = await addCharacter({
-      bookId: secondBook,
-      name: "Alia Atreides",
-      profile: { firstAppearancePage: 420 },
-      token: accessToken,
-    });
-    await createTheory({ characterId: late, text: "Alia is possessed", token: accessToken });
-
-    const gated = await listTheories(accessToken, `?contextBookId=${secondBook}&contextPage=50`);
-    expect(gated.totalCount).toBe(0);
-    expect(JSON.stringify(gated)).not.toContain("Alia Atreides");
-
-    const reached = await listTheories(accessToken, `?contextBookId=${secondBook}&contextPage=420`);
-    expect(reached.totalCount).toBe(1);
-  });
-
-  it("hides a theory whose character first appears at a later audiobook position", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
-    const { secondBook } = await createSeries(accessToken);
-    const late = await addCharacter({
-      bookId: secondBook,
-      name: "Alia Atreides",
-      profile: { firstAppearanceAudioSeconds: 36000 },
-      token: accessToken,
-    });
-    await createTheory({ characterId: late, text: "Alia is possessed", token: accessToken });
-
-    const gated = await listTheories(
-      accessToken,
-      `?contextBookId=${secondBook}&contextAudioSeconds=600`,
-    );
-    expect(gated.totalCount).toBe(0);
-    expect(JSON.stringify(gated)).not.toContain("Alia Atreides");
-
-    const reached = await listTheories(
-      accessToken,
-      `?contextBookId=${secondBook}&contextAudioSeconds=36000`,
-    );
-    expect(reached.totalCount).toBe(1);
-  });
-
-  it("keeps a theory about an earlier part's character while a position gates the context book", async () => {
+  it("lists theories about the context book's and earlier parts' characters", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const { firstBook, secondBook } = await createSeries(accessToken);
     const earlierPart = await addCharacter({
@@ -198,19 +151,21 @@ describe("character theories reading-position gating", () => {
       profile: { firstAppearanceChapter: "30" },
       token: accessToken,
     });
-    const futurePart = await addCharacter({
+    const contextPart = await addCharacter({
       bookId: secondBook,
       name: "Alia Atreides",
       profile: { firstAppearanceChapter: "30" },
       token: accessToken,
     });
     await createTheory({ characterId: earlierPart, text: "Paul survives", token: accessToken });
-    await createTheory({ characterId: futurePart, text: "Alia is possessed", token: accessToken });
+    await createTheory({ characterId: contextPart, text: "Alia is possessed", token: accessToken });
 
-    const gated = await listTheories(accessToken, `?contextBookId=${secondBook}&contextChapter=5`);
-    expect(gated.totalCount).toBe(1);
-    expect(gated.items.map((theory) => theory.text)).toEqual(["Paul survives"]);
-    expect(JSON.stringify(gated)).not.toContain("Alia Atreides");
+    const listed = await listTheories(accessToken, `?contextBookId=${secondBook}`);
+
+    expect(listed.items.map((theory) => theory.text).sort()).toEqual([
+      "Alia is possessed",
+      "Paul survives",
+    ]);
   });
 
   it("hides a theory about a future part's character while reading an earlier part", async () => {
@@ -224,7 +179,7 @@ describe("character theories reading-position gating", () => {
     });
     await createTheory({ characterId: futurePart, text: "Alia is possessed", token: accessToken });
 
-    const gated = await listTheories(accessToken, `?contextBookId=${firstBook}&contextChapter=99`);
+    const gated = await listTheories(accessToken, `?contextBookId=${firstBook}`);
     expect(gated.totalCount).toBe(0);
     expect(JSON.stringify(gated)).not.toContain("Alia Atreides");
 
@@ -232,48 +187,11 @@ describe("character theories reading-position gating", () => {
     expect(full.totalCount).toBe(1);
   });
 
-  it("keeps a theory about a presence-hidden character out of every reading position", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
-    const { secondBook } = await createSeries(accessToken);
-    const traitor = await addCharacter({
-      bookId: secondBook,
-      name: "The Traitor",
-      profile: { firstAppearanceChapter: "1", hidePresenceAsSpoiler: true },
-      token: accessToken,
-    });
-    await createTheory({ characterId: traitor, text: "The Traitor betrays", token: accessToken });
-
-    for (const position of ["", "&contextChapter=1", "&contextChapter=99"]) {
-      const gated = await listTheories(accessToken, `?contextBookId=${secondBook}${position}`);
-      expect(gated.totalCount).toBe(0);
-      expect(JSON.stringify(gated)).not.toContain("The Traitor");
-    }
-  });
-
-  it("keeps a theory about a profile-hidden character out of every reading position", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
-    const { secondBook } = await createSeries(accessToken);
-    const heir = await addCharacter({
-      bookId: secondBook,
-      character: { hideProfileAsSpoiler: true },
-      name: "Leto II",
-      profile: { firstAppearanceChapter: "1" },
-      token: accessToken,
-    });
-    await createTheory({ characterId: heir, text: "Leto II transforms", token: accessToken });
-
-    for (const position of ["", "&contextChapter=1", "&contextChapter=99"]) {
-      const gated = await listTheories(accessToken, `?contextBookId=${secondBook}${position}`);
-      expect(gated.totalCount).toBe(0);
-      expect(JSON.stringify(gated)).not.toContain("Leto II");
-    }
-  });
-
   it("counts a gated page from the same visible set the items come from", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
-    const { secondBook } = await createSeries(accessToken);
+    const { firstBook, secondBook } = await createSeries(accessToken);
     const reached = await addCharacter({
-      bookId: secondBook,
+      bookId: firstBook,
       name: "Duncan Idaho",
       profile: { firstAppearanceChapter: "2" },
       token: accessToken,
@@ -281,7 +199,7 @@ describe("character theories reading-position gating", () => {
     const unreached = await addCharacter({
       bookId: secondBook,
       name: "Alia Atreides",
-      profile: { firstAppearanceChapter: "40" },
+      profile: { firstAppearanceChapter: "1" },
       token: accessToken,
     });
     for (const index of [1, 2, 3]) {
@@ -297,7 +215,7 @@ describe("character theories reading-position gating", () => {
       });
     }
 
-    const query = `?contextBookId=${secondBook}&contextChapter=5&pageSize=${THEORY_PAGE_BOUNDARY_SIZE}`;
+    const query = `?contextBookId=${firstBook}&pageSize=${THEORY_PAGE_BOUNDARY_SIZE}`;
     const firstPage = await listTheories(accessToken, `${query}&pageNumber=1`);
     const secondPage = await listTheories(accessToken, `${query}&pageNumber=2`);
 
@@ -316,47 +234,24 @@ describe("character theories reading-position gating", () => {
 
   it("gates contextual search by the same visible set", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
-    const { secondBook } = await createSeries(accessToken);
-    const unreached = await addCharacter({
+    const { firstBook, secondBook } = await createSeries(accessToken);
+    const futurePart = await addCharacter({
       bookId: secondBook,
       name: "Alia Atreides",
       profile: { firstAppearanceChapter: "40" },
       token: accessToken,
     });
-    await createTheory({ characterId: unreached, text: "Alia is possessed", token: accessToken });
+    await createTheory({ characterId: futurePart, text: "Alia is possessed", token: accessToken });
 
-    const gated = await listTheories(
-      accessToken,
-      `?contextBookId=${secondBook}&contextChapter=5&search=possessed`,
-    );
+    const gated = await listTheories(accessToken, `?contextBookId=${firstBook}&search=possessed`);
     expect(gated.totalCount).toBe(0);
-    expect(gated.items).toEqual([]);
     expect(JSON.stringify(gated)).not.toContain("Alia");
+
+    const found = await listTheories(accessToken, `?contextBookId=${secondBook}&search=possessed`);
+    expect(found.items.map((theory) => theory.text)).toEqual(["Alia is possessed"]);
   });
 
-  it("rejects a reading position unless the context book is named", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
-    const { secondBook } = await createSeries(accessToken);
-    const unreached = await addCharacter({
-      bookId: secondBook,
-      name: "Alia Atreides",
-      profile: { firstAppearanceChapter: "40" },
-      token: accessToken,
-    });
-    await createTheory({ characterId: unreached, text: "Alia is possessed", token: accessToken });
-
-    const bare = await authed("get", "/api/character-theories?contextChapter=5", accessToken);
-    expect(bare.status).toBe(HttpStatus.BAD_REQUEST);
-    expect(bare.body.errorsMessages).toEqual([
-      {
-        field: "contextBookId",
-        message: "contextBookId is required when a reading position is supplied",
-      },
-    ]);
-    expect(JSON.stringify(bare.body)).not.toContain("Alia Atreides");
-  });
-
-  it("leaves a request with no context book and no position untouched", async () => {
+  it("leaves a request with no context book untouched", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const { firstBook, secondBook } = await createSeries(accessToken);
     const earlierPart = await addCharacter({

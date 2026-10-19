@@ -376,3 +376,206 @@ describe("book roster sorting", () => {
     expect(secondPage.items.map((item) => item.name)).toEqual(["Gamma"]);
   });
 });
+
+describe("book roster filters", () => {
+  const CAST = [
+    { importance: "central", isFavorite: true, isPovCharacter: true, name: "Paul" },
+    { importance: "major", isFavorite: false, isPovCharacter: true, name: "Jessica" },
+    { importance: "major", isFavorite: true, isPovCharacter: false, name: "Leto" },
+    { importance: "not_specified", isFavorite: true, isPovCharacter: false, name: "Stilgar" },
+    { importance: "mentioned", isFavorite: false, isPovCharacter: false, name: "Shaddam" },
+  ];
+
+  async function seedCast(token: string): Promise<string> {
+    const bookId = await createBook(token, "Dune");
+    for (const member of CAST) {
+      await addCharacter({
+        bookId,
+        character: { isFavorite: member.isFavorite, name: member.name },
+        profile: { importance: member.importance, isPovCharacter: member.isPovCharacter },
+        token,
+      });
+    }
+    return bookId;
+  }
+
+  function names(page: { items: Record<string, unknown>[] }): unknown[] {
+    return page.items.map((item) => item.name);
+  }
+
+  it("matches selected importances with OR, comma-separated or repeated", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await seedCast(accessToken);
+
+    const csv = await roster(accessToken, bookId, "?sort=name&importance=major,not_specified");
+    const repeated = await roster(
+      accessToken,
+      bookId,
+      "?sort=name&importance=major&importance=not_specified&importance=major",
+    );
+
+    expect(names(csv)).toEqual(["Jessica", "Leto", "Stilgar"]);
+    expect(csv.totalCount).toBe(3);
+    expect(names(repeated)).toEqual(names(csv));
+    expect(repeated.totalCount).toBe(3);
+  });
+
+  it("ANDs favorites, POV, importance and search", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await seedCast(accessToken);
+
+    const favorites = await roster(accessToken, bookId, "?sort=name&favoritesOnly=true");
+    const pov = await roster(accessToken, bookId, "?sort=name&povOnly=true");
+    const favoritePov = await roster(accessToken, bookId, "?favoritesOnly=true&povOnly=true");
+    const combined = await roster(
+      accessToken,
+      bookId,
+      "?sort=name&favoritesOnly=true&importance=major,not_specified&search=st",
+    );
+    const disabled = await roster(accessToken, bookId, "?favoritesOnly=false&povOnly=false");
+
+    expect(names(favorites)).toEqual(["Leto", "Paul", "Stilgar"]);
+    expect(names(pov)).toEqual(["Jessica", "Paul"]);
+    expect(names(favoritePov)).toEqual(["Paul"]);
+    expect(names(combined)).toEqual(["Stilgar"]);
+    expect(combined.totalCount).toBe(1);
+    expect(disabled.totalCount).toBe(CAST.length);
+  });
+
+  it("rejects an unknown importance or a malformed boolean", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken, "Dune");
+
+    for (const query of ["?importance=heroic", "?favoritesOnly=maybe", "?povOnly=1x"]) {
+      const res = await authed("get", `/api/books/${bookId}/characters${query}`, accessToken);
+      expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+    }
+  });
+
+  it("keeps the filtered total in agreement with the pages", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken, "Crowd");
+    const favoriteNames = Array.from({ length: 23 }, (_, index) => `Fan ${index + 10}`);
+    for (const name of favoriteNames) {
+      await addCharacter({ bookId, character: { isFavorite: true, name }, token: accessToken });
+    }
+    await addCharacter({ bookId, character: { name: "Stranger" }, token: accessToken });
+
+    const query = "?sort=name&favoritesOnly=true&pageSize=20";
+    const first = await roster(accessToken, bookId, query);
+    const second = await roster(accessToken, bookId, `${query}&pageNumber=2`);
+
+    expect(first.totalCount).toBe(favoriteNames.length);
+    expect(second.totalCount).toBe(favoriteNames.length);
+    expect([...names(first), ...names(second)]).toEqual(favoriteNames);
+  });
+});
+
+describe("book roster card payload", () => {
+  async function createSpecies(token: string, name: string): Promise<string> {
+    const res = await authed("post", "/api/species", token).send({ name });
+    expect(res.status).toBe(HttpStatus.CREATED);
+    return res.body.id;
+  }
+
+  it("serves the safe card fields and none of the hidden values", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken, "Dune");
+    const humanId = await createSpecies(accessToken, "Human");
+    const fremenId = await createSpecies(accessToken, "Fremen");
+    await addCharacter({
+      bookId,
+      character: { name: "Paul", neutralDescription: "Heir of Caladan", speciesId: humanId },
+      profile: {
+        description: "Becomes the Kwisatz Haderach",
+        descriptionIsSpoiler: true,
+        roles: [
+          { position: 0, roleType: "protagonist" },
+          { customRole: "Secret emperor", isSpoiler: true, position: 1, roleType: "custom" },
+          { customRole: "Desert mouse", position: 2, roleType: "custom" },
+          { position: 3, roleType: "love_interest" },
+        ],
+        speciesOverrideId: fremenId,
+        speciesOverrideIsSpoiler: true,
+        status: "other",
+        statusCustomText: "Godlike",
+        statusIsSpoiler: true,
+      },
+      token: accessToken,
+    });
+
+    const res = await authed("get", `/api/books/${bookId}/characters`, accessToken);
+    expect(res.status).toBe(HttpStatus.OK);
+    const [item] = res.body.items;
+
+    expect(item).toMatchObject({
+      descriptionPreview: "Heir of Caladan",
+      hiddenFields: ["description", "roles", "speciesOverride", "status"],
+      species: null,
+      status: null,
+      statusCustomText: null,
+    });
+    expect(
+      item.roles.map((visible: { customRole: unknown; roleType: unknown }) => [
+        visible.roleType,
+        visible.customRole,
+      ]),
+    ).toEqual([
+      ["protagonist", null],
+      ["custom", "Desert mouse"],
+      ["love_interest", null],
+    ]);
+    const serialized = JSON.stringify(res.body);
+    for (const secret of ["Kwisatz", "Secret emperor", "Godlike", fremenId, humanId]) {
+      expect(serialized).not.toContain(secret);
+    }
+  });
+
+  it("shows the visible book description, override and custom status", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken, "Dune");
+    const humanId = await createSpecies(accessToken, "Human");
+    const fremenId = await createSpecies(accessToken, "Fremen");
+    await addCharacter({
+      bookId,
+      character: { name: "Chani", neutralDescription: "Neutral", speciesId: humanId },
+      profile: {
+        description: "A Fremen warrior",
+        speciesOverrideId: fremenId,
+        status: "other",
+        statusCustomText: "Wandering",
+      },
+      token: accessToken,
+    });
+
+    const [item] = (await roster(accessToken, bookId)).items;
+
+    expect(item).toMatchObject({
+      descriptionPreview: "A Fremen warrior",
+      hiddenFields: [],
+      species: { id: fremenId },
+      status: "other",
+      statusCustomText: "Wandering",
+    });
+  });
+
+  it("keeps the book summary top list on the base summary shape", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken, "Dune");
+    await addCharacter({
+      bookId,
+      character: { name: "Paul", neutralDescription: "Heir of Caladan" },
+      profile: { description: "Heir", importance: "central", roles: [{ roleType: "protagonist" }] },
+      token: accessToken,
+    });
+
+    const res = await authed("get", `/api/books/${bookId}/character-summary`, accessToken);
+    expect(res.status).toBe(HttpStatus.OK);
+    const [top] = res.body.top;
+
+    expect(top.name).toBe("Paul");
+    for (const rosterOnlyKey of ["descriptionPreview", "roles", "species", "statusCustomText"]) {
+      expect(top).not.toHaveProperty(rosterOnlyKey);
+    }
+  });
+});

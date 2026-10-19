@@ -27,7 +27,6 @@ export interface UpdateCharacterInputDto {
   gender?: UpdateCharacterInputDtoGender;
   /** @nullable */
   globalAttitude?: UpdateCharacterInputDtoGlobalAttitude;
-  hideProfileAsSpoiler?: boolean;
   isFavorite?: boolean;
   /**
    * @minLength 1

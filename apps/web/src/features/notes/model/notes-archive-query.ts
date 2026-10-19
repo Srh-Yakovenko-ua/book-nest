@@ -1,4 +1,4 @@
-import type { NoteFilter } from "@app/shared";
+import type { BookNoteSearchScope, NoteFilter } from "@app/shared";
 
 import {
   BookNotesQuerySchema,
@@ -138,7 +138,10 @@ export type NotesArchiveState<Scope extends NotesArchiveScope = NotesArchiveScop
     NotesAdvancedValues & { sort: NotesArchiveSortByScope[Scope] };
 
 export type NotesDatasetParams = Partial<Pick<NotesAdvancedValues, NotesValueDimension>> &
-  Partial<Record<NotesPresenceDimension, boolean>> & { search?: string };
+  Partial<Record<NotesPresenceDimension, boolean>> & {
+    search?: string;
+    searchIn?: BookNoteSearchScope;
+  };
 
 export type NotesListParams = {
   [Scope in NotesArchiveScope]: NotesDatasetParams & {

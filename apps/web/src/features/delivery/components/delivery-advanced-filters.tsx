@@ -108,7 +108,7 @@ export function DeliveryAdvancedFilters({
                 ariaLabel={t("range.from")}
                 className="h-9 text-sm"
                 id="delivery-filter-ordered-from"
-                onChange={(value) => patch({ orderedFrom: value ?? null })}
+                onChange={(value) => patch({ orderedFrom: value })}
                 placeholder={t("range.from")}
                 value={draft.orderedFrom}
               />
@@ -116,7 +116,7 @@ export function DeliveryAdvancedFilters({
                 ariaLabel={t("range.to")}
                 className="h-9 text-sm"
                 id="delivery-filter-ordered-to"
-                onChange={(value) => patch({ orderedTo: value ?? null })}
+                onChange={(value) => patch({ orderedTo: value })}
                 placeholder={t("range.to")}
                 value={draft.orderedTo}
               />
@@ -188,7 +188,7 @@ export function DeliveryAdvancedFilters({
                 ariaLabel={t("range.from")}
                 className="h-9 text-sm"
                 id="delivery-filter-expected-from"
-                onChange={(value) => patch({ expectedFrom: value ?? null })}
+                onChange={(value) => patch({ expectedFrom: value })}
                 placeholder={t("range.from")}
                 value={draft.expectedFrom}
               />
@@ -197,7 +197,7 @@ export function DeliveryAdvancedFilters({
                 ariaLabel={t("range.to")}
                 className="h-9 text-sm"
                 id="delivery-filter-expected-to"
-                onChange={(value) => patch({ expectedTo: value ?? null })}
+                onChange={(value) => patch({ expectedTo: value })}
                 placeholder={t("range.to")}
                 value={draft.expectedTo}
               />

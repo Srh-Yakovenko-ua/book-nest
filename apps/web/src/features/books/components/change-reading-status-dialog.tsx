@@ -310,6 +310,7 @@ function ChangeStatusForm({
                 id="status-date"
                 invalid={errors.date !== undefined}
                 onChange={(next) => field.onChange(next ?? "")}
+                required
                 value={field.value}
               />
             )}

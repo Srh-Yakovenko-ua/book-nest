@@ -240,6 +240,18 @@ describe("note updatedAt on edit", () => {
     expect(edited.body.updatedAt).not.toBe(STALE_UPDATED_AT.toISOString());
     expect(await storedUpdatedAt(noteId)).not.toEqual(STALE_UPDATED_AT);
   });
+
+  it("advances updatedAt on a title-only edit", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const noteId = await createNoteWithStaleUpdatedAt(accessToken);
+
+    const edited = await authed("patch", `/api/notes/${noteId}`, accessToken).send({
+      title: "Litany against fear",
+    });
+    expect(edited.status).toBe(HttpStatus.OK);
+    expect(edited.body.updatedAt).not.toBe(STALE_UPDATED_AT.toISOString());
+    expect(await storedUpdatedAt(noteId)).not.toEqual(STALE_UPDATED_AT);
+  });
 });
 
 describe("series note location on edit", () => {
@@ -342,6 +354,143 @@ describe("note validation", () => {
       noteBody({ category: "other", customCategory: "love line" }),
     );
     expect(kept.body.customCategory).toBe("love line");
+  });
+});
+
+describe("note title", () => {
+  const MAX_TITLE = "t".repeat(120);
+
+  async function createTitledBookNote(
+    token: string,
+    title: string,
+  ): Promise<{ bookId: string; noteId: string }> {
+    const bookId = await createBook(token);
+    const created = await createBookNote(token, bookId, noteBody({ title }));
+    expect(created.status).toBe(HttpStatus.CREATED);
+    return { bookId, noteId: created.body.id };
+  }
+
+  it("returns the trimmed title of a created book note", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+
+    const created = await createBookNote(
+      accessToken,
+      bookId,
+      noteBody({ title: "  The Gom Jabbar  " }),
+    );
+
+    expect(created.status).toBe(HttpStatus.CREATED);
+    expect(created.body.title).toBe("The Gom Jabbar");
+  });
+
+  it("returns a null title for a book note created without one", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+
+    const created = await createBookNote(accessToken, bookId, noteBody());
+
+    expect(created.status).toBe(HttpStatus.CREATED);
+    expect(created.body.title).toBeNull();
+  });
+
+  it("stores a whitespace-only title as null", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+
+    const created = await createBookNote(accessToken, bookId, noteBody({ title: "    " }));
+
+    expect(created.status).toBe(HttpStatus.CREATED);
+    expect(created.body.title).toBeNull();
+  });
+
+  it("returns the title of a created series note", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const seriesId = await createSeries(accessToken);
+
+    const created = await authed("post", `/api/series/${seriesId}/notes`, accessToken).send(
+      noteBody({ title: "Villains who believe they are right" }),
+    );
+
+    expect(created.status).toBe(HttpStatus.CREATED);
+    expect(created.body).toMatchObject({
+      entityType: "series",
+      title: "Villains who believe they are right",
+    });
+  });
+
+  it("rejects a 121-character title with 400 naming the title field", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+
+    const tooLong = await createBookNote(accessToken, bookId, noteBody({ title: "t".repeat(121) }));
+
+    expect(tooLong.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(tooLong.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "title" })]),
+    );
+    const list = await authed("get", `/api/books/${bookId}/notes`, accessToken);
+    expect(list.body.totalCount).toBe(0);
+  });
+
+  it("accepts a title of exactly 120 characters", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+
+    const created = await createBookNote(accessToken, bookId, noteBody({ title: MAX_TITLE }));
+
+    expect(created.status).toBe(HttpStatus.CREATED);
+    expect(created.body.title).toBe(MAX_TITLE);
+  });
+
+  it("rejects a 121-character title on edit and keeps the saved one", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId, noteId } = await createTitledBookNote(accessToken, "The Gom Jabbar");
+
+    const tooLong = await authed("patch", `/api/notes/${noteId}`, accessToken).send({
+      title: "t".repeat(121),
+    });
+
+    expect(tooLong.status).toBe(HttpStatus.BAD_REQUEST);
+    const list = await authed("get", `/api/books/${bookId}/notes`, accessToken);
+    expect(list.body.notes).toEqual([expect.objectContaining({ title: "The Gom Jabbar" })]);
+  });
+
+  it("sets a trimmed title on a note that had none", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const created = await createBookNote(accessToken, bookId, noteBody());
+
+    const edited = await authed("patch", `/api/notes/${created.body.id}`, accessToken).send({
+      title: "  Litany against fear  ",
+    });
+
+    expect(edited.status).toBe(HttpStatus.OK);
+    expect(edited.body.title).toBe("Litany against fear");
+  });
+
+  it("clears the title when the patch sends null", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { noteId } = await createTitledBookNote(accessToken, "The Gom Jabbar");
+
+    const edited = await authed("patch", `/api/notes/${noteId}`, accessToken).send({
+      title: null,
+    });
+
+    expect(edited.status).toBe(HttpStatus.OK);
+    expect(edited.body.title).toBeNull();
+  });
+
+  it("keeps the title when the patch omits it", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { noteId } = await createTitledBookNote(accessToken, "The Gom Jabbar");
+
+    const edited = await authed("patch", `/api/notes/${noteId}`, accessToken).send({
+      text: "Revised thought",
+    });
+
+    expect(edited.status).toBe(HttpStatus.OK);
+    expect(edited.body).toMatchObject({ text: "Revised thought", title: "The Gom Jabbar" });
   });
 });
 

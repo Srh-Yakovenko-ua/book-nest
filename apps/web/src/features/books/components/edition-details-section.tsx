@@ -26,6 +26,7 @@ import {
 
 import type { CreateBookFormValues } from "../model/create-book-form";
 
+import { emptyToNull } from "../model/empty-to-null";
 import { EDITION_DETAILS_FIELDS } from "../model/section-completeness";
 import { FormSection } from "./form-section";
 import { useSectionCompletion } from "./use-section-completion";
@@ -108,7 +109,7 @@ export function EditionDetailsSection({ control, errors, register }: EditionDeta
                 max={PUBLICATION_YEAR_MAX}
                 min={PUBLICATION_YEAR_MIN}
                 nextLabel={t("library.filters.yearPicker.next")}
-                onChange={(year) => field.onChange(year ?? undefined)}
+                onChange={field.onChange}
                 placeholder={t("editionDetails.fields.publicationYearPlaceholder")}
                 prevLabel={t("library.filters.yearPicker.prev")}
                 value={field.value ?? null}
@@ -201,12 +202,6 @@ export function EditionDetailsSection({ control, errors, register }: EditionDeta
       </Collapsible>
     </FormSection>
   );
-}
-
-function emptyToNull(value: unknown): Nullable<string> {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
 }
 
 function emptyToNullableInteger(value: unknown): Nullable<number> {

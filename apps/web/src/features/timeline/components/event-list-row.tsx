@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
+import { TruncatedText } from "@/components/truncated-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -16,7 +17,6 @@ import { GUARD_REASON_LABEL_KEYS } from "../model/event-guard";
 import { eventTypeMeta } from "../model/event-type-meta";
 import { TimelineImportanceChip } from "./timeline-importance-chip";
 import { TimelineLineChip } from "./timeline-line-chip";
-import { TruncatedText } from "./truncated-text";
 
 type EventListRowProps = {
   actions?: ReactNode;
@@ -96,7 +96,7 @@ export function EventListRow({
         <div className={LIST_ROW_STYLES.eventCell}>
           <TruncatedText className="text-sm font-medium text-foreground" text={event.title} />
           {event.summary === null ? null : (
-            <span className="min-w-0 truncate text-xs text-muted-foreground">{event.summary}</span>
+            <TruncatedText className="text-xs text-muted-foreground" text={event.summary} />
           )}
           {context === null ? null : (
             <TruncatedText className="text-xs text-muted-foreground" text={context} />

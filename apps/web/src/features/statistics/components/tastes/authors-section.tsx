@@ -5,6 +5,8 @@ import type { ReadingStatisticsAuthorsSection } from "@app/shared";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { UiIcon } from "@/components/icons";
+
 import { coverageCaption } from "../../model/statistics-availability";
 import { formatDayShort, formatRatingScore } from "../../model/statistics-format";
 import { StatisticsMetricTabs, StatisticsSection } from "../statistics-section";
@@ -83,15 +85,23 @@ export function AuthorsSection({ authors }: { authors: ReadingStatisticsAuthorsS
       )}
 
       {returning === undefined ? null : (
-        <div className="flex flex-col gap-0.5 rounded-lg border border-border bg-secondary/50 px-3 py-2.5">
-          <span className="text-xs text-muted-foreground">{t("returningTitle")}</span>
-          <span className="text-sm font-medium text-foreground">{returning.name}</span>
-          <span className="text-xs text-muted-foreground tabular-nums">
-            {t("returningMeta", {
-              lastRead: formatDayShort(returning.latestFinishedAt, locale),
-              reads: returning.completedReadCount,
-              years: returning.distinctReadingYears,
-            })}
+        <div className="flex items-start gap-3 rounded-lg border border-border bg-secondary/50 px-3 py-2.5">
+          <span
+            aria-hidden
+            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
+          >
+            <UiIcon name="repeat-2" size={16} />
+          </span>
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="text-xs text-muted-foreground">{t("returningTitle")}</span>
+            <span className="truncate text-sm font-medium text-foreground">{returning.name}</span>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {t("returningMeta", {
+                lastRead: formatDayShort(returning.latestFinishedAt, locale),
+                reads: returning.completedReadCount,
+                years: returning.distinctReadingYears,
+              })}
+            </span>
           </span>
         </div>
       )}

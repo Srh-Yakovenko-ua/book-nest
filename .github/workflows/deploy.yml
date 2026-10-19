@@ -19,7 +19,11 @@ env:
 jobs:
   ci:
     name: CI
+    needs: changes
     uses: ./.github/workflows/ci.yml
+    with:
+      scope: ${{ github.event_name == 'push' && github.ref_name == 'dev' && 'affected' || 'full' }}
+      base: ${{ needs.changes.outputs.deployed }}
 
   changes:
     name: Detect changed apps
@@ -31,6 +35,7 @@ jobs:
     outputs:
       api: ${{ steps.filter.outputs.api }}
       web: ${{ steps.filter.outputs.web }}
+      deployed: ${{ steps.deployed.outputs.sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7

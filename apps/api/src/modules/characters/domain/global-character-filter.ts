@@ -27,7 +27,6 @@ export function toGlobalFilter({
     hasPersonalImpression: query.hasPersonalImpression,
     hasSpoilers: query.hasSpoilers,
     importances: query.importance,
-    includeHiddenProfiles: query.includeHiddenProfiles ?? false,
     includeSpoilerSearch: query.includeSpoilerSearch ?? false,
     multipleBookCharacterIds,
     roleTypes: query.role,

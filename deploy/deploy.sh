@@ -49,6 +49,8 @@ fi
 
 docker compose up -d --no-deps caddy
 docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile 2>/dev/null || docker compose up -d --force-recreate --no-deps caddy
+docker compose pull cloudbeaver
+docker compose up -d --no-deps cloudbeaver
 
 trap maintenance_off EXIT HUP INT TERM
 maintenance_on

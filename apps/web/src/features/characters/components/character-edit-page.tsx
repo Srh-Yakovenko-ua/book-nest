@@ -1,12 +1,13 @@
 "use client";
 
 import type { BookCharacterView, CharacterDetailsView, MediaView, Nullable } from "@app/shared";
+import type { FormEvent } from "react";
 
 import { CHARACTER_INT4_MAX, CHARACTER_TEXT_MAX } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { parseAsString, useQueryState } from "nuqs";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -21,11 +22,18 @@ import { useRouter } from "@/i18n/navigation";
 import { applyFieldErrors } from "@/lib/api-errors";
 
 import type { CharacterEditMessages, CharacterEditValues } from "../model/character-edit-form";
+import type { CharacterAliasesHandle } from "../model/use-character-alias-editor";
 import type { CharacterImageUpload } from "./character-image-field";
 
 import { useCharacterDetails } from "../api/use-character-details";
 import { useUpdateBookCharacter } from "../api/use-update-book-character";
 import { useUpdateCharacter } from "../api/use-update-character";
+import {
+  type CharacterDetailsMode,
+  characterRouteArgsOf,
+  isUnavailableContextError,
+  resolveCharacterDetailsRequest,
+} from "../model/character-details-context";
 import {
   buildCharacterEditSchema,
   isScopeDirty,
@@ -37,16 +45,17 @@ import {
 } from "../model/character-edit-form";
 import { getCharacterDetailsPath } from "../model/character-routes";
 import { ALL_REVEAL_FIELD_KEYS } from "../model/character-spoiler";
+import { CharacterAliasesSection } from "./character-aliases-section";
 import { CharacterEditPreview } from "./character-edit-preview";
 import {
-  BookCharacterInheritanceSection,
-  BookCharacterMainSection,
+  BookCharacterDescriptionsSection,
   BookCharacterNarrativeSection,
   BookCharacterSpoilerSection,
-  CharacterAliasesSection,
-  CharacterGlobalSection,
+  CharacterAttitudeSection,
+  CharacterBasicsSection,
 } from "./character-edit-sections";
 import { CharacterPortraitPanel } from "./character-portrait-panel";
+import { CharacterUnavailableContext } from "./character-unavailable-context";
 import { CharactersErrorState } from "./characters-error-state";
 
 type CharacterEditPageProps = {
@@ -55,16 +64,25 @@ type CharacterEditPageProps = {
 
 export function CharacterEditPage({ characterId }: CharacterEditPageProps) {
   const [bookId] = useQueryState("bookId", parseAsString);
+  const [view] = useQueryState("view", parseAsString);
+  const request = resolveCharacterDetailsRequest({ bookId, view });
   const details = useCharacterDetails({
     characterId,
-    includeHiddenProfiles: true,
+    enabled: request.kind !== "invalid-book",
     revealFieldIds: ALL_REVEAL_FIELD_KEYS,
-    ...(bookId === null ? {} : { contextBookId: bookId }),
+    ...(request.kind === "book" ? { contextBookId: request.bookId } : {}),
   });
+
+  if (request.kind === "invalid-book") {
+    return <CharacterUnavailableContext characterId={characterId} />;
+  }
 
   if (details.isPending) return <EditSkeleton />;
 
   if (details.isError) {
+    if (request.kind === "book" && isUnavailableContextError(details.error)) {
+      return <CharacterUnavailableContext characterId={characterId} />;
+    }
     return (
       <div role="alert">
         <CharactersErrorState onRetry={() => void details.refetch()} />
@@ -73,14 +91,21 @@ export function CharacterEditPage({ characterId }: CharacterEditPageProps) {
   }
 
   const appearance =
-    bookId === null ? undefined : details.data.appearances.find((entry) => entry.bookId === bookId);
+    request.kind === "book"
+      ? details.data.appearances.find((entry) => entry.bookId === request.bookId)
+      : undefined;
+
+  if (request.kind === "book" && appearance === undefined) {
+    return <CharacterUnavailableContext characterId={characterId} />;
+  }
 
   return (
     <CharacterEditForm
       appearance={appearance}
       character={details.data}
-      contextBookId={appearance === undefined ? null : bookId}
+      contextBookId={appearance?.bookId ?? null}
       key={characterId}
+      mode={request}
     />
   );
 }
@@ -89,10 +114,12 @@ function CharacterEditForm({
   appearance,
   character,
   contextBookId,
+  mode,
 }: {
   appearance: BookCharacterView | undefined;
   character: CharacterDetailsView;
   contextBookId: null | string;
+  mode: CharacterDetailsMode;
 }) {
   const t = useTranslations("characters.edit");
   const tAliases = useTranslations("characters.aliases");
@@ -111,6 +138,9 @@ function CharacterEditForm({
   });
   const [baseline, setBaseline] = useState<CharacterEditValues>(initialValues);
   const [discardOpen, setDiscardOpen] = useState(false);
+  const [aliasDraftDirty, setAliasDraftDirty] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const aliasesRef = useRef<Nullable<CharacterAliasesHandle>>(null);
   const [uploadedImageUrls, setUploadedImageUrls] = useState<Record<string, string>>({});
 
   const pagesCount = useBookPagesCount(contextBookId);
@@ -169,6 +199,8 @@ function CharacterEditForm({
     isScopeDirty({ baseline, current: currentValues, maskedFields, scope: "book" });
   const isDirty = globalDirty || bookDirty;
   const isSaving = updateCharacter.isPending || updateBookCharacter.isPending;
+  const hasUnsavedChanges = isDirty || aliasDraftDirty;
+  const guardsLeaving = hasUnsavedChanges && !isSaving && !leaving;
   const avatarMediaId = useWatch({ control, name: "global.avatarMediaId" });
   const portraitMediaId = useWatch({ control, name: "book.portraitMediaId" });
   const avatarUrl = resolveImageUrl({
@@ -183,10 +215,9 @@ function CharacterEditForm({
   });
   const previewImageUrl = portraitMediaId === null ? avatarUrl : portraitUrl;
 
-  const detailsHref = getCharacterDetailsPath({
-    characterId: character.id,
-    ...(contextBookId === null ? {} : { bookId: contextBookId }),
-  });
+  const detailsHref = getCharacterDetailsPath(
+    characterRouteArgsOf({ characterId: character.id, mode }),
+  );
 
   function rememberUploadedImage(upload: CharacterImageUpload) {
     setUploadedImageUrls((previous) => ({ ...previous, [upload.mediaId]: upload.previewUrl }));
@@ -196,22 +227,34 @@ function CharacterEditForm({
     const next = withSpeciesChange(getValues(), change);
     setValue("global.species", next.global.species);
     setValue("book.speciesOverride", next.book.speciesOverride);
+    setValue("book.speciesOverrideIsSpoiler", next.book.speciesOverrideIsSpoiler);
     setBaseline((previous) => withSpeciesChange(previous, change));
   }
 
+  useEffect(() => {
+    if (!guardsLeaving) return;
+    function warnBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [guardsLeaving]);
+
   function leave() {
+    setLeaving(true);
     router.push(detailsHref);
   }
 
   function cancel() {
-    if (!isDirty) {
+    if (!hasUnsavedChanges) {
       leave();
       return;
     }
     setDiscardOpen(true);
   }
 
-  const onSubmit = handleSubmit(async (values) => {
+  async function save(values: CharacterEditValues) {
     let savedGlobal = false;
 
     try {
@@ -221,6 +264,7 @@ function CharacterEditForm({
           input: toGlobalUpdate(values.global, maskedFields),
         });
         setBaseline((previous) => ({ ...previous, global: values.global }));
+        aliasesRef.current?.expireUndo("global");
         savedGlobal = true;
       }
 
@@ -231,6 +275,7 @@ function CharacterEditForm({
           input: toBookPatch({ baseline: baseline.book, current: values.book, maskedFields }),
         });
         setBaseline((previous) => ({ ...previous, book: values.book }));
+        aliasesRef.current?.expireUndo("book");
       }
 
       toast.success(tToast("updated"));
@@ -239,13 +284,21 @@ function CharacterEditForm({
       if (savedGlobal) toast.warning(t("partialSuccess"));
       if (!applyFieldErrors(form, error)) toast.error(tErrors("generic"));
     }
-  });
+  }
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    if (aliasesRef.current?.revealDirtyDraft() === true) {
+      event.preventDefault();
+      return;
+    }
+    void handleSubmit(save)(event);
+  }
 
   return (
     <form
       className="grid grid-cols-[minmax(0,1fr)] gap-6 pb-24 sm:pb-0 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start"
       noValidate
-      onSubmit={onSubmit}
+      onSubmit={submit}
     >
       <div className="contents lg:sticky lg:top-[calc(var(--shell-header-height)+theme(spacing.4))] lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:gap-6">
         <div className="motion-safe:animate-in motion-safe:duration-500 motion-safe:slide-in-from-bottom-2">
@@ -265,8 +318,17 @@ function CharacterEditForm({
       </div>
 
       <div className="flex min-w-0 flex-col gap-6 motion-safe:animate-in motion-safe:duration-500 motion-safe:slide-in-from-bottom-2 lg:col-start-1 lg:row-start-1">
+        <CharacterBasicsSection
+          control={control}
+          errors={errors}
+          hasBookScope={contextBookId !== null}
+          maskedFields={maskedFields}
+          onSpeciesChange={applySpeciesChange}
+          register={register}
+        />
+
         {contextBookId === null ? null : (
-          <BookCharacterMainSection control={control} errors={errors} register={register} />
+          <BookCharacterDescriptionsSection control={control} errors={errors} register={register} />
         )}
 
         {contextBookId === null ? null : (
@@ -280,26 +342,22 @@ function CharacterEditForm({
           />
         )}
 
-        <CharacterGlobalSection
+        <CharacterAttitudeSection
           control={control}
           errors={errors}
-          onSpeciesChange={applySpeciesChange}
+          hasBookScope={contextBookId !== null}
           register={register}
         />
-
-        {contextBookId === null ? null : (
-          <BookCharacterInheritanceSection
-            control={control}
-            errors={errors}
-            maskedFields={maskedFields}
-            onSpeciesChange={applySpeciesChange}
-          />
-        )}
 
         <CharacterAliasesSection
           control={control}
           errors={errors}
+          getValues={getValues}
           hasBookScope={contextBookId !== null}
+          onDraftDirtyChange={setAliasDraftDirty}
+          ref={aliasesRef}
+          saving={isSaving}
+          setValue={setValue}
         />
 
         {contextBookId === null ? null : <BookCharacterSpoilerSection control={control} />}
@@ -316,7 +374,7 @@ function CharacterEditForm({
           </Button>
           <Button
             className="h-11 flex-1 sm:h-10 sm:flex-none"
-            disabled={isSaving || !isDirty}
+            disabled={isSaving || !hasUnsavedChanges}
             loading={isSaving}
             type="submit"
           >

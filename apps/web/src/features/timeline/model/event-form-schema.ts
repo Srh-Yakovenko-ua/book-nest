@@ -69,7 +69,7 @@ export function buildEventFormSchema({ messages, pagesCount }: BuildEventFormSch
       .int()
       .positive({ error: messages.pageNotPositive })
       .max(pageCeiling.max, { error: pageMessage })
-      .optional(),
+      .nullable(),
     personalNote: z
       .string()
       .trim()
@@ -100,7 +100,7 @@ export function eventFormDefaults({
       importance: event.importance,
       isSpoiler: event.isSpoiler,
       location: event.location ?? "",
-      page: event.pageNumber ?? undefined,
+      page: event.pageNumber ?? null,
       personalNote: event.personalNote ?? "",
       resolvedByEventId: event.resolvedByEventId,
       storyTime: event.storyTime ?? "",
@@ -112,9 +112,7 @@ export function eventFormDefaults({
   }
 
   const suggestedPage =
-    readingPosition?.positionKnown === true
-      ? (readingPosition.currentPage ?? undefined)
-      : undefined;
+    readingPosition?.positionKnown === true ? (readingPosition.currentPage ?? null) : null;
 
   return {
     chapter: "",
@@ -152,7 +150,7 @@ export function eventFormValuesToInput(values: EventFormValues): CreateTimelineE
     importance: values.importance,
     isSpoiler: values.isSpoiler,
     location: emptyToNull(values.location),
-    pageNumber: values.page ?? null,
+    pageNumber: values.page,
     personalNote: emptyToNull(values.personalNote),
     resolvedByEventId: values.threadStatus === "resolved" ? values.resolvedByEventId : null,
     storyTime: emptyToNull(values.storyTime),

@@ -4,7 +4,7 @@ import { NoteCategorySchema } from "@app/shared";
 
 import type { NotesAdvancedValues } from "./notes-archive-query";
 
-type NotesCategorySelection = Pick<NotesAdvancedValues, "category" | "customCategory">;
+export type NotesCategorySelection = Pick<NotesAdvancedValues, "category" | "customCategory">;
 
 const CATEGORY_VALUE_PREFIX = {
   custom: "custom:",

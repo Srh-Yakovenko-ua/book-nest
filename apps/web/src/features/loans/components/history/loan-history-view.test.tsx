@@ -1641,10 +1641,9 @@ describe("LoanHistoryView correction", () => {
 
     const fieldError = await within(dialog).findByRole("alert");
     expect(fieldError).toHaveAttribute("id", "loan-history-returned-date-error");
-    expect(within(dialog).getByRole("button", { name: copy.correctDate.label })).toHaveAttribute(
-      "aria-describedby",
-      "loan-history-returned-date-error",
-    );
+    expect(
+      within(dialog).getByRole("button", { name: `${copy.correctDate.label}, 4 липня 2026` }),
+    ).toHaveAttribute("aria-describedby", "loan-history-returned-date-error");
     expect(vi.mocked(toast.success)).not.toHaveBeenCalled();
   });
 
@@ -1707,7 +1706,9 @@ async function correctReturnedDate(): Promise<void> {
   await openCorrectionDialog(copy.actions.correctDate);
   const dialog = await screen.findByRole("dialog", { name: copy.correctDate.title });
 
-  await userEvent.click(within(dialog).getByRole("button", { name: copy.correctDate.label }));
+  await userEvent.click(
+    within(dialog).getByRole("button", { name: new RegExp(`^${copy.correctDate.label}, `) }),
+  );
   const calendar = await screen.findByRole("grid");
   await userEvent.click(within(calendar).getByRole("button", { name: /^\D+, 1-е липня 2026/ }));
   await userEvent.click(within(dialog).getByRole("button", { name: copy.correctDate.save }));

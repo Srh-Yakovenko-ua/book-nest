@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { assertNever } from "@/lib/assert-never";
 
 import type { NoteEntityRef } from "../model/note-entity";
-import type { NoteFormControl, NoteFormErrors, NoteFormRegister } from "../model/note-form-schema";
+import type { NoteFormControl, NoteFormErrors } from "../model/note-form-schema";
 
 import {
   BookNoteLinkedEntity,
@@ -31,12 +31,12 @@ type NoteEntitySlotProps = {
 };
 
 type NoteLocationSlotProps = {
+  bookId: Nullable<string>;
   control: NoteFormControl;
   entityType: NoteEntityType;
   errors: NoteFormErrors;
   note: NoteView | undefined;
   pageMax: number;
-  register: NoteFormRegister;
 };
 
 export function NoteEntitySlot({ control, entityType, errors, linkedEntity }: NoteEntitySlotProps) {
@@ -71,21 +71,21 @@ export function NoteEntitySlot({ control, entityType, errors, linkedEntity }: No
 }
 
 export function NoteLocationSlot({
+  bookId,
   control,
   entityType,
   errors,
   note,
   pageMax,
-  register,
 }: NoteLocationSlotProps) {
   switch (entityType) {
     case "book":
       return (
         <BookNoteLocationFields
+          bookId={bookId}
           control={control}
           errors={errors}
           pageMax={pageMax}
-          register={register}
         />
       );
     case "series":

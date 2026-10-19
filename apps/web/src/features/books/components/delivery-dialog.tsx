@@ -359,6 +359,7 @@ function DeliveryForm({
                 invalid={errors.orderDate !== undefined}
                 onChange={(next) => field.onChange(next ?? "")}
                 placeholder={t("form.datePlaceholder")}
+                required
                 value={field.value}
               />
             )}

@@ -68,7 +68,7 @@ async function createRelationship(
 }
 
 describe("character relationship CRUD", () => {
-  it("creates a directed relationship and reads it back", async () => {
+  it("creates a directed relationship and reads it back as safe reader details", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const mentor = await createCharacter(accessToken, "Dumbledore");
     const student = await createCharacter(accessToken, "Harry");
@@ -100,7 +100,72 @@ describe("character relationship CRUD", () => {
       accessToken,
     );
     expect(read.status).toBe(HttpStatus.OK);
-    expect(read.body.type).toBe("mentor_of");
+    expect(read.body).toEqual({
+      effectiveState: null,
+      history: [],
+      relationship: expect.objectContaining({
+        category: "mentorship",
+        directionality: "directed",
+        id: created.body.id,
+        source: { avatar: null, id: mentor, name: "Dumbledore" },
+        sourceLabel: "mentor",
+        target: { avatar: null, id: student, name: "Harry" },
+        targetLabel: "student",
+        type: "mentor_of",
+        typeHidden: false,
+      }),
+    });
+  });
+
+  it("returns the full authoring DTO from the edit read", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const alice = await createCharacter(accessToken, "Alice");
+    const bob = await createCharacter(accessToken, "Bob");
+    const created = await createRelationship(accessToken, {
+      category: "family",
+      directionality: "directed",
+      initialBookStates: [
+        {
+          bookId,
+          description: "a hidden lineage",
+          hideRelationshipAsSpoiler: true,
+          isDescriptionSpoiler: true,
+          isTypeSpoiler: true,
+          status: "active",
+        },
+      ],
+      sourceCharacterId: alice,
+      targetCharacterId: bob,
+      type: "biological_parent_of",
+    });
+    expect(created.status).toBe(HttpStatus.CREATED);
+
+    const edit = await authed(
+      "get",
+      `/api/character-relationships/${created.body.id}/edit`,
+      accessToken,
+    );
+
+    expect(edit.status).toBe(HttpStatus.OK);
+    expect(edit.body).toMatchObject({
+      category: "family",
+      diagnostics: [],
+      directionality: "directed",
+      id: created.body.id,
+      sourceCharacterId: alice,
+      targetCharacterId: bob,
+      type: "biological_parent_of",
+    });
+    expect(edit.body.bookStates).toEqual([
+      expect.objectContaining({
+        bookId,
+        description: "a hidden lineage",
+        hideRelationshipAsSpoiler: true,
+        isDescriptionSpoiler: true,
+        isTypeSpoiler: true,
+      }),
+    ]);
   });
 
   it("stores a symmetric relationship in canonical endpoint order", async () => {
@@ -406,6 +471,7 @@ describe("character relationship family diagnostics", () => {
     });
     expect(contradiction.status).toBe(HttpStatus.CONFLICT);
     expect(contradiction.body.code).toBe("family_cycle_detected");
+    expect(contradiction.body.details).toMatchObject({ severity: "conflict" });
   });
 
   it("warns on a deeper cycle and allows an explicit override", async () => {
@@ -431,6 +497,7 @@ describe("character relationship family diagnostics", () => {
     const blocked = await createRelationship(accessToken, parent(carol, alice));
     expect(blocked.status).toBe(HttpStatus.CONFLICT);
     expect(blocked.body.code).toBe("family_cycle_detected");
+    expect(blocked.body.details).toMatchObject({ severity: "warning" });
 
     const overridden = await createRelationship(accessToken, {
       ...parent(carol, alice),
@@ -525,7 +592,7 @@ describe("character relationship spoiler masking", () => {
     expect(list.body).toEqual([]);
   });
 
-  it("omits a relationship introduced after the reader position, then reveals it", async () => {
+  it("omits a relationship introduced after the reader position, reveals it once reached, and keeps it hidden without a known position", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
@@ -560,7 +627,8 @@ describe("character relationship spoiler masking", () => {
       `/api/books/${bookId}/character-relationships`,
       accessToken,
     );
-    expect(bookLevel.body).toHaveLength(1);
+    expect(bookLevel.status).toBe(HttpStatus.OK);
+    expect(bookLevel.body).toEqual([]);
   });
 
   it("locks the type when the book state marks the type a spoiler", async () => {
@@ -582,6 +650,8 @@ describe("character relationship spoiler masking", () => {
     expect(list.body).toHaveLength(1);
     expect(list.body[0].relationship).toMatchObject({
       category: null,
+      directionality: null,
+      isCanonical: null,
       type: null,
       typeHidden: true,
     });

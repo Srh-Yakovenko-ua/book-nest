@@ -12,6 +12,7 @@ import { BookCharacterSuggestionsController } from "./api/book-character-suggest
 import { BookCharacterSummaryController } from "./api/book-character-summary.controller.js";
 import { BookCharactersController } from "./api/book-characters.controller.js";
 import { CharacterCustomLabelsController } from "./api/character-custom-labels.controller.js";
+import { CharacterFactsController } from "./api/character-facts.controller.js";
 import { CharacterFormsController } from "./api/character-forms.controller.js";
 import { CharacterGraphLayoutsController } from "./api/character-graph-layouts.controller.js";
 import { CharacterGroupsController } from "./api/character-groups.controller.js";
@@ -29,6 +30,7 @@ import { BookCharactersService } from "./application/book-characters.service.js"
 import { CharacterAccessAsserter } from "./application/character-access.asserter.js";
 import { CharacterCustomLabelsService } from "./application/character-custom-labels.service.js";
 import { CharacterDetailsAssembler } from "./application/character-details.assembler.js";
+import { CharacterFactsService } from "./application/character-facts.service.js";
 import { CharacterFormsService } from "./application/character-forms.service.js";
 import { CharacterGraphLayoutsService } from "./application/character-graph-layouts.service.js";
 import { CharacterGraphService } from "./application/character-graph.service.js";
@@ -39,20 +41,24 @@ import { CharacterPortabilityService } from "./application/character-portability
 import { CharacterPurgeProcessor } from "./application/character-purge.processor.js";
 import { CharacterPurgeReconciler } from "./application/character-purge.reconciler.js";
 import { CharacterRelationshipPathService } from "./application/character-relationship-path.service.js";
+import { CharacterRelationshipsListService } from "./application/character-relationships-list.service.js";
 import { CharacterRelationshipsService } from "./application/character-relationships.service.js";
 import { CharacterTheoriesService } from "./application/character-theories.service.js";
 import { CharacterViewMapper } from "./application/character-view.mapper.js";
 import { CharactersService } from "./application/characters.service.js";
 import { RelationshipBookStateService } from "./application/relationship-book-state.service.js";
 import { RelationshipContextService } from "./application/relationship-context.service.js";
+import { RelationshipReaderScopeResolver } from "./application/relationship-reader-scope.resolver.js";
 import { SeriesCharactersService } from "./application/series-characters.service.js";
 import { CHARACTER_PURGE_QUEUE_NAME } from "./domain/character-purge.js";
 import { CharacterCustomLabelsRepository } from "./infrastructure/character-custom-labels.repository.js";
+import { CharacterFactsRepository } from "./infrastructure/character-facts.repository.js";
 import { CharacterFormsRepository } from "./infrastructure/character-forms.repository.js";
 import { CharacterGraphLayoutsRepository } from "./infrastructure/character-graph-layouts.repository.js";
 import { CharacterGroupsRepository } from "./infrastructure/character-groups.repository.js";
 import { CharacterMergeRepository } from "./infrastructure/character-merge.repository.js";
 import { CharacterPortabilityRepository } from "./infrastructure/character-portability.repository.js";
+import { CharacterRelationshipsListRepository } from "./infrastructure/character-relationships-list.repository.js";
 import { CharacterRelationshipsRepository } from "./infrastructure/character-relationships.repository.js";
 import { CharacterTheoriesRepository } from "./infrastructure/character-theories.repository.js";
 import { CharactersRepository } from "./infrastructure/characters.repository.js";
@@ -65,6 +71,7 @@ import { CharactersRepository } from "./infrastructure/characters.repository.js"
     CharacterMergeController,
     CharacterRelationshipsController,
     CharacterTheoriesController,
+    CharacterFactsController,
     CharacterFormsController,
     CharacterCustomLabelsController,
     BookCharactersController,
@@ -107,11 +114,16 @@ import { CharactersRepository } from "./infrastructure/characters.repository.js"
     CharacterPortabilityRepository,
     CharacterRelationshipsService,
     RelationshipContextService,
+    RelationshipReaderScopeResolver,
     RelationshipBookStateService,
     CharacterRelationshipsRepository,
+    CharacterRelationshipsListService,
+    CharacterRelationshipsListRepository,
     CharacterRelationshipPathService,
     CharacterTheoriesService,
     CharacterTheoriesRepository,
+    CharacterFactsService,
+    CharacterFactsRepository,
     CharacterFormsService,
     CharacterFormsRepository,
     CharacterCustomLabelsService,

@@ -23,19 +23,19 @@ import { rosterDisplayName } from "../model/characters-roster-query";
 const PALETTE_PAGE_SIZE = 10;
 
 type CharacterCommandPaletteProps = {
+  bookContext: BookCharacterSummaryQuery;
   bookId: string;
   onOpenChange: (open: boolean) => void;
   onSelect: (characterId: string) => void;
   open: boolean;
-  readingContext: BookCharacterSummaryQuery;
 };
 
 export function CharacterCommandPalette({
+  bookContext,
   bookId,
   onOpenChange,
   onSelect,
   open,
-  readingContext,
 }: CharacterCommandPaletteProps) {
   const t = useTranslations("characters.palette");
   const tImportance = useTranslations("characters.importance");
@@ -43,10 +43,10 @@ export function CharacterCommandPalette({
 
   const normalizedQuery = normalizeSearchQuery(query);
   const roster = useBookCharacterLookup({
+    bookContext,
     bookId,
     pageSize: PALETTE_PAGE_SIZE,
     query: normalizedQuery,
-    readingContext,
   });
 
   const results = roster.data?.items ?? [];

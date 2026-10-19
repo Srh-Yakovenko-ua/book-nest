@@ -185,6 +185,7 @@ export function OrderDeliveryForm({
                     id="order-delivery-order-date"
                     invalid={errors.orderDate !== undefined}
                     onChange={(next) => field.onChange(next ?? "")}
+                    required
                     value={field.value}
                   />
                 )}

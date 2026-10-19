@@ -8,7 +8,6 @@
 
 export type CharacterGraphViewDtoHiddenContent = {
   hasHiddenEdges: boolean;
-  hasHiddenNodes: boolean;
   hasLockedEdges: boolean;
   truncated: boolean;
 };

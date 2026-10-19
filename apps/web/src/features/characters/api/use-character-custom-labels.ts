@@ -7,8 +7,9 @@ import { characterCustomLabelsControllerList } from "@/shared/api/generated/endp
 
 import { characterKeys } from "./character-keys";
 
-export function useCharacterCustomLabels() {
+export function useCharacterCustomLabels({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
+    enabled,
     queryFn: async ({ signal }): Promise<CharacterCustomLabelsView> =>
       CharacterCustomLabelsViewSchema.parse(await characterCustomLabelsControllerList({ signal })),
     queryKey: characterKeys.customLabels(),

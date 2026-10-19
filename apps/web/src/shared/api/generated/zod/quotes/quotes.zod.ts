@@ -76,80 +76,6 @@ export const BookQuotesControllerCreateQuoteResponse = zod.object({
 });
 
 /**
- * @summary List the quotes of a book
- */
-export const BookQuotesControllerListBookQuotesParams = zod.object({
-  bookId: zod.string(),
-});
-
-export const bookQuotesControllerListBookQuotesResponseFavoritesCountMin = 0;
-export const bookQuotesControllerListBookQuotesResponseFavoritesCountMax = 9007199254740991;
-
-export const bookQuotesControllerListBookQuotesResponseItemsItemPageMin = -9007199254740991;
-export const bookQuotesControllerListBookQuotesResponseItemsItemPageMax = 9007199254740991;
-
-export const bookQuotesControllerListBookQuotesResponseSpoilerCountMin = 0;
-export const bookQuotesControllerListBookQuotesResponseSpoilerCountMax = 9007199254740991;
-
-export const bookQuotesControllerListBookQuotesResponseTotalCountMin = 0;
-export const bookQuotesControllerListBookQuotesResponseTotalCountMax = 9007199254740991;
-
-export const BookQuotesControllerListBookQuotesResponse = zod.object({
-  favoritesCount: zod
-    .int()
-    .min(bookQuotesControllerListBookQuotesResponseFavoritesCountMin)
-    .max(bookQuotesControllerListBookQuotesResponseFavoritesCountMax),
-  items: zod.array(
-    zod.object({
-      book: zod.object({
-        cover: zod
-          .object({
-            contentType: zod.string(),
-            createdAt: zod.string(),
-            height: zod.number(),
-            id: zod.string(),
-            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
-            name: zod.string().nullable(),
-            sizeBytes: zod.number(),
-            urls: zod.object({
-              card: zod.string(),
-              full: zod.string(),
-              thumb: zod.string(),
-            }),
-            width: zod.number(),
-          })
-          .nullable(),
-        firstAuthorName: zod.string(),
-        id: zod.string(),
-        title: zod.string(),
-      }),
-      bookId: zod.string(),
-      chapter: zod.string().nullable(),
-      comment: zod.string().nullable(),
-      createdAt: zod.string(),
-      id: zod.string(),
-      isFavorite: zod.boolean(),
-      isSpoiler: zod.boolean(),
-      page: zod
-        .int()
-        .min(bookQuotesControllerListBookQuotesResponseItemsItemPageMin)
-        .max(bookQuotesControllerListBookQuotesResponseItemsItemPageMax)
-        .nullable(),
-      text: zod.string(),
-      updatedAt: zod.string(),
-    }),
-  ),
-  spoilerCount: zod
-    .int()
-    .min(bookQuotesControllerListBookQuotesResponseSpoilerCountMin)
-    .max(bookQuotesControllerListBookQuotesResponseSpoilerCountMax),
-  totalCount: zod
-    .int()
-    .min(bookQuotesControllerListBookQuotesResponseTotalCountMin)
-    .max(bookQuotesControllerListBookQuotesResponseTotalCountMax),
-});
-
-/**
  * @summary Edit a book quote, including its spoiler and favorite flags
  */
 export const BookQuotesControllerUpdateQuoteParams = zod.object({
@@ -439,6 +365,8 @@ export const quotesControllerFacetsQueryCreatedToRegExp = new RegExp(
 );
 export const quotesControllerFacetsQueryQMax = 100;
 
+export const quotesControllerFacetsQuerySearchInDefault = `quotes_and_book`;
+
 export const QuotesControllerFacetsQueryParams = zod.object({
   author: zod
     .array(zod.uuid().regex(quotesControllerFacetsQueryAuthorItemRegExp))
@@ -452,6 +380,9 @@ export const QuotesControllerFacetsQueryParams = zod.object({
   createdFrom: zod.iso.date().regex(quotesControllerFacetsQueryCreatedFromRegExp).optional(),
   createdTo: zod.iso.date().regex(quotesControllerFacetsQueryCreatedToRegExp).optional(),
   q: zod.string().max(quotesControllerFacetsQueryQMax).optional(),
+  searchIn: zod
+    .enum(["quotes_and_book", "quotes"])
+    .default(quotesControllerFacetsQuerySearchInDefault),
 });
 
 export const quotesControllerFacetsResponseAuthorsItemCountMin = 0;
@@ -714,6 +645,7 @@ export const quotesControllerListQueryCreatedToRegExp = new RegExp(
 );
 export const quotesControllerListQueryQMax = 100;
 
+export const quotesControllerListQuerySearchInDefault = `quotes_and_book`;
 export const quotesControllerListQueryFilterDefault = `all`;
 export const quotesControllerListQueryPageNumberDefault = 1;
 export const quotesControllerListQueryPageNumberMax = 21474836;
@@ -736,6 +668,9 @@ export const QuotesControllerListQueryParams = zod.object({
   createdFrom: zod.iso.date().regex(quotesControllerListQueryCreatedFromRegExp).optional(),
   createdTo: zod.iso.date().regex(quotesControllerListQueryCreatedToRegExp).optional(),
   q: zod.string().max(quotesControllerListQueryQMax).optional(),
+  searchIn: zod
+    .enum(["quotes_and_book", "quotes"])
+    .default(quotesControllerListQuerySearchInDefault),
   filter: zod
     .enum(["all", "no_spoiler", "with_spoiler", "favorites", "with_comment", "without_comment"])
     .default(quotesControllerListQueryFilterDefault),

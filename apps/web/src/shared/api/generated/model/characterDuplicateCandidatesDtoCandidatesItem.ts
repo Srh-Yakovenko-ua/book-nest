@@ -28,7 +28,6 @@ export type CharacterDuplicateCandidatesDtoCandidatesItem = {
   gender: CharacterDuplicateCandidatesDtoCandidatesItemGender;
   /** @nullable */
   globalAttitude: CharacterDuplicateCandidatesDtoCandidatesItemGlobalAttitude;
-  hideProfileAsSpoiler: boolean;
   id: string;
   isFavorite: boolean;
   name: string;

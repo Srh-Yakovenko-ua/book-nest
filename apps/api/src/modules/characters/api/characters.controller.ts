@@ -108,11 +108,6 @@ export class CharactersController {
   @ApiQuery({ name: "sort", required: false })
   @ApiQuery({ name: "contextBookId", required: false })
   @ApiQuery({ name: "includeSpoilerSearch", required: false })
-  @ApiQuery({
-    description: "Owner opt-in to include whole-profile hidden characters in the results",
-    name: "includeHiddenProfiles",
-    required: false,
-  })
   @ApiQuery({ name: "pageNumber", required: false })
   @ApiQuery({ name: "pageSize", required: false })
   @Get()
@@ -151,39 +146,17 @@ export class CharactersController {
     return this.charactersService.overview({ userId: user.id });
   }
 
-  @ApiBadRequestResponse({
-    description: "A reading position was supplied without contextBookId",
-  })
+  @ApiBadRequestResponse({ description: "Validation failed" })
   @ApiNotFoundResponse({ description: "Character or context book not found" })
   @ApiOkResponse({
     description:
-      "The character with its appearances, context-masked to a reading context when contextBookId is set",
+      "The character with its appearances. Spoiler values stay masked unless named in revealFieldIds; contextBookId scopes the response to a reading context and adds that book's aliases",
     type: CharacterDetailsViewDto,
   })
   @ApiOperation({ summary: "Get a global character with its book appearances" })
   @ApiParam({ description: "Character id", name: "characterId" })
   @ApiQuery({ name: "contextBookId", required: false })
   @ApiQuery({ name: "revealFieldIds", required: false })
-  @ApiQuery({
-    description: "Owner opt-in to reveal a whole-profile hidden character instead of 404",
-    name: "includeHiddenProfiles",
-    required: false,
-  })
-  @ApiQuery({
-    description: "Reader chapter within the context book for page-level spoiler masking",
-    name: "contextChapter",
-    required: false,
-  })
-  @ApiQuery({
-    description: "Reader page within the context book for page-level spoiler masking",
-    name: "contextPage",
-    required: false,
-  })
-  @ApiQuery({
-    description: "Reader audiobook seconds within the context book for page-level spoiler masking",
-    name: "contextAudioSeconds",
-    required: false,
-  })
   @Get(":characterId")
   getById(
     @CurrentUser() user: AuthenticatedUser,

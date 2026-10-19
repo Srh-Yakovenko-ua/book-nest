@@ -3,6 +3,7 @@ import type {
   Paginator,
   TimelineEventDetailView,
   TimelineEventView,
+  TimelineLocationsView,
   TimelineOverviewView,
 } from "@app/shared";
 
@@ -47,10 +48,11 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { MUTATION_THROTTLE } from "../../../core/throttle.js";
+import { HEAVY_READ_THROTTLE, MUTATION_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { TimelineEventOrderingService } from "../application/timeline-event-ordering.service.js";
 import { TimelineEventService } from "../application/timeline-event.service.js";
+import { TimelineLocationService } from "../application/timeline-location.service.js";
 import { TimelineRelationService } from "../application/timeline-relation.service.js";
 import { CreateEventRelationInputDto } from "./input-dto/create-event-relation.input-dto.js";
 import { CreateTimelineEventInputDto } from "./input-dto/create-timeline-event.input-dto.js";
@@ -62,6 +64,7 @@ import { CreatedEventRelationViewDto } from "./view-dto/created-event-relation.v
 import { PaginatedTimelineEventsDto } from "./view-dto/paginated-timeline-events.view-dto.js";
 import { TimelineEventDetailViewDto } from "./view-dto/timeline-event-detail.view-dto.js";
 import { TimelineEventViewDto } from "./view-dto/timeline-event.view-dto.js";
+import { TimelineLocationsViewDto } from "./view-dto/timeline-locations.view-dto.js";
 import { TimelineOverviewViewDto } from "./view-dto/timeline-overview.view-dto.js";
 
 @ApiTags("timeline-events")
@@ -71,6 +74,7 @@ export class TimelineEventsController {
   constructor(
     private readonly timelineEventService: TimelineEventService,
     private readonly timelineEventOrderingService: TimelineEventOrderingService,
+    private readonly timelineLocationService: TimelineLocationService,
     private readonly timelineRelationService: TimelineRelationService,
   ) {}
 
@@ -114,6 +118,25 @@ export class TimelineEventsController {
     @Param("bookId", ParseUUIDPipe) bookId: string,
   ): Promise<TimelineOverviewView> {
     return this.timelineEventService.overview(user.id, bookId);
+  }
+
+  @ApiNotFoundResponse({ description: "Book not found" })
+  @ApiOkResponse({
+    description:
+      "The distinct locations already used by timeline events of this book, or of every book in its series, with their usage counts",
+    type: TimelineLocationsViewDto,
+  })
+  @ApiOperation({
+    summary: "List the timeline event locations used across the book or its series",
+  })
+  @ApiParam({ description: "Book id", name: "bookId" })
+  @Get("api/books/:bookId/timeline/locations")
+  @Throttle(HEAVY_READ_THROTTLE)
+  locations(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("bookId", ParseUUIDPipe) bookId: string,
+  ): Promise<TimelineLocationsView> {
+    return this.timelineLocationService.getLocations({ bookId, userId: user.id });
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })

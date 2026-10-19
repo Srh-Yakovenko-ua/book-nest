@@ -1,8 +1,14 @@
-import type { SpeciesOptionView } from "@app/shared";
+import type {
+  BookCharacterView,
+  CharacterRevealFieldKey,
+  SpeciesOptionView,
+  UpdateBookCharacter,
+} from "@app/shared";
 
 import { CHARACTER_ALIASES_MAX } from "@app/shared";
 import { describe, expect, it } from "vitest";
 
+import type { BookSpoilerFlag } from "./book-spoiler-flags";
 import type { CharacterAliasRow } from "./character-aliases";
 import type { CharacterEditValues } from "./character-edit-form";
 
@@ -452,12 +458,24 @@ describe("toBookUpdate masked collections", () => {
       character: spoilerCharacter,
       locale: "uk",
     });
-    const payload = toBookUpdate(values.book, ["aliases"]);
+    const payload = toBookUpdate(values.book, ["bookAliases"]);
 
     expect(payload).not.toHaveProperty("aliases");
     expect(payload).toHaveProperty("roles", [
       { customRole: null, isSpoiler: false, position: 0, roleType: "protagonist" },
       { customRole: null, isSpoiler: true, position: 1, roleType: "love_interest" },
+    ]);
+  });
+
+  it("keeps the book aliases when only the global aliases are masked", () => {
+    const values = toCharacterEditValues({
+      bookId: "book-1",
+      character: spoilerCharacter,
+      locale: "uk",
+    });
+
+    expect(toBookUpdate(values.book, ["globalAliases"])).toHaveProperty("aliases", [
+      { isSpoiler: true, name: "Різник із Блавікену", position: 0, type: "title" },
     ]);
   });
 
@@ -482,7 +500,20 @@ describe("toGlobalUpdate masked aliases", () => {
       locale: "uk",
     });
 
-    expect(toGlobalUpdate(values.global, ["aliases"])).not.toHaveProperty("aliases");
+    expect(toGlobalUpdate(values.global, ["globalAliases"])).not.toHaveProperty("aliases");
+  });
+
+  it("keeps the global aliases when only the book aliases are masked", () => {
+    const values = toCharacterEditValues({
+      bookId: "book-1",
+      character: spoilerCharacter,
+      locale: "uk",
+    });
+
+    expect(toGlobalUpdate(values.global, ["bookAliases"])).toHaveProperty("aliases", [
+      { isSpoiler: false, name: "Ґвинблейд", position: 0, type: "nickname" },
+      { isSpoiler: true, name: "Білий Вовк", position: 1, type: "title" },
+    ]);
   });
 
   it("sends the aliases when nothing is masked", () => {
@@ -514,24 +545,24 @@ describe("isScopeDirty with masked aliases", () => {
       },
     };
 
-    expect(isScopeDirty({ baseline, current, maskedFields: ["aliases"], scope: "global" })).toBe(
-      false,
-    );
+    expect(
+      isScopeDirty({ baseline, current, maskedFields: ["globalAliases"], scope: "global" }),
+    ).toBe(false);
     expect(isScopeDirty({ baseline, current, scope: "global" })).toBe(true);
   });
 });
 
 describe("maskedEditFields", () => {
-  it("adds aliases to the appearance hidden fields when the character hides its aliases", () => {
+  it("adds both alias groups to the appearance hidden fields when the character hides them", () => {
     expect(
       maskedEditFields({
         appearance: makeBookCharacterView({ hiddenFields: ["roles"] }),
-        character: makeCharacterDetails({ hiddenFields: ["aliases"] }),
+        character: makeCharacterDetails({ hiddenFields: ["globalAliases", "bookAliases"] }),
       }),
-    ).toEqual(["roles", "aliases"]);
+    ).toEqual(["roles", "globalAliases", "bookAliases"]);
   });
 
-  it("leaves aliases out while the character does not hide them", () => {
+  it("leaves the alias groups out while the character does not hide them", () => {
     expect(
       maskedEditFields({
         appearance: makeBookCharacterView({ hiddenFields: ["displayName"] }),
@@ -540,13 +571,216 @@ describe("maskedEditFields", () => {
     ).toEqual(["displayName"]);
   });
 
-  it("masks the aliases of a character read without a book context", () => {
+  it("takes only the alias groups from the character and never another book field", () => {
+    expect(
+      maskedEditFields({
+        appearance: makeBookCharacterView({ hiddenFields: [] }),
+        character: makeCharacterDetails({
+          hiddenFields: ["description", "status", "bookAliases", "roles"],
+        }),
+      }),
+    ).toEqual(["bookAliases"]);
+  });
+
+  it("masks the global aliases of a character read without a book context", () => {
     expect(
       maskedEditFields({
         appearance: undefined,
-        character: makeCharacterDetails({ hiddenFields: ["aliases"] }),
+        character: makeCharacterDetails({ hiddenFields: ["globalAliases"] }),
       }),
-    ).toEqual(["aliases"]);
+    ).toEqual(["globalAliases"]);
+  });
+});
+
+const spoilerFlags = (isOn: boolean): Record<BookSpoilerFlag, boolean> => ({
+  appearanceNotesIsSpoiler: isOn,
+  descriptionIsSpoiler: isOn,
+  displayNameIsSpoiler: isOn,
+  personalImpressionIsSpoiler: isOn,
+  portraitIsSpoiler: isOn,
+  speciesOverrideIsSpoiler: isOn,
+  statusIsSpoiler: isOn,
+});
+
+const spoilerPortrait = {
+  contentType: "image/png",
+  createdAt: "2026-06-27T00:00:00.000Z",
+  height: 512,
+  id: "media-portrait-1",
+  kind: "avatar",
+  name: "portrait.png",
+  sizeBytes: 2048,
+  urls: { card: "card.webp", full: "full.webp", thumb: "thumb.webp" },
+  width: 512,
+} as const;
+
+function editValuesOf(appearance: Partial<BookCharacterView>): CharacterEditValues["book"] {
+  return toCharacterEditValues({
+    bookId: "book-1",
+    character: makeCharacterDetails({
+      appearances: [makeBookCharacterView({ bookId: "book-1", ...appearance })],
+    }),
+    locale: "uk",
+  }).book;
+}
+
+const filledSpoilerAppearance: Partial<BookCharacterView> = {
+  ...spoilerFlags(true),
+  appearanceNotes: "Шрам через ліве око",
+  description: "Мутант, що полює на чудовиськ",
+  displayName: "Білий Вовк",
+  personalImpression: "Похмурий, але чесний",
+  portrait: spoilerPortrait,
+  speciesOverride: SPECIES_REFS.mutant,
+  status: "dead",
+};
+
+describe("spoiler flags follow their values", () => {
+  it("keeps every spoiler flag whose value is filled", () => {
+    expect(editValuesOf(filledSpoilerAppearance)).toMatchObject(spoilerFlags(true));
+  });
+
+  it("loads a stale spoiler flag over an empty value as off for every field", () => {
+    const stale = editValuesOf({
+      ...spoilerFlags(true),
+      appearanceNotes: "   ",
+      description: null,
+      displayName: " ",
+      personalImpression: "",
+      portrait: null,
+      speciesOverride: null,
+      status: null,
+    });
+
+    expect(stale).toMatchObject(spoilerFlags(false));
+  });
+
+  it.each<{ empty: Partial<CharacterEditValues["book"]>; flag: BookSpoilerFlag; label: string }>([
+    { empty: { displayName: null }, flag: "displayNameIsSpoiler", label: "an inherited name" },
+    { empty: { displayName: "   " }, flag: "displayNameIsSpoiler", label: "a blank name" },
+    { empty: { portraitMediaId: null }, flag: "portraitIsSpoiler", label: "a removed portrait" },
+    { empty: { status: "not_specified" }, flag: "statusIsSpoiler", label: "an unset status" },
+    { empty: { speciesOverride: null }, flag: "speciesOverrideIsSpoiler", label: "no species" },
+    { empty: { description: "  " }, flag: "descriptionIsSpoiler", label: "a blank description" },
+    {
+      empty: { personalImpression: "" },
+      flag: "personalImpressionIsSpoiler",
+      label: "an empty impression",
+    },
+    {
+      empty: { appearanceNotes: "\n " },
+      flag: "appearanceNotesIsSpoiler",
+      label: "blank appearance notes",
+    },
+  ])("sends $flag as false for $label even while the form still holds it on", ({ empty, flag }) => {
+    const filled = editValuesOf(filledSpoilerAppearance);
+
+    expect(toBookUpdate(filled)).toHaveProperty(flag, true);
+    expect(toBookUpdate({ ...filled, ...empty })).toHaveProperty(flag, false);
+  });
+
+  it("keeps the status spoiler flag for an unknown status and drops it for an unset one", () => {
+    const filled = editValuesOf(filledSpoilerAppearance);
+
+    expect(toBookUpdate({ ...filled, status: "unknown" })).toHaveProperty("statusIsSpoiler", true);
+    expect(toBookUpdate({ ...filled, status: "not_specified" })).toHaveProperty(
+      "statusIsSpoiler",
+      false,
+    );
+  });
+});
+
+describe("toBookUpdate masked spoiler fields", () => {
+  it.each<{
+    masked: Partial<BookCharacterView>;
+    payloadKeys: (keyof UpdateBookCharacter)[];
+    revealKey: CharacterRevealFieldKey;
+  }>([
+    {
+      masked: { displayName: null },
+      payloadKeys: ["displayName", "displayNameIsSpoiler"],
+      revealKey: "displayName",
+    },
+    {
+      masked: { portrait: null },
+      payloadKeys: ["portraitMediaId", "portraitIsSpoiler"],
+      revealKey: "portrait",
+    },
+    {
+      masked: { status: null, statusCustomText: null },
+      payloadKeys: ["status", "statusCustomText", "statusIsSpoiler"],
+      revealKey: "status",
+    },
+    {
+      masked: { speciesOverride: null },
+      payloadKeys: ["speciesOverrideId", "speciesOverrideIsSpoiler"],
+      revealKey: "speciesOverride",
+    },
+    {
+      masked: { description: null },
+      payloadKeys: ["description", "descriptionIsSpoiler"],
+      revealKey: "description",
+    },
+    {
+      masked: { personalImpression: null },
+      payloadKeys: ["personalImpression", "personalImpressionIsSpoiler"],
+      revealKey: "personalImpression",
+    },
+    {
+      masked: { appearanceNotes: null },
+      payloadKeys: ["appearanceNotes", "appearanceNotesIsSpoiler"],
+      revealKey: "appearanceNotes",
+    },
+  ])(
+    "sends neither the value nor the flag of a masked $revealKey",
+    ({ masked, payloadKeys, revealKey }) => {
+      const appearance = makeBookCharacterView({
+        ...filledSpoilerAppearance,
+        ...masked,
+        bookId: "book-1",
+        hiddenFields: [revealKey],
+      });
+      const maskedCharacter = makeCharacterDetails({ appearances: [appearance] });
+      const values = toCharacterEditValues({
+        bookId: "book-1",
+        character: maskedCharacter,
+        locale: "uk",
+      });
+
+      const payload = toBookUpdate(
+        values.book,
+        maskedEditFields({ appearance, character: maskedCharacter }),
+      );
+
+      for (const key of payloadKeys) {
+        expect(payload).not.toHaveProperty(key);
+      }
+      expect(payload).toHaveProperty("importance");
+    },
+  );
+
+  it("loads the flag of a masked field as it is stored instead of switching it off", () => {
+    const masked = editValuesOf({
+      ...spoilerFlags(true),
+      appearanceNotes: null,
+      description: null,
+      displayName: null,
+      hiddenFields: [
+        "appearanceNotes",
+        "description",
+        "displayName",
+        "personalImpression",
+        "portrait",
+        "speciesOverride",
+        "status",
+      ],
+      personalImpression: null,
+      portrait: null,
+      speciesOverride: null,
+      status: null,
+    });
+
+    expect(masked).toMatchObject(spoilerFlags(true));
   });
 });
 

@@ -28,7 +28,7 @@ export class BookCharacterSuggestionsController {
   @ApiNotFoundResponse({ description: "Book or context book not found" })
   @ApiOkResponse({
     description:
-      "Existing characters not yet linked to this book, same-series first and spoiler-safe at the current reading position",
+      "Existing characters not yet linked to this book, same-series first, without characters that appear only in later books of the series",
     type: CharacterSuggestionsDto,
   })
   @ApiOperation({ summary: "Suggest existing characters to add to a book" })
@@ -36,9 +36,6 @@ export class BookCharacterSuggestionsController {
   @ApiQuery({ name: "q", required: false })
   @ApiQuery({ name: "limit", required: false })
   @ApiQuery({ name: "contextBookId", required: false })
-  @ApiQuery({ name: "contextChapter", required: false })
-  @ApiQuery({ name: "contextPage", required: false })
-  @ApiQuery({ name: "contextAudioSeconds", required: false })
   @Get()
   list(
     @CurrentUser() user: AuthenticatedUser,

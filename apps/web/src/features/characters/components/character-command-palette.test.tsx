@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
-import { toCharacterReadingContext } from "../model/characters-roster-query";
+import { toCharacterBookContext } from "../model/characters-roster-query";
 import { makeCharacterSummary, makeCharacterSummaryPage } from "../model/characters.fixtures";
 import { CharacterCommandPalette } from "./character-command-palette";
 
@@ -64,16 +64,16 @@ function paramOf(url: string | undefined, name: string): null | string {
   return new URL(url, "http://localhost").searchParams.get(name);
 }
 
-function renderPalette(readingContext: BookCharacterSummaryQuery = {}) {
+function renderPalette(bookContext: BookCharacterSummaryQuery = {}) {
   const onOpenChange = vi.fn();
   const onSelect = vi.fn();
   const view = renderWithProviders(
     <CharacterCommandPalette
+      bookContext={bookContext}
       bookId="book-1"
       onOpenChange={onOpenChange}
       onSelect={onSelect}
       open
-      readingContext={readingContext}
     />,
   );
   return { ...view, onOpenChange, onSelect };
@@ -123,7 +123,7 @@ afterEach(() => {
 
 describe("CharacterCommandPalette scope", () => {
   it("searches this book's roster and never the global characters list", async () => {
-    renderPalette(toCharacterReadingContext(bookInProgress));
+    renderPalette(toCharacterBookContext(bookInProgress));
 
     await typeQuery("Ґе");
 
@@ -133,32 +133,30 @@ describe("CharacterCommandPalette scope", () => {
   });
 
   it("stays book-scoped for a book with no reading position instead of searching globally", async () => {
-    renderPalette(toCharacterReadingContext(finishedBook));
+    renderPalette(toCharacterBookContext(finishedBook));
 
     await typeQuery("Ґе");
 
     expect(await screen.findByRole("option", { name: /Ґеральт/ })).toBeInTheDocument();
     expect(globalSearchRequestUrls()).toHaveLength(0);
     expect(paramOf(rosterRequestUrls()[0], "contextBookId")).toBeNull();
-    expect(paramOf(rosterRequestUrls()[0], "contextPage")).toBeNull();
   });
 
-  it("sends one normalized query, the same reading context, and a small finite page the roster asks for", async () => {
-    renderPalette(toCharacterReadingContext(bookInProgress));
+  it("sends one normalized query, the same book context, and a small finite page the roster asks for", async () => {
+    renderPalette(toCharacterBookContext(bookInProgress));
 
     await typeQuery("  Ґ   е  ");
 
     await waitFor(() => expect(rosterRequestUrls()).toHaveLength(1));
     const url = rosterRequestUrls()[0];
     expect(paramOf(url, "contextBookId")).toBe("book-1");
-    expect(paramOf(url, "contextPage")).toBe("42");
     expect(paramOf(url, "search")).toBe("Ґ е");
     expect(paramOf(url, "pageNumber")).toBe("1");
     expect(paramOf(url, "pageSize")).toBe("10");
   });
 
   it("asks the server for nothing below two characters", async () => {
-    renderPalette(toCharacterReadingContext(bookInProgress));
+    renderPalette(toCharacterBookContext(bookInProgress));
 
     expect(screen.getByText(PALETTE_HINT)).toBeInTheDocument();
     expect(requestUrls()).toHaveLength(0);
@@ -174,7 +172,7 @@ describe("CharacterCommandPalette scope", () => {
 describe("CharacterCommandPalette results", () => {
   it("opens the row by its global character id", async () => {
     respondToRoster = () => jsonResponse(makeCharacterSummaryPage([ciri]));
-    const { onOpenChange, onSelect } = renderPalette(toCharacterReadingContext(bookInProgress));
+    const { onOpenChange, onSelect } = renderPalette(toCharacterBookContext(bookInProgress));
 
     await typeQuery("Ці");
     await userEvent.click(await screen.findByRole("option", { name: /Цірі/ }));
@@ -197,7 +195,7 @@ describe("CharacterCommandPalette results", () => {
           }),
         ]),
       );
-    renderPalette(toCharacterReadingContext(bookInProgress));
+    renderPalette(toCharacterBookContext(bookInProgress));
 
     await typeQuery("Ґе");
 
@@ -211,9 +209,11 @@ describe("CharacterCommandPalette results", () => {
   it("never shows a roster character the reader cannot have reached yet", async () => {
     respondToRoster = (url) =>
       jsonResponse(
-        makeCharacterSummaryPage(paramOf(url, "contextPage") === "42" ? [geralt] : [geralt, ciri]),
+        makeCharacterSummaryPage(
+          paramOf(url, "contextBookId") === "book-1" ? [geralt] : [geralt, ciri],
+        ),
       );
-    renderPalette(toCharacterReadingContext(bookInProgress));
+    renderPalette(toCharacterBookContext(bookInProgress));
 
     await typeQuery("Ґе");
 
@@ -228,7 +228,7 @@ describe("CharacterCommandPalette results", () => {
       paramOf(url, "search") === "Ґе"
         ? held.promise
         : jsonResponse(makeCharacterSummaryPage([geralt]));
-    renderPalette(toCharacterReadingContext(bookInProgress));
+    renderPalette(toCharacterBookContext(bookInProgress));
 
     await typeQuery("Ґе");
     await waitFor(() => expect(rosterRequestUrls()).toHaveLength(1));
@@ -244,7 +244,7 @@ describe("CharacterCommandPalette results", () => {
   });
 
   it("clears the query when the palette closes", async () => {
-    renderPalette(toCharacterReadingContext(bookInProgress));
+    renderPalette(toCharacterBookContext(bookInProgress));
 
     await typeQuery("Ґе");
     await screen.findByRole("option", { name: /Ґеральт/ });

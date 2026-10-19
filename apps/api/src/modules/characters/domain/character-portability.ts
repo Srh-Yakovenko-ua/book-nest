@@ -1,4 +1,5 @@
 import type {
+  BundleFact,
   CharacterBundle,
   CharacterImportCreated,
   CharacterImportSkipped,
@@ -26,6 +27,7 @@ import {
   RelationshipIntensitySchema,
   RelationshipTypeSchema,
 } from "@app/shared";
+import { parseISO } from "date-fns";
 
 import type {
   PortableSpeciesRef,
@@ -59,6 +61,7 @@ export type CharacterImportPlan = {
   characters: ImportCharacterRow[];
   characterTags: ImportCharacterTagRow[];
   created: CharacterImportCreated;
+  facts: ImportFactRow[];
   forms: ImportFormRow[];
   groups: ImportGroupRow[];
   memberships: ImportMembershipRow[];
@@ -85,11 +88,11 @@ export type ExportAppearanceRow = {
   descriptionIsSpoiler: boolean;
   displayName: Nullable<string>;
   displayNameIsSpoiler: boolean;
+  facts: ExportFactRow[];
   firstAppearanceAudioSeconds: Nullable<number>;
   firstAppearanceChapter: Nullable<string>;
   firstAppearanceNote: Nullable<string>;
   firstAppearancePage: Nullable<number>;
-  hidePresenceAsSpoiler: boolean;
   importance: string;
   isPovCharacter: boolean;
   isUnreliableNarrator: boolean;
@@ -134,7 +137,6 @@ export type ExportCharacterRow = {
   forms: ExportFormRow[];
   gender: string;
   globalAttitude: Nullable<string>;
-  hideProfileAsSpoiler: boolean;
   id: string;
   isFavorite: boolean;
   name: string;
@@ -142,6 +144,15 @@ export type ExportCharacterRow = {
   pronouns: Nullable<string>;
   species: Nullable<PortableSpeciesSource>;
   tags: { tagId: string }[];
+};
+
+export type ExportFactRow = {
+  chapter: Nullable<string>;
+  createdAt: Date;
+  page: Nullable<number>;
+  text: string;
+  title: string;
+  updatedAt: Date;
 };
 
 export type ExportFormRow = {
@@ -225,7 +236,6 @@ export type ImportBookCharacterRow = {
   firstAppearanceChapter: Nullable<string>;
   firstAppearanceNote: Nullable<string>;
   firstAppearancePage: Nullable<number>;
-  hidePresenceAsSpoiler: boolean;
   id: string;
   importance: string;
   isPovCharacter: boolean;
@@ -269,7 +279,6 @@ export type ImportCharacterRow = {
   entityKind: string;
   gender: string;
   globalAttitude: Nullable<string>;
-  hideProfileAsSpoiler: boolean;
   id: string;
   isFavorite: boolean;
   name: string;
@@ -283,6 +292,17 @@ export type ImportCharacterRow = {
 export type ImportCharacterTagRow = {
   characterId: string;
   tagId: string;
+};
+
+export type ImportFactRow = {
+  bookCharacterId: string;
+  chapter: Nullable<string>;
+  createdAt: Date;
+  id: string;
+  page: Nullable<number>;
+  text: string;
+  title: string;
+  updatedAt: Date;
 };
 
 export type ImportFormRow = {
@@ -429,6 +449,7 @@ export function planCharacterImport({
     characters: [],
     characterTags: [],
     created,
+    facts: [],
     forms: [],
     groups: [],
     memberships: [],
@@ -511,6 +532,7 @@ function emptyCreatedCounts(): CharacterImportCreated {
     appearances: 0,
     bookStates: 0,
     characters: 0,
+    facts: 0,
     forms: 0,
     groups: 0,
     memberships: 0,
@@ -526,6 +548,7 @@ function emptySkippedCounts(): CharacterImportSkipped {
     aliasesMissingBook: 0,
     appearancesMissingBook: 0,
     bookStatesMissingBook: 0,
+    factsMissingBook: 0,
     membershipsMissingBook: 0,
     relationshipsInvalid: 0,
     tagsMissing: 0,
@@ -566,7 +589,6 @@ function planCharacter({
     entityKind: character.entityKind,
     gender: character.gender,
     globalAttitude: character.globalAttitude,
-    hideProfileAsSpoiler: character.hideProfileAsSpoiler,
     id: freshCharacterId,
     isFavorite: character.isFavorite,
     name: character.name,
@@ -644,16 +666,18 @@ function planCharacter({
     plan.created.forms += 1;
   }
 
-  const seenAppearanceBookIds = new Set<string>();
+  const keptBookCharacterIds = new Map<string, string>();
   for (const appearance of character.appearances) {
-    if (seenAppearanceBookIds.has(appearance.bookId)) {
+    const keptBookCharacterId = keptBookCharacterIds.get(appearance.bookId);
+    if (keptBookCharacterId !== undefined) {
+      planFacts({ bookCharacterId: keptBookCharacterId, facts: appearance.facts, newId, plan });
       continue;
     }
     if (!owned.bookIds.has(appearance.bookId)) {
       plan.skipped.appearancesMissingBook += 1;
+      plan.skipped.factsMissingBook += appearance.facts.length;
       continue;
     }
-    seenAppearanceBookIds.add(appearance.bookId);
     const portraitMediaId = resolveOptionalOwned({
       id: appearance.portraitMediaId,
       owned: owned.mediaIds,
@@ -662,6 +686,7 @@ function planCharacter({
       plan.skipped.unlinkedMedia += 1;
     }
     const bookCharacterId = newId();
+    keptBookCharacterIds.set(appearance.bookId, bookCharacterId);
     plan.bookCharacters.push({
       appearanceNotes: emptyToNull(appearance.appearanceNotes),
       appearanceNotesIsSpoiler: appearance.appearanceNotesIsSpoiler,
@@ -676,7 +701,6 @@ function planCharacter({
       firstAppearanceChapter: emptyToNull(appearance.firstAppearanceChapter),
       firstAppearanceNote: emptyToNull(appearance.firstAppearanceNote),
       firstAppearancePage: appearance.firstAppearancePage,
-      hidePresenceAsSpoiler: appearance.hidePresenceAsSpoiler,
       id: bookCharacterId,
       importance: appearance.importance,
       isPovCharacter: appearance.isPovCharacter,
@@ -714,6 +738,34 @@ function planCharacter({
       });
       plan.created.roles += 1;
     }
+
+    planFacts({ bookCharacterId, facts: appearance.facts, newId, plan });
+  }
+}
+
+function planFacts({
+  bookCharacterId,
+  facts,
+  newId,
+  plan,
+}: {
+  bookCharacterId: string;
+  facts: BundleFact[];
+  newId: () => string;
+  plan: CharacterImportDraft;
+}): void {
+  for (const fact of facts) {
+    plan.facts.push({
+      bookCharacterId,
+      chapter: emptyToNull(fact.chapter),
+      createdAt: parseISO(fact.createdAt),
+      id: newId(),
+      page: fact.page,
+      text: fact.text,
+      title: fact.title,
+      updatedAt: parseISO(fact.updatedAt),
+    });
+    plan.created.facts += 1;
   }
 }
 
@@ -953,11 +1005,11 @@ function serializeAppearance(
     descriptionIsSpoiler: row.descriptionIsSpoiler,
     displayName: row.displayName,
     displayNameIsSpoiler: row.displayNameIsSpoiler,
+    facts: row.facts.map(serializeFact),
     firstAppearanceAudioSeconds: row.firstAppearanceAudioSeconds,
     firstAppearanceChapter: row.firstAppearanceChapter,
     firstAppearanceNote: row.firstAppearanceNote,
     firstAppearancePage: row.firstAppearancePage,
-    hidePresenceAsSpoiler: row.hidePresenceAsSpoiler,
     importance: BookCharacterImportanceSchema.parse(row.importance),
     isPovCharacter: row.isPovCharacter,
     isUnreliableNarrator: row.isUnreliableNarrator,
@@ -1011,7 +1063,6 @@ function serializeCharacter(row: ExportCharacterRow): CharacterBundle["character
     gender: CharacterGenderSchema.parse(row.gender),
     globalAttitude:
       row.globalAttitude === null ? null : CharacterAttitudeSchema.parse(row.globalAttitude),
-    hideProfileAsSpoiler: row.hideProfileAsSpoiler,
     id: row.id,
     isArchived: row.archivedAt !== null,
     isFavorite: row.isFavorite,
@@ -1021,6 +1072,17 @@ function serializeCharacter(row: ExportCharacterRow): CharacterBundle["character
     species: speciesRef.name,
     speciesKey: speciesRef.key,
     tagIds: row.tags.map((tag) => tag.tagId),
+  };
+}
+
+function serializeFact(row: ExportFactRow): BundleFact {
+  return {
+    chapter: row.chapter,
+    createdAt: row.createdAt.toISOString(),
+    page: row.page,
+    text: row.text,
+    title: row.title,
+    updatedAt: row.updatedAt.toISOString(),
   };
 }
 

@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
       "Bash(ls:*)",
@@ -162,48 +163,119 @@
     ]
   },
   "hooks": {
-    "PreToolUse": [
+    "UserPromptSubmit": [
       {
-        "matcher": "Edit|Write",
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.file_path' | grep -q 'apps/api/src/generated/' && { echo 'Refusing to edit the generated Prisma client. Edit apps/api/prisma/schema.prisma, then run pnpm --filter @app/api db:generate.' >&2; exit 2; } || true"
-          },
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/record-prompt.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
           {
             "type": "command",
-            "command": "f=$(jq -r '.tool_input.file_path'); case $f in *.env|*.env.local|*.env.production) echo 'Refusing to edit a real .env file (secrets live here). Put new variables in .env.example instead.' >&2; exit 2 ;; esac; true"
-          },
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start.sh"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
           {
             "type": "command",
-            "command": "f=$(jq -r '.tool_input.file_path'); case \"$f\" in *apps/api/prisma/migrations/*/migration.sql) git -C \"$(dirname \"$f\")\" ls-files --error-unmatch \"$f\" >/dev/null 2>&1 && { echo 'Refusing to edit a committed migration. Migrations are the source of truth — create a NEW migration via pnpm --filter @app/api db:migrate instead. A freshly generated, still-untracked migration.sql stays editable so you can review it and strip spurious DROP INDEX lines before applying it.' >&2; exit 2; } ;; esac; true"
-          },
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-compact.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.file_path' | grep -q 'pnpm-lock.yaml' && { echo 'Do not hand-edit pnpm-lock.yaml — run a pnpm command so the lockfile stays consistent.' >&2; exit 2; } || true"
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-bash.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Edit|Write|MultiEdit|NotebookEdit|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-files.sh"
           }
         ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "Edit|Write",
+        "matcher": "Edit|Write|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.file_path' | grep -q 'apps/api/prisma/schema.prisma' && pnpm --filter @app/api db:generate || true"
-          },
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-edit-check.mjs",
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.file_path' | grep -q 'apps/web/src/messages/' && node .claude/scripts/check-i18n-parity.mjs || true"
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-start.sh"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-stop.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/claims-check.sh",
+            "timeout": 10
           }
         ]
       }
     ]
   },
+  "extraKnownMarketplaces": {
+    "ui-ux-pro-max-skill": {
+      "source": {
+        "source": "github",
+        "repo": "nextlevelbuilder/ui-ux-pro-max-skill"
+      }
+    }
+  },
   "enabledPlugins": {
-    "frontend-design@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": false,
     "chrome-devtools-mcp@claude-plugins-official": true,
-    "playwright@claude-plugins-official": true
+    "playwright@claude-plugins-official": true,
+    "ui-ux-pro-max@ui-ux-pro-max-skill": false
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "worktree": {
+    "baseRef": "head"
   }
 }

@@ -11,23 +11,15 @@ import type {
   SeriesReadingContextDefaultView,
 } from "@app/shared";
 
-import { CHARACTER_ERROR_CODES, normalizeSearch, readingPositionFromQuery } from "@app/shared";
+import { CHARACTER_ERROR_CODES, normalizeSearch } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
-import type {
-  ContextualAppearance,
-  ReadingContextWindow,
-} from "../domain/reading-context-window.js";
 import type { BookContextRow } from "../infrastructure/characters.repository.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { buildSeriesCharacterSummary, isTopImportance } from "../domain/character-summary.js";
 import { toCharacterSeriesProfileView } from "../domain/character.mapper.js";
-import {
-  buildReadingContextWindow,
-  isAppearanceRevealable,
-} from "../domain/reading-context-window.js";
 import { warnOnAmbiguousSeriesOrder } from "../domain/series-order-warning.js";
 import {
   pickSeriesRepresentatives,
@@ -43,7 +35,6 @@ type SeriesReadingContext = {
   allowedBookIds: string[];
   contextBookId: Nullable<string>;
   partNumberByBookId: Map<string, Nullable<number>>;
-  window: ReadingContextWindow;
 };
 
 @Injectable()
@@ -103,38 +94,18 @@ export class SeriesCharactersService {
             characterId,
             userId,
           });
-    const revealableAppearances =
-      character === null
-        ? []
-        : character.bookAppearances.filter((appearance) =>
-            isAppearanceRevealable({ appearance, window: context.window }),
-          );
-    if (
-      character === null ||
-      character.hideProfileAsSpoiler ||
-      revealableAppearances.length === 0
-    ) {
+    if (character === null || character.bookAppearances.length === 0) {
       throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
     }
 
     const allowedBookIdSet = new Set(context.allowedBookIds);
-    const revealableAppearanceIds = new Set(
-      revealableAppearances.map((appearance) => appearance.id),
-    );
-    const maskedBookIds = new Set(
-      character.bookAppearances
-        .filter((appearance) => !revealableAppearanceIds.has(appearance.id))
-        .map((appearance) => appearance.bookId),
-    );
 
     return toCharacterSeriesProfileView({
       aliases: character.aliases.filter(
         (alias) =>
-          !alias.isSpoiler &&
-          (alias.bookId === null ||
-            (allowedBookIdSet.has(alias.bookId) && !maskedBookIds.has(alias.bookId))),
+          !alias.isSpoiler && (alias.bookId === null || allowedBookIdSet.has(alias.bookId)),
       ),
-      appearances: revealableAppearances.map((appearance) => ({
+      appearances: character.bookAppearances.map((appearance) => ({
         attitude: appearance.attitude,
         bookId: appearance.bookId,
         createdAt: appearance.createdAt,
@@ -144,6 +115,7 @@ export class SeriesCharactersService {
         importance: appearance.importance,
         portrait: this.viewMapper.mediaViewOf(appearance.portraitMedia),
         portraitIsSpoiler: appearance.portraitIsSpoiler,
+        portraitMediaId: appearance.portraitMediaId,
         roles: appearance.roles,
         status: appearance.status,
         statusIsSpoiler: appearance.statusIsSpoiler,
@@ -184,7 +156,7 @@ export class SeriesCharactersService {
       userId,
     });
     const representatives = pickSeriesRepresentatives({
-      appearances: revealableAppearancesIn({ appearances, window: context.window }),
+      appearances,
       contextBookId: query.contextBookId,
       partNumberByBookId: context.partNumberByBookId,
     });
@@ -223,7 +195,6 @@ export class SeriesCharactersService {
         byImportanceEntries: [],
         contextBookId: context.contextBookId,
         favoritesCount: 0,
-        hasHiddenRecords: false,
         povCount: 0,
         seriesId,
         topCandidates: [],
@@ -231,32 +202,22 @@ export class SeriesCharactersService {
       });
     }
 
-    const [appearances, hiddenCharacterIds] = await Promise.all([
-      this.charactersRepository.listSeriesAppearances({
-        bookIds: context.allowedBookIds,
-        search: undefined,
-        userId,
-      }),
-      this.charactersRepository.listSeriesHiddenCharacterIds({
-        bookIds: context.allowedBookIds,
-        userId,
-      }),
-    ]);
+    const appearances = await this.charactersRepository.listSeriesAppearances({
+      bookIds: context.allowedBookIds,
+      search: undefined,
+      userId,
+    });
 
     const representatives = pickSeriesRepresentatives({
-      appearances: revealableAppearancesIn({ appearances, window: context.window }),
+      appearances,
       contextBookId: query.contextBookId,
       partNumberByBookId: context.partNumberByBookId,
     });
-    const visibleCharacterIds = new Set(representatives.map((row) => row.characterId));
 
     return buildSeriesCharacterSummary({
       byImportanceEntries: representatives.map((row) => ({ count: 1, importance: row.importance })),
       contextBookId: context.contextBookId,
       favoritesCount: representatives.filter((row) => row.character.isFavorite).length,
-      hasHiddenRecords:
-        hiddenCharacterIds.some((row) => !visibleCharacterIds.has(row.characterId)) ||
-        appearances.some((row) => !visibleCharacterIds.has(row.characterId)),
       povCount: representatives.filter((row) => row.isPovCharacter).length,
       seriesId,
       topCandidates: representatives
@@ -294,28 +255,10 @@ export class SeriesCharactersService {
     const seriesBooks = await this.charactersRepository.listSeriesBooks({ seriesId, userId });
     warnOnAmbiguousSeriesOrder({ seriesBooks, seriesId });
 
-    const allowedBookIds = resolveAllowedBookIds({ contextBook, includeFuture, seriesBooks });
-    const contextBookId = contextBook?.id ?? null;
-
     return {
-      allowedBookIds,
-      contextBookId,
+      allowedBookIds: resolveAllowedBookIds({ contextBook, includeFuture, seriesBooks }),
+      contextBookId: contextBook?.id ?? null,
       partNumberByBookId: new Map(seriesBooks.map((book) => [book.id, book.partNumber])),
-      window: buildReadingContextWindow({
-        allowedBookIds,
-        contextBookId,
-        readingPosition: readingPositionFromQuery(query),
-      }),
     };
   }
-}
-
-function revealableAppearancesIn<Appearance extends ContextualAppearance>({
-  appearances,
-  window,
-}: {
-  appearances: Appearance[];
-  window: ReadingContextWindow;
-}): Appearance[] {
-  return appearances.filter((appearance) => isAppearanceRevealable({ appearance, window }));
 }

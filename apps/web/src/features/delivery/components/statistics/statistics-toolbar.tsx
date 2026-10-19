@@ -3,12 +3,13 @@
 import type { BookOrderStatisticsMeta, Nullable } from "@app/shared";
 
 import { BookOrderStatisticsCompareModeSchema } from "@app/shared";
+import { isAfter, parseISO } from "date-fns";
 import { useLocale, useTranslations } from "next-intl";
 import { useId } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -20,12 +21,16 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { LibraryActiveFilters } from "@/features/books/components/library-active-filters";
+import { useWeekStartsOn } from "@/features/settings";
+import { dateToIsoDay, isoDayToDate } from "@/lib/iso-day";
 
+import type { StatisticsCustomRange } from "../../model/statistics-period";
 import type { UseStatisticsParamsResult } from "../../model/use-statistics-params";
 
 import { formatPeriodRange } from "../../model/statistics-format";
 import {
   defaultStatisticsCompareMode,
+  STATISTICS_PERIOD,
   STATISTICS_PERIOD_PRESETS,
 } from "../../model/statistics-period";
 import { useStatisticsFilterChips } from "../../model/use-statistics-filter-chips";
@@ -46,6 +51,12 @@ export function StatisticsToolbar({
   const tPeriod = useTranslations("delivery.statistics.period");
   const locale = useLocale();
   const compareId = useId();
+  const fromId = useId();
+  const toId = useId();
+  const rangeReversedId = useId();
+  const weekStartsOn = useWeekStartsOn();
+  const today = parseISO(params.today);
+  const earliestDay = parseISO(STATISTICS_PERIOD.earliestCustomDay);
   const chips = useStatisticsFilterChips({
     onIncludeCancelledChange: params.setIncludeCancelled,
     onPatch: params.setFilters,
@@ -93,30 +104,50 @@ export function StatisticsToolbar({
         </Select>
 
         {params.state.period === "custom" ? (
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <Input
-                aria-label={tPeriod("from")}
-                className="h-9 w-[9.5rem]"
-                onChange={(event) =>
-                  params.setCustomRange({ from: event.target.value, to: params.state.to })
+          <div className="flex w-full flex-col gap-1 sm:w-auto">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <DatePicker
+                ariaLabel={tPeriod("from")}
+                className="h-9 rounded-lg text-sm whitespace-nowrap sm:w-50"
+                describedBy={isRangeReversed ? rangeReversedId : undefined}
+                endMonth={today}
+                id={fromId}
+                invalid={isRangeReversed}
+                onChange={(date) =>
+                  params.setCustomRange({
+                    from: date ? dateToIsoDay(date) : "",
+                    to: params.state.to,
+                  })
                 }
-                type="date"
-                value={params.state.from}
+                placeholder={tPeriod("from")}
+                startMonth={earliestDay}
+                today={today}
+                value={isoDayToDate(params.state.from)}
+                weekStartsOn={weekStartsOn}
               />
-              <span className="text-sm text-muted-foreground">–</span>
-              <Input
-                aria-label={tPeriod("to")}
-                className="h-9 w-[9.5rem]"
-                onChange={(event) =>
-                  params.setCustomRange({ from: params.state.from, to: event.target.value })
+              <span className="hidden text-sm text-muted-foreground sm:inline">–</span>
+              <DatePicker
+                ariaLabel={tPeriod("to")}
+                className="h-9 rounded-lg text-sm whitespace-nowrap sm:w-50"
+                describedBy={isRangeReversed ? rangeReversedId : undefined}
+                endMonth={today}
+                id={toId}
+                invalid={isRangeReversed}
+                onChange={(date) =>
+                  params.setCustomRange({
+                    from: params.state.from,
+                    to: date ? dateToIsoDay(date) : "",
+                  })
                 }
-                type="date"
-                value={params.state.to}
+                placeholder={tPeriod("to")}
+                startMonth={earliestDay}
+                today={today}
+                value={isoDayToDate(params.state.to)}
+                weekStartsOn={weekStartsOn}
               />
             </div>
             {isRangeReversed ? (
-              <p className="text-xs text-favorite" role="alert">
+              <p className="text-xs text-favorite" id={rangeReversedId} role="alert">
                 {tPeriod("rangeReversed")}
               </p>
             ) : null}
@@ -216,6 +247,8 @@ export function StatisticsToolbar({
   );
 }
 
-function isReversedRange({ from, to }: { from: string; to: string }): boolean {
-  return from !== "" && to !== "" && from > to;
+function isReversedRange({ from, to }: StatisticsCustomRange): boolean {
+  const start = isoDayToDate(from);
+  const end = isoDayToDate(to);
+  return start !== undefined && end !== undefined && isAfter(start, end);
 }

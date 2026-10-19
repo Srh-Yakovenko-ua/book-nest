@@ -23,4 +23,9 @@ export interface CreateSeriesNoteInputDto {
    * @maxLength 5000
    */
   text: string;
+  /**
+   * @maxLength 120
+   * @nullable
+   */
+  title?: string | null;
 }

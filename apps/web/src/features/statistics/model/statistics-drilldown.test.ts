@@ -36,6 +36,36 @@ describe("buildStatisticsDrilldownTarget", () => {
       reason: "COMPLETED_READS_SUBSET_HAS_NO_EXACT_DESTINATION",
     });
   });
+
+  it("resolves a date-only subset to its exact finished-date interval", () => {
+    const target = buildStatisticsDrilldownTarget({
+      filters: { finishedFrom: "2026-03-01", finishedTo: "2026-03-31" },
+      kind: "completed_reads_subset",
+      period: { from: "2026-01-01", to: "2026-03-31" },
+    });
+
+    expect(target).toEqual({
+      from: "2026-03-01",
+      kind: "completed_reads_interval",
+      to: "2026-03-31",
+    });
+  });
+
+  it.each([
+    ["one bound only", { finishedFrom: "2026-03-01" }],
+    [
+      "a narrowing filter",
+      { finishedFrom: "2026-03-01", finishedTo: "2026-03-31", genre: "fantasy" },
+    ],
+  ])("keeps failing closed for a subset with %s", (_, filters) => {
+    const target = buildStatisticsDrilldownTarget({
+      filters,
+      kind: "completed_reads_subset",
+      period: { from: "2026-01-01", to: "2026-03-31" },
+    });
+
+    expect(target.kind).toBe("unsupported");
+  });
 });
 
 describe("toContextActionLink", () => {

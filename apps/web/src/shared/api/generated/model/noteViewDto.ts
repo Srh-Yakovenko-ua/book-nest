@@ -34,5 +34,7 @@ export interface NoteViewDto {
   /** @nullable */
   series: NoteViewDtoSeries;
   text: string;
+  /** @nullable */
+  title: string | null;
   updatedAt: string;
 }

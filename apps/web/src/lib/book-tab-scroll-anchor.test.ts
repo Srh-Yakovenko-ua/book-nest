@@ -1,0 +1,171 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import type {
+  BookTabCardAttribute,
+  BookTabScrollAnchor,
+  BookTabScrollScope,
+} from "./book-tab-scroll-anchor";
+
+import { captureBookTabScrollAnchor, resolveBookTabScrollTop } from "./book-tab-scroll-anchor";
+
+type CardLayout = { id: string; top: number };
+
+const CARD_HEIGHT = 100;
+
+const NOTE_CARD: BookTabCardAttribute = "data-note-id";
+
+const QUOTE_CARD: BookTabCardAttribute = "data-quote-id";
+
+const SCOPE = { bookId: "book-1", criteriaKey: '{"book":"book-1"}' } as const;
+
+const ANCHOR: BookTabScrollAnchor = {
+  ...SCOPE,
+  cardId: "note-3",
+  neighbours: [
+    { cardId: "note-4", offset: 50 },
+    { cardId: "note-2", offset: -150 },
+  ],
+  offset: -50,
+  scrollY: 1200,
+};
+
+function layOutCards(
+  cards: readonly CardLayout[],
+  cardAttribute: BookTabCardAttribute = NOTE_CARD,
+): HTMLUListElement {
+  const list = document.createElement("ul");
+  for (const card of cards) {
+    const item = document.createElement("li");
+    item.setAttribute(cardAttribute, card.id);
+    vi.spyOn(item, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, card.top, 600, CARD_HEIGHT),
+    );
+    list.append(item);
+  }
+  return list;
+}
+
+function stackedCards(firstTop: number, count: number): CardLayout[] {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `note-${index + 1}`,
+    top: firstTop + index * CARD_HEIGHT,
+  }));
+}
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+describe("captureBookTabScrollAnchor", () => {
+  it("anchors the topmost card still crossing the viewport and keeps its nearest neighbours", () => {
+    const container = layOutCards(stackedCards(-250, 7));
+
+    expect(
+      captureBookTabScrollAnchor({
+        cardAttribute: NOTE_CARD,
+        container,
+        scope: SCOPE,
+        scrollY: 900,
+      }),
+    ).toEqual({
+      ...SCOPE,
+      cardId: "note-3",
+      neighbours: [
+        { cardId: "note-4", offset: 50 },
+        { cardId: "note-2", offset: -150 },
+        { cardId: "note-5", offset: 150 },
+        { cardId: "note-1", offset: -250 },
+        { cardId: "note-6", offset: 250 },
+      ],
+      offset: -50,
+      scrollY: 900,
+    });
+  });
+
+  it("anchors the last card when every card is above the viewport", () => {
+    const container = layOutCards(stackedCards(-500, 3));
+
+    const anchor = captureBookTabScrollAnchor({
+      cardAttribute: NOTE_CARD,
+      container,
+      scope: SCOPE,
+      scrollY: 2000,
+    });
+
+    expect(anchor?.cardId).toBe("note-3");
+    expect(anchor?.offset).toBe(-300);
+  });
+
+  it("has nothing to anchor before any card is rendered", () => {
+    const container = layOutCards([]);
+
+    expect(
+      captureBookTabScrollAnchor({ cardAttribute: NOTE_CARD, container, scope: SCOPE, scrollY: 0 }),
+    ).toBeNull();
+  });
+
+  it("reads only the cards carrying the requested attribute", () => {
+    const container = layOutCards([{ id: "note-1", top: 10 }]);
+    container.append(...layOutCards([{ id: "quote-7", top: 120 }], QUOTE_CARD).children);
+
+    const anchor = captureBookTabScrollAnchor({
+      cardAttribute: QUOTE_CARD,
+      container,
+      scope: SCOPE,
+      scrollY: 0,
+    });
+
+    expect(anchor).toMatchObject({ cardId: "quote-7", neighbours: [], offset: 120 });
+  });
+});
+
+describe("resolveBookTabScrollTop", () => {
+  function resolve(container: ParentNode, scrollY: number, scope: BookTabScrollScope = SCOPE) {
+    return resolveBookTabScrollTop({
+      anchor: ANCHOR,
+      cardAttribute: NOTE_CARD,
+      container,
+      scope,
+      scrollY,
+    });
+  }
+
+  it("puts the anchored card back at its saved offset from the viewport top", () => {
+    const container = layOutCards([
+      { id: "note-2", top: 300 },
+      { id: "note-3", top: 400 },
+    ]);
+
+    expect(resolve(container, 0)).toBe(450);
+  });
+
+  it("falls back to the nearest rendered neighbour when the anchored card is gone", () => {
+    const container = layOutCards([
+      { id: "note-2", top: 100 },
+      { id: "note-4", top: 300 },
+    ]);
+
+    expect(resolve(container, 40)).toBe(290);
+  });
+
+  it("falls back to the saved scroll position when no nearby card is rendered", () => {
+    const container = layOutCards([{ id: "note-40", top: 0 }]);
+
+    expect(resolve(container, 0)).toBe(1200);
+  });
+
+  it("ignores an anchor saved for another book or other criteria", () => {
+    const container = layOutCards([{ id: "note-3", top: 400 }]);
+
+    expect(resolve(container, 0, { ...SCOPE, bookId: "book-2" })).toBeNull();
+    expect(
+      resolve(container, 0, { ...SCOPE, criteriaKey: '{"book":"book-1","filter":"favorite"}' }),
+    ).toBeNull();
+  });
+
+  it("does not match a card of another kind that happens to share the id", () => {
+    const container = layOutCards([{ id: "note-3", top: 400 }], QUOTE_CARD);
+
+    expect(resolve(container, 0)).toBe(1200);
+  });
+});

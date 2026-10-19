@@ -39,7 +39,7 @@ One file per tool — "what is this, why do we have it, how to use it".
 
 ### Claude Code integration
 
-- [MCP servers (Playwright, Context7, frontend-design)](./tools/mcp-servers.md)
+- [Claude Code setup (hooks, skills, plugins, MCP servers)](./tools/claude-code.md)
 
 ## Per-package READMEs
 

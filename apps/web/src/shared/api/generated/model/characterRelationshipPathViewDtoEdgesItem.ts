@@ -17,6 +17,7 @@ export type CharacterRelationshipPathViewDtoEdgesItem = {
   /** @nullable */
   description: string | null;
   descriptionHidden: boolean;
+  /** @nullable */
   directionality: CharacterRelationshipPathViewDtoEdgesItemDirectionality;
   id: string;
   /** @nullable */

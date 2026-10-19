@@ -3,15 +3,10 @@ import type {
   CharacterTheoryView,
   CreateCharacterTheoryInput,
   Paginator,
-  ReadingPosition,
   UpdateCharacterTheoryInput,
 } from "@app/shared";
 
-import {
-  CHARACTER_THEORY_ERROR_CODES,
-  normalizeSearch,
-  readingPositionFromQuery,
-} from "@app/shared";
+import { CHARACTER_THEORY_ERROR_CODES, normalizeSearch } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type {
@@ -67,7 +62,6 @@ export class CharacterTheoriesService {
   }): Promise<Paginator<CharacterTheoryView>> {
     const visibility = await this.resolveContextVisibility({
       contextBookId: query.contextBookId,
-      readingPosition: readingPositionFromQuery(query),
       userId,
     });
 
@@ -211,11 +205,9 @@ export class CharacterTheoriesService {
 
   private async resolveContextVisibility({
     contextBookId,
-    readingPosition,
     userId,
   }: {
     contextBookId: string | undefined;
-    readingPosition: ReadingPosition | undefined;
     userId: string;
   }): Promise<TheoryContextVisibility> {
     if (contextBookId === undefined) {
@@ -226,7 +218,6 @@ export class CharacterTheoriesService {
         bookReader: this.charactersRepository,
         contextBookId,
         notFoundCode: CHARACTER_THEORY_ERROR_CODES.bookNotFound,
-        readingPosition,
         userId,
       }),
       this.characterTheoriesRepository.listTargetCharacterIds(userId),

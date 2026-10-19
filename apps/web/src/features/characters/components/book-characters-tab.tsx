@@ -1,14 +1,13 @@
 "use client";
 
-import type { BookView, CharacterSummaryView } from "@app/shared";
+import type { BookCharacterRosterItem, BookView, Nullable } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
-import { UiIcon } from "@/components/icons";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "@/i18n/navigation";
@@ -18,7 +17,7 @@ import { useBookCharacterSummary } from "../api/use-book-character-summary";
 import { useBookCharactersInfinite } from "../api/use-book-characters-infinite";
 import { useUnlinkCharacter } from "../api/use-unlink-character";
 import { getCharacterDetailsPath } from "../model/character-routes";
-import { toCharacterReadingContext } from "../model/characters-roster-query";
+import { toCharacterBookContext } from "../model/characters-roster-query";
 import { useCharactersRosterQuery } from "../model/use-characters-roster-query";
 import { AddCharacterDialog } from "./add-character-dialog";
 import { CharacterCard } from "./character-card";
@@ -31,6 +30,8 @@ import { UnlinkCharacterDialog } from "./unlink-character-dialog";
 
 const SKELETON_COUNT = 6;
 
+const ROSTER_GRID = "grid grid-cols-1 gap-4 @2xl/roster:grid-cols-2";
+
 type BookCharactersTabProps = {
   book: BookView;
 };
@@ -38,12 +39,17 @@ type BookCharactersTabProps = {
 type RosterListProps = {
   bookId: string;
   characters: ReturnType<typeof useBookCharactersInfinite>;
-  hasActiveSearch: boolean;
+  hasActiveCriteria: boolean;
   hasError: boolean;
-  items: CharacterSummaryView[];
+  items: BookCharacterRosterItem[];
   onAdd: () => void;
-  onClearSearch: () => void;
-  onUnlink: (characterId: string) => void;
+  onClearCriteria: () => void;
+  onUnlink: (characterId: string, trigger: Nullable<HTMLElement>) => void;
+};
+
+type UnlinkTarget = {
+  characterId: string;
+  open: boolean;
 };
 
 export function BookCharactersTab({ book }: BookCharactersTabProps) {
@@ -52,22 +58,40 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
   const t = useTranslations("characters");
   const tToast = useTranslations("characters.toast");
 
-  const readingContext = toCharacterReadingContext(book);
-  const roster = useCharactersRosterQuery(readingContext);
+  const bookContext = toCharacterBookContext(book);
+  const roster = useCharactersRosterQuery(bookContext);
   const characters = useBookCharactersInfinite(bookId, roster.listParams);
-  const summary = useBookCharacterSummary(bookId, readingContext);
+  const summary = useBookCharacterSummary(bookId, bookContext);
   const unlinkCharacter = useUnlinkCharacter();
   const router = useRouter();
 
   const [addOpen, setAddOpen] = useState(false);
-  const [unlinkId, setUnlinkId] = useState<null | string>(null);
+  const [unlinkTarget, setUnlinkTarget] = useState<Nullable<UnlinkTarget>>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const rosterStartRef = useRef<HTMLDivElement>(null);
+  const rosterCriteriaKey = JSON.stringify(roster.listParams);
+  const previousCriteriaKey = useRef(rosterCriteriaKey);
+  const unlinkTriggerRef = useRef<Nullable<HTMLElement>>(null);
+  const addButtonRef = useRef<HTMLButtonElement>(null);
 
   const rosterItems = (characters.data?.pages ?? []).flatMap((page) => page.items);
-  const hasRosterError = characters.isError && !characters.isFetchNextPageError;
+  const hasLoadedRoster = characters.data !== undefined;
+  const hasRosterError = characters.isError && !hasLoadedRoster;
   const isEmptyBook =
-    characters.data !== undefined && rosterItems.length === 0 && !roster.hasActiveSearch;
-  const showControls = characters.data !== undefined && !hasRosterError && !isEmptyBook;
+    hasLoadedRoster &&
+    !characters.isPlaceholderData &&
+    rosterItems.length === 0 &&
+    !roster.hasActiveCriteria;
+  const showControls = !isEmptyBook && (hasLoadedRoster || roster.hasActiveCriteria);
+
+  useEffect(() => {
+    if (previousCriteriaKey.current === rosterCriteriaKey) return;
+    previousCriteriaKey.current = rosterCriteriaKey;
+    const rosterStart = rosterStartRef.current;
+    if (rosterStart !== null && rosterStart.getBoundingClientRect().top < 0) {
+      rosterStart.scrollIntoView({ block: "start" });
+    }
+  }, [rosterCriteriaKey]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -84,22 +108,40 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
     router.push(getCharacterDetailsPath({ bookId, characterId }));
   }
 
+  function requestUnlink(characterId: string, trigger: Nullable<HTMLElement>) {
+    unlinkTriggerRef.current = trigger;
+    setUnlinkTarget({ characterId, open: true });
+  }
+
+  function closeUnlink() {
+    setUnlinkTarget((current) => (current === null ? null : { ...current, open: false }));
+  }
+
+  function returnFocusAfterUnlink(event: Event) {
+    const trigger = unlinkTriggerRef.current;
+    const target = trigger?.isConnected ? trigger : addButtonRef.current;
+    if (target === null || !target.isConnected) return;
+    event.preventDefault();
+    target.focus();
+  }
+
   function confirmUnlink() {
-    if (unlinkId === null) return;
+    if (unlinkTarget === null) return;
     unlinkCharacter.mutate(
-      { bookId, characterId: unlinkId },
+      { bookId, characterId: unlinkTarget.characterId },
       {
         onError: () => toast.error(tToast("unlinkError")),
         onSuccess: () => {
           toast.success(tToast("unlinked"));
-          setUnlinkId(null);
+          unlinkTriggerRef.current = null;
+          closeUnlink();
         },
       },
     );
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="@container/roster flex scroll-mt-4 flex-col gap-5" ref={rosterStartRef}>
       {showControls && summary.data !== undefined ? (
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">
@@ -108,59 +150,55 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
           <Badge variant="secondary">
             {t("summary.pov", { count: formatNumber(summary.data.povCount, locale) })}
           </Badge>
-          {summary.data.hasHiddenRecords ? (
-            <Badge variant="warning">
-              <UiIcon name="lock" size={12} />
-              {t("summary.hidden")}
-            </Badge>
-          ) : null}
         </div>
       ) : null}
 
       {showControls ? (
         <CharactersToolbar
+          addButtonRef={addButtonRef}
           onAdd={() => setAddOpen(true)}
-          onSearch={roster.setSearch}
-          onSortChange={roster.setSort}
-          search={roster.state.characterSearch}
-          sort={roster.state.characterSort}
+          roster={roster}
         />
       ) : null}
 
       <RosterList
         bookId={bookId}
         characters={characters}
-        hasActiveSearch={roster.hasActiveSearch}
+        hasActiveCriteria={roster.hasActiveCriteria}
         hasError={hasRosterError}
         items={rosterItems}
         onAdd={() => setAddOpen(true)}
-        onClearSearch={roster.clearSearch}
-        onUnlink={setUnlinkId}
+        onClearCriteria={roster.clearSearchAndFilters}
+        onUnlink={requestUnlink}
       />
 
       <AddCharacterDialog
         book={book}
+        bookContext={bookContext}
         onOpenChange={setAddOpen}
         onOpenDetails={openDetails}
         open={addOpen}
-        readingContext={readingContext}
       />
 
-      <UnlinkCharacterDialog
-        isUnlinking={unlinkCharacter.isPending}
-        onConfirm={confirmUnlink}
-        onOpenChange={(open) => {
-          if (!open) setUnlinkId(null);
-        }}
-        open={unlinkId !== null}
-      />
+      {unlinkTarget === null ? null : (
+        <UnlinkCharacterDialog
+          isUnlinking={unlinkCharacter.isPending}
+          onCloseAutoFocus={returnFocusAfterUnlink}
+          onConfirm={confirmUnlink}
+          onOpenChange={(open) => {
+            if (!open) closeUnlink();
+          }}
+          open={unlinkTarget.open}
+          scope={{ bookId, characterId: unlinkTarget.characterId }}
+        />
+      )}
 
       <CharacterCommandPalette
+        bookContext={bookContext}
         bookId={bookId}
         onOpenChange={setPaletteOpen}
         onSelect={openDetails}
         open={paletteOpen}
-        readingContext={readingContext}
       />
     </div>
   );
@@ -169,11 +207,11 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
 function RosterList({
   bookId,
   characters,
-  hasActiveSearch,
+  hasActiveCriteria,
   hasError,
   items,
   onAdd,
-  onClearSearch,
+  onClearCriteria,
   onUnlink,
 }: RosterListProps) {
   const t = useTranslations("characters.states");
@@ -186,9 +224,9 @@ function RosterList({
     );
   }
 
-  if (characters.isPending) {
+  if (characters.isPending || characters.isPlaceholderData) {
     return (
-      <div aria-busy className="grid gap-4 md:grid-cols-2" role="status">
+      <div aria-busy className={ROSTER_GRID} role="status">
         <span className="sr-only">{t("loading")}</span>
         {Array.from({ length: SKELETON_COUNT }, (_, index) => (
           <CharacterCardSkeleton key={index} />
@@ -197,23 +235,23 @@ function RosterList({
     );
   }
 
-  if (items.length === 0 && !hasActiveSearch) {
+  if (items.length === 0 && !hasActiveCriteria) {
     return <CharactersEmptyState onAdd={onAdd} />;
   }
 
   if (items.length === 0) {
-    return <CharactersNoResults onClear={onClearSearch} />;
+    return <CharactersNoResults onClear={onClearCriteria} />;
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <ul className="grid gap-4 md:grid-cols-2">
+      <ul className={ROSTER_GRID}>
         {items.map((character) => (
           <li className="flex" key={character.id}>
             <CharacterCard
               bookId={bookId}
               character={character}
-              onUnlink={() => onUnlink(character.characterId)}
+              onUnlink={(trigger) => onUnlink(character.characterId, trigger)}
             />
           </li>
         ))}
@@ -230,6 +268,6 @@ function RosterList({
 
 function toLoadMoreState(characters: RosterListProps["characters"]): InfiniteScrollState {
   if (characters.isFetchNextPageError) return "error";
-  if (characters.isFetchingNextPage) return "loading";
-  return characters.hasNextPage ? "idle" : "none";
+  if (!characters.hasNextPage) return "none";
+  return characters.isFetching ? "loading" : "idle";
 }

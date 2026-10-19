@@ -1,0 +1,1373 @@
+{
+  "spec": "docs/specs/book-quotes-tab/spec.md",
+  "specFiles": [
+    "docs/specs/book-quotes-tab/spec.md (items 1-9, Не чіпати, Перевірка, closing paragraph, Readings adopted for the gaps)",
+    "docs/specs/book-notes-tab/tasks.json (reference: openDecisions D1-D7, technicalDecisions TD1-TD4, assumptions)",
+    "docs/specs/book-notes-tab/verify-report.md and progress.md (reference: what shipped, traps)",
+    "commit 728a7c85 (reference implementation, 125 files)"
+  ],
+  "baseCommit": "6de68b54",
+  "referenceCommit": "728a7c85",
+  "generatedAt": "2026-10-18T11:17:42Z",
+  "scope": {
+    "included": [
+      "Items 1-9 of the spec, each mapped in specCoverage",
+      "Не чіпати: proven by T24 (diff-stat and regression suites)",
+      "Перевірка: API + web tests for everything new (T3, T5, T7-T21), quotes archive regression (T24), typecheck/lint/format:check and gen:api idempotence (T23), live browser run (T25), PASS/FAIL/NOT RUN report (T26)",
+      "Closing paragraph: open questions in one block, recommendations adopted as assumptions if no answer, commit + push + PR into dev (T27)",
+      "Detail-cache writers that would drop quotesCount (item 7, V21)",
+      "Test fixtures and JSON mocks that parse BookDetailsViewSchema (forced by item 1, see D16)",
+      "docs/specs/book-quotes-tab/progress.md resumability checkpoint"
+    ],
+    "excluded": [
+      "Quote model / Prisma migration: Quote has @@index([bookId]) (apps/api/prisma/schema.prisma:897); a COUNT by bookId needs nothing new",
+      "New facets endpoint or facets optimisation for one book: D4 (unchanged from notes)",
+      "Book or author selection, book_title and book_author sorts, sidebar, summary cards, grid/list toggle in the tab: item 3",
+      "The old block's summary line (favorites/spoilers) and its view-all link to /quotes?bookId= (book-quotes-block.tsx:39-47, 141-148): no summary cards per item 3; notes #01 removed the view-all the same way",
+      "Created-date range filter in the tab: item 3 enumerates search, quick filters, sorting, cards; see D14",
+      "Global spoiler reveal toggle or new inline reveal: item 8 'лишаються під заглушкою'",
+      "Cross-book scroll restore and any persisted page/scroll state (local/session storage, Zustand): item 6 'Відкриття іншої книги починається з дефолтів'",
+      "Sticky toolbar, FAB, nested scroll container: notes approach (#15), repeated by default",
+      "Toast CTA, jump to the new quote, auto-navigation after create: notes approach (#09 C), repeated by default",
+      "Global quotes archive behavior other than the optional searchIn param: Не чіпати; additive default-off props on shared archive components are allowed only per D10/D17 with the archive rendering unchanged",
+      "Notes tab and notes archive changes other than import moves (D8) and the BookDetailsView JSON mock lines (D16): Не чіпати",
+      "Rediscovery quote blocks (QuoteRediscoveryBlock, PostFinishQuotesBlock) and their endpoints: Не чіпати",
+      "Series quotes: Quote has only bookId (schema.prisma Quote model), there is no series analogue of series notes",
+      "Trash restore flow for quotes on the web: no web caller of bookQuotesControllerRestoreQuote exists (only generated code); item 7 names create and delete only",
+      "docs/features refresh: not requested"
+    ]
+  },
+  "sliceGates": {
+    "S1": "pnpm --filter @app/shared build; targeted API tests (T3, T5, books.controller.notes-count.test.ts, quotes.controller.test.ts, quotes.service.test.ts, import-cycles.test.ts); pnpm gen:api with a diff limited to quotesCount and the searchIn param; /blast-radius on packages/shared; typecheck + lint green; code-reviewer + security-reviewer (query contract change)",
+    "S2": "targeted web tests (T9, T10, T12, T13, T14, book-details-view test, quote-archive-card test); T16 then gen:api rerun; i18n parity uk/en; typecheck + lint; code-reviewer + accessibility-auditor",
+    "S3": "targeted web tests (T17-T21, use-quote-mutations.test.tsx, notes scroll tests if D8 = A); typecheck + lint; code-reviewer + frontend-performance-auditor + accessibility-auditor",
+    "S4": "T22-T26 then T27; spec-auditor VERIFY before commit"
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "slice": "S1",
+      "layer": "shared",
+      "title": "quotesCount on the detail-only BookDetailsViewSchema",
+      "specRef": "item 1",
+      "files": ["packages/shared/src/books.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "blockedBy": ["D1"],
+      "doneWhen": [
+        "BookDetailsViewSchema (books.ts:1195) = BookViewSchema.extend({ notesCount, quotesCount: z.number().int().nonnegative() }); type BookDetailsView still exported via the @app/shared barrel",
+        "BookViewSchema (books.ts:1193 type) is unchanged: no quotesCount key, required or optional",
+        "pnpm --filter @app/shared build green"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2",
+      "slice": "S1",
+      "layer": "api",
+      "title": "GET /api/books/:id returns an accurate quotesCount without touching list reads",
+      "specRef": "item 1",
+      "files": [
+        "apps/api/src/modules/books/infrastructure/books.repository.ts",
+        "apps/api/src/modules/books/application/books.service.ts"
+      ],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "blockedBy": ["D1"],
+      "doneWhen": [
+        "BooksRepository gains countActiveBookQuotes({ bookId, userId }, client = this.prisma) using client.quote.count with where { ...SOFT_DELETE_SCOPE.active, book: SOFT_DELETE_SCOPE.active, bookId, userId }, next to countActiveBookNotes (books.repository.ts:627); it is NOT added to withRelations or any list include/select",
+        "BooksService.getById (books.service.ts:216) resolves both counts after the 404 check (Promise.all) and returns { ...viewOf(book), notesCount, quotesCount }",
+        "no import from modules/quotes into modules/books (quotes imports books at quotes.repository.ts:13); apps/api/src/core/import-cycles.test.ts green",
+        "books.controller.ts getById (:302-310) needs no edit: BookDetailsViewDto (book-details.view-dto.ts) picks the field up from the schema",
+        "no Prisma migration in the diff"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3",
+      "slice": "S1",
+      "layer": "test",
+      "title": "quotesCount API tests: 0/N, soft-deleted, other user, lists and mutations untouched",
+      "specRef": "item 1; Перевірка (тести API)",
+      "files": [
+        "apps/api/src/modules/books/api/books.controller.quotes-count.test.ts",
+        "apps/api/src/modules/books/application/books.service.test.ts"
+      ],
+      "dependsOn": ["T2"],
+      "mandatory": true,
+      "doneWhen": [
+        "GET /api/books/:id: quotesCount 0 for a book without quotes, 11 with 11 active quotes, and notesCount unaffected",
+        "a soft-deleted quote and another user's quote on another book are not counted",
+        "GET /api/books list items and the PATCH /api/books/:id response carry no quotesCount key",
+        "books.service.test.ts mocks countActiveBookQuotes and asserts it is called with { bookId, userId } from getById only; the existing 52 tests stay green",
+        "books.controller.notes-count.test.ts stays green unchanged"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4",
+      "slice": "S1",
+      "layer": "shared",
+      "title": "Opt-in quote-fields-only search scope (searchIn) for the quotes list and facets",
+      "specRef": "item 4",
+      "files": [
+        "packages/shared/src/quotes.ts",
+        "apps/api/src/modules/quotes/infrastructure/quotes.repository.ts",
+        "apps/api/src/modules/quotes/application/quotes.service.ts",
+        "apps/api/src/modules/quotes/api/quotes.controller.ts",
+        "apps/api/src/modules/quotes/application/quotes.service.test.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "blockedBy": ["D3"],
+      "doneWhen": [
+        "quotes.ts exports QuoteSearchScopeSchema = z.enum(['quotes_and_book', 'quotes']) (names per D3) and quotesDatasetQueryFields (:87) gains searchIn: QuoteSearchScopeSchema.default('quotes_and_book'), so QuotesQuerySchema (:114) and QuotesFacetsQuerySchema (:202) both accept it",
+        "QuotesDatasetInput (quotes.repository.ts:57) carries searchIn; buildQuoteSearchConditions (:520) omits the buildBookTextSearchConditions branch (:526) only for 'quotes'; text, comment, chapter and the exact-page condition (:529-537) are unchanged",
+        "toQuotesDataset (quotes.service.ts:223) maps searchIn; @ApiQuery({ name: 'searchIn', required: false }) added to list (quotes.controller.ts:160-174) and facets (:90-104)",
+        "without searchIn the list and facets responses are identical to before: the existing search and facets tests in quotes.controller.test.ts (:288-358, :566-) pass unchanged",
+        "the query() helper in quotes.service.test.ts (:148) compiles with the defaulted field"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T5",
+      "slice": "S1",
+      "layer": "test",
+      "title": "Book-scoped list/facets API tests: search scope, filters, page order, pagination, access",
+      "specRef": "items 3, 4; Перевірка (тести API)",
+      "files": ["apps/api/src/modules/quotes/api/quotes.book-scope.controller.test.ts"],
+      "dependsOn": ["T4"],
+      "mandatory": true,
+      "doneWhen": [
+        "book=[A]&searchIn=quotes&q=<A's title> and q=<A's author> return only quotes whose own text/comment/chapter match; the same query without searchIn returns every quote of A (global regression)",
+        "book=[A]&searchIn=quotes matches by text, by comment, by chapter and by an exact page number",
+        "book=[A] with each of all, favorites, with_comment, without_comment, no_spoiler, with_spoiler returns only A's quotes",
+        "GET /api/quotes/facets?book=A&searchIn=quotes: totalCount, favoritesCount, spoilerCount, withCommentCount, withoutCommentCount, withoutSpoilerCount count only A's quotes and shrink with the search",
+        "sort=page within one book: page ASC, nulls last, same page newest createdAt first, then id",
+        "41 quotes with pageSize=20: pageNumber 1, 2, 3 return 20, 20, 1 items and pagesCount 3; 20 quotes give pagesCount 1",
+        "another user's bookId returns an empty page and zero facets; soft-deleted quotes are excluded from list and facets",
+        "searchIn=bogus returns 400"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T6",
+      "slice": "S1",
+      "layer": "contract",
+      "title": "Regenerate the API client; archive request and cache keys stay byte-identical",
+      "specRef": "items 1, 4; Перевірка (gen:api без диффу)",
+      "files": [
+        "apps/web/src/shared/api/generated/**",
+        "apps/web/src/features/quotes/model/quotes-query.ts"
+      ],
+      "dependsOn": ["T2", "T4"],
+      "mandatory": true,
+      "doneWhen": [
+        "pnpm gen:api run; generated diff limited to quotesCount on BookDetailsViewDto and searchIn on the quotesControllerList / quotesControllerFacets params plus their zod",
+        "QuotesListParams and QuotesFacetsParams (quotes-query.ts:14-15, today derived from z.infer output types) keep searchIn optional, and the archive's toQuotesFacetsParams / toQuotesListParams (:100-123) do not send it: archive request URLs and quoteKeys.list/facets keys are unchanged",
+        "use-book.ts:27 already parses with BookDetailsViewSchema; no change there",
+        "/blast-radius run on the shared change; pnpm typecheck green"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T7",
+      "slice": "S1",
+      "layer": "web",
+      "title": "Every detail-cache writer keeps quotesCount",
+      "specRef": "item 7 'Усі, хто пише в кеш detail, зберігають quotesCount'",
+      "files": [
+        "apps/web/src/features/books/api/use-book-mutation-sync.ts",
+        "apps/web/src/features/books/api/use-book-mutation-sync.test.tsx",
+        "apps/web/src/features/dedications/api/use-toggle-favorite-dedication.ts",
+        "apps/web/src/features/dedications/api/use-toggle-favorite-dedication.test.tsx"
+      ],
+      "dependsOn": ["T6"],
+      "mandatory": true,
+      "doneWhen": [
+        "use-book-mutation-sync.ts:22-25 writes { ...book, notesCount: cachedDetail.notesCount, quotesCount: cachedDetail.quotesCount }; the no-cache branch (:19-20) still only invalidates the exact detail key",
+        "use-toggle-favorite-dedication.ts:33-36 follows the same rule",
+        "use-book-actions.ts:214 ({ ...cached, isFavorite }) keeps quotesCount without a change; a test asserts it",
+        "unit tests: after a BookView mutation response the cached detail still has the prior quotesCount and notesCount",
+        "grep shows no other setQueryData / setQueriesData on bookKeys.detail in apps/web/src"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T8",
+      "slice": "S1",
+      "layer": "test",
+      "title": "Fixtures and JSON mocks of the book detail carry quotesCount",
+      "specRef": "item 1 (forced by the required field)",
+      "files": [
+        "apps/web/src/features/books/components/book-details.fixtures.ts",
+        "apps/web/src/features/notes/components/book-notes-tab.test.tsx",
+        "apps/web/src/features/notes/components/note-form-dialog.test.tsx",
+        "apps/web/src/features/quotes/components/quote-dialog.test.tsx",
+        "apps/web/src/features/books/components/edit-book-form.stories.tsx"
+      ],
+      "dependsOn": ["T6"],
+      "mandatory": true,
+      "blockedBy": ["D16"],
+      "doneWhen": [
+        "makeBookDetailsView (book-details.fixtures.ts:3-8) defaults quotesCount = 0 next to notesCount",
+        "the JSON detail mocks at book-notes-tab.test.tsx:249, note-form-dialog.test.tsx:225 and quote-dialog.test.tsx:123 carry quotesCount (or use makeBookDetailsView); edit-book-form.stories.tsx:165,216 likewise",
+        "in features/notes only those mock lines change; no assertion in a notes test changes",
+        "book-notes-tab, note-form-dialog, quote-dialog, quote-archive-card, character-edit-page and character-fact-form-dialog tests green"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T9",
+      "slice": "S2",
+      "layer": "web",
+      "title": "Quotes tab right after Notes with a positive-only badge; Overview block removed",
+      "specRef": "items 1, 2",
+      "files": [
+        "apps/web/src/features/books/components/book-details-view.tsx",
+        "apps/web/src/features/books/components/book-details-view.test.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["T6", "T8"],
+      "mandatory": true,
+      "doneWhen": [
+        "DETAIL_TABS (book-details-view.tsx:34) = overview, notes, quotes, history, characters, timeline",
+        "the quotes item badge is rendered like the notes badge (:57-66, sr-only separator + Badge) only when book.quotesCount > 0; nothing for 0",
+        "<BookQuotesBlock> (:101) and its import (:18) removed; About, ReadingProgress and Edition keep their order",
+        "<PageTabsPanel value='quotes'> renders <BookQuotesTab book={book} key={book.id} ... />",
+        "label from quotes.bookTab.tab: uk 'Цитати', en 'Quotes'",
+        "book-details-view.test.tsx: 6 tabs in that order (replaces the 5-tab assertion at :155-166); no badge for 0; badge 11 with accessible name 'Цитати, 11'; on Overview no request to /api/quotes, /api/quotes/facets or /api/books/:id/quotes (fetch boundary); opening the tab requests /api/quotes and /api/quotes/facets"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T10",
+      "slice": "S2",
+      "layer": "web",
+      "title": "Archive quote card gains an embedded variant without book title, author and cover",
+      "specRef": "item 3 ('картки цитат', hides title/author/cover per adopted reading)",
+      "files": [
+        "apps/web/src/features/quotes/components/quote/quote-archive-card.tsx",
+        "apps/web/src/features/quotes/components/quote/quote-archive-card.test.tsx"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "blockedBy": ["D10"],
+      "doneWhen": [
+        "with D10 = A: QuoteArchiveCard takes a layout prop 'archive' | 'embedded' defaulting to 'archive'; the archive call site (quotes-content.tsx:104) is unchanged",
+        "embedded renders no QuoteBookHeader (quote-archive-card.tsx:36), so no cover, no book title link, no author; no QUOTE_CARD_SHELL.fixedHeight (:31) and no fitTo (:40); QuoteFullViewDialog gets bookHref null (precedent book-quote-card.tsx:37)",
+        "QuoteActions, QuoteBody spoiler gate, compact QuoteMeta and QuoteComment with its show-full-comment action are the same as the archive card",
+        "the existing quote-archive-card.test.tsx tests pass unchanged; new tests: embedded has no book link, cover image or author text; a spoiler quote shows the gate and its text is absent from the DOM until the full view opens",
+        "with D10 = B: no diff in this file; T15 keeps BookQuoteCard instead"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T11",
+      "slice": "S2",
+      "layer": "web",
+      "title": "Book quotes tab query model: quoteQ / quoteFilter / quoteSort, immutable book scope",
+      "specRef": "items 3, 4, 5",
+      "files": [
+        "apps/web/src/features/quotes/model/book-quotes-tab-query.ts",
+        "apps/web/src/features/quotes/model/book-quotes-tab-query.test.ts",
+        "apps/web/src/features/quotes/model/use-book-quotes-tab-query.ts",
+        "apps/web/src/features/quotes/model/use-book-quotes-tab-query.test.ts"
+      ],
+      "dependsOn": ["T6"],
+      "mandatory": true,
+      "blockedBy": ["D5", "D9"],
+      "doneWhen": [
+        "one grouped constant object holds the parsers: quoteQ (string, default ''), quoteFilter (QUOTE_FILTER_VALUES, default 'all'), quoteSort (exactly the D9 option set, default per D9)",
+        "list params come from the bookId prop, never from the URL: book: [bookId], searchIn: 'quotes', pageSize: 20, filter, sort; facets params: book, searchIn, q trimmed and omitted when blank",
+        "search commit rule is the archive's (trim, no minimum length): 'a' and '7' are both sent, '   ' is not",
+        "reset patches null only quote* keys; tab, note* and character* keys untouched",
+        "unit tests: defaults; book_title, book_author, a legacy value and garbage in quoteSort fall back to the default; ?book= / ?bookId= / ?q= in the URL do not change the tab's params; reset patch shape"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T12",
+      "slice": "S2",
+      "layer": "web",
+      "title": "Single-column book quotes list with three contextual empty states",
+      "specRef": "item 3 ('Одна колонка'); notes #14 approach",
+      "files": [
+        "apps/web/src/features/quotes/components/book-quotes-list.tsx",
+        "apps/web/src/features/quotes/components/book-quotes-list.test.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["T10", "T11"],
+      "mandatory": true,
+      "blockedBy": ["D17"],
+      "doneWhen": [
+        "one column (no md:grid-cols-2), each item carries data-quote-id={quote.id}, cards rendered with the embedded variant (D10)",
+        "the list state is a discriminated union (loading | error | empty with reason book | search | filters | ready with nextPage), not a set of booleans",
+        "empty book: quotes.bookTab.empty copy + Add quote; empty search: clear-search action; empty filters: reset-filter action; the archive's open-books action never appears",
+        "own skeleton without the book header row; first-page error shows retry; InfiniteScrollFooter gets errorFocus 'none' and the existing quotes.allShown / quotes.loadMoreError labels",
+        "with D17 = B: quotes-content.tsx has no diff",
+        "tests: one column, data-quote-id present, three empty states with their actions, error retry"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T13",
+      "slice": "S2",
+      "layer": "web",
+      "title": "Compact book quotes toolbar: add, search, quick filters with counts, restricted sort",
+      "specRef": "item 3",
+      "files": [
+        "apps/web/src/features/quotes/components/book-quotes-toolbar.tsx",
+        "apps/web/src/features/quotes/components/book-quotes-toolbar.test.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["T11"],
+      "mandatory": true,
+      "blockedBy": ["D9"],
+      "doneWhen": [
+        "uses DebouncedSearchInput (300 ms, debounced-search-input.tsx:11) with quotes.bookTab.searchLabel / searchPlaceholder naming text, comment, chapter and page",
+        "ChipGroup single-select over resolveQuoteFilterOptions(filter) (quote-options.ts:33) with counts from quoteFilterCounts(facets) (:22) and countsPending while facets load",
+        "sort: Select on sm+ and MobileSortSheet on mobile, both with exactly the D9 options and the existing quotes.sort labels; no book_title, no book_author",
+        "no Segmented grid/list, no QuotesAdvancedFilters, no LibraryActiveFilters, no book/author picker, no summary cards",
+        "mobile: controls stack vertically, the chip row scrolls horizontally, nothing sticky or fixed",
+        "tests: sort options are exactly the D9 set; chip counts come from facets; clearing search keeps filter and sort"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T14",
+      "slice": "S2",
+      "layer": "web",
+      "title": "BookQuotesTab adapter: list hook, facets, toolbar, list, results status, add dialog",
+      "specRef": "items 3, 8",
+      "files": [
+        "apps/web/src/features/quotes/components/book-quotes-tab.tsx",
+        "apps/web/src/features/quotes/components/book-quotes-tab.test.tsx",
+        "apps/web/src/features/quotes/api/use-book-quotes-list.ts",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["T11", "T12", "T13"],
+      "mandatory": true,
+      "blockedBy": ["D13"],
+      "doneWhen": [
+        "composes the D13 list hook with the T11 listParams, useQuotesFacets(facetsParams), BookQuotesToolbar and BookQuotesList",
+        "Add opens QuoteDialog mode 'create' with toBookSelectOption(book) (precedent book-quotes-block.tsx:66-71); success = the existing addSuccess toast (quote-dialog.tsx:370) only",
+        "an sr-only aria-live polite status reads quotes.bookTab.resultsFound with the server totalCount",
+        "toolbar hidden for a book with no quotes and no criteria (rule of book-notes-tab.tsx:50-52)",
+        "initial load shows the skeleton, never the empty state; isPlaceholderData is treated as loading",
+        "tests: cards have no book header; three empty states; a spoiler quote's text is absent from the DOM; the add dialog opens with this book preselected"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T15",
+      "slice": "S2",
+      "layer": "web",
+      "title": "Delete the web code left dead by the Overview removal",
+      "specRef": "item 2",
+      "files": [
+        "apps/web/src/features/quotes/components/book-quotes-block.tsx",
+        "apps/web/src/features/quotes/api/use-book-quotes.ts",
+        "apps/web/src/features/quotes/api/quote-keys.ts",
+        "apps/web/src/features/quotes/components/quote/book-quote-card.tsx",
+        "apps/web/src/features/quotes/components/quote/book-quote-card.test.tsx",
+        "apps/web/src/features/quotes/index.ts",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["T9", "T10", "T14"],
+      "mandatory": true,
+      "blockedBy": ["D6", "D10"],
+      "doneWhen": [
+        "book-quotes-block.tsx and use-book-quotes.ts deleted; quotes/index.ts:1 exports BookQuotesTab instead of BookQuotesBlock",
+        "quoteKeys.forBook (quote-keys.ts:7) removed",
+        "with D10 = A: book-quote-card.tsx and book-quote-card.test.tsx deleted; QuoteSpoilerBadge stays (quote-full-view-dialog.tsx:109)",
+        "quotes.bookBlock.* removed from uk.json (:6832) and en.json (:6832), except keys moved under quotes.bookTab",
+        "grep for BookQuotesBlock, useBookQuotes, forBook(, BookQuoteCard in apps/web/src outside generated returns nothing",
+        "QuotesView, QuotesContent, QuoteRediscoveryBlock and PostFinishQuotesBlock untouched"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T16",
+      "slice": "S2",
+      "layer": "api",
+      "title": "GET /api/books/:bookId/quotes: delete or keep per D11",
+      "specRef": "item 2 'роут лишити, якщо він ще комусь потрібен'",
+      "files": [
+        "apps/api/src/modules/quotes/api/book-quotes.controller.ts",
+        "apps/api/src/modules/quotes/api/book-quotes.controller.test.ts",
+        "apps/api/src/modules/quotes/api/view-dto/book-quotes.view-dto.ts",
+        "apps/api/src/modules/quotes/application/quotes.service.ts",
+        "apps/api/src/modules/quotes/infrastructure/quotes.repository.ts",
+        "packages/shared/src/quotes.ts",
+        "apps/web/src/shared/api/generated/**"
+      ],
+      "dependsOn": ["T15"],
+      "mandatory": true,
+      "blockedBy": ["D11"],
+      "doneWhen": [
+        "with D11 = A: @Get(':bookId/quotes') (book-quotes.controller.ts:66-76), QuotesService.listForBook (quotes.service.ts:135-155), QuotesRepository.listForBook (:293-299), bookCounts (:124-138) and BookQuoteCounts (:33), BookQuotesViewSchema / BookQuotesView (quotes.ts:161-168) and book-quotes.view-dto.ts are removed",
+        "with D11 = A: the GET describe (book-quotes.controller.test.ts:180-213) is removed and the DELETE test (:348-363) proves removal through GET /api/quotes?book= instead",
+        "POST, PATCH, DELETE and restore routes of book-quotes.controller.ts unchanged",
+        "pnpm gen:api rerun: bookQuotesControllerListBookQuotes and its types are gone from generated and nothing references them",
+        "with D11 = B: no diff in these files; the task closes with that recorded"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T17",
+      "slice": "S3",
+      "layer": "web",
+      "title": "Lazy fetch, cache reuse and cross-book placeholder guard",
+      "specRef": "item 1 ('Огляд не робить жодного запиту'); item 6",
+      "files": [
+        "apps/web/src/features/quotes/components/book-quotes-tab.test.tsx",
+        "apps/web/src/features/books/components/book-details-view.test.tsx"
+      ],
+      "dependsOn": ["T9", "T14"],
+      "mandatory": true,
+      "doneWhen": [
+        "BookDetailsView on tab=overview makes no /api/quotes* request while the badge shows quotesCount (PageTabsPanel unmounts inactive panels, page-tabs.tsx:76-94)",
+        "Quotes, then History, then Quotes on the same book shows the cached cards immediately (no skeleton) while a background refetch runs",
+        "placeholder data from other criteria renders the skeleton, not the previous cards; book B never renders book A's cards (keyed mount, two-book test)",
+        "a late response for book A is not rendered after switching to book B"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T18",
+      "slice": "S3",
+      "layer": "web",
+      "title": "URL state: deep links, back/forward, no cross-book leak, archive keys untouched",
+      "specRef": "items 5, 6",
+      "files": ["apps/web/src/features/quotes/components/book-quotes-tab.test.tsx"],
+      "dependsOn": ["T14"],
+      "mandatory": true,
+      "doneWhen": [
+        "?tab=quotes&quoteFilter=favorites opens the tab with the favorites chip active and the list request sends filter=favorites",
+        "with the nuqs testing adapter, back/forward restores the prior quoteQ and quoteSort",
+        "a link to book B without quote* params yields the defaults; explicit quote* params on B's URL win",
+        "the archive keys q, filter, sort, view, book, bookId, author, createdFrom, createdTo (quotes-query.ts:25-35) are neither read nor written by the tab"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T19",
+      "slice": "S3",
+      "layer": "web",
+      "title": "Server pagination by 20 with automatic endless scroll and in-place retry",
+      "specRef": "item 3 ('Пагінація серверна, по 20, нескінченний скрол')",
+      "files": [
+        "apps/web/src/features/quotes/api/use-book-quotes-list.ts",
+        "apps/web/src/features/quotes/components/book-quotes-tab.test.tsx"
+      ],
+      "dependsOn": ["T14"],
+      "mandatory": true,
+      "blockedBy": ["D13"],
+      "doneWhen": [
+        "every list request sends pageSize=20",
+        "0, 1, 19 and 20 quotes: exactly one list request; 21 and 40: two; 41: three and no fourth",
+        "no fetch while a page is pending, and none while the Quotes panel is inactive",
+        "a next-page error keeps the loaded cards; retry refetches only the next page; with D13 = B an error makes one request, not two",
+        "with D13 = B: no page is dropped from the top however many pages load (no maxPages)",
+        "observer-driven append does not move focus; the footer status stays aria-live polite"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T20",
+      "slice": "S3",
+      "layer": "web",
+      "title": "Create and delete invalidate exactly this book's detail",
+      "specRef": "item 7",
+      "files": [
+        "apps/web/src/features/quotes/api/use-quote-mutations.ts",
+        "apps/web/src/features/quotes/api/use-quote-mutations.test.tsx"
+      ],
+      "dependsOn": ["T6"],
+      "mandatory": true,
+      "doneWhen": [
+        "useCreateQuote and useDeleteQuote onSuccess invalidate bookKeys.detail(bookId) with exact: true (the detail key prefixes chapters and deliveries, book-keys.ts:10-12); useUpdateQuote does not",
+        "the quoteKeys.root and bookKeys.chapters(bookId) invalidations (use-quote-mutations.ts:66-67) stay",
+        "use-quote-mutations.test.tsx: the create and delete expectations flip bookDetail to stale (today false at :20-24); update keeps it fresh; another book's detail and chapters are not invalidated",
+        "a component test shows the badge moving from N to N+1 after create and back after delete"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T21",
+      "slice": "S3",
+      "layer": "web",
+      "title": "Same-book scroll anchor restore; reset on criteria change; no cross-book restore",
+      "specRef": "item 6",
+      "files": [
+        "apps/web/src/features/books/components/book-details-view.tsx",
+        "apps/web/src/features/books/components/book-details-view.test.tsx",
+        "apps/web/src/features/quotes/components/book-quotes-tab.tsx",
+        "apps/web/src/features/quotes/components/book-quotes-tab.test.tsx",
+        "apps/web/src/features/notes/model/book-notes-scroll-anchor.ts",
+        "apps/web/src/features/notes/model/use-book-notes-scroll-anchor.ts"
+      ],
+      "dependsOn": ["T17"],
+      "mandatory": true,
+      "blockedBy": ["D7", "D8", "D15"],
+      "doneWhen": [
+        "the anchor { bookId, criteriaKey, quoteId, offset, neighbours, scrollY } lives in memory owned by BookDetailsView and resets when book.id changes; no localStorage, sessionStorage or Zustand",
+        "changeTab captures the quotes anchor synchronously when leaving the quotes tab (as for notes at book-details-view.tsx:50-53), not from scroll events",
+        "returning to Quotes on the same book with the same criteria restores the anchored quote at the same offset after the cached pages render; a missing anchor falls back to the nearest rendered neighbour, then the saved scrollY",
+        "a criteria change scrolls the results start into view only when it is above the viewport and restarts at page 1",
+        "no programmatic jump after create, edit or delete",
+        "test: book A, then book B, then back to A does not restore A's anchor",
+        "with D8 = A: the shared module is parameterised by the card attribute (data-note-id / data-quote-id); notes behavior unchanged: book-notes-tab.test.tsx, the scroll-anchor tests and the notes scroll tests in book-details-view.test.tsx pass with no assertion change"
+      ],
+      "status": "done",
+      "deviation": "Shared anchor field is cardId (not noteId/quoteId) because the module serves both tabs; book-notes-tab.test.tsx changed two assertions noteId -> cardId plus imports and the factory name, with the same numbers. The scroll-to-results-on-criteria-change effect moved into the shared hook and was removed from book-notes-tab.tsx; code-reviewer compared it line by line with 728a7c85 and found no logic drift."
+    },
+    {
+      "id": "T22",
+      "slice": "S4",
+      "layer": "docs",
+      "title": "Changelog entry for the quotes tab",
+      "specRef": "item 9 ('запис у changelog')",
+      "files": ["apps/api/src/scripts/seed-changelog.ts"],
+      "dependsOn": ["T9"],
+      "mandatory": true,
+      "doneWhen": [
+        "one entry next to book-notes-tab (seed-changelog.ts:1421): slug 'book-quotes-tab', category 'improvement', titleUk, titleEn, bodyUk, bodyEn, publishedAt the ship date, version null",
+        "the body describes only shipped behavior (tab after Notes, badge, search by text/comment/chapter/page, quick filters with counts, the D9 sorts, endless scroll, URL state, same-book return, spoilers stay hidden) in plain prose per /prose"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T23",
+      "slice": "S4",
+      "layer": "test",
+      "title": "Gates: typecheck, lint, format, targeted API + web suites, gen:api idempotence, i18n parity",
+      "specRef": "Перевірка",
+      "files": [],
+      "dependsOn": [
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "T5",
+        "T6",
+        "T7",
+        "T8",
+        "T9",
+        "T10",
+        "T11",
+        "T12",
+        "T13",
+        "T14",
+        "T15",
+        "T16",
+        "T17",
+        "T18",
+        "T19",
+        "T20",
+        "T21",
+        "T22"
+      ],
+      "mandatory": true,
+      "doneWhen": [
+        "pnpm typecheck, pnpm lint, pnpm format:check exit 0 (recorded)",
+        "API, each file alone with VITEST_MAX_WORKERS=1: books.controller.quotes-count, books.controller.notes-count, books.service, books.controller, quotes.book-scope, quotes.controller, quotes.service, book-quotes.controller, import-cycles; counts recorded",
+        "web, each file alone with --project unit: every new quotes tab test, book-details-view, use-book-mutation-sync, use-toggle-favorite-dedication, use-quote-mutations, quote-archive-card; counts recorded",
+        "pnpm gen:api rerun produces no diff; git diff --check clean",
+        "i18n parity: every added or removed key exists in both uk.json and en.json; no hardcoded Ukrainian in components",
+        "no migration, no new endpoint; pnpm knip and the full pnpm test left to CI and reported as NOT RUN locally"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T24",
+      "slice": "S4",
+      "layer": "test",
+      "title": "Regression: global quotes archive, rediscovery blocks, notes",
+      "specRef": "Не чіпати; Перевірка (регресія архіву цитат)",
+      "files": [],
+      "dependsOn": ["T23"],
+      "mandatory": true,
+      "doneWhen": [
+        "web green: quotes-view, quotes-toolbar, quote-archive-card, quotes-summary-cards, quote-dialog, quote-body, quote-full-view-dialog, quote-rediscovery-block, post-finish-quotes-block",
+        "API green: quotes.controller, quotes-overview.controller, quotes-post-finish.controller, quotes-trash.controller, quote-rediscovery.service, quote-post-finish.service, quotes-summary",
+        "git diff --stat shows no change in quotes-view.tsx, quotes-sidebar.tsx, quotes-overview-panel.tsx, quote-rediscovery-block.tsx, post-finish-quotes-block.tsx, quotes-toolbar.tsx, quote-rediscovery.service.ts, quote-post-finish.service.ts, quotes-overview.service.ts",
+        "features/notes: only D8 import moves and D16 mock lines; notes tab, notes archive and note-form-dialog suites green"
+      ],
+      "status": "pending-ci"
+    },
+    {
+      "id": "T25",
+      "slice": "S4",
+      "layer": "test",
+      "title": "Live browser run (headless Chromium against the local stack, Storybook for 390px if needed)",
+      "specRef": "Перевірка (живий прогін у браузері)",
+      "files": [],
+      "dependsOn": ["T23"],
+      "mandatory": true,
+      "doneWhen": [
+        "evidence (log or screenshot) for: tab order; badge on Overview with zero /api/quotes* requests; pagination (41 quotes load as 3 requests with pageSize=20); same-book scroll restore after another tab; another book starts at defaults with no restore; 390px with no horizontal scroll; a spoiler quote found by a word of its text shows the gate and the text is in neither the card DOM nor the page text; create and delete move the badge",
+        "every item reported PASS, FAIL or NOT RUN with a reason",
+        "the test data is removed afterwards; dropping any scratch DB waits for the user's consent"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T26",
+      "slice": "S4",
+      "layer": "docs",
+      "title": "spec-auditor VERIFY, PASS/FAIL/NOT RUN report, progress checkpoint",
+      "specRef": "Перевірка ('Звіт: PASS / FAIL / NOT RUN по кожному пункту')",
+      "files": ["docs/specs/book-quotes-tab/progress.md"],
+      "dependsOn": ["T24", "T25"],
+      "mandatory": true,
+      "doneWhen": [
+        "VERIFY table covers T1-T25 with file:line proof; spec items 1-9, Не чіпати and every Перевірка item marked PASS, FAIL or NOT RUN",
+        "the deliberate archive-wide change (searchIn), the D11 outcome and every decision adopted as an assumption are listed",
+        "progress.md records gates, test counts, browser runs, not-run items"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T27",
+      "slice": "S4",
+      "layer": "docs",
+      "title": "Commit, push and PR into dev",
+      "specRef": "closing paragraph ('Наприкінці коміт, пуш і PR в dev')",
+      "files": [],
+      "dependsOn": ["T26"],
+      "mandatory": true,
+      "doneWhen": [
+        "commit on feat/book-quotes-tab in the worktree, pre-push typecheck + lint green, branch pushed, PR opened into dev",
+        "commit message and PR body follow /prose and carry no self-attribution (user memory rule); the PR lists the decisions adopted as assumptions for confirmation",
+        "CI status of the PR checked and reported, not assumed"
+      ],
+      "status": "todo"
+    }
+  ],
+  "specCoverage": {
+    "item 1 (tab after Notes, quotesCount on detail only, no Overview request, badge > 0)": [
+      "T1",
+      "T2",
+      "T3",
+      "T9",
+      "T17"
+    ],
+    "item 2 (remove block, delete block/hook if unused, route if unneeded)": ["T9", "T15", "T16"],
+    "item 3 (archive pieces, no selectors/book sorts/sidebar/summary/toggle, one column, cards w/o book, 20 per page, endless)": [
+      "T5",
+      "T10",
+      "T11",
+      "T12",
+      "T13",
+      "T14",
+      "T19"
+    ],
+    "item 4 (search text/comment/chapter/page only; optional param; archive unchanged)": [
+      "T4",
+      "T5",
+      "T6",
+      "T11"
+    ],
+    "item 5 (quoteQ, quoteFilter, quoteSort in the URL)": ["T11", "T18"],
+    "item 6 (same-book return keeps pages, scroll, card; other book defaults; shared code only for same knowledge)": [
+      "T17",
+      "T18",
+      "T21"
+    ],
+    "item 7 (create/delete invalidate this book's detail; writers keep quotesCount)": ["T7", "T20"],
+    "item 8 (spoilers gated, search does not reveal)": ["T10", "T14", "T25"],
+    "item 9 (i18n uk/en, changelog)": ["T9", "T12", "T13", "T14", "T15", "T22", "T23"],
+    "Не чіпати": ["T24"],
+    "Перевірка": ["T3", "T5", "T23", "T24", "T25", "T26"],
+    "closing paragraph": ["T26", "T27"]
+  },
+  "technicalDecisions": [
+    {
+      "id": "TD1",
+      "topic": "Lazy loading",
+      "notesAnalogue": "TD1, unchanged",
+      "recommendation": "Rely on PageTabsPanel unmounting inactive panels (page-tabs.tsx:76-94, no forceMount); list and facets hooks need no enabled flag"
+    },
+    {
+      "id": "TD2",
+      "topic": "Cross-book and cross-criteria flash",
+      "notesAnalogue": "TD2, unchanged",
+      "recommendation": "Key BookQuotesTab by book.id and treat isPlaceholderData as loading inside the tab; both quotes hooks use keepPreviousData (use-quotes.ts:24, use-quotes-facets.ts:14); the archive keeps its behavior"
+    },
+    {
+      "id": "TD3",
+      "topic": "Focus on auto-append",
+      "notesAnalogue": "TD3, does not apply as written",
+      "recommendation": "QuotesContent has no focus-on-append, so there is nothing to opt out of; the tab list passes errorFocus 'none' to InfiniteScrollFooter (infinite-scroll-footer.tsx:26,36) as the notes tab does (notes-archive-content.tsx:177)"
+    },
+    {
+      "id": "TD4",
+      "topic": "Detail invalidation",
+      "notesAnalogue": "TD4, unchanged",
+      "recommendation": "invalidateQueries({ queryKey: bookKeys.detail(id), exact: true }), because the detail key prefixes chapters and deliveries (book-keys.ts:10-12)"
+    },
+    {
+      "id": "TD5",
+      "topic": "Where quotesCount is counted",
+      "notesAnalogue": "notes T2",
+      "recommendation": "BooksRepository.countActiveBookQuotes with client.quote (precedent book-chapters.repository.ts:32 already reads client.quote from the books module); QuotesRepository.bookCounts (quotes.repository.ts:124) cannot be reused because quotes imports books (quotes.repository.ts:13) and books must not import quotes"
+    },
+    {
+      "id": "TD6",
+      "topic": "Search commit rule",
+      "notesAnalogue": "notes #06 'existing server search rules'",
+      "recommendation": "Keep the quotes archive's own rule: trim only, no minimum length (quotes-query.ts:101), 300 ms debounce (debounced-search-input.tsx:11), exact page matched server-side (quotes.repository.ts:529-537). The notes min-length rule is notes knowledge and is not copied"
+    },
+    {
+      "id": "TD7",
+      "topic": "searchIn typing on the web",
+      "notesAnalogue": "notes drift item 6 (notes-archive-query.ts plumbing)",
+      "recommendation": "QuotesListParams / QuotesFacetsParams derive from z.infer output types (quotes-query.ts:14-15), where a defaulted field becomes required; keep searchIn optional on those types so the archive sends nothing new and its cache keys do not move"
+    },
+    {
+      "id": "TD8",
+      "topic": "Quick filters",
+      "notesAnalogue": "notes #04",
+      "recommendation": "Reuse the archive's visible set all, favorites, with_comment, no_spoiler, with_spoiler (quote-options.ts:14-20) via resolveQuoteFilterOptions, with counts from quoteFilterCounts; facets take no filter param (quotes.ts:202-204), so picking a chip never moves another chip's count"
+    },
+    {
+      "id": "TD9",
+      "topic": "Page size",
+      "notesAnalogue": "notes #20",
+      "recommendation": "The tab sends pageSize=20 explicitly; the BE default 12 (quotes.ts:15) and max 100 (common.ts:43) and the archive's QUOTES_PAGE_SIZE 12 (quotes-query.ts:17) stay"
+    },
+    {
+      "id": "TD10",
+      "topic": "Add quote from the tab",
+      "notesAnalogue": "notes T14 preselected entity",
+      "recommendation": "QuoteDialog mode 'create' with toBookSelectOption(book) (book-quotes-block.tsx:66-71); the existing addSuccess toast (quote-dialog.tsx:370); no jump to the new quote"
+    }
+  ],
+  "openDecisions": [
+    {
+      "id": "D1",
+      "notesAnalogue": "D1 shape of notesCount",
+      "analogueStatus": "resolved by spec item 1, needs adapting",
+      "blocks": ["T1", "T2", "T7", "T8"],
+      "specRef": "item 1",
+      "question": "Shape of the quotesCount contract",
+      "options": [
+        "A1: required quotesCount on the detail-only BookDetailsViewSchema served by GET /api/books/:id; every detail-cache writer merges the previous value",
+        "A2: optional quotesCount on BookViewSchema"
+      ],
+      "codebaseMakesCheaper": "The spec names BookDetailsViewSchema, and A1 already exists for notesCount (books.ts:1195, books.service.ts:216-224). The adaptation: a required field breaks every JSON mock that the detail parse (use-book.ts:27) reads, including two notes tests (see D16)",
+      "recommendation": "A1, as in notes; the second count runs in Promise.all with notesCount in getById",
+      "answer": "A1, as in notes; the second count runs in Promise.all with notesCount in getById",
+      "answeredBy": "assumption: recommendation adopted per the spec closing rule (list open questions once, proceed on the recommended variant), 2026-10-18"
+    },
+    {
+      "id": "D2",
+      "notesAnalogue": "D2 page tie-break",
+      "analogueStatus": "does not apply (already done)",
+      "blocks": [],
+      "specRef": "item 3 (sorting)",
+      "question": "Does the quotes page sort need the tie-break notes added?",
+      "options": [
+        "No change: the quotes page sort is already page ASC NULLS LAST, createdAt DESC, id ASC",
+        "Change it anyway"
+      ],
+      "codebaseMakesCheaper": "QUOTE_SORT_ORDER_BY.page = [page nulls last asc, RECENT_TIEBREAKER, ID_TIEBREAKER] (quotes.repository.ts:443); unlike notes it has no book-title prefix, which inside one book is what the tab needs",
+      "recommendation": "No change; T5 adds a regression test for the order within one book",
+      "answer": "No change; T5 adds a regression test for the order within one book",
+      "answeredBy": "assumption: recommendation adopted per the spec closing rule (list open questions once, proceed on the recommended variant), 2026-10-18"
+    },
+    {
+      "id": "D3",
+      "notesAnalogue": "D3 search scope param",
+      "analogueStatus": "same answer, adapted names and typing",
+      "blocks": ["T4", "T5", "T6", "T11"],
+      "specRef": "item 4",
+      "question": "Name and values of the optional search-scope param on GET /api/quotes and /api/quotes/facets",
+      "options": [
+        "searchIn = quotes_and_book | quotes, default quotes_and_book, on quotesDatasetQueryFields (shared by list and facets)",
+        "Implicit: skip book metadata when exactly one book is in scope"
+      ],
+      "codebaseMakesCheaper": "One enum in quotesDatasetQueryFields (quotes.ts:87) and one branch in buildQuoteSearchConditions (quotes.repository.ts:526). The implicit option changes the archive's single-book flows (PostFinishQuotesBlock showBookOnly, use-quotes-query.ts showBookOnly sets book=[id]), which Не чіпати forbids. Adaptation: the web param types are z.infer-based (TD7)",
+      "recommendation": "Explicit searchIn = quotes_and_book | quotes, mirroring notes (notes.ts:90,143)",
+      "answer": "Explicit searchIn = quotes_and_book | quotes, mirroring notes (notes.ts:90,143)",
+      "answeredBy": "assumption: recommendation adopted per the spec closing rule (list open questions once, proceed on the recommended variant), 2026-10-18"
+    },
+    {
+      "id": "D4",
+      "notesAnalogue": "D4 facets optimisation",
+      "analogueStatus": "same answer",
+      "blocks": [],
+      "specRef": "item 3 (quick filters with counts)",
+      "question": "Skip the book and author aggregations of /api/quotes/facets for the single-book tab?",
+      "options": [
+        "No backend change; the tab ignores books and authors",
+        "Add a flag that skips them"
+      ],
+      "codebaseMakesCheaper": "quotes.service.ts:92-100 runs filterCounts and two bookQuoteCounts in parallel, then authorQuoteLinks; for one book these are tiny. No measurement says it is slow",
+      "recommendation": "No change; revisit only on a measured slow facets call",
+      "answer": "No change; revisit only on a measured slow facets call",
+      "answeredBy": "assumption: recommendation adopted per the spec closing rule (list open questions once, proceed on the recommended variant), 2026-10-18"
+    },
+    {
+      "id": "D5",
+      "notesAnalogue": "D5 URL key namespace",
+      "analogueStatus": "resolved by spec item 5",
+      "blocks": ["T11"],
+      "specRef": "item 5",
+      "question": "URL keys for the tab state",
+      "options": [
+        "quoteQ / quoteFilter / quoteSort (spec)",
+        "nuqs urlKeys over the archive parsers"
+      ],
+      "codebaseMakesCheaper": "The spec names the keys; no quote* key exists anywhere in apps/web/src today (grep), so there is no collision with tab, note* or character*. Quotes have no category dimension, so there is no fourth key",
+      "recommendation": "quoteQ, quoteFilter, quoteSort exactly",
+      "answer": "quoteQ, quoteFilter, quoteSort exactly",
+      "answeredBy": "assumption: recommendation adopted per the spec closing rule (list open questions once, proceed on the recommended variant), 2026-10-18"
+    },
+    {
+      "id": "D6",
+      "notesAnalogue": "D6 delete the Overview block code",
+      "analogueStatus": "same answer, adapted file set",
+      "blocks": ["T15"],
+      "specRef": "item 2",
+      "question": "What the Overview removal deletes on the web",
+      "options": [
+        "Delete book-quotes-block.tsx, use-book-quotes.ts, quoteKeys.forBook, the quotes.bookBlock i18n keys, and BookQuoteCard with its test when D10 = A",
+        "Keep them unused"
+      ],
+      "codebaseMakesCheaper": "book-details-view.tsx:18,101 is the only consumer of BookQuotesBlock; useBookQuotes is used only by the block (book-quotes-block.tsx:25); forBook only by useBookQuotes (use-book-quotes.ts:14); BookQuoteCard only by the block (book-quotes-block.tsx:136); quotes.bookBlock only by the block. Unlike notes there is no block test to delete",
+      "recommendation": "Delete them; the BE route is a separate fork (D11)",
+      "answer": "Delete them; the BE route is a separate fork (D11)",
+      "answeredBy": "assumption: recommendation adopted per the spec closing rule (list open questions once, proceed on the recommended variant), 2026-10-18"
+    },
+    {
+      "id": "D7",
+      "notesAnalogue": "D7 scroll anchor location",
+      "analogueStatus": "same answer",
+      "blocks": ["T21"],
+      "specRef": "item 6",
+      "question": "Where the same-book quotes anchor lives across tab switches",
+      "options": [
+        "Memory owned by BookDetailsView, reset on book.id, captured in changeTab when leaving quotes",
+        "forceMount the Quotes panel and hide it"
+      ],
+      "codebaseMakesCheaper": "The notes memory already lives there (book-details-view.tsx:48-53,106) and PageTabsPanel unmounts inactive panels (page-tabs.tsx:76-94); the notes trap (assumption 4 of the notes plan) says capture on the tab click, not on scroll events",
+      "recommendation": "Page-level memory, a second instance next to the notes one (or one per tab if D8 = A)",
+      "answer": "Page-level memory, a second instance next to the notes one (or one per tab if D8 = A)",
+      "answeredBy": "assumption: recommendation adopted per the spec closing rule (list open questions once, proceed on the recommended variant), 2026-10-18"
+    },
+    {
+      "id": "D8",
+      "notesAnalogue": "new (item 6 'спільний код виносити лише там, де це справді те саме знання')",
+      "analogueStatus": "new fork",
+      "blocks": ["T21"],
+      "specRef": "item 6; Не чіпати (нотатки)",
+      "question": "Share the scroll-anchor mechanics between the notes and quotes tabs, or copy them?",
+      "options": [
+        "A: move book-notes-scroll-anchor.ts + use-book-notes-scroll-anchor.ts (and the anchor test) into a neutral module parameterised by the card attribute; notes only switches imports",
+        "B: copy them into features/quotes with data-quote-id; notes untouched"
+      ],
+      "codebaseMakesCheaper": "The only notes-specific parts are cardAttribute 'data-note-id' (book-notes-scroll-anchor.ts:31) and the noteId field name; capture on click, book/criteria scoping and the neighbour fallback are one rule, and under B a fix to that trap would land twice. A edits 3-4 notes files (imports, notes/index.ts:8) against Не чіпати, with notes tests unchanged",
+      "recommendation": "A: it is the same knowledge, which item 6 names as the case for shared code; notes behavior and tests unchanged",
+      "answer": "A: it is the same knowledge, which item 6 names as the case for shared code; notes behavior and tests unchanged",
+      "answeredBy": "assumption: recommendation adopted per the spec closing rule (list open questions once, proceed on the recommended variant), 2026-10-18"
+    },
+    {
+      "id": "D9",
+      "notesAnalogue": "notes #03 default page sort, #11 sort set",
+      "analogueStatus": "new fork",
+      "blocks": ["T11", "T13"],
+      "specRef": "item 3 ('без сортувань book_title і book_author')",
+      "question": "Which sorts the tab offers and which is the default",
+      "options": [
+        "A: page (default), newest, oldest; anything else in quoteSort falls back to page",
+        "B: the same three with newest as default (the archive default)",
+        "C: all six non-book values, including favorites_first, no_spoiler_first, with_spoiler_first"
+      ],
+      "codebaseMakesCheaper": "QuoteSortSchema has 8 values (quotes.ts:72-81); the archive menu shows newest, oldest, book_title, book_author, page (quote-options.ts:51-57) and hides the three *_first values as legacy (quotes-sort-sheet.tsx:23-28). Labels exist for all. The page sort already has the right tie-break (D2)",
+      "recommendation": "A: the archive's visible set minus the book sorts, with page as default as in notes #03 (reading order inside one book)",
+      "answer": "A: the archive's visible set minus the book sorts, with page as default as in notes #03 (reading order inside one book)",
+      "answeredBy": "assumption: recommendation adopted per the spec closing rule (list open questions once, proceed on the recommended variant), 2026-10-18"
+    },
+    {
+      "id": "D10",
+      "notesAnalogue": "notes #05 NoteArchiveCard layout=embedded",
+      "analogueStatus": "new fork (no quotes analogue exists)",
+      "blocks": ["T10", "T12", "T15"],
+      "specRef": "item 3 (cards without title, author, cover); Не чіпати (archive)",
+      "question": "Which card the tab renders",
+      "options": [
+        "A: add an embedded layout to QuoteArchiveCard (no book header, no fixed height, no fitTo, bookHref null); delete BookQuoteCard",
+        "B: keep BookQuoteCard (already headerless) and align it with the archive card"
+      ],
+      "codebaseMakesCheaper": "QuoteArchiveCard always renders QuoteBookHeader (quote-archive-card.tsx:36) and a fixed md height (:31); there is no layout prop, unlike NoteArchiveCard (note-card-layout.ts:22). BookQuoteCard has no header but differs from the archive: it shows a spoiler badge beside the gate (book-quote-card.tsx:26), which the archive card deliberately drops (quote-archive-card.test.tsx:173), and has no show-full-comment action. A adds a default-off prop to an archive file",
+      "recommendation": "A: item 3 asks for the archive's cards, and it mirrors notes #05",
+      "answer": "A: item 3 asks for the archive's cards, and it mirrors notes #05",
+      "answeredBy": "assumption: recommendation adopted per the spec closing rule (list open questions once, proceed on the recommended variant), 2026-10-18"
+    },
+    {
+      "id": "D11",
+      "notesAnalogue": "D6 kept GET /api/books/:id/notes",
+      "analogueStatus": "spec says otherwise (conditional keep)",
+      "blocks": ["T16"],
+      "specRef": "item 2",
+      "question": "Delete GET /api/books/:bookId/quotes once the block is gone?",
+      "options": [
+        "A: delete the route and the code only it uses (listForBook, repository listForBook + bookCounts, BookQuotesViewSchema, view DTO, GET tests)",
+        "B: keep it"
+      ],
+      "codebaseMakesCheaper": "After T15 nothing calls it: the only web caller is use-book-quotes.ts:13; the only other callers are book-quotes.controller.test.ts:73 (used at :188, :209, :356). B costs nothing now; A also rewrites one DELETE test to check via GET /api/quotes?book=",
+      "recommendation": "A, because the spec keeps it only if someone still needs it; B if a client outside this repo uses it",
+      "answer": "A, because the spec keeps it only if someone still needs it; B if a client outside this repo uses it",
+      "answeredBy": "assumption: recommendation adopted per the spec closing rule (list open questions once, proceed on the recommended variant), 2026-10-18"
+    },
+    {
+      "id": "D12",
+      "notesAnalogue": "notes #19 and spoiler-search-check.mjs",
+      "analogueStatus": "new fork",
+      "blocks": ["T5", "T14", "T25"],
+      "specRef": "item 8",
+      "question": "What 'search does not reveal spoiler text' means",
+      "options": [
+        "A: as in notes: search matches spoiler text like the archive; a hit shows the gate and the text is absent from the DOM until the full view opens",
+        "B: with searchIn=quotes, skip the text condition for isSpoiler quotes, so a hit cannot hint at hidden text"
+      ],
+      "codebaseMakesCheaper": "Search matches text with no isSpoiler guard (quotes.repository.ts:520-526); QuoteBody renders the gate without text for spoilers (quote-body.tsx:22-36); no highlight or snippet exists in quotes FE or BE; the comment stays visible for spoiler quotes by design (quote-archive-card.test.tsx:180). B adds a branch and makes the tab disagree with the archive",
+      "recommendation": "A, proven in the browser as in notes",
+      "answer": "A, proven in the browser as in notes",
+      "answeredBy": "assumption: recommendation adopted per the spec closing rule (list open questions once, proceed on the recommended variant), 2026-10-18"
+    },
+    {
+      "id": "D13",
+      "notesAnalogue": "notes useNotesArchiveList (no maxPages, retry false)",
+      "analogueStatus": "new fork",
+      "blocks": ["T14", "T19"],
+      "specRef": "item 3 (endless scroll); item 6 (loaded pages kept)",
+      "question": "Which infinite-query hook feeds the tab",
+      "options": [
+        "A: reuse useQuotes unchanged",
+        "B: a small tab hook on quoteKeys.list + PaginatedQuotesSchema with no maxPages and retry false; useQuotes untouched"
+      ],
+      "codebaseMakesCheaper": "useQuotes has maxPages 10 (use-quotes.ts:14,23): past 200 quotes it drops page 1 from the top, which breaks 'loaded pages are kept' and shifts the anchor; it inherits retry 1 (query-client.ts:11), so an error costs two requests, the notes tab's High review finding (notes progress.md:8). The notes hook sets retry false and no maxPages (use-notes-archive-list.ts:13-25). B is about 25 lines",
+      "recommendation": "B",
+      "answer": "B",
+      "answeredBy": "assumption: recommendation adopted per the spec closing rule (list open questions once, proceed on the recommended variant), 2026-10-18"
+    },
+    {
+      "id": "D14",
+      "notesAnalogue": "notes excluded NotesAdvancedFilters",
+      "analogueStatus": "new fork",
+      "blocks": ["T13"],
+      "specRef": "item 3",
+      "question": "Does the tab keep the archive's created-date range filter?",
+      "options": ["A: no date range in the tab", "B: add a createdFrom/createdTo control"],
+      "codebaseMakesCheaper": "The range lives only in QuotesAdvancedFilters together with book and author (quotes-toolbar.tsx:129-134), which item 3 drops; item 3 lists search, quick filters, sorting and cards and nothing else",
+      "recommendation": "A",
+      "answer": "A",
+      "answeredBy": "assumption: recommendation adopted per the spec closing rule (list open questions once, proceed on the recommended variant), 2026-10-18"
+    },
+    {
+      "id": "D15",
+      "notesAnalogue": "notes #08 (anchor card)",
+      "analogueStatus": "spec reading correction",
+      "blocks": ["T21"],
+      "specRef": "item 6, Readings adopted (item 6)",
+      "question": "What 'картку' in item 6 means",
+      "options": [
+        "A: the top visible card, restored at the same offset (notes #08)",
+        "B: an expanded card, as the adopted reading says"
+      ],
+      "codebaseMakesCheaper": "Quote cards have no expanded state: full view is a modal dialog (use-quote-full-view.ts:15-24) that a tab switch cannot outlive, and QuotePreview only clamps. The notes commit 728a7c85 says 'keeps the loaded pages and the top card in place'",
+      "recommendation": "A; correct the adopted reading",
+      "answer": "A; correct the adopted reading",
+      "answeredBy": "assumption: recommendation adopted per the spec closing rule (list open questions once, proceed on the recommended variant), 2026-10-18"
+    },
+    {
+      "id": "D16",
+      "notesAnalogue": "notes drift item 7 (fixtures)",
+      "analogueStatus": "new fork",
+      "blocks": ["T8"],
+      "specRef": "item 1 vs Не чіпати (нотатки)",
+      "question": "How to handle notes tests whose detail mocks lack quotesCount",
+      "options": [
+        "A: add quotesCount to the mock lines only (book-notes-tab.test.tsx:249, note-form-dialog.test.tsx:225), no notes production or assertion change",
+        "B: make quotesCount optional so those tests need no edit"
+      ],
+      "codebaseMakesCheaper": "Both mocks spread a BookView and add notesCount; the detail parse (use-book.ts:27) would reject them once quotesCount is required. B contradicts D1 (required where guaranteed, no fake zero)",
+      "recommendation": "A",
+      "answer": "A",
+      "answeredBy": "assumption: recommendation adopted per the spec closing rule (list open questions once, proceed on the recommended variant), 2026-10-18"
+    },
+    {
+      "id": "D17",
+      "notesAnalogue": "notes T12 NotesArchiveContent view=embedded",
+      "analogueStatus": "new fork",
+      "blocks": ["T12"],
+      "specRef": "item 3; Не чіпати (archive)",
+      "question": "Extend QuotesContent with an embedded view, or give the tab its own list container?",
+      "options": [
+        "A: add embedded to QuotesContent (view, empty reasons, focus, skeleton)",
+        "B: tab-owned BookQuotesList built from EmptyState, InfiniteScrollFooter and the D10 card; QuotesContent untouched"
+      ],
+      "codebaseMakesCheaper": "QuotesContent takes eight booleans/callbacks with archive-only paths (onOpenBooks, a grid skeleton with a book header; quotes-content.tsx:22-37, 135-160) and has no state union to extend, unlike NotesArchiveContent; the three tab empty states would add more booleans (rule 9). B leaves the archive file byte-identical",
+      "recommendation": "B: the leaf pieces are shared, the container's states are tab knowledge",
+      "answer": "B: the leaf pieces are shared, the container's states are tab knowledge",
+      "answeredBy": "assumption: recommendation adopted per the spec closing rule (list open questions once, proceed on the recommended variant), 2026-10-18"
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "id": "V1",
+      "claim": "BookQuotesBlock is rendered on the Overview",
+      "specRef": "item 2",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/books/components/book-details-view.tsx:18,101"
+    },
+    {
+      "id": "V2",
+      "claim": "BookQuotesBlock and useBookQuotes have no other consumers",
+      "specRef": "item 2",
+      "verdict": "CONFIRMED",
+      "evidence": "grep: BookQuotesBlock only book-details-view.tsx:18,101 and quotes/index.ts:1; useBookQuotes only book-quotes-block.tsx:16,25 (defined use-book-quotes.ts:10)"
+    },
+    {
+      "id": "V3",
+      "claim": "GET /api/books/:bookId/quotes is still needed by someone",
+      "specRef": "item 2",
+      "verdict": "CONFIRMED (route exists), no consumer after removal",
+      "evidence": "route book-quotes.controller.ts:66-76 -> quotes.service.ts:135-155; web caller only use-book-quotes.ts:6,13; BE tests book-quotes.controller.test.ts:73 (used :188, :209, :356); bookQuotesControllerRestoreQuote and ListTrash have no web caller"
+    },
+    {
+      "id": "V4",
+      "claim": "BookDetailsViewSchema exists with notesCount and is served only by GET /api/books/:id",
+      "specRef": "item 1",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/books.ts:1195-1199; books.controller.ts:302-310; books.service.ts:216-224; no other BookDetailsView reference in apps/api/src outside book-details.view-dto.ts"
+    },
+    {
+      "id": "V5",
+      "claim": "Library lists do not receive detail-only fields",
+      "specRef": "item 1",
+      "verdict": "CONFIRMED",
+      "evidence": "BookViewSchema unchanged (books.ts:1193 type); lists and mutations return BookView"
+    },
+    {
+      "id": "V6",
+      "claim": "quotesCount does not exist yet",
+      "specRef": "item 1",
+      "verdict": "CONFIRMED",
+      "evidence": "grep quotesCount in apps/web/src, apps/api/src, packages/shared/src: 0 hits"
+    },
+    {
+      "id": "V7",
+      "claim": "Tab order today and the Notes position",
+      "specRef": "item 1",
+      "verdict": "CONFIRMED",
+      "evidence": "DETAIL_TABS = overview, notes, history, characters, timeline (book-details-view.tsx:34); test expects 5 tabs (book-details-view.test.tsx:155-166)"
+    },
+    {
+      "id": "V8",
+      "claim": "Tab badge mechanism",
+      "specRef": "item 1",
+      "verdict": "CONFIRMED",
+      "evidence": "PageTabsItem.badge (page-tabs.tsx:10, rendered :66); notes badge only when > 0 with sr-only separator (book-details-view.tsx:57-66)"
+    },
+    {
+      "id": "V9",
+      "claim": "Archive pieces exist: server search, quick filters, sorting, cards",
+      "specRef": "item 3",
+      "verdict": "CONFIRMED",
+      "evidence": "search quotes-toolbar.tsx:84-91; chips :157-175; sort Select :102-127 + QuotesSortSheet :95-100; advanced (book/author/date) :129-134; grid/list :136-153; summary cards quotes-view.tsx:105-112; sidebar :160; card QuoteArchiveCard via quotes-content.tsx:104"
+    },
+    {
+      "id": "V10",
+      "claim": "A quotes analogue of the notes embedded view exists",
+      "specRef": "item 3 (implied by 'як у нотатках')",
+      "verdict": "FALSE",
+      "evidence": "QuotesContent view is grid | list only (quotes-content.tsx:36,99); QuoteArchiveCard has no layout prop and always renders QuoteBookHeader (quote-archive-card.tsx:20,36)"
+    },
+    {
+      "id": "V11",
+      "claim": "Sort values include book_title and book_author",
+      "specRef": "item 3",
+      "verdict": "CONFIRMED",
+      "evidence": "QuoteSortSchema: newest, oldest, book_title, book_author, page, favorites_first, no_spoiler_first, with_spoiler_first (packages/shared/src/quotes.ts:72-81); visible five at quote-options.ts:51-57"
+    },
+    {
+      "id": "V12",
+      "claim": "Server pagination can serve 20 per page",
+      "specRef": "item 3",
+      "verdict": "CONFIRMED",
+      "evidence": "offset pageNumber/pageSize (quotes.ts:118, common.ts:126-143), default 12 (quotes.ts:15), max 100 (common.ts:43); web QUOTES_PAGE_SIZE 12 (quotes-query.ts:17), useQuotes maxPages 10 (use-quotes.ts:14,23)"
+    },
+    {
+      "id": "V13",
+      "claim": "The list can be scoped to one book",
+      "specRef": "item 3",
+      "verdict": "CONFIRMED",
+      "evidence": "book[] and bookId (quotes.ts:87-94), merged by toQuoteBookIds (quotes.ts:125-134), applied at quotes.repository.ts:500-502"
+    },
+    {
+      "id": "V14",
+      "claim": "Search fields today",
+      "specRef": "item 4",
+      "verdict": "CONFIRMED",
+      "evidence": "text, comment, chapter, book title, originalTitle, author name and alt names, exact page (quotes.repository.ts:520-540; book-search.ts:53-75)"
+    },
+    {
+      "id": "V15",
+      "claim": "A facets endpoint feeds the quick-filter counts",
+      "specRef": "item 3",
+      "verdict": "CONFIRMED",
+      "evidence": "GET /api/quotes/facets (quotes.controller.ts:104) returns six quick counts + books + authors (quotes.ts:226-266); no filter param (quotes.ts:202-204)"
+    },
+    {
+      "id": "V16",
+      "claim": "A searchIn precedent exists to copy; quotes have none",
+      "specRef": "item 4",
+      "verdict": "CONFIRMED",
+      "evidence": "BookNoteSearchScopeSchema notes.ts:90, default at :143; nothing similar in quotes.ts"
+    },
+    {
+      "id": "V17",
+      "claim": "The page sort needs a tie-break fix like notes D2",
+      "specRef": "item 3 (sorting)",
+      "verdict": "ALREADY DONE",
+      "evidence": "page: [page nulls last asc, createdAt desc, id asc] (quotes.repository.ts:443)"
+    },
+    {
+      "id": "V18",
+      "claim": "Spoiler quotes render under a gate in archive cards",
+      "specRef": "item 8",
+      "verdict": "CONFIRMED",
+      "evidence": "QuoteBody returns QuoteSpoilerGate without text (quote-body.tsx:22-36); archive card has no badge (quote-archive-card.test.tsx:173), comment stays visible (:180), full view reveals (:218)"
+    },
+    {
+      "id": "V19",
+      "claim": "Server search can match spoiler text; no snippet or highlight",
+      "specRef": "item 8",
+      "verdict": "CONFIRMED",
+      "evidence": "no isSpoiler guard in buildQuoteSearchConditions (quotes.repository.ts:520-526); grep highlight|snippet|<mark in quotes FE/BE: 0 hits"
+    },
+    {
+      "id": "V20",
+      "claim": "Create/delete invalidations today",
+      "specRef": "item 7",
+      "verdict": "CONFIRMED",
+      "evidence": "create, update, delete invalidate quoteKeys.root + bookKeys.chapters(bookId) only (use-quote-mutations.ts:62-68); the test asserts the detail stays fresh (use-quote-mutations.test.tsx:14-24)"
+    },
+    {
+      "id": "V21",
+      "claim": "Detail-cache writers",
+      "specRef": "item 7",
+      "verdict": "CONFIRMED",
+      "evidence": "explicit notesCount merge at use-book-mutation-sync.ts:17-26 and use-toggle-favorite-dedication.ts:27-36 (need quotesCount); spread at use-book-actions.ts:211-215; snapshot restore at :188"
+    },
+    {
+      "id": "V22",
+      "claim": "use-book-actions favorite write keeps a new detail field",
+      "specRef": "item 7",
+      "verdict": "ALREADY DONE",
+      "evidence": "{ ...cached, isFavorite } at use-book-actions.ts:214"
+    },
+    {
+      "id": "V23",
+      "claim": "The detail query parses with BookDetailsViewSchema",
+      "specRef": "item 1",
+      "verdict": "ALREADY DONE",
+      "evidence": "use-book.ts:3,27"
+    },
+    {
+      "id": "V24",
+      "claim": "Rediscovery quote blocks sit on the dashboard (adopted reading of Не чіпати)",
+      "specRef": "Не чіпати, Readings adopted",
+      "verdict": "FALSE",
+      "evidence": "QuoteRediscoveryBlock and PostFinishQuotesBlock render only in quotes-sidebar.tsx:79-81 and quotes-overview-panel.tsx:52-56 (global archive); no other consumer in apps/web/src"
+    },
+    {
+      "id": "V25",
+      "claim": "Global quotes archive page",
+      "specRef": "Не чіпати",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/app/[locale]/(app)/quotes/page.tsx:7 -> QuotesView (quotes-view.tsx:27)"
+    },
+    {
+      "id": "V26",
+      "claim": "i18n namespaces",
+      "specRef": "item 9",
+      "verdict": "CONFIRMED",
+      "evidence": "notes.bookTab uk.json:6324 / en.json:6324; quotes uk.json:6822 / en.json:6822; quotes.bookBlock :6832, used only by book-quotes-block.tsx"
+    },
+    {
+      "id": "V27",
+      "claim": "Changelog seed location",
+      "specRef": "item 9",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/scripts/seed-changelog.ts, notes entry slug book-notes-tab at :1421"
+    },
+    {
+      "id": "V28",
+      "claim": "Inactive tab panels unmount",
+      "specRef": "item 1",
+      "verdict": "CONFIRMED",
+      "evidence": "PageTabsPanel = TabsPrimitive.Content without forceMount (page-tabs.tsx:76-94)"
+    },
+    {
+      "id": "V29",
+      "claim": "Notes scroll mechanics to reuse",
+      "specRef": "item 6",
+      "verdict": "CONFIRMED",
+      "evidence": "memory in BookDetailsView (book-details-view.tsx:48-53,106), use-book-notes-scroll-anchor.ts:43-99, card attribute data-note-id (book-notes-scroll-anchor.ts:31, notes-archive-content.tsx:167)"
+    },
+    {
+      "id": "V30",
+      "claim": "No migration needed for a per-book count",
+      "specRef": "item 1",
+      "verdict": "CONFIRMED",
+      "evidence": "Quote @@index([bookId]) apps/api/prisma/schema.prisma:897"
+    },
+    {
+      "id": "V31",
+      "claim": "BookQuoteCard and quoteKeys.forBook are block-only",
+      "specRef": "item 2",
+      "verdict": "CONFIRMED",
+      "evidence": "BookQuoteCard used at book-quotes-block.tsx:18,136 and its own test; forBook used only at use-book-quotes.ts:14"
+    },
+    {
+      "id": "V32",
+      "claim": "A block test exists to delete, as notes D6 did",
+      "specRef": "item 2",
+      "verdict": "FALSE",
+      "evidence": "no book-quotes-block.test.tsx in apps/web/src/features/quotes/components"
+    },
+    {
+      "id": "V33",
+      "claim": "Detail JSON mocks would need quotesCount",
+      "specRef": "item 1",
+      "verdict": "CONFIRMED",
+      "evidence": "book-notes-tab.test.tsx:249, note-form-dialog.test.tsx:225, quote-dialog.test.tsx:123, edit-book-form.stories.tsx:165,216; makeBookDetailsView book-details.fixtures.ts:3-8"
+    },
+    {
+      "id": "V34",
+      "claim": "quoteQ / quoteFilter / quoteSort are free",
+      "specRef": "item 5",
+      "verdict": "CONFIRMED",
+      "evidence": "grep for those keys in apps/web/src: 0 hits"
+    },
+    {
+      "id": "V35",
+      "claim": "Item 6 adopted reading: the expanded card is kept",
+      "specRef": "item 6, Readings adopted",
+      "verdict": "FALSE",
+      "evidence": "no expanded state: full view is a modal (use-quote-full-view.ts:15-24); commit 728a7c85 message says 'the top card in place'"
+    },
+    {
+      "id": "V36",
+      "claim": "The count must live in the books module",
+      "specRef": "item 1",
+      "verdict": "CONFIRMED",
+      "evidence": "quotes imports books (quotes.repository.ts:13); books already reads client.quote (book-chapters.repository.ts:32); import-cycles guard apps/api/src/core/import-cycles.test.ts"
+    },
+    {
+      "id": "V37",
+      "claim": "Archive search regression tests exist for book title and author",
+      "specRef": "item 4 'без нього глобальний архів працює як раніше'",
+      "verdict": "CONFIRMED",
+      "evidence": "quotes.controller.test.ts:317, :678, :694"
+    },
+    {
+      "id": "V38",
+      "claim": "useQuotes retry and maxPages differ from the notes list hook",
+      "specRef": "items 3, 6",
+      "verdict": "CONFIRMED",
+      "evidence": "useQuotes maxPages 10, retry default 1 (use-quotes.ts:23; query-client.ts:11); useNotesArchiveList retry false, no maxPages (use-notes-archive-list.ts:13-25)"
+    },
+    {
+      "id": "V39",
+      "claim": "Series quotes exist (notes series analogue)",
+      "specRef": "Не чіпати",
+      "verdict": "FALSE",
+      "evidence": "Quote has bookId only (schema.prisma Quote model :878-902); nothing to keep for series"
+    }
+  ],
+  "assumptions": [
+    "The readings adopted in spec.md (lines 51-58) stand, except item 6 'expanded card' (D15, V35) and the dashboard location of rediscovery blocks (V24): they live in the global archive, so Не чіпати covers them twice.",
+    "Per the closing paragraph, if a decision gets no answer the recommendation is adopted and recorded here as an assumption; work does not stop for it.",
+    "'gen:api без диффу' means a rerun after the change produces no diff; the first run necessarily changes generated code (quotesCount, searchIn, and the route removal if D11 = A).",
+    "Shared archive components may gain additive, default-off props (D10); archive call sites and rendering stay unchanged and their tests pass without assertion changes.",
+    "Item 7 'лише detail цієї книги' is read as: of the book detail queries, only this book's is invalidated; the existing quoteKeys.root and chapters invalidations stay.",
+    "The tab does not carry the old block's summary line or view-all link (book-quotes-block.tsx:39-47, 141-148).",
+    "Known Windows-only local failures (import-cycles, collation, shipments timeout; user memory) are reported as such, not fixed here.",
+    "Commit and PR text carries no self-attribution (user memory rule overrides the attribution reminder).",
+    "User instruction 2026-10-18: ESLint runs once at the end, right before the commit (T27), not as a per-slice gate; slice gates are typecheck + targeted tests. pnpm lint stays part of T23 at commit time.",
+    "S2 review Low 4 not applied: the sort-to-group map in book-quotes-toolbar.tsx repeats quotes-sort-sheet.tsx; moving it to model/quote-options.ts means editing the archive (Не чіпати). Revisit on the next archive change.",
+    "S2 review Low 5 not applied: the tab list hook shares quoteKeys.list with useQuotes (maxPages 10). Entries cannot collide because the tab always sends searchIn=quotes and pageSize 20, the archive never sends searchIn and uses pageSize 12; sharing the root keeps one invalidation path.",
+    "S2 engineer assumptions accepted by code-reviewer: alwaysCommittable tab search (1-char queries and page numbers commit), singular clear-filter button, empty-search title reuses quotes.noResults.title, skeleton role=group aria-busy, mobile sort groups kept.",
+    "T21 deviation accepted: anchor field cardId in the shared module (two notes test assertions renamed, behaviour unchanged).",
+    "tabCountBadge also gives the Characters tab the sr-only separator, so its accessible name becomes \"Персонажі, 3\"; outside the spec items, mentioned in the PR body.",
+    "S3 review Low 4 not applied: useBookTabScrollAnchor also scrolls to the results start on criteria change; the name stays, as the notes hook it replaces carried the same effect.",
+    "T25 badge on create and delete: the server half is proven live by curl (48, 49, 48) and the client half by book-details.test.tsx (badge 2, 3, 2 through the real mutation hooks); no second browser run was made for it.",
+    "Test runs moved to CI mid-task (CLAUDE.md §9 on dev 2b60663f). T23 per-file counts come from the slice runs; after the fast-forward only the three quote component test files changed by the lint fixes were rerun (56/56). T24 archive regression and the full suite are left to the PR CI run, which runs the full sharded suite because packages/shared changed."
+  ],
+  "sliceLog": [
+    {
+      "slice": "S1",
+      "date": "2026-10-18",
+      "gates": "typecheck green (3/3); gen:api diff limited to quotesCount + searchIn (6 files, +27); blast-radius: 13 consumer API test files 486/486 green; new API tests quotes-count 16/16, book-scope 38/38, books.service 56/56, quotes.service 26/26; web T6-T8 targeted tests green; lint deferred to commit per user",
+      "review": "code-reviewer APPROVED WITH NITS (2 Low fixed, 1 Low left: redundant not.toContain in quotes-query.test.ts); security-reviewer APPROVED, no findings above Info"
+    },
+    {
+      "slice": "S2",
+      "date": "2026-10-18",
+      "gates": "web typecheck green; 10 web test files 141 tests green (notes tab test flaked once on timing, 26/26 on rerun); i18n parity 6730/6730; T16: gen:api only removals (-378), root typecheck 3/3, 4 API test files 135/135; lint deferred",
+      "review": "code-reviewer APPROVED WITH NITS: Low 1-3 sent to S3 agent, Low 4-5 recorded as assumptions"
+    },
+    {
+      "slice": "S3",
+      "date": "2026-10-18",
+      "gates": "web typecheck green; 12 web test files 225 tests green; lint deferred",
+      "review": "code-reviewer APPROVED WITH NITS: Low 1 (exact invalidation test) fixed, Low 2-4 recorded as assumptions/deviation"
+    },
+    {
+      "slice": "close-out",
+      "date": "2026-10-18",
+      "gates": "fast-forward onto origin/dev 2b60663f, clean reapply; gates.sh typecheck, eslint, prettier green after fixing 11 lint errors in new quote files; gen:api rerun byte-identical; i18n parity 6750/6750; 3 quote component test files 56/56 under the new IntersectionObserver mock",
+      "review": "security-reviewer over quotes.controller.ts and book-quotes.controller.ts: no findings; spec-auditor VERIFY: T1-T22 done, gaps closed in T25 and T26"
+    }
+  ],
+  "liveRun": {
+    "date": "2026-10-18",
+    "stack": "branch API :4100 on scratch DB booknest_quotes_tab (copy of booknest_dev + 45 seeded quotes in one book), next dev :3100, headless Chromium",
+    "results": [
+      "PASS tab order: Цитати right after Нотатки",
+      "PASS badge shows quotesCount 48",
+      "PASS Overview makes no /api/quotes request",
+      "PASS first page: 20 cards, pageSize=20, searchIn=quotes, sort=page",
+      "PASS cards hide cover and book link",
+      "PASS endless scroll loads 20+20+8 = 48",
+      "PASS same-book return restores loaded pages and top card (deep scroll)",
+      "PASS same-book return via real clicks keeps position",
+      "PASS spoiler in search: found, gated, text absent",
+      "PASS URL keeps quoteQ",
+      "PASS book title is not searched (only quotes whose own text has 'dune')",
+      "PASS deep link quoteFilter=favorites&quoteSort=newest",
+      "PASS another book opens with defaults",
+      "PASS no console errors (desktop)",
+      "PASS 390px: no horizontal page overflow",
+      "PASS no console errors (390px)",
+      "PASS create and delete move quotesCount on the branch API: 48, 49 after POST, 48 after DELETE; GET /api/books carries no quotesCount (curl, after the fast-forward onto 2b60663f)"
+    ],
+    "notes": [
+      "console filter excluded WebSocket handshake 400 (API CORS_ORIGINS=localhost:3000, web on :3100, stand artefact) and the pre-login 401 refresh",
+      "desktop chip row scrolls horizontally inside the 576px column (same ChipGroup as the archive)",
+      "test data: the probe quote was deleted; the 45 seeded quotes live only in the scratch DB booknest_quotes_tab, which is dropped only with the user's consent"
+    ]
+  }
+}

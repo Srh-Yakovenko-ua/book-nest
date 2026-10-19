@@ -1,19 +1,16 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { Control, FieldError, FieldErrors, UseFormRegister } from "react-hook-form";
+import type { Control, FieldErrors, UseFormRegister } from "react-hook-form";
 
 import { BOOK_CHARACTER_UNSPECIFIED, CHARACTER_TEXT_MAX } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { Fragment, useId } from "react";
 import { Controller, useController, useWatch } from "react-hook-form";
 
-import { ChapterCombobox } from "@/components/chapter-combobox";
 import { UiIcon, type UiIconName } from "@/components/icons";
+import { SuggestionCombobox } from "@/components/suggestion-combobox";
 import { ActionRow } from "@/components/ui/action-row";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { FieldError as FieldErrorText } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,10 +30,11 @@ import {
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
 
-import type { CharacterEditScope, CharacterEditValues } from "../model/character-edit-form";
+import type { BookSpoilerFlag } from "../model/book-spoiler-flags";
+import type { CharacterEditValues } from "../model/character-edit-form";
 
 import { useCharacterCustomLabels } from "../api/use-character-custom-labels";
-import { effectiveCharacterName } from "../model/character-edit-form";
+import { hasSpoilerValue, spoilerValuePresence } from "../model/book-spoiler-flags";
 import { isBookFieldMasked } from "../model/character-inheritance";
 import {
   ATTITUDE_OPTIONS,
@@ -48,16 +46,15 @@ import {
   NARRATOR_TYPE_OPTIONS,
 } from "../model/character-options";
 import { isFieldHidden } from "../model/character-spoiler";
-import { CharacterAliasGroup } from "./character-alias-group";
 import { CharacterCreatableSingleSelect } from "./character-creatable-single-select";
-import { InheritedSelectField, InheritedTextField } from "./character-inherited-field";
+import { InheritedSelectField } from "./character-inherited-field";
 import { InheritedSpeciesField } from "./character-inherited-species-field";
+import { InheritedTextField } from "./character-inherited-text-field";
 import { CharacterLongTextField } from "./character-long-text-field";
 import { CharacterPronounsSelect } from "./character-pronouns-select";
 import { CharacterRolePicker } from "./character-role-picker";
+import { CharacterScopeBadge } from "./character-scope-badge";
 import { CharacterSpoilerField } from "./character-spoiler-field";
-
-type AliasFieldErrors = NonNullable<FieldErrors<CharacterEditValues>["global"]>["aliases"];
 
 type EditControl = Control<CharacterEditValues>;
 
@@ -66,116 +63,31 @@ type EditErrors = FieldErrors<CharacterEditValues>;
 type FieldRequirement = "optional" | "required";
 
 const SPOILER_FIELDS = [
-  { label: "displayName", name: "book.displayNameIsSpoiler" },
-  { label: "status", name: "book.statusIsSpoiler" },
-  { label: "description", name: "book.descriptionIsSpoiler" },
-  { label: "personalImpression", name: "book.personalImpressionIsSpoiler" },
-  { label: "appearanceNotes", name: "book.appearanceNotesIsSpoiler" },
-  { label: "speciesOverride", name: "book.speciesOverrideIsSpoiler" },
-  { label: "portrait", name: "book.portraitIsSpoiler" },
-] as const;
-
-const SPOILER_FLAG_NAMES = SPOILER_FIELDS.map((entry) => entry.name);
-
-const SCOPE_BADGE = {
-  book: { icon: "book", label: "scopeBook" },
-  global: { icon: "globe", label: "scopeGlobal" },
-} as const satisfies Record<CharacterEditScope, { icon: UiIconName; label: string }>;
+  {
+    fields: [
+      { flag: "displayNameIsSpoiler", label: "displayName" },
+      { flag: "portraitIsSpoiler", label: "portrait" },
+      { flag: "statusIsSpoiler", label: "status" },
+    ],
+    title: "cards",
+  },
+  {
+    fields: [
+      { flag: "speciesOverrideIsSpoiler", label: "speciesOverride" },
+      { flag: "descriptionIsSpoiler", label: "description" },
+      { flag: "personalImpressionIsSpoiler", label: "personalImpression" },
+      { flag: "appearanceNotesIsSpoiler", label: "appearanceNotes" },
+    ],
+    title: "details",
+  },
+] as const satisfies readonly {
+  fields: readonly { flag: BookSpoilerFlag; label: string }[];
+  title: string;
+}[];
 
 type EditRegister = UseFormRegister<CharacterEditValues>;
 
-export function BookCharacterInheritanceSection({
-  control,
-  errors,
-  maskedFields,
-  onSpeciesChange,
-}: {
-  control: EditControl;
-  errors: EditErrors;
-  maskedFields: readonly string[];
-  onSpeciesChange: (change: OwnSpeciesChange) => void;
-}) {
-  const t = useTranslations("characters.edit");
-  const tInheritance = useTranslations("characters.inheritance");
-  const tAttitude = useTranslations("characters.attitude");
-
-  const globalName = useWatch({ control, name: "global.name" });
-  const globalSpecies = useWatch({ control, name: "global.species" });
-  const globalAttitude = useWatch({ control, name: "global.attitude" });
-
-  return (
-    <EditSection
-      action={<ScopeBadge scope="book" />}
-      description={t("inheritanceSectionHint")}
-      icon="layers"
-      title={t("inheritanceSection")}
-    >
-      <div className="flex flex-col gap-4">
-        <MaskedOr field="displayName" label={t("displayName")} maskedFields={maskedFields}>
-          <Controller
-            control={control}
-            name="book.displayName"
-            render={({ field }) => (
-              <InheritedTextField
-                error={errors.book?.displayName}
-                globalValue={textOrNull(globalName)}
-                id="character-display-name"
-                label={t("displayName")}
-                maxLength={CHARACTER_TEXT_MAX.shortText}
-                onChange={field.onChange}
-                placeholder={t("displayNamePlaceholder")}
-                value={field.value}
-              />
-            )}
-          />
-        </MaskedOr>
-
-        <Separator />
-
-        <MaskedOr field="speciesOverride" label={t("speciesInBook")} maskedFields={maskedFields}>
-          <Controller
-            control={control}
-            name="book.speciesOverride"
-            render={({ field }) => (
-              <InheritedSpeciesField
-                globalValue={globalSpecies}
-                id="character-species-override"
-                label={t("speciesInBook")}
-                onBlur={field.onBlur}
-                onChange={field.onChange}
-                onSpeciesChange={onSpeciesChange}
-                placeholder={t("speciesInBookPlaceholder")}
-                ref={field.ref}
-                value={field.value}
-              />
-            )}
-          />
-        </MaskedOr>
-
-        <Separator />
-
-        <Controller
-          control={control}
-          name="book.attitude"
-          render={({ field }) => (
-            <InheritedSelectField
-              globalLabel={globalAttitude === "" ? null : tAttitude(globalAttitude)}
-              globalValue={globalAttitude === "" ? null : globalAttitude}
-              id="character-book-attitude"
-              label={tInheritance("attitude")}
-              onChange={field.onChange}
-              optionLabel={(option) => tAttitude(option)}
-              options={ATTITUDE_OPTIONS}
-              value={field.value}
-            />
-          )}
-        />
-      </div>
-    </EditSection>
-  );
-}
-
-export function BookCharacterMainSection({
+export function BookCharacterDescriptionsSection({
   control,
   errors,
   register,
@@ -185,91 +97,17 @@ export function BookCharacterMainSection({
   register: EditRegister;
 }) {
   const t = useTranslations("characters.edit");
-  const tImportance = useTranslations("characters.importance");
-  const tStatus = useTranslations("characters.status");
-  const tRoles = useTranslations("characters.form");
 
-  const status = useController({ control, name: "book.status" });
-  const statusCustomText = useController({ control, name: "book.statusCustomText" });
-  const statusError = errors.book?.statusCustomText;
-  const customLabels = useCharacterCustomLabels();
+  const descriptionSpoiler = useController({ control, name: "book.descriptionIsSpoiler" });
+  const appearanceNotesSpoiler = useController({ control, name: "book.appearanceNotesIsSpoiler" });
 
   return (
     <EditSection
-      action={<ScopeBadge scope="book" />}
+      action={<CharacterScopeBadge scope="book" />}
       description={t("bookSectionHint")}
       icon="book-open-text"
-      title={t("bookSection")}
+      title={t("descriptionsSection")}
     >
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Controller
-          control={control}
-          name="book.importance"
-          render={({ field }) => (
-            <LabeledField htmlFor="character-importance" label={t("importance")}>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <SelectTrigger
-                  className="w-full data-[size=default]:h-10"
-                  id="character-importance"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {BOOK_CHARACTER_IMPORTANCE.options.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {tImportance(option)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </LabeledField>
-          )}
-        />
-
-        <div className="flex flex-col gap-2">
-          <PickerCaption label={t("status")} />
-          <CharacterCreatableSingleSelect
-            clearTo={BOOK_CHARACTER_UNSPECIFIED.status}
-            customText={statusCustomText.field.value}
-            customTextSaved={!statusCustomText.fieldState.isDirty}
-            describedBy={statusError ? "character-status-error" : undefined}
-            invalid={statusError !== undefined}
-            label={t("status")}
-            maxLength={CHARACTER_TEXT_MAX.shortText}
-            onBlur={statusCustomText.field.onBlur}
-            onChange={(choice) => {
-              status.field.onChange(choice.option);
-              statusCustomText.field.onChange(choice.customText);
-            }}
-            optionLabel={(option) => tStatus(option)}
-            options={BOOK_CHARACTER_STATUS.options}
-            ref={(element) => statusCustomText.field.ref(element)}
-            sentinel={BOOK_CHARACTER_STATUS.custom}
-            suggestions={{
-              heading: t("customStatusesHeading"),
-              labels: customLabels.data?.statuses ?? [],
-            }}
-            value={status.field.value}
-          />
-          <FieldErrorText error={statusError} id="character-status-error" />
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <PickerCaption label={tRoles("roles")} />
-        <Controller
-          control={control}
-          name="book.roles"
-          render={({ field }) => (
-            <CharacterRolePicker
-              customRoles={customLabels.data?.roles ?? []}
-              onChange={field.onChange}
-              value={field.value}
-            />
-          )}
-        />
-      </div>
-
       <LabeledField
         htmlFor="character-book-description"
         label={t("bookDescription")}
@@ -280,6 +118,11 @@ export function BookCharacterMainSection({
           error={errors.book?.description}
           id="character-book-description"
           name="book.description"
+          onValueChange={(next) => {
+            if (!hasSpoilerValue.descriptionIsSpoiler(next)) {
+              descriptionSpoiler.field.onChange(false);
+            }
+          }}
           placeholder={t("bookDescriptionPlaceholder")}
           register={register}
           rows={3}
@@ -296,23 +139,12 @@ export function BookCharacterMainSection({
           error={errors.book?.appearanceNotes}
           id="character-appearance-notes"
           name="book.appearanceNotes"
+          onValueChange={(next) => {
+            if (!hasSpoilerValue.appearanceNotesIsSpoiler(next)) {
+              appearanceNotesSpoiler.field.onChange(false);
+            }
+          }}
           placeholder={t("appearanceNotesPlaceholder")}
-          register={register}
-          rows={3}
-        />
-      </LabeledField>
-
-      <LabeledField
-        htmlFor="character-personal-impression"
-        label={t("personalImpression")}
-        requirement="optional"
-      >
-        <CharacterLongTextField
-          control={control}
-          error={errors.book?.personalImpression}
-          id="character-personal-impression"
-          name="book.personalImpression"
-          placeholder={t("personalImpressionPlaceholder")}
           register={register}
           rows={3}
         />
@@ -352,12 +184,123 @@ export function BookCharacterNarrativeSection({
 
   return (
     <EditSection
-      action={<ScopeBadge scope="book" />}
+      action={<CharacterScopeBadge scope="book" />}
       description={t("narrativeSectionHint")}
       icon="quote"
       title={t("narrativeSection")}
     >
       <div className="flex flex-col gap-4">
+        <h3 className="text-sm font-semibold text-ink">{t("firstAppearance")}</h3>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <LabeledField
+            htmlFor="character-first-chapter"
+            label={t("firstAppearanceChapter")}
+            requirement="optional"
+          >
+            <Controller
+              control={control}
+              name="book.firstAppearanceChapter"
+              render={({ field }) => (
+                <SuggestionCombobox
+                  describedBy={
+                    errors.book?.firstAppearanceChapter
+                      ? "character-first-chapter-error"
+                      : undefined
+                  }
+                  id="character-first-chapter"
+                  invalid={errors.book?.firstAppearanceChapter !== undefined}
+                  maxLength={CHARACTER_TEXT_MAX.shortText}
+                  onChange={field.onChange}
+                  options={chaptersQuery.data ?? []}
+                  placeholder={t("firstAppearanceChapterPlaceholder")}
+                  value={field.value}
+                />
+              )}
+            />
+            <FieldErrorText
+              error={errors.book?.firstAppearanceChapter}
+              id="character-first-chapter-error"
+            />
+          </LabeledField>
+
+          <LabeledField
+            htmlFor="character-first-page"
+            label={t("firstAppearancePage")}
+            requirement="optional"
+          >
+            <Controller
+              control={control}
+              name="book.firstAppearancePage"
+              render={({ field }) => (
+                <Input
+                  aria-describedby={
+                    errors.book?.firstAppearancePage ? "character-first-page-error" : undefined
+                  }
+                  aria-invalid={errors.book?.firstAppearancePage !== undefined}
+                  autoComplete="off"
+                  className="h-10"
+                  id="character-first-page"
+                  inputMode="numeric"
+                  max={pageMax}
+                  min={1}
+                  onBlur={field.onBlur}
+                  onChange={(event) =>
+                    field.onChange(event.target.value === "" ? null : Number(event.target.value))
+                  }
+                  onKeyDown={blockNegativeNumberKeys}
+                  onPaste={blockNegativeNumberPaste}
+                  placeholder={t("firstAppearancePagePlaceholder")}
+                  ref={field.ref}
+                  step={1}
+                  type="number"
+                  value={field.value ?? ""}
+                />
+              )}
+            />
+            <FieldErrorText
+              error={errors.book?.firstAppearancePage}
+              id="character-first-page-error"
+            />
+          </LabeledField>
+        </div>
+
+        <LabeledField
+          htmlFor="character-first-note"
+          label={t("firstAppearanceNote")}
+          requirement="optional"
+        >
+          <Input
+            aria-describedby={
+              firstNoteError === undefined
+                ? "character-first-note-counter"
+                : "character-first-note-error character-first-note-counter"
+            }
+            aria-invalid={firstNoteError !== undefined}
+            autoComplete="off"
+            className="h-10"
+            id="character-first-note"
+            maxLength={CHARACTER_TEXT_MAX.shortText}
+            placeholder={t("firstAppearanceNotePlaceholder")}
+            {...register("book.firstAppearanceNote")}
+          />
+          <div className="flex items-center justify-between gap-2">
+            <FieldErrorText error={firstNoteError} id="character-first-note-error" />
+            <span
+              className="ml-auto text-xs text-muted-foreground tabular-nums"
+              id="character-first-note-counter"
+            >
+              {firstAppearanceNote.length}/{CHARACTER_TEXT_MAX.shortText}
+            </span>
+          </div>
+        </LabeledField>
+      </div>
+
+      <Separator />
+
+      <div className="flex flex-col gap-4">
+        <h3 className="text-sm font-semibold text-ink">{t("perspectiveGroup")}</h3>
+
         <Controller
           control={control}
           name="book.isPovCharacter"
@@ -475,325 +418,120 @@ export function BookCharacterNarrativeSection({
           </>
         ) : null}
       </div>
-
-      <Separator />
-
-      <div className="flex flex-col gap-4">
-        <h3 className="text-sm font-semibold text-ink">{t("firstAppearance")}</h3>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <LabeledField
-            htmlFor="character-first-chapter"
-            label={t("firstAppearanceChapter")}
-            requirement="optional"
-          >
-            <Controller
-              control={control}
-              name="book.firstAppearanceChapter"
-              render={({ field }) => (
-                <ChapterCombobox
-                  describedBy={
-                    errors.book?.firstAppearanceChapter
-                      ? "character-first-chapter-error"
-                      : undefined
-                  }
-                  id="character-first-chapter"
-                  invalid={errors.book?.firstAppearanceChapter !== undefined}
-                  maxLength={CHARACTER_TEXT_MAX.shortText}
-                  onChange={field.onChange}
-                  options={chaptersQuery.data?.chapters ?? []}
-                  placeholder={t("firstAppearanceChapterPlaceholder")}
-                  value={field.value}
-                />
-              )}
-            />
-            <FieldErrorText
-              error={errors.book?.firstAppearanceChapter}
-              id="character-first-chapter-error"
-            />
-          </LabeledField>
-
-          <LabeledField
-            htmlFor="character-first-page"
-            label={t("firstAppearancePage")}
-            requirement="optional"
-          >
-            <Controller
-              control={control}
-              name="book.firstAppearancePage"
-              render={({ field }) => (
-                <Input
-                  aria-describedby={
-                    errors.book?.firstAppearancePage ? "character-first-page-error" : undefined
-                  }
-                  aria-invalid={errors.book?.firstAppearancePage !== undefined}
-                  autoComplete="off"
-                  className="h-10"
-                  id="character-first-page"
-                  inputMode="numeric"
-                  max={pageMax}
-                  min={1}
-                  onBlur={field.onBlur}
-                  onChange={(event) =>
-                    field.onChange(event.target.value === "" ? null : Number(event.target.value))
-                  }
-                  onKeyDown={blockNegativeNumberKeys}
-                  onPaste={blockNegativeNumberPaste}
-                  placeholder={t("firstAppearancePagePlaceholder")}
-                  ref={field.ref}
-                  step={1}
-                  type="number"
-                  value={field.value ?? ""}
-                />
-              )}
-            />
-            <FieldErrorText
-              error={errors.book?.firstAppearancePage}
-              id="character-first-page-error"
-            />
-          </LabeledField>
-        </div>
-
-        <LabeledField
-          htmlFor="character-first-note"
-          label={t("firstAppearanceNote")}
-          requirement="optional"
-        >
-          <Input
-            aria-describedby={
-              firstNoteError === undefined
-                ? "character-first-note-counter"
-                : "character-first-note-error character-first-note-counter"
-            }
-            aria-invalid={firstNoteError !== undefined}
-            autoComplete="off"
-            className="h-10"
-            id="character-first-note"
-            maxLength={CHARACTER_TEXT_MAX.shortText}
-            placeholder={t("firstAppearanceNotePlaceholder")}
-            {...register("book.firstAppearanceNote")}
-          />
-          <div className="flex items-center justify-between gap-2">
-            <FieldErrorText error={firstNoteError} id="character-first-note-error" />
-            <span
-              className="ml-auto text-xs text-muted-foreground tabular-nums"
-              id="character-first-note-counter"
-            >
-              {firstAppearanceNote.length}/{CHARACTER_TEXT_MAX.shortText}
-            </span>
-          </div>
-        </LabeledField>
-      </div>
     </EditSection>
   );
 }
 
 export function BookCharacterSpoilerSection({ control }: { control: EditControl }) {
   const t = useTranslations("characters.spoilers");
-  const hidePresenceHintId = useId();
-  const flags = useWatch({ control, name: SPOILER_FLAG_NAMES });
-  const activeCount = flags.filter(Boolean).length;
+  const idPrefix = useId();
+  const book = useWatch({ control, name: "book" });
+  const present = spoilerValuePresence(book);
 
   return (
     <EditSection
-      action={<ScopeBadge scope="book" />}
-      description={t("sectionHint")}
+      action={<CharacterScopeBadge scope="book" />}
+      description={t("revealHint")}
       icon="eye-off"
       title={t("sectionTitle")}
     >
-      <Controller
-        control={control}
-        name="book.hidePresenceAsSpoiler"
-        render={({ field }) => (
-          <div className="flex flex-col gap-1">
-            <ActionRow
-              className="px-0 py-1 [&_span]:whitespace-normal"
-              title={t("hidePresence")}
-              trailing={(labelId) => (
-                <Switch
-                  aria-describedby={hidePresenceHintId}
-                  aria-labelledby={labelId}
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              )}
-            />
-            <p className="text-sm text-muted-foreground" id={hidePresenceHintId}>
-              {t("hidePresenceHint")}
-            </p>
-          </div>
-        )}
-      />
-
-      <Separator />
-
-      <Collapsible className="flex flex-col gap-3" defaultOpen={activeCount > 0}>
-        <CollapsibleTrigger asChild>
-          <Button
-            className="group/disclosure -ml-2.5 h-auto min-h-8 self-start py-1.5 text-left whitespace-normal"
-            type="button"
-            variant="ghost"
-          >
-            <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
-              {t("expand")}
-              {activeCount > 0 ? (
-                <Badge variant="secondary">{t("activeCount", { count: activeCount })}</Badge>
-              ) : null}
-            </span>
-            <UiIcon
-              className="transition-transform group-data-[state=open]/disclosure:rotate-180 motion-reduce:transition-none"
-              name="chevron-down"
-              size={16}
-            />
-          </Button>
-        </CollapsibleTrigger>
-
-        <CollapsibleContent className="flex flex-col">
-          <p className="pb-1 text-xs text-muted-foreground">{t("granularHint")}</p>
-          {SPOILER_FIELDS.map((entry, index) => (
-            <Fragment key={entry.name}>
+      {SPOILER_FIELDS.map((group) => (
+        <div
+          aria-labelledby={`${idPrefix}-${group.title}`}
+          className="flex flex-col"
+          key={group.title}
+          role="group"
+        >
+          <h3 className="pb-1 text-sm font-semibold text-ink" id={`${idPrefix}-${group.title}`}>
+            {t(`groups.${group.title}`)}
+          </h3>
+          {group.fields.map((entry, index) => (
+            <Fragment key={entry.flag}>
               {index === 0 ? null : <Separator />}
               <Controller
                 control={control}
-                name={entry.name}
+                name={`book.${entry.flag}`}
                 render={({ field }) => (
-                  <ActionRow
-                    className="px-0 py-2.5"
-                    title={t(entry.label)}
-                    trailing={(labelId) => (
-                      <Switch
-                        aria-labelledby={labelId}
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    )}
-                  />
+                  <div className="flex flex-col gap-0.5 py-2.5">
+                    <ActionRow
+                      className="px-0 py-0 [&_span]:whitespace-normal"
+                      title={t(entry.label)}
+                      trailing={(labelId) => (
+                        <Switch
+                          aria-describedby={`${idPrefix}-${entry.flag}-hint`}
+                          aria-labelledby={labelId}
+                          checked={present[entry.flag] && field.value}
+                          disabled={!present[entry.flag]}
+                          onCheckedChange={field.onChange}
+                        />
+                      )}
+                    />
+                    <p
+                      className="pr-11 text-[0.8125rem] text-muted-foreground"
+                      id={`${idPrefix}-${entry.flag}-hint`}
+                    >
+                      {present[entry.flag] ? t(`hints.${entry.label}`) : t("emptyValueHint")}
+                    </p>
+                  </div>
                 )}
               />
             </Fragment>
           ))}
-        </CollapsibleContent>
-      </Collapsible>
+        </div>
+      ))}
     </EditSection>
   );
 }
 
-export function CharacterAliasesSection({
+export function CharacterAttitudeSection({
   control,
   errors,
   hasBookScope,
-}: {
-  control: EditControl;
-  errors: FieldErrors<CharacterEditValues>;
-  hasBookScope: boolean;
-}) {
-  const t = useTranslations("characters.aliases");
-  const globalName = useWatch({ control, name: "global.name" });
-  const bookDisplayName = useWatch({ control, name: "book.displayName" });
-
-  return (
-    <EditSection description={t("sectionHint")} icon="tag" title={t("sectionTitle")}>
-      <Controller
-        control={control}
-        name="global.aliases"
-        render={({ field }) => (
-          <CharacterAliasGroup
-            errors={aliasNameErrors(errors.global?.aliases, field.value.length)}
-            onChange={field.onChange}
-            reservedName={globalName}
-            scope="global"
-            value={field.value}
-          />
-        )}
-      />
-
-      {hasBookScope ? (
-        <>
-          <Separator />
-          <Controller
-            control={control}
-            name="book.aliases"
-            render={({ field }) => (
-              <CharacterAliasGroup
-                errors={aliasNameErrors(errors.book?.aliases, field.value.length)}
-                onChange={field.onChange}
-                reservedName={effectiveCharacterName({
-                  displayName: bookDisplayName,
-                  globalName,
-                })}
-                scope="book"
-                value={field.value}
-              />
-            )}
-          />
-        </>
-      ) : null}
-    </EditSection>
-  );
-}
-
-export function CharacterGlobalSection({
-  control,
-  errors,
-  onSpeciesChange,
   register,
 }: {
   control: EditControl;
   errors: EditErrors;
-  onSpeciesChange: (change: OwnSpeciesChange) => void;
+  hasBookScope: boolean;
   register: EditRegister;
 }) {
   const t = useTranslations("characters.edit");
-  const tEntity = useTranslations("characters.entityKind");
-  const tGender = useTranslations("characters.gender");
+  const tInheritance = useTranslations("characters.inheritance");
   const tAttitude = useTranslations("characters.attitude");
   const tCommon = useTranslations("common");
 
-  const gender = useController({ control, name: "global.gender" });
-  const customGender = useController({ control, name: "global.customGender" });
-  const genderError = errors.global?.customGender;
-  const pronouns = useController({ control, name: "global.pronouns" });
-  const pronounsError = errors.global?.pronouns;
+  const globalAttitude = useWatch({ control, name: "global.attitude" });
+  const personalImpressionSpoiler = useController({
+    control,
+    name: "book.personalImpressionIsSpoiler",
+  });
 
   return (
-    <EditSection
-      action={<ScopeBadge scope="global" />}
-      description={t("globalSectionHint")}
-      icon="user"
-      title={t("globalSection")}
-    >
-      <LabeledField htmlFor="character-name" label={t("name")} requirement="required">
-        <Input
-          aria-describedby={errors.global?.name ? "character-name-error" : undefined}
-          aria-invalid={errors.global?.name !== undefined}
-          aria-required="true"
-          autoComplete="off"
-          className="h-10"
-          id="character-name"
-          maxLength={CHARACTER_TEXT_MAX.name}
-          placeholder={t("namePlaceholder")}
-          {...register("global.name")}
-        />
-        <FieldErrorText error={errors.global?.name} id="character-name-error" />
-      </LabeledField>
+    <EditSection icon="heart" title={t("attitudeSection")}>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <h3 className="min-w-0 text-sm font-semibold text-ink">{t("attitudeGlobalGroup")}</h3>
+          <CharacterScopeBadge scope="global" />
+        </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
         <Controller
           control={control}
-          name="global.entityKind"
+          name="global.attitude"
           render={({ field }) => (
-            <LabeledField htmlFor="character-entity-kind" label={t("entityKind")}>
+            <LabeledField htmlFor="character-attitude" label={t("attitude")}>
               <Select onValueChange={field.onChange} value={field.value}>
                 <SelectTrigger
                   className="w-full data-[size=default]:h-10"
-                  id="character-entity-kind"
+                  clearLabel={tCommon("clear")}
+                  id="character-attitude"
+                  isClearable={field.value !== ""}
+                  onClear={() => field.onChange("")}
                 >
-                  <SelectValue />
+                  <SelectValue placeholder={t("attitudePlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
-                  {ENTITY_KIND_OPTIONS.map((option) => (
+                  {ATTITUDE_OPTIONS.map((option) => (
                     <SelectItem key={option} value={option}>
-                      {tEntity(option)}
+                      {tAttitude(option)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -801,121 +539,373 @@ export function CharacterGlobalSection({
             </LabeledField>
           )}
         />
-
-        <div className="flex flex-col gap-2">
-          <PickerCaption label={t("gender")} />
-          <CharacterCreatableSingleSelect
-            clearTo="unknown"
-            customText={customGender.field.value}
-            customTextSaved={!customGender.fieldState.isDirty}
-            describedBy={genderError ? "character-gender-error" : undefined}
-            invalid={genderError !== undefined}
-            label={t("gender")}
-            maxLength={CHARACTER_TEXT_MAX.customGender}
-            onBlur={customGender.field.onBlur}
-            onChange={(choice) => {
-              gender.field.onChange(choice.option);
-              customGender.field.onChange(choice.customText);
-            }}
-            optionLabel={(option) => tGender(option)}
-            options={GENDER_OPTIONS}
-            ref={(element) => customGender.field.ref(element)}
-            sentinel={GENDER_CUSTOM}
-            value={gender.field.value}
-          />
-          <FieldErrorText error={genderError} id="character-gender-error" />
-        </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <LabeledField htmlFor="character-species" label={t("species")} requirement="optional">
-          <Controller
-            control={control}
-            name="global.species"
-            render={({ field }) => (
-              <>
-                <SpeciesPicker
-                  inputId="character-species"
-                  label={t("species")}
-                  onBlur={field.onBlur}
+      {hasBookScope ? (
+        <>
+          <Separator />
+
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h3 className="min-w-0 text-sm font-semibold text-ink">{t("attitudeBookGroup")}</h3>
+              <CharacterScopeBadge scope="book" />
+            </div>
+
+            <Controller
+              control={control}
+              name="book.attitude"
+              render={({ field }) => (
+                <InheritedSelectField
+                  globalLabel={globalAttitude === "" ? null : tAttitude(globalAttitude)}
+                  globalValue={globalAttitude === "" ? null : globalAttitude}
+                  id="character-book-attitude"
+                  label={tInheritance("attitude")}
                   onChange={field.onChange}
-                  placeholder={t("speciesPlaceholder")}
-                  ref={field.ref}
+                  optionLabel={(option) => tAttitude(option)}
+                  options={ATTITUDE_OPTIONS}
                   value={field.value}
                 />
-                <ManageOwnSpeciesButton onSpeciesChange={onSpeciesChange} />
-              </>
-            )}
-          />
-        </LabeledField>
+              )}
+            />
 
-        <LabeledField htmlFor="character-pronouns" label={t("pronouns")} requirement="optional">
-          <CharacterPronounsSelect
-            describedBy={pronounsError ? "character-pronouns-error" : undefined}
-            inputId="character-pronouns"
-            invalid={pronounsError !== undefined}
-            label={t("pronouns")}
-            onBlur={pronouns.field.onBlur}
-            onChange={pronouns.field.onChange}
-            ref={(element) => pronouns.field.ref(element)}
-            saved={!pronouns.fieldState.isDirty}
-            value={pronouns.field.value}
-          />
-          <FieldErrorText error={pronounsError} id="character-pronouns-error" />
-        </LabeledField>
-      </div>
-
-      <Controller
-        control={control}
-        name="global.attitude"
-        render={({ field }) => (
-          <LabeledField htmlFor="character-attitude" label={t("attitude")}>
-            <Select onValueChange={field.onChange} value={field.value}>
-              <SelectTrigger
-                className="w-full data-[size=default]:h-10"
-                clearLabel={tCommon("clear")}
-                id="character-attitude"
-                isClearable={field.value !== ""}
-                onClear={() => field.onChange("")}
-              >
-                <SelectValue placeholder={t("attitudePlaceholder")} />
-              </SelectTrigger>
-              <SelectContent>
-                {ATTITUDE_OPTIONS.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {tAttitude(option)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </LabeledField>
-        )}
-      />
-
-      <LabeledField
-        htmlFor="character-global-description"
-        label={t("globalDescription")}
-        requirement="optional"
-      >
-        <CharacterLongTextField
-          control={control}
-          error={errors.global?.neutralDescription}
-          id="character-global-description"
-          name="global.neutralDescription"
-          placeholder={t("globalDescriptionPlaceholder")}
-          register={register}
-          rows={4}
-        />
-      </LabeledField>
+            <LabeledField
+              htmlFor="character-personal-impression"
+              label={t("personalImpression")}
+              requirement="optional"
+            >
+              <CharacterLongTextField
+                control={control}
+                error={errors.book?.personalImpression}
+                id="character-personal-impression"
+                name="book.personalImpression"
+                onValueChange={(next) => {
+                  if (!hasSpoilerValue.personalImpressionIsSpoiler(next)) {
+                    personalImpressionSpoiler.field.onChange(false);
+                  }
+                }}
+                placeholder={t("personalImpressionPlaceholder")}
+                register={register}
+                rows={3}
+              />
+            </LabeledField>
+          </div>
+        </>
+      ) : null}
     </EditSection>
   );
 }
 
-function aliasNameErrors(entries: AliasFieldErrors, count: number): (FieldError | undefined)[] {
-  return Array.from({ length: count }, (_unused, index) => entries?.[index]?.name);
+export function CharacterBasicsSection({
+  control,
+  errors,
+  hasBookScope,
+  maskedFields,
+  onSpeciesChange,
+  register,
+}: {
+  control: EditControl;
+  errors: EditErrors;
+  hasBookScope: boolean;
+  maskedFields: readonly string[];
+  onSpeciesChange: (change: OwnSpeciesChange) => void;
+  register: EditRegister;
+}) {
+  const t = useTranslations("characters.edit");
+  const tEntity = useTranslations("characters.entityKind");
+  const tGender = useTranslations("characters.gender");
+  const tImportance = useTranslations("characters.importance");
+  const tStatus = useTranslations("characters.status");
+  const tRoles = useTranslations("characters.form");
+
+  const globalName = useWatch({ control, name: "global.name" });
+  const globalSpecies = useWatch({ control, name: "global.species" });
+  const gender = useController({ control, name: "global.gender" });
+  const customGender = useController({ control, name: "global.customGender" });
+  const genderError = errors.global?.customGender;
+  const pronouns = useController({ control, name: "global.pronouns" });
+  const pronounsError = errors.global?.pronouns;
+  const displayNameSpoiler = useController({ control, name: "book.displayNameIsSpoiler" });
+  const speciesOverrideSpoiler = useController({ control, name: "book.speciesOverrideIsSpoiler" });
+  const status = useController({ control, name: "book.status" });
+  const statusCustomText = useController({ control, name: "book.statusCustomText" });
+  const statusSpoiler = useController({ control, name: "book.statusIsSpoiler" });
+  const statusError = errors.book?.statusCustomText;
+  const customLabels = useCharacterCustomLabels({ enabled: hasBookScope });
+
+  return (
+    <EditSection icon="user" title={t("basicsSection")}>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <h3 className="min-w-0 text-sm font-semibold text-ink">{t("basicsGlobalGroup")}</h3>
+          <CharacterScopeBadge scope="global" />
+        </div>
+
+        <LabeledField htmlFor="character-name" label={t("name")} requirement="required">
+          <Input
+            aria-describedby={errors.global?.name ? "character-name-error" : undefined}
+            aria-invalid={errors.global?.name !== undefined}
+            aria-required="true"
+            autoComplete="off"
+            className="h-10"
+            id="character-name"
+            maxLength={CHARACTER_TEXT_MAX.name}
+            placeholder={t("namePlaceholder")}
+            {...register("global.name")}
+          />
+          <FieldErrorText error={errors.global?.name} id="character-name-error" />
+        </LabeledField>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Controller
+            control={control}
+            name="global.entityKind"
+            render={({ field }) => (
+              <LabeledField htmlFor="character-entity-kind" label={t("entityKind")}>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <SelectTrigger
+                    className="w-full data-[size=default]:h-10"
+                    id="character-entity-kind"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ENTITY_KIND_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {tEntity(option)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </LabeledField>
+            )}
+          />
+
+          <div className="flex flex-col gap-2">
+            <PickerCaption label={t("gender")} />
+            <CharacterCreatableSingleSelect
+              clearTo="unknown"
+              customText={customGender.field.value}
+              customTextSaved={!customGender.fieldState.isDirty}
+              describedBy={genderError ? "character-gender-error" : undefined}
+              invalid={genderError !== undefined}
+              label={t("gender")}
+              maxLength={CHARACTER_TEXT_MAX.customGender}
+              onBlur={customGender.field.onBlur}
+              onChange={(choice) => {
+                gender.field.onChange(choice.option);
+                customGender.field.onChange(choice.customText);
+              }}
+              optionLabel={(option) => tGender(option)}
+              options={GENDER_OPTIONS}
+              ref={(element) => customGender.field.ref(element)}
+              sentinel={GENDER_CUSTOM}
+              value={gender.field.value}
+            />
+            <FieldErrorText error={genderError} id="character-gender-error" />
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <LabeledField htmlFor="character-species" label={t("species")} requirement="optional">
+            <Controller
+              control={control}
+              name="global.species"
+              render={({ field }) => (
+                <>
+                  <SpeciesPicker
+                    inputId="character-species"
+                    label={t("species")}
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
+                    placeholder={t("speciesPlaceholder")}
+                    ref={field.ref}
+                    value={field.value}
+                  />
+                  <ManageOwnSpeciesButton onSpeciesChange={onSpeciesChange} />
+                </>
+              )}
+            />
+          </LabeledField>
+
+          <LabeledField htmlFor="character-pronouns" label={t("pronouns")} requirement="optional">
+            <CharacterPronounsSelect
+              describedBy={pronounsError ? "character-pronouns-error" : undefined}
+              inputId="character-pronouns"
+              invalid={pronounsError !== undefined}
+              label={t("pronouns")}
+              onBlur={pronouns.field.onBlur}
+              onChange={pronouns.field.onChange}
+              ref={(element) => pronouns.field.ref(element)}
+              saved={!pronouns.fieldState.isDirty}
+              value={pronouns.field.value}
+            />
+            <FieldErrorText error={pronounsError} id="character-pronouns-error" />
+          </LabeledField>
+        </div>
+
+        <LabeledField
+          htmlFor="character-global-description"
+          label={t("globalDescription")}
+          requirement="optional"
+        >
+          <CharacterLongTextField
+            control={control}
+            error={errors.global?.neutralDescription}
+            id="character-global-description"
+            name="global.neutralDescription"
+            placeholder={t("globalDescriptionPlaceholder")}
+            register={register}
+            rows={4}
+          />
+        </LabeledField>
+      </div>
+
+      {hasBookScope ? (
+        <>
+          <Separator />
+
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h3 className="min-w-0 text-sm font-semibold text-ink">{t("basicsBookGroup")}</h3>
+              <CharacterScopeBadge scope="book" />
+            </div>
+
+            <div className="@container/book-fields">
+              <div className="grid grid-cols-1 items-start gap-4 @xl/book-fields:grid-cols-2">
+                <MaskedOr field="displayName" label={t("displayName")} maskedFields={maskedFields}>
+                  <Controller
+                    control={control}
+                    name="book.displayName"
+                    render={({ field }) => (
+                      <InheritedTextField
+                        error={errors.book?.displayName}
+                        globalValue={textOrNull(globalName)}
+                        id="character-display-name"
+                        label={t("displayName")}
+                        maxLength={CHARACTER_TEXT_MAX.shortText}
+                        onChange={(next) => {
+                          field.onChange(next);
+                          if (!hasSpoilerValue.displayNameIsSpoiler(next)) {
+                            displayNameSpoiler.field.onChange(false);
+                          }
+                        }}
+                        placeholder={t("displayNamePlaceholder")}
+                        value={field.value}
+                      />
+                    )}
+                  />
+                </MaskedOr>
+
+                <MaskedOr
+                  field="speciesOverride"
+                  label={t("speciesInBook")}
+                  maskedFields={maskedFields}
+                >
+                  <Controller
+                    control={control}
+                    name="book.speciesOverride"
+                    render={({ field }) => (
+                      <InheritedSpeciesField
+                        globalValue={globalSpecies}
+                        id="character-species-override"
+                        label={t("speciesInBook")}
+                        onBlur={field.onBlur}
+                        onChange={(next) => {
+                          field.onChange(next);
+                          if (!hasSpoilerValue.speciesOverrideIsSpoiler(next)) {
+                            speciesOverrideSpoiler.field.onChange(false);
+                          }
+                        }}
+                        onSpeciesChange={onSpeciesChange}
+                        placeholder={t("speciesInBookPlaceholder")}
+                        ref={field.ref}
+                        value={field.value}
+                      />
+                    )}
+                  />
+                </MaskedOr>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Controller
+                control={control}
+                name="book.importance"
+                render={({ field }) => (
+                  <LabeledField htmlFor="character-importance" label={t("importance")}>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger
+                        className="w-full data-[size=default]:h-10"
+                        id="character-importance"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BOOK_CHARACTER_IMPORTANCE.options.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {tImportance(option)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </LabeledField>
+                )}
+              />
+
+              <div className="flex flex-col gap-2">
+                <PickerCaption label={t("status")} />
+                <CharacterCreatableSingleSelect
+                  clearTo={BOOK_CHARACTER_UNSPECIFIED.status}
+                  customText={statusCustomText.field.value}
+                  customTextSaved={!statusCustomText.fieldState.isDirty}
+                  describedBy={statusError ? "character-status-error" : undefined}
+                  invalid={statusError !== undefined}
+                  label={t("status")}
+                  maxLength={CHARACTER_TEXT_MAX.shortText}
+                  onBlur={statusCustomText.field.onBlur}
+                  onChange={(choice) => {
+                    status.field.onChange(choice.option);
+                    statusCustomText.field.onChange(choice.customText);
+                    if (!hasSpoilerValue.statusIsSpoiler(choice.option)) {
+                      statusSpoiler.field.onChange(false);
+                    }
+                  }}
+                  optionLabel={(option) => tStatus(option)}
+                  options={BOOK_CHARACTER_STATUS.options}
+                  ref={(element) => statusCustomText.field.ref(element)}
+                  sentinel={BOOK_CHARACTER_STATUS.custom}
+                  suggestions={{
+                    heading: t("customStatusesHeading"),
+                    labels: customLabels.data?.statuses ?? [],
+                  }}
+                  value={status.field.value}
+                />
+                <FieldErrorText error={statusError} id="character-status-error" />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <PickerCaption label={tRoles("roles")} />
+              <Controller
+                control={control}
+                name="book.roles"
+                render={({ field }) => (
+                  <CharacterRolePicker
+                    customRoles={customLabels.data?.roles ?? []}
+                    onChange={field.onChange}
+                    value={field.value}
+                  />
+                )}
+              />
+            </div>
+          </div>
+        </>
+      ) : null}
+    </EditSection>
+  );
 }
 
-function EditSection({
+export function EditSection({
   action,
   children,
   description,
@@ -1031,18 +1021,6 @@ function PickerCaption({ label }: { label: string }) {
     >
       {label}
     </span>
-  );
-}
-
-function ScopeBadge({ scope }: { scope: CharacterEditScope }) {
-  const t = useTranslations("characters.edit");
-  const badge = SCOPE_BADGE[scope];
-
-  return (
-    <Badge variant="outline">
-      <UiIcon name={badge.icon} size={12} />
-      {t(badge.label)}
-    </Badge>
   );
 }
 

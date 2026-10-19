@@ -8,10 +8,10 @@ import helmet from "helmet";
 
 import { AppModule } from "./app.module.js";
 import { env } from "./config/env.js";
+import { registerJsonBodyParser } from "./core/body-parsers.js";
 import { HttpErrorFilter } from "./core/exceptions/http-error.filter.js";
 import { buildOpenApiDocument } from "./core/openapi.js";
-
-const JSON_BODY_LIMIT = "1mb";
+import { CHARACTER_IMPORT_TRANSPORT } from "./modules/characters/api/character-import-transport.js";
 
 export async function bootstrapNestApp(): Promise<NestExpressApplication> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -34,7 +34,7 @@ export async function bootstrapNestApp(): Promise<NestExpressApplication> {
     },
   });
   app.use(cookieParser());
-  app.useBodyParser("json", { limit: JSON_BODY_LIMIT });
+  registerJsonBodyParser(app, { deferredRoutes: [CHARACTER_IMPORT_TRANSPORT.route] });
   app.useGlobalFilters(new HttpErrorFilter());
 
   if (env.enableSwagger) {

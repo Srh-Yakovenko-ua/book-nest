@@ -186,6 +186,35 @@ describe("CharacterRolePicker chips", () => {
 
     expect(onChange).toHaveBeenCalledExactlyOnceWith([standardRole("antagonist")]);
   });
+
+  it("gives a role chip a spoiler toggle and a remove button but no edit action", () => {
+    renderWithProviders(
+      <CharacterRolePicker
+        customRoles={[]}
+        onChange={vi.fn()}
+        value={[standardRole("protagonist")]}
+      />,
+    );
+
+    const [spoiler, remove, ...rest] = screen.getAllByRole("button");
+    expect(spoiler).toHaveAccessibleName("Позначити роль «Протагоніст» як спойлер");
+    expect(remove).toHaveAccessibleName("Прибрати роль «Протагоніст»");
+    expect(rest).toEqual([]);
+  });
+
+  it("explains the remove button of a role in a tooltip", async () => {
+    renderWithProviders(
+      <CharacterRolePicker
+        customRoles={[]}
+        onChange={vi.fn()}
+        value={[standardRole("protagonist")]}
+      />,
+    );
+
+    await userEvent.hover(screen.getByRole("button", { name: "Прибрати роль «Протагоніст»" }));
+
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Прибрати роль");
+  });
 });
 
 describe("CharacterRolePicker chip keyboard", () => {

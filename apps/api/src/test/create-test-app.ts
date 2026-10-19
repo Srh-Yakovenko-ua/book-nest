@@ -11,11 +11,12 @@ import cookieParser from "cookie-parser";
 import type { ProviderOverride } from "./auth-test-context.js";
 
 import { env } from "../config/env.js";
+import { registerJsonBodyParser } from "../core/body-parsers.js";
 import { DatabaseModule } from "../core/database/database.module.js";
 import { HttpErrorFilter } from "../core/exceptions/http-error.filter.js";
 import { RequestIdMiddleware } from "../core/middleware/request-id.middleware.js";
+import { CHARACTER_IMPORT_TRANSPORT } from "../modules/characters/api/character-import-transport.js";
 
-const JSON_BODY_LIMIT = "1mb";
 const LOOPBACK_HOST = "127.0.0.1";
 
 const TestBullModule = BullModule.forRoot({
@@ -44,7 +45,7 @@ export async function createTestApp(
 
   app.disable("x-powered-by");
   app.use(cookieParser());
-  app.useBodyParser("json", { limit: JSON_BODY_LIMIT });
+  registerJsonBodyParser(app, { deferredRoutes: [CHARACTER_IMPORT_TRANSPORT.route] });
   app.useGlobalFilters(new HttpErrorFilter());
 
   await app.init();

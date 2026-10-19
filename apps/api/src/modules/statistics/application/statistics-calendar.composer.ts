@@ -7,7 +7,7 @@ import type {
 } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
-import { addDays, addMonths, format, parseISO } from "date-fns";
+import { addDays, format, parseISO } from "date-fns";
 
 import type { DayActivity, DayBookActivity } from "../domain/reading-calendar.js";
 import type { DayBookWithPresentation } from "../infrastructure/statistics-activity.repository.js";
@@ -21,11 +21,10 @@ import {
   toActiveDays,
 } from "../domain/reading-calendar.js";
 import { findCurrentStreak, findLongestStreak } from "../domain/reading-streak.js";
+import { rollingYearStart } from "../domain/statistics-period.js";
 import { StatisticsActivityRepository } from "../infrastructure/statistics-activity.repository.js";
 
 const ISO_DAY_FORMAT = "yyyy-MM-dd";
-
-const DISPLAY_WINDOW_MONTHS = 12;
 
 export type CalendarComposition = {
   activity: DayActivity[];
@@ -184,7 +183,7 @@ export class StatisticsCalendarComposer {
     }
 
     const metricRange = { from: earliest, to: period.to };
-    const windowStart = shiftMonths(today, -DISPLAY_WINDOW_MONTHS);
+    const windowStart = rollingYearStart(today);
 
     return {
       displayRange: {
@@ -208,10 +207,6 @@ export class StatisticsCalendarComposer {
 
 function shiftDay(isoDay: string, offset: number): string {
   return format(addDays(parseISO(isoDay), offset), ISO_DAY_FORMAT);
-}
-
-function shiftMonths(isoDay: string, offset: number): string {
-  return format(addMonths(parseISO(isoDay), offset), ISO_DAY_FORMAT);
 }
 
 function unavailableCalendar(today: string): ReadingStatisticsCalendarSection {

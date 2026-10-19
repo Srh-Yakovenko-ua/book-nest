@@ -1,13 +1,26 @@
 import type {
+  BookCharacterImportance,
   BookCharacterSummaryQuery,
   BookView,
   CharacterSummaryView,
   ReadingStatus,
 } from "@app/shared";
 
-import { type inferParserType, parseAsString, parseAsStringLiteral } from "nuqs/server";
+import { BookCharacterImportanceSchema } from "@app/shared";
+import {
+  type inferParserType,
+  parseAsArrayOf,
+  parseAsBoolean,
+  parseAsString,
+  parseAsStringLiteral,
+} from "nuqs/server";
 
 import type { BookCharactersControllerListParams } from "@/shared/api/generated/model";
+
+import {
+  BookCharactersControllerListFavoritesOnly,
+  BookCharactersControllerListPovOnly,
+} from "@/shared/api/generated/model";
 
 export const CHARACTERS_ROSTER_PAGE_SIZE = 20;
 export const CHARACTERS_ROSTER_SORTS = ["importance", "name"] as const;
@@ -18,6 +31,11 @@ const FULLY_READ_STATUSES = ["finished", "dnf"] as const satisfies readonly Read
 export type CharactersRosterSort = (typeof CHARACTERS_ROSTER_SORTS)[number];
 
 export const charactersRosterParsers = {
+  characterFavoritesOnly: parseAsBoolean.withDefault(false),
+  characterImportance: parseAsArrayOf(
+    parseAsStringLiteral(BookCharacterImportanceSchema.options),
+  ).withDefault([]),
+  characterPovOnly: parseAsBoolean.withDefault(false),
   characterSearch: parseAsString.withDefault(""),
   characterSort: parseAsStringLiteral(CHARACTERS_ROSTER_SORTS).withDefault(
     CHARACTERS_ROSTER_SORT_DEFAULT,
@@ -27,9 +45,21 @@ export const charactersRosterParsers = {
 export type CharactersRosterState = inferParserType<typeof charactersRosterParsers>;
 
 export const CHARACTERS_ROSTER_RESET = {
-  characterSearch: null,
-  characterSort: null,
-} satisfies Partial<Record<keyof CharactersRosterState, null>>;
+  filters: { characterFavoritesOnly: null, characterImportance: null, characterPovOnly: null },
+  search: { characterSearch: null },
+} satisfies Record<string, Partial<Record<keyof CharactersRosterState, null>>>;
+
+export function canonicalRosterImportance(
+  selected: readonly BookCharacterImportance[],
+): BookCharacterImportance[] {
+  return BookCharacterImportanceSchema.options.filter((option) => selected.includes(option));
+}
+
+export function hasActiveRosterFilters(state: CharactersRosterState): boolean {
+  return (
+    state.characterImportance.length > 0 || state.characterFavoritesOnly || state.characterPovOnly
+  );
+}
 
 export function hasActiveRosterSearch(state: CharactersRosterState): boolean {
   return state.characterSearch.trim() !== "";
@@ -48,23 +78,29 @@ export function rosterDistinctGlobalName({
 
 export function toBookCharactersListParams(
   state: CharactersRosterState,
-  readingContext: BookCharacterSummaryQuery,
+  bookContext: BookCharacterSummaryQuery,
 ): BookCharactersControllerListParams {
   const search = state.characterSearch.trim();
+  const importance = canonicalRosterImportance(state.characterImportance);
 
   return {
     pageSize: CHARACTERS_ROSTER_PAGE_SIZE,
     sort: state.characterSort,
-    ...readingContext,
+    ...bookContext,
     ...(search === "" ? {} : { search }),
+    ...(importance.length === 0 ? {} : { importance }),
+    ...(state.characterFavoritesOnly
+      ? { favoritesOnly: BookCharactersControllerListFavoritesOnly.true }
+      : {}),
+    ...(state.characterPovOnly ? { povOnly: BookCharactersControllerListPovOnly.true } : {}),
   };
 }
 
-export function toCharacterReadingContext(book: BookView): BookCharacterSummaryQuery {
+export function toCharacterBookContext(book: BookView): BookCharacterSummaryQuery {
   if (FULLY_READ_STATUSES.some((status) => status === book.readingStatus)) return {};
 
   const currentPage = book.readingProgress?.currentPage ?? null;
   if (currentPage === null || !Number.isInteger(currentPage) || currentPage <= 0) return {};
 
-  return { contextBookId: book.id, contextPage: currentPage };
+  return { contextBookId: book.id };
 }

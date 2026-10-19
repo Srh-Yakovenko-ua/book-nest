@@ -2,14 +2,11 @@
 
 import type { Nullable } from "@app/shared";
 import type { ReactNode } from "react";
-import type { FieldError } from "react-hook-form";
 
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { FieldError as FieldErrorText } from "@/components/ui/field-error";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -37,73 +34,6 @@ type InheritedSelectFieldProps<T extends string> = {
   options: readonly T[];
   value: Nullable<T>;
 };
-
-type InheritedTextFieldProps = {
-  error: FieldError | undefined;
-  globalValue: Nullable<string>;
-  id: string;
-  label: string;
-  maxLength: number;
-  onChange: (value: null | string) => void;
-  placeholder: string;
-  value: Nullable<string>;
-};
-
-export function InheritanceAction({
-  globalIsEmpty,
-  isInherited,
-  onOverride,
-  onReset,
-}: {
-  globalIsEmpty: boolean;
-  isInherited: boolean;
-  onOverride: () => void;
-  onReset: () => void;
-}) {
-  const t = useTranslations("characters.inheritance");
-
-  return (
-    <Button
-      className="h-auto shrink-0 p-0"
-      onClick={isInherited ? onOverride : onReset}
-      size="xs"
-      type="button"
-      variant="link"
-    >
-      {isInherited
-        ? globalIsEmpty
-          ? t("specifyForBook")
-          : t("overrideForBook")
-        : t("resetToGlobal")}
-    </Button>
-  );
-}
-
-export function InheritedFieldShell({
-  action,
-  children,
-  htmlFor,
-  isInherited,
-  label,
-}: InheritedFieldShellProps) {
-  const t = useTranslations("characters.inheritance");
-
-  return (
-    <div className="flex flex-col gap-2" data-slot="inherited-field">
-      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
-        <Label htmlFor={isInherited ? undefined : htmlFor}>{label}</Label>
-        {action}
-      </div>
-
-      {children}
-
-      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <UiIcon name={isInherited ? "link" : "edit"} size={12} />
-        {isInherited ? t("usingGlobal") : t("bookOnly")}
-      </p>
-    </div>
-  );
-}
 
 export function InheritedSelectField<T extends string>({
   globalLabel,
@@ -151,61 +81,63 @@ export function InheritedSelectField<T extends string>({
   );
 }
 
-export function InheritedTextField({
-  error,
-  globalValue,
-  id,
-  label,
-  maxLength,
-  onChange,
-  placeholder,
-  value,
-}: InheritedTextFieldProps) {
-  const t = useTranslations("characters.edit");
-  const isInherited = value === null;
-  const errorId = `${id}-error`;
+function InheritanceAction({
+  globalIsEmpty,
+  isInherited,
+  onOverride,
+  onReset,
+}: {
+  globalIsEmpty: boolean;
+  isInherited: boolean;
+  onOverride: () => void;
+  onReset: () => void;
+}) {
+  const t = useTranslations("characters.inheritance");
 
   return (
-    <InheritedFieldShell
-      action={
-        <InheritanceAction
-          globalIsEmpty={globalValue === null}
-          isInherited={isInherited}
-          onOverride={() => onChange(globalValue ?? "")}
-          onReset={() => onChange(null)}
-        />
-      }
-      htmlFor={id}
-      isInherited={isInherited}
-      label={
-        <>
-          {label} <span className="text-xs font-normal text-muted-foreground">{t("optional")}</span>
-        </>
-      }
+    <Button
+      className="h-auto shrink-0 p-0"
+      onClick={isInherited ? onOverride : onReset}
+      size="xs"
+      type="button"
+      variant="link"
     >
-      {isInherited ? (
-        <InheritedTextPreview value={globalValue} />
-      ) : (
-        <>
-          <Input
-            aria-describedby={error ? errorId : undefined}
-            aria-invalid={error !== undefined}
-            autoComplete="off"
-            className="h-10"
-            id={id}
-            maxLength={maxLength}
-            onChange={(event) => onChange(event.target.value)}
-            placeholder={placeholder}
-            value={value}
-          />
-          <FieldErrorText error={error} id={errorId} />
-        </>
-      )}
-    </InheritedFieldShell>
+      {isInherited
+        ? globalIsEmpty
+          ? t("specifyForBook")
+          : t("overrideForBook")
+        : t("resetToGlobal")}
+    </Button>
   );
 }
 
-export function InheritedTextPreview({ value }: { value: Nullable<string> }) {
+function InheritedFieldShell({
+  action,
+  children,
+  htmlFor,
+  isInherited,
+  label,
+}: InheritedFieldShellProps) {
+  const t = useTranslations("characters.inheritance");
+
+  return (
+    <div className="flex flex-col gap-2" data-slot="inherited-field">
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+        <Label htmlFor={isInherited ? undefined : htmlFor}>{label}</Label>
+        {action}
+      </div>
+
+      {children}
+
+      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <UiIcon name={isInherited ? "link" : "edit"} size={12} />
+        {isInherited ? t("usingGlobal") : t("bookOnly")}
+      </p>
+    </div>
+  );
+}
+
+function InheritedTextPreview({ value }: { value: Nullable<string> }) {
   const t = useTranslations("characters.inheritance");
 
   return (

@@ -11,6 +11,10 @@ import {
   canonicalizeRelationshipEndpoints,
 } from "./character-relationship-graph.js";
 
+export type AppearanceMergePlan = KeyedRepointPlan & {
+  factReparents: FactReparent[];
+};
+
 export type CharacterMergePlan = {
   counts: CharacterMergeCounts;
   dropAliasIds: string[];
@@ -20,6 +24,7 @@ export type CharacterMergePlan = {
   droppedMediaIds: string[];
   dropRelationshipIds: string[];
   dropTagIds: string[];
+  factReparents: FactReparent[];
   relationshipRepoints: RelationshipRepoint[];
   repointAliasIds: string[];
   repointBookCharacterIds: string[];
@@ -31,23 +36,23 @@ export type CharacterMergePlan = {
 export type CharacterMergePlanInput = {
   loserAliases: { bookId: Nullable<string>; id: string; normalizedName: string; type: string }[];
   loserAvatarMediaId: Nullable<string>;
-  loserBookCharacters: {
-    bookId: string;
-    id: string;
-    portraitMediaId: Nullable<string>;
-    roleCount: number;
-  }[];
+  loserBookCharacters: LoserAppearance[];
   loserForms: { id: string; normalizedName: string; portraitMediaId: Nullable<string> }[];
   loserMemberships: { bookId: Nullable<string>; groupId: string; id: string }[];
   loserTagIds: string[];
   loserTheoryCount: number;
   relationshipCandidates: RelationshipCandidate[];
   survivorAliasKeys: { bookId: Nullable<string>; normalizedName: string; type: string }[];
-  survivorBookIds: string[];
+  survivorAppearances: SurvivorAppearance[];
   survivorFormKeys: string[];
   survivorMembershipKeys: { bookId: Nullable<string>; groupId: string }[];
   survivorRelationshipKeys: Set<string>;
   survivorTagIds: string[];
+};
+
+export type FactReparent = {
+  fromBookCharacterId: string;
+  toBookCharacterId: string;
 };
 
 export type KeyedEntry = {
@@ -58,6 +63,14 @@ export type KeyedEntry = {
 export type KeyedRepointPlan = {
   dropIds: string[];
   repointIds: string[];
+};
+
+export type LoserAppearance = {
+  bookId: string;
+  factCount: number;
+  id: string;
+  portraitMediaId: Nullable<string>;
+  roleCount: number;
 };
 
 export type LoserRelationshipRow = {
@@ -96,6 +109,11 @@ export type RelationshipRepoint = {
   targetLabel: Nullable<string>;
 };
 
+export type SurvivorAppearance = {
+  bookId: string;
+  id: string;
+};
+
 export type SurvivorRelationshipRow = {
   customType: Nullable<string>;
   directionality: string;
@@ -117,9 +135,9 @@ export function aliasMergeKey({
 }
 
 export function buildCharacterMergePlan(input: CharacterMergePlanInput): CharacterMergePlan {
-  const bookCharacters = resolveKeyedRepoint({
-    loserEntries: input.loserBookCharacters.map((row) => ({ id: row.id, key: row.bookId })),
-    survivorKeys: new Set(input.survivorBookIds),
+  const bookCharacters = resolveAppearanceMerge({
+    loserBookCharacters: input.loserBookCharacters,
+    survivorAppearances: input.survivorAppearances,
   });
   const aliases = resolveKeyedRepoint({
     loserEntries: input.loserAliases.map((row) => ({ id: row.id, key: aliasMergeKey(row) })),
@@ -173,6 +191,10 @@ export function buildCharacterMergePlan(input: CharacterMergePlanInput): Charact
       dropped: bookCharacters.dropIds.length,
       moved: bookCharacters.repointIds.length,
     },
+    facts: {
+      dropped: 0,
+      moved: input.loserBookCharacters.reduce((total, row) => total + row.factCount, 0),
+    },
     forms: { dropped: forms.dropIds.length, moved: forms.repointIds.length },
     memberships: { dropped: memberships.dropIds.length, moved: memberships.repointIds.length },
     relationships: {
@@ -196,6 +218,7 @@ export function buildCharacterMergePlan(input: CharacterMergePlanInput): Charact
     droppedMediaIds,
     dropRelationshipIds: relationshipPlan.dropIds,
     dropTagIds: tags.dropIds,
+    factReparents: bookCharacters.factReparents,
     relationshipRepoints: relationshipPlan.repoints,
     repointAliasIds: aliases.repointIds,
     repointBookCharacterIds: bookCharacters.repointIds,
@@ -301,6 +324,32 @@ export function membershipMergeKey({
   groupId: string;
 }): string {
   return `${groupId}::${bookId ?? "global"}`;
+}
+
+export function resolveAppearanceMerge({
+  loserBookCharacters,
+  survivorAppearances,
+}: {
+  loserBookCharacters: LoserAppearance[];
+  survivorAppearances: SurvivorAppearance[];
+}): AppearanceMergePlan {
+  const ownerIdByBookId = new Map(
+    survivorAppearances.map((appearance) => [appearance.bookId, appearance.id] as const),
+  );
+  const repointIds: string[] = [];
+  const dropIds: string[] = [];
+  const factReparents: FactReparent[] = [];
+  for (const appearance of loserBookCharacters) {
+    const ownerId = ownerIdByBookId.get(appearance.bookId);
+    if (ownerId === undefined) {
+      ownerIdByBookId.set(appearance.bookId, appearance.id);
+      repointIds.push(appearance.id);
+      continue;
+    }
+    dropIds.push(appearance.id);
+    factReparents.push({ fromBookCharacterId: appearance.id, toBookCharacterId: ownerId });
+  }
+  return { dropIds, factReparents, repointIds };
 }
 
 export function resolveKeyedRepoint({

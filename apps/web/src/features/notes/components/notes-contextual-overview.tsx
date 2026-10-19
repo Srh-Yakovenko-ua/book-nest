@@ -46,6 +46,7 @@ export function NotesContextualOverview({
               onOpenNote={onOpenNote}
               recordImpression={recordImpression}
               source={<BooksMemorySource source={overview.memoryNote.source} />}
+              titleAs={overview.memoryNote.source.type === "book" ? "h4" : "h3"}
             />
           )}
           {overview.postFinish === null ? null : (
@@ -73,6 +74,7 @@ export function NotesContextualOverview({
               onOpenNote={onOpenNote}
               recordImpression={recordImpression}
               source={<NoteMemorySourceLabel source={overview.memoryNote.source} />}
+              titleAs="h3"
             />
           )}
         </>

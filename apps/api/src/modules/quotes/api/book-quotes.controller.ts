@@ -1,11 +1,10 @@
-import type { BookQuotesView, QuoteDeletionResult, QuoteView } from "@app/shared";
+import type { QuoteDeletionResult, QuoteView } from "@app/shared";
 
 import { CreateQuoteInputSchema, UpdateQuoteInputSchema } from "@app/shared";
 import {
   Body,
   Controller,
   Delete,
-  Get,
   HttpCode,
   Param,
   ParseUUIDPipe,
@@ -28,13 +27,12 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { MUTATION_THROTTLE, READ_THROTTLE } from "../../../core/throttle.js";
+import { MUTATION_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { QuoteLifecycleService } from "../application/quote-lifecycle.service.js";
 import { QuotesService } from "../application/quotes.service.js";
 import { CreateQuoteInputDto } from "./input-dto/create-quote.input-dto.js";
 import { UpdateQuoteInputDto } from "./input-dto/update-quote.input-dto.js";
-import { BookQuotesViewDto } from "./view-dto/book-quotes.view-dto.js";
 import { QuoteDeletionResultDto } from "./view-dto/quote-deletion-result.view-dto.js";
 import { QuoteViewDto } from "./view-dto/quote.view-dto.js";
 
@@ -61,18 +59,6 @@ export class BookQuotesController {
     @Body(new ZodBodyPipe(CreateQuoteInputSchema)) body: CreateQuoteInputDto,
   ): Promise<QuoteView> {
     return this.quotesService.createForBook({ bookId, input: body, userId: user.id });
-  }
-
-  @ApiNotFoundResponse({ description: "Book not found" })
-  @ApiOkResponse({ description: "The book's quotes with summary counts", type: BookQuotesViewDto })
-  @ApiOperation({ summary: "List the quotes of a book" })
-  @Get(":bookId/quotes")
-  @Throttle(READ_THROTTLE)
-  listBookQuotes(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param("bookId", ParseUUIDPipe) bookId: string,
-  ): Promise<BookQuotesView> {
-    return this.quotesService.listForBook({ bookId, userId: user.id });
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })

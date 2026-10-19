@@ -7,7 +7,7 @@ import Image from "next/image";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { expect, waitFor, within } from "storybook/test";
 
-import { makeBookView } from "@/features/books/components/book-details.fixtures";
+import { makeBookDetailsView } from "@/features/books/components/book-details.fixtures";
 import { getQueryClient } from "@/lib/query-client";
 
 import {
@@ -21,10 +21,10 @@ const STORY = {
   avatarUrl: "/auth/cover-login.webp",
   bookId: "book-1",
   bookSectionTitles: [
-    "У цій книзі",
+    "Основне про персонажа",
+    "Описи в цій книзі",
     "Роль у розповіді",
-    "Про персонажа",
-    "Лише для цієї книги",
+    "Моє ставлення та враження",
     "Інші імена",
     "Спойлери",
   ],
@@ -165,7 +165,7 @@ function mockFetch(details: CharacterDetailsView) {
     if (path.includes("/api/species")) return Promise.resolve(jsonResponse(200, STORY.species));
     if (path.endsWith(`/api/books/${STORY.bookId}`))
       return Promise.resolve(
-        jsonResponse(200, makeBookView({ id: STORY.bookId, pagesCount: STORY.pagesCount })),
+        jsonResponse(200, makeBookDetailsView({ id: STORY.bookId, pagesCount: STORY.pagesCount })),
       );
     return Promise.resolve(jsonResponse(200, {}));
   }) as typeof fetch;
@@ -371,9 +371,15 @@ export const Global: Story = {
     await waitFor(async () => {
       await expect(canvas.getByDisplayValue("Ґеральт")).toBeVisible();
     });
-    await expect(canvas.getByRole("heading", { level: 2, name: "Про персонажа" })).toBeVisible();
+    await expect(
+      canvas.getByRole("heading", { level: 2, name: "Основне про персонажа" }),
+    ).toBeVisible();
+    await expect(
+      canvas.getByRole("heading", { level: 2, name: "Моє ставлення та враження" }),
+    ).toBeVisible();
     await expect(canvas.getByRole("heading", { level: 2, name: "Інші імена" })).toBeVisible();
-    await expect(canvas.queryByRole("heading", { name: "У цій книзі" })).toBeNull();
+    await expect(canvas.queryByRole("heading", { name: "Описи в цій книзі" })).toBeNull();
+    await expect(canvas.queryByRole("heading", { name: "Роль у розповіді" })).toBeNull();
     await expect(canvas.queryByRole("heading", { name: "Спойлери" })).toBeNull();
     const imagesPanel = within(canvas.getByRole("region", { name: "Зображення персонажа" }));
     await expect(imagesPanel.getByRole("group", { name: "Основний аватар" })).toBeVisible();

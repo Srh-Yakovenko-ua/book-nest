@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import {
   Drawer,
@@ -25,7 +25,7 @@ type StatisticsDetailSurfaceProps = {
   children: ReactNode;
   contentClassName?: string;
   detail: (context: { close: () => void }) => ReactNode;
-  label: string;
+  label?: string;
   title: string;
   triggerClassName?: string;
 };
@@ -40,11 +40,12 @@ export function StatisticsDetailSurface({
 }: StatisticsDetailSurfaceProps) {
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
+  const titleId = useId();
   const close = () => setOpen(false);
 
   if (isMobile) {
     return (
-      <Drawer onOpenChange={setOpen} open={open}>
+      <Drawer autoFocus onOpenChange={setOpen} open={open}>
         <DrawerTrigger
           aria-label={label}
           className={cn("cursor-pointer text-left", triggerClassName)}
@@ -71,9 +72,13 @@ export function StatisticsDetailSurface({
       >
         {children}
       </PopoverTrigger>
-      <PopoverContent align="start" className={cn("w-80", contentClassName)}>
+      <PopoverContent
+        align="start"
+        aria-labelledby={titleId}
+        className={cn("w-80", contentClassName)}
+      >
         <PopoverHeader>
-          <PopoverTitle>{title}</PopoverTitle>
+          <PopoverTitle id={titleId}>{title}</PopoverTitle>
         </PopoverHeader>
         {open ? detail({ close }) : null}
       </PopoverContent>

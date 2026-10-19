@@ -1,4 +1,4 @@
-import type { CharacterSummaryView } from "@app/shared";
+import type { BookCharacterRosterItem } from "@app/shared";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { ComponentProps } from "react";
 
@@ -13,6 +13,7 @@ import {
   makeCharacterDetails,
   makeCharacterSummary,
   makeCharacterSummaryPage,
+  SPECIES_REFS,
 } from "../model/characters.fixtures";
 import { BookCharactersTab } from "./book-characters-tab";
 
@@ -34,7 +35,8 @@ const LABELS = {
 
 const LAYOUT = {
   nameTextPoint: { x: 4, y: 8 },
-  narrowContainerPx: 560,
+  narrowContainerPx: 320,
+  phoneViewport: { height: 800, width: 320 },
   pointerExit: { x: 1, y: 1 },
   pointerRest: { x: 1, y: 80 },
   tooltipMaxGapPx: 16,
@@ -71,9 +73,33 @@ const LONG_NAMES = {
   unbrokenToken: "Вартовийбрамизабутогоміста".repeat(8).slice(0, 200),
 };
 
+const RICH_ROSTER = [
+  rosterCharacter(1, "Цірі", {
+    descriptionPreview: SENTENCE_WORDS.join(" ").repeat(3),
+    hiddenFields: ["description", "roles"],
+    isPovCharacter: true,
+    roles: [
+      { customRole: null, id: "r1", isSpoiler: false, position: 0, roleType: "protagonist" },
+      {
+        customRole: LONG_NAMES.sentence,
+        id: "r2",
+        isSpoiler: false,
+        position: 1,
+        roleType: "custom",
+      },
+      { customRole: null, id: "r3", isSpoiler: false, position: 2, roleType: "supporting" },
+    ],
+    species: SPECIES_REFS.witcher,
+    status: "other",
+    statusCustomText: "Під прокляттям",
+  }),
+  rosterCharacter(2, "Лютик", { importance: "not_specified" }),
+  rosterCharacter(3, "Весемір", { species: SPECIES_REFS.mutant, status: "unknown" }),
+] satisfies BookCharacterRosterItem[];
+
 const recordedNavigations: string[] = [];
 
-const served: { roster: CharacterSummaryView[] } = { roster: [] };
+const served: { roster: BookCharacterRosterItem[] } = { roster: [] };
 
 type Canvas = ReturnType<typeof within>;
 
@@ -86,7 +112,7 @@ type MeasuredName = {
 type RealPointer = Awaited<ReturnType<typeof loadRealPointer>>;
 
 type RosterStoryArgs = ComponentProps<typeof BookCharactersTab> & {
-  roster: CharacterSummaryView[];
+  roster: BookCharacterRosterItem[];
 };
 
 function boxOf(element: Element) {
@@ -156,7 +182,7 @@ async function openCardMenu(pointer: RealPointer, card: HTMLElement) {
   return within(document.body);
 }
 
-function prefixRoster(): CharacterSummaryView[] {
+function prefixRoster(): BookCharacterRosterItem[] {
   return LONG_NAMES.sentencePrefixes.map((name, index) => rosterCharacter(index + 1, name));
 }
 
@@ -184,8 +210,8 @@ function renderedLineCount(text: Element): number {
 function rosterCharacter(
   index: number,
   name: string,
-  overrides: Partial<CharacterSummaryView> = {},
-): CharacterSummaryView {
+  overrides: Partial<BookCharacterRosterItem> = {},
+): BookCharacterRosterItem {
   return makeCharacterSummary({
     characterId: `char-${index}`,
     id: `book-char-${index}`,
@@ -194,7 +220,7 @@ function rosterCharacter(
   });
 }
 
-function serveRoster(roster: CharacterSummaryView[]): () => void {
+function serveRoster(roster: BookCharacterRosterItem[]): () => void {
   const originalFetch = globalThis.fetch;
   served.roster = roster;
 
@@ -658,5 +684,45 @@ export const TopOfViewportTooltipStaysNextToName: Story = {
 
     await expect(gap).toBeGreaterThanOrEqual(0);
     await expect(gap).toBeLessThanOrEqual(LAYOUT.tooltipMaxGapPx);
+  },
+};
+
+export const RosterRowsShareHeightWithFooterAtBottom: Story = {
+  args: { roster: RICH_ROSTER },
+  play: async ({ canvas }) => {
+    const rich = within(await findCard(canvas, "Цірі")).getByRole("article");
+    const bare = within(cardFor(canvas, "Лютик")).getByRole("article");
+    const footerOnly = within(cardFor(canvas, "Весемір")).getByRole("article");
+    const footerStatus = within(rich).getByText("Під прокляттям");
+
+    await expect(boxOf(bare).top).toBe(boxOf(rich).top);
+    await expect(boxOf(bare).height).toBe(boxOf(rich).height);
+    await expect(boxOf(footerOnly).top).toBeGreaterThan(boxOf(rich).top);
+    await expect(boxOf(footerOnly).height).toBeLessThan(boxOf(rich).height);
+    await expect(boxOf(rich).top + boxOf(rich).height - boxOf(footerStatus).top).toBeLessThan(48);
+  },
+};
+
+export const PhoneWidthStacksCardsWithoutOverflow: Story = {
+  args: { roster: RICH_ROSTER },
+  play: async ({ canvas }) => {
+    const { page } = await import("vitest/browser");
+    await page.viewport(LAYOUT.phoneViewport.width, LAYOUT.phoneViewport.height);
+    const rich = await findCard(canvas, "Цірі");
+    const bare = cardFor(canvas, "Лютик");
+
+    await expect(boxOf(bare).top).toBeGreaterThan(boxOf(rich).top);
+    await expect(boxOf(bare).left).toBe(boxOf(rich).left);
+    for (const card of [rich, bare]) {
+      const surface = within(card).getByRole("article");
+      await expect(surface.scrollWidth).toBeLessThanOrEqual(surface.clientWidth);
+      const favorite = within(card).getByRole("button", { name: LABELS.favorite });
+      await expect(boxOf(favorite).left + boxOf(favorite).width).toBeLessThanOrEqual(
+        boxOf(surface).left + boxOf(surface).width,
+      );
+    }
+    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
+      document.documentElement.clientWidth,
+    );
   },
 };

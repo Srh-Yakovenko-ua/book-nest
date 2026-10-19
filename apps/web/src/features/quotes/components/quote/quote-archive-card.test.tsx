@@ -6,7 +6,7 @@ import type { ComponentProps } from "react";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { makeBookView } from "@/features/books/components/book-details.fixtures";
+import { makeBookDetailsView } from "@/features/books/components/book-details.fixtures";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { makeQuote, stubTextMetrics } from "../../model/quotes.fixtures";
@@ -55,6 +55,10 @@ function renderCard(overrides: Partial<QuoteView> = {}) {
   return renderWithProviders(<QuoteArchiveCard quote={makeQuote(overrides)} />);
 }
 
+function renderEmbeddedCard(overrides: Partial<QuoteView> = {}) {
+  return renderWithProviders(<QuoteArchiveCard layout="embedded" quote={makeQuote(overrides)} />);
+}
+
 function updateBody(): unknown {
   const call = quoteCall("PATCH");
   if (call === undefined) throw new Error("no PATCH call was made");
@@ -78,7 +82,7 @@ beforeEach(() => {
       return Promise.resolve(new Response(null, { status: 204 }));
     }
     if (url === "/api/books/book-1" && method === "GET") {
-      return Promise.resolve(jsonResponse(makeBookView({ id: "book-1", pagesCount: 300 })));
+      return Promise.resolve(jsonResponse(makeBookDetailsView({ id: "book-1", pagesCount: 300 })));
     }
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
   });
@@ -371,5 +375,56 @@ describe("QuoteArchiveCard actions menu", () => {
 
     await waitFor(() => expect(quoteCall("DELETE")).toBeDefined());
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Цитату видалено"));
+  });
+});
+
+describe("QuoteArchiveCard embedded in the book page", () => {
+  it("shows the quote without the book link, the cover or the author", () => {
+    renderEmbeddedCard();
+
+    expect(screen.getByText(QUOTE_TEXT)).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.queryByText("Дюна")).not.toBeInTheDocument();
+    expect(screen.queryByText("Френк Герберт")).not.toBeInTheDocument();
+  });
+
+  it("keeps the same favorite and actions menu as the archive card", () => {
+    renderEmbeddedCard();
+
+    expect(
+      screen
+        .getAllByRole("button")
+        .map((button) => button.textContent || button.getAttribute("aria-label")),
+    ).toEqual(["Додати цитату в улюблені", "Дії для цитати"]);
+  });
+
+  it("keeps the compact meta line", () => {
+    renderEmbeddedCard({ chapter: "Розділ III", page: 87 });
+
+    expect(screen.getByText("Розділ III · стор. 87")).toBeInTheDocument();
+  });
+
+  it("keeps the spoiler text out of the DOM until the full view opens", async () => {
+    renderEmbeddedCard({ isSpoiler: true });
+
+    expect(screen.queryByText(QUOTE_TEXT)).not.toBeInTheDocument();
+    expect(screen.getByText("Ця цитата містить спойлер")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Показати цитату" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(QUOTE_TEXT)).toBeInTheDocument();
+    expect(within(dialog).queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("offers the full-comment trigger once the comment outgrows the clamp", async () => {
+    restoreMetrics = stubTextMetrics({ clientHeight: 100, scrollHeight: 500 });
+    renderEmbeddedCard({ comment: LONG_COMMENT });
+
+    await userEvent.click(screen.getByRole("button", { name: "Показати коментар повністю" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(LONG_COMMENT)).toBeInTheDocument();
   });
 });

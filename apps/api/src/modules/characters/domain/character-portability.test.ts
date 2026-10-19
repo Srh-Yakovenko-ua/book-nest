@@ -1,13 +1,18 @@
 import type {
   BundleAppearance,
   BundleCharacter,
+  BundleFact,
   BundleGroup,
   BundleRelationship,
   BundleTheory,
   CharacterBundle,
 } from "@app/shared";
 
-import { CharacterBundleSchema } from "@app/shared";
+import {
+  CharacterBundleImportSchema,
+  CharacterBundleSchema,
+  upgradeLegacyCharacterBundle,
+} from "@app/shared";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
@@ -49,11 +54,11 @@ function makeAppearance(overrides: Partial<BundleAppearance> = {}): BundleAppear
     descriptionIsSpoiler: false,
     displayName: null,
     displayNameIsSpoiler: false,
+    facts: [],
     firstAppearanceAudioSeconds: null,
     firstAppearanceChapter: null,
     firstAppearanceNote: null,
     firstAppearancePage: null,
-    hidePresenceAsSpoiler: false,
     importance: "supporting",
     isPovCharacter: false,
     isUnreliableNarrator: false,
@@ -78,7 +83,7 @@ function makeBundle(overrides: Partial<CharacterBundle> = {}): CharacterBundle {
   return {
     characters: [],
     exportedAt: "2026-01-01T00:00:00.000Z",
-    formatVersion: 1,
+    formatVersion: 2,
     groups: [],
     relationships: [],
     theories: [],
@@ -96,7 +101,6 @@ function makeCharacter(overrides: Partial<BundleCharacter> = {}): BundleCharacte
     forms: [],
     gender: "unknown",
     globalAttitude: null,
-    hideProfileAsSpoiler: false,
     id: CHAR_A,
     isArchived: false,
     isFavorite: false,
@@ -107,6 +111,22 @@ function makeCharacter(overrides: Partial<BundleCharacter> = {}): BundleCharacte
     tagIds: [],
     ...overrides,
   };
+}
+
+function makeFact(overrides: Partial<BundleFact> = {}): BundleFact {
+  return {
+    chapter: "Book One",
+    createdAt: "2025-03-04T05:06:07.890Z",
+    page: 42,
+    text: "Survived the gom jabbar",
+    title: "The test",
+    updatedAt: "2025-04-05T06:07:08.901Z",
+    ...overrides,
+  };
+}
+
+function makeFacts(count: number): BundleFact[] {
+  return Array.from({ length: count }, (_unused, index) => makeFact({ title: `Fact ${index}` }));
 }
 
 function makeGroup(overrides: Partial<BundleGroup> = {}): BundleGroup {
@@ -147,6 +167,17 @@ function makeTheory(overrides: Partial<BundleTheory> = {}): BundleTheory {
     status: "unverified",
     text: "A theory",
     ...overrides,
+  };
+}
+
+function toV1Bundle(bundle: CharacterBundle): Record<string, unknown> {
+  return {
+    ...bundle,
+    characters: bundle.characters.map((character) => ({
+      ...character,
+      appearances: character.appearances.map(({ facts: _facts, ...appearance }) => appearance),
+    })),
+    formatVersion: 1,
   };
 }
 
@@ -241,6 +272,7 @@ describe("planCharacterImport", () => {
       appearances: 1,
       bookStates: 0,
       characters: 2,
+      facts: 0,
       forms: 1,
       groups: 1,
       memberships: 1,
@@ -253,6 +285,7 @@ describe("planCharacterImport", () => {
       aliasesMissingBook: 1,
       appearancesMissingBook: 1,
       bookStatesMissingBook: 0,
+      factsMissingBook: 0,
       membershipsMissingBook: 1,
       relationshipsInvalid: 2,
       tagsMissing: 1,
@@ -423,6 +456,7 @@ describe("portable species references", () => {
           bookAppearances: [
             {
               ...makeAppearance(),
+              facts: [],
               roles: [],
               speciesOverride: { key: null, name: "Sylvan" },
               speciesOverrideIsSpoiler: true,
@@ -433,7 +467,6 @@ describe("portable species references", () => {
           forms: [],
           gender: "unknown",
           globalAttitude: null,
-          hideProfileAsSpoiler: false,
           id: CHAR_A,
           isFavorite: false,
           name: "Legolas",
@@ -469,6 +502,16 @@ describe("portable species references", () => {
     expect(
       CharacterBundleSchema.safeParse(makeBundle({ characters: [legacyCharacter] })).success,
     ).toBe(true);
+    const imported = CharacterBundleImportSchema.safeParse(
+      toV1Bundle(makeBundle({ characters: [legacyCharacter] })),
+    );
+    expect(imported.success).toBe(true);
+    expect(imported.data?.sourceFormatVersion).toBe(1);
+    expect(imported.data?.bundle.characters[0]).toMatchObject({ species: "Human" });
+    expect(imported.data?.bundle.characters[0]?.appearances[0]).toMatchObject({
+      facts: [],
+      speciesOverride: "Fremen",
+    });
   });
 });
 
@@ -497,7 +540,6 @@ describe("serializeCharacterBundle", () => {
           ],
           gender: "male",
           globalAttitude: "favorite",
-          hideProfileAsSpoiler: false,
           id: CHAR_A,
           isFavorite: true,
           name: "Paul",
@@ -517,7 +559,7 @@ describe("serializeCharacterBundle", () => {
       source,
     });
 
-    expect(bundle.formatVersion).toBe(1);
+    expect(bundle.formatVersion).toBe(2);
     expect(bundle.exportedAt).toBe("2026-01-03T00:00:00.000Z");
     expect(bundle.characters[0]?.isArchived).toBe(true);
     expect(bundle.characters[0]?.tagIds).toEqual([TAG_OWNED]);
@@ -569,5 +611,432 @@ describe("CharacterBundleSchema", () => {
       relationships: [makeRelationship({ sourceCharacterId: CHAR_A, targetCharacterId: CHAR_B })],
     });
     expect(CharacterBundleSchema.safeParse(bundle).success).toBe(false);
+  });
+});
+
+describe("upgradeLegacyCharacterBundle", () => {
+  const currentBundle = makeBundle({
+    characters: [
+      makeCharacter({ appearances: [makeAppearance()], id: CHAR_A }),
+      makeCharacter({
+        appearances: [
+          makeAppearance({ bookId: BOOK_OWNED }),
+          makeAppearance({ bookId: BOOK_MISSING, firstAppearancePage: 412 }),
+        ],
+        id: CHAR_B,
+        name: "Chani",
+      }),
+    ],
+  });
+
+  it("imports a bundle exported with both retired hiding flags set to true", () => {
+    const legacyBundle = {
+      ...currentBundle,
+      characters: currentBundle.characters.map((character) => ({
+        ...character,
+        appearances: character.appearances.map((appearance) => ({
+          ...appearance,
+          hidePresenceAsSpoiler: true,
+        })),
+        hideProfileAsSpoiler: true,
+      })),
+    };
+
+    expect(CharacterBundleSchema.safeParse(legacyBundle).success).toBe(false);
+    const upgraded = CharacterBundleSchema.safeParse(upgradeLegacyCharacterBundle(legacyBundle));
+    expect(upgraded.success).toBe(true);
+    expect(upgraded.data).toEqual(currentBundle);
+  });
+
+  it("imports a bundle that never carried the retired hiding flags", () => {
+    const upgraded = CharacterBundleSchema.safeParse(upgradeLegacyCharacterBundle(currentBundle));
+
+    expect(upgraded.success).toBe(true);
+    expect(upgraded.data).toEqual(currentBundle);
+  });
+});
+
+const SPEC_FACT_LIMITS = { perAppearance: 200, total: 2000 } as const;
+
+const LEGACY_DESCRIPTION = 'Перший рядок\n\n**Другий** рядок — <i>з тегами</i> & "лапками"';
+
+function bookIdAt(index: number): string {
+  return `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`;
+}
+
+function bundleWithFactCounts(...factCountsPerCharacter: number[][]): CharacterBundle {
+  return makeBundle({
+    characters: factCountsPerCharacter.map((factCounts, characterIndex) =>
+      makeCharacter({
+        appearances: factCounts.map((count, appearanceIndex) =>
+          makeAppearance({ bookId: bookIdAt(appearanceIndex + 1), facts: makeFacts(count) }),
+        ),
+        id: characterIdAt(characterIndex + 1),
+        name: `Character ${characterIndex + 1}`,
+      }),
+    ),
+  });
+}
+
+function characterIdAt(index: number): string {
+  return `00000000-0000-4000-9000-${String(index).padStart(12, "0")}`;
+}
+
+function importParseOutcome(payload: unknown): "invalid" | "parsed" | "tooLarge" {
+  const result = CharacterBundleImportSchema.safeParse(payload);
+  return result.success ? "parsed" : classifyBundleParseError(result.error);
+}
+
+function legacyV1Bundle(): Record<string, unknown> {
+  const {
+    facts: _facts,
+    isUnreliableNarrator: _isUnreliableNarrator,
+    isUnreliableNarratorSpoiler: _isUnreliableNarratorSpoiler,
+    ...appearance
+  } = makeAppearance({ description: LEGACY_DESCRIPTION });
+  return {
+    ...toV1Bundle(makeBundle()),
+    characters: [
+      {
+        ...makeCharacter(),
+        appearances: [{ ...appearance, hidePresenceAsSpoiler: true, narratorType: "unreliable" }],
+        hideProfileAsSpoiler: true,
+      },
+    ],
+  };
+}
+
+function withoutFormatVersion({
+  formatVersion: _formatVersion,
+  ...bundle
+}: CharacterBundle): Record<string, unknown> {
+  return bundle;
+}
+
+describe("CharacterBundleImportSchema — format versions", () => {
+  it("upgrades a version 1 bundle to empty fact lists and reports the uploaded version", () => {
+    const imported = CharacterBundleImportSchema.parse(toV1Bundle(bundleWithFactCounts([0, 0])));
+
+    expect(imported.sourceFormatVersion).toBe(1);
+    expect(imported.bundle.formatVersion).toBe(2);
+    expect(
+      imported.bundle.characters[0]?.appearances.map((appearance) => appearance.facts),
+    ).toEqual([[], []]);
+  });
+
+  it("reports version 2 for a version 2 bundle and keeps its facts", () => {
+    const imported = CharacterBundleImportSchema.parse(bundleWithFactCounts([2]));
+
+    expect(imported.sourceFormatVersion).toBe(2);
+    expect(imported.bundle.characters[0]?.appearances[0]?.facts).toEqual([
+      makeFact({ title: "Fact 0" }),
+      makeFact({ title: "Fact 1" }),
+    ]);
+  });
+
+  it("imports a legacy version 1 bundle with retired spoiler flags and the unreliable narrator type", () => {
+    const imported = CharacterBundleImportSchema.parse(legacyV1Bundle());
+
+    expect(imported.sourceFormatVersion).toBe(1);
+    expect(imported.bundle.characters[0]).not.toHaveProperty("hideProfileAsSpoiler");
+    expect(imported.bundle.characters[0]?.appearances[0]).not.toHaveProperty(
+      "hidePresenceAsSpoiler",
+    );
+    expect(imported.bundle.characters[0]?.appearances[0]).toMatchObject({
+      facts: [],
+      isUnreliableNarrator: true,
+      isUnreliableNarratorSpoiler: false,
+      narratorType: null,
+    });
+  });
+
+  it("plans no facts for a legacy version 1 bundle", () => {
+    const { bundle } = CharacterBundleImportSchema.parse(legacyV1Bundle());
+
+    const draft = planCharacterImport({
+      bundle,
+      newId: idFactory(),
+      now: new Date("2026-05-05T00:00:00.000Z"),
+      owned,
+      userId: USER_ID,
+    });
+
+    expect(draft.created.facts).toBe(0);
+    expect(draft.facts).toEqual([]);
+    expect(draft.created.appearances).toBe(1);
+  });
+
+  it("keeps a legacy version 1 appearance description verbatim", () => {
+    const { bundle } = CharacterBundleImportSchema.parse(legacyV1Bundle());
+
+    const draft = planCharacterImport({
+      bundle,
+      newId: idFactory(),
+      now: new Date("2026-05-05T00:00:00.000Z"),
+      owned,
+      userId: USER_ID,
+    });
+
+    expect(draft.bookCharacters[0]?.description).toBe(LEGACY_DESCRIPTION);
+  });
+
+  it.each([
+    { label: "version 0", payload: { ...bundleWithFactCounts([1]), formatVersion: 0 } },
+    { label: "version 3", payload: { ...bundleWithFactCounts([1]), formatVersion: 3 } },
+    { label: "a missing version", payload: withoutFormatVersion(bundleWithFactCounts([1])) },
+  ])("rejects $label as invalid", ({ payload }) => {
+    expect(importParseOutcome(payload)).toBe("invalid");
+  });
+
+  it("rejects a version 2 fact carrying an extra key as invalid", () => {
+    const bundle = bundleWithFactCounts([1]);
+    const hostile = {
+      ...bundle,
+      characters: bundle.characters.map((character) => ({
+        ...character,
+        appearances: character.appearances.map((appearance) => ({
+          ...appearance,
+          facts: appearance.facts.map((fact) => ({ ...fact, id: CHAR_B })),
+        })),
+      })),
+    };
+
+    expect(importParseOutcome(bundle)).toBe("parsed");
+    expect(importParseOutcome(hostile)).toBe("invalid");
+  });
+
+  it("rejects a version 1 bundle whose appearances carry a facts key as invalid", () => {
+    const bundle = bundleWithFactCounts([0]);
+
+    expect(importParseOutcome(toV1Bundle(bundle))).toBe("parsed");
+    expect(importParseOutcome({ ...bundle, formatVersion: 1 })).toBe("invalid");
+  });
+
+  it("rejects a version 2 bundle whose appearances omit facts as invalid", () => {
+    const withoutFacts = toV1Bundle(bundleWithFactCounts([0]));
+
+    expect(importParseOutcome({ ...withoutFacts, formatVersion: 2 })).toBe("invalid");
+  });
+});
+
+describe("CharacterBundleImportSchema — fact limits", () => {
+  it("accepts an appearance holding exactly the per-appearance fact limit", () => {
+    expect(importParseOutcome(bundleWithFactCounts([SPEC_FACT_LIMITS.perAppearance]))).toBe(
+      "parsed",
+    );
+  });
+
+  it("classifies one fact over the per-appearance limit as too large", () => {
+    expect(importParseOutcome(bundleWithFactCounts([SPEC_FACT_LIMITS.perAppearance + 1]))).toBe(
+      "tooLarge",
+    );
+  });
+
+  it("accepts a bundle holding exactly the total fact limit across characters", () => {
+    const fullAppearances = Array.from({ length: 9 }, () => SPEC_FACT_LIMITS.perAppearance);
+    const bundle = bundleWithFactCounts(
+      [...fullAppearances, SPEC_FACT_LIMITS.perAppearance - 1],
+      [1],
+    );
+
+    expect(importParseOutcome(bundle)).toBe("parsed");
+  });
+
+  it("classifies one fact over the total limit across characters as too large", () => {
+    const fullAppearances = Array.from({ length: 10 }, () => SPEC_FACT_LIMITS.perAppearance);
+    const bundle = bundleWithFactCounts(fullAppearances, [1]);
+
+    expect(importParseOutcome(bundle)).toBe("tooLarge");
+  });
+});
+
+describe("planCharacterImport — facts", () => {
+  const IMPORT_NOW = new Date("2026-09-09T09:09:09.000Z");
+
+  it("recreates facts with fresh ids under the new appearance and keeps their original fields", () => {
+    const bundle = makeBundle({
+      characters: [
+        makeCharacter({
+          appearances: [
+            makeAppearance({
+              facts: [
+                makeFact(),
+                makeFact({ chapter: null, page: null, text: "Rides a sandworm", title: "Rider" }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    });
+
+    const draft = planCharacterImport({
+      bundle,
+      newId: idFactory(),
+      now: IMPORT_NOW,
+      owned,
+      userId: USER_ID,
+    });
+
+    expect(draft.bookCharacters.map((appearance) => appearance.id)).toEqual(["fresh-2"]);
+    expect(draft.facts).toEqual([
+      {
+        bookCharacterId: "fresh-2",
+        chapter: "Book One",
+        createdAt: new Date("2025-03-04T05:06:07.890Z"),
+        id: "fresh-3",
+        page: 42,
+        text: "Survived the gom jabbar",
+        title: "The test",
+        updatedAt: new Date("2025-04-05T06:07:08.901Z"),
+      },
+      {
+        bookCharacterId: "fresh-2",
+        chapter: null,
+        createdAt: new Date("2025-03-04T05:06:07.890Z"),
+        id: "fresh-4",
+        page: null,
+        text: "Rides a sandworm",
+        title: "Rider",
+        updatedAt: new Date("2025-04-05T06:07:08.901Z"),
+      },
+    ]);
+    expect(draft.created.facts).toBe(2);
+  });
+
+  it("skips the facts of an appearance whose book the importer does not own", () => {
+    const bundle = makeBundle({
+      characters: [
+        makeCharacter({
+          appearances: [
+            makeAppearance({ bookId: BOOK_MISSING, facts: makeFacts(3) }),
+            makeAppearance({ bookId: BOOK_OWNED, facts: [makeFact({ title: "Kept" })] }),
+          ],
+        }),
+      ],
+    });
+
+    const draft = planCharacterImport({
+      bundle,
+      newId: idFactory(),
+      now: IMPORT_NOW,
+      owned,
+      userId: USER_ID,
+    });
+
+    expect(draft.skipped.appearancesMissingBook).toBe(1);
+    expect(draft.skipped.factsMissingBook).toBe(3);
+    expect(draft.created.facts).toBe(1);
+    expect(draft.facts.map((fact) => fact.title)).toEqual(["Kept"]);
+    expect(draft.facts.map((fact) => fact.bookCharacterId)).toEqual(
+      draft.bookCharacters.map((appearance) => appearance.id),
+    );
+  });
+
+  it("attaches the facts of a duplicate appearance of the same book to the kept appearance", () => {
+    const bundle = makeBundle({
+      characters: [
+        makeCharacter({
+          appearances: [
+            makeAppearance({
+              facts: [makeFact({ title: "First" }), makeFact({ title: "Second" })],
+            }),
+            makeAppearance({ facts: [makeFact({ title: "From duplicate" })] }),
+          ],
+        }),
+      ],
+    });
+
+    const draft = planCharacterImport({
+      bundle,
+      newId: idFactory(),
+      now: IMPORT_NOW,
+      owned,
+      userId: USER_ID,
+    });
+
+    expect(draft.created.appearances).toBe(1);
+    expect(draft.created.facts).toBe(3);
+    expect(draft.skipped.factsMissingBook).toBe(0);
+    expect(draft.facts.map((fact) => [fact.title, fact.bookCharacterId])).toEqual([
+      ["First", "fresh-2"],
+      ["Second", "fresh-2"],
+      ["From duplicate", "fresh-2"],
+    ]);
+  });
+});
+
+describe("serializeCharacterBundle — facts", () => {
+  it("serializes facts in the order received with ISO timestamps", () => {
+    const source: CharacterExportSource = {
+      characters: [
+        {
+          aliases: [],
+          archivedAt: null,
+          avatarMediaId: null,
+          bookAppearances: [
+            {
+              ...makeAppearance(),
+              facts: [
+                {
+                  chapter: "II",
+                  createdAt: new Date("2025-06-01T00:00:00.000Z"),
+                  page: 7,
+                  text: "Newer",
+                  title: "B",
+                  updatedAt: new Date("2025-06-02T00:00:00.000Z"),
+                },
+                {
+                  chapter: null,
+                  createdAt: new Date("2025-01-01T00:00:00.000Z"),
+                  page: null,
+                  text: "Older",
+                  title: "A",
+                  updatedAt: new Date("2025-01-01T00:00:00.000Z"),
+                },
+              ],
+              roles: [],
+              speciesOverride: null,
+            },
+          ],
+          customGender: null,
+          entityKind: "individual",
+          forms: [],
+          gender: "unknown",
+          globalAttitude: null,
+          id: CHAR_A,
+          isFavorite: false,
+          name: "Paul",
+          neutralDescription: null,
+          pronouns: null,
+          species: null,
+          tags: [],
+        },
+      ],
+      groups: [],
+      relationships: [],
+      theories: [],
+    };
+
+    const bundle = serializeCharacterBundle({ exportedAt: new Date(), source });
+
+    expect(bundle.characters[0]?.appearances[0]?.facts).toEqual([
+      {
+        chapter: "II",
+        createdAt: "2025-06-01T00:00:00.000Z",
+        page: 7,
+        text: "Newer",
+        title: "B",
+        updatedAt: "2025-06-02T00:00:00.000Z",
+      },
+      {
+        chapter: null,
+        createdAt: "2025-01-01T00:00:00.000Z",
+        page: null,
+        text: "Older",
+        title: "A",
+        updatedAt: "2025-01-01T00:00:00.000Z",
+      },
+    ]);
+    expect(CharacterBundleSchema.safeParse(bundle).success).toBe(true);
   });
 });

@@ -39,6 +39,7 @@ export type NoteFormMessages = {
   pageNotPositive: string;
   textEmpty: string;
   textTooLong: string;
+  titleTooLong: string;
 };
 
 export type NoteFormRegister = UseFormRegister<NoteFormInput>;
@@ -52,7 +53,7 @@ export function buildNoteFormSchema(messages: NoteFormMessages, pageCeiling: Boo
     pageCeiling.source === "book" ? messages.pageExceedsBook : messages.pageNotPositive;
 
   return z.object({
-    category: NoteCategorySchema.optional(),
+    category: NoteCategorySchema.nullable(),
     chapter: z
       .string()
       .trim()
@@ -74,12 +75,13 @@ export function buildNoteFormSchema(messages: NoteFormMessages, pageCeiling: Boo
       .int()
       .positive({ error: messages.pageNotPositive })
       .max(pageCeiling.max, { error: pageMessage })
-      .optional(),
+      .nullable(),
     text: z
       .string()
       .trim()
       .min(1, { error: messages.textEmpty })
       .max(NOTE_INPUT_LIMITS.textMax, { error: messages.textTooLong }),
+    title: z.string().trim().max(NOTE_INPUT_LIMITS.titleMax, { error: messages.titleTooLong }),
   });
 }
 
@@ -108,7 +110,7 @@ export function noteFormDefaults({
   note?: NoteView;
 }): NoteFormInput {
   return {
-    category: note?.category ?? undefined,
+    category: note?.category ?? null,
     chapter: note?.chapter ?? "",
     customCategory: note?.customCategory ?? "",
     entity,
@@ -116,8 +118,9 @@ export function noteFormDefaults({
     isPinned: note?.isPinned ?? false,
     isSavedLocationRemoved: false,
     isSpoiler: note?.isSpoiler ?? false,
-    page: note?.page ?? undefined,
+    page: note?.page ?? null,
     text: note?.text ?? "",
+    title: note?.title ?? "",
   };
 }
 
@@ -142,20 +145,22 @@ function bookLocationInput(values: NoteFormValues): Pick<CreateNoteInput, "chapt
 
   return {
     chapter: chapter.length > 0 ? chapter : null,
-    page: values.page ?? null,
+    page: values.page,
   };
 }
 
 function noteOwnedInput(values: NoteFormValues): CreateSeriesNoteInput {
   const customCategory =
     values.category === NOTE_CUSTOM_CATEGORY ? values.customCategory.trim() : "";
+  const title = values.title.trim();
 
   return {
-    category: values.category ?? null,
+    category: values.category,
     customCategory: customCategory.length > 0 ? customCategory : null,
     isFavorite: values.isFavorite,
     isPinned: values.isPinned,
     isSpoiler: values.isSpoiler,
     text: values.text.trim(),
+    title: title.length > 0 ? title : null,
   };
 }

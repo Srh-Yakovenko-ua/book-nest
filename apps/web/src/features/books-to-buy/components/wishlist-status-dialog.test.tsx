@@ -253,17 +253,16 @@ describe("WishlistStatusDialog bought branch", () => {
 });
 
 describe("WishlistStatusDialog ordered branch", () => {
-  it("refuses an order without its order date", async () => {
+  it("keeps the order date when the reader picks the same day again", async () => {
     renderDialog();
 
     await pickOption("ordered");
-    await openDatePicker("Дата замовлення");
+    await openDatePicker("Дата замовлення, 15 серпня 2026");
     await userEvent.click(calendarDay("15"));
-    await userEvent.keyboard("{Escape}");
     await submitDialog();
 
-    expect(await screen.findByText("Оберіть дату замовлення.")).toBeInTheDocument();
-    expect(postCall("/deliveries")).toBeUndefined();
+    await waitFor(() => expect(postCall("/deliveries")).toBeDefined());
+    expect(postPayload("/deliveries")).toMatchObject({ orderDate: TODAY_ISO });
   });
 
   it("refuses a delivery expected before the order was placed", async () => {

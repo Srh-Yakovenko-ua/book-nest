@@ -21,6 +21,7 @@ import type {
 import type {
   BookChaptersViewDto,
   BookDeletionResultDto,
+  BookDetailsViewDto,
   BookFacetsViewDto,
   BookListsViewDto,
   BookReadingControllerGetReadingHistoryParams,
@@ -2338,7 +2339,7 @@ export function useBooksControllerListTrash<
 }
 
 export type booksControllerGetByIdResponse200 = {
-  data: BookViewDto;
+  data: BookDetailsViewDto;
   status: 200;
 };
 

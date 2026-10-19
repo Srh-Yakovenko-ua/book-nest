@@ -3,6 +3,8 @@ name: migration-reviewer
 description: MUST BE USED PROACTIVELY whenever a change touches Prisma migrations (`apps/api/prisma/migrations/**`), the Prisma schema (`apps/api/prisma/schema.prisma`), or the `apps/api/prisma.config.ts` config. Also use when the user says "миграция", "migration", "schema change", "drop", "alter", "rename column", "prisma migrate", "не сломать базу", "безопасная миграция". Read-only — classifies every DDL operation as SAFE / CAUTION / DESTRUCTIVE, blocks data-loss and lock-heavy operations unless explicitly justified, assesses forward-only reversibility (is a remediation migration feasible & documented?), and checks online-migration safety on Postgres. Does NOT write migrations — it reviews them. Delegate automatically for any migration-touching diff — do not ask permission.
 tools: Read, Glob, Grep, Bash
 model: opus
+maxTurns: 60
+effort: high
 ---
 
 # Role

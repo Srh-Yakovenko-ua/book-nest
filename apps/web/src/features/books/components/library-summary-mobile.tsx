@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { TruncatedText } from "@/components/truncated-text";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { statCardIconBadge } from "@/components/ui/stat-card";
@@ -114,12 +115,11 @@ export function LibrarySummaryMobile({
                 {card.valueKind === "name" ? (
                   <>
                     <SummaryBadge card={card} size="tile" />
-                    <span
-                      className="line-clamp-2 w-full text-center font-heading text-sm leading-tight font-bold break-words text-ink"
-                      title={formatValue(card.value)}
-                    >
-                      {formatValue(card.value)}
-                    </span>
+                    <TruncatedText
+                      className="w-full text-center font-heading text-sm leading-tight font-bold break-words text-ink"
+                      lines={2}
+                      text={formatValue(card.value)}
+                    />
                   </>
                 ) : (
                   <span className="flex max-w-full items-center gap-1.5">

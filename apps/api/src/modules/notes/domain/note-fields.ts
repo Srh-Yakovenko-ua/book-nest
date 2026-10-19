@@ -31,6 +31,7 @@ export function touchesNoteContent(input: UpdateNoteInput): boolean {
     isSpoiler: input.isSpoiler !== undefined,
     page: input.page !== undefined,
     text: input.text !== undefined,
+    title: input.title !== undefined,
   };
   return Object.values(contentChangeByField).some(Boolean);
 }

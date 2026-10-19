@@ -31,14 +31,16 @@ type DatePickerProps = {
   invalid?: boolean;
   onChange: (date: Date | undefined) => void;
   placeholder?: string;
+  required?: boolean;
   startMonth?: Date;
+  today?: Date;
   value?: Date;
   weekStartsOn?: WeekStartsOn;
 };
 
 type WeekStartsOn = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
-const DATE_PICKER = { dayFormat: "d MMMM yyyy" } as const;
+const DATE_PICKER = { dayFormat: "d MMMM yyyy", dayLabelFormat: "PPPP" } as const;
 
 export function DatePicker({
   allowFuture = false,
@@ -53,7 +55,9 @@ export function DatePicker({
   invalid,
   onChange,
   placeholder,
+  required,
   startMonth,
+  today,
   value,
   weekStartsOn,
 }: DatePickerProps) {
@@ -62,18 +66,21 @@ export function DatePicker({
   const dfLocale = dateFnsLocale(locale);
   const [open, setOpen] = useState(false);
 
-  const today = new Date();
+  const referenceDay = today ?? new Date();
   const disabledMatchers: Matcher[] = [
-    ...(allowFuture ? [] : [{ after: today }]),
-    ...(disablePast ? [{ before: today }] : []),
+    ...(allowFuture ? [] : [{ after: referenceDay }]),
+    ...(disablePast ? [{ before: referenceDay }] : []),
   ];
+  const label = ariaLabel ?? t("triggerLabel");
+  const displayedValue =
+    value === undefined ? undefined : format(value, DATE_PICKER.dayFormat, { locale: dfLocale });
 
   return (
     <Popover onOpenChange={setOpen} open={open}>
       <PopoverTrigger
         aria-describedby={describedBy}
         aria-invalid={invalid === true || undefined}
-        aria-label={ariaLabel ?? t("triggerLabel")}
+        aria-label={displayedValue === undefined ? label : `${label}, ${displayedValue}`}
         className={cn(
           "relative flex h-12 w-full cursor-pointer items-center rounded-md border border-border bg-card pr-3.5 pl-11 text-left text-base transition-[border-color,box-shadow] duration-150 outline-none",
           "hover:border-accent-border",
@@ -81,7 +88,7 @@ export function DatePicker({
           "data-[state=open]:border-primary data-[state=open]:ring-4 data-[state=open]:ring-ring/20",
           "disabled:cursor-not-allowed disabled:opacity-50",
           invalid === true &&
-            "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/15 data-[state=open]:border-destructive data-[state=open]:ring-destructive/15",
+            "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive focus-visible:outline-solid data-[state=open]:border-destructive data-[state=open]:ring-destructive/15",
           value ? "text-foreground" : "text-muted-foreground",
           className,
         )}
@@ -97,12 +104,11 @@ export function DatePicker({
           name="calendar"
           size={18}
         />
-        {value
-          ? format(value, DATE_PICKER.dayFormat, { locale: dfLocale })
-          : (placeholder ?? t("placeholder"))}
+        {displayedValue ?? placeholder ?? t("placeholder")}
       </PopoverTrigger>
       <PopoverContent
         align="start"
+        aria-label={label}
         className="w-auto p-2.5"
         onOpenAutoFocus={(event) => {
           event.preventDefault();
@@ -128,17 +134,24 @@ export function DatePicker({
           disabled={disabledMatchers.length > 0 ? disabledMatchers : undefined}
           endMonth={endMonth}
           labels={{
+            labelDayButton: (date, modifiers) => {
+              const day = format(date, DATE_PICKER.dayLabelFormat, { locale: dfLocale });
+              const dayWithToday = modifiers.today ? t("dayToday", { day }) : day;
+              return modifiers.selected ? t("daySelected", { day: dayWithToday }) : dayWithToday;
+            },
             labelMonthDropdown: () => t("monthLabel"),
             labelYearDropdown: () => t("yearLabel"),
           }}
           locale={dfLocale}
           mode="single"
-          onSelect={(date) => {
+          onSelect={(date: Date | undefined) => {
             onChange(date);
             if (date) setOpen(false);
           }}
+          required={required}
           selected={value}
           startMonth={startMonth}
+          today={today}
           weekStartsOn={weekStartsOn}
         />
       </PopoverContent>

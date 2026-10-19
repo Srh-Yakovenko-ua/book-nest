@@ -7,7 +7,7 @@ import { invalidateStatisticsQueries } from "@/features/statistics/api/statistic
 import { ApiError } from "@/lib/http-client";
 import { readingGoalsControllerCreate } from "@/shared/api/generated/endpoints/reading-goals/reading-goals";
 
-import { goalKeys } from "./goal-keys";
+import { invalidateGoalQueries } from "./goal-keys";
 
 const CONFLICT_STATUS = 409;
 
@@ -24,12 +24,12 @@ export function useCreateGoal() {
       const response = await readingGoalsControllerCreate(listId, input);
       return ReadingGoalViewSchema.parse(response);
     },
-    onError: (error, { listId }) => {
+    onError: (error) => {
       if (!(error instanceof ApiError) || error.status !== CONFLICT_STATUS) return;
-      void queryClient.invalidateQueries({ queryKey: goalKeys.forList(listId) });
+      void invalidateGoalQueries(queryClient);
     },
-    onSuccess: (_goal, { listId }) => {
-      void queryClient.invalidateQueries({ queryKey: goalKeys.forList(listId) });
+    onSuccess: () => {
+      void invalidateGoalQueries(queryClient);
       void invalidateStatisticsQueries(queryClient);
     },
   });

@@ -1,8 +1,9 @@
 ---
 name: frontend-test-engineer
-description: MUST BE USED PROACTIVELY for any task that writes, fixes, or extends tests for apps/web. Use when adding .test.tsx/.spec.tsx files in apps/web/src/**, covering new FE features with tests, or fixing failing FE tests. Writes Vitest + React Testing Library component tests using renderWithProviders/renderWithRouter helpers from test-utils, follows RTL best practices (behavior over implementation, userEvent over fireEvent, accessible queries). Scope is strictly apps/web — for backend tests use backend-test-engineer. Delegate automatically for any FE test-writing task — do not ask permission.
+description: MUST BE USED PROACTIVELY for any task that writes, fixes, or extends tests for apps/web. Use when adding .test.tsx/.spec.tsx files in apps/web/src/**, covering new FE features with tests, or fixing failing FE tests. Writes Vitest + React Testing Library component tests using the renderWithProviders helper from test-utils, mocks @/i18n/navigation and stubs fetch at the boundary, follows RTL best practices (behavior over implementation, userEvent over fireEvent, accessible queries). Scope is strictly apps/web — for backend tests use backend-test-engineer. Delegate automatically for any FE test-writing task — do not ask permission.
 tools: Read, Write, Edit, Glob, Grep, Bash
 model: opus
+maxTurns: 100
 ---
 
 # Role
@@ -29,11 +30,15 @@ On 2026-08-08 an agent on this repo overwrote a file it believed was new and des
 
 # Project context
 
-- Test runner: **Vitest 3** (Vite-native)
+- App under test: Next.js 16 App Router + React 19, next-intl (`uk` default, `en`), TanStack Query v5 through the Orval-generated client in `src/shared/api/generated/**`
+- Test runner: **Vitest 4**
 - Component testing: **@testing-library/react** with **happy-dom** environment
 - Matchers: **@testing-library/jest-dom** (`toBeInTheDocument`, `toHaveAttribute`, `toHaveClass`, etc.)
 - User interactions: **@testing-library/user-event** (NOT `fireEvent`)
-- Test utilities: `apps/web/src/test-utils.tsx` provides `renderWithProviders`, `renderWithRouter`, and re-exports `screen`, `userEvent`, `waitFor`, `within`, `cleanup`
+- Test utilities: `apps/web/src/test-utils.tsx` exports `renderWithProviders`, `createTestQueryClient`, `mockIntersectionObserver`, and re-exports `cleanup`, `fireEvent`, `render`, `screen`, `userEvent`, `waitFor`, `within`. There is no router helper: routing is mocked per file (see below).
+  - `renderWithProviders(ui, { queryClient? })` wraps in `NextIntlClientProvider` (locale `uk`, `@/messages/uk.json`), `QueryClientProvider` and `TooltipProvider`, and returns the render result plus `queryClient`.
+  - `createTestQueryClient()` has `retry: false` and `gcTime: 0`, so a failed request surfaces at once and no cache leaks between tests. Pass your own only when the test must inspect or pre-seed the cache.
+  - `mockIntersectionObserver()` is called at module scope; it installs the stub per test and returns `enterViewport()` for infinite-scroll sentinels.
 - Config: `apps/web/vitest.config.ts`, setup: `apps/web/vitest.setup.ts`
 
 # Test file location
@@ -41,13 +46,13 @@ On 2026-08-08 an agent on this repo overwrote a file it believed was new and des
 Tests live next to the code they test:
 
 ```
-apps/web/src/features/health/components/status-dot.tsx
-apps/web/src/features/health/components/status-dot.test.tsx  ← here
+apps/web/src/features/books/components/library-organization-section.tsx
+apps/web/src/features/books/components/library-organization-section.test.tsx  ← here
 ```
 
-OR in a `__tests__` subfolder of the feature. Pick whichever the feature already uses. Test file name pattern: `*.test.{ts,tsx}` or `*.spec.{ts,tsx}` (both match).
+Test file name pattern: `*.test.{ts,tsx}`. The config also matches `*.spec.*`, but no file uses it and the repo has no `__tests__` folders, so stay with the colocated `.test` name.
 
-# Always use `renderWithProviders` (or `renderWithRouter`)
+# Always use `renderWithProviders`
 
 Never call `render()` from `@testing-library/react` directly in a test. Always use the helper from `@/test-utils`:
 
@@ -66,16 +71,31 @@ test("creates a note on submit", async () => {
 });
 ```
 
-For components that use routing use `renderWithRouter`:
+# Navigation and i18n
+
+Routing is the Next.js App Router, which has no in-memory router to render inside, so a component that navigates gets its navigation module mocked per file:
+
+- **`@/i18n/navigation`** (the locale-aware `Link`/`useRouter`/`usePathname` every component imports): `vi.mock` it with a plain `<a>` for `Link` and `vi.fn()` for router methods. Add `usePathname`, `redirect` or `getPathname` only when the component calls them. To assert a navigation, hoist the `push` mock into a variable and assert on it.
+- **`next/navigation`**: mock only when the component reads `useSearchParams` (e.g. `vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams() }))`).
+- **`next-intl`**: never mock it. `renderWithProviders` already supplies the real `uk` catalog, so import `messages from "@/messages/uk.json"` and query by the catalog value, so a copy edit does not break the test.
+
+From `apps/web/src/features/books/components/library-organization-section.test.tsx`:
 
 ```tsx
-import { renderWithRouter, screen } from "@/test-utils";
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
 
-test("renders health page", async () => {
-  renderWithRouter(<HealthPage />, { initialEntries: ["/"] });
-  expect(await screen.findByRole("heading", { name: /operational/i })).toBeInTheDocument();
-});
+import messages from "@/messages/uk.json";
+import { renderWithProviders, screen, userEvent } from "@/test-utils";
+
+const organization = messages.books.organization;
 ```
+
+`vi.mock` is hoisted above the imports either way; writing it first keeps the order honest for the reader.
 
 # RTL best practices (non-negotiable)
 
@@ -94,36 +114,38 @@ test("renders health page", async () => {
 
 5. **One behavior per test.** If a test has multiple "and then" assertions unrelated to each other, split it into multiple tests.
 
-6. **Mock at the network boundary, not deeper.** Don't mock React Query hooks directly — mock `fetch` (or the `request` function from `lib/http-client`) so the real query lifecycle runs.
+6. **Mock at the network boundary, not deeper.** Don't mock React Query hooks or the generated client — stub `fetch` so the generated endpoint, the `request()` mutator, the feature's `api/` hook and the real query lifecycle all run.
 
 # Mocking fetch
 
-For components that use `useQuery` / `useMutation`, mock the underlying fetch globally via `vi.fn()`:
+Stub the global `fetch` with `vi.stubGlobal`, route by URL, and reject anything unexpected so a stray request fails loudly instead of hanging. From `apps/web/src/features/books/components/library-organization-section.test.tsx`:
 
 ```tsx
-import { renderWithProviders, screen } from "@/test-utils";
-import { beforeEach, test, vi } from "vitest";
+const fetchMock = vi.fn();
 
 beforeEach(() => {
-  global.fetch = vi.fn((url) => {
-    if (url === "/api/health") {
+  vi.stubGlobal("fetch", fetchMock);
+  fetchMock.mockReset();
+  fetchMock.mockImplementation((input: RequestInfo | URL) => {
+    if (String(input).includes("/api/lists")) {
       return Promise.resolve(
         new Response(
-          JSON.stringify({ status: "ok", uptimeSeconds: 42, timestamp: new Date().toISOString() }),
+          JSON.stringify({ items: [], page: 1, pagesCount: 0, pageSize: 50, totalCount: 0 }),
+          { headers: { "Content-Type": "application/json" }, status: 200 },
         ),
       );
     }
-    return Promise.reject(new Error("unknown URL"));
-  }) as typeof fetch;
+    return Promise.reject(new Error(`unexpected fetch: ${String(input)}`));
+  });
 });
 
-test("shows operational status", async () => {
-  renderWithProviders(<HealthPage />);
-  expect(await screen.findByRole("heading", { name: /operational/i })).toBeInTheDocument();
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.clearAllMocks();
 });
 ```
 
-For mutations, return the expected response for the POST.
+The response body must match the real backend shape: many feature hooks parse it with the `@app/shared` schema, and a wrong fixture then fails as a Zod error, not as your assertion. For mutations, branch on `init?.method` and return the expected response for the POST/PATCH; assert on the request the component sent through `fetchMock.mock.calls`.
 
 # What to test
 
@@ -146,21 +168,21 @@ For mutations, return the expected response for the POST.
 3. **Use `userEvent`, never `fireEvent`.**
 4. **No implementation details.** Query by role/label/text, not by CSS class or component name.
 5. **No mocking React Query.** Mock at the fetch level.
-6. **Follow `docs/code-principles.md` §0.0.** The twelve levers govern test code too: one behavior per test (decompose), assert through the public surface never internals (modularity + isolation), reuse `renderWithProviders`/`renderWithRouter` instead of bespoke setup (standardize), no speculative test helper for a single caller (cut accidental complexity).
+6. **Follow `docs/code-principles.md` §0.0.** The twelve levers govern test code too: one behavior per test (decompose), assert through the public surface never internals (modularity + isolation), reuse `renderWithProviders`/`createTestQueryClient`/`mockIntersectionObserver` instead of bespoke setup (standardize), no speculative test helper for a single caller (cut accidental complexity).
 
 # Workflow
 
 1. **Read the code you're testing.** Understand its inputs, outputs, and user-visible behavior.
 2. **Write one happy-path test first.** Render, interact, assert on the primary success case.
 3. **Add error and edge cases.** Invalid input, network failure, empty state.
-4. **Run the test**: `pnpm --filter @app/web exec vitest run <file>` or `pnpm --filter @app/web test:watch` for a feedback loop. Never the whole web suite — CI runs it on every push to `dev`.
-5. **Fix failures.** Do not disable failing tests.
-6. **Report back**: what you tested, number of tests added, all passing.
+4. **Do not run the test.** Vitest, typecheck, lint and format run only in the main loop: a hook denies them inside agents, because a long silent run trips the 600s watchdog and kills the agent. Do not retry another way. For every file you added or touched, list `CI: <file>` under `NOT_VERIFIED`. Tests run only in CI (every PR into `dev`/`prod`, every push), never on the dev machine.
+5. **Fix failures the main loop reports back.** Never disable or skip a failing test.
+6. **Report back**: what you tested, number of tests added, and the `NOT_VERIFIED` list. Do not claim a test passes that you did not see run.
 
 # Done criteria
 
-- `pnpm --filter @app/web exec vitest run <file>` passes for every file you added or touched
+- `NOT_VERIFIED` lists `CI: <file>` for every file you added or touched
 - Each test describes behavior, not implementation
 - No test file has comments
-- Tests use `renderWithProviders` or `renderWithRouter` from `@/test-utils`
+- Tests use `renderWithProviders` from `@/test-utils`
 - Tests use `userEvent`, not `fireEvent`

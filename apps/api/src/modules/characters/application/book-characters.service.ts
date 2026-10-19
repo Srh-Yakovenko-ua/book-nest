@@ -1,11 +1,12 @@
 import type {
+  BookCharacterDetailsQuery,
+  BookCharacterRosterItem,
   BookCharactersQuery,
   BookCharacterSummaryQuery,
   BookCharacterSummaryView,
   CharacterDetailsView,
   CharacterSuggestionsQuery,
   CharacterSuggestionsView,
-  CharacterSummaryView,
   CreateCharacterInBook,
   Nullable,
   Paginator,
@@ -13,12 +14,7 @@ import type {
   UpdateBookCharacter,
 } from "@app/shared";
 
-import {
-  CHARACTER_ERROR_CODES,
-  CHARACTER_SUMMARY_TOP_LIMIT,
-  normalizeSearch,
-  readingPositionFromQuery,
-} from "@app/shared";
+import { CHARACTER_ERROR_CODES, CHARACTER_SUMMARY_TOP_LIMIT, normalizeSearch } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -38,7 +34,6 @@ import {
 import { buildBookCharacterSummary } from "../domain/character-summary.js";
 import { buildCharacterData, buildReplaceAliases } from "../domain/character-write.js";
 import {
-  collectPositionHiddenAppearanceIds,
   isBookWithinReadingContextWindow,
   resolveReadingContextWindow,
   UNGATED_ROSTER_VISIBILITY,
@@ -76,7 +71,7 @@ export class BookCharactersService {
     if (context === null) {
       throw new NotFoundError("Book not found", { code: CHARACTER_ERROR_CODES.bookNotFound });
     }
-    const window = await this.resolveReadingContextWindowFor({ bookId, query, userId });
+    const window = await this.resolveReadingContextWindowFor({ query, userId });
     const exclusions = await this.resolveSuggestionExclusions({
       seriesId: context.seriesId,
       userId,
@@ -119,7 +114,6 @@ export class BookCharactersService {
       bookId,
       byImportanceEntries: aggregate.byImportance,
       favoritesCount: aggregate.favoritesCount,
-      hasHiddenRecords: aggregate.hiddenCount > 0,
       povCount: aggregate.povCount,
       topCandidates: topRows.map((row) => this.viewMapper.toSummaryView(row)),
       totalVisibleCharacters: aggregate.totalVisibleCharacters,
@@ -164,22 +158,24 @@ export class BookCharactersService {
   async getBookCharacterDetails({
     bookId,
     characterId,
+    query,
     userId,
   }: {
     bookId: string;
     characterId: string;
+    query: BookCharacterDetailsQuery;
     userId: string;
   }): Promise<CharacterDetailsView> {
-    await this.accessAsserter.assertBookOwned({ bookId, userId });
-    const row = await this.charactersRepository.findOwnedCharacterDetails({
-      bookId,
+    const view = await this.detailsAssembler.loadMaskedCharacterDetails({
       characterId,
+      contextBookId: bookId,
+      revealFieldIds: query.revealFieldIds ?? [],
       userId,
     });
-    if (row === null || row.hideProfileAsSpoiler || row.bookAppearances.length === 0) {
+    if (!view.appearances.some((appearance) => appearance.bookId === bookId)) {
       throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
     }
-    return this.viewMapper.toDetailsView(row);
+    return view;
   }
 
   async insertBookCharacter({
@@ -210,10 +206,18 @@ export class BookCharactersService {
     bookId: string;
     query: BookCharactersQuery;
     userId: string;
-  }): Promise<Paginator<CharacterSummaryView>> {
+  }): Promise<Paginator<BookCharacterRosterItem>> {
     await this.accessAsserter.assertBookOwned({ bookId, userId });
     const visibility = await this.resolveRosterVisibility({ bookId, query, userId });
-    const filter = { bookId, search: normalizeSearch(query.search), userId, visibility };
+    const filter = {
+      bookId,
+      favoritesOnly: query.favoritesOnly ?? false,
+      importance: [...new Set(query.importance)],
+      povOnly: query.povOnly ?? false,
+      search: normalizeSearch(query.search),
+      userId,
+      visibility,
+    };
 
     const [items, totalCount] = await Promise.all([
       this.charactersRepository.listRoster({
@@ -225,7 +229,7 @@ export class BookCharactersService {
     ]);
 
     return buildPaginator({
-      items: items.map((row) => this.viewMapper.toSummaryView(row)),
+      items: items.map((row) => this.viewMapper.toRosterItem(row)),
       pageNumber: query.pageNumber,
       pageSize: query.pageSize,
       totalCount,
@@ -376,23 +380,19 @@ export class BookCharactersService {
   }
 
   private resolveReadingContextWindowFor({
-    bookId,
     query,
     userId,
   }: {
-    bookId: string;
     query: ReadingContextQuery;
     userId: string;
   }): Promise<ReadingContextWindow> {
-    const readingPosition = readingPositionFromQuery(query);
-    if (query.contextBookId === undefined && readingPosition === undefined) {
+    if (query.contextBookId === undefined) {
       return Promise.resolve(UNRESTRICTED_READING_CONTEXT_WINDOW);
     }
     return resolveReadingContextWindow({
       bookReader: this.charactersRepository,
-      contextBookId: query.contextBookId ?? bookId,
+      contextBookId: query.contextBookId,
       notFoundCode: CHARACTER_ERROR_CODES.bookNotFound,
-      readingPosition,
       userId,
     });
   }
@@ -406,21 +406,11 @@ export class BookCharactersService {
     query: ReadingContextQuery;
     userId: string;
   }): Promise<RosterVisibility> {
-    const window = await this.resolveReadingContextWindowFor({ bookId, query, userId });
+    const window = await this.resolveReadingContextWindowFor({ query, userId });
     if (!isBookWithinReadingContextWindow({ bookId, window })) {
-      return { kind: "beyond_reading_position" };
+      return { kind: "outside_context_window" };
     }
-    if (window.kind === "unrestricted" || window.positionGate === null) {
-      return UNGATED_ROSTER_VISIBILITY;
-    }
-    const candidates = await this.charactersRepository.listRosterPositionCandidates({
-      bookId,
-      userId,
-    });
-    return {
-      kind: "within_reading_position",
-      positionHiddenIds: collectPositionHiddenAppearanceIds({ appearances: candidates, window }),
-    };
+    return UNGATED_ROSTER_VISIBILITY;
   }
 
   private async resolveSuggestionExclusions({

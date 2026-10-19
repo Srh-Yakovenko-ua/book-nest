@@ -106,6 +106,11 @@ function rosterPageNumber(url: string): number {
   return Number(new URL(url, "http://localhost").searchParams.get("pageNumber") ?? 1);
 }
 
+function rosterQueryOf(url: string | undefined): Record<string, string> {
+  if (url === undefined) return {};
+  return Object.fromEntries(new URL(url, "http://localhost").searchParams);
+}
+
 function rosterRequestUrls(): string[] {
   return fetchMock.mock.calls
     .filter(([, init]) => ((init as RequestInit | undefined)?.method ?? "GET") === "GET")
@@ -202,7 +207,7 @@ describe("BookCharactersTab roster", () => {
 });
 
 describe("BookCharactersTab contextual roster", () => {
-  it("asks the backend to sort and forwards the reading position of a book in progress", async () => {
+  it("asks the backend to sort and names a book in progress as the only spoiler context", async () => {
     renderTab(
       "",
       makeBookView({
@@ -224,18 +229,20 @@ describe("BookCharactersTab contextual roster", () => {
 
     await screen.findByRole("heading", { name: "Ґеральт" });
 
-    const url = rosterRequestUrls()[0];
-    expect(url).toContain("sort=importance");
-    expect(url).toContain("contextBookId=book-1");
-    expect(url).toContain("contextPage=42");
+    expect(rosterQueryOf(rosterRequestUrls()[0])).toEqual({
+      contextBookId: "book-1",
+      pageNumber: "1",
+      pageSize: "20",
+      sort: "importance",
+    });
   });
 
-  it("sends no reading position for a finished book", async () => {
+  it("sends no spoiler context for a finished book", async () => {
     renderTab();
 
     await screen.findByRole("heading", { name: "Ґеральт" });
 
-    expect(rosterRequestUrls()[0]).not.toContain("contextPage");
+    expect(rosterQueryOf(rosterRequestUrls()[0])).not.toHaveProperty("contextBookId");
   });
 
   it("hides the summary and the toolbar for an empty book", async () => {
@@ -523,13 +530,43 @@ describe("BookCharactersTab invalidation", () => {
   });
 });
 
+describe("BookCharactersTab unlink focus", () => {
+  async function requestUnlinkOf(name: string): Promise<HTMLElement> {
+    await screen.findByRole("heading", { name });
+    const menuTrigger = within(cardFor(name)).getByRole("button", { name: "Дії з персонажем" });
+    await userEvent.click(menuTrigger);
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Прибрати з цієї книги" }));
+    await screen.findByRole("alertdialog", { name: "Прибрати з цієї книги" });
+    return menuTrigger;
+  }
+
+  it("returns focus to the row menu when the unlink is cancelled", async () => {
+    renderTab();
+    const menuTrigger = await requestUnlinkOf("Ґеральт");
+
+    await userEvent.click(screen.getByRole("button", { name: "Скасувати" }));
+
+    await waitFor(() => expect(menuTrigger).toHaveFocus());
+  });
+
+  it("moves focus to the add button once the character is unlinked", async () => {
+    renderTab();
+    await requestUnlinkOf("Ґеральт");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Прибрати" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Додати персонажа" })).toHaveFocus(),
+    );
+  });
+});
+
 describe("BookCharactersTab summary strip", () => {
-  it("shows favorites, POV and the hidden warning without a total characters chip", async () => {
+  it("shows favorites and POV without a total characters chip", async () => {
     respondToSummary = () =>
       jsonResponse(
         makeBookCharacterSummary({
           favoritesCount: 1,
-          hasHiddenRecords: true,
           povCount: 2,
           totalVisibleCharacters: 3,
         }),
@@ -539,7 +576,118 @@ describe("BookCharactersTab summary strip", () => {
 
     expect(await screen.findByText("Улюблених: 1")).toBeVisible();
     expect(screen.getByText("POV: 2")).toBeVisible();
-    expect(screen.getByText("Є приховані записи")).toBeVisible();
     expect(screen.queryByText(/Персонажів:/)).not.toBeInTheDocument();
+  });
+
+  it("leaves the hidden-content signal to the card lock instead of a roster-wide warning", async () => {
+    respondToSummary = () =>
+      jsonResponse(makeBookCharacterSummary({ favoritesCount: 1, povCount: 2 }));
+    respondToRoster = () =>
+      rosterPage([{ ...geralt, hiddenFields: ["biography", "appearance"] }, yennefer], 1);
+
+    renderTab();
+
+    await screen.findByRole("heading", { name: "Ґеральт" });
+    expect(await screen.findByText("Улюблених: 1")).toBeVisible();
+    expect(within(cardFor("Ґеральт")).getByText("Приховані поля: 2")).toBeInTheDocument();
+    expect(within(cardFor("Єнніфер")).queryByText(/Приховані поля/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/приховані записи/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("BookCharactersTab filters", () => {
+  function lastRosterQuery(): URLSearchParams {
+    const url = rosterRequestUrls().at(-1);
+    return new URL(url ?? "/", "http://localhost").searchParams;
+  }
+
+  it("sends the URL filters to the backend and keeps the toolbar when nothing matches", async () => {
+    respondToRoster = () => rosterPage([], 1);
+
+    renderTab(
+      "characterImportance=not_specified,major&characterFavoritesOnly=true&characterPovOnly=true",
+    );
+
+    expect(await screen.findByText("Нічого не знайдено")).toBeInTheDocument();
+    expect(screen.queryByText("Тут поки немає персонажів")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Улюблені" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    const query = lastRosterQuery();
+    expect(query.getAll("importance")).toEqual(["major", "not_specified"]);
+    expect(query.get("favoritesOnly")).toBe("true");
+    expect(query.get("povOnly")).toBe("true");
+  });
+
+  it("reloads from the first page when the favorites filter is switched on", async () => {
+    renderTab();
+    await screen.findByRole("heading", { name: "Ґеральт" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Улюблені" }));
+
+    await waitFor(() => expect(lastRosterQuery().get("favoritesOnly")).toBe("true"));
+    expect(lastRosterQuery().get("pageNumber")).toBe("1");
+    expect(screen.getByRole("button", { name: "Улюблені" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("filters by importance, including unspecified, from the toolbar menu", async () => {
+    renderTab();
+    await screen.findByRole("heading", { name: "Ґеральт" });
+
+    await userEvent.click(screen.getByRole("button", { name: /Важливість/ }));
+    await userEvent.click(await screen.findByRole("menuitemcheckbox", { name: "Не вказано" }));
+
+    await waitFor(() => expect(lastRosterQuery().getAll("importance")).toEqual(["not_specified"]));
+  });
+
+  it("clears only the filters and keeps the search", async () => {
+    renderTab("characterSearch=Ге&characterPovOnly=true&characterSort=name");
+    await screen.findByRole("heading", { name: "Ґеральт" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Скинути фільтри" }));
+
+    await waitFor(() => expect(lastRosterQuery().get("povOnly")).toBeNull());
+    expect(lastRosterQuery().get("search")).toBe("Ге");
+    expect(lastRosterQuery().get("sort")).toBe("name");
+    expect(screen.queryByRole("button", { name: "Скинути фільтри" })).not.toBeInTheDocument();
+  });
+
+  it("clears search and filters from the no-results state but keeps the sort", async () => {
+    respondToRoster = (url) => rosterPage(url.includes("search=") ? [] : [geralt], 1);
+
+    renderTab("characterSearch=zzz&characterImportance=major&characterSort=name");
+    await screen.findByText("Нічого не знайдено");
+
+    await userEvent.click(screen.getByRole("button", { name: "Скинути пошук і фільтри" }));
+
+    expect(await screen.findByRole("heading", { name: "Ґеральт" })).toBeInTheDocument();
+    const query = lastRosterQuery();
+    expect(query.get("search")).toBeNull();
+    expect(query.getAll("importance")).toEqual([]);
+    expect(query.get("sort")).toBe("name");
+  });
+});
+
+describe("BookCharactersTab favorite guard", () => {
+  it("sends one request when the heart is pressed again while the first is pending", async () => {
+    const gate = favoriteGate();
+    respondToFavorite = () => gate.promise;
+
+    renderTab();
+    await screen.findByRole("heading", { name: "Ґеральт" });
+
+    const card = cardFor("Ґеральт");
+    await userEvent.click(within(card).getByRole("button", { name: "Додати в улюблені" }));
+    await userEvent.click(within(card).getByRole("button", { name: "Прибрати з улюблених" }));
+
+    const patches = fetchMock.mock.calls.filter(
+      ([, init]) => (init as RequestInit | undefined)?.method === "PATCH",
+    );
+    expect(patches).toHaveLength(1);
+    gate.fail(new Error("stop"));
   });
 });

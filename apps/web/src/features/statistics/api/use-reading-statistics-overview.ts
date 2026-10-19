@@ -16,9 +16,11 @@ export function useReadingStatisticsOverview(
   params: StatisticsControllerGetOverviewParams,
   options: { enabled?: boolean } = {},
 ) {
+  const enabled = options.enabled ?? true;
+
   return useQuery({
-    enabled: options.enabled ?? true,
-    placeholderData: keepPreviousData,
+    enabled,
+    placeholderData: enabled ? keepPreviousData : undefined,
     queryFn: async (): Promise<ReadingStatisticsOverview> =>
       ReadingStatisticsOverviewSchema.parse(await statisticsControllerGetOverview(params)),
     queryKey: getStatisticsControllerGetOverviewQueryKey(params),

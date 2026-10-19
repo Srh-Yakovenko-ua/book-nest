@@ -1,4 +1,4 @@
-import type { Nullable, QuotesFacetsQuery, QuotesQuery } from "@app/shared";
+import type { Nullable, QuoteSearchScope, QuotesFacetsQuery, QuotesQuery } from "@app/shared";
 
 import {
   type inferParserType,
@@ -11,8 +11,10 @@ import { isInvertedDayRange, storableDay } from "@/features/books/model/filter-c
 
 import { QUOTE_FILTER_VALUES, QUOTE_SORT_VALUES } from "./quote-options";
 
-export type QuotesFacetsParams = QuotesFacetsQuery;
-export type QuotesListParams = Omit<QuotesQuery, "pageNumber">;
+export type QuotesFacetsParams = Omit<QuotesFacetsQuery, "searchIn"> & OptionalSearchScope;
+
+export type QuotesListParams = Omit<QuotesQuery, "pageNumber" | "searchIn"> & OptionalSearchScope;
+type OptionalSearchScope = { searchIn?: QuoteSearchScope };
 
 export const QUOTES_PAGE_SIZE = 12;
 export const QUOTES_FILTER_DEFAULT = "all";

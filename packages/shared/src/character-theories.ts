@@ -1,11 +1,6 @@
 import { z } from "zod";
 
-import {
-  createPaginatedSchema,
-  paginationQueryFields,
-  readingPositionQueryFields,
-  requireContextBookForReadingPosition,
-} from "./common.js";
+import { createPaginatedSchema, paginationQueryFields } from "./common.js";
 
 const CHARACTER_THEORY_TEXT_MAX = 5000;
 const CHARACTER_THEORY_SEARCH_MAX = 100;
@@ -86,19 +81,16 @@ export const UpdateCharacterTheoryInputSchema = z
 
 export type UpdateCharacterTheoryInput = z.infer<typeof UpdateCharacterTheoryInputSchema>;
 
-export const CharacterTheoriesQuerySchema = z
-  .object({
-    ...readingPositionQueryFields,
-    bookId: z.uuid().optional(),
-    characterId: z.uuid().optional(),
-    contextBookId: z.uuid().optional(),
-    ...paginationQueryFields({ pageSizeDefault: CHARACTER_THEORIES_DEFAULT_PAGE_SIZE }),
-    search: z.string().trim().max(CHARACTER_THEORY_SEARCH_MAX).optional(),
-    seriesId: z.uuid().optional(),
-    sort: CharacterTheorySortSchema.default("newest"),
-    status: CharacterTheoryStatusSchema.optional(),
-  })
-  .superRefine(requireContextBookForReadingPosition);
+export const CharacterTheoriesQuerySchema = z.object({
+  bookId: z.uuid().optional(),
+  characterId: z.uuid().optional(),
+  contextBookId: z.uuid().optional(),
+  ...paginationQueryFields({ pageSizeDefault: CHARACTER_THEORIES_DEFAULT_PAGE_SIZE }),
+  search: z.string().trim().max(CHARACTER_THEORY_SEARCH_MAX).optional(),
+  seriesId: z.uuid().optional(),
+  sort: CharacterTheorySortSchema.default("newest"),
+  status: CharacterTheoryStatusSchema.optional(),
+});
 
 export type CharacterTheoriesQuery = z.infer<typeof CharacterTheoriesQuerySchema>;
 

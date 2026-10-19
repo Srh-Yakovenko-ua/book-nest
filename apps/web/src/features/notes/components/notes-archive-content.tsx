@@ -13,10 +13,11 @@ import { assertNever } from "@/lib/assert-never";
 import { cn } from "@/lib/utils";
 
 import type {
+  NotesArchiveEmptyCopy,
   NotesArchiveEmptyReason,
   NotesArchiveListState,
 } from "../model/notes-archive-list-state";
-import type { NotesViewMode } from "../model/notes-archive-query";
+import type { NoteCardLayout } from "./note-card-layout";
 
 import { NoteArchiveCard } from "./note-archive-card";
 import { NoteCardSkeleton } from "./note-card-skeleton";
@@ -28,28 +29,44 @@ const NOTES_ARCHIVE_LIST = {
 } as const;
 
 type NotesArchiveContentProps = {
+  emptyCopy?: NotesArchiveEmptyCopy;
+  loadMoreFocus?: NotesArchiveLoadMoreFocus;
   onAddNote: () => void;
   onClearFilters: () => void;
+  onClearSearch?: () => void;
   onLoadMore: () => void;
   onRetry: () => void;
   state: NotesArchiveListState;
-  view: NotesViewMode;
+  view: NotesArchiveLayout;
 };
 
+type NotesArchiveLayout = Exclude<NoteCardLayout, "compact">;
+
+type NotesArchiveLoadMoreFocus = "first-new-note" | "none";
+
 export function NotesArchiveContent({
+  emptyCopy,
+  loadMoreFocus = "first-new-note",
   onAddNote,
   onClearFilters,
+  onClearSearch = onClearFilters,
   onLoadMore,
   onRetry,
   state,
   view,
 }: NotesArchiveContentProps) {
+  const emptyActions = {
+    filters: onClearFilters,
+    library: onAddNote,
+    search: onClearSearch,
+  } satisfies Record<NotesArchiveEmptyReason, () => void>;
+
   switch (state.kind) {
     case "empty":
       return (
         <NotesArchiveEmpty
-          onAddNote={onAddNote}
-          onClearFilters={onClearFilters}
+          copy={emptyCopy}
+          onPrimary={emptyActions[state.reason]}
           reason={state.reason}
         />
       );
@@ -58,66 +75,73 @@ export function NotesArchiveContent({
     case "loading":
       return <NotesArchiveSkeleton view={view} />;
     case "ready":
-      return <NotesArchiveList onLoadMore={onLoadMore} state={state} view={view} />;
+      return (
+        <NotesArchiveList
+          loadMoreFocus={loadMoreFocus}
+          onLoadMore={onLoadMore}
+          state={state}
+          view={view}
+        />
+      );
     default:
       return assertNever(state);
   }
 }
 
 function NotesArchiveEmpty({
-  onAddNote,
-  onClearFilters,
+  copy,
+  onPrimary,
   reason,
 }: {
-  onAddNote: () => void;
-  onClearFilters: () => void;
+  copy: NotesArchiveEmptyCopy | undefined;
+  onPrimary: () => void;
   reason: NotesArchiveEmptyReason;
 }) {
   const t = useTranslations("notes.archive");
 
-  if (reason === "search") {
-    const emptySearch: EmptyStateEntry = {
-      desc: t("emptySearch.description"),
-      illu: "empty-search",
-      primary: { icon: "x", label: t("emptySearch.clear") },
-      title: t("emptySearch.title"),
-    };
-    return <EmptyState onPrimary={onClearFilters} state={emptySearch} />;
-  }
-
-  if (reason === "filters") {
-    const emptyFilters: EmptyStateEntry = {
+  const archiveCopy: Record<NotesArchiveEmptyReason, EmptyStateEntry> = {
+    filters: {
       desc: t("emptyFilters.description"),
       illu: "empty-search",
       primary: { icon: "x", label: t("emptyFilters.clear") },
       title: t("emptyFilters.title"),
-    };
-    return <EmptyState onPrimary={onClearFilters} state={emptyFilters} />;
-  }
-
-  const emptyArchive: EmptyStateEntry = {
-    desc: t("empty.description"),
-    illu: "empty-notes",
-    primary: { icon: "plus", label: t("empty.cta") },
-    title: t("empty.title"),
+    },
+    library: {
+      desc: t("empty.description"),
+      illu: "empty-notes",
+      primary: { icon: "plus", label: t("empty.cta") },
+      title: t("empty.title"),
+    },
+    search: {
+      desc: t("emptySearch.description"),
+      illu: "empty-search",
+      primary: { icon: "x", label: t("emptySearch.clear") },
+      title: t("emptySearch.title"),
+    },
   };
-  return <EmptyState onPrimary={onAddNote} state={emptyArchive} />;
+
+  return <EmptyState onPrimary={onPrimary} state={copy?.[reason] ?? archiveCopy[reason]} />;
 }
 
 function NotesArchiveList({
+  loadMoreFocus,
   onLoadMore,
   state,
   view,
 }: {
+  loadMoreFocus: NotesArchiveLoadMoreFocus;
   onLoadMore: () => void;
   state: Extract<NotesArchiveListState, { kind: "ready" }>;
-  view: NotesViewMode;
+  view: NotesArchiveLayout;
 }) {
   const t = useTranslations("notes.archive");
   const [firstNewNoteIndex, setFirstNewNoteIndex] = useState<Nullable<number>>(null);
 
   function loadMore() {
-    setFirstNewNoteIndex(state.notes.length);
+    const isExplicitRetry = state.nextPage === "error";
+    if (loadMoreFocus === "first-new-note" || isExplicitRetry) {
+      setFirstNewNoteIndex(state.notes.length);
+    }
     onLoadMore();
   }
 
@@ -140,6 +164,7 @@ function NotesArchiveList({
         {state.notes.map((note, index) => (
           <li
             className="flex min-w-0 flex-col"
+            data-note-id={note.id}
             key={note.id}
             ref={index === firstNewNoteIndex ? focusFirstNewNote : undefined}
           >
@@ -149,6 +174,7 @@ function NotesArchiveList({
       </ul>
 
       <InfiniteScrollFooter
+        errorFocus={loadMoreFocus === "none" ? "none" : "retry"}
         errorLabel={t("loadMoreError")}
         onLoadMore={loadMore}
         state={state.nextPage}
@@ -157,7 +183,7 @@ function NotesArchiveList({
   );
 }
 
-function NotesArchiveSkeleton({ view }: { view: NotesViewMode }) {
+function NotesArchiveSkeleton({ view }: { view: NotesArchiveLayout }) {
   const t = useTranslations("notes.states");
 
   return (
@@ -169,6 +195,6 @@ function NotesArchiveSkeleton({ view }: { view: NotesViewMode }) {
   );
 }
 
-function notesGridClassName(view: NotesViewMode): string {
+function notesGridClassName(view: NotesArchiveLayout): string {
   return cn("grid grid-cols-1 gap-4", view === "grid" && "lg:grid-cols-2");
 }

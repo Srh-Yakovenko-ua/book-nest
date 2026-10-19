@@ -1,4 +1,4 @@
-import type { BookView, OwnershipStatus, ReadingStatus } from "@app/shared";
+import type { BookDetailsView, OwnershipStatus, ReadingStatus } from "@app/shared";
 import type { InfiniteData, QueryKey } from "@tanstack/react-query";
 
 import { BulkActionResultSchema } from "@app/shared";
@@ -7,6 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { invalidateGenreDerivedQueries } from "@/features/genres/api/genres-keys";
 import { listKeys } from "@/features/lists/api/list-keys";
 import { invalidatePublisherQueries } from "@/features/publishers/api/publisher-keys";
+import { invalidateGoalQueries } from "@/features/reading-goals/api/goal-keys";
 import { seriesKeys } from "@/features/series/api/series-keys";
 import { invalidateStatisticsQueries } from "@/features/statistics/api/statistics-keys";
 import {
@@ -99,6 +100,7 @@ export function useBulkDeleteBooks() {
       void invalidateGenreDerivedQueries(queryClient);
       void invalidateTagAggregateQueries(queryClient);
       void queryClient.invalidateQueries({ queryKey: RECENT_GENRES_KEY });
+      void invalidateGoalQueries(queryClient);
     },
   });
 }
@@ -130,6 +132,7 @@ export function useBulkReadingStatus() {
       void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
       void invalidateStatisticsQueries(queryClient);
       void invalidateGenreDerivedQueries(queryClient);
+      void invalidateGoalQueries(queryClient);
     },
   });
 }
@@ -159,6 +162,7 @@ export function useDeleteBook() {
       void invalidateGenreDerivedQueries(queryClient);
       void invalidateTagAggregateQueries(queryClient);
       void queryClient.invalidateQueries({ queryKey: RECENT_GENRES_KEY });
+      void invalidateGoalQueries(queryClient);
     },
   });
 }
@@ -209,9 +213,9 @@ export function useToggleFavorite() {
     },
     onSuccess: (_data, { id, isFavorite }) => {
       const detailKey = bookKeys.detail(id);
-      const cached = queryClient.getQueryData<BookView>(detailKey);
+      const cached = queryClient.getQueryData<BookDetailsView>(detailKey);
       if (cached !== undefined) {
-        queryClient.setQueryData<BookView>(detailKey, { ...cached, isFavorite });
+        queryClient.setQueryData<BookDetailsView>(detailKey, { ...cached, isFavorite });
       }
     },
   });

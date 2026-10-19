@@ -48,4 +48,4 @@ Full documentation lives in the repository-level [`docs/`](../../docs/) folder:
 - [Vitest + React Testing Library](../../docs/tools/vitest.md)
 - [Tailwind CSS v4](../../docs/tools/tailwind.md)
 - [shadcn/ui](../../docs/tools/shadcn.md)
-- [MCP servers (Playwright, Context7, frontend-design)](../../docs/tools/mcp-servers.md)
+- [Claude Code setup (hooks, skills, plugins, MCP servers)](../../docs/tools/claude-code.md)

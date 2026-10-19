@@ -123,7 +123,7 @@ export function LoansAdvancedFilters({
                 ariaLabel={t("range.from")}
                 className="h-9 text-sm"
                 id="loans-filter-loan-from"
-                onChange={(value) => patch({ loanFrom: value ?? null })}
+                onChange={(value) => patch({ loanFrom: value })}
                 placeholder={t("range.from")}
                 value={draft.loanFrom}
               />
@@ -131,7 +131,7 @@ export function LoansAdvancedFilters({
                 ariaLabel={t("range.to")}
                 className="h-9 text-sm"
                 id="loans-filter-loan-to"
-                onChange={(value) => patch({ loanTo: value ?? null })}
+                onChange={(value) => patch({ loanTo: value })}
                 placeholder={t("range.to")}
                 value={draft.loanTo}
               />
@@ -148,7 +148,7 @@ export function LoansAdvancedFilters({
                 ariaLabel={t("range.from")}
                 className="h-9 text-sm"
                 id="loans-filter-due-from"
-                onChange={(value) => patch({ dueFrom: value ?? null })}
+                onChange={(value) => patch({ dueFrom: value })}
                 placeholder={t("range.from")}
                 value={draft.dueFrom}
               />
@@ -157,7 +157,7 @@ export function LoansAdvancedFilters({
                 ariaLabel={t("range.to")}
                 className="h-9 text-sm"
                 id="loans-filter-due-to"
-                onChange={(value) => patch({ dueTo: value ?? null })}
+                onChange={(value) => patch({ dueTo: value })}
                 placeholder={t("range.to")}
                 value={draft.dueTo}
               />

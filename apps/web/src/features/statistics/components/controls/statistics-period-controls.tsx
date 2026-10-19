@@ -2,11 +2,13 @@
 
 import type { Nullable, ReadingStatisticsComparison, ReadingStatisticsPeriod } from "@app/shared";
 
+import { READING_STATISTICS_CUSTOM_PERIOD_BOUNDS } from "@app/shared";
+import { parseISO } from "date-fns";
 import { useLocale, useTranslations } from "next-intl";
 import { useId } from "react";
 
 import { UiIcon } from "@/components/icons";
-import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -18,10 +20,12 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { YearPicker } from "@/components/ui/year-picker";
+import { useWeekStartsOn } from "@/features/settings";
+import { dateToIsoDay, isoDayToDate } from "@/lib/iso-day";
 
 import type { UseStatisticsParamsResult } from "../../model/use-statistics-params";
 
-import { formatDayRange } from "../../model/statistics-format";
+import { formatDayLong, formatDayRange } from "../../model/statistics-format";
 import {
   defaultStatisticsCompareMode,
   resolvedStatisticsYear,
@@ -45,7 +49,15 @@ export function StatisticsPeriodControls({
   const compareId = useId();
   const compareModeId = useId();
   const yearId = useId();
+  const fromId = useId();
+  const toId = useId();
+  const rangeIssueId = useId();
+  const weekStartsOn = useWeekStartsOn();
+  const hasRangeIssue = params.rangeIssue !== null && params.rangeIssue !== "incomplete";
+  const rangeIssueDescription = params.rangeIssue === null ? undefined : rangeIssueId;
   const yearBounds = selectableYearBounds(params.today);
+  const today = parseISO(params.today);
+  const earliestDay = parseISO(READING_STATISTICS_CUSTOM_PERIOD_BOUNDS.earliestDay);
 
   const currentLabel =
     period === null ? null : formatDayRange({ from: period.from, locale, to: period.to });
@@ -93,27 +105,47 @@ export function StatisticsPeriodControls({
         ) : null}
 
         {params.state.period === "custom" ? (
-          <div className="flex items-center gap-2">
-            <Input
-              aria-label={t("from")}
-              className="h-9 w-[9.5rem]"
-              max={params.today}
-              onChange={(event) =>
-                params.setCustomRange({ from: event.target.value, to: params.state.to })
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <DatePicker
+              ariaLabel={t("from")}
+              className="h-9 rounded-lg text-sm whitespace-nowrap sm:w-50"
+              describedBy={rangeIssueDescription}
+              endMonth={today}
+              id={fromId}
+              invalid={hasRangeIssue}
+              onChange={(date) =>
+                params.setCustomRange({
+                  from: date ? dateToIsoDay(date) : "",
+                  to: params.state.to,
+                })
               }
-              type="date"
-              value={params.state.from}
+              placeholder={t("from")}
+              required
+              startMonth={earliestDay}
+              today={today}
+              value={isoDayToDate(params.state.from)}
+              weekStartsOn={weekStartsOn}
             />
-            <span className="text-sm text-muted-foreground">–</span>
-            <Input
-              aria-label={t("to")}
-              className="h-9 w-[9.5rem]"
-              max={params.today}
-              onChange={(event) =>
-                params.setCustomRange({ from: params.state.from, to: event.target.value })
+            <span className="hidden text-sm text-muted-foreground sm:inline">–</span>
+            <DatePicker
+              ariaLabel={t("to")}
+              className="h-9 rounded-lg text-sm whitespace-nowrap sm:w-50"
+              describedBy={rangeIssueDescription}
+              endMonth={today}
+              id={toId}
+              invalid={hasRangeIssue}
+              onChange={(date) =>
+                params.setCustomRange({
+                  from: params.state.from,
+                  to: date ? dateToIsoDay(date) : "",
+                })
               }
-              type="date"
-              value={params.state.to}
+              placeholder={t("to")}
+              required
+              startMonth={earliestDay}
+              today={today}
+              value={isoDayToDate(params.state.to)}
+              weekStartsOn={weekStartsOn}
             />
           </div>
         ) : null}
@@ -179,17 +211,26 @@ export function StatisticsPeriodControls({
       </div>
 
       {params.rangeIssue === null ? null : (
-        <p className="text-xs text-favorite" role="alert">
-          {t(`issues.${params.rangeIssue}`)}
+        <p
+          className={hasRangeIssue ? "text-xs text-favorite" : "text-xs text-muted-foreground"}
+          id={rangeIssueId}
+          role={hasRangeIssue ? "alert" : "status"}
+        >
+          {t(`issues.${params.rangeIssue}`, {
+            earliest: formatDayLong(READING_STATISTICS_CUSTOM_PERIOD_BOUNDS.earliestDay, locale),
+            maxDays: READING_STATISTICS_CUSTOM_PERIOD_BOUNDS.maxDays,
+          })}
         </p>
       )}
 
-      <p className="text-sm text-muted-foreground">
-        {currentLabel === null ? t("allTimeCaption") : t("caption", { range: currentLabel })}
-        {comparisonLabel === null ? null : (
-          <span className="ms-2">{t("comparisonCaption", { range: comparisonLabel })}</span>
-        )}
-      </p>
+      {period === null ? null : (
+        <p className="text-sm text-muted-foreground">
+          {currentLabel === null ? t("allTimeCaption") : t("caption", { range: currentLabel })}
+          {comparisonLabel === null ? null : (
+            <span className="ms-2">{t("comparisonCaption", { range: comparisonLabel })}</span>
+          )}
+        </p>
+      )}
     </section>
   );
 }

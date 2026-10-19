@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 import type { QuotesControllerListFilter } from "./quotesControllerListFilter";
+import type { QuotesControllerListSearchIn } from "./quotesControllerListSearchIn";
 import type { QuotesControllerListSort } from "./quotesControllerListSort";
 
 export type QuotesControllerListParams = {
@@ -35,6 +36,7 @@ export type QuotesControllerListParams = {
    * @maxLength 100
    */
   q?: string;
+  searchIn?: QuotesControllerListSearchIn;
   filter?: QuotesControllerListFilter;
   /**
    * @minimum 1

@@ -1,13 +1,13 @@
 ---
 name: blast-radius
-description: Find and run everything a change actually breaks, not just the files you edited. Use after changing anything in packages/shared, a Prisma schema or migration, a repository or service signature, a DI constructor, or an endpoint's request/response contract — and before any commit that touches those. Also use when the user says "что сломается", "кто это использует", "проверь зависимости", "blast radius", "who consumes this".
+description: Find everything a change actually breaks, not just the files you edited, and route it so CI tests it before any deploy. Use after changing anything in packages/shared, a Prisma schema or migration, a repository or service signature, a DI constructor, or an endpoint's request/response contract — and before any commit that touches those. Also use when the user says "что сломается", "кто это использует", "проверь зависимости", "blast radius", "who consumes this".
 ---
 
 # Blast radius
 
-`pnpm test` costs ~7 minutes and CI runs it anyway, so the local habit is `vitest run <path/to/the.test.ts>` on the files you touched. That habit is correct and it has one blind spot: **it only ever runs the tests you already thought of.** A contract change breaks callers you did not open, and you find out from a red deploy.
+Tests run only in CI (CLAUDE.md §9), so the local defence is the compiler plus reading. Both share one blind spot: **they only ever cover the files you already thought of.** A contract change breaks callers you did not open, and you find out from a red deploy.
 
-This skill closes that gap without paying for the full suite. It answers one question: _given this diff, which files can no longer be assumed correct?_
+This skill closes that gap without running the suite here. It answers one question: _given this diff, which files can no longer be assumed correct?_
 
 ## When it earns its keep
 
@@ -58,42 +58,28 @@ pnpm typecheck                     # all three packages, not just @app/api
 
 The root typecheck catches every _type-level_ consumer for free. Treat its output as a to-do list, not an obstacle. It does **not** catch runtime-only breakage — a request body that now fails Zod validation still compiles fine on both sides.
 
-### 4. Run the tests the compiler cannot reach
+### 4. Fix the tests the compiler cannot reach
 
-This is the step the habit skips. A test that sends a literal request body, or asserts on a literal response shape, compiles perfectly and fails at runtime.
-
-```bash
-cd apps/api
-grep -rln "<endpoint path or symbol>" src --include='*.test.ts'
-pnpm exec vitest run <each file from that list>
-```
-
-Run from `apps/api`, never the repo root — the root picks the wrong vitest config and env validation fails.
-
-If the changed surface is a **request body or a response field**, also grep the test tree for the literal:
+A test that sends a literal request body, or asserts on a literal response shape, compiles perfectly and fails at runtime. Find them and update them now, by reading; do not run them here.
 
 ```bash
-grep -rn '"<fieldName>"\|<fieldName>:' src --include='*.test.ts' | grep -v "$(git diff --name-only | tr '\n' '|')" | head -20
+grep -rln "<endpoint path or symbol>" apps/api/src --include='*.test.ts'
+grep -rn '"<fieldName>"\|<fieldName>:' apps/api/src apps/web/src --include='*.test.ts' --include='*.test.tsx' | head -20
 ```
 
-### 5. Decide honestly whether the narrow run was enough
+### 5. Route it through CI before anything deploys
 
-Ask one question: _did I change something every module could be using?_ Prisma client regeneration, a `core/**` helper, a DI graph change, or a shared type with more than a handful of consumers all say yes. Then run the whole backend suite once and take the 7 minutes:
-
-```bash
-cd apps/api && VITEST_MAX_WORKERS=4 pnpm exec vitest run
-```
-
-Seven minutes beats a red deploy and a second push.
+A direct push to `dev` deploys, and a red test there blocks the deploy. A contract change goes up as a branch with a PR into `dev`: `ci.yml` runs the full suite on the PR and nothing deploys until it is green and merged. Pushing needs the user's consent, so say this in the report rather than doing it. If the user wants the tests run here instead, run only the files from steps 2 and 4, from `apps/api` (the root picks the wrong vitest config), with `VITEST_MAX_WORKERS=1`.
 
 ## Gate
 
-Do not commit a contract change until either:
+Do not call a contract change ready until:
 
-- every file found in steps 2 and 4 has been run and is green, **or**
-- the full backend suite has been run and is green.
+- every consumer found in steps 2 and 4 has been read and updated,
+- `bash .claude/scripts/gates.sh` is green, and
+- the report says it ships through a PR into `dev`, listing the consumer test files CI will exercise.
 
-State in the commit which of the two you did. "Ran the files I touched" is not one of the options for a contract change.
+"Typecheck is green" is not enough on its own for a contract change.
 
 ## Why this exists
 

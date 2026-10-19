@@ -14,6 +14,7 @@ services:
       - caddy-config:/config
     networks:
       - edge
+      - db-admin
     cap_drop:
       - ALL
     cap_add:
@@ -292,11 +293,16 @@ services:
     volumes:
       - cloudbeaver-data:/opt/cloudbeaver/workspace
     networks:
+      - db-admin
       - dev-internal
+      - prod-internal
+    security_opt:
+      - no-new-privileges:true
     mem_limit: 512m
 
 networks:
   edge:
+  db-admin:
   prod-internal:
   dev-internal:
   prod-queue:

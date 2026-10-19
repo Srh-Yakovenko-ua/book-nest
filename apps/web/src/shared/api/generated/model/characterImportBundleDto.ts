@@ -5,22 +5,965 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
-import type { CharacterImportBundleDtoCharactersItem } from "./characterImportBundleDtoCharactersItem";
-import type { CharacterImportBundleDtoFormatVersion } from "./characterImportBundleDtoFormatVersion";
-import type { CharacterImportBundleDtoGroupsItem } from "./characterImportBundleDtoGroupsItem";
-import type { CharacterImportBundleDtoRelationshipsItem } from "./characterImportBundleDtoRelationshipsItem";
-import type { CharacterImportBundleDtoTheoriesItem } from "./characterImportBundleDtoTheoriesItem";
 
-export interface CharacterImportBundleDto {
-  /** @maxItems 1000 */
-  characters: CharacterImportBundleDtoCharactersItem[];
-  /** @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$ */
-  exportedAt: string;
-  formatVersion: CharacterImportBundleDtoFormatVersion;
-  /** @maxItems 300 */
-  groups: CharacterImportBundleDtoGroupsItem[];
-  /** @maxItems 3000 */
-  relationships: CharacterImportBundleDtoRelationshipsItem[];
-  /** @maxItems 2000 */
-  theories: CharacterImportBundleDtoTheoriesItem[];
-}
+export type CharacterImportBundleDto =
+  | {
+      /** @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$ */
+      exportedAt: string;
+      /** @maxItems 300 */
+      groups: {
+        /**
+         * @maxLength 60
+         * @nullable
+         */
+        customType: string | null;
+        /**
+         * @maxLength 5000
+         * @nullable
+         */
+        description: string | null;
+        isSpoiler: boolean;
+        /** @maxItems 100 */
+        memberships: {
+          /**
+           * @nullable
+           * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+           */
+          bookId: string | null;
+          /** @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$ */
+          characterId: string;
+          isSpoiler: boolean;
+          /**
+           * @maxLength 200
+           * @nullable
+           */
+          role: string | null;
+          /**
+           * @maxLength 200
+           * @nullable
+           */
+          status: string | null;
+        }[];
+        /**
+         * @minLength 1
+         * @maxLength 200
+         */
+        name: string;
+        /**
+         * @nullable
+         * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+         */
+        seriesId: string | null;
+        type:
+          | "family"
+          | "clan"
+          | "house"
+          | "court"
+          | "kingdom"
+          | "order"
+          | "guild"
+          | "team"
+          | "organization"
+          | "cult"
+          | "custom";
+      }[];
+      /** @maxItems 3000 */
+      relationships: {
+        /** @maxItems 200 */
+        bookStates: {
+          /** @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$ */
+          bookId: string;
+          /**
+           * @maxLength 5000
+           * @nullable
+           */
+          description: string | null;
+          /**
+           * @maximum 2147483647
+           * @exclusiveMinimum 0
+           * @nullable
+           */
+          endedAudioSeconds: number | null;
+          /**
+           * @maxLength 200
+           * @nullable
+           */
+          endedChapter: string | null;
+          /**
+           * @maximum 2147483647
+           * @exclusiveMinimum 0
+           * @nullable
+           */
+          endedPage: number | null;
+          hideRelationshipAsSpoiler: boolean;
+          /** @nullable */
+          intensity: "low" | "medium" | "high" | null;
+          /**
+           * @maximum 2147483647
+           * @exclusiveMinimum 0
+           * @nullable
+           */
+          introducedAudioSeconds: number | null;
+          /**
+           * @maxLength 200
+           * @nullable
+           */
+          introducedChapter: string | null;
+          /**
+           * @maximum 2147483647
+           * @exclusiveMinimum 0
+           * @nullable
+           */
+          introducedPage: number | null;
+          isDescriptionSpoiler: boolean;
+          isTypeSpoiler: boolean;
+          status: "active" | "ended" | "unknown" | "hidden";
+        }[];
+        category:
+          | "family"
+          | "romantic"
+          | "social"
+          | "conflict"
+          | "mentorship"
+          | "hierarchy"
+          | "supernatural"
+          | "custom";
+        /**
+         * @maxLength 60
+         * @nullable
+         */
+        customType: string | null;
+        directionality: "directed" | "symmetric";
+        isCanonical: boolean;
+        /** @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$ */
+        sourceCharacterId: string;
+        /**
+         * @maxLength 120
+         * @nullable
+         */
+        sourceLabel: string | null;
+        /** @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$ */
+        targetCharacterId: string;
+        /**
+         * @maxLength 120
+         * @nullable
+         */
+        targetLabel: string | null;
+        type:
+          | "biological_parent_of"
+          | "biological_child_of"
+          | "adoptive_parent_of"
+          | "adoptive_child_of"
+          | "step_parent_of"
+          | "step_child_of"
+          | "guardian_of"
+          | "ward_of"
+          | "ancestor_of"
+          | "descendant_of"
+          | "sibling_of"
+          | "half_sibling_of"
+          | "step_sibling_of"
+          | "twin_of"
+          | "spouse_of"
+          | "ex_spouse_of"
+          | "relative_of"
+          | "partner_of"
+          | "ex_partner_of"
+          | "romantic_interest_of"
+          | "mutual_romantic_interest"
+          | "engaged_to"
+          | "romantic_tension_with"
+          | "unrequited_love_for"
+          | "friend_of"
+          | "best_friend_of"
+          | "ally_of"
+          | "acquaintance_of"
+          | "companion_of"
+          | "neighbor_of"
+          | "trusted_by"
+          | "distrusts"
+          | "enemy_of"
+          | "rival_of"
+          | "betrayed"
+          | "betrayed_by"
+          | "hunts"
+          | "hunted_by"
+          | "opposes"
+          | "feud_with"
+          | "mentor_of"
+          | "student_of"
+          | "teacher_of"
+          | "pupil_of"
+          | "protector_of"
+          | "protected_by"
+          | "healer_of"
+          | "patient_of"
+          | "leader_of"
+          | "subordinate_of"
+          | "commander_of"
+          | "serves_under"
+          | "employer_of"
+          | "employee_of"
+          | "master_of"
+          | "servant_of"
+          | "member_of_same_group"
+          | "rules_over"
+          | "subject_of"
+          | "creator_of"
+          | "creation_of"
+          | "summoner_of"
+          | "summoned_by"
+          | "magically_bonded_to"
+          | "soulmate_of"
+          | "blood_bonded_to"
+          | "possesses"
+          | "possessed_by"
+          | "shares_body_with"
+          | "reincarnation_of"
+          | "clone_of"
+          | "custom";
+      }[];
+      /** @maxItems 2000 */
+      theories: {
+        /**
+         * @nullable
+         * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+         */
+        bookId: string | null;
+        /**
+         * @nullable
+         * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+         */
+        characterId: string | null;
+        isSpoiler: boolean;
+        /**
+         * @nullable
+         * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+         */
+        seriesId: string | null;
+        status: "unverified" | "confirmed" | "disproved";
+        /**
+         * @minLength 1
+         * @maxLength 5000
+         */
+        text: string;
+      }[];
+      /** @maxItems 1000 */
+      characters: {
+        /** @maxItems 30 */
+        aliases: {
+          /**
+           * @nullable
+           * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+           */
+          bookId: string | null;
+          isSpoiler: boolean;
+          /**
+           * @minLength 1
+           * @maxLength 200
+           */
+          name: string;
+          /**
+           * @minimum 0
+           * @maximum 2147483647
+           */
+          position: number;
+          type:
+            | "nickname"
+            | "title"
+            | "pseudonym"
+            | "true_name"
+            | "former_name"
+            | "translation"
+            | "other";
+        }[];
+        /**
+         * @nullable
+         * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+         */
+        avatarMediaId: string | null;
+        /**
+         * @maxLength 60
+         * @nullable
+         */
+        customGender: string | null;
+        entityKind: "individual" | "collective" | "unknown";
+        /** @maxItems 50 */
+        forms: {
+          /**
+           * @maxLength 5000
+           * @nullable
+           */
+          description: string | null;
+          formType:
+            "reincarnation" | "transformation" | "alter_ego" | "true_form" | "disguise" | "other";
+          isSpoiler: boolean;
+          /**
+           * @minLength 1
+           * @maxLength 200
+           */
+          name: string;
+          /**
+           * @nullable
+           * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+           */
+          portraitMediaId: string | null;
+          /**
+           * @minimum 0
+           * @maximum 2147483647
+           */
+          position: number;
+        }[];
+        gender: "female" | "male" | "non_binary" | "agender_or_na" | "unknown" | "custom";
+        /** @nullable */
+        globalAttitude:
+          "favorite" | "like" | "neutral" | "distrust" | "dislike" | "hate" | "unsure" | null;
+        /** @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$ */
+        id: string;
+        isArchived: boolean;
+        isFavorite: boolean;
+        /**
+         * @minLength 1
+         * @maxLength 200
+         */
+        name: string;
+        /**
+         * @maxLength 5000
+         * @nullable
+         */
+        neutralDescription: string | null;
+        /**
+         * @maxLength 60
+         * @nullable
+         */
+        pronouns: string | null;
+        /**
+         * @maxLength 60
+         * @nullable
+         */
+        species: string | null;
+        /**
+         * @minLength 1
+         * @maxLength 60
+         * @nullable
+         */
+        speciesKey?: string | null;
+        /**
+         * @maxItems 15
+         * @items.pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+         */
+        tagIds: string[];
+        /** @maxItems 200 */
+        appearances: {
+          /**
+           * @maxLength 5000
+           * @nullable
+           */
+          appearanceNotes: string | null;
+          appearanceNotesIsSpoiler: boolean;
+          /** @nullable */
+          attitude:
+            "favorite" | "like" | "neutral" | "distrust" | "dislike" | "hate" | "unsure" | null;
+          /** @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$ */
+          bookId: string;
+          /**
+           * @maxLength 5000
+           * @nullable
+           */
+          description: string | null;
+          descriptionIsSpoiler: boolean;
+          /**
+           * @maxLength 200
+           * @nullable
+           */
+          displayName: string | null;
+          displayNameIsSpoiler: boolean;
+          /**
+           * @minimum 0
+           * @maximum 2147483647
+           * @nullable
+           */
+          firstAppearanceAudioSeconds: number | null;
+          /**
+           * @maxLength 200
+           * @nullable
+           */
+          firstAppearanceChapter: string | null;
+          /**
+           * @maxLength 200
+           * @nullable
+           */
+          firstAppearanceNote: string | null;
+          /**
+           * @maximum 2147483647
+           * @exclusiveMinimum 0
+           * @nullable
+           */
+          firstAppearancePage: number | null;
+          importance:
+            "central" | "major" | "supporting" | "episodic" | "mentioned" | "not_specified";
+          isPovCharacter: boolean;
+          isUnreliableNarrator?: boolean;
+          isUnreliableNarratorSpoiler?: boolean;
+          /** @nullable */
+          narratorType:
+            "first_person" | "third_person_limited" | "third_person_omniscient" | "other" | null;
+          /**
+           * @maxLength 5000
+           * @nullable
+           */
+          personalImpression: string | null;
+          personalImpressionIsSpoiler: boolean;
+          portraitIsSpoiler: boolean;
+          /**
+           * @nullable
+           * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+           */
+          portraitMediaId: string | null;
+          /** @maxItems 20 */
+          roles: {
+            /**
+             * @maxLength 200
+             * @nullable
+             */
+            customRole: string | null;
+            isSpoiler: boolean;
+            /**
+             * @minimum 0
+             * @maximum 2147483647
+             */
+            position: number;
+            roleType:
+              | "protagonist"
+              | "deuteragonist"
+              | "antagonist"
+              | "love_interest"
+              | "supporting"
+              | "episodic"
+              | "mentioned"
+              | "custom";
+          }[];
+          /**
+           * @minimum 0
+           * @maximum 2147483647
+           * @nullable
+           */
+          sortOrder: number | null;
+          /**
+           * @maxLength 60
+           * @nullable
+           */
+          speciesOverride: string | null;
+          speciesOverrideIsSpoiler: boolean;
+          /**
+           * @minLength 1
+           * @maxLength 60
+           * @nullable
+           */
+          speciesOverrideKey?: string | null;
+          status:
+            "active" | "missing" | "dead" | "unknown" | "transformed" | "other" | "not_specified";
+          /**
+           * @maxLength 200
+           * @nullable
+           */
+          statusCustomText: string | null;
+          statusIsSpoiler: boolean;
+        }[];
+      }[];
+      formatVersion: 1;
+    }
+  | {
+      /** @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$ */
+      exportedAt: string;
+      /** @maxItems 300 */
+      groups: {
+        /**
+         * @maxLength 60
+         * @nullable
+         */
+        customType: string | null;
+        /**
+         * @maxLength 5000
+         * @nullable
+         */
+        description: string | null;
+        isSpoiler: boolean;
+        /** @maxItems 100 */
+        memberships: {
+          /**
+           * @nullable
+           * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+           */
+          bookId: string | null;
+          /** @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$ */
+          characterId: string;
+          isSpoiler: boolean;
+          /**
+           * @maxLength 200
+           * @nullable
+           */
+          role: string | null;
+          /**
+           * @maxLength 200
+           * @nullable
+           */
+          status: string | null;
+        }[];
+        /**
+         * @minLength 1
+         * @maxLength 200
+         */
+        name: string;
+        /**
+         * @nullable
+         * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+         */
+        seriesId: string | null;
+        type:
+          | "family"
+          | "clan"
+          | "house"
+          | "court"
+          | "kingdom"
+          | "order"
+          | "guild"
+          | "team"
+          | "organization"
+          | "cult"
+          | "custom";
+      }[];
+      /** @maxItems 3000 */
+      relationships: {
+        /** @maxItems 200 */
+        bookStates: {
+          /** @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$ */
+          bookId: string;
+          /**
+           * @maxLength 5000
+           * @nullable
+           */
+          description: string | null;
+          /**
+           * @maximum 2147483647
+           * @exclusiveMinimum 0
+           * @nullable
+           */
+          endedAudioSeconds: number | null;
+          /**
+           * @maxLength 200
+           * @nullable
+           */
+          endedChapter: string | null;
+          /**
+           * @maximum 2147483647
+           * @exclusiveMinimum 0
+           * @nullable
+           */
+          endedPage: number | null;
+          hideRelationshipAsSpoiler: boolean;
+          /** @nullable */
+          intensity: "low" | "medium" | "high" | null;
+          /**
+           * @maximum 2147483647
+           * @exclusiveMinimum 0
+           * @nullable
+           */
+          introducedAudioSeconds: number | null;
+          /**
+           * @maxLength 200
+           * @nullable
+           */
+          introducedChapter: string | null;
+          /**
+           * @maximum 2147483647
+           * @exclusiveMinimum 0
+           * @nullable
+           */
+          introducedPage: number | null;
+          isDescriptionSpoiler: boolean;
+          isTypeSpoiler: boolean;
+          status: "active" | "ended" | "unknown" | "hidden";
+        }[];
+        category:
+          | "family"
+          | "romantic"
+          | "social"
+          | "conflict"
+          | "mentorship"
+          | "hierarchy"
+          | "supernatural"
+          | "custom";
+        /**
+         * @maxLength 60
+         * @nullable
+         */
+        customType: string | null;
+        directionality: "directed" | "symmetric";
+        isCanonical: boolean;
+        /** @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$ */
+        sourceCharacterId: string;
+        /**
+         * @maxLength 120
+         * @nullable
+         */
+        sourceLabel: string | null;
+        /** @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$ */
+        targetCharacterId: string;
+        /**
+         * @maxLength 120
+         * @nullable
+         */
+        targetLabel: string | null;
+        type:
+          | "biological_parent_of"
+          | "biological_child_of"
+          | "adoptive_parent_of"
+          | "adoptive_child_of"
+          | "step_parent_of"
+          | "step_child_of"
+          | "guardian_of"
+          | "ward_of"
+          | "ancestor_of"
+          | "descendant_of"
+          | "sibling_of"
+          | "half_sibling_of"
+          | "step_sibling_of"
+          | "twin_of"
+          | "spouse_of"
+          | "ex_spouse_of"
+          | "relative_of"
+          | "partner_of"
+          | "ex_partner_of"
+          | "romantic_interest_of"
+          | "mutual_romantic_interest"
+          | "engaged_to"
+          | "romantic_tension_with"
+          | "unrequited_love_for"
+          | "friend_of"
+          | "best_friend_of"
+          | "ally_of"
+          | "acquaintance_of"
+          | "companion_of"
+          | "neighbor_of"
+          | "trusted_by"
+          | "distrusts"
+          | "enemy_of"
+          | "rival_of"
+          | "betrayed"
+          | "betrayed_by"
+          | "hunts"
+          | "hunted_by"
+          | "opposes"
+          | "feud_with"
+          | "mentor_of"
+          | "student_of"
+          | "teacher_of"
+          | "pupil_of"
+          | "protector_of"
+          | "protected_by"
+          | "healer_of"
+          | "patient_of"
+          | "leader_of"
+          | "subordinate_of"
+          | "commander_of"
+          | "serves_under"
+          | "employer_of"
+          | "employee_of"
+          | "master_of"
+          | "servant_of"
+          | "member_of_same_group"
+          | "rules_over"
+          | "subject_of"
+          | "creator_of"
+          | "creation_of"
+          | "summoner_of"
+          | "summoned_by"
+          | "magically_bonded_to"
+          | "soulmate_of"
+          | "blood_bonded_to"
+          | "possesses"
+          | "possessed_by"
+          | "shares_body_with"
+          | "reincarnation_of"
+          | "clone_of"
+          | "custom";
+      }[];
+      /** @maxItems 2000 */
+      theories: {
+        /**
+         * @nullable
+         * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+         */
+        bookId: string | null;
+        /**
+         * @nullable
+         * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+         */
+        characterId: string | null;
+        isSpoiler: boolean;
+        /**
+         * @nullable
+         * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+         */
+        seriesId: string | null;
+        status: "unverified" | "confirmed" | "disproved";
+        /**
+         * @minLength 1
+         * @maxLength 5000
+         */
+        text: string;
+      }[];
+      /** @maxItems 1000 */
+      characters: {
+        /** @maxItems 30 */
+        aliases: {
+          /**
+           * @nullable
+           * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+           */
+          bookId: string | null;
+          isSpoiler: boolean;
+          /**
+           * @minLength 1
+           * @maxLength 200
+           */
+          name: string;
+          /**
+           * @minimum 0
+           * @maximum 2147483647
+           */
+          position: number;
+          type:
+            | "nickname"
+            | "title"
+            | "pseudonym"
+            | "true_name"
+            | "former_name"
+            | "translation"
+            | "other";
+        }[];
+        /**
+         * @nullable
+         * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+         */
+        avatarMediaId: string | null;
+        /**
+         * @maxLength 60
+         * @nullable
+         */
+        customGender: string | null;
+        entityKind: "individual" | "collective" | "unknown";
+        /** @maxItems 50 */
+        forms: {
+          /**
+           * @maxLength 5000
+           * @nullable
+           */
+          description: string | null;
+          formType:
+            "reincarnation" | "transformation" | "alter_ego" | "true_form" | "disguise" | "other";
+          isSpoiler: boolean;
+          /**
+           * @minLength 1
+           * @maxLength 200
+           */
+          name: string;
+          /**
+           * @nullable
+           * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+           */
+          portraitMediaId: string | null;
+          /**
+           * @minimum 0
+           * @maximum 2147483647
+           */
+          position: number;
+        }[];
+        gender: "female" | "male" | "non_binary" | "agender_or_na" | "unknown" | "custom";
+        /** @nullable */
+        globalAttitude:
+          "favorite" | "like" | "neutral" | "distrust" | "dislike" | "hate" | "unsure" | null;
+        /** @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$ */
+        id: string;
+        isArchived: boolean;
+        isFavorite: boolean;
+        /**
+         * @minLength 1
+         * @maxLength 200
+         */
+        name: string;
+        /**
+         * @maxLength 5000
+         * @nullable
+         */
+        neutralDescription: string | null;
+        /**
+         * @maxLength 60
+         * @nullable
+         */
+        pronouns: string | null;
+        /**
+         * @maxLength 60
+         * @nullable
+         */
+        species: string | null;
+        /**
+         * @minLength 1
+         * @maxLength 60
+         * @nullable
+         */
+        speciesKey?: string | null;
+        /**
+         * @maxItems 15
+         * @items.pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+         */
+        tagIds: string[];
+        /** @maxItems 200 */
+        appearances: {
+          /**
+           * @maxLength 5000
+           * @nullable
+           */
+          appearanceNotes: string | null;
+          appearanceNotesIsSpoiler: boolean;
+          /** @nullable */
+          attitude:
+            "favorite" | "like" | "neutral" | "distrust" | "dislike" | "hate" | "unsure" | null;
+          /** @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$ */
+          bookId: string;
+          /**
+           * @maxLength 5000
+           * @nullable
+           */
+          description: string | null;
+          descriptionIsSpoiler: boolean;
+          /**
+           * @maxLength 200
+           * @nullable
+           */
+          displayName: string | null;
+          displayNameIsSpoiler: boolean;
+          /**
+           * @minimum 0
+           * @maximum 2147483647
+           * @nullable
+           */
+          firstAppearanceAudioSeconds: number | null;
+          /**
+           * @maxLength 200
+           * @nullable
+           */
+          firstAppearanceChapter: string | null;
+          /**
+           * @maxLength 200
+           * @nullable
+           */
+          firstAppearanceNote: string | null;
+          /**
+           * @maximum 2147483647
+           * @exclusiveMinimum 0
+           * @nullable
+           */
+          firstAppearancePage: number | null;
+          importance:
+            "central" | "major" | "supporting" | "episodic" | "mentioned" | "not_specified";
+          isPovCharacter: boolean;
+          isUnreliableNarrator?: boolean;
+          isUnreliableNarratorSpoiler?: boolean;
+          /** @nullable */
+          narratorType:
+            "first_person" | "third_person_limited" | "third_person_omniscient" | "other" | null;
+          /**
+           * @maxLength 5000
+           * @nullable
+           */
+          personalImpression: string | null;
+          personalImpressionIsSpoiler: boolean;
+          portraitIsSpoiler: boolean;
+          /**
+           * @nullable
+           * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+           */
+          portraitMediaId: string | null;
+          /** @maxItems 20 */
+          roles: {
+            /**
+             * @maxLength 200
+             * @nullable
+             */
+            customRole: string | null;
+            isSpoiler: boolean;
+            /**
+             * @minimum 0
+             * @maximum 2147483647
+             */
+            position: number;
+            roleType:
+              | "protagonist"
+              | "deuteragonist"
+              | "antagonist"
+              | "love_interest"
+              | "supporting"
+              | "episodic"
+              | "mentioned"
+              | "custom";
+          }[];
+          /**
+           * @minimum 0
+           * @maximum 2147483647
+           * @nullable
+           */
+          sortOrder: number | null;
+          /**
+           * @maxLength 60
+           * @nullable
+           */
+          speciesOverride: string | null;
+          speciesOverrideIsSpoiler: boolean;
+          /**
+           * @minLength 1
+           * @maxLength 60
+           * @nullable
+           */
+          speciesOverrideKey?: string | null;
+          status:
+            "active" | "missing" | "dead" | "unknown" | "transformed" | "other" | "not_specified";
+          /**
+           * @maxLength 200
+           * @nullable
+           */
+          statusCustomText: string | null;
+          statusIsSpoiler: boolean;
+          /** @maxItems 200 */
+          facts: {
+            /**
+             * @maxLength 100
+             * @nullable
+             */
+            chapter: string | null;
+            /** @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$ */
+            createdAt: string;
+            /**
+             * @maximum 2147483647
+             * @exclusiveMinimum 0
+             * @nullable
+             */
+            page: number | null;
+            /**
+             * @minLength 1
+             * @maxLength 5000
+             */
+            text: string;
+            /**
+             * @minLength 1
+             * @maxLength 120
+             */
+            title: string;
+            /** @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$ */
+            updatedAt: string;
+          }[];
+        }[];
+      }[];
+      formatVersion: 2;
+    };

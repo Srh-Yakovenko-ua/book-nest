@@ -1,6 +1,7 @@
 "use client";
 
-import type { Nullable, ReadingGoalView } from "@app/shared";
+import type { Nullable, ReadingGoalResult, ReadingGoalView } from "@app/shared";
+import type { QueryStatus } from "@tanstack/react-query";
 import type { RefObject } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
@@ -19,12 +20,11 @@ import { GoalFormDialog } from "./goal-form-dialog";
 
 const NO_BOOKS_HINT_ID = "list-goal-no-books-hint";
 
-type ClosedOutcome = "completed" | "expired";
-
 type GoalCardState =
   | { goal: ReadingGoalView; kind: "active" }
-  | { goal: ReadingGoalView; kind: "closed"; outcome: ClosedOutcome }
+  | { goal: ReadingGoalView; kind: "closed"; outcome: ReadingGoalResult }
   | { kind: "empty" }
+  | { kind: "error" }
   | { kind: "loading" };
 
 type ListGoalCardProps = {
@@ -37,8 +37,8 @@ export function ListGoalCard({ bookCount, listId, listName }: ListGoalCardProps)
   const t = useTranslations("goals.sidebar");
   const [formOpen, setFormOpen] = useState(false);
   const openerRef = useRef<HTMLButtonElement>(null);
-  const { data, isPending } = useListGoal(listId);
-  const state = resolveState({ goal: data ?? null, isPending });
+  const { data, isFetching, refetch, status } = useListGoal(listId);
+  const state = resolveState({ goal: data, status });
 
   return (
     <section className="sidebar-card-leaf flex flex-col gap-3 overflow-hidden rounded-xl border border-border bg-card p-5 shadow-soft">
@@ -49,7 +49,9 @@ export function ListGoalCard({ bookCount, listId, listName }: ListGoalCardProps)
 
       <CardBody
         bookCount={bookCount}
+        isRetrying={isFetching}
         onCreate={() => setFormOpen(true)}
+        onRetry={() => void refetch()}
         openerRef={openerRef}
         state={state}
       />
@@ -57,7 +59,11 @@ export function ListGoalCard({ bookCount, listId, listName }: ListGoalCardProps)
       <GoalFormDialog
         bookCount={bookCount}
         listName={listName}
-        mode={{ kind: "create", listId }}
+        mode={{
+          kind: "create",
+          listId,
+          previousOutcome: state.kind === "closed" ? state.outcome : null,
+        }}
         onOpenChange={setFormOpen}
         open={formOpen}
         openerRef={openerRef}
@@ -107,12 +113,16 @@ function ActiveGoalBody({ goal }: { goal: ReadingGoalView }) {
 
 function CardBody({
   bookCount,
+  isRetrying,
   onCreate,
+  onRetry,
   openerRef,
   state,
 }: {
   bookCount: number;
+  isRetrying: boolean;
   onCreate: () => void;
+  onRetry: () => void;
   openerRef: RefObject<HTMLButtonElement | null>;
   state: GoalCardState;
 }) {
@@ -152,6 +162,19 @@ function CardBody({
           ) : null}
         </>
       );
+    case "error":
+      return (
+        <>
+          <p className="inline-flex items-center gap-1.5 text-sm font-medium text-error">
+            <UiIcon aria-hidden name="alert-circle" size={16} />
+            {t("loadError")}
+          </p>
+          <Button className="w-full" loading={isRetrying} onClick={onRetry} variant="secondary">
+            <UiIcon name="refresh" size={16} />
+            {t("retry")}
+          </Button>
+        </>
+      );
     case "loading":
       return (
         <output aria-busy="true" aria-label={t("loading")} className="flex flex-col gap-3">
@@ -172,7 +195,7 @@ function ClosedGoalBody({
   goal: ReadingGoalView;
   onCreateNew: () => void;
   openerRef: RefObject<HTMLButtonElement | null>;
-  outcome: ClosedOutcome;
+  outcome: ReadingGoalResult;
 }) {
   const t = useTranslations("goals.sidebar");
   const locale = useLocale();
@@ -217,12 +240,12 @@ function progressPercent(goal: ReadingGoalView): number {
 
 function resolveState({
   goal,
-  isPending,
+  status,
 }: {
-  goal: Nullable<ReadingGoalView>;
-  isPending: boolean;
+  goal: Nullable<ReadingGoalView> | undefined;
+  status: QueryStatus;
 }): GoalCardState {
-  if (isPending) return { kind: "loading" };
+  if (goal === undefined) return status === "error" ? { kind: "error" } : { kind: "loading" };
   if (goal === null) return { kind: "empty" };
 
   switch (goal.status) {

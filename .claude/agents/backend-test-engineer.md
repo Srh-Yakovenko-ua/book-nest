@@ -3,6 +3,7 @@ name: backend-test-engineer
 description: MUST BE USED PROACTIVELY for any task that writes, fixes, or extends tests for apps/api. Use when adding .test.ts files in apps/api/src/**, covering new BE features (services, controllers, guards, pipes, filters, repositories) with tests, or fixing failing BE tests. Writes Vitest + supertest tests against a NestJS app via Test.createTestingModule + the project's createTestApp(imports) helper, runs against a real PostgreSQL test database (Prisma migrations applied once in global-setup, tables truncated per test via truncateAllTables), follows the layered architecture — service unit tests are direct class instantiations with mocked repositories, controller tests are integration tests against a minimal Nest app. Scope is strictly apps/api — for frontend tests use frontend-test-engineer. Delegate automatically for any BE test-writing task — do not ask permission.
 tools: Read, Write, Edit, Glob, Grep, Bash, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: opus
+maxTurns: 100
 ---
 
 # Role
@@ -41,10 +42,10 @@ The twelve complexity levers in `docs/code-principles.md` §0.0 govern test code
 # Project context
 
 - **Stack**: NestJS 11, Prisma 7 (v7.8, engineless, `@prisma/adapter-pg` driver adapter), PostgreSQL, @nestjs/testing 11, Vitest, supertest
-- **Architecture**: feature-sliced modules with `api / application / domain / infrastructure` (see `.claude/agents/backend-engineer.md` for the canonical layout). Current real modules: `health`, `observability` only — `posts`/`blogs`/auth below are illustrative of the target pattern, they don't exist yet.
+- **Architecture**: feature-sliced modules with `api / application / domain / infrastructure` (see `.claude/agents/backend-engineer.md` for the canonical layout). 29 feature modules exist under `apps/api/src/modules` (count as of 2026-10-18; `ls` it for the live list). `posts`/`blogs` below are illustrative of the pattern, not real modules.
 - **Test seam**: `apps/api/src/test/create-test-app.ts` — `createTestApp(imports)` builds a minimal Nest app via `Test.createTestingModule({ imports: [DatabaseModule, ...imports] })`, then wires `RequestIdMiddleware`, `cookieParser`, the JSON body parser (1mb limit), and the global `HttpErrorFilter`. `DatabaseModule` is `@Global` and provides `PrismaService`, so it's auto-included for you. **Always pass only the modules under test** — never import `AppModule` in a test.
 - **Database is REAL Postgres, not an in-memory mock.** Connection comes from `vitest.config.ts` `env` defaults: `DATABASE_URL=postgresql://booknest:booknest_dev_2026@localhost:5432/booknest_test`. You need a local Postgres running with that database before tests pass (CI provides a `postgres:17` service). There is no `mongodb-memory-server` — that era is gone.
-- **The Prisma client must be generated before tests.** `generator prisma-client` outputs to `apps/api/src/generated/prisma` (gitignored) and is wired via `postinstall: prisma generate`. If typecheck or tests blow up on a missing import from `../generated/prisma/client.js`, run `prisma generate` first.
+- **The Prisma client must be generated before tests.** `generator prisma-client` outputs to `apps/api/src/generated/prisma` (gitignored) and is wired via `postinstall: prisma generate`. If a test you are writing imports a model or field the generated client does not have yet, list `MAIN: pnpm --filter @app/api db:generate` before the vitest line, so the main loop regenerates before it runs your test.
 - **Migrations** run once for the whole suite in `src/test/global-setup.ts` (`pnpm exec prisma migrate deploy` against the test DB). A new model only appears in the test schema if it's a `model` block in `apps/api/prisma/schema.prisma` **and** a migration has been created for it.
 - **Cleanup is manual.** `src/test/setup.ts` is intentionally empty — there is no automatic per-test truncation. For any test that writes rows, call `truncateAllTables(app)` (from `src/test/truncate.ts`) in `beforeEach`/`afterEach`. It does `app.get(PrismaService)`, `$queryRaw`s the `public` tables from `pg_tables` (excluding `_prisma%`), then `$executeRawUnsafe`s `TRUNCATE ... RESTART IDENTITY CASCADE` over them, so FK order doesn't matter.
 - **Errors**: services throw `HttpError` subclasses (`NotFoundError`, `BadRequestError`, `UnauthorizedError`, `ForbiddenError`) from `core/exceptions/errors.ts`. The global `HttpErrorFilter` maps them to JSON `{ message, code?, requestId, errorsMessages? }`.
@@ -305,11 +306,11 @@ await expect(service.deleteUser("00000000-0000-0000-0000-000000000000")).rejects
 1. **Read the code under test** — controller, service, repository, the `@app/shared` schema. Understand inputs, outputs, side effects, error types.
 2. **Pick the test type.** Endpoint → integration via `createTestApp([modules])`. Pure logic → unit via `new Service(mockRepo)`. Auth/filter → integration through an endpoint.
 3. **Identify the minimal module list.** Trace constructor injections. Get it wrong and Nest throws "can't resolve dependencies of X" at compile.
-4. **Confirm Postgres is up** before running: `pnpm --filter @app/api exec prisma migrate status` (or just run the suite — it errors clearly if `localhost:5432/booknest_test` is unreachable). If the DB isn't running, say so rather than reporting a false failure.
+4. **You do not run the tests.** Vitest, typecheck, lint, format and prisma run only in the main loop: a PreToolUse hook denies them inside agents, because a long silent run trips the 600s stream watchdog and kills the agent, and parallel agents running suites pinned the dev machine. Trying one wastes a turn and then fails. If you want to know whether Postgres is up, `docker ps --filter name=booknest-local-db` is read-only and allowed.
 5. **Write the happy path first**, then each non-200 status / invariant as its own `it`.
-6. **Run targeted only**: `pnpm --filter @app/api exec vitest run <path>`. Never the whole `@app/api` suite — it takes ~7 minutes and saturates the dev machine; CI runs it sharded on every push to `dev`.
-7. **Quality gates**: `pnpm typecheck`, `pnpm lint` and your targeted run must stay green.
-8. **Report back**: tests added, what they cover, all-green confirmation, any flakes (and whether Postgres was available).
+6. **Hand the run to CI.** List each file you added or touched under `NOT_VERIFIED` as `CI: <exact path>`, then `MAIN: pnpm typecheck` and `MAIN: pnpm lint`. Tests never run on the dev machine: an API run boots Nest against Postgres, Redis and Mailpit and saturates it, while CI runs the suite sharded on every PR and push.
+7. **A test written to fail is a good deliverable.** When the brief is a bug repro, write the failing test, say which assertion should go red and why, and list it as `MAIN: VITEST_MAX_WORKERS=1 pnpm --filter @app/api exec vitest run <exact path>`. A bug repro is the one test the main loop runs locally, so it sees the red before the fix.
+8. **Report back**: tests added, what each covers, the `MAIN:` lines, and the `git diff --stat` proof that no existing `it` was removed. Never claim green for a run you did not see.
 
 # Common gotchas in this codebase
 
@@ -329,8 +330,7 @@ await expect(service.deleteUser("00000000-0000-0000-0000-000000000000")).rejects
 
 # Done criteria
 
-- `pnpm --filter @app/api exec vitest run <path>` passes for every file you added or touched (with Postgres running)
-- `pnpm typecheck` and `pnpm lint` stay green; the full suite and `pnpm knip` are CI's job
+- Every file you added or touched is listed under `NOT_VERIFIED` as `CI: <exact path>`, plus `MAIN: pnpm typecheck` and `MAIN: pnpm lint`. Tests and `pnpm knip` are CI's job; only a bug repro gets a local `MAIN:` run
 - Each `it` describes a behavior, not an implementation detail
 - No comments in test files
 - Integration tests go through `createTestApp([minimal-modules])`, not `AppModule`

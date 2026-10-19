@@ -2,17 +2,22 @@
 
 import type { ReadingStatisticsOverview } from "@app/shared";
 
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 
+import type { PageTabsItem } from "@/components/page-tabs";
+
+import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
 import { TitleLeaf } from "@/components/title-leaf";
-import { cn } from "@/lib/utils";
 
 import type { StatisticsScopeState } from "../../model/statistics-scope-state";
+import type { UseStatisticsParamsResult } from "../../model/use-statistics-params";
 
 import { useReadingStatisticsOverview } from "../../api/use-reading-statistics-overview";
-import { formatDayRange } from "../../model/statistics-format";
+import { isLowerBoundComparison } from "../../model/statistics-dynamics";
 import { toStatisticsScopeState } from "../../model/statistics-scope-state";
+import { STATISTICS_VIEW, toStatisticsTab } from "../../model/statistics-view";
 import { useStatisticsParams } from "../../model/use-statistics-params";
+import { useStatisticsView } from "../../model/use-statistics-view";
 import { StatisticsPeriodControls } from "../controls/statistics-period-controls";
 import { LibraryBalanceSection } from "../progress/library-balance-section";
 import { ReadingGoalCard } from "../progress/reading-goal-card";
@@ -20,11 +25,10 @@ import { RecordsSection } from "../progress/records-section";
 import { SeriesSection } from "../progress/series-section";
 import { ReadingCalendarCard } from "../reading/reading-calendar-card";
 import { ReadingDynamicsCard } from "../reading/reading-dynamics-card";
-import { StatisticsDivider } from "../statistics-section";
+import { StatisticsFocusTarget } from "../statistics-focus-target";
 import {
   StatisticsError,
   StatisticsNote,
-  StatisticsPeriodEmpty,
   StatisticsRefetchError,
   StatisticsRefreshingNote,
   StatisticsSectionState,
@@ -36,9 +40,7 @@ import { GenresSection } from "../tastes/genres-section";
 import { LanguagesSection } from "../tastes/languages-section";
 import { PublishersSection } from "../tastes/publishers-section";
 import { RatingsSection } from "../tastes/ratings-section";
-import { StatisticsHero } from "./statistics-hero";
-import { StatisticsInsights } from "./statistics-insights";
-import { StatisticsKpiGrid } from "./statistics-kpi-grid";
+import { StatisticsOverviewTab } from "./statistics-overview-tab";
 
 export function StatisticsOverview() {
   const t = useTranslations("statistics");
@@ -69,33 +71,18 @@ export function StatisticsOverview() {
       {scope.isRefreshing ? <StatisticsRefreshingNote /> : null}
       {scope.isRefetchError ? <StatisticsRefetchError onRetry={scope.retry} /> : null}
 
-      <StatisticsBody
-        isRequestable={params.isRequestable}
-        onShowAllTime={() => params.setPeriod("all_time")}
-        scope={scope}
-      />
+      <StatisticsBody params={params} scope={scope} />
     </div>
   );
 }
 
-function hasReadingActivity(overview: ReadingStatisticsOverview): boolean {
-  return (
-    overview.kpis.completedReads.value > 0 ||
-    (overview.kpis.pagesRead.value ?? 0) > 0 ||
-    overview.calendar.activeDays > 0
-  );
-}
-
 function StatisticsBody({
-  isRequestable,
-  onShowAllTime,
+  params,
   scope,
 }: {
-  isRequestable: boolean;
-  onShowAllTime: () => void;
+  params: UseStatisticsParamsResult;
   scope: StatisticsScopeState<ReadingStatisticsOverview>;
 }) {
-  const locale = useLocale();
   const t = useTranslations("statistics");
   const overview = scope.data;
 
@@ -104,7 +91,7 @@ function StatisticsBody({
   }
 
   if (overview === undefined) {
-    return isRequestable ? (
+    return params.isRequestable ? (
       <StatisticsSkeleton />
     ) : (
       <StatisticsSectionState
@@ -116,83 +103,95 @@ function StatisticsBody({
   }
 
   const isLowerBound = overview.meta.activityHistory.selectedPeriodQuality === "legacy_lower_bound";
-  const currentLabel = formatDayRange({
-    from: overview.period.from,
-    locale,
-    to: overview.period.to,
-  });
-  const comparisonLabel =
-    overview.comparison === null
-      ? null
-      : formatDayRange({
-          from: overview.comparison.from,
-          locale,
-          to: overview.comparison.to,
-        });
-
-  const bodyClassName = cn(
-    "flex flex-col gap-6 transition-opacity",
-    scope.isRefreshing && "opacity-70",
-  );
-
-  if (!hasReadingActivity(overview)) {
-    return (
-      <div aria-busy={scope.isRefreshing} className={bodyClassName}>
-        <StatisticsPeriodEmpty onShowAllTime={onShowAllTime} />
-        <StatisticsDivider title={t("dividers.progress")} />
-        <ReadingGoalCard goal={overview.goal} />
-        <LibraryBalanceSection libraryBalance={overview.libraryBalance} />
-      </div>
-    );
-  }
 
   return (
-    <div aria-busy={scope.isRefreshing} className={bodyClassName}>
+    <div aria-busy={scope.isRefreshing} className="flex flex-col gap-6">
       {isLowerBound ? <StatisticsNote>{t("states.lowerBound")}</StatisticsNote> : null}
 
-      <StatisticsHero hero={overview.hero} period={overview.period} />
-      <StatisticsKpiGrid isLowerBound={isLowerBound} kpis={overview.kpis} />
-      <StatisticsInsights insights={overview.insights} />
-
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <ReadingDynamicsCard
-            comparisonLabel={comparisonLabel}
-            currentLabel={currentLabel}
-            dynamics={overview.dynamics}
-            period={overview.period}
-          />
-        </div>
-        <ReadingGoalCard goal={overview.goal} />
-      </div>
-
-      <ReadingCalendarCard calendar={overview.calendar} meta={overview.meta} />
-
-      <StatisticsDivider title={t("dividers.tastes")} />
-
-      <RatingsSection ratings={overview.ratings} />
-
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-        <GenresSection genres={overview.genres} />
-        <AuthorsSection authors={overview.authors} />
-      </div>
-
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-        <PublishersSection publishers={overview.publishers} />
-        <LanguagesSection languages={overview.languages} />
-      </div>
-
-      {overview.period.kind === "all_time" ? null : (
-        <DiscoveriesSection discoveries={overview.discoveries} />
-      )}
-
-      <StatisticsDivider title={t("dividers.progress")} />
-
-      <SeriesSection series={overview.series} />
-
-      <LibraryBalanceSection libraryBalance={overview.libraryBalance} />
-
-      <RecordsSection records={overview.records} />
+      <StatisticsTabs isLowerBound={isLowerBound} overview={overview} params={params} />
     </div>
+  );
+}
+
+function StatisticsTabs({
+  isLowerBound,
+  overview,
+  params,
+}: {
+  isLowerBound: boolean;
+  overview: ReadingStatisticsOverview;
+  params: UseStatisticsParamsResult;
+}) {
+  const t = useTranslations("statistics.tabs");
+  const view = useStatisticsView(params.state);
+  const isComparisonLowerBound = isLowerBoundComparison({
+    comparison: overview.comparison,
+    reliableFrom: overview.meta.activityHistory.reliableFrom,
+  });
+
+  const items: PageTabsItem[] = STATISTICS_VIEW.tabs.map((value) => ({ label: t(value), value }));
+
+  return (
+    <PageTabs
+      ariaLabel={t("label")}
+      items={items}
+      onValueChange={(value) => view.setTab(toStatisticsTab(value))}
+      value={view.tab}
+    >
+      <PageTabsPanel className="flex flex-col gap-6" value="overview">
+        <StatisticsOverviewTab
+          isComparisonLowerBound={isComparisonLowerBound}
+          isLowerBound={isLowerBound}
+          onShowAllTime={() => params.setPeriod("all_time")}
+          overview={overview}
+          today={params.today}
+          view={view}
+        />
+      </PageTabsPanel>
+
+      <PageTabsPanel className="flex flex-col gap-6" value="activity">
+        <StatisticsFocusTarget isTarget={view.section === "dynamics"}>
+          <ReadingDynamicsCard
+            comparison={overview.comparison}
+            dynamics={overview.dynamics}
+            isComparisonLowerBound={isComparisonLowerBound}
+            metric={view.metric}
+            onMetricChange={view.setMetric}
+            period={overview.period}
+            variant="full"
+          />
+        </StatisticsFocusTarget>
+        <StatisticsFocusTarget isTarget={view.section === "calendar"}>
+          <ReadingCalendarCard calendar={overview.calendar} meta={overview.meta} />
+        </StatisticsFocusTarget>
+      </PageTabsPanel>
+
+      <PageTabsPanel className="flex flex-col gap-6" value="tastes">
+        <StatisticsFocusTarget isTarget={view.section === "ratings"}>
+          <RatingsSection ratings={overview.ratings} />
+        </StatisticsFocusTarget>
+
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+          <GenresSection genres={overview.genres} />
+          <AuthorsSection authors={overview.authors} />
+        </div>
+
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+          <PublishersSection publishers={overview.publishers} />
+          <LanguagesSection languages={overview.languages} />
+        </div>
+
+        {overview.period.kind === "all_time" ? null : (
+          <DiscoveriesSection discoveries={overview.discoveries} />
+        )}
+      </PageTabsPanel>
+
+      <PageTabsPanel className="flex flex-col gap-6" value="progress">
+        <ReadingGoalCard goal={overview.goal} variant="full" />
+        <SeriesSection series={overview.series} />
+        <LibraryBalanceSection libraryBalance={overview.libraryBalance} />
+        <RecordsSection isLowerBound={isLowerBound} records={overview.records} />
+      </PageTabsPanel>
+    </PageTabs>
   );
 }

@@ -92,7 +92,7 @@ export const CharacterGraphEdgeViewSchema = z.object({
   category: RelationshipCategorySchema.nullable(),
   description: z.string().nullable(),
   descriptionHidden: z.boolean(),
-  directionality: RelationshipDirectionalitySchema,
+  directionality: RelationshipDirectionalitySchema.nullable(),
   id: z.string(),
   intensity: RelationshipIntensitySchema.nullable(),
   revealed: z.boolean(),
@@ -109,7 +109,6 @@ export type CharacterGraphEdgeView = z.infer<typeof CharacterGraphEdgeViewSchema
 
 export const CharacterGraphHiddenContentViewSchema = z.object({
   hasHiddenEdges: z.boolean(),
-  hasHiddenNodes: z.boolean(),
   hasLockedEdges: z.boolean(),
   truncated: z.boolean(),
 });

@@ -1,4 +1,5 @@
 import type {
+  BookCharacterRosterItem,
   BookCharacterView,
   CharacterAppearanceBook,
   CharacterDetailsView,
@@ -13,13 +14,17 @@ import type {
 import { Injectable } from "@nestjs/common";
 
 import type { MediaAssetModel } from "../../../generated/prisma/models.js";
+import type { VisibleAliases } from "../domain/alias-groups.js";
+import type { VisibleForms } from "../domain/visible-forms.js";
 import type {
   CharacterDetailsRow,
   CharacterGlobalSummaryRow,
-  RosterRow,
+  RosterPageRow,
+  RosterSummaryRow,
 } from "../infrastructure/characters.repository.js";
 
 import { MediaService } from "../../media/index.js";
+import { toBookCharacterRosterItem } from "../domain/book-character-roster-item.js";
 import {
   toBookCharacterView,
   toCharacterDetailsView,
@@ -55,30 +60,37 @@ export class CharacterViewMapper {
   }
 
   toMaskedDetailsView({
-    aliases,
-    hasHiddenAliases,
     revealedFields,
     row,
-    visibleAppearances,
+    visibleAliases,
+    visibleForms,
   }: {
-    aliases: CharacterDetailsRow["aliases"];
-    hasHiddenAliases: boolean;
     revealedFields: ReadonlySet<CharacterRevealFieldKey>;
     row: CharacterDetailsRow;
-    visibleAppearances: CharacterDetailsRow["bookAppearances"];
+    visibleAliases: VisibleAliases<CharacterDetailsRow["aliases"][number]>;
+    visibleForms: VisibleForms<CharacterDetailsRow["forms"][number]>;
   }): CharacterDetailsView {
     return toCharacterDetailsView({
-      appearances: visibleAppearances.map((appearance) =>
+      appearances: row.bookAppearances.map((appearance) =>
         this.mapMaskedAppearance({ appearance, revealedFields }),
       ),
       avatar: this.mediaViewOf(row.avatarMedia),
-      character: { ...row, aliases },
-      characterHiddenFields: hasHiddenAliases ? ["aliases"] : [],
-      forms: row.forms.filter((form) => !form.isSpoiler).map((form) => this.mapForm(form)),
+      character: { ...row, aliases: visibleAliases.aliases },
+      characterHiddenFields: [...visibleAliases.hiddenFields, ...visibleForms.hiddenFields],
+      forms: visibleForms.forms.map((form) => this.mapForm(form)),
     });
   }
 
-  toSummaryView(row: RosterRow): CharacterSummaryView {
+  toRosterItem(row: RosterPageRow): BookCharacterRosterItem {
+    return toBookCharacterRosterItem({
+      appearance: row,
+      avatar: this.mediaViewOf(row.character.avatarMedia),
+      character: row.character,
+      portrait: this.mediaViewOf(row.portraitMedia),
+    });
+  }
+
+  toSummaryView(row: RosterSummaryRow): CharacterSummaryView {
     return toCharacterSummaryView({
       appearance: row,
       avatar: this.mediaViewOf(row.character.avatarMedia),

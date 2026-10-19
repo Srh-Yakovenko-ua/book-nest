@@ -1,10 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   canCompareStatisticsPeriod,
   customRangeIssue,
   defaultStatisticsCompareMode,
+  isPeriodIncludingDay,
   selectableYearBounds,
+  todayIsoDay,
   toOverviewParams,
 } from "./statistics-period";
 
@@ -41,6 +43,31 @@ describe("customRangeIssue", () => {
     expect(customRangeIssue({ from: "2026-13-40", to: "2026-03-02", today: TODAY })).toBe(
       "invalid",
     );
+  });
+
+  it("reports a start before the earliest supported day", () => {
+    expect(customRangeIssue({ from: "1899-12-31", to: "1900-02-01", today: TODAY })).toBe(
+      "tooEarly",
+    );
+    expect(customRangeIssue({ from: "1900-01-01", to: "1900-02-01", today: TODAY })).toBeNull();
+  });
+
+  it("accepts exactly 1830 days and rejects one day more", () => {
+    expect(customRangeIssue({ from: "2021-03-28", to: TODAY, today: TODAY })).toBeNull();
+    expect(customRangeIssue({ from: "2021-03-27", to: TODAY, today: TODAY })).toBe("tooLong");
+  });
+});
+
+describe("todayIsoDay", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("reads today in the profile time zone rather than the device one", () => {
+    vi.useFakeTimers({ now: new Date("2026-03-31T22:30:00.000Z") });
+
+    expect(todayIsoDay("Europe/Kyiv")).toBe("2026-04-01");
+    expect(todayIsoDay("America/New_York")).toBe("2026-03-31");
   });
 });
 
@@ -100,5 +127,24 @@ describe("selectableYearBounds", () => {
 
     expect(bounds.max).toBe(2026);
     expect(bounds.min).toBeLessThan(bounds.max);
+  });
+});
+
+describe("isPeriodIncludingDay", () => {
+  it.each([
+    ["a calendar year still running", { from: "2026-01-01", kind: "year", to: TODAY }, true],
+    ["the last 12 months", { from: "2025-04-01", kind: "last_12_months", to: TODAY }, true],
+    ["a custom range ending today", { from: "2026-03-31", kind: "custom", to: TODAY }, true],
+    ["all time", { from: null, kind: "all_time", to: TODAY }, true],
+    ["a past calendar year", { from: "2025-01-01", kind: "year", to: "2025-12-31" }, false],
+    [
+      "a custom range ending yesterday",
+      { from: "2026-03-01", kind: "custom", to: "2026-03-30" },
+      false,
+    ],
+  ] as const)("answers for %s", (_, period, expected) => {
+    expect(isPeriodIncludingDay({ day: TODAY, period: { ...period, granularity: "month" } })).toBe(
+      expected,
+    );
   });
 });

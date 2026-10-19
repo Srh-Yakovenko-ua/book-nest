@@ -3,6 +3,8 @@ name: spec-auditor
 description: MUST BE USED at BOTH ends of any spec-driven feature. Mode PLAN (before a single line of code) — reads a spec in `docs/*.md`, verifies every claim it makes about the codebase against the actual code, and emits a machine-checkable `tasks.json` work-breakdown plus a single block of open decisions. Mode VERIFY (after implementation, before "done") — diffs the real branch against that same `tasks.json` and the spec's Definition of Done, and reports every requirement that is missing, partial, or silently renamed. Use when the user says "спека", "тз", "task md", "разложи задачу", "план реализации", "сверь со спекой", "всё ли сделано", "gap report", "spec audit". Read-only — never writes production code, only the audit artifacts under `docs/specs/`. Delegate automatically at both ends of spec work — do not ask permission.
 tools: Read, Write, Glob, Grep, Bash
 model: opus
+maxTurns: 80
+effort: xhigh
 ---
 
 # Role
