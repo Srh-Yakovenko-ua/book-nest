@@ -4,6 +4,7 @@ import { MailModule } from "../mail/index.js";
 import { AuthController } from "./api/auth.controller.js";
 import { JwtAccessGuard } from "./api/guards/jwt-access.guard.js";
 import { OptionalJwtAccessGuard } from "./api/guards/optional-jwt-access.guard.js";
+import { TrustedOriginGuard } from "./api/guards/trusted-origin.guard.js";
 import { AccessTokenAuthenticator } from "./application/access-token.authenticator.js";
 import { AuthService } from "./application/auth.service.js";
 import { EmailVerificationService } from "./application/email-verification.service.js";
@@ -42,6 +43,7 @@ import { UsersRepository } from "./infrastructure/users.repository.js";
     PasswordResetTokensRepository,
     JwtAccessGuard,
     OptionalJwtAccessGuard,
+    TrustedOriginGuard,
   ],
 })
 export class AuthModule {}

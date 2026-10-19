@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createTestApp } from "../../../test/create-test-app.js";
 import { truncateAllTables } from "../../../test/truncate.js";
+import { TRUSTED_ORIGIN } from "../../../test/trusted-origin.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { MailService } from "../../mail/application/mail.service.js";
 import { ProfileModule } from "../profile.module.js";
@@ -72,6 +73,7 @@ async function registerVerifyAndLogin(overrides: Partial<typeof reader> = {}): P
     .send({ token: tokenFromUrl(sent.verificationUrl) });
   const res = await request(app.getHttpServer())
     .post("/api/auth/login")
+    .set("Origin", TRUSTED_ORIGIN)
     .send({ email: credentials.email, password: credentials.password });
   const accessToken = res.body.accessToken;
   if (typeof accessToken !== "string") throw new Error("login did not return an access token");
