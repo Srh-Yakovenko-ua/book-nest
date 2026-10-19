@@ -9,6 +9,7 @@ Project documentation for `book-nest`.
 - [Workflow](./workflow.md) — daily commands, quality gates, env variables
 - [Patterns](./patterns.md) — how to add a feature, write forms, fetch data, log, style
 - [Code principles](./code-principles.md) — how to write code: naming, decomposition, types, anti-patterns
+- [Backend roadmap](./backend-roadmap.md) — what the backend still lacks for production, verified per item, with a suggested order
 - [Feature map](./features/README.md) — end-to-end docs per feature (FE ↔ shared ↔ BE), maintained by `feature-context-curator`
 
 ## Tools
