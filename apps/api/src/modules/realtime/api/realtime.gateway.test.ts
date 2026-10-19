@@ -6,6 +6,7 @@ import { REALTIME_CONTRACT, RealtimeEventSchema } from "@app/shared";
 import { HttpStatus } from "@nestjs/common";
 import { addSeconds, getUnixTime } from "date-fns";
 import { SignJWT } from "jose";
+import { randomUUID } from "node:crypto";
 import { randomBytes } from "node:crypto";
 import { request as httpRequest } from "node:http";
 import { io } from "socket.io-client";
@@ -18,6 +19,7 @@ import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { testAppPort } from "../../../test/create-test-app.js";
 import { truncateAllTables } from "../../../test/truncate.js";
+import { ACCESS_TOKEN_CLAIMS } from "../../auth/application/token.service.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { RealtimeConnectionRegistry } from "../application/realtime-connection.registry.js";
 import { RealtimeConnectionService } from "../application/realtime-connection.service.js";
@@ -246,6 +248,9 @@ function settleDeliveries(): Promise<void> {
 function shortLivedAccessToken(userId: string): Promise<string> {
   return new SignJWT({ sub: userId })
     .setProtectedHeader({ alg: SHORT_LIVED_TOKEN.alg })
+    .setIssuer(ACCESS_TOKEN_CLAIMS.issuer)
+    .setAudience(ACCESS_TOKEN_CLAIMS.audience)
+    .setJti(randomUUID())
     .setIssuedAt()
     .setExpirationTime(getUnixTime(addSeconds(new Date(), SHORT_LIVED_TOKEN.ttlSeconds)))
     .sign(new TextEncoder().encode(env.jwtAccessSecret));
