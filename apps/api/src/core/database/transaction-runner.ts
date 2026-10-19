@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../generated/prisma/client.js";
 
-import { isWriteConflictError } from "../prisma-errors.js";
+import { isRetryableTransactionError } from "../prisma-errors.js";
 import { PrismaService } from "./prisma.service.js";
 
 type TransactionOptions = {
@@ -31,7 +31,7 @@ export class TransactionRunner {
       try {
         return await this.prisma.$transaction(fn, options);
       } catch (error) {
-        if (!isWriteConflictError(error) || attempt >= MAX_TRANSACTION_ATTEMPTS) {
+        if (!isRetryableTransactionError(error) || attempt >= MAX_TRANSACTION_ATTEMPTS) {
           throw error;
         }
         await delayBeforeRetry(attempt);
