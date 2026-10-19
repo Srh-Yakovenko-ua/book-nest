@@ -402,15 +402,15 @@ describe("character group spoiler redaction", () => {
     expect(JSON.stringify(safe.body)).not.toContain("Warden");
   });
 
-  it("hides members whose presence is a spoiler in the reading context", async () => {
+  it("keeps a member first met late in the book in the reading context", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
-    const visible = await createCharacterInBook(accessToken, bookId, "Eddard Stark");
-    const hidden = await createCharacterInBook(accessToken, bookId, "The Traitor", {
-      hidePresenceAsSpoiler: true,
+    const early = await createCharacterInBook(accessToken, bookId, "Eddard Stark");
+    const late = await createCharacterInBook(accessToken, bookId, "The Traitor", {
+      firstAppearancePage: 480,
     });
     const created = await createGroup(accessToken, {
-      members: [{ characterId: visible }, { characterId: hidden }],
+      members: [{ characterId: early }, { characterId: late }],
     });
     const groupId = created.body.id;
 
@@ -419,20 +419,17 @@ describe("character group spoiler redaction", () => {
       `/api/character-groups/${groupId}?contextBookId=${bookId}`,
       accessToken,
     );
-    expect(safe.body.memberCount).toBe(1);
-    expect(safe.body.members[0].characterId).toBe(visible);
-    expect(JSON.stringify(safe.body)).not.toContain("The Traitor");
+    expect(safe.body.memberCount).toBe(2);
+    expect(
+      safe.body.members.map((member: { characterId: string }) => member.characterId).sort(),
+    ).toEqual([early, late].sort());
   });
 
-  it("drops a profile-hidden member from the group details with or without a reading context", async () => {
+  it("names a bookless member in the group details only outside a reading context", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
     const visible = await createCharacterInBook(accessToken, bookId, "Sansa Stark");
-    const hiddenRes = await authed("post", "/api/characters", accessToken).send({
-      character: { hideProfileAsSpoiler: true, name: "The Ghost Heir" },
-    });
-    expect(hiddenRes.status).toBe(HttpStatus.CREATED);
-    const hidden = hiddenRes.body.id;
+    const hidden = await createCharacter(accessToken, "The Ghost Heir");
 
     const created = await createGroup(accessToken, {
       members: [{ characterId: visible }, { characterId: hidden }],
@@ -441,12 +438,11 @@ describe("character group spoiler redaction", () => {
     expect(created.body.memberCount).toBe(2);
 
     const full = await authed("get", `/api/character-groups/${groupId}`, accessToken);
-    expect(full.body.memberCount).toBe(1);
+    expect(full.body.memberCount).toBe(2);
     const fullMemberIds = full.body.members.map(
       (member: { characterId: string }) => member.characterId,
     );
-    expect(fullMemberIds).toEqual([visible]);
-    expect(JSON.stringify(full.body)).not.toContain("The Ghost Heir");
+    expect(fullMemberIds.sort()).toEqual([visible, hidden].sort());
 
     const list = await authed("get", "/api/character-groups", accessToken);
     const listedGroup = list.body.items.find((group: { id: string }) => group.id === groupId);
@@ -502,7 +498,7 @@ describe("character group spoiler redaction", () => {
     expect(serialized).not.toContain("Assassins guild");
   });
 
-  it("hides a global membership of a future hidden-presence character until it is reached", async () => {
+  it("hides a global membership of a future part's character until it is reached", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const firstBook = await authed("post", "/api/books", accessToken).send({
       authors: [{ name: "George R. R. Martin" }],
@@ -530,9 +526,6 @@ describe("character group spoiler redaction", () => {
       accessToken,
       secondBook.body.id,
       "The Hidden Heir",
-      {
-        hidePresenceAsSpoiler: true,
-      },
     );
     const created = await createGroup(accessToken, { members: [{ characterId: hiddenHeir }] });
     const groupId = created.body.id;

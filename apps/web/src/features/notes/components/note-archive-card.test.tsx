@@ -225,6 +225,62 @@ describe("NoteArchiveCard spoilers", () => {
   });
 });
 
+describe("NoteArchiveCard title", () => {
+  const NOTE_TITLE = "Видіння Пола";
+
+  it.each(["grid", "list"] as const)(
+    "shows the title as a heading under the entity header, above the text, in the %s layout",
+    (layout) => {
+      renderCard(makeBookNote({ title: NOTE_TITLE }), layout);
+
+      const entityHeading = screen.getByRole("heading", { level: 3, name: "Дюна" });
+      const title = screen.getByRole("heading", { level: 4, name: NOTE_TITLE });
+      const text = screen.getByText(NOTE_FIXTURE.text);
+
+      expect(
+        entityHeading.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
+      expect(title.compareDocumentPosition(text) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    },
+  );
+
+  it("shows the title as the card's own heading, above the text, in the embedded layout", () => {
+    renderCard(makeBookNote({ title: NOTE_TITLE }), "embedded");
+
+    const title = screen.getByRole("heading", { level: 3, name: NOTE_TITLE });
+
+    expect(
+      title.compareDocumentPosition(screen.getByText(NOTE_FIXTURE.text)) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
+  });
+
+  it("adds no heading beyond the entity header for an untitled note", () => {
+    renderCard(makeBookNote({ title: null }));
+
+    expect(screen.getAllByRole("heading").map((heading) => heading.textContent)).toEqual(["Дюна"]);
+  });
+
+  it("keeps a spoiler note's title off the card, behind the gate", () => {
+    renderCard(makeBookNote({ isSpoiler: true, title: NOTE_TITLE }));
+
+    expect(screen.queryByText(NOTE_TITLE)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Показати нотатку" })).toBeInTheDocument();
+  });
+
+  it("shows a spoiler note's title in the Full View once the gate is opened", async () => {
+    renderCard(makeBookNote({ isSpoiler: true, title: NOTE_TITLE }));
+
+    await userEvent.click(screen.getByRole("button", { name: "Показати нотатку" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByRole("heading", { name: NOTE_TITLE })).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("article", { hidden: true })).queryByText(NOTE_TITLE),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("NoteArchiveCard preview", () => {
   it("shows the whole text without a trigger while it fits the clamp", () => {
     renderCard(makeBookNote());

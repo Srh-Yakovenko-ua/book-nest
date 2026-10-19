@@ -20,6 +20,7 @@ export function toBookNotesDataset({
     hasChapter: query.hasChapter,
     hasPage: query.hasPage,
     search: normalizeSearch(query.search),
+    searchIn: query.searchIn,
     userId,
   };
 }

@@ -17,7 +17,8 @@ export function useUnlinkCharacter() {
     mutationFn: async ({ bookId, characterId }: UnlinkCharacterVariables): Promise<void> => {
       await bookCharactersControllerUnlink(bookId, characterId);
     },
-    onSuccess: (_result, { bookId }) => {
+    onSuccess: (_result, { bookId, characterId }) => {
+      queryClient.removeQueries({ queryKey: characterKeys.factsScope({ bookId, characterId }) });
       void queryClient.invalidateQueries({ queryKey: characterKeys.all });
       void queryClient.invalidateQueries({ queryKey: bookKeys.chapters(bookId) });
     },

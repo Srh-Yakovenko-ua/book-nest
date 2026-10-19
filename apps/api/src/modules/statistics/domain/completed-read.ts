@@ -1,4 +1,6 @@
-import type { BookLanguage, Nullable, StatisticsBookRef } from "@app/shared";
+import type { BookLanguage, CompletedReadRef, Nullable, StatisticsBookRef } from "@app/shared";
+
+import { toBookContextActions, toReadingCycleDrilldown } from "./statistics-drilldown.js";
 
 export type CompletedRead = {
   authors: CompletedReadAuthor[];
@@ -48,5 +50,17 @@ export function toBookRef(read: CompletedRead): StatisticsBookRef {
     bookState: read.bookState,
     coverThumbUrl: read.coverThumbUrl,
     title: read.title,
+  };
+}
+
+export function toCompletedReadRef(read: CompletedRead): CompletedReadRef {
+  return {
+    authorName: read.authors[0]?.name ?? null,
+    book: toBookRef(read),
+    contextActions: toBookContextActions(read),
+    drilldown: toReadingCycleDrilldown(read),
+    finishedAt: read.finishedAt,
+    rating: read.rating,
+    readingCycleId: read.readingCycleId,
   };
 }

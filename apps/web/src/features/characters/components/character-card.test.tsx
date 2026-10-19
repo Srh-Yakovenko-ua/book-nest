@@ -14,7 +14,7 @@ vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
-import { makeCharacterSummary } from "../model/characters.fixtures";
+import { makeCharacterSummary, SPECIES_REFS } from "../model/characters.fixtures";
 import { CharacterCard } from "./character-card";
 
 function renderCard(
@@ -32,7 +32,8 @@ describe("CharacterCard unspecified semantics", () => {
 
     expect(screen.getByRole("heading", { name: "Ґеральт" })).toBeInTheDocument();
     expect(screen.queryByText("Не вказано")).not.toBeInTheDocument();
-    expect(screen.queryByText("Другорядний")).not.toBeInTheDocument();
+    expect(screen.queryByText("Другорядна")).not.toBeInTheDocument();
+    expect(screen.queryByText("Згаданий")).not.toBeInTheDocument();
   });
 
   it("renders the importance badge for an explicit importance", () => {
@@ -128,5 +129,105 @@ describe("CharacterCard hidden fields", () => {
     expect(
       screen.getByRole("button", { name: "Додати в улюблені" }).parentElement,
     ).not.toContainElement(badge);
+  });
+
+  it("shows no hidden-fields badge while nothing is hidden", () => {
+    renderCard(makeCharacterSummary({ hiddenFields: [] }));
+
+    expect(screen.queryByText(/Приховані поля/)).not.toBeInTheDocument();
+  });
+});
+
+describe("CharacterCard layout", () => {
+  it("lays the chips out as a full-width row between the header and the description", () => {
+    renderCard(
+      makeCharacterSummary({
+        descriptionPreview: "Відьмак із Рівії",
+        importance: "central",
+        isPovCharacter: true,
+      }),
+    );
+
+    const chipsRow = screen.getByText("Центральний").parentElement;
+    const heading = screen.getByRole("heading", { name: "Ґеральт" });
+
+    expect(chipsRow).toContainElement(screen.getByText("POV"));
+    expect(chipsRow?.parentElement).toBe(screen.getByRole("article"));
+    expect(chipsRow?.previousElementSibling).toContainElement(heading);
+    expect(chipsRow?.nextElementSibling).toBe(screen.getByText("Відьмак із Рівії"));
+  });
+});
+
+describe("CharacterCard roster content", () => {
+  it("shows the safe description preview", () => {
+    renderCard(makeCharacterSummary({ descriptionPreview: "Відьмак із Рівії" }));
+
+    expect(screen.getByText("Відьмак із Рівії")).toBeInTheDocument();
+  });
+
+  it("shows the first two roles in order and counts only the visible surplus", () => {
+    renderCard(
+      makeCharacterSummary({
+        roles: [
+          { customRole: null, id: "r1", isSpoiler: false, position: 0, roleType: "protagonist" },
+          { customRole: "Мисливець", id: "r2", isSpoiler: false, position: 1, roleType: "custom" },
+          { customRole: null, id: "r3", isSpoiler: false, position: 2, roleType: "supporting" },
+          { customRole: null, id: "r4", isSpoiler: false, position: 3, roleType: "mentioned" },
+        ],
+      }),
+    );
+
+    expect(screen.getByText("Протагоніст")).toBeInTheDocument();
+    expect(screen.getByText("Мисливець")).toBeInTheDocument();
+    expect(screen.getByText("+2")).toBeInTheDocument();
+    expect(screen.getByText("Інші ролі: 2")).toBeInTheDocument();
+    expect(screen.queryByText("Другорядний")).not.toBeInTheDocument();
+  });
+
+  it("renders no surplus counter for two roles or fewer", () => {
+    renderCard(
+      makeCharacterSummary({
+        roles: [
+          { customRole: null, id: "r1", isSpoiler: false, position: 0, roleType: "antagonist" },
+        ],
+      }),
+    );
+
+    expect(screen.getByText("Антагоніст")).toBeInTheDocument();
+    expect(screen.queryByText(/^\+\d/)).not.toBeInTheDocument();
+  });
+
+  it("shows the species and a custom other status in the footer", () => {
+    renderCard(
+      makeCharacterSummary({
+        species: SPECIES_REFS.witcher,
+        status: "other",
+        statusCustomText: "Під прокляттям",
+      }),
+    );
+
+    expect(screen.getByText("Відьмак")).toBeInTheDocument();
+    expect(screen.getByText("Під прокляттям")).toBeInTheDocument();
+    expect(screen.queryByText("Інше")).not.toBeInTheDocument();
+  });
+
+  it("falls back to the standard other label without custom text", () => {
+    renderCard(makeCharacterSummary({ status: "other", statusCustomText: null }));
+
+    expect(screen.getByText("Інше")).toBeInTheDocument();
+  });
+
+  it("counts every hidden card group once in a single lock badge", () => {
+    renderCard(
+      makeCharacterSummary({
+        hiddenFields: ["description", "roles", "speciesOverride", "status"],
+        species: null,
+        status: null,
+      }),
+    );
+
+    expect(screen.getAllByText(/Приховані поля/)).toHaveLength(1);
+    expect(screen.getByText("Приховані поля: 4")).toBeInTheDocument();
+    expect(screen.queryByText("Не вказано")).not.toBeInTheDocument();
   });
 });

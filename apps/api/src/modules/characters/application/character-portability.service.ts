@@ -1,10 +1,11 @@
-import type { CharacterBundle, CharacterExportQuery, CharacterImportResultView } from "@app/shared";
-
-import {
-  CHARACTER_IMPORT_ERROR_CODES,
-  CharacterBundleSchema,
-  upgradeLegacyCharacterBundle,
+import type {
+  CharacterBundle,
+  CharacterExportQuery,
+  CharacterImportResultView,
+  ImportedCharacterBundle,
 } from "@app/shared";
+
+import { CHARACTER_IMPORT_ERROR_CODES, CharacterBundleImportSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 
@@ -60,7 +61,7 @@ export class CharacterPortabilityService {
     payload: unknown;
     userId: string;
   }): Promise<CharacterImportResultView> {
-    const bundle = this.parseBundle(payload);
+    const { bundle, sourceFormatVersion } = this.parseBundle(payload);
     const owned = await this.resolveOwnedRefs({ bundle, userId });
     const draft = planCharacterImport({
       bundle,
@@ -79,11 +80,11 @@ export class CharacterPortabilityService {
         tx,
       );
     }, HEAVY_TRANSACTION_OPTIONS);
-    return { created: draft.created, formatVersion: bundle.formatVersion, skipped: draft.skipped };
+    return { created: draft.created, formatVersion: sourceFormatVersion, skipped: draft.skipped };
   }
 
-  private parseBundle(payload: unknown): CharacterBundle {
-    const result = CharacterBundleSchema.safeParse(upgradeLegacyCharacterBundle(payload));
+  private parseBundle(payload: unknown): ImportedCharacterBundle {
+    const result = CharacterBundleImportSchema.safeParse(payload);
     if (result.success) {
       return result.data;
     }

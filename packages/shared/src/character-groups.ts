@@ -1,11 +1,6 @@
 import { z } from "zod";
 
-import {
-  createPaginatedSchema,
-  paginationQueryFields,
-  readingPositionQueryFields,
-  requireContextBookForReadingPosition,
-} from "./common.js";
+import { createPaginatedSchema, paginationQueryFields } from "./common.js";
 
 const CHARACTER_GROUP_NAME_MAX = 200;
 const CHARACTER_GROUP_CUSTOM_TYPE_MAX = 60;
@@ -119,12 +114,9 @@ export const CharacterGroupsListQuerySchema = z.object({
 
 export type CharacterGroupsListQuery = z.infer<typeof CharacterGroupsListQuerySchema>;
 
-export const CharacterGroupDetailsQuerySchema = z
-  .object({
-    ...readingPositionQueryFields,
-    contextBookId: z.string().uuid().optional(),
-  })
-  .superRefine(requireContextBookForReadingPosition);
+export const CharacterGroupDetailsQuerySchema = z.object({
+  contextBookId: z.string().uuid().optional(),
+});
 
 export type CharacterGroupDetailsQuery = z.infer<typeof CharacterGroupDetailsQuerySchema>;
 

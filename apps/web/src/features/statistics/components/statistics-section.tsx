@@ -16,15 +16,6 @@ type StatisticsSectionProps = {
   title: ReactNode;
 };
 
-export function StatisticsDivider({ title }: { title: string }) {
-  return (
-    <div className="flex items-center gap-4 pt-2">
-      <h2 className="font-heading text-lg font-semibold text-ink">{title}</h2>
-      <span aria-hidden className="h-px flex-1 bg-border" />
-    </div>
-  );
-}
-
 export function StatisticsMetricTabs<TMetric extends string>({
   label,
   metrics,

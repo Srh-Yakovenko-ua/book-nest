@@ -15,9 +15,22 @@ import { renderWithProviders, screen } from "@/test-utils";
 import { statisticsIds } from "../../model/statistics.fixtures";
 import { StatisticsInsights } from "./statistics-insights";
 
-function render(items: ReadingStatisticsInsight[]) {
-  return renderWithProviders(<StatisticsInsights insights={{ items }} />);
+function getInsightText(text: string): HTMLElement {
+  return screen.getByText(
+    (_, element) => element?.tagName === "P" && element.textContent?.replace(/\s/g, " ") === text,
+  );
 }
+
+function render(items: ReadingStatisticsInsight[], isLowerBound = false) {
+  return renderWithProviders(<StatisticsInsights insights={items} isLowerBound={isLowerBound} />);
+}
+
+const STREAK: ReadingStatisticsInsight = {
+  category: "activity",
+  code: "longest_streak_in_period",
+  params: { days: 12, endDate: "2026-03-14", startDate: "2026-03-03" },
+  tone: "positive",
+};
 
 describe("StatisticsInsights", () => {
   it("localizes a weekday insight from its typed params", () => {
@@ -31,7 +44,7 @@ describe("StatisticsInsights", () => {
     ]);
 
     expect(
-      screen.getByText("Найактивніший день тижня — понеділок: 12 активних днів і 1840 сторінок."),
+      getInsightText("Найактивніший день тижня — понеділок: 12 активних днів і 1 840 сторінок."),
     ).toBeInTheDocument();
   });
 
@@ -46,9 +59,7 @@ describe("StatisticsInsights", () => {
     ]);
 
     expect(
-      screen.getByText(
-        "Найчастіший жанр періоду — fantasy: 14 читань, це 66,7% завершених читань.",
-      ),
+      getInsightText("Найчастіший жанр періоду — fantasy: 14 читань, це 66,7% завершених читань."),
     ).toBeInTheDocument();
   });
 
@@ -104,14 +115,40 @@ describe("StatisticsInsights", () => {
     ]);
 
     expect(screen.queryByText("completed_reads_vs_comparison")).not.toBeInTheDocument();
-    expect(screen.getByText(/8 читань — на 4 менше/)).toBeInTheDocument();
+    expect(
+      getInsightText("Ви завершили 8 читань — на 4 менше, ніж у періоді порівняння (12)."),
+    ).toBeInTheDocument();
   });
 
-  it("shows an honest empty state when the backend selected nothing", () => {
-    render([]);
+  it("states an exact streak plainly when the history is complete", () => {
+    render([STREAK]);
 
     expect(
-      screen.getByText("Для цього періоду ще немає надійних спостережень."),
+      getInsightText(
+        "Найдовша серія читання — 12 днів поспіль (з 3 березня 2026 р. по 14 березня 2026 р.).",
+      ),
     ).toBeInTheDocument();
+  });
+
+  it("words a streak as a recorded minimum when the history is a lower bound", () => {
+    render([STREAK], true);
+
+    expect(
+      getInsightText(
+        "Найдовша зафіксована серія читання — щонайменше 12 днів поспіль (з 3 березня 2026 р. по 14 березня 2026 р.).",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("highlights the key figure from the typed params", () => {
+    render([STREAK]);
+
+    expect(screen.getByText("12 днів", { selector: "strong" })).toBeInTheDocument();
+  });
+
+  it("renders no panel at all when nothing was selected", () => {
+    const { container } = render([]);
+
+    expect(container).toBeEmptyDOMElement();
   });
 });

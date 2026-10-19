@@ -39,6 +39,18 @@ function pathOf(item: NavItem): string {
 }
 
 describe("APP_NAV", () => {
+  it("places reading goals right after the custom lists", () => {
+    expect(itemsOfGroup("nav.groups.books").map(pathOf)).toEqual([
+      "/my-library",
+      "/books",
+      "/favorites",
+      "/reading-queue",
+      "/books-to-buy",
+      "/lists",
+      "/goals",
+    ]);
+  });
+
   it("groups the catalog entries including the global characters route", () => {
     expect(itemsOfGroup("nav.groups.catalog").map(pathOf)).toEqual([
       "/series",

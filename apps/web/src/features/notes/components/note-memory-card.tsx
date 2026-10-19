@@ -9,7 +9,6 @@ import { Fragment, useId } from "react";
 import type { UiIconName } from "@/components/icons";
 
 import { UiIcon } from "@/components/icons";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatRelativeTime } from "@/lib/format";
 
@@ -18,6 +17,7 @@ import type { RecordNoteImpression } from "../hooks/use-note-rediscovery-impress
 
 import { useRecordImpressionWhenVisible } from "../hooks/use-note-rediscovery-impression";
 import { noteCategoryLabel } from "../model/note-category-label";
+import { NoteCategoryBadge } from "./note-category-badge";
 import { NoteEntityLocation } from "./note-entity-location";
 
 type NoteMemoryCardProps = {
@@ -26,6 +26,7 @@ type NoteMemoryCardProps = {
   onOpenNote: OpenNoteFullView;
   recordImpression: RecordNoteImpression;
   source: ReactNode;
+  titleAs: "h3" | "h4";
 };
 
 const MEMORY_SIGNAL_ICONS = {
@@ -39,6 +40,7 @@ export function NoteMemoryCard({
   onOpenNote,
   recordImpression,
   source,
+  titleAs: TitleHeading,
 }: NoteMemoryCardProps) {
   const t = useTranslations("notes.overview.memory");
   const tCategories = useTranslations("notes.categories");
@@ -72,19 +74,18 @@ export function NoteMemoryCard({
 
       {source}
 
-      <p className="line-clamp-4 text-sm leading-relaxed wrap-anywhere whitespace-pre-line text-foreground">
-        {note.text}
-      </p>
+      <div className="flex min-w-0 flex-col gap-1.5">
+        {note.title === null ? null : (
+          <TitleHeading className="line-clamp-2 font-heading text-base leading-snug font-semibold wrap-anywhere text-ink">
+            {note.title}
+          </TitleHeading>
+        )}
+        <p className="line-clamp-4 text-sm leading-relaxed wrap-anywhere whitespace-pre-line text-foreground">
+          {note.text}
+        </p>
+      </div>
 
-      {category === null ? null : (
-        <Badge
-          className="block max-w-full min-w-0 self-start truncate"
-          title={category}
-          variant="secondary"
-        >
-          {category}
-        </Badge>
-      )}
+      {category === null ? null : <NoteCategoryBadge category={category} className="self-start" />}
 
       <NoteEntityLocation note={note} placement="card" />
 

@@ -178,6 +178,43 @@ describe("OwnershipStatusSection create delivery quick flow", () => {
     expect(screen.getByLabelText(messages.books.deliveryInfo.fields.trackingUrl)).toBeVisible();
     expect(screen.getByLabelText(NOTE_LABEL)).toBeVisible();
   });
+
+  it("empties the tracking number once shipping is switched off and on again", async () => {
+    renderSection(inTransitCreateValues(), null, "create");
+
+    await userEvent.click(screen.getByText(messages.books.deliveryInfo.shippedOptions.yes));
+    await userEvent.type(
+      screen.getByLabelText(messages.books.deliveryInfo.fields.trackingNumber),
+      "20450012345678",
+    );
+    await userEvent.click(screen.getByText(messages.books.deliveryInfo.shippedOptions.no));
+    await userEvent.click(screen.getByText(messages.books.deliveryInfo.shippedOptions.yes));
+
+    expect(screen.getByLabelText(messages.books.deliveryInfo.fields.trackingNumber)).toHaveValue(
+      "",
+    );
+  });
+
+  it("submits the shipment details as null once shipping is switched off", async () => {
+    const { onSubmit } = renderSection(inTransitCreateValues(), null, "create");
+
+    await userEvent.click(screen.getByText(messages.books.deliveryInfo.shippedOptions.yes));
+    await userEvent.type(
+      screen.getByLabelText(messages.books.deliveryInfo.fields.trackingNumber),
+      "20450012345678",
+    );
+    await userEvent.click(screen.getByText(messages.books.deliveryInfo.shippedOptions.no));
+    await userEvent.click(screen.getByRole("button", { name: "submit" }));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit.mock.calls[0]?.[0]?.deliveryInfo).toMatchObject({
+      deliveryService: null,
+      expectedDeliveryDate: null,
+      note: null,
+      trackingNumber: null,
+      trackingUrl: null,
+    });
+  });
 });
 
 function inTransitEditValues(): CreateBookFormValues {
@@ -218,6 +255,102 @@ describe("OwnershipStatusSection untouched saved values", () => {
   });
 });
 
+describe("OwnershipStatusSection clearing saved delivery details", () => {
+  it("submits null for each cleared delivery detail", async () => {
+    const values = inTransitEditValues();
+    const { onSubmit } = renderSection({
+      ...values,
+      deliveryInfo: {
+        ...values.deliveryInfo,
+        note: "Залишити у сусідів",
+        orderNumber: "ORD-2041",
+        trackingNumber: "20450012345678",
+        trackingUrl: "https://novaposhta.ua/tracking/20450012345678",
+      },
+    });
+
+    await userEvent.clear(screen.getByLabelText(messages.books.deliveryInfo.fields.orderNumber));
+    await userEvent.clear(screen.getByLabelText(messages.books.deliveryInfo.fields.trackingNumber));
+    await userEvent.clear(screen.getByLabelText(messages.books.deliveryInfo.fields.trackingUrl));
+    await userEvent.clear(screen.getByLabelText(NOTE_LABEL));
+    await userEvent.clear(screen.getByLabelText(messages.books.deliveryInfo.fields.price));
+    await userEvent.click(screen.getByRole("button", { name: "submit" }));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit.mock.calls[0]?.[0]?.deliveryInfo).toMatchObject({
+      note: null,
+      orderNumber: null,
+      price: null,
+      trackingNumber: null,
+      trackingUrl: null,
+    });
+  });
+});
+
+describe("OwnershipStatusSection clearing a saved store name", () => {
+  it("keeps the cleared store name empty and submits it as null", async () => {
+    const values = inTransitEditValues();
+    const { onSubmit } = renderSection({
+      ...values,
+      deliveryInfo: { ...values.deliveryInfo, storeName: "Yakaboo" },
+    });
+    const storeInput = screen.getByLabelText(messages.books.deliveryInfo.fields.storeName);
+    expect(storeInput).toHaveValue("Yakaboo");
+
+    await userEvent.clear(storeInput);
+    expect(storeInput).toHaveValue("");
+
+    await userEvent.click(screen.getByRole("button", { name: "submit" }));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit.mock.calls[0]?.[0]?.deliveryInfo).toMatchObject({ storeName: null });
+  });
+});
+
+describe("OwnershipStatusSection required delivery selects", () => {
+  const clearButton = { name: "Clear" };
+
+  it("offers no clear button for the chosen currency when creating", () => {
+    renderSection(
+      {
+        ...inTransitCreateValues(),
+        deliveryInfo: { currency: "UAH", deliveryStatus: "ordered", isShipped: false },
+      },
+      null,
+      "create",
+    );
+
+    expect(
+      screen.getByRole("combobox", { name: messages.books.deliveryInfo.fields.currency }),
+    ).toHaveTextContent("UAH");
+    expect(screen.queryByRole("button", clearButton)).not.toBeInTheDocument();
+  });
+
+  it("offers no clear button for the chosen currency when editing", () => {
+    renderSection({
+      ...inTransitEditValues(),
+      deliveryInfo: { currency: "UAH", isShipped: true, price: 350 },
+    });
+
+    expect(
+      screen.getByRole("combobox", { name: messages.books.deliveryInfo.fields.currency }),
+    ).toHaveTextContent("UAH");
+    expect(screen.queryByRole("button", clearButton)).not.toBeInTheDocument();
+  });
+
+  it("offers no clear button for the chosen delivery status", () => {
+    renderSection({
+      ...inTransitEditValues(),
+      deliveryInfo: { deliveryStatus: "in_transit", isShipped: true },
+    });
+
+    expect(
+      screen.getByRole("combobox", { name: messages.books.deliveryInfo.fields.deliveryStatus }),
+    ).toHaveTextContent(messages.books.deliveryStatus.labels.in_transit);
+    expect(screen.queryByRole("button", clearButton)).not.toBeInTheDocument();
+  });
+});
+
 function wishlistValues(): CreateBookFormValues {
   return bookViewToFormState(
     makeBookView({
@@ -246,6 +379,20 @@ describe("OwnershipStatusSection purchase note removal", () => {
     renderSection(borrowed.values, borrowed.loanContactSelection);
 
     expect(screen.getByLabelText(NOTE_LABEL)).toHaveValue("Повернути після відпустки");
+  });
+
+  it("submits null for a cleared loan note", async () => {
+    const borrowed = bookViewToFormState(borrowedBook());
+    const { onSubmit } = renderSection(
+      { ...borrowed.values, loanInfo: { ...borrowed.values.loanInfo, loanContactId: CONTACT_ID } },
+      borrowed.loanContactSelection,
+    );
+
+    await userEvent.clear(screen.getByLabelText(NOTE_LABEL));
+    await userEvent.click(screen.getByRole("button", { name: "submit" }));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit.mock.calls[0]?.[0]?.loanInfo).toMatchObject({ note: null });
   });
 
   it("shows the person of a saved loan even when the contact search returns nothing", () => {

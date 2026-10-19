@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
+import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
@@ -185,6 +186,22 @@ describe("GET /api/notes/books search", () => {
 
     expect(listIds(res.body)).toEqual([matchingId]);
   });
+
+  it("matches a note by its title when the text does not contain the term", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken, { author: "Frank Herbert", title: "Dune" });
+    const titledId = await createBookNote(accessToken, bookId, {
+      text: "Desert",
+      title: "The Gom Jabbar",
+    });
+    await createBookNote(accessToken, bookId, { text: "Desert", title: "Sietch Tabr" });
+
+    const res = await authed("get", `${BOOK_ARCHIVE_PATH}?search=jabbar`, accessToken);
+
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(listIds(res.body)).toEqual([titledId]);
+    expect(res.body.totalCount).toBe(1);
+  });
 });
 
 describe("GET /api/notes/books sort across pages", () => {
@@ -232,7 +249,7 @@ describe("GET /api/notes/books sort across pages", () => {
     expect(ids).toEqual([simmonsNote, ...byId(herbertNotes), ...byId(asimovNotes)]);
   });
 
-  it("BOOK-Q-06 orders by book title, then page with missing pages last, then id", async () => {
+  it("BOOK-Q-06 orders by book title, then page with missing pages last, then id for equal timestamps", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const duneId = await createBook(accessToken, { author: "Frank Herbert", title: "Dune" });
     const anathemId = await createBook(accessToken, {
@@ -246,6 +263,10 @@ describe("GET /api/notes/books sort across pages", () => {
       await createBookNote(accessToken, duneId, { page: 10 }),
       await createBookNote(accessToken, duneId, { page: 10 }),
     ];
+    await app.get(PrismaService).note.updateMany({
+      data: { createdAt: new Date("2026-03-01T12:00:00.000Z") },
+      where: { id: { in: page10Notes } },
+    });
 
     const ids = await collectPages(accessToken, "page", 3);
 

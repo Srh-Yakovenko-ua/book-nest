@@ -27,6 +27,7 @@ import { DeleteSeriesDialog } from "./delete-series-dialog";
 import { EditSeriesDialog } from "./edit-series-dialog";
 import { SeriesBooksSummary } from "./series-books-summary";
 import { SeriesBooksTab } from "./series-books-tab";
+import { SeriesCharactersTab } from "./series-characters-tab";
 import { SeriesDetailsAbout } from "./series-details-about";
 import { SeriesDetailsHero } from "./series-details-hero";
 import { SeriesOrderCheckToggle } from "./series-order-check-toggle";
@@ -37,7 +38,7 @@ type SeriesDetailsViewProps = {
   details: SeriesDetailsView;
 };
 
-const DETAIL_TABS = ["books", "about", "notes"] as const;
+const DETAIL_TABS = ["books", "about", "notes", "characters"] as const;
 
 type SeriesDetailTab = (typeof DETAIL_TABS)[number];
 
@@ -64,6 +65,7 @@ export function SeriesDetailsView({ details }: SeriesDetailsViewProps) {
     { label: t("tabs.books"), value: "books" },
     { label: t("tabs.about"), value: "about" },
     { label: t("tabs.notes"), value: "notes" },
+    { label: t("tabs.characters"), value: "characters" },
   ];
 
   function openAddBook(partNumber: null | number) {
@@ -137,6 +139,13 @@ export function SeriesDetailsView({ details }: SeriesDetailsViewProps) {
           </PageTabsPanel>
           <PageTabsPanel className="flex flex-col gap-6" value="notes">
             <SeriesNotesBlock details={details} />
+          </PageTabsPanel>
+          <PageTabsPanel value="characters">
+            <SeriesCharactersTab
+              details={details}
+              key={details.id}
+              onAddBook={() => openAddBook(null)}
+            />
           </PageTabsPanel>
         </TabsPrimitive.Root>
 

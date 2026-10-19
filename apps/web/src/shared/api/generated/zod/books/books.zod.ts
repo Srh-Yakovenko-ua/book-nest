@@ -3636,6 +3636,11 @@ export const booksControllerGetByIdResponseSeriesOwnershipTotalMin = -9007199254
 export const booksControllerGetByIdResponseSeriesOwnershipTotalMax = 9007199254740991;
 
 export const booksControllerGetByIdResponseSeriesTagsDefault = [];
+export const booksControllerGetByIdResponseNotesCountMin = 0;
+export const booksControllerGetByIdResponseNotesCountMax = 9007199254740991;
+
+export const booksControllerGetByIdResponseQuotesCountMin = 0;
+export const booksControllerGetByIdResponseQuotesCountMax = 9007199254740991;
 
 export const BooksControllerGetByIdResponse = zod.object({
   ageCategory: zod.enum([
@@ -4004,6 +4009,14 @@ export const BooksControllerGetByIdResponse = zod.object({
   updatedAt: zod.string(),
   userId: zod.string(),
   wishlistAddedAt: zod.string().nullable(),
+  notesCount: zod
+    .int()
+    .min(booksControllerGetByIdResponseNotesCountMin)
+    .max(booksControllerGetByIdResponseNotesCountMax),
+  quotesCount: zod
+    .int()
+    .min(booksControllerGetByIdResponseQuotesCountMin)
+    .max(booksControllerGetByIdResponseQuotesCountMax),
 });
 
 /**

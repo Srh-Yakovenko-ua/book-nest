@@ -10,6 +10,8 @@ import { useQueryStates } from "nuqs";
 
 import type { StatisticsControllerGetOverviewParams } from "@/shared/api/generated/model";
 
+import { useProfileTimeZone } from "@/features/settings";
+
 import type { StatisticsCustomRangeIssue, StatisticsQueryState } from "./statistics-period";
 
 import {
@@ -41,7 +43,8 @@ type StatisticsStatePatch = Partial<{
 
 export function useStatisticsParams(): UseStatisticsParamsResult {
   const [state, setState] = useQueryStates(statisticsParsers);
-  const today = todayIsoDay();
+  const timeZone = useProfileTimeZone();
+  const today = todayIsoDay(timeZone);
   const rangeIssue =
     state.period === "custom" ? customRangeIssue({ from: state.from, to: state.to, today }) : null;
 

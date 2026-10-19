@@ -17,11 +17,20 @@ type NotePreviewProps = {
   layout: NoteCardLayout;
   onExpand: (trigger: HTMLButtonElement) => void;
   text: string;
+  title: Nullable<string>;
+  titleAs: "h3" | "h4";
 };
 
-export function NotePreview({ card, layout, onExpand, text }: NotePreviewProps) {
+export function NotePreview({
+  card,
+  layout,
+  onExpand,
+  text,
+  title,
+  titleAs: TitleHeading,
+}: NotePreviewProps) {
   const t = useTranslations("notes.card");
-  const { fitsPreviewToCard, preview } = NOTE_CARD_LAYOUT[layout];
+  const { fitsPreviewToCard, preview, title: titleSize } = NOTE_CARD_LAYOUT[layout];
   const { isClamped, lines, ref } = useFittedLineClamp<HTMLParagraphElement>(
     text,
     fitsPreviewToCard ? card : null,
@@ -29,6 +38,16 @@ export function NotePreview({ card, layout, onExpand, text }: NotePreviewProps) 
 
   return (
     <div className="flex min-w-0 flex-col items-start gap-1.5">
+      {title === null ? null : (
+        <TitleHeading
+          className={cn(
+            "w-full font-heading leading-snug font-semibold wrap-anywhere text-ink",
+            titleSize,
+          )}
+        >
+          {title}
+        </TitleHeading>
+      )}
       <p
         className={cn(
           "w-full text-sm leading-relaxed wrap-anywhere whitespace-pre-line text-foreground",

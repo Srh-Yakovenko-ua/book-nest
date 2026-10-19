@@ -128,11 +128,6 @@ function makeAppearance(
   return {
     bookId: BOOK_ID,
     characterId: CHARACTER_ID,
-    firstAppearanceAudioSeconds: null,
-    firstAppearanceChapter: null,
-    firstAppearancePage: null,
-    hidePresenceAsSpoiler: false,
-    id: "77777777-7777-7777-7777-777777777777",
     ...overrides,
   };
 }
@@ -141,7 +136,7 @@ function makeRow(overrides: Partial<CharacterTheoryRow> = {}): CharacterTheoryRo
   return {
     book: null,
     bookId: null,
-    character: { deletedAt: null, hideProfileAsSpoiler: false, id: CHARACTER_ID, name: "Snape" },
+    character: { deletedAt: null, id: CHARACTER_ID, name: "Snape" },
     characterId: CHARACTER_ID,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     id: THEORY_ID,
@@ -287,33 +282,35 @@ describe("CharacterTheoriesService context masking", () => {
     expect(filter.contextAllowedBookIds).toEqual([BOOK_ID]);
   });
 
-  it("marks a target character the reader has not reached as unreachable", async () => {
+  it("marks a target character that appears only in a later book as unreachable", async () => {
     const { listTheories, service } = createService({
-      appearances: [makeAppearance({ firstAppearanceChapter: "40" })],
-      bookContext: { id: BOOK_ID, partNumber: null, seriesId: null },
+      appearances: [makeAppearance({ bookId: LATER_BOOK_ID })],
+      bookContext: { id: BOOK_ID, partNumber: 1, seriesId: SERIES_ID },
+      seriesBooks: [
+        { createdAt: new Date("2026-01-01T00:00:00.000Z"), id: BOOK_ID, partNumber: 1 },
+        { createdAt: new Date("2026-02-01T00:00:00.000Z"), id: LATER_BOOK_ID, partNumber: 2 },
+      ],
       targetCharacterIds: [CHARACTER_ID],
     });
 
-    await service.list({
-      query: makeQuery({ contextBookId: BOOK_ID, contextChapter: 5 }),
-      userId: USER_ID,
-    });
+    await service.list({ query: makeQuery({ contextBookId: BOOK_ID }), userId: USER_ID });
 
     const filter = listTheories.mock.calls[0]?.[0].filter as TheoryListFilter;
     expect(filter.unreachableCharacterIds).toEqual([CHARACTER_ID]);
   });
 
-  it("keeps a target character the reader has reached out of the unreachable set", async () => {
+  it("keeps a target character appearing in the context book out of the unreachable set", async () => {
     const { listTheories, service } = createService({
-      appearances: [makeAppearance({ firstAppearanceChapter: "40" })],
-      bookContext: { id: BOOK_ID, partNumber: null, seriesId: null },
+      appearances: [makeAppearance({ bookId: BOOK_ID })],
+      bookContext: { id: BOOK_ID, partNumber: 1, seriesId: SERIES_ID },
+      seriesBooks: [
+        { createdAt: new Date("2026-01-01T00:00:00.000Z"), id: BOOK_ID, partNumber: 1 },
+        { createdAt: new Date("2026-02-01T00:00:00.000Z"), id: LATER_BOOK_ID, partNumber: 2 },
+      ],
       targetCharacterIds: [CHARACTER_ID],
     });
 
-    await service.list({
-      query: makeQuery({ contextBookId: BOOK_ID, contextChapter: 40 }),
-      userId: USER_ID,
-    });
+    await service.list({ query: makeQuery({ contextBookId: BOOK_ID }), userId: USER_ID });
 
     const filter = listTheories.mock.calls[0]?.[0].filter as TheoryListFilter;
     expect(filter.unreachableCharacterIds).toEqual([]);
@@ -321,15 +318,12 @@ describe("CharacterTheoriesService context masking", () => {
 
   it("counts from the very filter the items are listed from", async () => {
     const { countTheories, listTheories, service } = createService({
-      appearances: [makeAppearance({ firstAppearanceChapter: "40" })],
+      appearances: [makeAppearance()],
       bookContext: { id: BOOK_ID, partNumber: null, seriesId: null },
       targetCharacterIds: [CHARACTER_ID],
     });
 
-    await service.list({
-      query: makeQuery({ contextBookId: BOOK_ID, contextChapter: 5 }),
-      userId: USER_ID,
-    });
+    await service.list({ query: makeQuery({ contextBookId: BOOK_ID }), userId: USER_ID });
 
     expect(countTheories.mock.calls[0]?.[0]).toBe(listTheories.mock.calls[0]?.[0].filter);
   });

@@ -101,6 +101,7 @@ export class QuotesController {
   @ApiQuery({ name: "createdFrom", required: false })
   @ApiQuery({ name: "createdTo", required: false })
   @ApiQuery({ name: "q", required: false })
+  @ApiQuery({ name: "searchIn", required: false })
   @Get("facets")
   facets(
     @CurrentUser() user: AuthenticatedUser,
@@ -167,6 +168,7 @@ export class QuotesController {
   @ApiQuery({ name: "createdFrom", required: false })
   @ApiQuery({ name: "createdTo", required: false })
   @ApiQuery({ name: "q", required: false })
+  @ApiQuery({ name: "searchIn", required: false })
   @ApiQuery({ name: "filter", required: false })
   @ApiQuery({ name: "sort", required: false })
   @ApiQuery({ name: "pageNumber", required: false })

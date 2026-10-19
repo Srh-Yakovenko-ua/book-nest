@@ -22,13 +22,16 @@ import type {
   BookCharacterGraphControllerGetParams,
   BookCharacterRelationshipsControllerListParams,
   CharacterGraphViewDto,
-  CharacterRelationshipContextViewDto,
   CharacterRelationshipDeletionResultViewDto,
   CharacterRelationshipDetailsViewDto,
   CharacterRelationshipPathViewDto,
+  CharacterRelationshipSafeContextViewDto,
+  CharacterRelationshipSafeDetailsViewDto,
   CharacterRelationshipsControllerFindPathParams,
   CharacterRelationshipsControllerGetByIdParams,
+  CharacterRelationshipsControllerListParams,
   CreateCharacterRelationshipInputDto,
+  PaginatedCharacterRelationshipListViewDto,
   SeriesCharacterGraphControllerGetParams,
   SeriesCharacterRelationshipsControllerListParams,
   UpdateCharacterRelationshipInputDto,
@@ -54,43 +57,49 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type characterRelationshipsControllerFindPathResponse200 = {
-  data: CharacterRelationshipPathViewDto;
+export type characterRelationshipsControllerListResponse200 = {
+  data: PaginatedCharacterRelationshipListViewDto;
   status: 200;
 };
 
-export type characterRelationshipsControllerFindPathResponse401 = {
+export type characterRelationshipsControllerListResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type characterRelationshipsControllerListResponse401 = {
   data: void;
   status: 401;
 };
 
-export type characterRelationshipsControllerFindPathResponse404 = {
+export type characterRelationshipsControllerListResponse404 = {
   data: void;
   status: 404;
 };
 
-export type characterRelationshipsControllerFindPathResponseSuccess =
-  characterRelationshipsControllerFindPathResponse200 & {
+export type characterRelationshipsControllerListResponseSuccess =
+  characterRelationshipsControllerListResponse200 & {
     headers: Headers;
   };
-export type characterRelationshipsControllerFindPathResponseError = (
-  | characterRelationshipsControllerFindPathResponse401
-  | characterRelationshipsControllerFindPathResponse404
+export type characterRelationshipsControllerListResponseError = (
+  | characterRelationshipsControllerListResponse400
+  | characterRelationshipsControllerListResponse401
+  | characterRelationshipsControllerListResponse404
 ) & {
   headers: Headers;
 };
 
-export type characterRelationshipsControllerFindPathResponse =
-  | characterRelationshipsControllerFindPathResponseSuccess
-  | characterRelationshipsControllerFindPathResponseError;
+export type characterRelationshipsControllerListResponse =
+  | characterRelationshipsControllerListResponseSuccess
+  | characterRelationshipsControllerListResponseError;
 
-export const getCharacterRelationshipsControllerFindPathUrl = (
-  params: CharacterRelationshipsControllerFindPathParams,
+export const getCharacterRelationshipsControllerListUrl = (
+  params: CharacterRelationshipsControllerListParams,
 ) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    const explodeParameters = ["categories", "relationshipTypes", "revealEdgeIds"];
+    const explodeParameters = ["categories", "intensities", "relationshipTypes", "statuses"];
 
     if (Array.isArray(value) && explodeParameters.includes(key)) {
       value.forEach((v) => {
@@ -107,19 +116,19 @@ export const getCharacterRelationshipsControllerFindPathUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/character-relationships/path?${stringifiedParams}`
-    : `/api/character-relationships/path`;
+    ? `/api/character-relationships?${stringifiedParams}`
+    : `/api/character-relationships`;
 };
 
 /**
- * @summary Find the shortest spoiler-safe path between two characters
+ * @summary List spoiler-safe relationships for a character, book or series
  */
-export const characterRelationshipsControllerFindPath = async (
-  params: CharacterRelationshipsControllerFindPathParams,
+export const characterRelationshipsControllerList = async (
+  params: CharacterRelationshipsControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterRelationshipsControllerFindPathResponse> => {
-  return customInstance<characterRelationshipsControllerFindPathResponse>(
-    getCharacterRelationshipsControllerFindPathUrl(params),
+): Promise<characterRelationshipsControllerListResponse> => {
+  return customInstance<characterRelationshipsControllerListResponse>(
+    getCharacterRelationshipsControllerListUrl(params),
     {
       ...options,
       method: "GET",
@@ -127,21 +136,21 @@ export const characterRelationshipsControllerFindPath = async (
   );
 };
 
-export const getCharacterRelationshipsControllerFindPathQueryKey = (
-  params?: CharacterRelationshipsControllerFindPathParams,
+export const getCharacterRelationshipsControllerListQueryKey = (
+  params?: CharacterRelationshipsControllerListParams,
 ) => {
-  return [`/api/character-relationships/path`, ...(params ? [params] : [])] as const;
+  return [`/api/character-relationships`, ...(params ? [params] : [])] as const;
 };
 
-export const getCharacterRelationshipsControllerFindPathQueryOptions = <
-  TData = Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+export const getCharacterRelationshipsControllerListQueryOptions = <
+  TData = Awaited<ReturnType<typeof characterRelationshipsControllerList>>,
   TError = void,
 >(
-  params: CharacterRelationshipsControllerFindPathParams,
+  params: CharacterRelationshipsControllerListParams,
   options?: {
     query?: Partial<
       UseQueryOptions<
-        Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+        Awaited<ReturnType<typeof characterRelationshipsControllerList>>,
         TError,
         TData
       >
@@ -152,43 +161,42 @@ export const getCharacterRelationshipsControllerFindPathQueryOptions = <
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getCharacterRelationshipsControllerFindPathQueryKey(params);
+    queryOptions?.queryKey ?? getCharacterRelationshipsControllerListQueryKey(params);
 
   const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>
-  > = ({ signal }) =>
-    characterRelationshipsControllerFindPath(params, { signal, ...requestOptions });
+    Awaited<ReturnType<typeof characterRelationshipsControllerList>>
+  > = ({ signal }) => characterRelationshipsControllerList(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+    Awaited<ReturnType<typeof characterRelationshipsControllerList>>,
     TError,
     TData
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
-export type CharacterRelationshipsControllerFindPathQueryResult = NonNullable<
-  Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>
+export type CharacterRelationshipsControllerListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof characterRelationshipsControllerList>>
 >;
-export type CharacterRelationshipsControllerFindPathQueryError = void;
+export type CharacterRelationshipsControllerListQueryError = void;
 
-export function useCharacterRelationshipsControllerFindPath<
-  TData = Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+export function useCharacterRelationshipsControllerList<
+  TData = Awaited<ReturnType<typeof characterRelationshipsControllerList>>,
   TError = void,
 >(
-  params: CharacterRelationshipsControllerFindPathParams,
+  params: CharacterRelationshipsControllerListParams,
   options: {
     query: Partial<
       UseQueryOptions<
-        Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+        Awaited<ReturnType<typeof characterRelationshipsControllerList>>,
         TError,
         TData
       >
     > &
       Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+          Awaited<ReturnType<typeof characterRelationshipsControllerList>>,
           TError,
-          Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>
+          Awaited<ReturnType<typeof characterRelationshipsControllerList>>
         >,
         "initialData"
       >;
@@ -196,24 +204,24 @@ export function useCharacterRelationshipsControllerFindPath<
   },
   queryClient?: QueryClient,
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useCharacterRelationshipsControllerFindPath<
-  TData = Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+export function useCharacterRelationshipsControllerList<
+  TData = Awaited<ReturnType<typeof characterRelationshipsControllerList>>,
   TError = void,
 >(
-  params: CharacterRelationshipsControllerFindPathParams,
+  params: CharacterRelationshipsControllerListParams,
   options?: {
     query?: Partial<
       UseQueryOptions<
-        Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+        Awaited<ReturnType<typeof characterRelationshipsControllerList>>,
         TError,
         TData
       >
     > &
       Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+          Awaited<ReturnType<typeof characterRelationshipsControllerList>>,
           TError,
-          Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>
+          Awaited<ReturnType<typeof characterRelationshipsControllerList>>
         >,
         "initialData"
       >;
@@ -221,15 +229,15 @@ export function useCharacterRelationshipsControllerFindPath<
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useCharacterRelationshipsControllerFindPath<
-  TData = Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+export function useCharacterRelationshipsControllerList<
+  TData = Awaited<ReturnType<typeof characterRelationshipsControllerList>>,
   TError = void,
 >(
-  params: CharacterRelationshipsControllerFindPathParams,
+  params: CharacterRelationshipsControllerListParams,
   options?: {
     query?: Partial<
       UseQueryOptions<
-        Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+        Awaited<ReturnType<typeof characterRelationshipsControllerList>>,
         TError,
         TData
       >
@@ -239,18 +247,18 @@ export function useCharacterRelationshipsControllerFindPath<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Find the shortest spoiler-safe path between two characters
+ * @summary List spoiler-safe relationships for a character, book or series
  */
 
-export function useCharacterRelationshipsControllerFindPath<
-  TData = Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+export function useCharacterRelationshipsControllerList<
+  TData = Awaited<ReturnType<typeof characterRelationshipsControllerList>>,
   TError = void,
 >(
-  params: CharacterRelationshipsControllerFindPathParams,
+  params: CharacterRelationshipsControllerListParams,
   options?: {
     query?: Partial<
       UseQueryOptions<
-        Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+        Awaited<ReturnType<typeof characterRelationshipsControllerList>>,
         TError,
         TData
       >
@@ -259,7 +267,7 @@ export function useCharacterRelationshipsControllerFindPath<
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getCharacterRelationshipsControllerFindPathQueryOptions(params, options);
+  const queryOptions = getCharacterRelationshipsControllerListQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -480,9 +488,234 @@ export function useCharacterRelationshipsControllerCreate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterRelationshipsControllerGetByIdResponse200 = {
-  data: CharacterRelationshipDetailsViewDto;
+export type characterRelationshipsControllerFindPathResponse200 = {
+  data: CharacterRelationshipPathViewDto;
   status: 200;
+};
+
+export type characterRelationshipsControllerFindPathResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type characterRelationshipsControllerFindPathResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type characterRelationshipsControllerFindPathResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type characterRelationshipsControllerFindPathResponseSuccess =
+  characterRelationshipsControllerFindPathResponse200 & {
+    headers: Headers;
+  };
+export type characterRelationshipsControllerFindPathResponseError = (
+  | characterRelationshipsControllerFindPathResponse400
+  | characterRelationshipsControllerFindPathResponse401
+  | characterRelationshipsControllerFindPathResponse404
+) & {
+  headers: Headers;
+};
+
+export type characterRelationshipsControllerFindPathResponse =
+  | characterRelationshipsControllerFindPathResponseSuccess
+  | characterRelationshipsControllerFindPathResponseError;
+
+export const getCharacterRelationshipsControllerFindPathUrl = (
+  params: CharacterRelationshipsControllerFindPathParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["categories", "relationshipTypes", "revealEdgeIds"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/character-relationships/path?${stringifiedParams}`
+    : `/api/character-relationships/path`;
+};
+
+/**
+ * @summary Find the shortest spoiler-safe path between two characters
+ */
+export const characterRelationshipsControllerFindPath = async (
+  params: CharacterRelationshipsControllerFindPathParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<characterRelationshipsControllerFindPathResponse> => {
+  return customInstance<characterRelationshipsControllerFindPathResponse>(
+    getCharacterRelationshipsControllerFindPathUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getCharacterRelationshipsControllerFindPathQueryKey = (
+  params?: CharacterRelationshipsControllerFindPathParams,
+) => {
+  return [`/api/character-relationships/path`, ...(params ? [params] : [])] as const;
+};
+
+export const getCharacterRelationshipsControllerFindPathQueryOptions = <
+  TData = Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+  TError = void,
+>(
+  params: CharacterRelationshipsControllerFindPathParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCharacterRelationshipsControllerFindPathQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>
+  > = ({ signal }) =>
+    characterRelationshipsControllerFindPath(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type CharacterRelationshipsControllerFindPathQueryResult = NonNullable<
+  Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>
+>;
+export type CharacterRelationshipsControllerFindPathQueryError = void;
+
+export function useCharacterRelationshipsControllerFindPath<
+  TData = Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+  TError = void,
+>(
+  params: CharacterRelationshipsControllerFindPathParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+          TError,
+          Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharacterRelationshipsControllerFindPath<
+  TData = Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+  TError = void,
+>(
+  params: CharacterRelationshipsControllerFindPathParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+          TError,
+          Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharacterRelationshipsControllerFindPath<
+  TData = Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+  TError = void,
+>(
+  params: CharacterRelationshipsControllerFindPathParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Find the shortest spoiler-safe path between two characters
+ */
+
+export function useCharacterRelationshipsControllerFindPath<
+  TData = Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+  TError = void,
+>(
+  params: CharacterRelationshipsControllerFindPathParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterRelationshipsControllerFindPath>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getCharacterRelationshipsControllerFindPathQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type characterRelationshipsControllerGetByIdResponse200 = {
+  data: CharacterRelationshipSafeDetailsViewDto;
+  status: 200;
+};
+
+export type characterRelationshipsControllerGetByIdResponse400 = {
+  data: void;
+  status: 400;
 };
 
 export type characterRelationshipsControllerGetByIdResponse401 = {
@@ -500,6 +733,7 @@ export type characterRelationshipsControllerGetByIdResponseSuccess =
     headers: Headers;
   };
 export type characterRelationshipsControllerGetByIdResponseError = (
+  | characterRelationshipsControllerGetByIdResponse400
   | characterRelationshipsControllerGetByIdResponse401
   | characterRelationshipsControllerGetByIdResponse404
 ) & {
@@ -530,7 +764,7 @@ export const getCharacterRelationshipsControllerGetByIdUrl = (
 };
 
 /**
- * @summary Get a relationship with its spoiler-safe per-book state history
+ * @summary Get a spoiler-safe relationship view for a reader scope
  */
 export const characterRelationshipsControllerGetById = async (
   relationshipId: string,
@@ -669,7 +903,7 @@ export function useCharacterRelationshipsControllerGetById<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Get a relationship with its spoiler-safe per-book state history
+ * @summary Get a spoiler-safe relationship view for a reader scope
  */
 
 export function useCharacterRelationshipsControllerGetById<
@@ -1121,6 +1355,203 @@ export function useCharacterRelationshipsControllerRemove<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getCharacterRelationshipsControllerRemoveQueryOptions(
+    relationshipId,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type characterRelationshipsControllerGetForEditResponse200 = {
+  data: CharacterRelationshipDetailsViewDto;
+  status: 200;
+};
+
+export type characterRelationshipsControllerGetForEditResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type characterRelationshipsControllerGetForEditResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type characterRelationshipsControllerGetForEditResponseSuccess =
+  characterRelationshipsControllerGetForEditResponse200 & {
+    headers: Headers;
+  };
+export type characterRelationshipsControllerGetForEditResponseError = (
+  | characterRelationshipsControllerGetForEditResponse401
+  | characterRelationshipsControllerGetForEditResponse404
+) & {
+  headers: Headers;
+};
+
+export type characterRelationshipsControllerGetForEditResponse =
+  | characterRelationshipsControllerGetForEditResponseSuccess
+  | characterRelationshipsControllerGetForEditResponseError;
+
+export const getCharacterRelationshipsControllerGetForEditUrl = (relationshipId: string) => {
+  return `/api/character-relationships/${relationshipId}/edit`;
+};
+
+/**
+ * @summary Get the full relationship record for the owner to edit
+ */
+export const characterRelationshipsControllerGetForEdit = async (
+  relationshipId: string,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<characterRelationshipsControllerGetForEditResponse> => {
+  return customInstance<characterRelationshipsControllerGetForEditResponse>(
+    getCharacterRelationshipsControllerGetForEditUrl(relationshipId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getCharacterRelationshipsControllerGetForEditQueryKey = (relationshipId: string) => {
+  return [`/api/character-relationships/${relationshipId}/edit`] as const;
+};
+
+export const getCharacterRelationshipsControllerGetForEditQueryOptions = <
+  TData = Awaited<ReturnType<typeof characterRelationshipsControllerGetForEdit>>,
+  TError = void,
+>(
+  relationshipId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterRelationshipsControllerGetForEdit>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCharacterRelationshipsControllerGetForEditQueryKey(relationshipId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof characterRelationshipsControllerGetForEdit>>
+  > = ({ signal }) =>
+    characterRelationshipsControllerGetForEdit(relationshipId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: relationshipId !== null && relationshipId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof characterRelationshipsControllerGetForEdit>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type CharacterRelationshipsControllerGetForEditQueryResult = NonNullable<
+  Awaited<ReturnType<typeof characterRelationshipsControllerGetForEdit>>
+>;
+export type CharacterRelationshipsControllerGetForEditQueryError = void;
+
+export function useCharacterRelationshipsControllerGetForEdit<
+  TData = Awaited<ReturnType<typeof characterRelationshipsControllerGetForEdit>>,
+  TError = void,
+>(
+  relationshipId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterRelationshipsControllerGetForEdit>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof characterRelationshipsControllerGetForEdit>>,
+          TError,
+          Awaited<ReturnType<typeof characterRelationshipsControllerGetForEdit>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharacterRelationshipsControllerGetForEdit<
+  TData = Awaited<ReturnType<typeof characterRelationshipsControllerGetForEdit>>,
+  TError = void,
+>(
+  relationshipId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterRelationshipsControllerGetForEdit>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof characterRelationshipsControllerGetForEdit>>,
+          TError,
+          Awaited<ReturnType<typeof characterRelationshipsControllerGetForEdit>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharacterRelationshipsControllerGetForEdit<
+  TData = Awaited<ReturnType<typeof characterRelationshipsControllerGetForEdit>>,
+  TError = void,
+>(
+  relationshipId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterRelationshipsControllerGetForEdit>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the full relationship record for the owner to edit
+ */
+
+export function useCharacterRelationshipsControllerGetForEdit<
+  TData = Awaited<ReturnType<typeof characterRelationshipsControllerGetForEdit>>,
+  TError = void,
+>(
+  relationshipId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterRelationshipsControllerGetForEdit>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getCharacterRelationshipsControllerGetForEditQueryOptions(
     relationshipId,
     options,
   );
@@ -1595,7 +2026,7 @@ export function useCharacterRelationshipsControllerRemoveBookState<
 }
 
 export type bookCharacterRelationshipsControllerListResponse200 = {
-  data: CharacterRelationshipContextViewDto[];
+  data: CharacterRelationshipSafeContextViewDto[];
   status: 200;
 };
 
@@ -2232,7 +2663,7 @@ export function useSeriesCharacterGraphControllerGet<
 }
 
 export type seriesCharacterRelationshipsControllerListResponse200 = {
-  data: CharacterRelationshipContextViewDto[];
+  data: CharacterRelationshipSafeContextViewDto[];
   status: 200;
 };
 

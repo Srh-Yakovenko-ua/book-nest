@@ -150,6 +150,7 @@ export function MarkBoughtForm({
                   id="mark-bought-date"
                   invalid={errors.purchasedAt !== undefined}
                   onChange={(next) => field.onChange(next ?? "")}
+                  required
                   value={field.value}
                 />
               )}

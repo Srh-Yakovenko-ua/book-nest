@@ -6,8 +6,12 @@
  * OpenAPI spec version: 1.0
  */
 
+/**
+ * @nullable
+ */
 export type CharacterGraphViewDtoEdgesItemDirectionality =
-  (typeof CharacterGraphViewDtoEdgesItemDirectionality)[keyof typeof CharacterGraphViewDtoEdgesItemDirectionality];
+  | (typeof CharacterGraphViewDtoEdgesItemDirectionality)[keyof typeof CharacterGraphViewDtoEdgesItemDirectionality]
+  | null;
 
 export const CharacterGraphViewDtoEdgesItemDirectionality = {
   directed: "directed",

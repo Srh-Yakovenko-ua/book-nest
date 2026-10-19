@@ -1363,6 +1363,138 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Бічна панель із розділами",
     version: null,
   },
+  {
+    bodyEn:
+      "In the note and quote forms, the Chapter field now suggests the chapters this book already uses in notes, quotes, timeline events and characters' first appearances, and shows how often each one appears. Picking a suggestion keeps one chapter from being saved under several spellings. You can still type a new one, and a chapter you save shows up in suggestions right away.",
+    bodyUk:
+      "У формах нотатки й цитати поле «Розділ» тепер підказує розділи цієї книги, які вже вказані в нотатках, цитатах, подіях хронології та в першій появі персонажів, і показує, скільки разів трапляється кожен. Підказки допомагають записувати той самий розділ завжди однаково. Власну назву, як і раніше, можна ввести вручну, а щойно збережений розділ одразу з'являється серед підказок.",
+    category: "improvement",
+    publishedAt: "2026-10-19T10:10:00.000Z",
+    slug: "notes-quotes-chapter-suggestions",
+    titleEn: "Chapter suggestions in notes and quotes",
+    titleUk: "Підказки розділів у нотатках і цитатах",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Book and series notes can now have a short title: add it in the Title field above the note text, up to 120 characters, or leave it empty. The title appears on note cards, in the notes blocks on book and series pages, in the full note view and in the Revisit a note and Before you continue the series blocks, and search on the notes pages now looks in titles too. The title of a spoiler note stays hidden together with its text until you reveal it.",
+    bodyUk:
+      "Нотатки до книг і до серій тепер можуть мати короткий заголовок: додайте його в полі «Заголовок» над текстом нотатки, до 120 символів, або залиште порожнім. Заголовок видно на картках нотаток, у блоках нотаток на сторінках книги й серії, у повному перегляді нотатки та в блоках «Згадати нотатку» й «Перед продовженням серії», а пошук на сторінках нотаток тепер шукає і в заголовках. Заголовок нотатки зі спойлером лишається прихованим разом із текстом, доки ви її не відкриєте.",
+    category: "feature",
+    publishedAt: "2026-10-19T10:10:02.000Z",
+    slug: "note-titles",
+    titleEn: "Note titles",
+    titleUk: "Заголовки нотаток",
+    version: null,
+  },
+  {
+    bodyEn:
+      "In the event form, the Location field now suggests the locations this book's events already use, and shows how often each one appears. Pick one, type to narrow the list, or enter a new location. If the book is part of a series, the suggestions are shared across all its books, so a location added in one book shows up in the others.",
+    bodyUk:
+      "У формі події поле «Локація» тепер підказує локації, які вже вказані в подіях цієї книги, і показує, скільки разів трапляється кожна. Виберіть підказку, введіть кілька літер, щоб звузити список, або додайте нову локацію. Якщо книга входить до серії, підказки спільні для всіх її книг, тож локація, додана в одній книзі, з'являється і в інших.",
+    category: "improvement",
+    publishedAt: "2026-10-19T10:10:03.000Z",
+    slug: "timeline-location-suggestions",
+    titleEn: "Timeline location suggestions",
+    titleUk: "Підказки локацій у хронології",
+    version: null,
+  },
+  {
+    bodyEn:
+      "A character's page now has two tabs: Overview, with everything it showed before, and Facts, where you keep separate facts about the character in the selected book. Each fact has a title and text, plus an optional chapter and page, and the page cannot go past the book's page count. Facts appear as cards, newest first, load as you scroll and can be searched by title or text, and a long one opens in full with Read in full. You can edit or delete any fact, and if you close the form or leave the page with unsaved changes, you are asked first, so a draft is not lost by accident. Facts belong to the character in one book, so without a selected book the tab asks you to choose one. When you remove a character from a book, the confirmation now says how many of its facts will be deleted.",
+    bodyUk:
+      "На сторінці персонажа тепер дві вкладки: «Огляд» з усім, що там було й раніше, і «Факти», де можна вести окремі факти про персонажа в обраній книзі. Кожен факт має назву й текст, а також необов'язкові розділ і сторінку, причому сторінка не може перевищувати кількість сторінок у книзі. Факти відображаються картками, спершу найновіші, довантажуються під час прокручування, їх можна шукати за назвою або текстом, а довгий факт відкривається повністю кнопкою «Читати повністю». Будь-який факт можна змінити або видалити, а якщо закрити форму чи залишити сторінку з незбереженими змінами, спершу з'явиться запитання, тож чернетка не загубиться випадково. Факти належать персонажу в конкретній книзі, тому без обраної книги вкладка попросить її обрати. Коли ви прибираєте персонажа з книги, підтвердження тепер показує, скільки його фактів буде видалено.",
+    category: "feature",
+    publishedAt: "2026-10-19T10:10:05.000Z",
+    slug: "character-facts",
+    titleEn: "Character facts",
+    titleUk: "Факти про персонажа",
+    version: null,
+  },
+  {
+    bodyEn:
+      "A book's page now has a Notes tab right after Overview, and the My notes block is gone from Overview. The tab label shows how many notes the book has. Inside, you can search this book's notes by title, text, chapter, custom category and page, use the All, Favorites, Pinned, No spoilers and With spoilers quick filters with their counts, filter by several categories at once and pick one of five ways to sort, with By page as the default. The list keeps loading as you scroll, and Add note opens the form with this book already selected. Filters and sorting are kept in the page address, so a link opens the same list and the browser's Back and Forward buttons work as expected. If you switch to another tab of the book and come back, you return to the same place in the list. Spoiler notes stay hidden until you reveal them, as before.",
+    bodyUk:
+      "На сторінці книги з'явилася вкладка «Нотатки», одразу після вкладки «Огляд», а блоку «Мої нотатки» в огляді більше немає. На назві вкладки видно, скільки в книзі нотаток. Усередині є пошук серед нотаток цієї книги за заголовком, текстом, розділом, власною категорією та сторінкою, швидкі фільтри «Усі», «Улюблені», «Закріплені», «Без спойлерів» і «Зі спойлерами» з кількістю, фільтр за кількома категоріями одразу і п'ять способів сортування, де за замовчуванням діє «За сторінкою». Список довантажується під час прокручування, а кнопка «Додати нотатку» відкриває форму, де цю книгу вже вибрано. Фільтри й сортування зберігаються в адресі сторінки, тож за посиланням відкриється той самий список, а кнопки «Назад» і «Вперед» у браузері працюють як слід. Якщо перейти на іншу вкладку книги й повернутися, ви опинитеся на тому ж місці списку. Нотатки зі спойлерами, як і раніше, приховані, доки ви їх не відкриєте.",
+    category: "improvement",
+    publishedAt: "2026-10-19T10:10:06.000Z",
+    slug: "book-notes-tab",
+    titleEn: "Notes tab on the book page",
+    titleUk: "Вкладка «Нотатки» на сторінці книги",
+    version: null,
+  },
+  {
+    bodyEn:
+      "A book's page now has a Quotes tab right after Notes, and the quotes block is gone from Overview. When the book has quotes, the tab label shows how many. Inside, you can search this book's quotes by text, comment, chapter and page, and use the All, Favorites, With a comment, No spoilers and With spoilers quick filters with their counts. Quotes are sorted by page by default, so they follow the reading order, and you can also show the newest or the oldest first. They appear in a single column and load 20 at a time as you scroll. The search, filter and sorting are kept in the page address, so a link opens the same list. If you switch to another tab of the book and come back, you return to the same place in the list. Spoiler quotes stay hidden until you reveal them, in search results too. You can still add a quote right from the tab.",
+    bodyUk:
+      "На сторінці книги з'явилася вкладка «Цитати», одразу після вкладки «Нотатки», а блоку з цитатами в огляді більше немає. Якщо в книзі є цитати, на назві вкладки видно, скільки їх. Усередині є пошук серед цитат цієї книги за текстом, коментарем, розділом і сторінкою та швидкі фільтри «Усі», «Улюблені», «З коментарем», «Без спойлерів» і «Зі спойлерами» з кількістю. За замовчуванням цитати впорядковані за сторінкою, тобто в порядку читання, а ще їх можна показати спершу нові або спершу старі. Цитати йдуть однією колонкою й довантажуються під час прокручування, по 20 за раз. Пошук, фільтр і сортування зберігаються в адресі сторінки, тож за посиланням відкриється той самий список. Якщо перейти на іншу вкладку книги й повернутися, ви опинитеся на тому ж місці списку. Цитати зі спойлерами, як і раніше, приховані, доки ви їх не відкриєте, зокрема й у результатах пошуку. Додати цитату можна прямо з вкладки.",
+    category: "improvement",
+    publishedAt: "2026-10-19T10:10:07.000Z",
+    slug: "book-quotes-tab",
+    titleEn: "Quotes tab on the book page",
+    titleUk: "Вкладка «Цитати» на сторінці книги",
+    version: null,
+  },
+  {
+    bodyEn:
+      "You can now record how characters are related to each other. A character's page has a Relationships tab for the selected book or across all books, with search, filters by type, status and intensity, and several ways to sort. On a book's Characters tab you can switch between List, Relationships and an interactive Graph, where you can zoom, focus on one character, group characters and find the shortest path between two of them. A series page now has a Characters tab with the same three views, shown as of a book you pick, by default the last one you finished, so later parts stay out of sight. A relationship is added in two steps, first who and what type, then its status, intensity, description and where it starts and ends in a book, and you can edit it, remove it from one book or delete it entirely. Spoilers stay hidden until you reveal them: a spoiler type or description is covered, a relationship that starts further than where you are in the book does not appear, and an ended one is not shown as ended until you reach that point.",
+    bodyUk:
+      "Тепер можна відзначати, як персонажі пов'язані між собою. На сторінці персонажа з'явилася вкладка «Зв'язки» для обраної книги або для всіх книг одразу, з пошуком, фільтрами за типом, статусом та інтенсивністю і кількома способами сортування. На вкладці «Персонажі» в книзі можна перемикатися між режимами «Список», «Зв'язки» та інтерактивним «Граф», де можна масштабувати, зосередитися на одному персонажі, групувати персонажів і знаходити найкоротший шлях між двома з них. На сторінці серії з'явилася вкладка «Персонажі» з тими самими трьома режимами, яка показує стан на обрану книгу серії, за замовчуванням на останню прочитану, тож наступні частини не потрапляють на очі. Зв'язок додається у два кроки: спершу хто і який тип, потім статус, інтенсивність, опис і де він починається й закінчується в книзі. Його можна змінити, прибрати з однієї книги або видалити повністю. Спойлери приховані, доки ви їх не відкриєте: тип чи опис зі спойлером закрито, зв'язок, що починається далі, ніж ви дочитали, не показується, а завершений не позначається завершеним, поки ви не дійдете до цього місця.",
+    category: "feature",
+    publishedAt: "2026-10-19T10:10:08.000Z",
+    slug: "character-relationships",
+    titleEn: "Character relationships",
+    titleUk: "Зв'язки між персонажами",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Characters are no longer hidden from a book. Before, a character whose first appearance came later than the page you were on, or whose presence in the book you had hidden, was missing from the Characters tab, its counts and search. Now every character always appears in the list, the counts, search, series pages and the editor, and only the details you marked as spoilers stay covered. On a character's page you reveal them one at a time with Show: each field, the hidden roles, the names used in this book, the names used everywhere and the spoiler forms each open separately. A lock appears only where something is actually hidden, and everything is covered again when you reload the page. The option to hide that a character appears in a book at all is gone. In the editor the Spoilers section now shows all switches at once, and a switch stays off and unavailable until you fill in its field. Relationships that start further than where you are in the book still stay out of sight until you reach them.",
+    bodyUk:
+      "Персонажі більше не зникають із книги. Раніше персонаж, чия перша поява записана далі за сторінку, на якій ви зараз, або чию появу в книзі ви приховали, не показувався на вкладці «Персонажі», у лічильниках і в пошуку. Тепер кожен персонаж завжди є в списку, лічильниках, пошуку, на сторінках серій і в редакторі, а закритими лишаються тільки дані, які ви позначили як спойлери. На сторінці персонажа їх відкривають по одному кнопкою «Показати»: кожне поле, приховані ролі, імена в цій книзі, загальні імена та спойлерні форми відкриваються окремо. Замок з'являється лише там, де справді щось приховано, а після перезавантаження сторінки все знову закрито. Можливості приховати сам факт появи персонажа в книзі більше немає. У редакторі розділ «Спойлери» тепер показує всі перемикачі одразу, а перемикач вимкнений і недоступний, доки ви не заповните його поле. Зв'язки, що починаються далі, ніж ви дочитали, як і раніше, не показуються, поки ви не дійдете до цього місця.",
+    category: "improvement",
+    publishedAt: "2026-10-19T10:10:01.000Z",
+    slug: "character-spoiler-reveal",
+    titleEn: "Spoilers revealed field by field",
+    titleUk: "Спойлери відкриваються по одному",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Character cards on a book's Characters tab are now more compact: a short description of up to three lines, the first two roles with a +N for the rest, species and status at the bottom, and one lock badge showing how many groups are hidden. You can now filter the list by importance, including Not specified, show only Favorites or only POV characters, and clear the filters in one click. The filters are kept in the page address together with search, so a link opens the same list.",
+    bodyUk:
+      "Картки на вкладці «Персонажі» в книзі стали компактнішими: короткий опис до трьох рядків, перші дві ролі з позначкою +N для решти, вид і статус унизу та один значок замка, що показує, скільки груп приховано. Тепер список можна фільтрувати за важливістю, зокрема «Не вказано», показувати лише улюблених або лише POV-персонажів і скидати фільтри одним натиском. Фільтри зберігаються в адресі сторінки разом із пошуком, тож за посиланням відкриється той самий список.",
+    category: "improvement",
+    publishedAt: "2026-10-19T10:10:04.000Z",
+    slug: "character-roster-filters",
+    titleEn: "Character filters in a book",
+    titleUk: "Фільтри персонажів у книзі",
+    version: null,
+  },
+  {
+    bodyEn:
+      "The Goals page now shows all your reading goals in one place. At the top you see how many are active, reached and in need of attention, plus your success rate. You can filter goals by status and sort them by date or progress. Statistics already linked to this page, but until now the page was not there. Use New goal to create a goal right from it: pick one of your lists that already has books, then set how many to read and by when. A goal's page is now split into Overview, Books and Activity tabs. Its books and its history of events load as you scroll, and you can filter the history by event type. When you finish a book, its goal updates without reloading the page.",
+    bodyUk:
+      "На сторінці «Цілі читання» тепер зібрано всі ваші цілі. Угорі видно, скільки з них активних, виконаних і таких, що потребують уваги, а також вашу успішність. Цілі можна фільтрувати за статусом і сортувати за датою або прогресом. Статистика вже вела на цю сторінку, але досі її не було. Кнопкою «Нова ціль» ціль можна створити просто тут: оберіть один зі своїх списків, у якому вже є книги, і вкажіть, скільки прочитати й до якої дати. Сторінка цілі тепер має вкладки «Огляд», «Книги» та «Історія». Книги та історія подій довантажуються під час прокручування, а історію можна відфільтрувати за типом події. Щойно ви дочитаєте книгу, її ціль оновиться без перезавантаження сторінки.",
+    category: "feature",
+    publishedAt: "2026-10-19T10:10:09.000Z",
+    slug: "reading-goals-catalog",
+    titleEn: "Reading goals page",
+    titleUk: "Сторінка цілей читання",
+    version: null,
+  },
+  {
+    bodyEn:
+      'Statistics are now split into Overview, Activity, Tastes and Progress tabs that share one period selector, so switching tabs keeps your period. Every section you had before is still there, even for a period with no reading. The Overview shows four key numbers: reads finished, pages read, average rating and active days. Each one opens its section on the right tab. Below them you get a compact chart with insights beside it, your latest finished books and your current goal. Click a bar of the chart to see exactly which books you finished or which pages you read in those days. The reading calendar now counts each month, marks days the history may be missing with a dashed cell and a question mark, and shows book covers for each day. "Today" follows the time zone in your profile rather than your device.',
+    bodyUk:
+      "Статистику тепер поділено на вкладки «Огляд», «Активність», «Вподобання» та «Прогрес» зі спільним вибором періоду, тож під час перемикання вкладок період зберігається. Усі розділи, що були раніше, на місці, навіть якщо за період ви нічого не читали. В огляді є чотири ключові показники: скільки прочитано, скільки сторінок, середня оцінка та активні дні. Кожен із них відкриває свій розділ на потрібній вкладці. Нижче є компактний графік із висновками поруч, нещодавно завершені книги та ваша поточна ціль. Натисніть на стовпчик графіка, щоб побачити, які саме книги ви дочитали або які сторінки прочитали в ці дні. Календар читання тепер показує підсумки за кожен місяць, позначає пунктирною клітинкою зі знаком питання дні, за які даних може не бути, і показує обкладинки книг за кожен день. «Сьогодні» тепер визначається за часовим поясом із вашого профілю, а не за пристроєм.",
+    category: "improvement",
+    publishedAt: "2026-10-19T10:10:10.000Z",
+    slug: "statistics-tabs",
+    titleEn: "Statistics tabs and overview",
+    titleUk: "Вкладки й огляд у статистиці",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

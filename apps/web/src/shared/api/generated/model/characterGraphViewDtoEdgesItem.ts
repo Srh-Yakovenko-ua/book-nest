@@ -17,6 +17,7 @@ export type CharacterGraphViewDtoEdgesItem = {
   /** @nullable */
   description: string | null;
   descriptionHidden: boolean;
+  /** @nullable */
   directionality: CharacterGraphViewDtoEdgesItemDirectionality;
   id: string;
   /** @nullable */

@@ -1,11 +1,17 @@
 import type {
   Nullable,
   ReadingStatisticsCompareMode,
+  ReadingStatisticsPeriod,
   ReadingStatisticsPeriodKind,
 } from "@app/shared";
 
-import { ReadingStatisticsCompareModeSchema, ReadingStatisticsPeriodKindSchema } from "@app/shared";
-import { format, isValid, parse } from "date-fns";
+import {
+  READING_STATISTICS_CUSTOM_PERIOD_BOUNDS,
+  ReadingStatisticsCompareModeSchema,
+  ReadingStatisticsPeriodKindSchema,
+} from "@app/shared";
+import { differenceInCalendarDays, isAfter, isBefore, parseISO } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import {
   type inferParserType,
   parseAsInteger,
@@ -14,6 +20,8 @@ import {
 } from "nuqs/server";
 
 import type { StatisticsControllerGetOverviewParams } from "@/shared/api/generated/model";
+
+import { isoDayToDate } from "@/lib/iso-day";
 
 export const STATISTICS_PERIOD = {
   defaultKind: "year",
@@ -28,7 +36,8 @@ export const STATISTICS_PERIOD_KINDS = ReadingStatisticsPeriodKindSchema.options
 
 export const STATISTICS_COMPARE_MODES = ReadingStatisticsCompareModeSchema.options;
 
-export type StatisticsCustomRangeIssue = "future" | "incomplete" | "invalid" | "reversed";
+export type StatisticsCustomRangeIssue =
+  "future" | "incomplete" | "invalid" | "reversed" | "tooEarly" | "tooLong";
 
 export type StatisticsQueryState = inferParserType<typeof statisticsParsers>;
 
@@ -55,8 +64,18 @@ export function customRangeIssue({
 }): Nullable<StatisticsCustomRangeIssue> {
   if (from === "" || to === "") return "incomplete";
   if (!isStatisticsDay(from) || !isStatisticsDay(to)) return "invalid";
-  if (from > to) return "reversed";
-  if (to > today) return "future";
+
+  const start = parseISO(from);
+  const end = parseISO(to);
+
+  if (isAfter(start, end)) return "reversed";
+  if (isAfter(end, parseISO(today))) return "future";
+  if (isBefore(start, parseISO(READING_STATISTICS_CUSTOM_PERIOD_BOUNDS.earliestDay))) {
+    return "tooEarly";
+  }
+  if (differenceInCalendarDays(end, start) + 1 > READING_STATISTICS_CUSTOM_PERIOD_BOUNDS.maxDays) {
+    return "tooLong";
+  }
   return null;
 }
 
@@ -66,8 +85,20 @@ export function defaultStatisticsCompareMode(
   return kind === "year" ? "same_period_last_year" : "previous_period";
 }
 
+export function isPeriodIncludingDay({
+  day,
+  period,
+}: {
+  day: string;
+  period: ReadingStatisticsPeriod;
+}): boolean {
+  const date = parseISO(day);
+  const startsBeforeOrOn = period.from === null || !isBefore(date, parseISO(period.from));
+  return startsBeforeOrOn && !isAfter(date, parseISO(period.to));
+}
+
 export function isStatisticsDay(value: string): boolean {
-  return value !== "" && isValid(parse(value, STATISTICS_PERIOD.isoDayFormat, new Date()));
+  return isoDayToDate(value) !== undefined;
 }
 
 export function resolvedStatisticsYear(state: StatisticsQueryState, today: string): number {
@@ -85,8 +116,8 @@ export function statisticsCompareMode(
   return canCompareStatisticsPeriod(state.period) ? state.compare : null;
 }
 
-export function todayIsoDay(): string {
-  return format(new Date(), STATISTICS_PERIOD.isoDayFormat);
+export function todayIsoDay(timeZone: string): string {
+  return formatInTimeZone(new Date(), timeZone, STATISTICS_PERIOD.isoDayFormat);
 }
 
 export function toOverviewParams(

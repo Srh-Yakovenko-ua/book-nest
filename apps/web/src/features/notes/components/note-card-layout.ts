@@ -5,6 +5,7 @@ type NoteCardLayoutSpec = {
   gate: string;
   preview: string;
   shell: string;
+  title: string;
 };
 
 const NOTE_CARD_SHELL =
@@ -16,23 +17,27 @@ export const NOTE_CARD_LAYOUT = {
     gate: "gap-1 px-3 py-4 md:h-auto",
     preview: "line-clamp-3",
     shell: "flex w-full min-w-0 flex-col gap-2 rounded-lg border border-border bg-background p-3",
+    title: "text-sm",
   },
   embedded: {
     fitsPreviewToCard: false,
     gate: "md:h-auto",
     preview: "line-clamp-5",
     shell: NOTE_CARD_SHELL,
+    title: "text-base",
   },
   grid: {
     fitsPreviewToCard: true,
     gate: "",
     preview: "line-clamp-5",
     shell: `${NOTE_CARD_SHELL} md:h-96 md:overflow-hidden`,
+    title: "text-base",
   },
   list: {
     fitsPreviewToCard: false,
     gate: "md:h-auto",
     preview: "line-clamp-3",
     shell: NOTE_CARD_SHELL,
+    title: "text-base",
   },
 } as const satisfies Record<string, NoteCardLayoutSpec>;

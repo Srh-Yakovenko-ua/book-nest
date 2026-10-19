@@ -1,5 +1,6 @@
 "use client";
 
+import type { ChangeEvent } from "react";
 import type { Control, FieldError, UseFormRegister } from "react-hook-form";
 
 import { CHARACTER_TEXT_MAX } from "@app/shared";
@@ -21,6 +22,7 @@ export function CharacterLongTextField({
   error,
   id,
   name,
+  onValueChange,
   placeholder,
   register,
   rows,
@@ -29,6 +31,7 @@ export function CharacterLongTextField({
   error: FieldError | undefined;
   id: string;
   name: LongTextFieldName;
+  onValueChange?: (value: string) => void;
   placeholder: string;
   register: UseFormRegister<CharacterEditValues>;
   rows: number;
@@ -47,7 +50,10 @@ export function CharacterLongTextField({
         maxLength={CHARACTER_TEXT_MAX.longText}
         placeholder={placeholder}
         rows={rows}
-        {...register(name)}
+        {...register(name, {
+          onChange: (event: ChangeEvent<HTMLTextAreaElement>) =>
+            onValueChange?.(event.target.value),
+        })}
       />
       <div className="flex items-center justify-between gap-2">
         <FieldErrorText error={error} id={errorId} />

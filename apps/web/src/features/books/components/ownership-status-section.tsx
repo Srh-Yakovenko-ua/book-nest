@@ -1,6 +1,6 @@
 "use client";
 
-import type { OwnershipStatus } from "@app/shared";
+import type { Nullable, OwnershipStatus } from "@app/shared";
 
 import { LOAN_PERSON_REQUIRED_MESSAGE } from "@app/shared";
 import { useTranslations } from "next-intl";
@@ -50,6 +50,7 @@ import {
   ownershipUsesDelivery,
   ownershipUsesLoan,
 } from "../model/book-status-fields";
+import { emptyToNull } from "../model/empty-to-null";
 import { OWNERSHIP_FIELDS } from "../model/section-completeness";
 import { BookDateField } from "./book-date-field";
 import { DeliveryServiceAutocomplete } from "./delivery-service-autocomplete";
@@ -166,7 +167,7 @@ export function OwnershipStatusSection({
                   id="delivery-store-name"
                   invalid={errors.deliveryInfo?.storeName !== undefined}
                   label={t("deliveryInfo.fields.storeName")}
-                  onChange={(next) => field.onChange(next.length === 0 ? undefined : next)}
+                  onChange={(next) => field.onChange(next.length === 0 ? null : next)}
                   placeholder={t("purchaseInfo.fields.storeNamePlaceholder")}
                   value={typeof field.value === "string" ? field.value : ""}
                 />
@@ -189,7 +190,7 @@ export function OwnershipStatusSection({
                     id="delivery-service"
                     invalid={errors.deliveryInfo?.deliveryService !== undefined}
                     label={t("deliveryInfo.fields.deliveryService")}
-                    onChange={(next) => field.onChange(next.length === 0 ? undefined : next)}
+                    onChange={(next) => field.onChange(next.length === 0 ? null : next)}
                     placeholder={t("deliveryInfo.fields.deliveryServicePlaceholder")}
                     value={typeof field.value === "string" ? field.value : ""}
                   />
@@ -217,7 +218,7 @@ export function OwnershipStatusSection({
                 className="h-10"
                 id="delivery-order-number"
                 placeholder={t("deliveryInfo.fields.orderNumberPlaceholder")}
-                {...register("deliveryInfo.orderNumber", { setValueAs: emptyToUndefined })}
+                {...register("deliveryInfo.orderNumber", { setValueAs: emptyToNull })}
               />
               <FieldError
                 error={errors.deliveryInfo?.orderNumber}
@@ -236,7 +237,7 @@ export function OwnershipStatusSection({
                   className="h-10"
                   id="delivery-tracking-number"
                   placeholder={t("deliveryInfo.fields.trackingNumberPlaceholder")}
-                  {...register("deliveryInfo.trackingNumber", { setValueAs: emptyToUndefined })}
+                  {...register("deliveryInfo.trackingNumber", { setValueAs: emptyToNull })}
                 />
                 <FieldError
                   error={errors.deliveryInfo?.trackingNumber}
@@ -350,8 +351,6 @@ export function OwnershipStatusSection({
                       <SelectTrigger
                         className="h-10 w-full data-[size=default]:h-10"
                         id="delivery-currency"
-                        isClearable={typeof field.value === "string"}
-                        onClear={() => field.onChange(undefined)}
                       >
                         <SelectValue placeholder={t("deliveryInfo.fields.currencyPlaceholder")} />
                       </SelectTrigger>
@@ -394,11 +393,11 @@ export function OwnershipStatusSection({
                         );
                         if (!shipped) {
                           setAdditionalDeliveryOpen(false);
-                          setValue("deliveryInfo.deliveryService", undefined);
-                          setValue("deliveryInfo.expectedDeliveryDate", undefined);
-                          setValue("deliveryInfo.note", undefined);
-                          setValue("deliveryInfo.trackingNumber", undefined);
-                          setValue("deliveryInfo.trackingUrl", undefined);
+                          setValue("deliveryInfo.deliveryService", null);
+                          setValue("deliveryInfo.expectedDeliveryDate", null);
+                          setValue("deliveryInfo.note", null);
+                          setValue("deliveryInfo.trackingNumber", null);
+                          setValue("deliveryInfo.trackingUrl", null);
                         }
                       }}
                       options={(["no", "yes"] as const).map((value) => ({
@@ -430,7 +429,7 @@ export function OwnershipStatusSection({
                           id="delivery-service"
                           invalid={errors.deliveryInfo?.deliveryService !== undefined}
                           label={t("deliveryInfo.fields.deliveryService")}
-                          onChange={(next) => field.onChange(next.length === 0 ? undefined : next)}
+                          onChange={(next) => field.onChange(next.length === 0 ? null : next)}
                           placeholder={t("deliveryInfo.fields.deliveryServicePlaceholder")}
                           value={typeof field.value === "string" ? field.value : ""}
                         />
@@ -454,7 +453,7 @@ export function OwnershipStatusSection({
                         id="delivery-tracking-number"
                         placeholder={t("deliveryInfo.fields.trackingNumberPlaceholder")}
                         {...register("deliveryInfo.trackingNumber", {
-                          setValueAs: emptyToUndefined,
+                          setValueAs: emptyToNull,
                         })}
                       />
                       <FieldError
@@ -525,7 +524,7 @@ export function OwnershipStatusSection({
                           inputMode="url"
                           placeholder={t("deliveryInfo.fields.trackingUrlPlaceholder")}
                           {...register("deliveryInfo.trackingUrl", {
-                            setValueAs: emptyToUndefined,
+                            setValueAs: emptyToNull,
                           })}
                         />
                         <FieldError
@@ -561,7 +560,7 @@ export function OwnershipStatusSection({
                 id="delivery-tracking-url"
                 inputMode="url"
                 placeholder={t("deliveryInfo.fields.trackingUrlPlaceholder")}
-                {...register("deliveryInfo.trackingUrl", { setValueAs: emptyToUndefined })}
+                {...register("deliveryInfo.trackingUrl", { setValueAs: emptyToNull })}
               />
               <FieldError
                 error={errors.deliveryInfo?.trackingUrl}
@@ -584,8 +583,6 @@ export function OwnershipStatusSection({
                     <SelectTrigger
                       className="h-10 w-full data-[size=default]:h-10"
                       id="delivery-status"
-                      isClearable={typeof field.value === "string"}
-                      onClear={() => field.onChange(undefined)}
                     >
                       <SelectValue
                         placeholder={t("deliveryInfo.fields.deliveryStatusPlaceholder")}
@@ -722,21 +719,15 @@ export function OwnershipStatusSection({
   );
 }
 
-function emptyToClampedPrice(value: unknown): number | undefined {
+function emptyToClampedPrice(value: unknown): Nullable<number> | undefined {
   if (typeof value === "number") {
     return Number.isFinite(value) ? Math.min(value, PRICE_MAX) : undefined;
   }
-  if (typeof value !== "string") return undefined;
+  if (typeof value !== "string") return null;
   const trimmed = value.trim();
-  if (trimmed.length === 0) return undefined;
+  if (trimmed.length === 0) return null;
   const parsed = Number(trimmed);
   return Number.isFinite(parsed) ? Math.min(parsed, PRICE_MAX) : undefined;
-}
-
-function emptyToUndefined(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
 }
 
 function OwnershipNoteField({
@@ -755,7 +746,7 @@ function OwnershipNoteField({
         id={id}
         maxLength={300}
         placeholder={placeholder}
-        {...register(name, { setValueAs: emptyToUndefined })}
+        {...register(name, { setValueAs: emptyToNull })}
       />
       {error?.message ? (
         <p className="text-xs text-destructive" id={`${id}-error`} role="alert">

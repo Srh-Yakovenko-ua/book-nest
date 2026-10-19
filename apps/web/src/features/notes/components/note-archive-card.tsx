@@ -7,7 +7,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { UiIcon } from "@/components/icons";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 import type { NoteCardLayout } from "./note-card-layout";
@@ -20,6 +19,7 @@ import { noteEntityRefFromNote } from "../model/note-entity";
 import { DeleteNoteDialog } from "./delete-note-dialog";
 import { NoteActionsMenu } from "./note-actions-menu";
 import { NOTE_CARD_LAYOUT } from "./note-card-layout";
+import { NoteCategoryBadge } from "./note-category-badge";
 import { NoteEntityHeader } from "./note-entity-header";
 import { NoteEntityLocation } from "./note-entity-location";
 import { NoteFormDialog } from "./note-form-dialog";
@@ -102,15 +102,7 @@ export function NoteArchiveCard({ layout, note }: NoteArchiveCardProps) {
   );
 
   const categoryChip =
-    category === null ? null : (
-      <Badge
-        className="block max-w-full min-w-0 shrink truncate"
-        title={category}
-        variant="secondary"
-      >
-        {category}
-      </Badge>
-    );
+    category === null ? null : <NoteCategoryBadge category={category} className="shrink" />;
 
   return (
     <article className={NOTE_CARD_LAYOUT[layout].shell} ref={setCard}>
@@ -138,7 +130,14 @@ export function NoteArchiveCard({ layout, note }: NoteArchiveCardProps) {
       {note.isSpoiler ? (
         <NoteSpoilerGate entityType={note.entityType} layout={layout} onOpen={fullView.openFrom} />
       ) : (
-        <NotePreview card={card} layout={layout} onExpand={fullView.openFrom} text={note.text} />
+        <NotePreview
+          card={card}
+          layout={layout}
+          onExpand={fullView.openFrom}
+          text={note.text}
+          title={note.title}
+          titleAs={hasEntityHeader ? "h4" : "h3"}
+        />
       )}
 
       <NoteEntityLocation note={note} placement="card" />

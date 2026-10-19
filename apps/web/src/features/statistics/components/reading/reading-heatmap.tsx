@@ -7,19 +7,20 @@ import { useLocale, useTranslations } from "next-intl";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-import { buildHeatmapWeeks, weekdayOrder } from "../../model/statistics-calendar";
+import {
+  buildHeatmapWeeks,
+  isUnknownCalendarDay,
+  weekdayOrder,
+} from "../../model/statistics-calendar";
 import { resolveReadingDayTarget } from "../../model/statistics-drilldown";
 import { formatDayLong, formatMonthShort, weekdayLabel } from "../../model/statistics-format";
 import { ReadingDayDetails } from "../details/reading-day-details";
 import { StatisticsDetailSurface } from "../details/statistics-detail-surface";
 
-const INTENSITY_CLASS = [
-  "bg-secondary",
-  "bg-primary/25",
-  "bg-primary/45",
-  "bg-primary/70",
-  "bg-primary",
-] as const;
+const HEATMAP_CELL_CLASS = {
+  intensity: ["bg-secondary", "bg-primary/25", "bg-primary/45", "bg-primary/70", "bg-primary"],
+  unknown: "border border-dashed border-muted-foreground/50 bg-transparent",
+} as const;
 
 const VISIBLE_WEEKDAY_ROWS = [0, 2, 4] as const;
 
@@ -34,6 +35,7 @@ export function ReadingHeatmap({
   const t = useTranslations("statistics.calendar.heatmap");
   const weeks = buildHeatmapWeeks({ days, weekStartDay });
   const order = weekdayOrder(weekStartDay);
+  const hasUnknownDays = days.some(isUnknownCalendarDay);
 
   return (
     <div className="flex flex-col gap-2">
@@ -81,13 +83,24 @@ export function ReadingHeatmap({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-        <span>{t("legendLess")}</span>
-        {INTENSITY_CLASS.map((className, level) => (
-          <span aria-hidden className={cn("size-[13px] rounded-[3px]", className)} key={level} />
-        ))}
-        <span>{t("legendMore")}</span>
-        <span className="ms-2">{t("relativeHint")}</span>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+        <span className="w-full">{t("intensityLegend")}</span>
+        <span className="flex items-center gap-1.5">
+          <span>{t("legendLess")}</span>
+          {HEATMAP_CELL_CLASS.intensity.map((className, level) => (
+            <span aria-hidden className={cn("size-[13px] rounded-[3px]", className)} key={level} />
+          ))}
+          <span>{t("legendMore")}</span>
+        </span>
+        {hasUnknownDays ? (
+          <span className="flex items-center gap-1.5">
+            <span
+              aria-hidden
+              className={cn("size-[13px] rounded-[3px]", HEATMAP_CELL_CLASS.unknown)}
+            />
+            <span>{t("unknownLegend")}</span>
+          </span>
+        ) : null}
       </div>
     </div>
   );
@@ -102,9 +115,10 @@ function HeatmapCell({ day }: { day: StatisticsCalendarDay }) {
   const t = useTranslations("statistics.calendar.heatmap");
 
   const date = formatDayLong(day.date, locale);
+  const isUnknown = isUnknownCalendarDay(day);
   const label =
     day.pagesRead === 0
-      ? day.historyQuality === "legacy_observed_only"
+      ? isUnknown
         ? t("dayUnknown", { date })
         : t("dayEmpty", { date })
       : t("daySummary", {
@@ -115,8 +129,7 @@ function HeatmapCell({ day }: { day: StatisticsCalendarDay }) {
 
   const cellClass = cn(
     "size-[13px] rounded-[3px] outline-none",
-    INTENSITY_CLASS[day.intensity],
-    day.pagesRead === 0 && day.historyQuality === "legacy_observed_only" && "opacity-60",
+    isUnknown ? HEATMAP_CELL_CLASS.unknown : HEATMAP_CELL_CLASS.intensity[day.intensity],
   );
   const detailDate = resolveReadingDayTarget(day.drilldown);
 

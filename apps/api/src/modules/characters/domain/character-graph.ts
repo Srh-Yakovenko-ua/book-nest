@@ -21,22 +21,23 @@ import {
   CharacterEntityKindSchema,
   CharacterGroupTypeSchema,
   getFamilyAncestryRole,
-  RelationshipBookStateStatusSchema,
-  RelationshipCategorySchema,
-  RelationshipDirectionalitySchema,
-  RelationshipIntensitySchema,
-  RelationshipTypeSchema,
 } from "@app/shared";
 import { compareAsc } from "date-fns";
 import { createHash } from "node:crypto";
 
 import type { RelationshipBookStateSource } from "./character-relationship.mapper.js";
-import type { ReadingPositionGate } from "./reading-position.js";
+import type { RelationshipReaderContext } from "./relationship-reader-projection.js";
 
 import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
 import { isMembershipVisibleInContext } from "./character-group-visibility.js";
 import { pickEffectiveBookState } from "./character-relationship.mapper.js";
-import { isHiddenByReadingPosition } from "./reading-position.js";
+import {
+  isBookStateDescriptionHidden,
+  maskBookStateStatus,
+  maskEdgeSemantics,
+  maskIntensity,
+  projectRelationshipForReader,
+} from "./relationship-reader-projection.js";
 
 const GRAPH_VERSION_LENGTH = 16;
 
@@ -48,9 +49,11 @@ const MODE_CATEGORIES: Record<CharacterGraphMode, Nullable<RelationshipCategory[
 export type GraphEdgeSource = {
   bookStates: RelationshipBookStateSource[];
   category: string;
+  createdAt: Date;
   customType: Nullable<string>;
   directionality: string;
   id: string;
+  isCanonical: boolean;
   sourceCharacterId: string;
   sourceLabel: Nullable<string>;
   targetCharacterId: string;
@@ -76,7 +79,6 @@ export type GraphMembershipSource = {
 export type GraphNodeAppearance = {
   bookId: string;
   createdAt: Date;
-  hidePresenceAsSpoiler: boolean;
   importance: string;
 };
 
@@ -93,7 +95,7 @@ export type PreparedEdge = {
   category: Nullable<RelationshipCategory>;
   description: Nullable<string>;
   descriptionHidden: boolean;
-  directionality: RelationshipDirectionality;
+  directionality: Nullable<RelationshipDirectionality>;
   id: string;
   intensity: Nullable<RelationshipIntensity>;
   revealed: boolean;
@@ -125,7 +127,7 @@ type BuildCharacterGraphInput = {
   nodeLimit: number;
   nodes: GraphNodeSource[];
   partNumberById: Map<string, Nullable<number>>;
-  positionGate?: Nullable<ReadingPositionGate>;
+  readerContext: RelationshipReaderContext;
   revealEdgeIds: Set<string>;
   typeFilter: Nullable<Set<RelationshipType>>;
 };
@@ -134,7 +136,6 @@ type ClusterComputeInput = {
   allowedBookIds: Set<string>;
   memberships: GraphMembershipSource[];
   nodes: CharacterGraphNodeView[];
-  presenceHiddenIds: Set<string>;
 };
 
 type ClusterResult = {
@@ -144,17 +145,12 @@ type ClusterResult = {
 
 export function buildCharacterGraph(input: BuildCharacterGraphInput): CharacterGraphView {
   const nodeById = new Map(input.nodes.map((node) => [node.id, node]));
-  const {
-    edges: preparedEdges,
-    hasHiddenEdges,
-    presenceHiddenIds,
-  } = computeVisibleGraphEdges({
+  const preparedEdges = computeVisibleGraphEdges({
     categoryFilter: input.categoryFilter,
     edges: input.edges,
     mode: input.mode,
     nodes: input.nodes,
-    partNumberById: input.partNumberById,
-    positionGate: input.positionGate,
+    readerContext: input.readerContext,
     revealEdgeIds: input.revealEdgeIds,
     typeFilter: input.typeFilter,
   });
@@ -164,7 +160,6 @@ export function buildCharacterGraph(input: BuildCharacterGraphInput): CharacterG
     edges: preparedEdges,
     focusCharacterId: input.focusCharacterId,
     nodeById,
-    presenceHiddenIds,
   });
   const bounded = applyPayloadCap({
     edgeLimit: input.edgeLimit,
@@ -196,7 +191,6 @@ export function buildCharacterGraph(input: BuildCharacterGraphInput): CharacterG
     clusterBy: input.clusterBy,
     memberships: input.memberships,
     nodes: baseNodes,
-    presenceHiddenIds,
   });
   const nodes = baseNodes.map((node) => ({
     ...node,
@@ -219,8 +213,7 @@ export function buildCharacterGraph(input: BuildCharacterGraphInput): CharacterG
       nodes,
     }),
     hiddenContent: {
-      hasHiddenEdges,
-      hasHiddenNodes: presenceHiddenIds.size > 0,
+      hasHiddenEdges: false,
       hasLockedEdges: bounded.edges.some((edge) => edge.typeHidden),
       truncated: bounded.truncated,
     },
@@ -244,8 +237,7 @@ export function computeVisibleGraphEdges({
   edges,
   mode,
   nodes,
-  partNumberById,
-  positionGate,
+  readerContext,
   revealEdgeIds,
   typeFilter,
 }: {
@@ -253,89 +245,66 @@ export function computeVisibleGraphEdges({
   edges: GraphEdgeSource[];
   mode: CharacterGraphMode;
   nodes: GraphNodeSource[];
-  partNumberById: Map<string, Nullable<number>>;
-  positionGate?: Nullable<ReadingPositionGate>;
+  readerContext: RelationshipReaderContext;
   revealEdgeIds: Set<string>;
   typeFilter: Nullable<Set<RelationshipType>>;
-}): { edges: PreparedEdge[]; hasHiddenEdges: boolean; presenceHiddenIds: Set<string> } {
+}): PreparedEdge[] {
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
-  const presenceHiddenIds = collectPresenceHiddenIds(nodes);
   const effectiveCategories = combineCategoryFilters({
     categoryFilter,
     modeCategories: computeModeCategories(mode),
   });
 
-  let hasHiddenEdges = false;
   const preparedEdges: PreparedEdge[] = [];
   for (const edge of edges) {
-    const effective = pickEffectiveBookState({ partNumberById, states: edge.bookStates });
-    if (effective === null) {
+    const projection = projectRelationshipForReader({
+      context: readerContext,
+      relationship: edge,
+    });
+    if (projection === null || projection.effective === null) {
       continue;
     }
-    if (effective.hideRelationshipAsSpoiler) {
-      hasHiddenEdges = true;
-      continue;
-    }
-    if (
-      isHiddenByReadingPosition({
-        content: {
-          audioSeconds: effective.introducedAudioSeconds,
-          chapter: effective.introducedChapter,
-          page: effective.introducedPage,
-        },
-        contentBookId: effective.bookId,
-        gate: positionGate ?? null,
-      })
-    ) {
-      hasHiddenEdges = true;
-      continue;
-    }
-    if (
-      presenceHiddenIds.has(edge.sourceCharacterId) ||
-      presenceHiddenIds.has(edge.targetCharacterId) ||
-      !nodeById.has(edge.sourceCharacterId) ||
-      !nodeById.has(edge.targetCharacterId)
-    ) {
+    if (!nodeById.has(edge.sourceCharacterId) || !nodeById.has(edge.targetCharacterId)) {
       continue;
     }
 
-    const revealable = effective.isTypeSpoiler || effective.isDescriptionSpoiler;
+    const effective = projection.effective;
+    const revealable = projection.typeHidden || effective.state.isDescriptionSpoiler;
     const revealed = revealable && revealEdgeIds.has(edge.id);
-    const typeHidden = effective.isTypeSpoiler && !revealed;
-    const descriptionHidden = effective.isDescriptionSpoiler && !revealed;
-    const category = typeHidden ? null : RelationshipCategorySchema.parse(edge.category);
-    const type = typeHidden ? null : RelationshipTypeSchema.parse(edge.type);
+    const typeHidden = projection.typeHidden && !revealed;
+    const descriptionHidden = isBookStateDescriptionHidden({ revealed, state: effective.state });
+    const semantics = maskEdgeSemantics({ relationship: edge, typeHidden });
 
     if (
-      !passesCategoryFilter({ category, effectiveCategories }) ||
-      !passesTypeFilter({ type, typeFilter })
+      !passesCategoryFilter({ category: semantics.category, effectiveCategories }) ||
+      !passesTypeFilter({ type: semantics.type, typeFilter })
     ) {
       continue;
     }
 
     preparedEdges.push({
-      category,
-      description: descriptionHidden ? null : effective.description,
+      category: semantics.category,
+      description: descriptionHidden ? null : effective.state.description,
       descriptionHidden,
-      directionality: RelationshipDirectionalitySchema.parse(edge.directionality),
+      directionality: semantics.directionality,
       id: edge.id,
-      intensity:
-        typeHidden || effective.intensity === null
-          ? null
-          : RelationshipIntensitySchema.parse(effective.intensity),
+      intensity: maskIntensity({ intensity: effective.state.intensity, typeHidden }),
       revealed,
       source: edge.sourceCharacterId,
-      sourceLabel: typeHidden ? null : edge.sourceLabel,
-      status: RelationshipBookStateStatusSchema.parse(effective.status),
+      sourceLabel: semantics.sourceLabel,
+      status: maskBookStateStatus({
+        endReached: effective.endReached,
+        status: effective.state.status,
+      }),
       target: edge.targetCharacterId,
-      targetLabel: typeHidden ? null : edge.targetLabel,
-      type,
+      targetLabel: semantics.targetLabel,
+      type: semantics.type,
       typeHidden,
-      updatedAt: maxDate(edge.updatedAt, effective.updatedAt),
+      updatedAt: projection.visibleChangedAt,
     });
   }
 
-  return { edges: preparedEdges, hasHiddenEdges, presenceHiddenIds };
+  return preparedEdges;
 }
 
 export function toGraphEdgeView(edge: PreparedEdge): CharacterGraphEdgeView {
@@ -366,10 +335,7 @@ export function toGraphNodeView({
   node: GraphNodeSource;
   partNumberById: Map<string, Nullable<number>>;
 }): CharacterGraphNodeView {
-  const visibleAppearances = node.appearances.filter(
-    (appearance) => !appearance.hidePresenceAsSpoiler,
-  );
-  const representative = pickEffectiveBookState({ partNumberById, states: visibleAppearances });
+  const representative = pickEffectiveBookState({ partNumberById, states: node.appearances });
   const importance: Nullable<BookCharacterImportance> =
     representative === null ? null : BookCharacterImportanceSchema.parse(representative.importance);
   return {
@@ -402,18 +368,16 @@ function applyFocus({
   edges,
   focusCharacterId,
   nodeById,
-  presenceHiddenIds,
 }: {
   depth: number;
   edges: PreparedEdge[];
   focusCharacterId: Nullable<string>;
   nodeById: Map<string, GraphNodeSource>;
-  presenceHiddenIds: Set<string>;
 }): { edges: PreparedEdge[]; nodeIds: Set<string> } {
   if (focusCharacterId === null) {
     return { edges, nodeIds: collectEndpointIds(edges) };
   }
-  if (!nodeById.has(focusCharacterId) || presenceHiddenIds.has(focusCharacterId)) {
+  if (!nodeById.has(focusCharacterId)) {
     return { edges: [], nodeIds: new Set() };
   }
   const reachable = collectReachableIds({ depth, edges, start: focusCharacterId });
@@ -479,19 +443,6 @@ function collectEndpointIds(edges: PreparedEdge[]): Set<string> {
   return ids;
 }
 
-function collectPresenceHiddenIds(nodes: GraphNodeSource[]): Set<string> {
-  const hidden = new Set<string>();
-  for (const node of nodes) {
-    const hasVisibleAppearance = node.appearances.some(
-      (appearance) => !appearance.hidePresenceAsSpoiler,
-    );
-    if (node.appearances.length > 0 && !hasVisibleAppearance) {
-      hidden.add(node.id);
-    }
-  }
-  return hidden;
-}
-
 function collectReachableIds({
   depth,
   edges,
@@ -544,13 +495,12 @@ function computeClusters({
   clusterBy,
   memberships,
   nodes,
-  presenceHiddenIds,
 }: ClusterComputeInput & { clusterBy: Nullable<CharacterGraphClusterBy> }): ClusterResult {
   if (clusterBy === null) {
     return { clusterIdByNodeId: new Map(), clusters: [] };
   }
   const builders: Record<CharacterGraphClusterBy, () => ClusterResult> = {
-    group: () => computeGroupClusters({ allowedBookIds, memberships, nodes, presenceHiddenIds }),
+    group: () => computeGroupClusters({ allowedBookIds, memberships, nodes }),
     importance: () => computeImportanceClusters({ nodes }),
   };
   return builders[clusterBy]();
@@ -591,15 +541,9 @@ function computeGroupClusters({
   allowedBookIds,
   memberships,
   nodes,
-  presenceHiddenIds,
 }: ClusterComputeInput): ClusterResult {
   const nodeIds = new Set(nodes.map((node) => node.id));
-  const context = {
-    allowedBookIds,
-    unreachableCharacterIds: new Set(
-      [...presenceHiddenIds].filter((characterId) => !nodeIds.has(characterId)),
-    ),
-  };
+  const context = { allowedBookIds, unreachableCharacterIds: new Set<string>() };
 
   const visibleByCharacter = new Map<string, GraphMembershipSource[]>();
   for (const membership of memberships) {

@@ -1,5 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 
+import { CharacterRevealFieldKeySchema } from "@app/shared";
 import { HttpStatus } from "@nestjs/common";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -29,17 +30,7 @@ type RoleView = {
   roleType: string;
 };
 
-const EVERY_REVEAL_FIELD_ID = [
-  "aliases",
-  "appearanceNotes",
-  "description",
-  "displayName",
-  "personalImpression",
-  "portrait",
-  "roles",
-  "speciesOverride",
-  "status",
-];
+const EVERY_REVEAL_FIELD_ID = CharacterRevealFieldKeySchema.options;
 
 let context: AuthTestContext;
 let app: INestApplication;
@@ -131,7 +122,7 @@ async function readAsEditPage(
 ): Promise<request.Response> {
   const res = await authed(
     "get",
-    `${contextualPath({ characterId, contextBookId, revealFieldIds: EVERY_REVEAL_FIELD_ID })}&includeHiddenProfiles=true`,
+    contextualPath({ characterId, contextBookId, revealFieldIds: EVERY_REVEAL_FIELD_ID }),
     token,
   );
   expect(res.status).toBe(HttpStatus.OK);
@@ -264,7 +255,7 @@ describe("spoiler book character roles in the contextual read", () => {
 });
 
 describe("spoiler character aliases in the contextual read", () => {
-  it("withholds a spoiler book alias and names aliases in the character hiddenFields rather than the appearance's", async () => {
+  it("withholds a spoiler book alias and names bookAliases in the character hiddenFields rather than the appearance's", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
     const characterId = await createInBook(accessToken, bookId, { name: "Paul Atreides" });
@@ -277,11 +268,11 @@ describe("spoiler character aliases in the contextual read", () => {
     );
     expect(res.status).toBe(HttpStatus.OK);
     expect(aliasNamesOf(aliasesScopedTo(res, bookId))).toEqual(["BookMuad"]);
-    expect(res.body.hiddenFields).toContain("aliases");
-    expect(res.body.appearances[0].hiddenFields).not.toContain("aliases");
+    expect(res.body.hiddenFields).toContain("bookAliases");
+    expect(res.body.appearances[0].hiddenFields).not.toContain("bookAliases");
   });
 
-  it("returns the spoiler alias with its spoiler flag and drops aliases from hiddenFields when aliases are revealed", async () => {
+  it("returns the spoiler alias with its spoiler flag and drops bookAliases from hiddenFields when book aliases are revealed", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
     const characterId = await createInBook(accessToken, bookId, { name: "Paul Atreides" });
@@ -289,14 +280,14 @@ describe("spoiler character aliases in the contextual read", () => {
 
     const res = await authed(
       "get",
-      contextualPath({ characterId, contextBookId: bookId, revealFieldIds: ["aliases"] }),
+      contextualPath({ characterId, contextBookId: bookId, revealFieldIds: ["bookAliases"] }),
       accessToken,
     );
     expect(res.status).toBe(HttpStatus.OK);
     const bookAliases = aliasesScopedTo(res, bookId);
     expect(aliasNamesOf(bookAliases)).toEqual(["BookLisan", "BookMuad"]);
     expect(bookAliases.find((alias) => alias.name === "BookLisan")?.isSpoiler).toBe(true);
-    expect(res.body.hiddenFields).not.toContain("aliases");
+    expect(res.body.hiddenFields).not.toContain("bookAliases");
   });
 
   it("keeps spoiler aliases alive in both scopes when the edit page saves the aliases it got back", async () => {

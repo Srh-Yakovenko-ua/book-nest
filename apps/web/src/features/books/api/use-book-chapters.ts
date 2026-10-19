@@ -1,4 +1,4 @@
-import type { BookChaptersView } from "@app/shared";
+import type { BookChaptersView, Nullable } from "@app/shared";
 
 import { BookChaptersViewSchema } from "@app/shared";
 import { useQuery } from "@tanstack/react-query";
@@ -7,11 +7,18 @@ import { bookChaptersControllerGetChapters } from "@/shared/api/generated/endpoi
 
 import { bookKeys } from "./book-keys";
 
-export function useBookChapters(bookId: string, { enabled }: { enabled: boolean }) {
+export function useBookChapters(bookId: Nullable<string>, { enabled }: { enabled: boolean }) {
   return useQuery({
-    enabled,
+    enabled: enabled && bookId !== null,
     queryFn: async ({ signal }): Promise<BookChaptersView> =>
-      BookChaptersViewSchema.parse(await bookChaptersControllerGetChapters(bookId, { signal })),
-    queryKey: bookKeys.chapters(bookId),
+      BookChaptersViewSchema.parse(
+        await bookChaptersControllerGetChapters(bookId ?? "", { signal }),
+      ),
+    queryKey: bookKeys.chapters(bookId ?? ""),
+    select: toChapterSuggestions,
   });
+}
+
+function toChapterSuggestions({ chapters }: BookChaptersView) {
+  return chapters.map(({ chapter, count }) => ({ count, value: chapter }));
 }

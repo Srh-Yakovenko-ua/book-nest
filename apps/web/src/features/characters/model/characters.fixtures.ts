@@ -1,11 +1,12 @@
 import type {
+  BookCharacterRosterItem,
   BookCharacterSummaryView,
   BookCharacterView,
   CharacterDeletionPreview,
   CharacterDeletionResult,
   CharacterDetailsView,
+  CharacterFactView,
   CharacterGlobalSummaryView,
-  CharacterSummaryView,
   SpeciesRefView,
 } from "@app/shared";
 
@@ -23,7 +24,7 @@ export const SPECIES_REFS = {
 } as const satisfies Record<string, SpeciesRefView>;
 
 type CharacterSummaryPage = {
-  items: CharacterSummaryView[];
+  items: BookCharacterRosterItem[];
   page: number;
   pagesCount: number;
   pageSize: number;
@@ -37,7 +38,6 @@ export function makeBookCharacterSummary(
     bookId: "book-1",
     byImportance: { central: 1, episodic: 0, major: 0, mentioned: 0, supporting: 0 },
     favoritesCount: 0,
-    hasHiddenRecords: false,
     povCount: 0,
     top: [],
     totalVisibleCharacters: 1,
@@ -65,7 +65,6 @@ export function makeBookCharacterView(
     firstAppearanceNote: null,
     firstAppearancePage: null,
     hiddenFields: [],
-    hidePresenceAsSpoiler: false,
     id: "book-char-1",
     importance: "central",
     isPovCharacter: false,
@@ -103,13 +102,25 @@ export function makeCharacterDetails(
     gender: "unknown",
     globalAttitude: null,
     hiddenFields: [],
-    hideProfileAsSpoiler: false,
     id: "char-1",
     isFavorite: false,
     name: "Ґеральт",
     neutralDescription: null,
     pronouns: null,
     species: null,
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+export function makeCharacterFact(overrides: Partial<CharacterFactView> = {}): CharacterFactView {
+  return {
+    chapter: "Розділ 3",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    id: "fact-1",
+    page: 42,
+    text: "Носить два мечі: сталевий для людей і срібний для чудовиськ.",
+    title: "Два мечі",
     updatedAt: "2026-01-01T00:00:00.000Z",
     ...overrides,
   };
@@ -126,7 +137,6 @@ export function makeCharacterGlobalSummary(
     entityKind: "individual",
     gender: "unknown",
     globalAttitude: null,
-    hideProfileAsSpoiler: false,
     id: "char-1",
     isFavorite: false,
     name: "Ґеральт із Рівії",
@@ -139,11 +149,12 @@ export function makeCharacterGlobalSummary(
 }
 
 export function makeCharacterSummary(
-  overrides: Partial<CharacterSummaryView> = {},
-): CharacterSummaryView {
+  overrides: Partial<BookCharacterRosterItem> = {},
+): BookCharacterRosterItem {
   return {
     avatar: null,
     characterId: "char-1",
+    descriptionPreview: null,
     displayName: null,
     entityKind: "individual",
     hiddenFields: [],
@@ -153,13 +164,16 @@ export function makeCharacterSummary(
     isPovCharacter: false,
     name: "Ґеральт",
     portrait: null,
+    roles: [],
+    species: null,
     status: null,
+    statusCustomText: null,
     ...overrides,
   };
 }
 
 export function makeCharacterSummaryPage(
-  items: CharacterSummaryView[],
+  items: BookCharacterRosterItem[],
   overrides: Partial<CharacterSummaryPage> = {},
 ): CharacterSummaryPage {
   return {
@@ -178,6 +192,7 @@ export function makeDeletionPreview(
   return {
     aliasCount: 2,
     appearanceCount: 3,
+    factCount: 0,
     formCount: 0,
     groupCount: 0,
     relationshipCount: 0,

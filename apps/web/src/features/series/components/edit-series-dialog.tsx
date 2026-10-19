@@ -227,30 +227,23 @@ function EditSeriesForm({
           {tFields("totalBooks")}{" "}
           <span className="text-xs font-normal text-muted-foreground">{tFields("optional")}</span>
         </Label>
-        <Controller
-          control={control}
-          name="totalBooks"
-          render={({ field }) => (
-            <Input
-              aria-describedby={errors.totalBooks ? "edit-series-total-books-error" : undefined}
-              aria-invalid={errors.totalBooks !== undefined}
-              autoComplete="off"
-              className="h-10 sm:w-40"
-              id="edit-series-total-books"
-              inputMode="numeric"
-              max={TOTAL_BOOKS_MAX}
-              min={TOTAL_BOOKS_MIN}
-              onChange={(event) =>
-                field.onChange(event.target.value === "" ? undefined : Number(event.target.value))
-              }
-              onKeyDown={blockNegativeNumberKeys}
-              onPaste={blockNegativeNumberPaste}
-              placeholder={tFields("totalBooksPlaceholder")}
-              step={1}
-              type="number"
-              value={field.value ?? ""}
-            />
-          )}
+        <Input
+          aria-describedby={errors.totalBooks ? "edit-series-total-books-error" : undefined}
+          aria-invalid={errors.totalBooks !== undefined}
+          autoComplete="off"
+          className="h-10 sm:w-40"
+          id="edit-series-total-books"
+          inputMode="numeric"
+          max={TOTAL_BOOKS_MAX}
+          min={TOTAL_BOOKS_MIN}
+          onKeyDown={blockNegativeNumberKeys}
+          onPaste={blockNegativeNumberPaste}
+          placeholder={tFields("totalBooksPlaceholder")}
+          step={1}
+          type="number"
+          {...register("totalBooks", {
+            setValueAs: (value: number | string) => (value === "" ? undefined : Number(value)),
+          })}
         />
         <FieldError error={errors.totalBooks} id="edit-series-total-books-error" />
       </div>

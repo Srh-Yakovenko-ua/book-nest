@@ -16,8 +16,8 @@ import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
-import { ChapterCombobox } from "@/components/chapter-combobox";
 import { UiIcon } from "@/components/icons";
+import { SuggestionCombobox } from "@/components/suggestion-combobox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,6 +59,7 @@ import type { EventFormMessages, EventFormValues } from "../model/event-form-sch
 
 import { useCreateTimelineEvent } from "../api/use-create-timeline-event";
 import { useTimelineEvent } from "../api/use-timeline-event";
+import { useTimelineLocations } from "../api/use-timeline-locations";
 import { useUpdateTimelineEvent } from "../api/use-update-timeline-event";
 import { markerStyle } from "../model/color-key";
 import {
@@ -246,14 +247,13 @@ function EventForm({
       defaultValues.description !== "" ||
       defaultValues.personalNote !== "",
     place:
-      defaultValues.chapter !== "" ||
-      defaultValues.page !== undefined ||
-      defaultValues.storyTime !== "",
+      defaultValues.chapter !== "" || defaultValues.page !== null || defaultValues.storyTime !== "",
     relations: false,
     thread: defaultValues.threadStatus !== null,
   }));
 
   const chaptersQuery = useBookChapters(bookId, { enabled: openSections.place });
+  const locationsQuery = useTimelineLocations(bookId, { enabled: openSections.details });
 
   useEffect(() => {
     dirtyRef.current = isDirty;
@@ -286,7 +286,7 @@ function EventForm({
 
   const placeSummary = joinSummary([
     chapter,
-    page === undefined ? "" : tRoot("list.page", { page }),
+    page === null ? "" : tRoot("list.page", { page }),
     storyTime,
   ]);
   const detailsSummary = joinSummary([
@@ -522,13 +522,13 @@ function EventForm({
                 control={control}
                 name="chapter"
                 render={({ field }) => (
-                  <ChapterCombobox
+                  <SuggestionCombobox
                     describedBy={errors.chapter ? "event-chapter-error" : undefined}
                     id="event-chapter"
                     invalid={errors.chapter !== undefined}
                     maxLength={EVENT_CHAPTER_MAX}
                     onChange={field.onChange}
-                    options={chaptersQuery.data?.chapters ?? []}
+                    options={chaptersQuery.data ?? []}
                     placeholder={t("chapterPlaceholder")}
                     value={field.value}
                   />
@@ -553,9 +553,7 @@ function EventForm({
                     min={1}
                     onChange={(changeEvent) =>
                       field.onChange(
-                        changeEvent.target.value === ""
-                          ? undefined
-                          : Number(changeEvent.target.value),
+                        changeEvent.target.value === "" ? null : Number(changeEvent.target.value),
                       )
                     }
                     onKeyDown={blockNegativeNumberKeys}
@@ -599,15 +597,21 @@ function EventForm({
         >
           <div className="flex flex-col gap-2">
             <Label htmlFor="event-location">{t("locationLabel")}</Label>
-            <Input
-              aria-describedby={errors.location ? "event-location-error" : undefined}
-              aria-invalid={errors.location !== undefined}
-              autoComplete="off"
-              className="h-10"
-              id="event-location"
-              maxLength={EVENT_LOCATION_MAX}
-              placeholder={t("locationPlaceholder")}
-              {...register("location")}
+            <Controller
+              control={control}
+              name="location"
+              render={({ field }) => (
+                <SuggestionCombobox
+                  describedBy={errors.location ? "event-location-error" : undefined}
+                  id="event-location"
+                  invalid={errors.location !== undefined}
+                  maxLength={EVENT_LOCATION_MAX}
+                  onChange={field.onChange}
+                  options={locationsQuery.data ?? []}
+                  placeholder={t("locationPlaceholder")}
+                  value={field.value}
+                />
+              )}
             />
             <FieldError error={errors.location} id="event-location-error" />
           </div>

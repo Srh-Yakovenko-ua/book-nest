@@ -68,9 +68,10 @@ function getBook(accessToken: string, bookId: string): request.Test {
     .set("Authorization", `Bearer ${accessToken}`);
 }
 
-function listBookQuotes(accessToken: string, bookId: string): request.Test {
+function listQuotesOfBook(accessToken: string, bookId: string): request.Test {
   return request(app.getHttpServer())
-    .get(`/api/books/${bookId}/quotes`)
+    .get("/api/quotes")
+    .query({ book: bookId })
     .set("Authorization", `Bearer ${accessToken}`);
 }
 
@@ -172,41 +173,6 @@ describe("POST /api/books/:bookId/quotes", () => {
     });
 
     const res = await addQuote(stranger.accessToken, bookId, { text: "sneaky" });
-
-    expect(res.status).toBe(404);
-  });
-});
-
-describe("GET /api/books/:bookId/quotes", () => {
-  it("lists the book's quotes newest first with summary counts", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
-    const bookId = await createBook(accessToken);
-    await addQuote(accessToken, bookId, { isFavorite: true, text: "first" });
-    await addQuote(accessToken, bookId, { isSpoiler: true, text: "second" });
-    await addQuote(accessToken, bookId, { comment: "note", text: "third" });
-
-    const res = await listBookQuotes(accessToken, bookId);
-
-    expect(res.status).toBe(200);
-    expect(res.body.totalCount).toBe(3);
-    expect(res.body.favoritesCount).toBe(1);
-    expect(res.body.spoilerCount).toBe(1);
-    expect(res.body.items.map((item: { text: string }) => item.text)).toEqual([
-      "third",
-      "second",
-      "first",
-    ]);
-  });
-
-  it("returns 404 for another user's book", async () => {
-    const owner = await context.registerVerifyAndLogin();
-    const bookId = await createBook(owner.accessToken);
-    const stranger = await context.registerVerifyAndLogin({
-      email: "stranger@example.com",
-      nickname: "stranger",
-    });
-
-    const res = await listBookQuotes(stranger.accessToken, bookId);
 
     expect(res.status).toBe(404);
   });
@@ -353,7 +319,8 @@ describe("DELETE /api/books/:bookId/quotes/:quoteId", () => {
     const deleteRes = await deleteQuote(accessToken, bookId, created.body.id);
     expect(deleteRes.status).toBe(200);
 
-    const bookQuotes = await listBookQuotes(accessToken, bookId);
+    const bookQuotes = await listQuotesOfBook(accessToken, bookId);
+    expect(bookQuotes.status).toBe(200);
     expect(bookQuotes.body.totalCount).toBe(0);
 
     const global = await request(app.getHttpServer())

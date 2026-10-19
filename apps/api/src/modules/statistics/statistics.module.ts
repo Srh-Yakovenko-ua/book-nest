@@ -9,6 +9,7 @@ import { StatisticsController } from "./api/statistics.controller.js";
 import { CompletedReadMapper } from "./application/completed-read.mapper.js";
 import { ReadingCoreComposer } from "./application/reading-core.composer.js";
 import { ReadingDayDetailsService } from "./application/reading-day-details.service.js";
+import { ReadingIntervalDetailsService } from "./application/reading-interval-details.service.js";
 import { StatisticsCalendarComposer } from "./application/statistics-calendar.composer.js";
 import { StatisticsGoalComposer } from "./application/statistics-goal.composer.js";
 import { StatisticsLibraryComposer } from "./application/statistics-library.composer.js";
@@ -25,6 +26,7 @@ import { StatisticsLibraryRepository } from "./infrastructure/statistics-library
   providers: [
     StatisticsOverviewService,
     ReadingDayDetailsService,
+    ReadingIntervalDetailsService,
     CompletedReadMapper,
     ReadingCoreComposer,
     StatisticsCalendarComposer,

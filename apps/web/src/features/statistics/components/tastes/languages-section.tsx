@@ -4,9 +4,12 @@ import type { ReadingStatisticsLanguagesSection } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 
+import { formatNumber } from "@/lib/format";
+
 import { coverageCaption } from "../../model/statistics-availability";
 import { formatShare } from "../../model/statistics-format";
 import { StatisticsSection } from "../statistics-section";
+import { StatisticsStat } from "../statistics-stat";
 import { StatisticsNote, StatisticsSectionState } from "../statistics-states";
 import { TasteRankingList } from "./taste-ranking-list";
 
@@ -43,9 +46,12 @@ export function LanguagesSection({ languages }: { languages: ReadingStatisticsLa
         <StatisticsSectionState kind="empty" title={t("empty")} />
       ) : (
         <>
-          <p className="text-sm text-muted-foreground">
-            {t("diversity", { count: languages.items.length })}
-          </p>
+          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <StatisticsStat
+              label={t("countLabel")}
+              value={formatNumber(languages.items.length, locale)}
+            />
+          </dl>
           <TasteRankingList
             rows={languages.items.map((entry) => ({
               key: entry.language,

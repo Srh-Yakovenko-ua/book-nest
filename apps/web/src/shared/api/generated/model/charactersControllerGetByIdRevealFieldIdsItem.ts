@@ -10,10 +10,12 @@ export type CharactersControllerGetByIdRevealFieldIdsItem =
   (typeof CharactersControllerGetByIdRevealFieldIdsItem)[keyof typeof CharactersControllerGetByIdRevealFieldIdsItem];
 
 export const CharactersControllerGetByIdRevealFieldIdsItem = {
-  aliases: "aliases",
   appearanceNotes: "appearanceNotes",
+  bookAliases: "bookAliases",
   description: "description",
   displayName: "displayName",
+  forms: "forms",
+  globalAliases: "globalAliases",
   personalImpression: "personalImpression",
   portrait: "portrait",
   roles: "roles",

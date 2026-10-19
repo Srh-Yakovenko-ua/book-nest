@@ -10,6 +10,10 @@ import { describe, expect, it } from "vitest";
 
 import type { GraphEdgeSource, GraphMembershipSource, GraphNodeSource } from "./character-graph.js";
 import type { RelationshipBookStateSource } from "./character-relationship.mapper.js";
+import type {
+  ReaderBookPosition,
+  RelationshipReaderContext,
+} from "./relationship-reader-projection.js";
 
 import { buildCharacterGraph } from "./character-graph.js";
 
@@ -19,6 +23,32 @@ const CAROL = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 const BOOK = "20000000-0000-4000-8000-000000000001";
 const GROUP_STARK = "10000000-0000-4000-8000-000000000001";
 const GROUP_SECRET = "10000000-0000-4000-8000-000000000002";
+
+function asOfReaderContext({
+  allowedBookIds,
+  partNumberById,
+  readerPosition,
+}: {
+  allowedBookIds: string[];
+  partNumberById: Map<string, Nullable<number>>;
+  readerPosition: ReaderBookPosition;
+}): RelationshipReaderContext {
+  return {
+    books: new Map(
+      allowedBookIds.map((id) => [
+        id,
+        {
+          id,
+          partNumber: partNumberById.get(id) ?? null,
+          position: readerPosition,
+          seriesId: null,
+          title: id,
+        },
+      ]),
+    ),
+    scope: { contextBookId: BOOK, kind: "as_of" },
+  };
+}
 
 function build({
   allowedBookIds = [BOOK],
@@ -33,6 +63,7 @@ function build({
   nodeLimit = 300,
   nodes = [],
   partNumberById = new Map<string, Nullable<number>>(),
+  readerPosition = { kind: "unknown" },
   revealEdgeIds = new Set<string>(),
   typeFilter = null,
 }: {
@@ -48,6 +79,7 @@ function build({
   nodeLimit?: number;
   nodes?: GraphNodeSource[];
   partNumberById?: Map<string, Nullable<number>>;
+  readerPosition?: ReaderBookPosition;
   revealEdgeIds?: Set<string>;
   typeFilter?: Nullable<Set<RelationshipType>>;
 }) {
@@ -64,6 +96,7 @@ function build({
     nodeLimit,
     nodes,
     partNumberById,
+    readerContext: asOfReaderContext({ allowedBookIds, partNumberById, readerPosition }),
     revealEdgeIds,
     typeFilter,
   });
@@ -73,9 +106,11 @@ function edgeSource(overrides: Partial<GraphEdgeSource>): GraphEdgeSource {
   return {
     bookStates: [stateSource({})],
     category: "social",
+    createdAt: new Date("2024-01-01T00:00:00.000Z"),
     customType: null,
     directionality: "symmetric",
     id: "rel-1",
+    isCanonical: true,
     sourceCharacterId: ALICE,
     sourceLabel: null,
     targetCharacterId: BOB,
@@ -108,7 +143,6 @@ function nodeSource(overrides: Partial<GraphNodeSource> & { id: string }): Graph
       {
         bookId: BOOK,
         createdAt: new Date("2024-01-01T00:00:00.000Z"),
-        hidePresenceAsSpoiler: false,
         importance: "major",
       },
     ],
@@ -158,7 +192,7 @@ describe("buildCharacterGraph", () => {
     expect(graph.updatedAt).toBe("2024-01-02T00:00:00.000Z");
   });
 
-  it("drops a presence-hidden node and every edge touching it without affecting other degrees", () => {
+  it("keeps every appearing node and all of its edges in the degree count", () => {
     const graph = build({
       edges: [
         edgeSource({ id: "rel-1", sourceCharacterId: ALICE, targetCharacterId: BOB }),
@@ -176,7 +210,6 @@ describe("buildCharacterGraph", () => {
             {
               bookId: BOOK,
               createdAt: new Date("2024-01-01T00:00:00.000Z"),
-              hidePresenceAsSpoiler: true,
               importance: "central",
             },
           ],
@@ -186,13 +219,17 @@ describe("buildCharacterGraph", () => {
       ],
     });
 
-    expect(graph.nodes.map((node) => node.id).sort()).toEqual([ALICE, CAROL].sort());
-    expect(graph.edges.map((edge) => edge.id)).toEqual(["rel-2"]);
-    expect(graph.nodes.find((node) => node.id === ALICE)?.degree).toBe(1);
-    expect(graph.hiddenContent.hasHiddenNodes).toBe(true);
+    expect(graph.nodes.map((node) => node.id).sort()).toEqual([ALICE, BOB, CAROL].sort());
+    expect(graph.edges.map((edge) => edge.id).sort()).toEqual(["rel-1", "rel-2"]);
+    expect(graph.nodes.find((node) => node.id === ALICE)?.degree).toBe(2);
+    expect(graph.hiddenContent).toEqual({
+      hasHiddenEdges: false,
+      hasLockedEdges: false,
+      truncated: false,
+    });
   });
 
-  it("omits a hideRelationshipAsSpoiler edge and it never contributes to degree", () => {
+  it("omits a hideRelationshipAsSpoiler edge without advertising it and it never contributes to degree", () => {
     const graph = build({
       edges: [
         edgeSource({ id: "rel-1", sourceCharacterId: ALICE, targetCharacterId: BOB }),
@@ -214,11 +251,11 @@ describe("buildCharacterGraph", () => {
 
     expect(graph.edges.map((edge) => edge.id)).toEqual(["rel-1"]);
     expect(graph.nodes.map((node) => node.id).sort()).toEqual([ALICE, BOB].sort());
-    expect(graph.hiddenContent.hasHiddenEdges).toBe(true);
+    expect(graph.hiddenContent.hasHiddenEdges).toBe(false);
     expect(graph.nodes.find((node) => node.id === ALICE)?.degree).toBe(1);
   });
 
-  it("keeps an isTypeSpoiler edge structurally but locks its type, category and labels", () => {
+  it("keeps an isTypeSpoiler edge structurally but locks its type, category, labels and directionality", () => {
     const graph = build({
       edges: [
         edgeSource({
@@ -236,6 +273,7 @@ describe("buildCharacterGraph", () => {
     expect(graph.edges).toHaveLength(1);
     expect(graph.edges[0]).toMatchObject({
       category: null,
+      directionality: null,
       sourceLabel: null,
       targetLabel: null,
       type: null,
@@ -302,6 +340,7 @@ describe("buildCharacterGraph", () => {
       [BOOK, 1],
     ]);
     const graph = build({
+      allowedBookIds: [BOOK, "book-2"],
       edges: [
         edgeSource({
           bookStates: [
@@ -491,7 +530,7 @@ describe("buildCharacterGraph", () => {
     ]);
   });
 
-  it("keeps a presence-hidden character out of every cluster and its size count", () => {
+  it("counts every appearing member in its cluster and the cluster size", () => {
     const graph = build({
       clusterBy: "group",
       edges: [
@@ -515,7 +554,6 @@ describe("buildCharacterGraph", () => {
             {
               bookId: BOOK,
               createdAt: new Date("2024-01-01T00:00:00.000Z"),
-              hidePresenceAsSpoiler: true,
               importance: "central",
             },
           ],
@@ -525,9 +563,9 @@ describe("buildCharacterGraph", () => {
       ],
     });
 
-    expect(graph.nodes.some((node) => node.id === BOB)).toBe(false);
+    expect(graph.nodes.find((node) => node.id === BOB)?.clusterId).toBe(GROUP_STARK);
     expect(graph.clusters).toEqual([
-      { groupType: "house", id: GROUP_STARK, kind: "group", name: "House Stark", size: 2 },
+      { groupType: "house", id: GROUP_STARK, kind: "group", name: "House Stark", size: 3 },
     ]);
   });
 
@@ -592,7 +630,6 @@ describe("buildCharacterGraph", () => {
             {
               bookId: BOOK,
               createdAt: new Date("2024-01-01T00:00:00.000Z"),
-              hidePresenceAsSpoiler: false,
               importance: "central",
             },
           ],
@@ -610,5 +647,73 @@ describe("buildCharacterGraph", () => {
       { id: "central", importance: "central", kind: "importance", size: 1 },
       { id: "major", importance: "major", kind: "importance", size: 2 },
     ]);
+  });
+
+  it("does not let a category filter match the masked category of a type-hidden edge", () => {
+    const graph = build({
+      categoryFilter: new Set<RelationshipCategory>(["family"]),
+      edges: [
+        edgeSource({
+          bookStates: [stateSource({ isTypeSpoiler: true })],
+          category: "family",
+          type: "sibling_of",
+        }),
+      ],
+      nodes: [nodeSource({ id: ALICE }), nodeSource({ id: BOB })],
+    });
+
+    expect(graph.edges).toEqual([]);
+  });
+
+  it("does not let a type filter match the masked type of a type-hidden edge", () => {
+    const graph = build({
+      edges: [
+        edgeSource({
+          bookStates: [stateSource({ isTypeSpoiler: true })],
+          category: "family",
+          type: "sibling_of",
+        }),
+      ],
+      nodes: [nodeSource({ id: ALICE }), nodeSource({ id: BOB })],
+      typeFilter: new Set<RelationshipType>(["sibling_of"]),
+    });
+
+    expect(graph.edges).toEqual([]);
+  });
+
+  it("omits an edge with an introduction marker while the reader position is unknown", () => {
+    const graph = build({
+      edges: [edgeSource({ bookStates: [stateSource({ introducedPage: 10 })] })],
+      nodes: [nodeSource({ id: ALICE }), nodeSource({ id: BOB })],
+      readerPosition: { kind: "unknown" },
+    });
+
+    expect(graph.edges).toEqual([]);
+    expect(graph.hiddenContent.hasHiddenEdges).toBe(false);
+  });
+
+  it("shows an edge with an introduction marker once the reader position reaches it", () => {
+    const graph = build({
+      edges: [edgeSource({ bookStates: [stateSource({ introducedPage: 10 })] })],
+      nodes: [nodeSource({ id: ALICE }), nodeSource({ id: BOB })],
+      readerPosition: { kind: "position", reader: { page: 10 } },
+    });
+
+    expect(graph.edges.map((edge) => edge.id)).toEqual(["rel-1"]);
+  });
+
+  it("withholds an ended status until the reader reaches the end marker", () => {
+    const edges = [edgeSource({ bookStates: [stateSource({ endedPage: 50, status: "ended" })] })];
+    const nodes = [nodeSource({ id: ALICE }), nodeSource({ id: BOB })];
+
+    const midway = build({
+      edges,
+      nodes,
+      readerPosition: { kind: "position", reader: { page: 20 } },
+    });
+    const finished = build({ edges, nodes, readerPosition: { kind: "finished" } });
+
+    expect(midway.edges[0]?.status).toBeNull();
+    expect(finished.edges[0]?.status).toBe("ended");
   });
 });

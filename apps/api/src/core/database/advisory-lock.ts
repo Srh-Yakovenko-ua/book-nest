@@ -18,7 +18,7 @@ export const ADVISORY_LOCK_CLASS = Object.freeze({
   timeline: 5,
 });
 
-type AcquireAdvisoryLockInput = {
+export type AdvisoryLockInput = {
   classId: AdvisoryLockClassId;
   key: string;
 };
@@ -26,8 +26,15 @@ type AcquireAdvisoryLockInput = {
 type AdvisoryLockClassId = (typeof ADVISORY_LOCK_CLASS)[keyof typeof ADVISORY_LOCK_CLASS];
 
 export async function acquireAdvisoryLock(
-  { classId, key }: AcquireAdvisoryLockInput,
+  { classId, key }: AdvisoryLockInput,
   client: Prisma.TransactionClient,
 ): Promise<void> {
   await client.$executeRaw`SELECT pg_advisory_xact_lock(${classId}, hashtext(${key}))`;
+}
+
+export async function acquireSharedAdvisoryLock(
+  { classId, key }: AdvisoryLockInput,
+  client: Prisma.TransactionClient,
+): Promise<void> {
+  await client.$executeRaw`SELECT pg_advisory_xact_lock_shared(${classId}, hashtext(${key}))`;
 }

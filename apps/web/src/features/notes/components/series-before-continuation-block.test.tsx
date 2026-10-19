@@ -191,6 +191,45 @@ describe("SeriesBeforeContinuationBlock recap notes", () => {
 
     expect(onOpenNote).toHaveBeenCalledWith(spoiler, expect.any(HTMLButtonElement));
   });
+
+  it("shows the title of a note as a heading above its text", () => {
+    renderBlock(
+      beforeNextBook({
+        notes: [
+          recapNote(
+            "note-1",
+            { id: "book-1", seriesPosition: 1, title: "Дюна" },
+            { title: "Клятва фрименів" },
+          ),
+        ],
+      }),
+    );
+
+    const item = within(firstRecapItem());
+    const title = item.getByRole("heading", { level: 4, name: "Клятва фрименів" });
+
+    expect(
+      title.compareDocumentPosition(item.getByText("Нотатка note-1")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
+  });
+
+  it("keeps the title of a spoiler note behind the compact gate", () => {
+    renderBlock(
+      beforeNextBook({
+        notes: [
+          recapNote(
+            "note-1",
+            { id: "book-1", seriesPosition: 1, title: "Дюна" },
+            { isSpoiler: true, text: "Пол стає імператором.", title: "Імператор Пол" },
+          ),
+        ],
+      }),
+    );
+
+    expect(screen.queryByText("Імператор Пол")).not.toBeInTheDocument();
+    expect(within(firstRecapItem()).getByText("Ця нотатка містить спойлер")).toBeInTheDocument();
+  });
 });
 
 describe("SeriesBeforeContinuationBlock footer", () => {

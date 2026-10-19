@@ -4,6 +4,16 @@ on:
   pull_request:
     branches: [dev, stage, prod]
   workflow_call:
+    inputs:
+      ref:
+        type: string
+        default: ""
+      scope:
+        type: string
+        default: full
+      base:
+        type: string
+        default: ""
   workflow_dispatch:
 
 concurrency:
@@ -14,6 +24,77 @@ permissions:
   contents: read
 
 jobs:
+  scope:
+    name: Test scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      mode: ${{ steps.scope.outputs.mode }}
+      base: ${{ steps.scope.outputs.base }}
+      shards: ${{ steps.scope.outputs.shards }}
+      total: ${{ steps.scope.outputs.total }}
+      api: ${{ steps.scope.outputs.api }}
+      web: ${{ steps.scope.outputs.web }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Choose full suite or affected tests
+        id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE_REF: ${{ github.base_ref }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          REQUESTED: ${{ inputs.scope }}
+          REQUESTED_BASE: ${{ inputs.base }}
+        run: |
+          base=""
+          if [ "$EVENT" = pull_request ] && [ "$PR_BASE_REF" = dev ]; then
+            base="$PR_BASE_SHA"
+          elif [ "$EVENT" != pull_request ] && [ "$REQUESTED" = affected ]; then
+            base="$REQUESTED_BASE"
+          fi
+
+          full_suite_paths='^(packages/shared/|apps/api/prisma/|apps/api/src/test/|apps/api/vitest\.config\.ts$|apps/web/vitest\.(config|setup)\.ts$|apps/web/src/test-utils\.tsx$|(apps/(api|web)/)?package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|tsconfig\.base\.json$|\.nvmrc$|\.github/workflows/ci\.yml$)'
+
+          mode=full
+          api=true
+          web=true
+          if [ -n "$base" ] && git cat-file -e "${base}^{commit}" 2>/dev/null; then
+            changed=$(git diff --name-only "$base"...HEAD)
+            echo "Changed since $base:"
+            printf '%s\n' "$changed"
+            if ! printf '%s\n' "$changed" | grep -Eq "$full_suite_paths"; then
+              mode=affected
+              printf '%s\n' "$changed" | grep -q '^apps/api/' || api=false
+              printf '%s\n' "$changed" | grep -q '^apps/web/' || web=false
+            fi
+          fi
+
+          if [ "$mode" = full ]; then
+            shards='[1,2,3,4]'
+            total=4
+            base=""
+          else
+            shards='[1]'
+            total=1
+          fi
+
+          echo "Test scope: $mode (api=$api, web=$web, base=${base:-none})"
+          {
+            echo "mode=$mode"
+            echo "base=$base"
+            echo "shards=$shards"
+            echo "total=$total"
+            echo "api=$api"
+            echo "web=$web"
+          } >> "$GITHUB_OUTPUT"
+
   static:
     name: Typecheck, lint, format, knip
     runs-on: ubuntu-latest
@@ -26,6 +107,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.ref }}
           persist-credentials: false
 
       - name: Setup pnpm
@@ -61,18 +143,16 @@ jobs:
         run: pnpm knip
 
   test-api:
-    name: API tests (shard ${{ matrix.shard }}/4)
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'pull_request' ||
-      github.event_name == 'push'
+    name: API tests (${{ needs.scope.outputs.mode }}, shard ${{ matrix.shard }}/${{ needs.scope.outputs.total }})
+    needs: scope
+    if: needs.scope.outputs.api == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: ${{ fromJSON(needs.scope.outputs.shards) }}
 
     services:
       postgres:
@@ -113,6 +193,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: ${{ needs.scope.outputs.mode == 'affected' && '0' || '1' }}
           persist-credentials: false
 
       - name: Setup pnpm
@@ -134,14 +216,21 @@ jobs:
         run: pnpm --filter @app/api db:migrate:deploy
 
       - name: Test shard
-        run: pnpm --filter @app/api exec vitest run --shard=${{ matrix.shard }}/4
+        env:
+          MODE: ${{ needs.scope.outputs.mode }}
+          BASE: ${{ needs.scope.outputs.base }}
+          SHARD: ${{ matrix.shard }}/${{ needs.scope.outputs.total }}
+        run: |
+          if [ "$MODE" = affected ]; then
+            pnpm --filter @app/api exec vitest run --changed "$BASE" --passWithNoTests
+          else
+            pnpm --filter @app/api exec vitest run --shard="$SHARD"
+          fi
 
   test-web:
-    name: Web tests
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'pull_request' ||
-      github.event_name == 'push'
+    name: Web tests (${{ needs.scope.outputs.mode }})
+    needs: scope
+    if: needs.scope.outputs.web == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -153,6 +242,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: ${{ needs.scope.outputs.mode == 'affected' && '0' || '1' }}
           persist-credentials: false
 
       - name: Setup pnpm
@@ -176,7 +267,16 @@ jobs:
             turbo-web-${{ runner.os }}-
 
       - name: Test
-        run: pnpm turbo run test --filter=@app/web
+        env:
+          MODE: ${{ needs.scope.outputs.mode }}
+          BASE: ${{ needs.scope.outputs.base }}
+        run: |
+          if [ "$MODE" = affected ]; then
+            pnpm --filter @app/shared build
+            pnpm --filter @app/web exec vitest --project unit run --changed "$BASE" --passWithNoTests
+          else
+            pnpm turbo run test --filter=@app/web
+          fi
 
   build:
     name: Build & API smoke
@@ -225,6 +325,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.ref }}
           persist-credentials: false
 
       - name: Setup pnpm
@@ -269,7 +370,7 @@ jobs:
 
   gate:
     name: CI gate
-    needs: [static, test-api, test-web, build]
+    needs: [scope, static, test-api, test-web, build]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -277,8 +378,9 @@ jobs:
     steps:
       - name: Require every gate to pass
         env:
-          RESULTS: ${{ needs.static.result }} ${{ needs.test-api.result }} ${{ needs.test-web.result }} ${{ needs.build.result }}
+          RESULTS: ${{ needs.scope.result }} ${{ needs.static.result }} ${{ needs.test-api.result }} ${{ needs.test-web.result }} ${{ needs.build.result }}
         run: |
+          echo "scope=${{ needs.scope.result }} (${{ needs.scope.outputs.mode }})"
           echo "static=${{ needs.static.result }}"
           echo "test-api=${{ needs.test-api.result }}"
           echo "test-web=${{ needs.test-web.result }}"

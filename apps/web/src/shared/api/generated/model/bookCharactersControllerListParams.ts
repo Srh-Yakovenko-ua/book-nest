@@ -5,24 +5,12 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { BookCharactersControllerListFavoritesOnly } from "./bookCharactersControllerListFavoritesOnly";
+import type { BookCharactersControllerListImportanceItem } from "./bookCharactersControllerListImportanceItem";
+import type { BookCharactersControllerListPovOnly } from "./bookCharactersControllerListPovOnly";
 import type { BookCharactersControllerListSort } from "./bookCharactersControllerListSort";
 
 export type BookCharactersControllerListParams = {
-  /**
-   * @minimum 0
-   * @maximum 2147483647
-   */
-  contextAudioSeconds?: number;
-  /**
-   * @minimum 0
-   * @maximum 2147483647
-   */
-  contextChapter?: number;
-  /**
-   * @minimum 0
-   * @maximum 2147483647
-   */
-  contextPage?: number;
   /**
    * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
    */
@@ -37,6 +25,12 @@ export type BookCharactersControllerListParams = {
    * @maximum 100
    */
   pageSize?: number;
+  favoritesOnly?: BookCharactersControllerListFavoritesOnly;
+  /**
+   * Comma-separated or repeated importance values, matched with OR
+   */
+  importance?: BookCharactersControllerListImportanceItem[];
+  povOnly?: BookCharactersControllerListPovOnly;
   /**
    * @maxLength 100
    */

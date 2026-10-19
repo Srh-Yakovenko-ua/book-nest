@@ -35,12 +35,11 @@ Additive changes (new table, new nullable column, new index) go through the exac
 
 ### The DROP-INDEX strip trap (read every time)
 
-Four indexes live in hand-written SQL inside their own past migrations because Prisma cannot express them in a `model`. They exist in the database but not in `schema.prisma`, so every newly generated migration emits a spurious `DROP INDEX` for them:
+Some indexes live in hand-written SQL inside their own past migrations because Prisma cannot express them in a `model` (trigram GIN, and partial indexes with a `WHERE` predicate). They exist in the database but not in `schema.prisma`. The single source of truth for which ones exist is `apps/api/src/core/database/raw-sql-indexes.test.ts`, which asserts each one with its predicate; read it there rather than trusting a copied list, because copies here have gone stale before (an earlier list named an index that was later deleted).
 
-- `authors_search_text_trgm_idx`, `publishers_search_text_trgm_idx`: trigram GIN (`gin_trgm_ops`) powering cross-locale author/publisher search. Dropping them degrades search to a sequential scan.
-- `book_deliveries_active_book_idx`, `book_loans_active_book_idx`: partial-unique indexes enforcing one active delivery and one active loan per book. Dropping them silently loses the invariant.
+Only the two trigram GIN indexes, `authors_search_text_trgm_idx` and `publishers_search_text_trgm_idx`, come back as spurious `DROP INDEX` lines in a generated migration: Prisma's differ sees a plain index it did not declare, but cannot represent a `WHERE` predicate at all, so the partial ones are invisible to it. Dropping the GIN pair degrades cross-locale search to a sequential scan.
 
-Before applying ANY migration, open the generated `migration.sql` and delete every `DROP INDEX` line targeting one of these four. This is exactly why even an "additive" migration is never a blind apply.
+Still read every `DROP INDEX` line in the generated `migration.sql` and strip any that no task asked for, before `db:migrate:deploy`. A dropped partial-unique index silently loses a one-active invariant, and the test only turns red in CI after the damage is applied. A `DROP INDEX` on a partial index is legitimate exactly once, in the migration that converts a plain index into that partial one. This is exactly why even an "additive" migration is never a blind apply.
 
 ## 4. Review the generated SQL
 
@@ -58,7 +57,7 @@ pnpm --filter @app/api db:migrate:deploy
 
 - Regenerate the Prisma client (neither `--create-only` nor `migrate deploy` does this): `pnpm --filter @app/api db:generate`.
 - Confirm the DB is in sync: `pnpm --filter @app/api db:migrate:status` → "Database schema is up to date".
-- Gates: `pnpm --filter @app/api typecheck`, `pnpm lint`, and the affected tests pass (real Postgres `booknest_test` required).
+- Gates: `/check` is green, and the tests that touch the changed tables are listed as `CI:` lines. A schema change makes CI run the full suite, so it reaches `dev` through a PR.
 - If a new model needs FE/BE shared types, add them to `@app/shared` first.
 
 ## Production

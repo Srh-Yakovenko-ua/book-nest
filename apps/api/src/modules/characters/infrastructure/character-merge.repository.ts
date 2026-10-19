@@ -4,13 +4,16 @@ import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type {
+  FactReparent,
   LoserRelationshipRow,
   RelationshipRepoint,
+  SurvivorAppearance,
   SurvivorRelationshipRow,
 } from "../domain/character-merge.js";
 
-import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
+import { acquireAdvisoryLock } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { characterMergeLockFor } from "./character-merge-lock.js";
 
 export type LoserAliasRow = {
   bookId: Nullable<string>;
@@ -21,6 +24,7 @@ export type LoserAliasRow = {
 
 export type LoserBookCharacterRow = {
   bookId: string;
+  factCount: number;
   id: string;
   portraitMediaId: Nullable<string>;
   roleCount: number;
@@ -57,10 +61,7 @@ export class CharacterMergeRepository {
     { userId }: { userId: string },
     client: Prisma.TransactionClient,
   ): Promise<void> {
-    await acquireAdvisoryLock(
-      { classId: ADVISORY_LOCK_CLASS.characterMerge, key: `char-merge:${userId}` },
-      client,
-    );
+    await acquireAdvisoryLock(characterMergeLockFor(userId), client);
   }
 
   async countHiddenLoserRecords(
@@ -79,7 +80,6 @@ export class CharacterMergeRepository {
               { appearanceNotesIsSpoiler: true },
               { descriptionIsSpoiler: true },
               { displayNameIsSpoiler: true },
-              { hidePresenceAsSpoiler: true },
               { isUnreliableNarratorSpoiler: true },
               { personalImpressionIsSpoiler: true },
               { portraitIsSpoiler: true },
@@ -193,7 +193,7 @@ export class CharacterMergeRepository {
   ): Promise<LoserBookCharacterRow[]> {
     const rows = await client.bookCharacter.findMany({
       select: {
-        _count: { select: { roles: true } },
+        _count: { select: { facts: true, roles: true } },
         bookId: true,
         id: true,
         portraitMediaId: true,
@@ -202,6 +202,7 @@ export class CharacterMergeRepository {
     });
     return rows.map((row) => ({
       bookId: row.bookId,
+      factCount: row._count.facts,
       id: row.id,
       portraitMediaId: row.portraitMediaId,
       roleCount: row._count.roles,
@@ -274,15 +275,14 @@ export class CharacterMergeRepository {
     });
   }
 
-  async findSurvivorBookIds(
+  async findSurvivorAppearances(
     { characterId }: { characterId: string },
     client: Prisma.TransactionClient = this.prisma,
-  ): Promise<string[]> {
-    const rows = await client.bookCharacter.findMany({
-      select: { bookId: true },
+  ): Promise<SurvivorAppearance[]> {
+    return client.bookCharacter.findMany({
+      select: { bookId: true, id: true },
       where: { characterId },
     });
-    return rows.map((row) => row.bookId);
   }
 
   async findSurvivorFormKeys(
@@ -346,6 +346,17 @@ export class CharacterMergeRepository {
   ): Promise<number> {
     const result = await client.character.deleteMany({ where: { id: characterId, userId } });
     return result.count;
+  }
+
+  async reparentFacts(
+    { fromBookCharacterId, toBookCharacterId }: FactReparent,
+    client: Prisma.TransactionClient,
+  ): Promise<number> {
+    return client.$executeRaw`
+      UPDATE character_facts
+      SET book_character_id = ${toBookCharacterId}::uuid
+      WHERE book_character_id = ${fromBookCharacterId}::uuid
+    `;
   }
 
   async repointAliases(

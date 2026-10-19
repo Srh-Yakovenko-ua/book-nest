@@ -145,13 +145,13 @@ export function CharacterRolePicker({ customRoles, onChange, value }: CharacterR
             ))}
             <div
               className={cn(
-                "relative h-7 max-w-full min-w-fit flex-1 text-[0.9375rem]",
+                "relative h-10 max-w-full min-w-fit flex-1 text-[0.9375rem]",
                 atLimit && "basis-full",
               )}
             >
               <span
                 aria-hidden
-                className="invisible block h-7 overflow-hidden"
+                className="invisible block h-10 overflow-hidden"
                 data-slot="placeholder-sizer"
               >
                 {placeholder}

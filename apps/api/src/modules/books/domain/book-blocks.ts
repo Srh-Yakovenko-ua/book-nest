@@ -28,8 +28,10 @@ import type {
   UpdatePurchaseInfoData,
   UpdateReadingProgressData,
 } from "../infrastructure/books.repository.js";
+import type { LoanReminderFields } from "./loan-quick-actions.js";
 
 import { toCreateDate, toUpdateDate } from "../../../core/iso-date.js";
+import { resolveReminderFields } from "./loan-quick-actions.js";
 
 export type ResolvedLoanInfo = {
   loanContact: ResolvedLoanContact;
@@ -106,13 +108,20 @@ export function buildLoanInfoUpdateData({
   loanContact,
   loanInfo,
 }: ResolvedLoanInfo): UpdateLoanInfoData {
+  const expectedReturnDate = toUpdateDate(loanInfo.expectedReturnDate);
+  const reminderFields: Partial<LoanReminderFields> =
+    expectedReturnDate === null
+      ? resolveReminderFields({ expectedReturnDate, remindBeforeDays: null })
+      : {};
+
   return {
     contact: loanContact.refreshesSnapshot ? loanContact.contact : undefined,
-    expectedReturnDate: toUpdateDate(loanInfo.expectedReturnDate),
+    expectedReturnDate,
     loanContactId: loanContact.loanContactId,
     loanDate: toUpdateDate(loanInfo.loanDate),
     note: loanInfo.note,
     personName: loanContact.refreshesSnapshot ? loanContact.personName : undefined,
+    ...reminderFields,
   };
 }
 

@@ -4,6 +4,7 @@ import {
   buildHeatmapWeeks,
   buildMonthGrid,
   listCalendarMonths,
+  summarizeCalendarMonth,
   weekdayOrder,
 } from "./statistics-calendar";
 import { calendarDayFixture } from "./statistics.fixtures";
@@ -91,5 +92,60 @@ describe("listCalendarMonths", () => {
 
   it("returns a single month for a range inside one month", () => {
     expect(listCalendarMonths({ from: "2026-03-01", to: "2026-03-31" })).toEqual(["2026-03"]);
+  });
+});
+
+describe("summarizeCalendarMonth", () => {
+  const firstBook = "11111111-1111-4111-8111-111111111111";
+  const secondBook = "22222222-2222-4222-8222-222222222222";
+
+  it("counts active days, pages and distinct previewed books", () => {
+    const summary = summarizeCalendarMonth([
+      calendarDayFixture({
+        booksCount: 2,
+        booksPreview: [
+          { bookId: firstBook, coverThumbUrl: null, pagesRead: 10, title: "First" },
+          { bookId: secondBook, coverThumbUrl: null, pagesRead: 30, title: "Second" },
+        ],
+        date: "2026-03-02",
+        pagesRead: 40,
+      }),
+      calendarDayFixture({
+        booksCount: 1,
+        booksPreview: [{ bookId: firstBook, coverThumbUrl: null, pagesRead: 10, title: "First" }],
+        date: "2026-03-03",
+        pagesRead: 10,
+      }),
+      calendarDayFixture({ date: "2026-03-04" }),
+    ]);
+
+    expect(summary).toEqual({
+      activeDays: 2,
+      books: { count: 2, isLowerBound: false },
+      hasUnknownDays: false,
+      pagesRead: 50,
+    });
+  });
+
+  it("marks the book count as a lower bound when a day hides books behind the preview", () => {
+    const summary = summarizeCalendarMonth([
+      calendarDayFixture({
+        booksCount: 4,
+        booksPreview: [{ bookId: firstBook, coverThumbUrl: null, pagesRead: 10, title: "First" }],
+        pagesRead: 30,
+        remainingBooksCount: 3,
+      }),
+    ]);
+
+    expect(summary.books).toEqual({ count: 1, isLowerBound: true });
+  });
+
+  it("flags empty legacy days as unknown history", () => {
+    const summary = summarizeCalendarMonth([
+      calendarDayFixture({ historyQuality: "legacy_observed_only" }),
+    ]);
+
+    expect(summary.hasUnknownDays).toBe(true);
+    expect(summary.activeDays).toBe(0);
   });
 });

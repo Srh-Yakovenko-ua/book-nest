@@ -27,7 +27,6 @@ export type CreateCharacterInputDtoCharacter = {
   gender?: CreateCharacterInputDtoCharacterGender;
   /** @nullable */
   globalAttitude?: CreateCharacterInputDtoCharacterGlobalAttitude;
-  hideProfileAsSpoiler?: boolean;
   isFavorite?: boolean;
   /**
    * @minLength 1

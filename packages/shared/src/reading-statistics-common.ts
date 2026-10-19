@@ -28,6 +28,11 @@ export const ReadingStatisticsPeriodKindSchema = z.enum([
 
 export type ReadingStatisticsPeriodKind = z.infer<typeof ReadingStatisticsPeriodKindSchema>;
 
+export const READING_STATISTICS_CUSTOM_PERIOD_BOUNDS = {
+  earliestDay: "1900-01-01",
+  maxDays: 1830,
+} as const;
+
 export const ReadingStatisticsGranularitySchema = z.enum(["day", "week", "month", "year"]);
 
 export type ReadingStatisticsGranularity = z.infer<typeof ReadingStatisticsGranularitySchema>;

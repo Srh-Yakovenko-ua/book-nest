@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatNumber } from "@/lib/format";
 
 import { useReadingDayDetails } from "../../api/use-reading-day-details";
+import { StatisticsStat } from "../statistics-stat";
 import { StatisticsNote, StatisticsSectionState } from "../statistics-states";
 import { StatisticsBookCover } from "./statistics-book-cover";
 
@@ -44,9 +45,10 @@ export function ReadingDayDetails({ date }: { date: string }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-foreground">
-        {t("summary", { books: data.booksCount, pages: formatNumber(data.pagesRead, locale) })}
-      </p>
+      <dl className="grid grid-cols-2 gap-2">
+        <StatisticsStat label={t("booksLabel")} value={formatNumber(data.booksCount, locale)} />
+        <StatisticsStat label={t("pagesLabel")} value={formatNumber(data.pagesRead, locale)} />
+      </dl>
 
       {data.books.length === 0 ? (
         <StatisticsSectionState kind="empty" title={t("empty")} />

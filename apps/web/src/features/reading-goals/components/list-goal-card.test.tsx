@@ -159,6 +159,21 @@ describe("ListGoalCard states", () => {
     expect(screen.queryByRole("link", { name: "Переглянути ціль" })).not.toBeInTheDocument();
   });
 
+  it("offers a retry instead of a create button when the goal fails to load", async () => {
+    respondToGoal = () => jsonResponse({ message: "boom" }, 500);
+
+    renderCard();
+
+    const retry = await screen.findByRole("button", { name: "Спробувати ще раз" });
+    expect(screen.getByText("Не вдалося завантажити ціль")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Створити ціль" })).not.toBeInTheDocument();
+
+    respondToGoal = () => jsonResponse(makeReadingGoalView());
+    await userEvent.click(retry);
+
+    expect(await screen.findByRole("link", { name: "Переглянути ціль" })).toBeInTheDocument();
+  });
+
   it("asks for books before it lets you set a goal", async () => {
     renderCard(0);
 
@@ -177,6 +192,16 @@ describe("ListGoalCard creation", () => {
     expect(within(dialog).getByLabelText("Прочитати книг")).toHaveValue(5);
   });
 
+  it("caps the target at the books currently in the list", async () => {
+    renderCard(12);
+
+    const dialog = await openCreateDialog();
+    const target = within(dialog).getByLabelText("Прочитати книг");
+
+    expect(target).toHaveAttribute("max", "12");
+    expect(target).toHaveAccessibleDescription("У списку 12 книг");
+  });
+
   it("keeps the submit locked until a deadline is chosen", async () => {
     renderCard();
 
@@ -184,6 +209,28 @@ describe("ListGoalCard creation", () => {
 
     expect(within(dialog).getByRole("button", { name: "Створити ціль" })).toBeDisabled();
     expect(createCall()).toBeUndefined();
+  });
+
+  it("warns that a new goal will archive the expired one on its own", async () => {
+    respondToGoal = () => jsonResponse(makeReadingGoalView({ daysLeft: -4, status: "expired" }));
+
+    renderCard();
+
+    const dialog = await openCreateDialog("Створити нову ціль");
+
+    expect(
+      within(dialog).getByText(
+        "Дедлайн попередньої цілі цього списку минув. Щойно ви створите нову, попередня автоматично перейде в архів.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("says nothing about archiving when the list has no goal yet", async () => {
+    renderCard();
+
+    const dialog = await openCreateDialog();
+
+    expect(within(dialog).queryByText(/автоматично перейде в архів/)).not.toBeInTheDocument();
   });
 
   it("sends no name at all when the field is left empty", async () => {

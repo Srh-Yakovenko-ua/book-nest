@@ -9,6 +9,7 @@ import type {
   CharacterMergePlan,
   CharacterMergePlanInput,
   RelationshipCandidate,
+  SurvivorAppearance,
 } from "../domain/character-merge.js";
 import type {
   LoserAliasRow,
@@ -53,7 +54,7 @@ type LoserRows = {
 
 type SurvivorKeys = {
   survivorAliasKeys: SurvivorAliasKey[];
-  survivorBookIds: string[];
+  survivorAppearances: SurvivorAppearance[];
   survivorFormKeys: string[];
   survivorMembershipKeys: SurvivorMembershipKey[];
   survivorRelationshipKeys: Set<string>;
@@ -164,6 +165,9 @@ export class CharacterMergeService {
     tx: Prisma.TransactionClient;
     userId: string;
   }): Promise<void> {
+    for (const reparent of plan.factReparents) {
+      await this.mergeRepository.reparentFacts(reparent, tx);
+    }
     await this.mergeRepository.deleteBookCharacters({ ids: plan.dropBookCharacterIds }, tx);
     await this.mergeRepository.repointBookCharacters(
       { ids: plan.repointBookCharacterIds, survivorId },
@@ -269,14 +273,14 @@ export class CharacterMergeService {
     userId: string;
   }): Promise<SurvivorKeys> {
     const [
-      survivorBookIds,
+      survivorAppearances,
       survivorAliasKeys,
       survivorTagIds,
       survivorMembershipKeys,
       survivorRelationships,
       survivorFormKeys,
     ] = await Promise.all([
-      this.mergeRepository.findSurvivorBookIds({ characterId: survivorId }, tx),
+      this.mergeRepository.findSurvivorAppearances({ characterId: survivorId }, tx),
       this.mergeRepository.findSurvivorAliasKeys({ characterId: survivorId }, tx),
       this.mergeRepository.findSurvivorTagIds({ characterId: survivorId }, tx),
       this.mergeRepository.findSurvivorMembershipKeys({ characterId: survivorId }, tx),
@@ -285,7 +289,7 @@ export class CharacterMergeService {
     ]);
     return {
       survivorAliasKeys,
-      survivorBookIds,
+      survivorAppearances,
       survivorFormKeys,
       survivorMembershipKeys,
       survivorRelationshipKeys: buildSurvivorRelationshipKeys({
@@ -402,7 +406,7 @@ export class CharacterMergeService {
       loserTheoryCount: loserRows.loserTheoryCount,
       relationshipCandidates: loserRows.loserRelationshipCandidates,
       survivorAliasKeys: survivorKeys.survivorAliasKeys,
-      survivorBookIds: survivorKeys.survivorBookIds,
+      survivorAppearances: survivorKeys.survivorAppearances,
       survivorFormKeys: survivorKeys.survivorFormKeys,
       survivorMembershipKeys: survivorKeys.survivorMembershipKeys,
       survivorRelationshipKeys: survivorKeys.survivorRelationshipKeys,

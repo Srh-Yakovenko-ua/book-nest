@@ -119,7 +119,7 @@ export function DeliveryHistoryAdvancedFilters({
                 ariaLabel={t("orderDate.from")}
                 className="h-9 text-sm"
                 id="history-filter-ordered-from"
-                onChange={(value) => patch({ from: value ?? null })}
+                onChange={(value) => patch({ from: value })}
                 placeholder={t("range.from")}
                 value={draft.from}
               />
@@ -127,7 +127,7 @@ export function DeliveryHistoryAdvancedFilters({
                 ariaLabel={t("orderDate.to")}
                 className="h-9 text-sm"
                 id="history-filter-ordered-to"
-                onChange={(value) => patch({ to: value ?? null })}
+                onChange={(value) => patch({ to: value })}
                 placeholder={t("range.to")}
                 value={draft.to}
               />
@@ -238,7 +238,7 @@ export function DeliveryHistoryAdvancedFilters({
                 ariaLabel={isCancelledTab ? t("cancelledDate.from") : t("receivedDate.from")}
                 className="h-9 text-sm"
                 id="history-filter-terminal-from"
-                onChange={(value) => patchTerminalFrom(value ?? null)}
+                onChange={patchTerminalFrom}
                 placeholder={t("range.from")}
                 value={terminal.from}
               />
@@ -246,7 +246,7 @@ export function DeliveryHistoryAdvancedFilters({
                 ariaLabel={isCancelledTab ? t("cancelledDate.to") : t("receivedDate.to")}
                 className="h-9 text-sm"
                 id="history-filter-terminal-to"
-                onChange={(value) => patchTerminalTo(value ?? null)}
+                onChange={patchTerminalTo}
                 placeholder={t("range.to")}
                 value={terminal.to}
               />

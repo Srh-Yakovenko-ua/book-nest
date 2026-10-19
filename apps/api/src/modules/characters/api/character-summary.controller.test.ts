@@ -132,14 +132,13 @@ describe("book character summary", () => {
       bookId,
       byImportance: { central: 0, episodic: 0, major: 0, mentioned: 0, supporting: 0 },
       favoritesCount: 0,
-      hasHiddenRecords: false,
       povCount: 0,
       top: [],
       totalVisibleCharacters: 0,
     });
   });
 
-  it("counts visible characters and excludes hidden presences", async () => {
+  it("counts every linked character whatever its first-appearance position", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
     await createInBook(
@@ -161,22 +160,21 @@ describe("book character summary", () => {
       accessToken,
       bookId,
       { name: "The Traitor" },
-      { hidePresenceAsSpoiler: true, importance: "central" },
+      { firstAppearancePage: 480, importance: "central" },
     );
 
     const res = await authed("get", `/api/books/${bookId}/character-summary`, accessToken);
     expect(res.status).toBe(HttpStatus.OK);
-    expect(res.body.totalVisibleCharacters).toBe(5);
+    expect(res.body.totalVisibleCharacters).toBe(6);
     expect(res.body.povCount).toBe(1);
     expect(res.body.favoritesCount).toBe(1);
     expect(res.body.byImportance).toEqual({
-      central: 2,
+      central: 3,
       episodic: 1,
       major: 1,
       mentioned: 0,
       supporting: 1,
     });
-    expect(res.body.hasHiddenRecords).toBe(true);
   });
 
   it("lists central and major characters in the top without leaking spoiler names", async () => {
@@ -245,6 +243,15 @@ describe("series character summary", () => {
 
     const res = await authed("get", `/api/series/${seriesId}/character-summary`, accessToken);
     expect(res.status).toBe(HttpStatus.OK);
+    expect(Object.keys(res.body).sort()).toEqual([
+      "byImportance",
+      "contextBookId",
+      "favoritesCount",
+      "povCount",
+      "seriesId",
+      "top",
+      "totalVisibleCharacters",
+    ]);
     expect(res.body.seriesId).toBe(seriesId);
     expect(res.body.contextBookId).toBeNull();
     expect(res.body.totalVisibleCharacters).toBe(2);
@@ -252,7 +259,7 @@ describe("series character summary", () => {
     expect(res.body.top.map((entry: { name: string }) => entry.name)).toEqual(["Alia", "Paul"]);
   });
 
-  it("excludes future characters and reports hidden records up to the context", async () => {
+  it("excludes future characters and counts every character up to the context", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const { bookId: firstBook, seriesId } = await createSeriesFirstBook(accessToken, "Dune Saga");
     const secondBook = await addSeriesBook(accessToken, seriesId, 2, "Dune Messiah");
@@ -266,7 +273,7 @@ describe("series character summary", () => {
       accessToken,
       firstBook,
       { name: "The Ghost" },
-      { hidePresenceAsSpoiler: true, importance: "supporting" },
+      { firstAppearanceChapter: "40", importance: "supporting" },
     );
     await createInBook(accessToken, secondBook, { name: "Alia" }, { importance: "central" });
 
@@ -277,15 +284,20 @@ describe("series character summary", () => {
     );
     expect(res.status).toBe(HttpStatus.OK);
     expect(res.body.contextBookId).toBe(firstBook);
-    expect(res.body.totalVisibleCharacters).toBe(1);
+    expect(res.body.totalVisibleCharacters).toBe(2);
     expect(res.body.povCount).toBe(1);
-    expect(res.body.byImportance.central).toBe(1);
-    expect(res.body.hasHiddenRecords).toBe(true);
+    expect(res.body.byImportance).toEqual({
+      central: 1,
+      episodic: 0,
+      major: 0,
+      mentioned: 0,
+      supporting: 1,
+    });
     expect(res.body.top.map((entry: { name: string }) => entry.name)).toEqual(["Paul"]);
     expect(JSON.stringify(res.body)).not.toContain("Alia");
   });
 
-  it("does not flag hidden records for a character with a visible appearance", async () => {
+  it("counts a character linked to two parts once", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const { bookId: firstBook, seriesId } = await createSeriesFirstBook(accessToken, "Dune Saga");
     const secondBook = await addSeriesBook(accessToken, seriesId, 2, "Dune Messiah");
@@ -295,12 +307,11 @@ describe("series character summary", () => {
       { name: "Paul" },
       { importance: "central" },
     );
-    await linkExisting(accessToken, secondBook, characterId, { hidePresenceAsSpoiler: true });
+    await linkExisting(accessToken, secondBook, characterId, { firstAppearanceChapter: "40" });
 
     const res = await authed("get", `/api/series/${seriesId}/character-summary`, accessToken);
     expect(res.status).toBe(HttpStatus.OK);
     expect(res.body.totalVisibleCharacters).toBe(1);
-    expect(res.body.hasHiddenRecords).toBe(false);
   });
 
   it("redacts spoiler display names in the series top list", async () => {

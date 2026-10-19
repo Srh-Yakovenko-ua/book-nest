@@ -52,7 +52,6 @@ export type CreateCharacterInBookDto =
          * @nullable
          */
         firstAppearancePage?: number | null;
-        hidePresenceAsSpoiler?: boolean;
         importance?:
           "central" | "major" | "supporting" | "episodic" | "mentioned" | "not_specified";
         isPovCharacter?: boolean;
@@ -166,7 +165,6 @@ export type CreateCharacterInBookDto =
          * @nullable
          */
         firstAppearancePage?: number | null;
-        hidePresenceAsSpoiler?: boolean;
         importance?:
           "central" | "major" | "supporting" | "episodic" | "mentioned" | "not_specified";
         isPovCharacter?: boolean;
@@ -274,7 +272,6 @@ export type CreateCharacterInBookDto =
         /** @nullable */
         globalAttitude?:
           "favorite" | "like" | "neutral" | "distrust" | "dislike" | "hate" | "unsure" | null;
-        hideProfileAsSpoiler?: boolean;
         isFavorite?: boolean;
         /**
          * @minLength 1

@@ -13,7 +13,6 @@ type SeedBookInput = {
 type SeedCharacterInput = {
   archivedAt?: Date;
   deletedAt?: Date;
-  hideProfileAsSpoiler?: boolean;
   name: string;
   userId: string;
 };
@@ -42,18 +41,11 @@ export function createTagsUsageFixtures(prisma: PrismaService) {
         data: { deletedAt, purgeAt: deletedAt, title: title ?? "Untitled", userId },
         select: { id: true },
       }),
-    character: ({
-      archivedAt,
-      deletedAt,
-      hideProfileAsSpoiler,
-      name,
-      userId,
-    }: SeedCharacterInput): Promise<Seeded> =>
+    character: ({ archivedAt, deletedAt, name, userId }: SeedCharacterInput): Promise<Seeded> =>
       prisma.character.create({
         data: {
           archivedAt,
           deletedAt,
-          hideProfileAsSpoiler,
           name,
           normalizedName: name.toLowerCase(),
           purgeAt: deletedAt,

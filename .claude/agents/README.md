@@ -1,6 +1,6 @@
 # Project subagents
 
-This folder contains specialized Claude Code subagents for the monorepo-fullstack project. Each agent has a focused role, a curated toolset, and a system prompt tuned to this codebase.
+This folder contains specialized Claude Code subagents for the book-nest monorepo. Each agent has a focused role, a curated toolset, and a system prompt tuned to this codebase.
 
 ## How agents work
 
@@ -8,7 +8,7 @@ When Claude Code starts a task, the main agent can delegate specialized work to 
 
 - Runs in an isolated conversation with its own system prompt
 - Has access only to the tools listed in its frontmatter
-- Returns a single result message back to the parent
+- Returns one report to the parent in the envelope that a `SubagentStart` hook injects together with the no-tooling rules; a `SubagentStop` hook bounces a report missing the `STATUS:` line once
 - Does not inherit the parent's conversation history
 
 Subagents are useful for:
@@ -48,13 +48,13 @@ Subagents are useful for:
 
 | Agent                                                               | Model | When to use                                                                                                                |
 | ------------------------------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------- |
-| [`frontend-bug-hunter`](./frontend-bug-hunter.md)                   | opus  | Browser/UI bug — reproduce via Playwright, isolate, diagnose root cause                                                    |
+| [`frontend-bug-hunter`](./frontend-bug-hunter.md)                   | opus  | Browser/UI bug: isolate in code, diagnose root cause; the main loop reproduces it in Chrome MCP                            |
 | [`backend-bug-hunter`](./backend-bug-hunter.md)                     | opus  | Server-side bug — reproduce via curl + pino logs, isolate, diagnose root cause                                             |
 | [`code-reviewer`](./code-reviewer.md)                               | opus  | Generalist diff review before commit — pattern compliance, correctness, cleanup                                            |
 | [`frontend-performance-auditor`](./frontend-performance-auditor.md) | opus  | Bundle size, re-renders, web vitals, memory leaks, CLS/LCP issues                                                          |
 | [`accessibility-auditor`](./accessibility-auditor.md)               | opus  | WCAG compliance, keyboard nav, ARIA, contrast, focus management                                                            |
 | [`seo-auditor`](./seo-auditor.md)                                   | opus  | SSR markup, per-route/locale metadata, hreflang, sitemap/robots, indexability                                              |
-| [`security-reviewer`](./security-reviewer.md)                       | opus  | XSS, CSRF, secrets, SQL injection, cookies/CORS/headers, auth/authz, dep CVEs                                              |
+| [`security-reviewer`](./security-reviewer.md)                       | opus  | XSS, CSRF, secrets, SQL injection, auth/authz, deploy/CI/Docker; findings at confidence 8+ only                            |
 | [`migration-reviewer`](./migration-reviewer.md)                     | opus  | Prisma/Postgres migration safety — data loss, destructive DDL, locks, forward-only reversibility                           |
 | [`spec-auditor`](./spec-auditor.md)                                 | opus  | Both ends of spec-driven work: PLAN (verify spec vs code, emit `tasks.json`) and VERIFY (diff vs `tasks.json`, gap report) |
 
@@ -88,15 +88,18 @@ Building a new feature end-to-end?
 
 Something is broken?
 ├── Browser symptom (UI, console, layout, hydration) → frontend-bug-hunter
-└── Server symptom (500, endpoint failing, Postgres/query error, server crash) → backend-bug-hunter
-   ↑ both investigate read-only, then the appropriate engineer fixes
+├── Server symptom (500, endpoint failing, Postgres/query error, server crash) → backend-bug-hunter
+├── Red CI test → hunter by the test's path (apps/web or apps/api), failing assertion in the brief
+└── Unclear side (UI shows wrong data) → frontend-bug-hunter first, it splits client from server by curl
+   ↑ read-only diagnosis, then the /diagnose chain: owner fixes + test engineer writes the
+     regression test in parallel → main loop proves it red without the fix, green with it → review
 
 Reviewing a diff before commit?
 ├── General review → code-reviewer
 ├── FE performance concern → frontend-performance-auditor
 ├── A11y concern → accessibility-auditor
 ├── SEO / SSR markup concern → seo-auditor
-├── Security-sensitive change → security-reviewer
+├── Security-sensitive change (security-shaped.sh lists a file) → security-reviewer
 └── Migration / schema change → migration-reviewer
 ```
 
@@ -134,5 +137,5 @@ Every agent in this folder MUST follow these rules from project memory:
 1. **No code comments.** Write self-documenting code. No header blocks, no explanatory `//` lines, no JSDoc on internal functions.
 2. **Cursor-pointer on clicks.** Every clickable element must have `cursor-pointer`. Already baked into `Button` and `DropdownMenuItem`, apply to custom click handlers directly.
 3. **No wrapper libraries over standard tools.** Use `react-hook-form` + `zod` directly with shadcn primitives. Do not build custom `<Form>` or `<FormField>` abstractions. Generalizes to any standard library — use libraries at the level they were designed for.
-4. **Respect the quality gates.** Before marking work as done: `pnpm typecheck`, `pnpm lint`, `pnpm format:check` must all pass, plus `pnpm exec vitest run <path>` for the test files your change touches. Never run the full `pnpm test` or `pnpm knip` locally — they saturate the dev machine and CI runs them on every push (see CLAUDE.md §9).
+4. **Gates and the browser belong to the main loop.** Never run typecheck, lint, format, vitest, build, knip, prisma, codegen, dev servers or installs, because a PreToolUse hook denies them and a long run inside an agent dies to the 600s watchdog. List each check under NOT_VERIFIED as `MAIN: <exact command>`; the main loop runs `bash .claude/scripts/gates.sh` once at gate time (CLAUDE.md §9). Never drive a browser either: list the one Chrome MCP check the main loop does as `EXTERNAL: browser <route>, <state>, 375 and 1280 wide`.
 5. **Follow the code principles.** Every agent must read and apply [`docs/code-principles.md`](../../docs/code-principles.md). Core tenets: names over comments, clarity over cleverness, easy-to-delete over easy-to-extend, make invalid states unrepresentable, pure functions by default. Full list of anti-patterns we reject is in section 9 of that file.

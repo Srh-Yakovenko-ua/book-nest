@@ -6,17 +6,11 @@ import type {
   CharacterGroupSummaryView,
   CreateCharacterGroup,
   Paginator,
-  ReadingPosition,
   UpdateCharacterGroup,
   UpsertCharacterGroupMembership,
 } from "@app/shared";
 
-import {
-  CHARACTER_GROUP_ERROR_CODES,
-  normalizeName,
-  normalizeSearch,
-  readingPositionFromQuery,
-} from "@app/shared";
+import { CHARACTER_GROUP_ERROR_CODES, normalizeName, normalizeSearch } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -123,19 +117,12 @@ export class CharacterGroupsService {
         code: CHARACTER_GROUP_ERROR_CODES.notFound,
       });
     }
-    const namedRow: CharacterGroupDetailsRow = {
-      ...row,
-      memberships: row.memberships.filter(
-        (membership) => !membership.character.hideProfileAsSpoiler,
-      ),
-    };
     if (query.contextBookId === undefined) {
-      return this.toFullDetailsView(namedRow);
+      return this.toFullDetailsView(row);
     }
     return this.toSafeDetailsView({
       contextBookId: query.contextBookId,
-      readingPosition: readingPositionFromQuery(query),
-      row: namedRow,
+      row,
       userId,
     });
   }
@@ -414,12 +401,10 @@ export class CharacterGroupsService {
 
   private async toSafeDetailsView({
     contextBookId,
-    readingPosition,
     row,
     userId,
   }: {
     contextBookId: string;
-    readingPosition: ReadingPosition | undefined;
     row: CharacterGroupDetailsRow;
     userId: string;
   }): Promise<CharacterGroupDetailsView> {
@@ -429,7 +414,6 @@ export class CharacterGroupsService {
         bookReader: this.charactersRepository,
         contextBookId,
         notFoundCode: CHARACTER_GROUP_ERROR_CODES.bookNotFound,
-        readingPosition,
         userId,
       }),
       this.charactersRepository.listAppearancesForCharacters({ characterIds, userId }),

@@ -35,6 +35,8 @@ export type SeriesNotesOverviewViewDtoBeforeNextBookNotesItem = {
   /** @nullable */
   series: SeriesNotesOverviewViewDtoBeforeNextBookNotesItemSeries;
   text: string;
+  /** @nullable */
+  title: string | null;
   updatedAt: string;
   sourceBook: SeriesNotesOverviewViewDtoBeforeNextBookNotesItemSourceBook;
 };

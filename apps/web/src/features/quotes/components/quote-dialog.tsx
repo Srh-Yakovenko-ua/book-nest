@@ -16,6 +16,7 @@ import type { BookPageCeiling } from "@/features/books/model/book-page-ceiling";
 import type { BookSelectOption } from "@/features/books/model/book-select-option";
 
 import { UiIcon } from "@/components/icons";
+import { SuggestionCombobox } from "@/components/suggestion-combobox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,6 +43,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useBookPagesCount } from "@/features/books/api/use-book";
+import { useBookChapters } from "@/features/books/api/use-book-chapters";
 import { BookSingleSelectPicker } from "@/features/books/components/book-single-select-picker";
 import { BookSingleSelectValue } from "@/features/books/components/book-single-select-value";
 import { bookPageCeiling } from "@/features/books/model/book-page-ceiling";
@@ -315,6 +317,7 @@ function QuoteForm({
 
   const selectedBook = useWatch({ control, name: "book" });
   const pagesCount = useBookPagesCount(selectedBook?.id ?? null);
+  const chaptersQuery = useBookChapters(selectedBook?.id ?? null, { enabled: true });
   const pageCeiling = bookPageCeiling({ pagesCount, technicalMax: QUOTE_PAGE_MAX });
   const messages: QuoteMessages = {
     bookRequired: tErrors("bookRequired"),
@@ -429,14 +432,21 @@ function QuoteForm({
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="flex flex-1 flex-col gap-2">
           <Label htmlFor="quote-chapter">{t("chapter")}</Label>
-          <Input
-            aria-describedby={errors.chapter ? "quote-chapter-error" : undefined}
-            aria-invalid={errors.chapter !== undefined}
-            autoComplete="off"
-            className="h-10"
-            id="quote-chapter"
-            placeholder={t("chapterPlaceholder")}
-            {...register("chapter")}
+          <Controller
+            control={control}
+            name="chapter"
+            render={({ field }) => (
+              <SuggestionCombobox
+                describedBy={errors.chapter ? "quote-chapter-error" : undefined}
+                id="quote-chapter"
+                invalid={errors.chapter !== undefined}
+                maxLength={QUOTE_CHAPTER_MAX}
+                onChange={field.onChange}
+                options={chaptersQuery.data ?? []}
+                placeholder={t("chapterPlaceholder")}
+                value={field.value}
+              />
+            )}
           />
           <FieldError error={errors.chapter} id="quote-chapter-error" />
         </div>

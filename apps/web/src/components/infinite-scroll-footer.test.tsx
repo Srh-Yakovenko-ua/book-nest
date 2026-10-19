@@ -80,6 +80,23 @@ describe("InfiniteScrollFooter", () => {
     expect(onLoadMore).toHaveBeenCalledTimes(2);
   });
 
+  it("does not load another page when the loaded page pushes the sentinel out of view before the browser reports it", () => {
+    const { onLoadMore, rerender } = renderFooter("idle");
+
+    viewport.enterViewport();
+    expect(onLoadMore).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <InfiniteScrollFooter errorLabel={LABELS.error} onLoadMore={onLoadMore} state="loading" />,
+    );
+    viewport.leaveViewportWithoutNotifying();
+    rerender(
+      <InfiniteScrollFooter errorLabel={LABELS.error} onLoadMore={onLoadMore} state="idle" />,
+    );
+
+    expect(onLoadMore).toHaveBeenCalledTimes(1);
+  });
+
   it("retries from the error state", async () => {
     const user = userEvent.setup();
     const { onLoadMore } = renderFooter("error");
@@ -89,5 +106,25 @@ describe("InfiniteScrollFooter", () => {
     await user.click(screen.getByRole("button"));
 
     expect(onLoadMore).toHaveBeenCalledTimes(1);
+  });
+
+  it("moves focus to the retry button when a page fails", () => {
+    renderFooter("error");
+
+    expect(screen.getByRole("button")).toHaveFocus();
+  });
+
+  it("leaves focus where it was when the caller opts out of the error focus", () => {
+    renderWithProviders(
+      <InfiniteScrollFooter
+        errorFocus="none"
+        errorLabel={LABELS.error}
+        onLoadMore={vi.fn()}
+        state="error"
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(LABELS.error);
+    expect(screen.getByRole("button")).not.toHaveFocus();
   });
 });

@@ -304,12 +304,16 @@ describe("QueuePrioritySection dependent fields", () => {
       },
       onSubmit,
     );
-    expect(screen.getByRole("button", { name: copy.targetDate.label })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: `${copy.targetDate.label}, 24 серпня 2026` }),
+    ).toBeInTheDocument();
 
     await chooseReason(copy.reason.options.seriesOrder);
     const values = await submittedValues(onSubmit);
 
-    expect(screen.queryByRole("button", { name: copy.targetDate.label })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: new RegExp(`^${copy.targetDate.label}`) }),
+    ).not.toBeInTheDocument();
     expect(values.queuePriorityTargetDate).toBeNull();
   });
 
@@ -327,7 +331,9 @@ describe("QueuePrioritySection dependent fields", () => {
     await userEvent.click(screen.getByRole("button", { name: copy.reason.clear }));
 
     expect(reasonTrigger()).toHaveTextContent(copy.reason.placeholder);
-    expect(screen.queryByRole("button", { name: copy.targetDate.label })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: new RegExp(`^${copy.targetDate.label}`) }),
+    ).not.toBeInTheDocument();
 
     const values = await submittedValues(onSubmit);
     expect(values.queuePriorityReason).toBeNull();
@@ -443,9 +449,9 @@ describe("QueuePrioritySection edit mode", () => {
       queuePriorityTargetDate: "2026-08-24",
     });
 
-    expect(screen.getByRole("button", { name: copy.targetDate.label })).toHaveTextContent(
-      "24 серпня 2026",
-    );
+    expect(
+      screen.getByRole("button", { name: `${copy.targetDate.label}, 24 серпня 2026` }),
+    ).toHaveTextContent("24 серпня 2026");
   });
 
   it("opens a legacy record without a priority on the normal default", () => {

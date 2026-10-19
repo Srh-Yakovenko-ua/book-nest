@@ -178,12 +178,12 @@ describe("series character profile", () => {
     expect(withFuture.body.appearances).toHaveLength(2);
   });
 
-  it("excludes appearances that hide their presence as a spoiler", async () => {
+  it("keeps every part's appearance on the timeline whatever its first-appearance position", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const { bookId: firstBook, seriesId } = await createSeriesFirstBook(accessToken, "Dune Saga");
     const secondBook = await addSeriesBook(accessToken, seriesId, 2, "Dune Messiah");
     const characterId = await createInBook(accessToken, firstBook, { name: "Paul Atreides" });
-    await linkExisting(accessToken, secondBook, characterId, { hidePresenceAsSpoiler: true });
+    await linkExisting(accessToken, secondBook, characterId, { firstAppearanceChapter: "40" });
 
     const res = await authed(
       "get",
@@ -191,27 +191,29 @@ describe("series character profile", () => {
       accessToken,
     );
     expect(res.status).toBe(HttpStatus.OK);
-    expect(res.body.appearances).toHaveLength(1);
-    expect(res.body.appearances[0].bookId).toBe(firstBook);
+    expect(res.body.appearances.map((entry: { bookId: string }) => entry.bookId)).toEqual([
+      firstBook,
+      secondBook,
+    ]);
   });
 
-  it("returns 404 when the character only appears in hidden appearances", async () => {
+  it("returns the profile of a character met only late in its single book", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const { bookId, seriesId } = await createSeriesFirstBook(accessToken, "Dune Saga");
     const characterId = await createInBook(
       accessToken,
       bookId,
       { name: "The Traitor" },
-      { hidePresenceAsSpoiler: true },
+      { firstAppearancePage: 480 },
     );
 
     const res = await authed(
       "get",
-      `/api/series/${seriesId}/characters/${characterId}`,
+      `/api/series/${seriesId}/characters/${characterId}?contextBookId=${bookId}`,
       accessToken,
     );
-    expect(res.status).toBe(HttpStatus.NOT_FOUND);
-    expect(res.body.code).toBe("character_not_found");
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.name).toBe("The Traitor");
   });
 
   it("returns 404 when the character only appears beyond the reading context", async () => {
@@ -237,7 +239,7 @@ describe("series character profile", () => {
     expect(withFuture.body.appearances[0].bookId).toBe(secondBook);
   });
 
-  it("redacts spoiler display name, status and portrait and reports hiddenFields", async () => {
+  it("redacts spoiler display name and status and reports no portrait for a flag without a portrait", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const { bookId, seriesId } = await createSeriesFirstBook(accessToken, "Dune Saga");
     const characterId = await createInBook(
@@ -264,8 +266,8 @@ describe("series character profile", () => {
     expect(entry.displayName).toBeNull();
     expect(entry.status).toBeNull();
     expect(entry.portrait).toBeNull();
-    expect(entry.hiddenFields).toEqual(["displayName", "portrait", "status"]);
-    expect(res.body.hiddenFields).toEqual(["displayName", "portrait", "status"]);
+    expect(entry.hiddenFields).toEqual(["displayName", "status"]);
+    expect(res.body.hiddenFields).toEqual(["displayName", "status"]);
     expect(JSON.stringify(res.body)).not.toContain("Muad'Dib");
     expect(JSON.stringify(res.body)).not.toContain("dead");
   });

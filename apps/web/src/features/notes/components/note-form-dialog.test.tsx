@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 
-import type { BookView, NoteView, SeriesView } from "@app/shared";
+import type { BookChapterUsageView, BookView, NoteView, SeriesView } from "@app/shared";
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import type { ComponentProps } from "react";
 
@@ -38,11 +38,18 @@ const NAMES = {
   bookGroup: "Книга",
   books: "Ваші книги",
   bookSearch: "Пошук книги за назвою або автором",
+  categoryCharacters: "Персонажі",
+  categoryClear: "Очистити категорію",
+  categoryField: /^Категорія/,
+  categoryPlaceholder: "Оберіть категорію",
   change: "Змінити",
   chapter: "Розділ (необовʼязково)",
   createTitle: "Додати нотатку",
   editTitle: "Редагувати нотатку",
+  epilogueOption: "Епілог використано 2 рази",
   page: "Сторінка (необовʼязково)",
+  partThreeOption: "Розділ III використано 4 рази",
+  prologueOption: "Пролог використано 1 раз",
   removeLocation: "Прибрати збережене місце",
   restoreLocation: "Повернути збережене місце",
   savedLocation: "Збережене місце",
@@ -51,11 +58,16 @@ const NAMES = {
   submitCreate: "Зберегти нотатку",
   submitEdit: "Зберегти зміни",
   text: "Текст нотатки",
+  title: "Заголовок (необовʼязково)",
 } as const;
 
 const DRAFT = "Пророцтво ще повернеться у третій частині.";
 
-const LIBRARY: { books: BookView[]; series: SeriesView[] } = {
+const LIBRARY: {
+  books: BookView[];
+  chapters: Record<string, BookChapterUsageView[]>;
+  series: SeriesView[];
+} = {
   books: [
     makeBookView({
       authors: [{ id: "author-1", name: "Френк Герберт" }],
@@ -70,6 +82,13 @@ const LIBRARY: { books: BookView[]; series: SeriesView[] } = {
       title: "Чарівник Земномор'я",
     }),
   ],
+  chapters: {
+    "book-1": [
+      { chapter: "Розділ III", count: 4 },
+      { chapter: "Пролог", count: 1 },
+    ],
+    "book-2": [{ chapter: "Епілог", count: 2 }],
+  },
   series: [
     makeSeriesView({
       authors: [{ id: "author-1", name: "Френк Герберт" }],
@@ -97,6 +116,12 @@ function bookDetailRequests(): string[] {
 function bookEntity(note: NoteView): NoteEntityRef {
   if (note.book === null) throw new Error("book note without book");
   return { book: note.book, type: "book" };
+}
+
+function chapterRequests(): string[] {
+  return fetchMock.mock.calls
+    .map(([input]) => String(input))
+    .filter((url) => url.endsWith("/chapters"));
 }
 
 function deferredResponse() {
@@ -192,8 +217,12 @@ beforeEach(() => {
       return Promise.resolve(page(LIBRARY.books));
     if (method === "GET" && url.startsWith("/api/series?"))
       return Promise.resolve(page(LIBRARY.series));
+    const chaptersBookId = /^\/api\/books\/([^/?]+)\/chapters$/.exec(url)?.[1];
+    if (method === "GET" && chaptersBookId !== undefined)
+      return Promise.resolve(jsonResponse({ chapters: LIBRARY.chapters[chaptersBookId] ?? [] }));
     const book = LIBRARY.books.find(({ id }) => url === `/api/books/${id}`);
-    if (method === "GET" && book !== undefined) return Promise.resolve(jsonResponse(book));
+    if (method === "GET" && book !== undefined)
+      return Promise.resolve(jsonResponse({ ...book, notesCount: 0, quotesCount: 0 }));
     if (method !== "GET") {
       const body =
         init?.body === undefined ? {} : (JSON.parse(String(init.body)) as Record<string, unknown>);
@@ -243,6 +272,7 @@ describe("NoteFormDialog book create", () => {
       isSpoiler: false,
       page: 87,
       text: DRAFT,
+      title: null,
     });
   });
 
@@ -396,6 +426,7 @@ describe("NoteFormDialog series create", () => {
       isPinned: false,
       isSpoiler: false,
       text: DRAFT,
+      title: null,
     });
   });
 
@@ -610,7 +641,41 @@ describe("NoteFormDialog book edit", () => {
       isSpoiler: false,
       page: 87,
       text: `${NOTE_FIXTURE.text} Оновлено.`,
+      title: null,
     });
+  });
+
+  it("keeps a cleared saved page empty and patches the note without a page", async () => {
+    const note = makeBookNote({ page: 42 });
+    renderDialog({ entity: bookEntity(note), mode: "edit", note });
+    const pageInput = await screen.findByLabelText(NAMES.page);
+    expect(pageInput).toHaveValue(42);
+
+    await userEvent.clear(pageInput);
+    expect(pageInput).toHaveDisplayValue("");
+
+    await submit(NAMES.submitEdit);
+
+    const call = await onlyWrite();
+    expect(call.body).toMatchObject({ page: null });
+  });
+
+  it("shows the placeholder after the category is cleared and patches the note without one", async () => {
+    const note = makeBookNote({ category: "characters" });
+    renderDialog({ entity: bookEntity(note), mode: "edit", note });
+    expect(await screen.findByRole("combobox", { name: NAMES.categoryField })).toHaveTextContent(
+      NAMES.categoryCharacters,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: NAMES.categoryClear }));
+    expect(screen.getByRole("combobox", { name: NAMES.categoryField })).toHaveTextContent(
+      NAMES.categoryPlaceholder,
+    );
+
+    await submit(NAMES.submitEdit);
+
+    const call = await onlyWrite();
+    expect(call.body).toMatchObject({ category: null });
   });
 
   it("reports a failed edit and keeps the dialog open", async () => {
@@ -734,6 +799,26 @@ describe("NoteFormDialog preselected entity", () => {
     expect(within(dialog).queryByRole("radiogroup")).not.toBeInTheDocument();
   });
 
+  it("shows the preselected book read-only, with no way to change it", async () => {
+    const note = makeBookNote();
+    renderDialog({ entity: bookEntity(note), mode: "preselected" });
+
+    const group = await screen.findByRole("group", { name: NAMES.bookGroup });
+    expect(within(group).getByText("Дюна")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: NAMES.change })).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: NAMES.bookSearch })).not.toBeInTheDocument();
+  });
+
+  it("shows the preselected series read-only, with no way to change it", async () => {
+    const note = makeSeriesNote();
+    renderDialog({ entity: seriesEntity(note), mode: "preselected" });
+
+    const group = await screen.findByRole("group", { name: NAMES.seriesGroup });
+    expect(within(group).getByText("Хроніки Дюни")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: NAMES.change })).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: NAMES.seriesSearch })).not.toBeInTheDocument();
+  });
+
   it("posts to the preselected book", async () => {
     const note = makeBookNote();
     renderDialog({ entity: bookEntity(note), mode: "preselected" });
@@ -743,6 +828,59 @@ describe("NoteFormDialog preselected entity", () => {
 
     const call = await onlyWrite();
     expect(call.url).toBe("/api/books/book-1/notes");
+  });
+});
+
+describe("NoteFormDialog chapter suggestions", () => {
+  it("posts the stored spelling of a chapter picked from the book's suggestions", async () => {
+    const note = makeBookNote();
+    renderDialog({ entity: bookEntity(note), mode: "preselected" });
+
+    await userEvent.type(await screen.findByRole("textbox", { name: NAMES.text }), DRAFT);
+    await userEvent.type(screen.getByLabelText(NAMES.chapter), "розділ");
+    await userEvent.click(await screen.findByRole("option", { name: NAMES.partThreeOption }));
+    await submit(NAMES.submitCreate);
+
+    const call = await onlyWrite();
+    expect(call.body).toMatchObject({ chapter: "Розділ III", text: DRAFT });
+  });
+
+  it("patches the note with a chapter picked from the book's suggestions", async () => {
+    const note = makeBookNote({ chapter: "Розділ III" });
+    renderDialog({ entity: bookEntity(note), mode: "edit", note });
+
+    const field = await screen.findByLabelText(NAMES.chapter);
+    await userEvent.clear(field);
+    await userEvent.type(field, "про");
+    await userEvent.click(await screen.findByRole("option", { name: NAMES.prologueOption }));
+    await submit(NAMES.submitEdit);
+
+    const call = await onlyWrite();
+    expect(call.body).toMatchObject({ chapter: "Пролог" });
+  });
+
+  it("asks for chapters only once a book is picked and suggests that book's chapters", async () => {
+    renderDialog({ entityType: "book", mode: "pick" });
+    await screen.findByRole("radio", { name: /Чарівник Земномор/ });
+    expect(chapterRequests()).toEqual([]);
+
+    await pickBook(/Чарівник Земномор/);
+    await userEvent.click(screen.getByLabelText(NAMES.chapter));
+
+    expect(await screen.findByRole("option", { name: NAMES.epilogueOption })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: NAMES.partThreeOption })).not.toBeInTheDocument();
+    expect(chapterRequests()).toEqual(["/api/books/book-2/chapters"]);
+  });
+
+  it("never asks for chapters while writing a series note", async () => {
+    renderDialog({ entityType: "series", mode: "pick" });
+
+    await pickSeries(/Хроніки Дюни/);
+    await userEvent.type(screen.getByRole("textbox", { name: NAMES.text }), DRAFT);
+    await submit(NAMES.submitCreate);
+    await onlyWrite();
+
+    expect(chapterRequests()).toEqual([]);
   });
 });
 
@@ -864,6 +1002,171 @@ describe("NoteFormDialog invalidation", () => {
   });
 });
 
+describe("NoteFormDialog title", () => {
+  const TITLE = {
+    limit: 120,
+    saved: "Видіння Пола",
+    tooLong: "Заголовок не може бути довшим за 120 символів.",
+  } as const;
+
+  const placements: { group: string; label: string; target: () => DialogTarget }[] = [
+    {
+      group: NAMES.bookGroup,
+      label: "picking a book",
+      target: () => ({ entityType: "book", mode: "pick" }),
+    },
+    {
+      group: NAMES.seriesGroup,
+      label: "picking a series",
+      target: () => ({ entityType: "series", mode: "pick" }),
+    },
+    {
+      group: NAMES.bookGroup,
+      label: "editing a book note",
+      target: () => {
+        const note = makeBookNote();
+        return { entity: bookEntity(note), mode: "edit", note };
+      },
+    },
+    {
+      group: NAMES.seriesGroup,
+      label: "editing a series note",
+      target: () => {
+        const note = makeSeriesNote();
+        return { entity: seriesEntity(note), mode: "edit", note };
+      },
+    },
+  ];
+
+  it.each(placements)(
+    "shows the optional title between the entity and the note text when $label",
+    async ({ group, target }) => {
+      renderDialog(target());
+
+      const entityGroup = await screen.findByRole("group", { name: group });
+      const title = screen.getByRole("textbox", { name: NAMES.title });
+      const text = screen.getByRole("textbox", { name: NAMES.text });
+
+      expect(entityGroup).not.toContainElement(title);
+      expect(
+        entityGroup.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
+      expect(title.compareDocumentPosition(text) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    },
+  );
+
+  it("posts the trimmed title with a new book note", async () => {
+    renderDialog({ entityType: "book", mode: "pick" });
+
+    await pickBook(/Дюна/);
+    await userEvent.type(screen.getByRole("textbox", { name: NAMES.title }), "  Видіння Пола  ");
+    await userEvent.type(screen.getByRole("textbox", { name: NAMES.text }), DRAFT);
+    await submit(NAMES.submitCreate);
+
+    const call = await onlyWrite();
+    expect(call.body).toMatchObject({ text: DRAFT, title: "Видіння Пола" });
+  });
+
+  it("posts the trimmed title with a new series note", async () => {
+    renderDialog({ entityType: "series", mode: "pick" });
+
+    await pickSeries(/Емпіреї/);
+    await userEvent.type(screen.getByRole("textbox", { name: NAMES.title }), " Дракони ");
+    await userEvent.type(screen.getByRole("textbox", { name: NAMES.text }), DRAFT);
+    await submit(NAMES.submitCreate);
+
+    const call = await onlyWrite();
+    expect(call.url).toBe("/api/series/series-2/notes");
+    expect(call.body).toMatchObject({ title: "Дракони" });
+  });
+
+  it("posts a null title when the title is only whitespace", async () => {
+    renderDialog({ entityType: "book", mode: "pick" });
+
+    await pickBook(/Дюна/);
+    await userEvent.type(screen.getByRole("textbox", { name: NAMES.title }), "   ");
+    await userEvent.type(screen.getByRole("textbox", { name: NAMES.text }), DRAFT);
+    await submit(NAMES.submitCreate);
+
+    const call = await onlyWrite();
+    expect(call.body).toMatchObject({ title: null });
+  });
+
+  it("prefills the saved title when editing", async () => {
+    const note = makeBookNote({ title: TITLE.saved });
+    renderDialog({ entity: bookEntity(note), mode: "edit", note });
+
+    expect(await screen.findByRole("textbox", { name: NAMES.title })).toHaveValue(TITLE.saved);
+  });
+
+  it("patches a null title once the saved title is cleared", async () => {
+    const note = makeBookNote({ title: TITLE.saved });
+    renderDialog({ entity: bookEntity(note), mode: "edit", note });
+
+    await userEvent.clear(await screen.findByRole("textbox", { name: NAMES.title }));
+    await submit(NAMES.submitEdit);
+
+    const call = await onlyWrite();
+    expect(call.method).toBe("PATCH");
+    expect(call.body).toMatchObject({ text: NOTE_FIXTURE.text, title: null });
+  });
+
+  it("patches the changed book note title trimmed", async () => {
+    const note = makeBookNote({ title: TITLE.saved });
+    renderDialog({ entity: bookEntity(note), mode: "edit", note });
+
+    const title = await screen.findByRole("textbox", { name: NAMES.title });
+    await userEvent.clear(title);
+    await userEvent.type(title, "  Пророцтво Ліет  ");
+    await submit(NAMES.submitEdit);
+
+    const call = await onlyWrite();
+    expect(call.url).toBe("/api/notes/note-1");
+    expect(call.body).toMatchObject({ title: "Пророцтво Ліет" });
+  });
+
+  it("patches the changed series note title trimmed", async () => {
+    const note = makeSeriesNote({ title: TITLE.saved });
+    renderDialog({ entity: seriesEntity(note), mode: "edit", note });
+
+    const title = await screen.findByRole("textbox", { name: NAMES.title });
+    await userEvent.clear(title);
+    await userEvent.type(title, " Шлях Атрідів ");
+    await submit(NAMES.submitEdit);
+
+    const call = await onlyWrite();
+    expect(call.body).toMatchObject({ title: "Шлях Атрідів" });
+  });
+
+  it("saves a title exactly at the length limit", async () => {
+    const title = "Д".repeat(TITLE.limit);
+    renderDialog({ entityType: "book", mode: "pick" });
+
+    await pickBook(/Дюна/);
+    await userEvent.click(screen.getByRole("textbox", { name: NAMES.title }));
+    await userEvent.paste(title);
+    await userEvent.type(screen.getByRole("textbox", { name: NAMES.text }), DRAFT);
+    await submit(NAMES.submitCreate);
+
+    const call = await onlyWrite();
+    expect(call.body).toMatchObject({ title });
+  });
+
+  it("refuses to save a title over the length limit and explains why", async () => {
+    const note = makeBookNote({ title: "Д".repeat(TITLE.limit + 1) });
+    renderDialog({ entity: bookEntity(note), mode: "edit", note });
+
+    await screen.findByRole("textbox", { name: NAMES.title });
+    await submit(NAMES.submitEdit);
+
+    expect(await screen.findByText(TITLE.tooLong)).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: NAMES.title })).toHaveAccessibleDescription(
+      TITLE.tooLong,
+    );
+    expect(writes()).toHaveLength(0);
+  });
+});
+
 describe("NoteFormDialog focus", () => {
   it("starts on the book search when the book has to be picked", async () => {
     renderDialog({ entityType: "book", mode: "pick" });
@@ -881,18 +1184,18 @@ describe("NoteFormDialog focus", () => {
     );
   });
 
-  it("starts on the note text when editing", async () => {
+  it("starts on the note title when editing", async () => {
     const note = makeBookNote();
     renderDialog({ entity: bookEntity(note), mode: "edit", note });
 
-    await waitFor(() => expect(screen.getByRole("textbox", { name: NAMES.text })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("textbox", { name: NAMES.title })).toHaveFocus());
   });
 
-  it("starts on the note text when the entity is preselected", async () => {
+  it("starts on the note title when the entity is preselected", async () => {
     const note = makeSeriesNote();
     renderDialog({ entity: seriesEntity(note), mode: "preselected" });
 
-    await waitFor(() => expect(screen.getByRole("textbox", { name: NAMES.text })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("textbox", { name: NAMES.title })).toHaveFocus());
   });
 
   it("wraps Tab from the last control back into the dialog", async () => {
@@ -920,7 +1223,7 @@ describe("NoteFormDialog focus", () => {
     await userEvent.tab();
 
     expect(screen.queryByRole("radiogroup", { name: NAMES.books })).not.toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: NAMES.text })).toHaveFocus();
+    expect(screen.getByRole("textbox", { name: NAMES.title })).toHaveFocus();
   });
 
   it("keeps focus on the Tab target after a keyboard pick collapses the series list", async () => {
@@ -933,6 +1236,6 @@ describe("NoteFormDialog focus", () => {
     await userEvent.tab();
 
     expect(screen.queryByRole("radio", { name: /Емпіреї/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: NAMES.text })).toHaveFocus();
+    expect(screen.getByRole("textbox", { name: NAMES.title })).toHaveFocus();
   });
 });

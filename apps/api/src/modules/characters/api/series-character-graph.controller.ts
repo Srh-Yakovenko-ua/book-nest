@@ -40,7 +40,11 @@ export class SeriesCharacterGraphController {
   @ApiQuery({ name: "categories", required: false })
   @ApiQuery({ name: "relationshipTypes", required: false })
   @ApiQuery({ name: "revealEdgeIds", required: false })
-  @ApiQuery({ name: "contextBookId", required: false })
+  @ApiQuery({
+    description: "Context book; defaults to the series default reading context when omitted",
+    name: "contextBookId",
+    required: false,
+  })
   @ApiQuery({ enum: ["group", "importance"], name: "clusterBy", required: false })
   @ApiQuery({
     description: "Reader chapter within the context book for page-level spoiler masking",

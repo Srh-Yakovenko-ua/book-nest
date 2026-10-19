@@ -235,3 +235,129 @@ describe("ManageTimelinesDialog", () => {
     expect(props.onClose).toHaveBeenCalled();
   });
 });
+
+describe("ManageTimelinesDialog with a pending line mutation", () => {
+  it("locks reordering, creation and line actions while a reorder is pending", async () => {
+    fetchMock.mockImplementation((input) =>
+      String(input).includes("/timelines/reorder")
+        ? new Promise<Response>(() => {})
+        : Promise.resolve(jsonResponse(makeTimelineListView({ timelines: LINES }))),
+    );
+
+    const props = mountDialog();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Перемістити «Флешбеки» вище" }),
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Перемістити «Основна лінія» нижче" }),
+      ).toBeDisabled(),
+    );
+    expect(screen.getByRole("button", { name: "Перемістити «Основна лінія» вище" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Перемістити «Флешбеки» вище" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Перемістити «Флешбеки» нижче" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Нова часова лінія" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Дії лінії «Флешбеки»" })).toBeEnabled();
+    expect(
+      within(screen.getByRole("dialog", { name: "Керування лініями" })).getByRole("button", {
+        name: "Close",
+      }),
+    ).toBeEnabled();
+
+    const menu = await openRowMenu("Флешбеки");
+    for (const name of ["Редагувати", "Зробити основною", "Видалити лінію"]) {
+      const item = within(menu).getByRole("menuitem", { name });
+      expect(item).toHaveAttribute("data-disabled");
+      await userEvent.click(item);
+    }
+
+    expect(props.onEdit).not.toHaveBeenCalled();
+    expect(props.onDelete).not.toHaveBeenCalled();
+    expect(
+      fetchMock.mock.calls.filter(([url]) => String(url).includes("/timelines/reorder")),
+    ).toHaveLength(1);
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/set-default"))).toBe(false);
+  });
+
+  it("re-enables the controls under the edge rules once the reorder settles", async () => {
+    let settleReorder: (response: Response) => void = () => undefined;
+    const pendingReorder = new Promise<Response>((resolve) => {
+      settleReorder = resolve;
+    });
+    let reorderRequests = 0;
+    fetchMock.mockImplementation((input) => {
+      if (!String(input).includes("/timelines/reorder")) {
+        return Promise.resolve(jsonResponse(makeTimelineListView({ timelines: LINES })));
+      }
+      reorderRequests += 1;
+      return reorderRequests === 1
+        ? pendingReorder
+        : Promise.resolve(jsonResponse(makeTimelineListView({ timelines: LINES })));
+    });
+
+    mountDialog();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Перемістити «Флешбеки» вище" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Нова часова лінія" })).toBeDisabled(),
+    );
+
+    settleReorder(jsonResponse(makeTimelineListView({ timelines: LINES })));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Нова часова лінія" })).toBeEnabled(),
+    );
+    expect(screen.getByRole("button", { name: "Перемістити «Основна лінія» вище" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Перемістити «Основна лінія» нижче" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Перемістити «Флешбеки» вище" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Перемістити «Флешбеки» нижче" })).toBeDisabled();
+
+    await userEvent.click(screen.getByRole("button", { name: "Перемістити «Флешбеки» вище" }));
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.filter(([url]) => String(url).includes("/timelines/reorder")),
+      ).toHaveLength(2),
+    );
+  });
+
+  it("locks reordering, creation and editing while a line is being promoted", async () => {
+    fetchMock.mockImplementation((input) =>
+      String(input).includes("/timelines/line-2/set-default")
+        ? new Promise<Response>(() => {})
+        : Promise.resolve(jsonResponse(makeTimelineListView({ timelines: LINES }))),
+    );
+
+    const props = mountDialog();
+
+    await screen.findByText("Флешбеки");
+    await userEvent.click(
+      within(await openRowMenu("Флешбеки")).getByRole("menuitem", { name: "Зробити основною" }),
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Перемістити «Основна лінія» нижче" }),
+      ).toBeDisabled(),
+    );
+    expect(screen.getByRole("button", { name: "Перемістити «Основна лінія» вище" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Перемістити «Флешбеки» вище" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Перемістити «Флешбеки» нижче" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Нова часова лінія" })).toBeDisabled();
+
+    const edit = within(await openRowMenu("Основна лінія")).getByRole("menuitem", {
+      name: "Редагувати",
+    });
+    expect(edit).toHaveAttribute("data-disabled");
+    await userEvent.click(edit);
+
+    expect(props.onEdit).not.toHaveBeenCalled();
+    expect(
+      fetchMock.mock.calls.filter(([url]) => String(url).includes("/timelines/line-2/set-default")),
+    ).toHaveLength(1);
+  });
+});

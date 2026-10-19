@@ -69,7 +69,6 @@ function buildService(): {
   mediaService: { buildViewOrNull: ReturnType<typeof vi.fn> };
   repository: {
     authorQuoteLinks: ReturnType<typeof vi.fn>;
-    bookCounts: ReturnType<typeof vi.fn>;
     bookQuoteCounts: ReturnType<typeof vi.fn>;
     count: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
@@ -77,7 +76,6 @@ function buildService(): {
     findOwnedBook: ReturnType<typeof vi.fn>;
     findOwnedQuote: ReturnType<typeof vi.fn>;
     list: ReturnType<typeof vi.fn>;
-    listForBook: ReturnType<typeof vi.fn>;
     summaryData: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
   };
@@ -85,7 +83,6 @@ function buildService(): {
 } {
   const repository = {
     authorQuoteLinks: vi.fn().mockResolvedValue([]),
-    bookCounts: vi.fn().mockResolvedValue({ favorites: 0, spoiler: 0, total: 0 }),
     bookQuoteCounts: vi.fn().mockResolvedValue([]),
     count: vi.fn().mockResolvedValue(0),
     create: vi.fn().mockResolvedValue(quote()),
@@ -93,7 +90,6 @@ function buildService(): {
     findOwnedBook: vi.fn().mockResolvedValue(ownedBook()),
     findOwnedQuote: vi.fn().mockResolvedValue(quote()),
     list: vi.fn().mockResolvedValue([]),
-    listForBook: vi.fn().mockResolvedValue([]),
     summaryData: vi.fn(),
     update: vi.fn().mockResolvedValue(quote()),
   };
@@ -152,6 +148,7 @@ function query(overrides: Partial<QuotesQuery> = {}): QuotesQuery {
     pageNumber: 1,
     pageSize: 12,
     q: undefined,
+    searchIn: "quotes_and_book",
     sort: "newest",
     ...overrides,
   };
@@ -435,7 +432,10 @@ describe("QuotesService.facets", () => {
   it("normalizes the search term and scopes the counts by book only", async () => {
     const { repository, service } = buildService();
 
-    await service.facets({ query: { bookId: BOOK_ID, q: "  fear   mind  " }, userId: USER_ID });
+    await service.facets({
+      query: { bookId: BOOK_ID, q: "  fear   mind  ", searchIn: "quotes_and_book" },
+      userId: USER_ID,
+    });
 
     expect(repository.filterCounts).toHaveBeenCalledWith({
       authorIds: undefined,
@@ -443,6 +443,7 @@ describe("QuotesService.facets", () => {
       createdFrom: undefined,
       createdTo: undefined,
       search: "fear mind",
+      searchIn: "quotes_and_book",
       userId: USER_ID,
     });
   });
@@ -451,7 +452,7 @@ describe("QuotesService.facets", () => {
     const { repository, service } = buildService();
 
     await service.facets({
-      query: { book: [OTHER_BOOK_ID, BOOK_ID], bookId: BOOK_ID },
+      query: { book: [OTHER_BOOK_ID, BOOK_ID], bookId: BOOK_ID, searchIn: "quotes_and_book" },
       userId: USER_ID,
     });
 
@@ -464,7 +465,7 @@ describe("QuotesService.facets", () => {
     const { repository, service } = buildService();
 
     await service.facets({
-      query: { author: [AUTHOR_ID], book: [BOOK_ID] },
+      query: { author: [AUTHOR_ID], book: [BOOK_ID], searchIn: "quotes_and_book" },
       userId: USER_ID,
     });
 
@@ -479,7 +480,7 @@ describe("QuotesService.facets", () => {
   it("drops a blank search term instead of scoping the counts to it", async () => {
     const { repository, service } = buildService();
 
-    await service.facets({ query: { q: "   " }, userId: USER_ID });
+    await service.facets({ query: { q: "   ", searchIn: "quotes_and_book" }, userId: USER_ID });
 
     expect(repository.filterCounts).toHaveBeenCalledWith({
       authorIds: undefined,
@@ -487,6 +488,7 @@ describe("QuotesService.facets", () => {
       createdFrom: undefined,
       createdTo: undefined,
       search: undefined,
+      searchIn: "quotes_and_book",
       userId: USER_ID,
     });
   });
@@ -504,7 +506,10 @@ describe("QuotesService.facets", () => {
       }),
     );
 
-    const view = await service.facets({ query: {}, userId: USER_ID });
+    const view = await service.facets({
+      query: { searchIn: "quotes_and_book" },
+      userId: USER_ID,
+    });
 
     expect(view).toEqual({
       authors: [],
@@ -533,12 +538,28 @@ describe("QuotesService.list", () => {
       bookId: undefined,
       filter: "all",
       search: "fear mind",
+      searchIn: "quotes_and_book",
       skip: 20,
       sort: "newest",
       take: 10,
       userId: USER_ID,
     });
     expect(result).toMatchObject({ page: 3, pagesCount: 3, pageSize: 10, totalCount: 30 });
+  });
+});
+
+describe("QuotesService search scope", () => {
+  it("forwards a quotes-only search scope to the facet counts and the list queries", async () => {
+    const { repository, service } = buildService();
+
+    await service.facets({ query: { q: "fear", searchIn: "quotes" }, userId: USER_ID });
+    await service.list({ query: query({ q: "fear", searchIn: "quotes" }), userId: USER_ID });
+
+    expect(repository.filterCounts).toHaveBeenCalledWith(
+      expect.objectContaining({ searchIn: "quotes" }),
+    );
+    expect(repository.list).toHaveBeenCalledWith(expect.objectContaining({ searchIn: "quotes" }));
+    expect(repository.count).toHaveBeenCalledWith(expect.objectContaining({ searchIn: "quotes" }));
   });
 });
 

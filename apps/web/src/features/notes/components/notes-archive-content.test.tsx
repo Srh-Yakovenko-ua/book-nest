@@ -9,6 +9,7 @@ import { mockIntersectionObserver, renderWithProviders, screen, userEvent } from
 import type { NotesArchiveListState } from "../model/notes-archive-list-state";
 
 import { makeBookNote } from "../model/notes.fixtures";
+import { useBookNotesEmptyCopy } from "../model/use-book-notes-empty-copy";
 import { NotesArchiveContent } from "./notes-archive-content";
 
 vi.mock("@/i18n/navigation", () => ({
@@ -55,6 +56,14 @@ describe("NotesArchiveContent", () => {
 
     expect(screen.getByLabelText("Завантажуємо нотатки...")).toHaveAttribute("aria-busy", "true");
     expect(screen.queryByRole("listitem")).not.toBeInTheDocument();
+  });
+
+  it("marks every card with its note id so a scroll position can find it again", () => {
+    renderContent(readyState({ notes: [LOADED_NOTE, NEXT_PAGE_NOTE] }));
+
+    expect(
+      screen.getAllByRole("listitem").map((item) => item.getAttribute("data-note-id")),
+    ).toEqual([LOADED_NOTE.id, NEXT_PAGE_NOTE.id]);
   });
 
   it("invites the first note when the library is empty", async () => {
@@ -181,5 +190,182 @@ describe("NotesArchiveContent", () => {
     const [, firstNewLink] = screen.getAllByRole("link", { name: "Дюна" });
     expect(firstNewLink).toHaveFocus();
     expect(screen.getByRole("status")).not.toHaveAttribute("aria-busy", "true");
+  });
+});
+
+describe("NotesArchiveContent in the book notes tab", () => {
+  function BookNotesContent(props: Omit<ComponentProps<typeof NotesArchiveContent>, "emptyCopy">) {
+    return <NotesArchiveContent {...props} emptyCopy={useBookNotesEmptyCopy()} />;
+  }
+
+  function bookHandlers() {
+    return {
+      onAddNote: vi.fn(),
+      onClearFilters: vi.fn(),
+      onClearSearch: vi.fn(),
+      onLoadMore: vi.fn(),
+      onRetry: vi.fn(),
+    };
+  }
+
+  it("stacks the embedded cards in one column without repeating the book", () => {
+    renderWithProviders(
+      <BookNotesContent
+        {...bookHandlers()}
+        state={readyState({ notes: [LOADED_NOTE, NEXT_PAGE_NOTE] })}
+        view="embedded"
+      />,
+    );
+
+    const list = screen.getByRole("list");
+    expect(list).toHaveClass("grid-cols-1");
+    expect(list).not.toHaveClass("lg:grid-cols-2");
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+    expect(screen.queryByRole("link", { name: "Дюна" })).not.toBeInTheDocument();
+  });
+
+  it("leaves focus in place when the next page arrives and focus is opted out", () => {
+    const handlers = bookHandlers();
+    const { rerender } = renderWithProviders(
+      <BookNotesContent
+        {...handlers}
+        loadMoreFocus="none"
+        state={readyState({ nextPage: "idle" })}
+        view="embedded"
+      />,
+    );
+
+    viewport.enterViewport();
+    rerender(
+      <BookNotesContent
+        {...handlers}
+        loadMoreFocus="none"
+        state={readyState({ nextPage: "idle", notes: [LOADED_NOTE, NEXT_PAGE_NOTE] })}
+        view="embedded"
+      />,
+    );
+
+    expect(handlers.onLoadMore).toHaveBeenCalledOnce();
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+    expect(document.body).toHaveFocus();
+  });
+
+  it("keeps focus off the retry button when a background page fails and focus is opted out", () => {
+    renderWithProviders(
+      <BookNotesContent
+        {...bookHandlers()}
+        loadMoreFocus="none"
+        state={readyState({ nextPage: "error" })}
+        view="embedded"
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Не вдалося завантажити наступні нотатки.");
+    expect(screen.getByRole("button", { name: "Повторити" })).not.toHaveFocus();
+  });
+
+  it("moves focus to the first new card after a keyboard retry even when focus is opted out", async () => {
+    const handlers = bookHandlers();
+    const { rerender } = renderWithProviders(
+      <BookNotesContent
+        {...handlers}
+        loadMoreFocus="none"
+        state={readyState({ nextPage: "error" })}
+        view="embedded"
+      />,
+    );
+
+    screen.getByRole("button", { name: "Повторити" }).focus();
+    await userEvent.keyboard("{Enter}");
+    rerender(
+      <BookNotesContent
+        {...handlers}
+        loadMoreFocus="none"
+        state={readyState({ nextPage: "loading" })}
+        view="embedded"
+      />,
+    );
+    rerender(
+      <BookNotesContent
+        {...handlers}
+        loadMoreFocus="none"
+        state={readyState({ nextPage: "none", notes: [LOADED_NOTE, NEXT_PAGE_NOTE] })}
+        view="embedded"
+      />,
+    );
+
+    expect(handlers.onLoadMore).toHaveBeenCalledOnce();
+    const [, firstNewItem] = screen.getAllByRole("listitem");
+    expect(firstNewItem?.contains(document.activeElement)).toBe(true);
+  });
+
+  it("still focuses the first new embedded card unless focus is opted out", () => {
+    const handlers = bookHandlers();
+    const { rerender } = renderWithProviders(
+      <BookNotesContent {...handlers} state={readyState({ nextPage: "idle" })} view="embedded" />,
+    );
+
+    viewport.enterViewport();
+    rerender(
+      <BookNotesContent
+        {...handlers}
+        state={readyState({ nextPage: "idle", notes: [LOADED_NOTE, NEXT_PAGE_NOTE] })}
+        view="embedded"
+      />,
+    );
+
+    const [, firstNewItem] = screen.getAllByRole("listitem");
+    expect(firstNewItem?.contains(document.activeElement)).toBe(true);
+  });
+
+  it("invites the first note for this book", async () => {
+    const handlers = bookHandlers();
+    renderWithProviders(
+      <BookNotesContent
+        {...handlers}
+        state={{ kind: "empty", reason: "library" }}
+        view="embedded"
+      />,
+    );
+
+    expect(screen.getByText("У цієї книги ще немає нотаток.")).toBeInTheDocument();
+    expect(screen.queryByText("У вас ще немає нотаток.")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Додати нотатку" }));
+
+    expect(handlers.onAddNote).toHaveBeenCalledOnce();
+  });
+
+  it("clears only the search when the search finds nothing", async () => {
+    const handlers = bookHandlers();
+    renderWithProviders(
+      <BookNotesContent
+        {...handlers}
+        state={{ kind: "empty", reason: "search" }}
+        view="embedded"
+      />,
+    );
+
+    expect(screen.getByText("Нічого не знайдено.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Очистити пошук" }));
+
+    expect(handlers.onClearSearch).toHaveBeenCalledOnce();
+    expect(handlers.onClearFilters).not.toHaveBeenCalled();
+  });
+
+  it("resets the filters when the filters leave nothing", async () => {
+    const handlers = bookHandlers();
+    renderWithProviders(
+      <BookNotesContent
+        {...handlers}
+        state={{ kind: "empty", reason: "filters" }}
+        view="embedded"
+      />,
+    );
+
+    expect(screen.getByText("За цими фільтрами нотаток немає.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Скинути фільтри" }));
+
+    expect(handlers.onClearFilters).toHaveBeenCalledOnce();
+    expect(handlers.onClearSearch).not.toHaveBeenCalled();
   });
 });

@@ -47,7 +47,6 @@ export type CharacterDetailsViewDtoAppearancesItem = {
    */
   firstAppearancePage: number | null;
   hiddenFields: string[];
-  hidePresenceAsSpoiler: boolean;
   id: string;
   importance: CharacterDetailsViewDtoAppearancesItemImportance;
   isPovCharacter: boolean;

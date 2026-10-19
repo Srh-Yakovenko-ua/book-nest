@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
+import { TruncatedText } from "@/components/truncated-text";
 
 import type { NoteLocation } from "../model/note-location";
 import type { NoteEntityPlacement } from "./note-entity-placement";
@@ -41,11 +42,7 @@ export function BookNoteLocation({ location, placement }: BookNoteLocationProps)
   return (
     <p className="flex min-w-0 shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
       <UiIcon className="text-icon" name="book" size={13} />
-      {chapter.length === 0 ? null : (
-        <span className="min-w-0 truncate" title={chapter}>
-          {chapter}
-        </span>
-      )}
+      {chapter.length === 0 ? null : <TruncatedText text={chapter} />}
       {chapter.length === 0 || page === null ? null : <span aria-hidden>·</span>}
       {page === null ? null : (
         <span className="shrink-0 whitespace-nowrap tabular-nums">{t("card.page", { page })}</span>

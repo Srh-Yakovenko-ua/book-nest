@@ -1,8 +1,9 @@
 import type { BookView, ChangeReadingStatusInput, UpdateReadingProgressInput } from "@app/shared";
 
 import { BookViewSchema } from "@app/shared";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { invalidateGoalQueries } from "@/features/reading-goals/api/goal-keys";
 import {
   bookReadingControllerChangeReadingStatus,
   bookReadingControllerUpdateReadingProgress,
@@ -11,6 +12,7 @@ import {
 import { useBookMutationSync } from "./use-book-mutation-sync";
 
 export function useChangeReadingStatus() {
+  const queryClient = useQueryClient();
   const sync = useBookMutationSync();
 
   return useMutation({
@@ -19,11 +21,15 @@ export function useChangeReadingStatus() {
       payload: ChangeReadingStatusInput;
     }): Promise<BookView> =>
       BookViewSchema.parse(await bookReadingControllerChangeReadingStatus(input.id, input.payload)),
-    onSuccess: sync,
+    onSuccess: (book) => {
+      sync(book);
+      void invalidateGoalQueries(queryClient);
+    },
   });
 }
 
 export function useUpdateReadingProgress() {
+  const queryClient = useQueryClient();
   const sync = useBookMutationSync();
 
   return useMutation({
@@ -34,6 +40,9 @@ export function useUpdateReadingProgress() {
       BookViewSchema.parse(
         await bookReadingControllerUpdateReadingProgress(input.id, input.payload),
       ),
-    onSuccess: sync,
+    onSuccess: (book) => {
+      sync(book);
+      void invalidateGoalQueries(queryClient);
+    },
   });
 }

@@ -200,7 +200,11 @@ describe("character forms CRUD", () => {
       position: 5,
     });
 
-    const details = await authed("get", `/api/characters/${characterId}`, accessToken);
+    const details = await authed(
+      "get",
+      `/api/characters/${characterId}?revealFieldIds=forms`,
+      accessToken,
+    );
     expect(details.body.forms[0]).toMatchObject({ isSpoiler: true, name: "Secret Identity" });
   });
 
@@ -237,36 +241,73 @@ describe("character forms CRUD", () => {
 });
 
 describe("character forms spoiler masking", () => {
-  it("masks a spoiler form in the reading-context view but keeps it in the full owner view", async () => {
+  async function seedMixedForms(token: string, characterId: string): Promise<void> {
+    const seeds = [
+      { formType: "true_form", isSpoiler: true, name: "True Form Reveal", position: 1 },
+      { formType: "transformation", name: "Public Form", position: 2 },
+      { formType: "disguise", isSpoiler: true, name: "Hidden Disguise", position: 0 },
+    ];
+    for (const seed of seeds) {
+      const res = await authed("post", `/api/characters/${characterId}/forms`, token).send(seed);
+      expect(res.status).toBe(HttpStatus.CREATED);
+    }
+  }
+
+  it("never sends a spoiler form without an explicit forms reveal, in the global or book view", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
     const characterId = await createCharacterWithAppearance(accessToken, bookId);
+    await seedMixedForms(accessToken, characterId);
 
+    for (const query of ["", `?contextBookId=${bookId}`]) {
+      const masked = await authed("get", `/api/characters/${characterId}${query}`, accessToken);
+      expect(masked.status).toBe(HttpStatus.OK);
+      expect(masked.body.forms.map((form: { name: string }) => form.name)).toEqual(["Public Form"]);
+      expect(masked.body.hiddenFields).toContain("forms");
+      const serialized = JSON.stringify(masked.body);
+      expect(serialized).not.toContain("True Form Reveal");
+      expect(serialized).not.toContain("Hidden Disguise");
+    }
+  });
+
+  it("reveals every form in position order only for the forms key, in the global or book view", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const characterId = await createCharacterWithAppearance(accessToken, bookId);
+    const aliased = await authed("patch", `/api/characters/${characterId}`, accessToken).send({
+      aliases: [{ isSpoiler: true, name: "Secret Alias", type: "nickname" }],
+    });
+    expect(aliased.status).toBe(HttpStatus.OK);
+    await seedMixedForms(accessToken, characterId);
+
+    for (const query of ["?", `?contextBookId=${bookId}&`]) {
+      const revealed = await authed(
+        "get",
+        `/api/characters/${characterId}${query}revealFieldIds=forms`,
+        accessToken,
+      );
+      expect(revealed.status).toBe(HttpStatus.OK);
+      expect(revealed.body.forms.map((form: { name: string }) => form.name)).toEqual([
+        "Hidden Disguise",
+        "True Form Reveal",
+        "Public Form",
+      ]);
+      expect(revealed.body.hiddenFields).not.toContain("forms");
+      expect(revealed.body.hiddenFields).toContain("globalAliases");
+      expect(JSON.stringify(revealed.body)).not.toContain("Secret Alias");
+    }
+  });
+
+  it("omits the forms marker when the character has no spoiler form", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const characterId = await createCharacter(accessToken);
     await authed("post", `/api/characters/${characterId}/forms`, accessToken).send({
-      formType: "transformation",
       name: "Public Form",
     });
-    const secret = await authed("post", `/api/characters/${characterId}/forms`, accessToken).send({
-      formType: "true_form",
-      isSpoiler: true,
-      name: "True Form Reveal",
-    });
-    expect(secret.status).toBe(HttpStatus.CREATED);
 
-    const full = await authed("get", `/api/characters/${characterId}`, accessToken);
-    expect(full.body.forms).toHaveLength(2);
-    expect(full.body.forms.some((form: { isSpoiler: boolean }) => form.isSpoiler)).toBe(true);
-    expect(JSON.stringify(full.body)).toContain("True Form Reveal");
-
-    const masked = await authed(
-      "get",
-      `/api/characters/${characterId}?contextBookId=${bookId}`,
-      accessToken,
-    );
-    expect(masked.status).toBe(HttpStatus.OK);
-    expect(masked.body.forms).toHaveLength(1);
-    expect(masked.body.forms[0].name).toBe("Public Form");
-    expect(JSON.stringify(masked.body)).not.toContain("True Form Reveal");
+    const details = await authed("get", `/api/characters/${characterId}`, accessToken);
+    expect(details.body.forms).toHaveLength(1);
+    expect(details.body.hiddenFields).not.toContain("forms");
   });
 });
 

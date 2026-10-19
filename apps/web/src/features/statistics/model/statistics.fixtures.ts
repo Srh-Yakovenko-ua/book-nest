@@ -314,6 +314,17 @@ export function overviewFixture(
       timezone: "Europe/Kyiv",
       weekStartDay: "monday",
     },
+    overviewInsights: {
+      pages: [
+        {
+          category: "activity",
+          code: "most_active_weekday",
+          params: { activeDays: 2, pagesRead: 184, weekday: 1 },
+          tone: "positive",
+        },
+      ],
+      reads: [],
+    },
     period: { from: "2026-01-01", granularity: "month", kind: "year", to: "2026-03-31" },
     publishers: {
       availability: "available",

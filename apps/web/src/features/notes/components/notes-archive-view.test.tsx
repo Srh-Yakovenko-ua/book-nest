@@ -258,6 +258,37 @@ describe("NotesArchiveView books overview", () => {
     expect(screen.queryByRole("complementary", { name: "Огляд нотаток" })).not.toBeInTheDocument();
     expect(overviewRequests("books")).toHaveLength(1);
   });
+
+  it("shows the title of a rediscovered note as a heading above its text", async () => {
+    mockArchive("books", {
+      overview: json({
+        memoryNote: { ...BOOK_MEMORY, note: { ...BOOK_MEMORY.note, title: "Пустеля памʼятає" } },
+        postFinish: null,
+      }),
+    });
+
+    renderArchive("books");
+
+    const memory = await (await findSidebar()).findByRole("region", { name: "Згадати нотатку" });
+    const title = within(memory).getByRole("heading", { level: 4, name: "Пустеля памʼятає" });
+    expect(
+      title.compareDocumentPosition(within(memory).getByText("Спогад про Арракіс.")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
+  });
+
+  it("adds no title heading to an untitled rediscovered note", async () => {
+    mockArchive("books", { overview: json({ memoryNote: BOOK_MEMORY, postFinish: null }) });
+
+    renderArchive("books");
+
+    const memory = await (await findSidebar()).findByRole("region", { name: "Згадати нотатку" });
+    expect(
+      within(memory)
+        .getAllByRole("heading")
+        .map((heading) => heading.textContent),
+    ).toEqual(["Згадати нотатку", "Дюна"]);
+  });
 });
 
 describe("NotesArchiveView layout", () => {

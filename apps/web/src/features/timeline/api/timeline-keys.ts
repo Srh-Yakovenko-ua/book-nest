@@ -11,6 +11,8 @@ export const timelineKeys = {
   events: (bookId: string) => [TIMELINE_ROOT, "events", bookId] as const,
   eventsList: (bookId: string, filters: TimelineEventsFilterState) =>
     [TIMELINE_ROOT, "events", bookId, filters] as const,
+  locations: (bookId: string) => [...timelineKeys.locationsRoot, bookId] as const,
+  locationsRoot: [TIMELINE_ROOT, "locations"] as const,
   overview: (bookId: string) => [TIMELINE_ROOT, "overview", bookId] as const,
   root: [TIMELINE_ROOT] as const,
   summary: (bookId: string) => [TIMELINE_ROOT, "summary", bookId] as const,
@@ -30,6 +32,7 @@ export function invalidateTimelineQueries(
   void queryClient.invalidateQueries({ queryKey: timelineKeys.summary(bookId) });
   void queryClient.invalidateQueries({ queryKey: timelineKeys.overview(bookId) });
   void queryClient.invalidateQueries({ queryKey: timelineKeys.events(bookId) });
+  void queryClient.invalidateQueries({ queryKey: timelineKeys.locationsRoot });
   void queryClient.invalidateQueries({ queryKey: bookKeys.detail(bookId) });
   if (eventId !== undefined) {
     void queryClient.invalidateQueries({ queryKey: timelineKeys.event(eventId) });

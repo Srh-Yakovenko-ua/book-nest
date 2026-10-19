@@ -1,6 +1,6 @@
-import type { BookView, Nullable } from "@app/shared";
+import type { BookDetailsView, Nullable } from "@app/shared";
 
-import { BookViewSchema } from "@app/shared";
+import { BookDetailsViewSchema } from "@app/shared";
 import { queryOptions, useQuery } from "@tanstack/react-query";
 
 import { booksControllerGetById } from "@/shared/api/generated/endpoints/books/books";
@@ -22,9 +22,9 @@ export function useBookPagesCount(bookId: Nullable<string>): Nullable<number> {
 
 function bookQueryOptions(id: string) {
   return queryOptions({
-    queryFn: async (): Promise<BookView> => {
+    queryFn: async (): Promise<BookDetailsView> => {
       const response = await booksControllerGetById(id);
-      return BookViewSchema.parse(response);
+      return BookDetailsViewSchema.parse(response);
     },
     queryKey: bookKeys.detail(id),
     retry: false,

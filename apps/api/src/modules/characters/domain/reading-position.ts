@@ -24,6 +24,10 @@ export function buildReadingPositionGate({
   return { contextBookId, reader };
 }
 
+export function contentDeclaresPosition(content: ContentPosition): boolean {
+  return content.page !== null || content.audioSeconds !== null || hasChapterText(content.chapter);
+}
+
 export function hasReaderReachedContent({
   content,
   reader,
@@ -63,10 +67,6 @@ export function isHiddenByReadingPosition({
     return false;
   }
   return !hasReaderReachedContent({ content, reader: gate.reader });
-}
-
-function contentDeclaresPosition(content: ContentPosition): boolean {
-  return content.page !== null || content.audioSeconds !== null || hasChapterText(content.chapter);
 }
 
 function hasAnyReaderUnit(reader: ReadingPosition): boolean {

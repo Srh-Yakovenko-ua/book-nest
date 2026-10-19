@@ -31,6 +31,9 @@ apps/api/src/generated/
 npm-debug.log*
 pnpm-debug.log*
 
+# Git Bash crash dumps (written to the current directory when bash.exe crashes)
+*.stackdump
+
 # Editor
 .vscode/
 .idea/
@@ -46,8 +49,14 @@ apps/web/next-env.d.ts
 # Claude Code runtime locks
 .claude/*.lock
 
+# Claude Code personal permission approvals
+**/.claude/settings.local.json
+
 # Claude Code worktrees — full working copies, node_modules and all
 .claude/worktrees/
+
+# Claude Code hook state: last prompt, edited files, compact snapshots
+.claude/state/
 
 # Storybook
 storybook-static/

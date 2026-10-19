@@ -1,7 +1,7 @@
 import type { ReadingStatisticsGenresSection } from "@app/shared";
 import type { ReactNode } from "react";
 
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
@@ -29,7 +29,45 @@ function withFrequency(
   return { ...genres, frequency };
 }
 
+const GENRES_RESPONSE = [
+  {
+    groupKey: "fiction",
+    groupName: "Художня",
+    id: "genre-fantasy",
+    isDefault: true,
+    key: "fantasy",
+    name: "Фентезі",
+  },
+];
+
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve(
+        new Response(JSON.stringify(GENRES_RESPONSE), {
+          headers: { "Content-Type": "application/json" },
+          status: 200,
+        }),
+      ),
+    ),
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 describe("GenresSection", () => {
+  it("shows the localized genre name and falls back to the key for unknown genres", async () => {
+    renderWithProviders(
+      <GenresSection genres={withFrequency([genreRow("fantasy"), genreRow("custom-genre")])} />,
+    );
+
+    expect(await screen.findByText("Фентезі")).toBeInTheDocument();
+    expect(screen.getByText("custom-genre")).toBeInTheDocument();
+  });
+
   it("labels the cycle count as reads, not books", () => {
     renderWithProviders(<GenresSection genres={genres} />);
 

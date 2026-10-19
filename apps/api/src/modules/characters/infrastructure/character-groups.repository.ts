@@ -14,7 +14,7 @@ import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 
 const detailsInclude = {
   memberships: {
-    include: { character: { select: { hideProfileAsSpoiler: true, id: true, name: true } } },
+    include: { character: { select: { id: true, name: true } } },
     orderBy: [{ createdAt: "asc" }],
     where: { character: { deletedAt: null } },
   },

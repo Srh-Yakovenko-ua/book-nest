@@ -22,6 +22,7 @@ import type {
   BookCharacterSuggestionsControllerListParams,
   BookCharacterSummaryControllerGetParams,
   BookCharacterSummaryViewDto,
+  BookCharactersControllerGetByIdParams,
   BookCharactersControllerListParams,
   CharacterBundleDto,
   CharacterCustomLabelsViewDto,
@@ -29,6 +30,8 @@ import type {
   CharacterDeletionResultDto,
   CharacterDetailsViewDto,
   CharacterDuplicateCandidatesDto,
+  CharacterFactViewDto,
+  CharacterFactsControllerListParams,
   CharacterImportBundleDto,
   CharacterImportResultDto,
   CharacterMergeControllerPreviewParams,
@@ -42,9 +45,12 @@ import type {
   CharactersControllerGetByIdParams,
   CharactersControllerListParams,
   CharactersControllerSoftDeleteParams,
+  CreateCharacterFactInputDto,
   CreateCharacterInBookDto,
   CreateCharacterInputDto,
   MergeCharacterInputDto,
+  PaginatedBookCharacterRosterDto,
+  PaginatedCharacterFactsDto,
   PaginatedCharacterGlobalSummaryDto,
   PaginatedCharactersDto,
   SeriesCharacterSummaryControllerGetParams,
@@ -53,6 +59,7 @@ import type {
   SeriesCharactersControllerProfileParams,
   SeriesReadingContextDefaultViewDto,
   UpdateBookCharacterInputDto,
+  UpdateCharacterFactInputDto,
   UpdateCharacterInputDto,
 } from "../../model";
 
@@ -283,6 +290,11 @@ export type characterPortabilityControllerImportBundleResponse401 = {
   status: 401;
 };
 
+export type characterPortabilityControllerImportBundleResponse413 = {
+  data: void;
+  status: 413;
+};
+
 export type characterPortabilityControllerImportBundleResponse422 = {
   data: void;
   status: 422;
@@ -294,6 +306,7 @@ export type characterPortabilityControllerImportBundleResponseSuccess =
   };
 export type characterPortabilityControllerImportBundleResponseError = (
   | characterPortabilityControllerImportBundleResponse401
+  | characterPortabilityControllerImportBundleResponse413
   | characterPortabilityControllerImportBundleResponse422
 ) & {
   headers: Headers;
@@ -2555,6 +2568,889 @@ export function useCharacterMergeControllerMerge<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
+export type characterFactsControllerListResponse200 = {
+  data: PaginatedCharacterFactsDto;
+  status: 200;
+};
+
+export type characterFactsControllerListResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type characterFactsControllerListResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type characterFactsControllerListResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type characterFactsControllerListResponseSuccess =
+  characterFactsControllerListResponse200 & {
+    headers: Headers;
+  };
+export type characterFactsControllerListResponseError = (
+  | characterFactsControllerListResponse400
+  | characterFactsControllerListResponse401
+  | characterFactsControllerListResponse404
+) & {
+  headers: Headers;
+};
+
+export type characterFactsControllerListResponse =
+  characterFactsControllerListResponseSuccess | characterFactsControllerListResponseError;
+
+export const getCharacterFactsControllerListUrl = (
+  bookId: string,
+  characterId: string,
+  params?: CharacterFactsControllerListParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/books/${bookId}/characters/${characterId}/facts?${stringifiedParams}`
+    : `/api/books/${bookId}/characters/${characterId}/facts`;
+};
+
+/**
+ * @summary List and search a character's facts within one book
+ */
+export const characterFactsControllerList = async (
+  bookId: string,
+  characterId: string,
+  params?: CharacterFactsControllerListParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<characterFactsControllerListResponse> => {
+  return customInstance<characterFactsControllerListResponse>(
+    getCharacterFactsControllerListUrl(bookId, characterId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getCharacterFactsControllerListQueryKey = (
+  bookId: string,
+  characterId: string,
+  params?: CharacterFactsControllerListParams,
+) => {
+  return [
+    `/api/books/${bookId}/characters/${characterId}/facts`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getCharacterFactsControllerListQueryOptions = <
+  TData = Awaited<ReturnType<typeof characterFactsControllerList>>,
+  TError = void,
+>(
+  bookId: string,
+  characterId: string,
+  params?: CharacterFactsControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof characterFactsControllerList>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCharacterFactsControllerListQueryKey(bookId, characterId, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof characterFactsControllerList>>> = ({
+    signal,
+  }) => characterFactsControllerList(bookId, characterId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      bookId !== null && bookId !== undefined && characterId !== null && characterId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof characterFactsControllerList>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type CharacterFactsControllerListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof characterFactsControllerList>>
+>;
+export type CharacterFactsControllerListQueryError = void;
+
+export function useCharacterFactsControllerList<
+  TData = Awaited<ReturnType<typeof characterFactsControllerList>>,
+  TError = void,
+>(
+  bookId: string,
+  characterId: string,
+  params: undefined | CharacterFactsControllerListParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof characterFactsControllerList>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof characterFactsControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof characterFactsControllerList>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharacterFactsControllerList<
+  TData = Awaited<ReturnType<typeof characterFactsControllerList>>,
+  TError = void,
+>(
+  bookId: string,
+  characterId: string,
+  params?: CharacterFactsControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof characterFactsControllerList>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof characterFactsControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof characterFactsControllerList>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharacterFactsControllerList<
+  TData = Awaited<ReturnType<typeof characterFactsControllerList>>,
+  TError = void,
+>(
+  bookId: string,
+  characterId: string,
+  params?: CharacterFactsControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof characterFactsControllerList>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List and search a character's facts within one book
+ */
+
+export function useCharacterFactsControllerList<
+  TData = Awaited<ReturnType<typeof characterFactsControllerList>>,
+  TError = void,
+>(
+  bookId: string,
+  characterId: string,
+  params?: CharacterFactsControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof characterFactsControllerList>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getCharacterFactsControllerListQueryOptions(
+    bookId,
+    characterId,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type characterFactsControllerCreateResponse201 = {
+  data: CharacterFactViewDto;
+  status: 201;
+};
+
+export type characterFactsControllerCreateResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type characterFactsControllerCreateResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type characterFactsControllerCreateResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type characterFactsControllerCreateResponse422 = {
+  data: void;
+  status: 422;
+};
+
+export type characterFactsControllerCreateResponseSuccess =
+  characterFactsControllerCreateResponse201 & {
+    headers: Headers;
+  };
+export type characterFactsControllerCreateResponseError = (
+  | characterFactsControllerCreateResponse400
+  | characterFactsControllerCreateResponse401
+  | characterFactsControllerCreateResponse404
+  | characterFactsControllerCreateResponse422
+) & {
+  headers: Headers;
+};
+
+export type characterFactsControllerCreateResponse =
+  characterFactsControllerCreateResponseSuccess | characterFactsControllerCreateResponseError;
+
+export const getCharacterFactsControllerCreateUrl = (bookId: string, characterId: string) => {
+  return `/api/books/${bookId}/characters/${characterId}/facts`;
+};
+
+/**
+ * @summary Add a fact to a character within one book
+ */
+export const characterFactsControllerCreate = async (
+  bookId: string,
+  characterId: string,
+  createCharacterFactInputDto: CreateCharacterFactInputDto,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<characterFactsControllerCreateResponse> => {
+  return customInstance<characterFactsControllerCreateResponse>(
+    getCharacterFactsControllerCreateUrl(bookId, characterId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(createCharacterFactInputDto),
+    },
+  );
+};
+
+export const getCharacterFactsControllerCreateQueryKey = (
+  bookId: string,
+  characterId: string,
+  createCharacterFactInputDto?: CreateCharacterFactInputDto,
+) => {
+  return [
+    "POST",
+    `/api/books/${bookId}/characters/${characterId}/facts`,
+    createCharacterFactInputDto,
+  ] as const;
+};
+
+export const getCharacterFactsControllerCreateQueryOptions = <
+  TData = Awaited<ReturnType<typeof characterFactsControllerCreate>>,
+  TError = void,
+>(
+  bookId: string,
+  characterId: string,
+  createCharacterFactInputDto: CreateCharacterFactInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof characterFactsControllerCreate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getCharacterFactsControllerCreateQueryKey(bookId, characterId, createCharacterFactInputDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof characterFactsControllerCreate>>> = ({
+    signal,
+  }) =>
+    characterFactsControllerCreate(bookId, characterId, createCharacterFactInputDto, {
+      signal,
+      ...requestOptions,
+    });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      bookId !== null && bookId !== undefined && characterId !== null && characterId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof characterFactsControllerCreate>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type CharacterFactsControllerCreateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof characterFactsControllerCreate>>
+>;
+export type CharacterFactsControllerCreateQueryError = void;
+
+export function useCharacterFactsControllerCreate<
+  TData = Awaited<ReturnType<typeof characterFactsControllerCreate>>,
+  TError = void,
+>(
+  bookId: string,
+  characterId: string,
+  createCharacterFactInputDto: CreateCharacterFactInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof characterFactsControllerCreate>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof characterFactsControllerCreate>>,
+          TError,
+          Awaited<ReturnType<typeof characterFactsControllerCreate>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharacterFactsControllerCreate<
+  TData = Awaited<ReturnType<typeof characterFactsControllerCreate>>,
+  TError = void,
+>(
+  bookId: string,
+  characterId: string,
+  createCharacterFactInputDto: CreateCharacterFactInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof characterFactsControllerCreate>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof characterFactsControllerCreate>>,
+          TError,
+          Awaited<ReturnType<typeof characterFactsControllerCreate>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharacterFactsControllerCreate<
+  TData = Awaited<ReturnType<typeof characterFactsControllerCreate>>,
+  TError = void,
+>(
+  bookId: string,
+  characterId: string,
+  createCharacterFactInputDto: CreateCharacterFactInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof characterFactsControllerCreate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Add a fact to a character within one book
+ */
+
+export function useCharacterFactsControllerCreate<
+  TData = Awaited<ReturnType<typeof characterFactsControllerCreate>>,
+  TError = void,
+>(
+  bookId: string,
+  characterId: string,
+  createCharacterFactInputDto: CreateCharacterFactInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof characterFactsControllerCreate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getCharacterFactsControllerCreateQueryOptions(
+    bookId,
+    characterId,
+    createCharacterFactInputDto,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type characterFactsControllerUpdateResponse200 = {
+  data: CharacterFactViewDto;
+  status: 200;
+};
+
+export type characterFactsControllerUpdateResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type characterFactsControllerUpdateResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type characterFactsControllerUpdateResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type characterFactsControllerUpdateResponse422 = {
+  data: void;
+  status: 422;
+};
+
+export type characterFactsControllerUpdateResponseSuccess =
+  characterFactsControllerUpdateResponse200 & {
+    headers: Headers;
+  };
+export type characterFactsControllerUpdateResponseError = (
+  | characterFactsControllerUpdateResponse400
+  | characterFactsControllerUpdateResponse401
+  | characterFactsControllerUpdateResponse404
+  | characterFactsControllerUpdateResponse422
+) & {
+  headers: Headers;
+};
+
+export type characterFactsControllerUpdateResponse =
+  characterFactsControllerUpdateResponseSuccess | characterFactsControllerUpdateResponseError;
+
+export const getCharacterFactsControllerUpdateUrl = (
+  bookId: string,
+  characterId: string,
+  factId: string,
+) => {
+  return `/api/books/${bookId}/characters/${characterId}/facts/${factId}`;
+};
+
+/**
+ * @summary Update a character fact
+ */
+export const characterFactsControllerUpdate = async (
+  bookId: string,
+  characterId: string,
+  factId: string,
+  updateCharacterFactInputDto: UpdateCharacterFactInputDto,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<characterFactsControllerUpdateResponse> => {
+  return customInstance<characterFactsControllerUpdateResponse>(
+    getCharacterFactsControllerUpdateUrl(bookId, characterId, factId),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateCharacterFactInputDto),
+    },
+  );
+};
+
+export const getCharacterFactsControllerUpdateQueryKey = (
+  bookId: string,
+  characterId: string,
+  factId: string,
+  updateCharacterFactInputDto?: UpdateCharacterFactInputDto,
+) => {
+  return [
+    "PATCH",
+    `/api/books/${bookId}/characters/${characterId}/facts/${factId}`,
+    updateCharacterFactInputDto,
+  ] as const;
+};
+
+export const getCharacterFactsControllerUpdateQueryOptions = <
+  TData = Awaited<ReturnType<typeof characterFactsControllerUpdate>>,
+  TError = void,
+>(
+  bookId: string,
+  characterId: string,
+  factId: string,
+  updateCharacterFactInputDto: UpdateCharacterFactInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof characterFactsControllerUpdate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getCharacterFactsControllerUpdateQueryKey(
+      bookId,
+      characterId,
+      factId,
+      updateCharacterFactInputDto,
+    );
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof characterFactsControllerUpdate>>> = ({
+    signal,
+  }) =>
+    characterFactsControllerUpdate(bookId, characterId, factId, updateCharacterFactInputDto, {
+      signal,
+      ...requestOptions,
+    });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      bookId !== null &&
+      bookId !== undefined &&
+      characterId !== null &&
+      characterId !== undefined &&
+      factId !== null &&
+      factId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof characterFactsControllerUpdate>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type CharacterFactsControllerUpdateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof characterFactsControllerUpdate>>
+>;
+export type CharacterFactsControllerUpdateQueryError = void;
+
+export function useCharacterFactsControllerUpdate<
+  TData = Awaited<ReturnType<typeof characterFactsControllerUpdate>>,
+  TError = void,
+>(
+  bookId: string,
+  characterId: string,
+  factId: string,
+  updateCharacterFactInputDto: UpdateCharacterFactInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof characterFactsControllerUpdate>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof characterFactsControllerUpdate>>,
+          TError,
+          Awaited<ReturnType<typeof characterFactsControllerUpdate>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharacterFactsControllerUpdate<
+  TData = Awaited<ReturnType<typeof characterFactsControllerUpdate>>,
+  TError = void,
+>(
+  bookId: string,
+  characterId: string,
+  factId: string,
+  updateCharacterFactInputDto: UpdateCharacterFactInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof characterFactsControllerUpdate>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof characterFactsControllerUpdate>>,
+          TError,
+          Awaited<ReturnType<typeof characterFactsControllerUpdate>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharacterFactsControllerUpdate<
+  TData = Awaited<ReturnType<typeof characterFactsControllerUpdate>>,
+  TError = void,
+>(
+  bookId: string,
+  characterId: string,
+  factId: string,
+  updateCharacterFactInputDto: UpdateCharacterFactInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof characterFactsControllerUpdate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Update a character fact
+ */
+
+export function useCharacterFactsControllerUpdate<
+  TData = Awaited<ReturnType<typeof characterFactsControllerUpdate>>,
+  TError = void,
+>(
+  bookId: string,
+  characterId: string,
+  factId: string,
+  updateCharacterFactInputDto: UpdateCharacterFactInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof characterFactsControllerUpdate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getCharacterFactsControllerUpdateQueryOptions(
+    bookId,
+    characterId,
+    factId,
+    updateCharacterFactInputDto,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type characterFactsControllerRemoveResponse204 = {
+  data: void;
+  status: 204;
+};
+
+export type characterFactsControllerRemoveResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type characterFactsControllerRemoveResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type characterFactsControllerRemoveResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type characterFactsControllerRemoveResponseSuccess =
+  characterFactsControllerRemoveResponse204 & {
+    headers: Headers;
+  };
+export type characterFactsControllerRemoveResponseError = (
+  | characterFactsControllerRemoveResponse400
+  | characterFactsControllerRemoveResponse401
+  | characterFactsControllerRemoveResponse404
+) & {
+  headers: Headers;
+};
+
+export type characterFactsControllerRemoveResponse =
+  characterFactsControllerRemoveResponseSuccess | characterFactsControllerRemoveResponseError;
+
+export const getCharacterFactsControllerRemoveUrl = (
+  bookId: string,
+  characterId: string,
+  factId: string,
+) => {
+  return `/api/books/${bookId}/characters/${characterId}/facts/${factId}`;
+};
+
+/**
+ * @summary Delete a character fact
+ */
+export const characterFactsControllerRemove = async (
+  bookId: string,
+  characterId: string,
+  factId: string,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<characterFactsControllerRemoveResponse> => {
+  return customInstance<characterFactsControllerRemoveResponse>(
+    getCharacterFactsControllerRemoveUrl(bookId, characterId, factId),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getCharacterFactsControllerRemoveQueryKey = (
+  bookId: string,
+  characterId: string,
+  factId: string,
+) => {
+  return ["DELETE", `/api/books/${bookId}/characters/${characterId}/facts/${factId}`] as const;
+};
+
+export const getCharacterFactsControllerRemoveQueryOptions = <
+  TData = Awaited<ReturnType<typeof characterFactsControllerRemove>>,
+  TError = void,
+>(
+  bookId: string,
+  characterId: string,
+  factId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof characterFactsControllerRemove>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getCharacterFactsControllerRemoveQueryKey(bookId, characterId, factId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof characterFactsControllerRemove>>> = ({
+    signal,
+  }) => characterFactsControllerRemove(bookId, characterId, factId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      bookId !== null &&
+      bookId !== undefined &&
+      characterId !== null &&
+      characterId !== undefined &&
+      factId !== null &&
+      factId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof characterFactsControllerRemove>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type CharacterFactsControllerRemoveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof characterFactsControllerRemove>>
+>;
+export type CharacterFactsControllerRemoveQueryError = void;
+
+export function useCharacterFactsControllerRemove<
+  TData = Awaited<ReturnType<typeof characterFactsControllerRemove>>,
+  TError = void,
+>(
+  bookId: string,
+  characterId: string,
+  factId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof characterFactsControllerRemove>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof characterFactsControllerRemove>>,
+          TError,
+          Awaited<ReturnType<typeof characterFactsControllerRemove>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharacterFactsControllerRemove<
+  TData = Awaited<ReturnType<typeof characterFactsControllerRemove>>,
+  TError = void,
+>(
+  bookId: string,
+  characterId: string,
+  factId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof characterFactsControllerRemove>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof characterFactsControllerRemove>>,
+          TError,
+          Awaited<ReturnType<typeof characterFactsControllerRemove>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharacterFactsControllerRemove<
+  TData = Awaited<ReturnType<typeof characterFactsControllerRemove>>,
+  TError = void,
+>(
+  bookId: string,
+  characterId: string,
+  factId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof characterFactsControllerRemove>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Delete a character fact
+ */
+
+export function useCharacterFactsControllerRemove<
+  TData = Awaited<ReturnType<typeof characterFactsControllerRemove>>,
+  TError = void,
+>(
+  bookId: string,
+  characterId: string,
+  factId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof characterFactsControllerRemove>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getCharacterFactsControllerRemoveQueryOptions(
+    bookId,
+    characterId,
+    factId,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
 export type characterCustomLabelsControllerListResponse200 = {
   data: CharacterCustomLabelsViewDto;
   status: 200;
@@ -2724,7 +3620,7 @@ export function useCharacterCustomLabelsControllerList<
 }
 
 export type bookCharactersControllerListResponse200 = {
-  data: PaginatedCharactersDto;
+  data: PaginatedBookCharacterRosterDto;
   status: 200;
 };
 
@@ -2758,6 +3654,15 @@ export const getBookCharactersControllerListUrl = (
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["importance"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? "null" : String(value));
     }
@@ -3122,6 +4027,11 @@ export type bookCharactersControllerGetByIdResponse200 = {
   status: 200;
 };
 
+export type bookCharactersControllerGetByIdResponse400 = {
+  data: void;
+  status: 400;
+};
+
 export type bookCharactersControllerGetByIdResponse401 = {
   data: void;
   status: 401;
@@ -3137,7 +4047,9 @@ export type bookCharactersControllerGetByIdResponseSuccess =
     headers: Headers;
   };
 export type bookCharactersControllerGetByIdResponseError = (
-  bookCharactersControllerGetByIdResponse401 | bookCharactersControllerGetByIdResponse404
+  | bookCharactersControllerGetByIdResponse400
+  | bookCharactersControllerGetByIdResponse401
+  | bookCharactersControllerGetByIdResponse404
 ) & {
   headers: Headers;
 };
@@ -3145,8 +4057,29 @@ export type bookCharactersControllerGetByIdResponseError = (
 export type bookCharactersControllerGetByIdResponse =
   bookCharactersControllerGetByIdResponseSuccess | bookCharactersControllerGetByIdResponseError;
 
-export const getBookCharactersControllerGetByIdUrl = (bookId: string, characterId: string) => {
-  return `/api/books/${bookId}/characters/${characterId}`;
+export const getBookCharactersControllerGetByIdUrl = (
+  bookId: string,
+  characterId: string,
+  params?: BookCharactersControllerGetByIdParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["revealFieldIds"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/books/${bookId}/characters/${characterId}?${stringifiedParams}`
+    : `/api/books/${bookId}/characters/${characterId}`;
 };
 
 /**
@@ -3155,10 +4088,11 @@ export const getBookCharactersControllerGetByIdUrl = (bookId: string, characterI
 export const bookCharactersControllerGetById = async (
   bookId: string,
   characterId: string,
+  params?: BookCharactersControllerGetByIdParams,
   options?: Parameters<typeof customInstance>[1],
 ): Promise<bookCharactersControllerGetByIdResponse> => {
   return customInstance<bookCharactersControllerGetByIdResponse>(
-    getBookCharactersControllerGetByIdUrl(bookId, characterId),
+    getBookCharactersControllerGetByIdUrl(bookId, characterId, params),
     {
       ...options,
       method: "GET",
@@ -3166,8 +4100,12 @@ export const bookCharactersControllerGetById = async (
   );
 };
 
-export const getBookCharactersControllerGetByIdQueryKey = (bookId: string, characterId: string) => {
-  return [`/api/books/${bookId}/characters/${characterId}`] as const;
+export const getBookCharactersControllerGetByIdQueryKey = (
+  bookId: string,
+  characterId: string,
+  params?: BookCharactersControllerGetByIdParams,
+) => {
+  return [`/api/books/${bookId}/characters/${characterId}`, ...(params ? [params] : [])] as const;
 };
 
 export const getBookCharactersControllerGetByIdQueryOptions = <
@@ -3176,6 +4114,7 @@ export const getBookCharactersControllerGetByIdQueryOptions = <
 >(
   bookId: string,
   characterId: string,
+  params?: BookCharactersControllerGetByIdParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookCharactersControllerGetById>>, TError, TData>
@@ -3186,11 +4125,12 @@ export const getBookCharactersControllerGetByIdQueryOptions = <
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getBookCharactersControllerGetByIdQueryKey(bookId, characterId);
+    queryOptions?.queryKey ??
+    getBookCharactersControllerGetByIdQueryKey(bookId, characterId, params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof bookCharactersControllerGetById>>> = ({
     signal,
-  }) => bookCharactersControllerGetById(bookId, characterId, { signal, ...requestOptions });
+  }) => bookCharactersControllerGetById(bookId, characterId, params, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -3216,6 +4156,7 @@ export function useBookCharactersControllerGetById<
 >(
   bookId: string,
   characterId: string,
+  params: undefined | BookCharactersControllerGetByIdParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookCharactersControllerGetById>>, TError, TData>
@@ -3238,6 +4179,7 @@ export function useBookCharactersControllerGetById<
 >(
   bookId: string,
   characterId: string,
+  params?: BookCharactersControllerGetByIdParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookCharactersControllerGetById>>, TError, TData>
@@ -3260,6 +4202,7 @@ export function useBookCharactersControllerGetById<
 >(
   bookId: string,
   characterId: string,
+  params?: BookCharactersControllerGetByIdParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookCharactersControllerGetById>>, TError, TData>
@@ -3278,6 +4221,7 @@ export function useBookCharactersControllerGetById<
 >(
   bookId: string,
   characterId: string,
+  params?: BookCharactersControllerGetByIdParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookCharactersControllerGetById>>, TError, TData>
@@ -3286,7 +4230,12 @@ export function useBookCharactersControllerGetById<
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getBookCharactersControllerGetByIdQueryOptions(bookId, characterId, options);
+  const queryOptions = getBookCharactersControllerGetByIdQueryOptions(
+    bookId,
+    characterId,
+    params,
+    options,
+  );
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

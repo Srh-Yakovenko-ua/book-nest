@@ -1,3 +1,5 @@
+import type { Ref } from "react";
+
 import Image from "next/image";
 
 import { UiIcon } from "@/components/icons";
@@ -15,12 +17,14 @@ type EmptyStateProps = {
   className?: string;
   onPrimary?: () => void;
   onSecondary?: () => void;
+  primaryRef?: Ref<HTMLButtonElement>;
 } & ({ state: EmptyStateEntry; stateKey?: never } | { state?: never; stateKey: EmptyStateKey });
 
 export function EmptyState({
   className,
   onPrimary,
   onSecondary,
+  primaryRef,
   state,
   stateKey,
 }: EmptyStateProps) {
@@ -44,7 +48,7 @@ export function EmptyState({
       {(entry.primary ?? entry.secondary) ? (
         <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
           {entry.primary ? (
-            <Button onClick={onPrimary}>
+            <Button onClick={onPrimary} ref={primaryRef}>
               <UiIcon name={entry.primary.icon} />
               {entry.primary.label}
             </Button>

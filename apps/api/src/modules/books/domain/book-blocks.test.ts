@@ -2,9 +2,22 @@ import type { DeliveryInfoInput } from "@app/shared";
 
 import { describe, expect, it } from "vitest";
 
-import { buildDeliveryInfoData, buildDeliveryInfoUpdateData } from "./book-blocks.js";
+import type { ResolvedLoanInfo } from "./book-blocks.js";
+
+import {
+  buildDeliveryInfoData,
+  buildDeliveryInfoUpdateData,
+  buildLoanInfoUpdateData,
+} from "./book-blocks.js";
 
 type DefinedDeliveryInfo = NonNullable<DeliveryInfoInput>;
+
+const LOAN_CONTACT: ResolvedLoanInfo["loanContact"] = {
+  contact: null,
+  loanContactId: "6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b",
+  personName: "Olha",
+  refreshesSnapshot: false,
+};
 
 describe("buildDeliveryInfoData", () => {
   it("maps the price, currency, service and tracking fields onto the create payload", () => {
@@ -99,5 +112,43 @@ describe("buildDeliveryInfoUpdateData", () => {
   it("leaves the free flag undefined unless the patch names it", () => {
     expect(buildDeliveryInfoUpdateData({}).isFree).toBeUndefined();
     expect(buildDeliveryInfoUpdateData({ isFree: true }).isFree).toBe(true);
+  });
+});
+
+describe("buildLoanInfoUpdateData", () => {
+  it("turns the return reminder off when the expected return date is cleared", () => {
+    const data = buildLoanInfoUpdateData({
+      loanContact: LOAN_CONTACT,
+      loanInfo: { expectedReturnDate: null },
+    });
+
+    expect(data).toEqual({
+      expectedReturnDate: null,
+      loanContactId: "6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b",
+      remindBeforeDays: null,
+      remindToReturn: false,
+    });
+  });
+
+  it("leaves the reminder untouched when the patch does not name the expected return date", () => {
+    const data = buildLoanInfoUpdateData({
+      loanContact: LOAN_CONTACT,
+      loanInfo: { note: "return next week" },
+    });
+
+    expect(data.expectedReturnDate).toBeUndefined();
+    expect(data.remindToReturn).toBeUndefined();
+    expect(data.remindBeforeDays).toBeUndefined();
+  });
+
+  it("leaves the reminder untouched when the expected return date moves to a new day", () => {
+    const data = buildLoanInfoUpdateData({
+      loanContact: LOAN_CONTACT,
+      loanInfo: { expectedReturnDate: "2026-11-01" },
+    });
+
+    expect(data.expectedReturnDate).toEqual(new Date("2026-11-01T00:00:00.000Z"));
+    expect(data.remindToReturn).toBeUndefined();
+    expect(data.remindBeforeDays).toBeUndefined();
   });
 });

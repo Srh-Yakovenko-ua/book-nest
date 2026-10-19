@@ -37,6 +37,7 @@ export function NoteFullViewDialog({
 
   const entity = noteEntityRefFromNote(note);
   const category = noteCategoryLabel(note, (value) => tCategories(value));
+  const bodyTitle = entity === null ? null : note.title;
   const stamp = (iso: string) => ({
     date: formatDateLong(iso, locale),
     time: formatTime(iso, locale),
@@ -60,7 +61,7 @@ export function NoteFullViewDialog({
       >
         <DialogHeader className="min-w-0 pr-8 text-left">
           {entity === null ? (
-            <DialogTitle>{t("fallbackTitle")}</DialogTitle>
+            <DialogTitle className="wrap-anywhere">{note.title ?? t("fallbackTitle")}</DialogTitle>
           ) : (
             <NoteEntityHeader entity={entity} placement="fullView" />
           )}
@@ -73,9 +74,16 @@ export function NoteFullViewDialog({
           role="region"
           tabIndex={0}
         >
-          <p className="rounded-lg border border-border bg-secondary/40 p-4 text-base leading-relaxed wrap-anywhere whitespace-pre-line text-foreground">
-            {note.text}
-          </p>
+          <div className="flex min-w-0 flex-col gap-2">
+            {bodyTitle === null ? null : (
+              <h3 className="font-heading text-lg leading-snug font-semibold wrap-anywhere text-ink">
+                {bodyTitle}
+              </h3>
+            )}
+            <p className="rounded-lg border border-border bg-secondary/40 p-4 text-base leading-relaxed wrap-anywhere whitespace-pre-line text-foreground">
+              {note.text}
+            </p>
+          </div>
 
           {category === null && !note.isSpoiler ? null : (
             <div className="flex min-w-0 flex-wrap items-center gap-2">

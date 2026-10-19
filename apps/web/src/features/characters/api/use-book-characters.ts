@@ -1,6 +1,6 @@
 import type { BookCharacterSummaryQuery } from "@app/shared";
 
-import { PaginatedCharacterSummarySchema } from "@app/shared";
+import { PaginatedBookCharacterRosterSchema } from "@app/shared";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 
@@ -15,33 +15,33 @@ export const BOOK_CHARACTER_LOOKUP = {
   sort: "name",
 } as const;
 
-export type BookCharactersPage = z.infer<typeof PaginatedCharacterSummarySchema>;
+export type BookCharactersPage = z.infer<typeof PaginatedBookCharacterRosterSchema>;
 
 type BookCharacterLookupArgs = {
+  bookContext: BookCharacterSummaryQuery;
   bookId: string;
   pageSize: number;
   query: string;
-  readingContext: BookCharacterSummaryQuery;
 };
 
 export function useBookCharacterLookup({
+  bookContext,
   bookId,
   pageSize,
   query,
-  readingContext,
 }: BookCharacterLookupArgs) {
   const params: BookCharactersControllerListParams = {
     pageNumber: 1,
     pageSize,
     search: query,
     sort: BOOK_CHARACTER_LOOKUP.sort,
-    ...readingContext,
+    ...bookContext,
   };
 
   return useQuery({
     enabled: query.length >= BOOK_CHARACTER_LOOKUP.minQueryLength,
     queryFn: async ({ signal }): Promise<BookCharactersPage> =>
-      PaginatedCharacterSummarySchema.parse(
+      PaginatedBookCharacterRosterSchema.parse(
         await bookCharactersControllerList(bookId, params, { signal }),
       ),
     queryKey: characterKeys.bookRoster(bookId, params),

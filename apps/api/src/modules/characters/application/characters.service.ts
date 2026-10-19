@@ -18,7 +18,6 @@ import {
   CharactersListQuerySchema,
   normalizeName,
   normalizeSearch,
-  readingPositionFromQuery,
 } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
@@ -157,20 +156,18 @@ export class CharactersService {
     query: CharacterDetailsQuery;
     userId: string;
   }): Promise<CharacterDetailsView> {
-    const revealHiddenProfile = query.includeHiddenProfiles ?? false;
+    const revealFieldIds = query.revealFieldIds ?? [];
     if (query.contextBookId === undefined) {
-      return this.detailsAssembler.loadFullCharacterDetails({
+      return this.detailsAssembler.loadMaskedGlobalCharacterDetails({
         characterId,
-        revealHiddenProfile,
+        revealFieldIds,
         userId,
       });
     }
     return this.detailsAssembler.loadMaskedCharacterDetails({
       characterId,
       contextBookId: query.contextBookId,
-      reader: readingPositionFromQuery(query),
-      revealFieldIds: query.revealFieldIds ?? [],
-      revealHiddenProfile,
+      revealFieldIds,
       userId,
     });
   }
@@ -189,7 +186,6 @@ export class CharactersService {
       query.possibleDuplicates
         ? this.charactersRepository.findDuplicateNormalizedNames({
             archived: query.archived ?? false,
-            includeHiddenProfiles: query.includeHiddenProfiles ?? false,
             userId,
           })
         : undefined,

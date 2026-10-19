@@ -4,10 +4,13 @@ import type { ReadingStatisticsSeriesSection } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 
+import { UiIcon } from "@/components/icons";
+import { Progress } from "@/components/ui/progress";
 import { formatNumber } from "@/lib/format";
 
 import { formatDayShort, formatShare } from "../../model/statistics-format";
 import { StatisticsSection } from "../statistics-section";
+import { StatisticsStat } from "../statistics-stat";
 import { StatisticsSectionState } from "../statistics-states";
 import { TasteRankingList } from "../tastes/taste-ranking-list";
 
@@ -25,6 +28,8 @@ export function SeriesSection({ series }: { series: ReadingStatisticsSeriesSecti
     );
   }
 
+  const marathon = series.marathon.availability === "unavailable" ? null : series.marathon.data;
+
   return (
     <StatisticsSection description={t("description")} title={t("title")}>
       <div className="flex flex-col gap-1.5">
@@ -37,64 +42,64 @@ export function SeriesSection({ series }: { series: ReadingStatisticsSeriesSecti
                 total: series.completedReadsCount,
               })}
         </span>
-        <span className="h-2 w-full overflow-hidden rounded-full bg-secondary">
-          <span
-            className="block h-full rounded-full bg-primary"
-            style={{ width: `${(series.seriesShare ?? 0) * 100}%` }}
-          />
-        </span>
+        <Progress aria-hidden className="h-2" value={(series.seriesShare ?? 0) * 100} />
       </div>
 
       <SeriesLifecycle lifecycle={series.lifecycle} />
 
-      {series.mostActive.length === 0 ? (
-        <StatisticsSectionState kind="empty" title={t("empty")} />
-      ) : (
-        <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+        <div className="flex min-w-0 flex-col gap-2">
           <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
             {t("mostActiveTitle")}
           </span>
-          <TasteRankingList
-            rows={series.mostActive.map((entry) => ({
-              contextActions: entry.contextActions,
-              key: entry.seriesId,
-              label: entry.name,
-              secondary: t("attributablePages", {
-                pages: formatNumber(entry.attributablePagesRead, locale),
-              }),
-              value: entry.completedReadCycles,
-              valueLabel: t("reads", { count: entry.completedReadCycles }),
-            }))}
-          />
+          {series.mostActive.length === 0 ? (
+            <StatisticsSectionState kind="empty" title={t("empty")} />
+          ) : (
+            <TasteRankingList
+              rows={series.mostActive.map((entry) => ({
+                contextActions: entry.contextActions,
+                key: entry.seriesId,
+                label: entry.name,
+                value: entry.completedReadCycles,
+                valueLabel: t("reads", { count: entry.completedReadCycles }),
+              }))}
+            />
+          )}
         </div>
-      )}
 
-      {series.topProgress.length === 0 ? null : (
-        <div className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            {t("topProgressTitle")}
+        {series.topProgress.length === 0 ? null : (
+          <div className="flex min-w-0 flex-col gap-2">
+            <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              {t("topProgressTitle")}
+            </span>
+            <TasteRankingList
+              rows={series.topProgress.map((entry) => ({
+                key: entry.seriesId,
+                label: entry.name,
+                value: entry.distinctFirstCompletions,
+                valueLabel: t("firstCompletions", { count: entry.distinctFirstCompletions }),
+              }))}
+            />
+          </div>
+        )}
+      </div>
+
+      {marathon === null ? null : (
+        <div className="flex items-start gap-3 rounded-lg border border-border bg-secondary/50 px-3 py-2.5">
+          <span
+            aria-hidden
+            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
+          >
+            <UiIcon name="book-copy" size={16} />
           </span>
-          <ul className="flex flex-col gap-1">
-            {series.topProgress.map((entry) => (
-              <li className="flex justify-between gap-3 text-sm" key={entry.seriesId}>
-                <span className="truncate text-foreground">{entry.name}</span>
-                <span className="shrink-0 text-muted-foreground tabular-nums">
-                  {t("firstCompletions", { count: entry.distinctFirstCompletions })}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <p className="min-w-0 text-sm text-foreground">
+            {t("marathon", {
+              date: formatDayShort(marathon.endFinishedAt, locale),
+              length: marathon.length,
+              name: marathon.name,
+            })}
+          </p>
         </div>
-      )}
-
-      {series.marathon.availability === "unavailable" || series.marathon.data === null ? null : (
-        <p className="text-xs text-muted-foreground">
-          {t("marathon", {
-            date: formatDayShort(series.marathon.data.endFinishedAt, locale),
-            length: series.marathon.data.length,
-            name: series.marathon.data.name,
-          })}
-        </p>
       )}
     </StatisticsSection>
   );
@@ -122,15 +127,11 @@ function SeriesLifecycle({
   return (
     <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {LIFECYCLE_KEYS.map((key) => (
-        <div
-          className="flex flex-col gap-0.5 rounded-lg border border-border bg-secondary/50 px-3 py-2.5"
+        <StatisticsStat
           key={key}
-        >
-          <dt className="text-xs text-muted-foreground">{t(`lifecycle.${key}`)}</dt>
-          <dd className="font-heading text-base font-semibold text-ink tabular-nums">
-            {formatNumber(data[key], locale)}
-          </dd>
-        </div>
+          label={t(`lifecycle.${key}`)}
+          value={formatNumber(data[key], locale)}
+        />
       ))}
     </dl>
   );

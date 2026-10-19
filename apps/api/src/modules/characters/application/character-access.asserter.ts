@@ -75,12 +75,10 @@ export class CharacterAccessAsserter {
   async assertCharactersOwned(
     {
       characterIds,
-      excludeHiddenProfiles = false,
       notFoundCode = CHARACTER_ERROR_CODES.notFound,
       userId,
     }: {
       characterIds: string[];
-      excludeHiddenProfiles?: boolean;
       notFoundCode?: string;
       userId: string;
     },
@@ -88,7 +86,7 @@ export class CharacterAccessAsserter {
   ): Promise<void> {
     const uniqueIds = [...new Set(characterIds)];
     const owned = await this.charactersRepository.countOwnedCharacters(
-      { characterIds: uniqueIds, excludeHiddenProfiles, userId },
+      { characterIds: uniqueIds, userId },
       client,
     );
     if (owned !== uniqueIds.length) {

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { boundedArray } from "./bounded-array.js";
+import { CHARACTER_FACT_FIELDS } from "./character-facts.js";
 import { CharacterGroupTypeSchema } from "./character-groups.js";
 import {
   getRelationshipTypeCategory,
@@ -23,9 +25,11 @@ import {
   CharacterFormTypeSchema,
   CharacterGenderSchema,
 } from "./characters.js";
+import { type Nullable } from "./common.js";
 import { SPECIES_SEARCH } from "./species.js";
 
-export const CHARACTER_BUNDLE_FORMAT_VERSION = 1;
+export const CHARACTER_BUNDLE_FORMAT_VERSION = 2;
+const CHARACTER_BUNDLE_V1_FORMAT_VERSION = 1;
 
 const BUNDLE_NAME_MAX = 200;
 const BUNDLE_SHORT_TEXT_MAX = 200;
@@ -48,6 +52,8 @@ export const CHARACTER_BUNDLE_ROLES_PER_APPEARANCE_MAX = 20;
 export const CHARACTER_BUNDLE_TAGS_PER_CHARACTER_MAX = 15;
 export const CHARACTER_BUNDLE_MEMBERS_PER_GROUP_MAX = 100;
 export const CHARACTER_BUNDLE_BOOK_STATES_PER_RELATIONSHIP_MAX = 200;
+export const CHARACTER_BUNDLE_FACTS_PER_APPEARANCE_MAX = 200;
+export const CHARACTER_BUNDLE_FACTS_TOTAL_MAX = 2000;
 
 export const CHARACTER_IMPORT_ERROR_CODES = {
   invalid: "character_import_invalid",
@@ -60,6 +66,10 @@ const nullablePositiveInt = z.number().int().positive().max(CHARACTER_INT4_MAX).
 const nullableNonNegativeInt = z.number().int().min(0).max(CHARACTER_INT4_MAX).nullable();
 const externalRef = () => z.uuid();
 const speciesKeyRef = () => z.string().trim().min(1).max(BUNDLE_SPECIES_KEY_MAX).nullish();
+
+const ONLY_WHEN_PARSED_CLEANLY = {
+  when: (payload: z.core.ParsePayload) => payload.issues.length === 0,
+} satisfies z.core.$ZodSuperRefineParams;
 
 const BundleAliasSchema = z
   .object({
@@ -84,7 +94,23 @@ const BundleRoleSchema = z
 
 export type BundleRole = z.infer<typeof BundleRoleSchema>;
 
-const BundleAppearanceSchema = z
+const BundleFactSchema = z
+  .object({
+    chapter: CHARACTER_FACT_FIELDS.chapterText.nullable(),
+    createdAt: z.iso.datetime(),
+    page: z
+      .number()
+      .check(...CHARACTER_FACT_FIELDS.pageChecks)
+      .nullable(),
+    text: CHARACTER_FACT_FIELDS.text,
+    title: CHARACTER_FACT_FIELDS.title,
+    updatedAt: z.iso.datetime(),
+  })
+  .strict();
+
+export type BundleFact = z.infer<typeof BundleFactSchema>;
+
+const BundleAppearanceV1Schema = z
   .object({
     appearanceNotes: nullableText(BUNDLE_LONG_TEXT_MAX),
     appearanceNotesIsSpoiler: z.boolean(),
@@ -98,7 +124,6 @@ const BundleAppearanceSchema = z
     firstAppearanceChapter: nullableText(BUNDLE_SHORT_TEXT_MAX),
     firstAppearanceNote: nullableText(BUNDLE_SHORT_TEXT_MAX),
     firstAppearancePage: nullablePositiveInt,
-    hidePresenceAsSpoiler: z.boolean(),
     importance: BookCharacterImportanceSchema,
     isPovCharacter: z.boolean(),
     isUnreliableNarrator: z.boolean().default(false),
@@ -108,7 +133,7 @@ const BundleAppearanceSchema = z
     personalImpressionIsSpoiler: z.boolean(),
     portraitIsSpoiler: z.boolean(),
     portraitMediaId: externalRef().nullable(),
-    roles: z.array(BundleRoleSchema).max(CHARACTER_BUNDLE_ROLES_PER_APPEARANCE_MAX),
+    roles: boundedArray(BundleRoleSchema, CHARACTER_BUNDLE_ROLES_PER_APPEARANCE_MAX),
     sortOrder: nullableNonNegativeInt,
     speciesOverride: nullableText(SPECIES_SEARCH.nameMax),
     speciesOverrideIsSpoiler: z.boolean(),
@@ -118,6 +143,10 @@ const BundleAppearanceSchema = z
     statusIsSpoiler: z.boolean(),
   })
   .strict();
+
+const BundleAppearanceSchema = BundleAppearanceV1Schema.extend({
+  facts: boundedArray(BundleFactSchema, CHARACTER_BUNDLE_FACTS_PER_APPEARANCE_MAX),
+});
 
 export type BundleAppearance = z.infer<typeof BundleAppearanceSchema>;
 
@@ -134,39 +163,46 @@ const BundleFormSchema = z
 
 export type BundleForm = z.infer<typeof BundleFormSchema>;
 
-const BundleCharacterSchema = z
+const bundleCharacterFields = {
+  aliases: boundedArray(BundleAliasSchema, CHARACTER_BUNDLE_ALIASES_PER_CHARACTER_MAX),
+  avatarMediaId: externalRef().nullable(),
+  customGender: nullableText(BUNDLE_GENDER_CUSTOM_MAX),
+  entityKind: CharacterEntityKindSchema,
+  forms: boundedArray(BundleFormSchema, CHARACTER_BUNDLE_FORMS_PER_CHARACTER_MAX),
+  gender: CharacterGenderSchema,
+  globalAttitude: CharacterAttitudeSchema.nullable(),
+  id: z.uuid(),
+  isArchived: z.boolean(),
+  isFavorite: z.boolean(),
+  name: z.string().trim().min(1).max(BUNDLE_NAME_MAX),
+  neutralDescription: nullableText(BUNDLE_LONG_TEXT_MAX),
+  pronouns: nullableText(BUNDLE_PRONOUNS_MAX),
+  species: nullableText(SPECIES_SEARCH.nameMax),
+  speciesKey: speciesKeyRef(),
+  tagIds: boundedArray(externalRef(), CHARACTER_BUNDLE_TAGS_PER_CHARACTER_MAX),
+};
+
+const BundleCharacterV1Schema = z
   .object({
-    aliases: z.array(BundleAliasSchema).max(CHARACTER_BUNDLE_ALIASES_PER_CHARACTER_MAX),
-    appearances: z
-      .array(BundleAppearanceSchema)
-      .max(CHARACTER_BUNDLE_APPEARANCES_PER_CHARACTER_MAX),
-    avatarMediaId: externalRef().nullable(),
-    customGender: nullableText(BUNDLE_GENDER_CUSTOM_MAX),
-    entityKind: CharacterEntityKindSchema,
-    forms: z.array(BundleFormSchema).max(CHARACTER_BUNDLE_FORMS_PER_CHARACTER_MAX),
-    gender: CharacterGenderSchema,
-    globalAttitude: CharacterAttitudeSchema.nullable(),
-    hideProfileAsSpoiler: z.boolean(),
-    id: z.uuid(),
-    isArchived: z.boolean(),
-    isFavorite: z.boolean(),
-    name: z.string().trim().min(1).max(BUNDLE_NAME_MAX),
-    neutralDescription: nullableText(BUNDLE_LONG_TEXT_MAX),
-    pronouns: nullableText(BUNDLE_PRONOUNS_MAX),
-    species: nullableText(SPECIES_SEARCH.nameMax),
-    speciesKey: speciesKeyRef(),
-    tagIds: z.array(externalRef()).max(CHARACTER_BUNDLE_TAGS_PER_CHARACTER_MAX),
+    ...bundleCharacterFields,
+    appearances: boundedArray(
+      BundleAppearanceV1Schema,
+      CHARACTER_BUNDLE_APPEARANCES_PER_CHARACTER_MAX,
+    ),
   })
   .strict()
-  .superRefine((value, ctx) => {
-    if (value.gender === "custom" && (value.customGender ?? "").trim().length === 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "customGender is required when gender is custom",
-        path: ["customGender"],
-      });
-    }
-  });
+  .superRefine(requireCustomGender, ONLY_WHEN_PARSED_CLEANLY);
+
+const BundleCharacterSchema = z
+  .object({
+    ...bundleCharacterFields,
+    appearances: boundedArray(
+      BundleAppearanceSchema,
+      CHARACTER_BUNDLE_APPEARANCES_PER_CHARACTER_MAX,
+    ),
+  })
+  .strict()
+  .superRefine(requireCustomGender, ONLY_WHEN_PARSED_CLEANLY);
 
 export type BundleCharacter = z.infer<typeof BundleCharacterSchema>;
 
@@ -187,7 +223,7 @@ const BundleGroupSchema = z
     customType: nullableText(BUNDLE_CUSTOM_TYPE_MAX),
     description: nullableText(BUNDLE_LONG_TEXT_MAX),
     isSpoiler: z.boolean(),
-    memberships: z.array(BundleMembershipSchema).max(CHARACTER_BUNDLE_MEMBERS_PER_GROUP_MAX),
+    memberships: boundedArray(BundleMembershipSchema, CHARACTER_BUNDLE_MEMBERS_PER_GROUP_MAX),
     name: z.string().trim().min(1).max(BUNDLE_NAME_MAX),
     seriesId: externalRef().nullable(),
     type: CharacterGroupTypeSchema,
@@ -201,7 +237,7 @@ const BundleGroupSchema = z
         path: ["customType"],
       });
     }
-  });
+  }, ONLY_WHEN_PARSED_CLEANLY);
 
 export type BundleGroup = z.infer<typeof BundleGroupSchema>;
 
@@ -227,9 +263,10 @@ export type BundleBookState = z.infer<typeof BundleBookStateSchema>;
 
 const BundleRelationshipSchema = z
   .object({
-    bookStates: z
-      .array(BundleBookStateSchema)
-      .max(CHARACTER_BUNDLE_BOOK_STATES_PER_RELATIONSHIP_MAX),
+    bookStates: boundedArray(
+      BundleBookStateSchema,
+      CHARACTER_BUNDLE_BOOK_STATES_PER_RELATIONSHIP_MAX,
+    ),
     category: RelationshipCategorySchema,
     customType: nullableText(BUNDLE_CUSTOM_TYPE_MAX),
     directionality: RelationshipDirectionalitySchema,
@@ -280,7 +317,7 @@ const BundleRelationshipSchema = z
         path: ["customType"],
       });
     }
-  });
+  }, ONLY_WHEN_PARSED_CLEANLY);
 
 export type BundleRelationship = z.infer<typeof BundleRelationshipSchema>;
 
@@ -302,107 +339,294 @@ const BundleTheorySchema = z
         path: ["characterId"],
       });
     }
-  });
+  }, ONLY_WHEN_PARSED_CLEANLY);
 
 export type BundleTheory = z.infer<typeof BundleTheorySchema>;
 
-export const CharacterBundleSchema = z
+const bundleCollectionFields = {
+  exportedAt: z.iso.datetime(),
+  groups: boundedArray(BundleGroupSchema, CHARACTER_BUNDLE_GROUPS_MAX),
+  relationships: boundedArray(BundleRelationshipSchema, CHARACTER_BUNDLE_RELATIONSHIPS_MAX),
+  theories: boundedArray(BundleTheorySchema, CHARACTER_BUNDLE_THEORIES_MAX),
+};
+
+const CharacterBundleV1Schema = z
   .object({
-    characters: z.array(BundleCharacterSchema).max(CHARACTER_BUNDLE_CHARACTERS_MAX),
-    exportedAt: z.iso.datetime(),
-    formatVersion: z.literal(CHARACTER_BUNDLE_FORMAT_VERSION),
-    groups: z.array(BundleGroupSchema).max(CHARACTER_BUNDLE_GROUPS_MAX),
-    relationships: z.array(BundleRelationshipSchema).max(CHARACTER_BUNDLE_RELATIONSHIPS_MAX),
-    theories: z.array(BundleTheorySchema).max(CHARACTER_BUNDLE_THEORIES_MAX),
+    ...bundleCollectionFields,
+    characters: boundedArray(BundleCharacterV1Schema, CHARACTER_BUNDLE_CHARACTERS_MAX),
+    formatVersion: z.literal(CHARACTER_BUNDLE_V1_FORMAT_VERSION),
   })
   .strict()
-  .superRefine((value, ctx) => {
-    const characterIds = new Set<string>();
-    for (const [index, character] of value.characters.entries()) {
-      if (characterIds.has(character.id)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Character ids must be unique within the bundle",
-          path: ["characters", index, "id"],
-        });
-        continue;
-      }
-      characterIds.add(character.id);
-    }
-    for (const [groupIndex, group] of value.groups.entries()) {
-      for (const [memberIndex, membership] of group.memberships.entries()) {
-        if (!characterIds.has(membership.characterId)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Membership references a character that is not part of the bundle",
-            path: ["groups", groupIndex, "memberships", memberIndex, "characterId"],
-          });
-        }
-      }
-    }
-    for (const [index, relationship] of value.relationships.entries()) {
-      if (!characterIds.has(relationship.sourceCharacterId)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Relationship references a source character that is not part of the bundle",
-          path: ["relationships", index, "sourceCharacterId"],
-        });
-      }
-      if (!characterIds.has(relationship.targetCharacterId)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Relationship references a target character that is not part of the bundle",
-          path: ["relationships", index, "targetCharacterId"],
-        });
-      }
-    }
-    for (const [index, theory] of value.theories.entries()) {
-      if (theory.characterId !== null && !characterIds.has(theory.characterId)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Theory references a character that is not part of the bundle",
-          path: ["theories", index, "characterId"],
-        });
-      }
-    }
-  });
+  .superRefine(requireBundleCharacterReferences, ONLY_WHEN_PARSED_CLEANLY);
+
+type CharacterBundleV1 = z.infer<typeof CharacterBundleV1Schema>;
+
+export const CharacterBundleSchema = z
+  .object({
+    ...bundleCollectionFields,
+    characters: boundedArray(BundleCharacterSchema, CHARACTER_BUNDLE_CHARACTERS_MAX),
+    formatVersion: z.literal(CHARACTER_BUNDLE_FORMAT_VERSION),
+  })
+  .strict()
+  .superRefine((bundle, ctx) => {
+    requireBundleCharacterReferences(bundle, ctx);
+    limitBundleFactTotal(bundle, ctx);
+  }, ONLY_WHEN_PARSED_CLEANLY);
 
 export type CharacterBundle = z.infer<typeof CharacterBundleSchema>;
 
+export const CharacterBundleAnyVersionSchema = z.discriminatedUnion("formatVersion", [
+  CharacterBundleV1Schema,
+  CharacterBundleSchema,
+]);
+
+type BundleCharacterReferences = {
+  characters: readonly { id: string }[];
+  groups: readonly BundleGroup[];
+  relationships: readonly BundleRelationship[];
+  theories: readonly BundleTheory[];
+};
+
+function countBundleFacts(bundle: Pick<CharacterBundle, "characters">): number {
+  return bundle.characters.reduce(
+    (characterTotal, character) =>
+      characterTotal +
+      character.appearances.reduce(
+        (appearanceTotal, appearance) => appearanceTotal + appearance.facts.length,
+        0,
+      ),
+    0,
+  );
+}
+
+function limitBundleFactTotal(
+  bundle: Pick<CharacterBundle, "characters">,
+  ctx: z.RefinementCtx,
+): void {
+  if (countBundleFacts(bundle) <= CHARACTER_BUNDLE_FACTS_TOTAL_MAX) {
+    return;
+  }
+  ctx.addIssue({
+    code: "too_big",
+    inclusive: true,
+    maximum: CHARACTER_BUNDLE_FACTS_TOTAL_MAX,
+    message: `A bundle may contain at most ${CHARACTER_BUNDLE_FACTS_TOTAL_MAX} facts`,
+    origin: "array",
+    path: ["characters"],
+  });
+}
+
+function requireBundleCharacterReferences(
+  bundle: BundleCharacterReferences,
+  ctx: z.RefinementCtx,
+): void {
+  const characterIds = new Set<string>();
+  for (const [index, character] of bundle.characters.entries()) {
+    if (characterIds.has(character.id)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Character ids must be unique within the bundle",
+        path: ["characters", index, "id"],
+      });
+      continue;
+    }
+    characterIds.add(character.id);
+  }
+  for (const [groupIndex, group] of bundle.groups.entries()) {
+    for (const [memberIndex, membership] of group.memberships.entries()) {
+      if (!characterIds.has(membership.characterId)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Membership references a character that is not part of the bundle",
+          path: ["groups", groupIndex, "memberships", memberIndex, "characterId"],
+        });
+      }
+    }
+  }
+  for (const [index, relationship] of bundle.relationships.entries()) {
+    if (!characterIds.has(relationship.sourceCharacterId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Relationship references a source character that is not part of the bundle",
+        path: ["relationships", index, "sourceCharacterId"],
+      });
+    }
+    if (!characterIds.has(relationship.targetCharacterId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Relationship references a target character that is not part of the bundle",
+        path: ["relationships", index, "targetCharacterId"],
+      });
+    }
+  }
+  for (const [index, theory] of bundle.theories.entries()) {
+    if (theory.characterId !== null && !characterIds.has(theory.characterId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Theory references a character that is not part of the bundle",
+        path: ["theories", index, "characterId"],
+      });
+    }
+  }
+}
+
+function requireCustomGender(
+  character: { customGender: Nullable<string>; gender: string },
+  ctx: z.RefinementCtx,
+): void {
+  if (character.gender === "custom" && (character.customGender ?? "").trim().length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "customGender is required when gender is custom",
+      path: ["customGender"],
+    });
+  }
+}
+
 const LEGACY_UNRELIABLE_NARRATOR_TYPE = "unreliable";
 
-const LegacyUnreliableNarratorAppearanceSchema = z
-  .looseObject({ narratorType: z.literal(LEGACY_UNRELIABLE_NARRATOR_TYPE) })
-  .transform((appearance) => ({
-    ...appearance,
-    isUnreliableNarrator: true,
-    isUnreliableNarratorSpoiler: false,
-    narratorType: null,
-  }));
-
-const BundleAppearancesShapeSchema = z.looseObject({
-  characters: z.array(z.looseObject({ appearances: z.array(z.unknown()) })),
-});
+const LEGACY_RECORD_MAX_KEYS = {
+  appearance: Object.keys(BundleAppearanceV1Schema.shape).length + 1,
+  bundle: Object.keys(CharacterBundleV1Schema.shape).length,
+  character: Object.keys(BundleCharacterV1Schema.shape).length + 1,
+} as const;
 
 export function upgradeLegacyCharacterBundle(payload: unknown): unknown {
-  const shape = BundleAppearancesShapeSchema.safeParse(payload);
-  if (!shape.success) {
+  if (!isPlainRecord(payload)) {
     return payload;
   }
-  return {
-    ...shape.data,
-    characters: shape.data.characters.map((character) => ({
-      ...character,
-      appearances: character.appearances.map((appearance) =>
-        upgradeLegacyBundleAppearance(appearance),
-      ),
-    })),
-  };
+  const characters = boundedItems({
+    maxLength: CHARACTER_BUNDLE_CHARACTERS_MAX,
+    value: payload.characters,
+  });
+  if (characters === null) {
+    return payload;
+  }
+  const upgradedCharacters = characters.map((character) => upgradeLegacyBundleCharacter(character));
+  if (
+    !replacesAnyItem({ original: characters, upgraded: upgradedCharacters }) ||
+    !fitsKeyLimit({ maxKeys: LEGACY_RECORD_MAX_KEYS.bundle, record: payload })
+  ) {
+    return payload;
+  }
+  return { ...payload, characters: upgradedCharacters };
+}
+
+function boundedItems({
+  maxLength,
+  value,
+}: {
+  maxLength: number;
+  value: unknown;
+}): Nullable<readonly unknown[]> {
+  return Array.isArray(value) && value.length <= maxLength ? value : null;
+}
+
+function fitsKeyLimit({
+  maxKeys,
+  record,
+}: {
+  maxKeys: number;
+  record: Record<string, unknown>;
+}): boolean {
+  return Object.keys(record).length <= maxKeys;
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function replacesAnyItem({
+  original,
+  upgraded,
+}: {
+  original: readonly unknown[];
+  upgraded: readonly unknown[];
+}): boolean {
+  return upgraded.some((item, index) => item !== original[index]);
 }
 
 function upgradeLegacyBundleAppearance(appearance: unknown): unknown {
-  const legacy = LegacyUnreliableNarratorAppearanceSchema.safeParse(appearance);
-  return legacy.success ? legacy.data : appearance;
+  if (!isPlainRecord(appearance)) {
+    return appearance;
+  }
+  const isLegacyNarrator = appearance.narratorType === LEGACY_UNRELIABLE_NARRATOR_TYPE;
+  if (
+    (!isLegacyNarrator && !("hidePresenceAsSpoiler" in appearance)) ||
+    !fitsKeyLimit({ maxKeys: LEGACY_RECORD_MAX_KEYS.appearance, record: appearance })
+  ) {
+    return appearance;
+  }
+  const { hidePresenceAsSpoiler: _retiredPresenceFlag, ...rest } = appearance;
+  if (!isLegacyNarrator) {
+    return rest;
+  }
+  return {
+    ...rest,
+    isUnreliableNarrator: true,
+    isUnreliableNarratorSpoiler: false,
+    narratorType: null,
+  };
+}
+
+function upgradeLegacyBundleCharacter(character: unknown): unknown {
+  if (!isPlainRecord(character)) {
+    return character;
+  }
+  const appearances = boundedItems({
+    maxLength: CHARACTER_BUNDLE_APPEARANCES_PER_CHARACTER_MAX,
+    value: character.appearances,
+  });
+  if (appearances === null) {
+    return character;
+  }
+  const upgradedAppearances = appearances.map((appearance) =>
+    upgradeLegacyBundleAppearance(appearance),
+  );
+  const needsUpgrade =
+    "hideProfileAsSpoiler" in character ||
+    replacesAnyItem({ original: appearances, upgraded: upgradedAppearances });
+  if (
+    !needsUpgrade ||
+    !fitsKeyLimit({ maxKeys: LEGACY_RECORD_MAX_KEYS.character, record: character })
+  ) {
+    return character;
+  }
+  const { hideProfileAsSpoiler: _retiredProfileFlag, ...rest } = character;
+  return { ...rest, appearances: upgradedAppearances };
+}
+
+const V1FormatVersionProbeSchema = z.looseObject({
+  formatVersion: z.literal(CHARACTER_BUNDLE_V1_FORMAT_VERSION),
+});
+
+export const CharacterBundleImportSchema = z
+  .preprocess(upgradeV1CharacterBundle, CharacterBundleAnyVersionSchema)
+  .transform((bundle) => ({
+    bundle: toCurrentCharacterBundle(bundle),
+    sourceFormatVersion: bundle.formatVersion,
+  }));
+
+export type ImportedCharacterBundle = z.infer<typeof CharacterBundleImportSchema>;
+
+function toCurrentCharacterBundle(bundle: CharacterBundle | CharacterBundleV1): CharacterBundle {
+  if (bundle.formatVersion === CHARACTER_BUNDLE_FORMAT_VERSION) {
+    return bundle;
+  }
+  return {
+    ...bundle,
+    characters: bundle.characters.map((character) => ({
+      ...character,
+      appearances: character.appearances.map((appearance) => ({ ...appearance, facts: [] })),
+    })),
+    formatVersion: CHARACTER_BUNDLE_FORMAT_VERSION,
+  };
+}
+
+function upgradeV1CharacterBundle(payload: unknown): unknown {
+  return V1FormatVersionProbeSchema.safeParse(payload).success
+    ? upgradeLegacyCharacterBundle(payload)
+    : payload;
 }
 
 export const CharacterExportQuerySchema = z.object({
@@ -419,6 +643,7 @@ export const CharacterImportCreatedSchema = z.object({
   appearances: z.number().int().nonnegative(),
   bookStates: z.number().int().nonnegative(),
   characters: z.number().int().nonnegative(),
+  facts: z.number().int().nonnegative(),
   forms: z.number().int().nonnegative(),
   groups: z.number().int().nonnegative(),
   memberships: z.number().int().nonnegative(),
@@ -434,6 +659,7 @@ export const CharacterImportSkippedSchema = z.object({
   aliasesMissingBook: z.number().int().nonnegative(),
   appearancesMissingBook: z.number().int().nonnegative(),
   bookStatesMissingBook: z.number().int().nonnegative(),
+  factsMissingBook: z.number().int().nonnegative(),
   membershipsMissingBook: z.number().int().nonnegative(),
   relationshipsInvalid: z.number().int().nonnegative(),
   tagsMissing: z.number().int().nonnegative(),

@@ -1,4 +1,4 @@
-import type { CharacterRelationshipContextView } from "@app/shared";
+import type { CharacterRelationshipSafeContextView } from "@app/shared";
 
 import { SeriesCharacterRelationshipsQuerySchema } from "@app/shared";
 import { Controller, Get, Param, ParseUUIDPipe, Query } from "@nestjs/common";
@@ -18,7 +18,7 @@ import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { RelationshipContextService } from "../application/relationship-context.service.js";
 import { SeriesCharacterRelationshipsQueryDto } from "./input-dto/series-character-relationships-query.input-dto.js";
-import { CharacterRelationshipContextViewDto } from "./view-dto/character-relationship-context.view-dto.js";
+import { CharacterRelationshipSafeContextViewDto } from "./view-dto/character-relationship-context.view-dto.js";
 
 @ApiTags("character-relationships")
 @Controller("api/series/:seriesId/character-relationships")
@@ -31,11 +31,15 @@ export class SeriesCharacterRelationshipsController {
   @ApiOkResponse({
     description: "Spoiler-safe relationships with their effective state as of the context book",
     isArray: true,
-    type: CharacterRelationshipContextViewDto,
+    type: CharacterRelationshipSafeContextViewDto,
   })
   @ApiOperation({ summary: "List spoiler-safe relationships effective as of a context book" })
   @ApiParam({ description: "Series id", name: "seriesId" })
-  @ApiQuery({ name: "contextBookId", required: false })
+  @ApiQuery({
+    description: "Context book; defaults to the series default reading context when omitted",
+    name: "contextBookId",
+    required: false,
+  })
   @ApiQuery({ name: "includeHistory", required: false })
   @ApiQuery({
     description: "Reader chapter within the context book for page-level spoiler masking",
@@ -58,7 +62,7 @@ export class SeriesCharacterRelationshipsController {
     @Param("seriesId", ParseUUIDPipe) seriesId: string,
     @Query(new ZodQueryPipe(SeriesCharacterRelationshipsQuerySchema))
     query: SeriesCharacterRelationshipsQueryDto,
-  ): Promise<CharacterRelationshipContextView[]> {
+  ): Promise<CharacterRelationshipSafeContextView[]> {
     return this.contextService.listForSeries({ query, seriesId, userId: user.id });
   }
 }
