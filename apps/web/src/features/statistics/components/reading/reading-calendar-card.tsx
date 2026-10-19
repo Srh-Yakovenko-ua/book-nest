@@ -1,31 +1,51 @@
 "use client";
 
-import type { ReadingStatisticsCalendarSection, ReadingStatisticsMeta } from "@app/shared";
+import type {
+  Nullable,
+  ReadingStatisticsCalendarSection,
+  ReadingStatisticsMeta,
+} from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useEffectEvent } from "react";
 
+import type { CalendarMode } from "../../model/statistics-view";
+
+import { listCalendarMonths } from "../../model/statistics-calendar";
 import { formatDayRange } from "../../model/statistics-format";
+import { STATISTICS_VIEW } from "../../model/statistics-view";
 import { StatisticsMetricTabs, StatisticsSection } from "../statistics-section";
 import { StatisticsNote, StatisticsSectionState } from "../statistics-states";
 import { ReadingBooksCalendar } from "./reading-books-calendar";
-import { ReadingCalendarSummary } from "./reading-calendar-summary";
 import { ReadingHeatmap } from "./reading-heatmap";
-
-const CALENDAR_MODES = ["activity", "books"] as const;
-
-type CalendarMode = (typeof CALENDAR_MODES)[number];
 
 export function ReadingCalendarCard({
   calendar,
   meta,
+  mode,
+  month,
+  onModeChange,
+  onMonthChange,
 }: {
   calendar: ReadingStatisticsCalendarSection;
   meta: ReadingStatisticsMeta;
+  mode: CalendarMode;
+  month: Nullable<string>;
+  onModeChange: (mode: CalendarMode) => void;
+  onMonthChange: (month: Nullable<string>) => void;
 }) {
   const locale = useLocale();
   const t = useTranslations("statistics.calendar");
-  const [mode, setMode] = useState<CalendarMode>("activity");
+
+  const isMonthStale =
+    calendar.availability === "available" &&
+    month !== null &&
+    !listCalendarMonths(calendar.displayRange).includes(month);
+  const discardStaleMonth = useEffectEvent(() => onMonthChange(null));
+
+  useEffect(() => {
+    if (isMonthStale) discardStaleMonth();
+  }, [isMonthStale, month]);
 
   const isLowerBound = meta.activityHistory.selectedPeriodQuality === "legacy_lower_bound";
   const metricLabel = formatDayRange({
@@ -59,8 +79,8 @@ export function ReadingCalendarCard({
       action={
         <StatisticsMetricTabs
           label={t("modeLabel")}
-          metrics={CALENDAR_MODES}
-          onChange={setMode}
+          metrics={STATISTICS_VIEW.calendarModes}
+          onChange={onModeChange}
           optionLabel={(value) => t(`modes.${value}`)}
           value={mode}
         />
@@ -78,14 +98,17 @@ export function ReadingCalendarCard({
       }
       title={t("title")}
     >
-      <ReadingCalendarSummary calendar={calendar} isLowerBound={isLowerBound} />
-
       {calendar.days.length === 0 ? (
         <StatisticsSectionState kind="empty" title={t("empty")} />
       ) : mode === "activity" ? (
         <ReadingHeatmap days={calendar.days} weekStartDay={meta.weekStartDay} />
       ) : (
-        <ReadingBooksCalendar calendar={calendar} weekStartDay={meta.weekStartDay} />
+        <ReadingBooksCalendar
+          calendar={calendar}
+          month={month}
+          onMonthChange={onMonthChange}
+          weekStartDay={meta.weekStartDay}
+        />
       )}
     </StatisticsSection>
   );

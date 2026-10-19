@@ -216,7 +216,7 @@ describe("StatisticsKpiGrid", () => {
     expect(screen.getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual([
       "/statistics?metric=reads&section=dynamics&tab=activity",
       "/statistics?metric=pages&section=dynamics&tab=activity",
-      "/statistics?section=calendar&tab=activity",
+      "/statistics?section=habits&tab=activity",
       "/statistics?section=ratings&tab=tastes",
     ]);
   });

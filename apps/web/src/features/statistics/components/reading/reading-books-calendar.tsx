@@ -1,18 +1,29 @@
 "use client";
 
-import type { ReadingStatisticsCalendarSection, WeekStartDay } from "@app/shared";
+import type {
+  Nullable,
+  ReadingStatisticsActivityPage,
+  ReadingStatisticsCalendarSection,
+  WeekStartDay,
+} from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatNumber } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
+import type { CalendarMonthSummary } from "../../model/statistics-calendar";
+
+import { useReadingMonthBooks } from "../../api/use-reading-month-books";
 import {
+  clipCalendarMonth,
   isDateInMonth,
   listCalendarMonths,
+  resolveCalendarMonth,
   summarizeCalendarMonth,
 } from "../../model/statistics-calendar";
 import { formatMonthKey } from "../../model/statistics-format";
@@ -23,29 +34,55 @@ import { ReadingBooksMonthGrid } from "./reading-books-month-grid";
 
 export function ReadingBooksCalendar({
   calendar,
+  month,
+  onMonthChange,
   weekStartDay,
 }: {
   calendar: ReadingStatisticsCalendarSection;
+  month: Nullable<string>;
+  onMonthChange: (month: string) => void;
   weekStartDay: WeekStartDay;
 }) {
   const isMobile = useIsMobile();
   const locale = useLocale();
   const t = useTranslations("statistics.calendar.books");
+  const monthLabel = useRef<HTMLSpanElement>(null);
   const months = listCalendarMonths(calendar.displayRange);
-  const [requestedMonth, setRequestedMonth] = useState<null | string>(null);
+  const monthKey = resolveCalendarMonth({ months, requested: month });
+  const monthDays =
+    monthKey === null ? [] : calendar.days.filter((day) => isDateInMonth(day.date, monthKey));
+  const summary = summarizeCalendarMonth(monthDays);
+  const monthRange =
+    monthKey === null
+      ? calendar.displayRange
+      : clipCalendarMonth({ monthKey, range: calendar.displayRange });
+  const monthBooks = useReadingMonthBooks({
+    enabled: monthKey !== null && summary.books.isLowerBound,
+    from: monthRange.from,
+    to: monthRange.to,
+  });
 
-  const monthKey = resolveMonth({ months, requested: requestedMonth });
   if (monthKey === null) {
     return <StatisticsSectionState kind="empty" title={t("empty")} />;
   }
 
   const index = months.indexOf(monthKey);
-  const monthDays = calendar.days.filter((day) => isDateInMonth(day.date, monthKey));
-  const summary = summarizeCalendarMonth(monthDays);
   const lowerBound = (isLowerBound: boolean, value: number) =>
     isLowerBound
       ? t("atLeast", { value: formatNumber(value, locale) })
       : formatNumber(value, locale);
+  const exactMonthBooks = monthBooks.isError ? undefined : monthBooks.data;
+  const books = monthBooksCount({ exact: exactMonthBooks, summary });
+  const isExactCountMissing = summary.books.isLowerBound && exactMonthBooks === undefined;
+  const isMonthBooksStatusShown =
+    isExactCountMissing && (monthBooks.isFetching || monthBooks.isError);
+  const hasMonthBooksFailed = monthBooks.errorUpdateCount > 0;
+
+  const retryMonthBooks = async () => {
+    if (monthBooks.isFetching) return;
+    const result = await monthBooks.refetch();
+    if (result.isSuccess) monthLabel.current?.focus();
+  };
 
   return (
     <div className="flex flex-col gap-3">
@@ -55,14 +92,19 @@ export function ReadingBooksCalendar({
           aria-label={t("previousMonth")}
           className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
           onClick={() => {
-            if (index > 0) setRequestedMonth(months[index - 1] ?? monthKey);
+            if (index > 0) onMonthChange(months[index - 1] ?? monthKey);
           }}
           size="icon-lg"
           variant="ghost"
         >
           <UiIcon name="chevron-left" size={16} />
         </Button>
-        <span aria-live="polite" className="font-heading text-sm font-semibold text-ink">
+        <span
+          aria-live="polite"
+          className="font-heading text-sm font-semibold text-ink outline-none"
+          ref={monthLabel}
+          tabIndex={-1}
+        >
           {formatMonthKey(monthKey, locale)}
         </span>
         <Button
@@ -70,7 +112,7 @@ export function ReadingBooksCalendar({
           aria-label={t("nextMonth")}
           className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
           onClick={() => {
-            if (index < months.length - 1) setRequestedMonth(months[index + 1] ?? monthKey);
+            if (index < months.length - 1) onMonthChange(months[index + 1] ?? monthKey);
           }}
           size="icon-lg"
           variant="ghost"
@@ -79,23 +121,45 @@ export function ReadingBooksCalendar({
         </Button>
       </div>
 
-      <dl className="grid grid-cols-3 gap-2">
-        <StatisticsStat
-          label={t("monthActiveDays")}
-          value={lowerBound(summary.hasUnknownDays, summary.activeDays)}
-        />
-        <StatisticsStat
-          label={t("monthBooks")}
-          value={lowerBound(
-            summary.hasUnknownDays || summary.books.isLowerBound,
-            summary.books.count,
-          )}
-        />
-        <StatisticsStat
-          label={t("monthPages")}
-          value={lowerBound(summary.hasUnknownDays, summary.pagesRead)}
-        />
-      </dl>
+      <div>
+        <dl className="grid grid-cols-3 gap-2">
+          <StatisticsStat
+            label={t("monthActiveDays")}
+            value={lowerBound(summary.hasUnknownDays, summary.activeDays)}
+          />
+          <StatisticsStat
+            label={t("monthBooks")}
+            value={lowerBound(books.isLowerBound, books.count)}
+          />
+          <StatisticsStat
+            label={t("monthPages")}
+            value={lowerBound(summary.hasUnknownDays, summary.pagesRead)}
+          />
+        </dl>
+        <div aria-live="polite">
+          {isMonthBooksStatusShown ? (
+            <p
+              className={cn(
+                "mt-1.5 flex flex-wrap items-center gap-x-2 text-xs",
+                monthBooks.isFetching ? "text-muted-foreground" : "text-destructive",
+              )}
+            >
+              {monthBooks.isFetching ? t("monthBooksLoading") : t("monthBooksError")}
+              {hasMonthBooksFailed ? (
+                <Button
+                  aria-disabled={monthBooks.isFetching}
+                  className="underline underline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+                  onClick={() => void retryMonthBooks()}
+                  size="sm"
+                  variant="link"
+                >
+                  {t("monthBooksRetry")}
+                </Button>
+              ) : null}
+            </p>
+          ) : null}
+        </div>
+      </div>
 
       {isMobile ? (
         <ReadingBooksDiary days={monthDays} />
@@ -118,13 +182,21 @@ export function ReadingBooksCalendar({
   );
 }
 
-function resolveMonth({
-  months,
-  requested,
+function monthBooksCount({
+  exact,
+  summary,
 }: {
-  months: readonly string[];
-  requested: null | string;
-}): null | string {
-  if (requested !== null && months.includes(requested)) return requested;
-  return months.at(-1) ?? null;
+  exact: ReadingStatisticsActivityPage | undefined;
+  summary: CalendarMonthSummary;
+}): { count: number; isLowerBound: boolean } {
+  if (!summary.books.isLowerBound) {
+    return { count: summary.books.count, isLowerBound: summary.hasLegacyHistory };
+  }
+  if (exact === undefined) {
+    return { count: summary.books.count, isLowerBound: true };
+  }
+  return {
+    count: exact.booksCount,
+    isLowerBound: summary.hasLegacyHistory || exact.historyQuality === "legacy_observed_only",
+  };
 }
