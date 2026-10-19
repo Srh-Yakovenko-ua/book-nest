@@ -28,7 +28,10 @@ So the source of truth is: **code/compose → this repo**, **secrets → GitHub 
 - `deploy.sh prod|dev|all` — `docker compose pull` → `up -d` → `docker image prune -f`. On **prod** it also raises the maintenance page around the swap (see below).
 - `maintenance/maintenance.html` — the static page Caddy serves while prod is down. Self-contained on purpose: the web container is stopped when it is needed, so it may not reference a single external font, stylesheet or image.
 - `maintenance.sh on|off|status` — raise or drop the prod maintenance page by hand, without a deploy.
+- `backup.sh prod|dev` — nightly Postgres dump, verified and copied to R2. See "Backups" below and `RESTORE.md`.
+- `RESTORE.md` — the restore drill and the real-restore procedure. Read it before you need it.
 - `systemd/docker-prune.{service,timer}` — weekly image + build-cache cleanup.
+- `systemd/booknest-backup.{service,timer}` — nightly prod backup at 03:30 UTC.
 
 ## First-time setup (on the server)
 
@@ -64,6 +67,31 @@ cd ~/booknest && ./maintenance.sh on     # page goes up immediately, no restart 
 ```
 
 `dev` is deliberately untouched by all of this — its deploys behave exactly as before.
+
+## Backups
+
+`backup.sh prod` runs nightly from `systemd/booknest-backup.timer`. Each run:
+
+1. dumps the database with the `pg_dump` that ships inside the `db-prod` container (`--format=custom`, compressed, version-matched by construction);
+2. checks the archive with `pg_restore --list` before calling it a backup;
+3. copies it to the private R2 bucket `book-nest-backups` under `prod/` with `rclone` (run as a container, nothing installed on the box);
+4. deletes remote copies older than 30 days and local copies in `~/booknest/backups/prod/` older than 7 days.
+
+The upload is `rclone copy`, never `sync`: a sync would mirror the local prune to R2 and erase the history it exists to keep.
+
+Credentials come from two GitHub Secrets, `BACKUP_R2_ACCESS_KEY_ID` and `BACKUP_R2_SECRET_ACCESS_KEY`, rendered into `.env` on deploy like every other secret. They belong to an R2 API token scoped to the backups bucket only (Object Read & Write). The media buckets are public and must never receive a dump.
+
+Install the timer once, after the first deploy that syncs `backup.sh`:
+
+```sh
+cd ~/booknest && ./backup.sh prod                       # one manual run, watch it finish
+sudo cp systemd/booknest-backup.* /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now booknest-backup.timer
+systemctl list-timers booknest-backup.timer
+```
+
+Check on it with `journalctl -u booknest-backup.service --since yesterday`. A backup is only real once it has been restored: `RESTORE.md` has a drill that restores the newest dump into a scratch database without touching the live one. Run it after any change to `backup.sh` and at least once a quarter.
 
 ## Cleanup (automatic)
 
