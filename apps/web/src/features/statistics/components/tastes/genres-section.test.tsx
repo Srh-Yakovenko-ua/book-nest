@@ -112,4 +112,24 @@ describe("GenresSection", () => {
 
     expect(screen.getByText("У завершених читаннях періоду немає жанрів.")).toBeInTheDocument();
   });
+
+  it("scores a rated genre against the ten-point scale", async () => {
+    renderWithProviders(
+      <GenresSection
+        genres={{
+          ...genres,
+          topRated: {
+            availability: "available",
+            items: [{ averageRating: 8, genreKey: "fantasy", ratedReadCount: 3 }],
+          },
+        }}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("radio", { name: "Найвище оцінюю" }));
+
+    expect(screen.getByText("8,0 / 10")).toBeInTheDocument();
+    const bar = screen.getByRole("listitem").querySelector<HTMLElement>("[style*='width']");
+    expect(bar?.style.width).toBe("80%");
+  });
 });

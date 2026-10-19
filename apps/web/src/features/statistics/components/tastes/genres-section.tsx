@@ -2,6 +2,7 @@
 
 import type { ReadingStatisticsGenresSection } from "@app/shared";
 
+import { BOOK_RATING } from "@app/shared";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
@@ -19,6 +20,7 @@ type GenreMode = (typeof GENRE_MODES)[number];
 export function GenresSection({ genres }: { genres: ReadingStatisticsGenresSection }) {
   const locale = useLocale();
   const t = useTranslations("statistics.genres");
+  const tRatings = useTranslations("statistics.ratings");
   const genreName = useGenreName();
   const [mode, setMode] = useState<GenreMode>("frequency");
   const coverage = coverageCaption(genres.coverage);
@@ -79,8 +81,11 @@ export function GenresSection({ genres }: { genres: ReadingStatisticsGenresSecti
             label: genreName(entry.genreKey),
             secondary: t("ratedReads", { count: entry.ratedReadCount }),
             value: entry.averageRating,
-            valueLabel: formatRatingScore(entry.averageRating, locale),
+            valueLabel: tRatings("scale", {
+              value: formatRatingScore(entry.averageRating, locale),
+            }),
           }))}
+          scaleMax={BOOK_RATING.max}
         />
       )}
     </StatisticsSection>

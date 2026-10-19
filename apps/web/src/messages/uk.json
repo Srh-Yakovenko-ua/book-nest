@@ -9474,9 +9474,10 @@
       "scale": "{value} / 10",
       "highRated": "Оцінки 8,0 і вище",
       "highRatedValue": "{count} · {percent}%",
+      "highRatedHint": "серед оцінених читань",
       "ratedReads": "Оцінено читань",
       "ratedReadsValue": "{rated} із {total}",
-      "coverage": "{knownCount} із {eligibleCount} читань оцінено",
+      "coverage": "Середню оцінку розраховано лише за оціненими читаннями.",
       "distributionRow": "Оцінка {rating}: {count, plural, one {# читання} few {# читання} many {# читань} other {# читання}}",
       "topRatedTitle": "Найвище оцінені",
       "topRatedEmpty": "Ще немає оцінених читань.",
@@ -9532,7 +9533,8 @@
       "unavailable": "Видавництв виміряти не вдалося",
       "unavailableDescription": "Жодне завершене читання періоду не має збереженого видавництва.",
       "totalLabel": "Видавництв",
-      "concentrationLabel": "Частка топ-3"
+      "concentrationLabel": "Частка топ-3",
+      "concentrationHint": "серед читань із відомим видавництвом"
     },
     "languages": {
       "title": "Мови",
@@ -9544,7 +9546,8 @@
       "sourceHint": "Мова видання, зафіксована в BookNest на момент завершення читання.",
       "unavailable": "Мов виміряти не вдалося",
       "unavailableDescription": "Жодне завершене читання періоду не має збереженої мови видання.",
-      "countLabel": "Мов"
+      "countLabel": "Мов",
+      "shareHint": "Частки рахуються серед читань із відомою мовою."
     },
     "discoveries": {
       "title": "Нові відкриття",
@@ -9561,7 +9564,7 @@
         "publisher": "Видавництво"
       },
       "firstRead": "Перше завершене читання: {date}",
-      "afterDiscovery": "{count, plural, one {# читання після відкриття} few {# читання після відкриття} many {# читань після відкриття} other {# читання після відкриття}}",
+      "afterDiscovery": "{count, plural, one {# читання за період (включно з першим)} few {# читання за період (включно з першим)} many {# читань за період (включно з першим)} other {# читання за період (включно з першим)}}",
       "averageRating": "середня оцінка {value}",
       "countLabels": {
         "authors": "Нових авторів",

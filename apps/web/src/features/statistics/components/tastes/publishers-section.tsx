@@ -51,6 +51,7 @@ export function PublishersSection({
               value={formatNumber(publishers.totalPublishers, locale)}
             />
             <StatisticsStat
+              hint={t("concentrationHint")}
               label={t("concentrationLabel")}
               value={
                 publishers.topThreeConcentration === null
