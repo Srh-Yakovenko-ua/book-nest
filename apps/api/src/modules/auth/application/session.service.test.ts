@@ -11,9 +11,11 @@ import type { TokenService } from "./token.service.js";
 
 import { env } from "../../../config/env.js";
 import { UnauthorizedError } from "../../../core/exceptions/errors.js";
+import { AuthEvents } from "./auth-events.js";
 import { SESSION_ROTATION, SessionService } from "./session.service.js";
 
 type Mocks = {
+  authEvents: AuthEvents;
   sessionsRepository: SessionsRepository;
   tokenService: TokenService;
   transactionRunner: TransactionRunner;
@@ -54,15 +56,19 @@ function buildService(overrides: {
     run: vi.fn().mockImplementation((callback: (tx: unknown) => unknown) => callback({ tx: true })),
   } as unknown as TransactionRunner;
 
+  const authEvents = new AuthEvents();
+  vi.spyOn(authEvents, "emitSessionsRevoked");
+
   const service = new SessionService(
     sessionsRepository,
     usersRepository,
     tokenService,
     transactionRunner,
+    authEvents,
   );
 
   return {
-    mocks: { sessionsRepository, tokenService, transactionRunner, usersRepository },
+    mocks: { authEvents, sessionsRepository, tokenService, transactionRunner, usersRepository },
     service,
   };
 }
@@ -197,6 +203,7 @@ describe("SessionService.refresh", () => {
       UnauthorizedError,
     );
     expect(mocks.sessionsRepository.deleteAllByUserId).toHaveBeenCalledWith(USER_ID);
+    expect(mocks.authEvents.emitSessionsRevoked).toHaveBeenCalledWith({ userId: USER_ID });
   });
 
   it("deletes the expired session and throws when the session has expired", async () => {

@@ -24,6 +24,18 @@ export class SocketIoRealtimeAdapter extends RealtimePort {
     return this.server?.sockets.sockets.size ?? 0;
   }
 
+  disconnectUser({ userId }: { userId: string }): void {
+    if (this.server === null) {
+      log.warn({ userId }, "realtime server not attached, skipping the socket disconnect");
+      return;
+    }
+    try {
+      this.server.in(userId).disconnectSockets(true);
+    } catch (error) {
+      log.warn({ err: error, userId }, "failed to disconnect the sockets of a user");
+    }
+  }
+
   emitToUser({ event, userId }: RealtimeEmit): void {
     if (this.server === null) {
       log.warn({ eventType: event.type, userId }, "realtime server not attached, dropping event");

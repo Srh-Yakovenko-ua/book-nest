@@ -13,6 +13,7 @@ import { MailService } from "../../mail/index.js";
 import { PasswordResetTokensRepository } from "../infrastructure/password-reset-tokens.repository.js";
 import { SessionsRepository } from "../infrastructure/sessions.repository.js";
 import { UsersRepository } from "../infrastructure/users.repository.js";
+import { AuthEvents } from "./auth-events.js";
 import { EmailVerificationService } from "./email-verification.service.js";
 import { PasswordService } from "./password.service.js";
 import { TokenService } from "./token.service.js";
@@ -32,6 +33,7 @@ export class PasswordResetService {
     private readonly emailVerificationService: EmailVerificationService,
     private readonly mailService: MailService,
     private readonly transactionRunner: TransactionRunner,
+    private readonly authEvents: AuthEvents,
   ) {}
 
   async requestReset(email: string): Promise<void> {
@@ -97,6 +99,8 @@ export class PasswordResetService {
 
       return updatedUser;
     });
+
+    this.authEvents.emitSessionsRevoked({ userId: user.id });
 
     void this.mailService.sendPasswordChangedEmail({ to: user.email, userName: user.name });
 
