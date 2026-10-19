@@ -25,7 +25,7 @@ So the source of truth is: **code/compose → this repo**, **secrets → GitHub 
 - `Caddyfile` — routing + TLS + the Mailpit basic-auth. Synced from repo by CI. To change the Mailpit password, regenerate the hash with `docker run --rm caddy:2-alpine caddy hash-password --plaintext '<password>'` and replace it in the file.
 - `/api/metrics` is answered with a 404 at the edge on both hosts. The endpoint stays reachable inside the docker network for a future scraper.
 - `.env.example` — documents the shape; the real `.env` is CI-rendered from GitHub Secrets. **Never commit a real `.env`.**
-- `deploy.sh prod|dev|all` — `docker compose pull` → `up -d` → `docker image prune -f`. On **prod** it also raises the maintenance page around the swap (see below).
+- `deploy.sh prod|dev|all` — `docker compose pull` → `up -d` → `docker image prune -f`. On **prod** it also raises the maintenance page around the swap (see below). Before pulling it records the running API image id in `.previous-api-image.<env>`; `deploy.sh rollback prod|dev` re-tags that image and recreates the API container. The workflow calls it on its own when the post-deploy live check fails, and you can call it by hand.
 - `maintenance/maintenance.html` — the static page Caddy serves while prod is down. Self-contained on purpose: the web container is stopped when it is needed, so it may not reference a single external font, stylesheet or image.
 - `maintenance.sh on|off|status` — raise or drop the prod maintenance page by hand, without a deploy.
 - `systemd/docker-prune.{service,timer}` — weekly image + build-cache cleanup.
