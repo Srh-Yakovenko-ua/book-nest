@@ -5,6 +5,7 @@ import { Injectable } from "@nestjs/common";
 
 import { UnauthorizedError } from "../../../../core/exceptions/errors.js";
 import { TokenService } from "../../application/token.service.js";
+import { isAccessTokenStale, STALE_ACCESS_TOKEN_CODE } from "../../domain/access-token-epoch.js";
 import { toAuthenticatedUser } from "../../domain/authenticated-user.js";
 import { UsersRepository } from "../../infrastructure/users.repository.js";
 
@@ -21,11 +22,17 @@ export class JwtAccessGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     const token = extractBearerToken(request.headers.authorization);
 
-    const { sub } = await this.tokenService.verifyAccessToken(token);
+    const { issuedAt, sub } = await this.tokenService.verifyAccessToken(token);
 
     const user = await this.usersRepository.findById(sub);
     if (user === null) {
       throw new UnauthorizedError("User not found");
+    }
+
+    if (isAccessTokenStale({ issuedAt, passwordChangedAt: user.passwordChangedAt })) {
+      throw new UnauthorizedError("Access token was issued before the last password change", {
+        code: STALE_ACCESS_TOKEN_CODE,
+      });
     }
 
     request.currentUser = toAuthenticatedUser(user);
