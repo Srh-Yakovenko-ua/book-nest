@@ -9357,13 +9357,19 @@
       "bucketsLabel": "Chart buckets: arrow keys move between buckets, Enter opens the details",
       "openHint": "Select a bar to see exactly what went into it."
     },
+    "habits": {
+      "title": "Reading habits",
+      "description": "How often and how steadily you read.",
+      "metricRange": "Figures for {range}",
+      "unavailable": "Reading habits are unavailable"
+    },
     "calendar": {
       "title": "Reading calendar",
       "description": "The days you actually read.",
       "modeLabel": "Calendar mode",
       "modes": {
         "activity": "Activity",
-        "books": "Books"
+        "books": "Books by day"
       },
       "metricRange": "Figures for {range}",
       "displayRange": "The calendar shows {range}.",
@@ -9412,6 +9418,9 @@
         "diaryMeta": "{books, plural, one {# book} other {# books}} · {pages} pages",
         "monthActiveDays": "Active days",
         "monthBooks": "Books",
+        "monthBooksLoading": "Getting the exact number of books this month",
+        "monthBooksError": "Could not get the exact number of books this month",
+        "monthBooksRetry": "Try again",
         "monthPages": "Pages",
         "atLeast": "≥ {value}",
         "unknownLegend": "Unknown history: this day predates full tracking, so an empty cell does not prove there was no reading."

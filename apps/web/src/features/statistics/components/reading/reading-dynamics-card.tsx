@@ -6,6 +6,7 @@ import type {
   ReadingStatisticsDynamicsSection,
   ReadingStatisticsPeriod,
 } from "@app/shared";
+import type { ReactNode } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
 import { useRef, useState } from "react";
@@ -31,6 +32,7 @@ import {
 export function ReadingDynamicsCard({
   comparison,
   dynamics,
+  insight,
   isComparisonLowerBound,
   metric,
   onMetricChange,
@@ -39,6 +41,7 @@ export function ReadingDynamicsCard({
 }: {
   comparison: Nullable<ReadingStatisticsComparison>;
   dynamics: ReadingStatisticsDynamicsSection;
+  insight?: ReactNode;
   isComparisonLowerBound: boolean;
   metric: DynamicsMetric;
   onMetricChange: (metric: DynamicsMetric) => void;
@@ -90,6 +93,7 @@ export function ReadingDynamicsCard({
           {isComparisonHidden ? (
             <p className="text-xs text-muted-foreground">{t("comparisonLowerBound")}</p>
           ) : null}
+          {variant === "full" ? insight : null}
         </>
       }
       title={t("title")}

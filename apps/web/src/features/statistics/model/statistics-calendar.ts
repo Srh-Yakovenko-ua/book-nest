@@ -1,6 +1,11 @@
-import type { Nullable, StatisticsCalendarDay, WeekStartDay } from "@app/shared";
+import type {
+  Nullable,
+  ReadingStatisticsDateRange,
+  StatisticsCalendarDay,
+  WeekStartDay,
+} from "@app/shared";
 
-import { addDays, addMonths, endOfMonth, format, getDay, startOfMonth } from "date-fns";
+import { addDays, addMonths, endOfMonth, format, getDay, max, min, startOfMonth } from "date-fns";
 
 import { parseIsoDay } from "@/lib/format";
 
@@ -15,6 +20,7 @@ const WEEK_START_INDEX: Record<WeekStartDay, number> = { monday: 1, sunday: 0 };
 export type CalendarMonthSummary = {
   activeDays: number;
   books: { count: number; isLowerBound: boolean };
+  hasLegacyHistory: boolean;
   hasUnknownDays: boolean;
   pagesRead: number;
 };
@@ -91,6 +97,21 @@ export function buildMonthGrid({
   return weeks;
 }
 
+export function clipCalendarMonth({
+  monthKey,
+  range,
+}: {
+  monthKey: string;
+  range: ReadingStatisticsDateRange;
+}): ReadingStatisticsDateRange {
+  const monthStart = startOfMonth(parseIsoDay(`${monthKey}-01`));
+
+  return {
+    from: format(max([monthStart, parseIsoDay(range.from)]), ISO_DAY_FORMAT),
+    to: format(min([endOfMonth(monthStart), parseIsoDay(range.to)]), ISO_DAY_FORMAT),
+  };
+}
+
 export function isDateInMonth(date: string, monthKey: string): boolean {
   return date.startsWith(monthKey);
 }
@@ -112,6 +133,17 @@ export function listCalendarMonths({ from, to }: { from: string; to: string }): 
   return months;
 }
 
+export function resolveCalendarMonth({
+  months,
+  requested,
+}: {
+  months: readonly string[];
+  requested: Nullable<string>;
+}): Nullable<string> {
+  if (requested !== null && months.includes(requested)) return requested;
+  return months.at(-1) ?? null;
+}
+
 export function summarizeCalendarMonth(
   days: readonly StatisticsCalendarDay[],
 ): CalendarMonthSummary {
@@ -124,6 +156,7 @@ export function summarizeCalendarMonth(
       count: bookIds.size,
       isLowerBound: activeDays.some((day) => day.remainingBooksCount > 0),
     },
+    hasLegacyHistory: days.some((day) => day.historyQuality === "legacy_observed_only"),
     hasUnknownDays: days.some(isUnknownCalendarDay),
     pagesRead: activeDays.reduce((total, day) => total + day.pagesRead, 0),
   };

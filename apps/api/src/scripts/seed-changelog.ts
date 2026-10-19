@@ -1495,6 +1495,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Вкладки й огляд у статистиці",
     version: null,
   },
+  {
+    bodyEn:
+      "On the Activity tab of your statistics, the reading calendar now keeps the chosen mode and month in the page address, so a link or a return from another tab opens the same month. In Books by day mode, the month summary shows exactly how many different books you read that month, or a lower bound marked with ≥ when older history is incomplete. The dynamics chart on this tab now also tells you how the period compares with the one you compare it to, for pages or for finished reads.",
+    bodyUk:
+      "На вкладці «Активність» у статистиці календар читання тепер зберігає обраний режим і місяць в адресі сторінки, тож посилання або повернення з іншої вкладки відкриває той самий місяць. У режимі «Книги за днями» підсумок місяця показує точну кількість різних книг, які ви читали того місяця, або нижню межу зі знаком ≥, якщо давніша історія неповна. Графік динаміки на цій вкладці тепер також підказує, як період відрізняється від того, з яким ви його порівнюєте, за сторінками або за дочитаними книгами.",
+    category: "improvement",
+    publishedAt: "2026-10-19T10:10:11.000Z",
+    slug: "statistics-activity-calendar",
+    titleEn: "Reading calendar and dynamics on the Activity tab",
+    titleUk: "Календар і динаміка на вкладці «Активність»",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

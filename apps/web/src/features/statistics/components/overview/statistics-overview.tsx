@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReadingStatisticsOverview } from "@app/shared";
+import type { ReadingStatisticsInsightCode, ReadingStatisticsOverview } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 
@@ -9,6 +9,7 @@ import type { PageTabsItem } from "@/components/page-tabs";
 import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
 import { TitleLeaf } from "@/components/title-leaf";
 
+import type { DynamicsMetric } from "../../model/statistics-dynamics";
 import type { StatisticsScopeState } from "../../model/statistics-scope-state";
 import type { UseStatisticsParamsResult } from "../../model/use-statistics-params";
 
@@ -25,6 +26,7 @@ import { RecordsSection } from "../progress/records-section";
 import { SeriesSection } from "../progress/series-section";
 import { ReadingCalendarCard } from "../reading/reading-calendar-card";
 import { ReadingDynamicsCard } from "../reading/reading-dynamics-card";
+import { ReadingHabitsSection } from "../reading/reading-habits-section";
 import { StatisticsFocusTarget } from "../statistics-focus-target";
 import {
   StatisticsError,
@@ -40,7 +42,13 @@ import { GenresSection } from "../tastes/genres-section";
 import { LanguagesSection } from "../tastes/languages-section";
 import { PublishersSection } from "../tastes/publishers-section";
 import { RatingsSection } from "../tastes/ratings-section";
+import { StatisticsInsightBody } from "./statistics-insights";
 import { StatisticsOverviewTab } from "./statistics-overview-tab";
+
+const ACTIVITY_COMPARISON_INSIGHT_CODE = {
+  pages: "pages_read_vs_comparison",
+  reads: "completed_reads_vs_comparison",
+} as const satisfies Record<DynamicsMetric, ReadingStatisticsInsightCode>;
 
 export function StatisticsOverview() {
   const t = useTranslations("statistics");
@@ -128,6 +136,9 @@ function StatisticsTabs({
     comparison: overview.comparison,
     reliableFrom: overview.meta.activityHistory.reliableFrom,
   });
+  const comparisonInsight = overview.overviewInsights[view.metric].find(
+    (insight) => insight.code === ACTIVITY_COMPARISON_INSIGHT_CODE[view.metric],
+  );
 
   const items: PageTabsItem[] = STATISTICS_VIEW.tabs.map((value) => ({ label: t(value), value }));
 
@@ -154,6 +165,11 @@ function StatisticsTabs({
           <ReadingDynamicsCard
             comparison={overview.comparison}
             dynamics={overview.dynamics}
+            insight={
+              comparisonInsight === undefined ? null : (
+                <StatisticsInsightBody insight={comparisonInsight} isLowerBound={isLowerBound} />
+              )
+            }
             isComparisonLowerBound={isComparisonLowerBound}
             metric={view.metric}
             onMetricChange={view.setMetric}
@@ -161,8 +177,18 @@ function StatisticsTabs({
             variant="full"
           />
         </StatisticsFocusTarget>
+        <StatisticsFocusTarget isTarget={view.section === "habits"}>
+          <ReadingHabitsSection calendar={overview.calendar} meta={overview.meta} />
+        </StatisticsFocusTarget>
         <StatisticsFocusTarget isTarget={view.section === "calendar"}>
-          <ReadingCalendarCard calendar={overview.calendar} meta={overview.meta} />
+          <ReadingCalendarCard
+            calendar={overview.calendar}
+            meta={overview.meta}
+            mode={view.calendarMode}
+            month={view.calendarMonth}
+            onModeChange={view.setCalendarMode}
+            onMonthChange={view.setCalendarMonth}
+          />
         </StatisticsFocusTarget>
       </PageTabsPanel>
 

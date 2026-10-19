@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   buildHeatmapWeeks,
   buildMonthGrid,
+  clipCalendarMonth,
   listCalendarMonths,
+  resolveCalendarMonth,
   summarizeCalendarMonth,
   weekdayOrder,
 } from "./statistics-calendar";
@@ -122,6 +124,7 @@ describe("summarizeCalendarMonth", () => {
     expect(summary).toEqual({
       activeDays: 2,
       books: { count: 2, isLowerBound: false },
+      hasLegacyHistory: false,
       hasUnknownDays: false,
       pagesRead: 50,
     });
@@ -147,5 +150,82 @@ describe("summarizeCalendarMonth", () => {
 
     expect(summary.hasUnknownDays).toBe(true);
     expect(summary.activeDays).toBe(0);
+  });
+
+  it("flags legacy history on a legacy day with recorded pages, which is not an unknown day", () => {
+    const summary = summarizeCalendarMonth([
+      calendarDayFixture({
+        booksCount: 1,
+        booksPreview: [{ bookId: firstBook, coverThumbUrl: null, pagesRead: 20, title: "First" }],
+        historyQuality: "legacy_observed_only",
+        pagesRead: 20,
+      }),
+    ]);
+
+    expect(summary.hasLegacyHistory).toBe(true);
+    expect(summary.hasUnknownDays).toBe(false);
+  });
+
+  it("flags legacy history when a single day among exact ones is legacy", () => {
+    const summary = summarizeCalendarMonth([
+      calendarDayFixture({ date: "2026-03-02", pagesRead: 10 }),
+      calendarDayFixture({ date: "2026-03-03", historyQuality: "legacy_observed_only" }),
+      calendarDayFixture({ date: "2026-03-04", pagesRead: 5 }),
+    ]);
+
+    expect(summary.hasLegacyHistory).toBe(true);
+  });
+
+  it("reports no legacy history when every day is exact", () => {
+    const summary = summarizeCalendarMonth([
+      calendarDayFixture({ date: "2026-03-02", pagesRead: 10 }),
+      calendarDayFixture({ date: "2026-03-03" }),
+    ]);
+
+    expect(summary.hasLegacyHistory).toBe(false);
+  });
+});
+
+describe("resolveCalendarMonth", () => {
+  const months = ["2026-01", "2026-02", "2026-03"];
+
+  it("keeps a requested month the range lists, even when it is not the latest", () => {
+    expect(resolveCalendarMonth({ months, requested: "2026-01" })).toBe("2026-01");
+  });
+
+  it.each([["2026-13"], ["2026-3"], ["abc"], ["1999-01"], [null]] as const)(
+    "falls back to the latest listed month for %s",
+    (requested) => {
+      expect(resolveCalendarMonth({ months, requested })).toBe("2026-03");
+    },
+  );
+
+  it("resolves to no month when the range lists none", () => {
+    expect(resolveCalendarMonth({ months: [], requested: "2026-03" })).toBeNull();
+  });
+});
+
+describe("clipCalendarMonth", () => {
+  const range = { from: "2025-12-15", to: "2026-03-10" };
+
+  it("keeps a whole month that lies inside the range", () => {
+    expect(clipCalendarMonth({ monthKey: "2026-02", range })).toEqual({
+      from: "2026-02-01",
+      to: "2026-02-28",
+    });
+  });
+
+  it("starts the first month where the display range starts", () => {
+    expect(clipCalendarMonth({ monthKey: "2025-12", range })).toEqual({
+      from: "2025-12-15",
+      to: "2025-12-31",
+    });
+  });
+
+  it("ends the current month at today when the display range stops there", () => {
+    expect(clipCalendarMonth({ monthKey: "2026-03", range })).toEqual({
+      from: "2026-03-01",
+      to: "2026-03-10",
+    });
   });
 });

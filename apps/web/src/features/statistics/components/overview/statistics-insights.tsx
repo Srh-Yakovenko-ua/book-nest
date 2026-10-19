@@ -25,31 +25,7 @@ const INSIGHT_TONE_CLASS = {
   positive: "bg-success-soft text-success",
 } as const satisfies Record<ReadingStatisticsInsightTone, string>;
 
-export function StatisticsInsights({
-  insights,
-  isLowerBound,
-}: {
-  insights: readonly ReadingStatisticsInsight[];
-  isLowerBound: boolean;
-}) {
-  const t = useTranslations("statistics.insights");
-
-  if (insights.length === 0) return null;
-
-  return (
-    <StatisticsSection title={t("title")}>
-      <ul className="flex flex-col divide-y divide-border">
-        {insights.map((insight) => (
-          <li className="py-3 first:pt-0 last:pb-0" key={`${insight.code}-${insight.category}`}>
-            <StatisticsInsightBody insight={insight} isLowerBound={isLowerBound} />
-          </li>
-        ))}
-      </ul>
-    </StatisticsSection>
-  );
-}
-
-function StatisticsInsightBody({
+export function StatisticsInsightBody({
   insight,
   isLowerBound,
 }: {
@@ -105,5 +81,29 @@ function StatisticsInsightBody({
         )}
       </div>
     </div>
+  );
+}
+
+export function StatisticsInsights({
+  insights,
+  isLowerBound,
+}: {
+  insights: readonly ReadingStatisticsInsight[];
+  isLowerBound: boolean;
+}) {
+  const t = useTranslations("statistics.insights");
+
+  if (insights.length === 0) return null;
+
+  return (
+    <StatisticsSection title={t("title")}>
+      <ul className="flex flex-col divide-y divide-border">
+        {insights.map((insight) => (
+          <li className="py-3 first:pt-0 last:pb-0" key={`${insight.code}-${insight.category}`}>
+            <StatisticsInsightBody insight={insight} isLowerBound={isLowerBound} />
+          </li>
+        ))}
+      </ul>
+    </StatisticsSection>
   );
 }

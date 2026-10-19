@@ -1,4 +1,8 @@
-import type { ReadingStatisticsOverview } from "@app/shared";
+import type {
+  ReadingStatisticsActivityPage,
+  ReadingStatisticsInsight,
+  ReadingStatisticsOverview,
+} from "@app/shared";
 import type { MouseEventHandler, ReactNode } from "react";
 
 import { defaultUserProfileSettings } from "@app/shared";
@@ -7,6 +11,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
+
+import type { DynamicsMetric } from "../../model/statistics-dynamics";
 
 import {
   completedReadFixture,
@@ -38,7 +44,7 @@ vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams()
 const text = messages.statistics;
 
 const SECTION_TITLES = {
-  activity: [text.dynamics.title, text.calendar.title],
+  activity: [text.dynamics.title, text.habits.title, text.calendar.title],
   overview: [text.kpi.completedReads.label, text.dynamics.title, text.recentReads.title],
   progress: [text.goal.title, text.series.title, text.libraryBalance.title, text.records.title],
   tastes: [
@@ -51,11 +57,25 @@ const SECTION_TITLES = {
   ],
 } as const;
 
+const MONTH_BOOKS_PAGE: ReadingStatisticsActivityPage = {
+  activeDays: 2,
+  booksCount: 5,
+  historyQuality: "exact",
+  items: [],
+  nextCursor: null,
+  pagesRead: 184,
+  range: { from: "2026-03-01", to: "2026-03-31" },
+  reliableFrom: "2026-01-01",
+};
+
 let overviewResponse: () => Response = () => jsonResponse(overviewFixture());
 
 const fetchMock = vi.fn((input: RequestInfo | URL) => {
   const url = String(input);
   if (url.includes("/api/statistics/overview")) return Promise.resolve(overviewResponse());
+  if (url.includes("/api/statistics/reading-activity")) {
+    return Promise.resolve(jsonResponse(MONTH_BOOKS_PAGE));
+  }
   if (url.includes("/api/profile/settings")) {
     return Promise.resolve(jsonResponse(defaultUserProfileSettings));
   }
@@ -143,6 +163,23 @@ describe("StatisticsOverview tabs", () => {
       "true",
     );
     await expectSections(SECTION_TITLES[tab]);
+  });
+
+  it("stacks the activity tab as dynamics, habits and the calendar, with no fourth section", async () => {
+    renderStatistics("?tab=activity");
+    const panel = await activePanel();
+
+    const dynamics = await within(panel).findByText(text.dynamics.title);
+    const habits = within(panel).getByText(text.habits.title);
+    const calendar = within(panel).getByText(text.calendar.title);
+
+    expect(dynamics.compareDocumentPosition(habits) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(habits.compareDocumentPosition(calendar) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(panel.childElementCount).toBe(3);
   });
 
   it("switches tabs through the URL without touching the period or refetching the overview", async () => {
@@ -292,13 +329,40 @@ describe("StatisticsOverview compact overview", () => {
     expect(overviewRequests()).toHaveLength(1);
   });
 
+  it("opens the habits section on the activity tab from the active-days KPI, keeping the period", async () => {
+    const user = userEvent.setup();
+    const { onUrlUpdate } = renderStatistics("?period=year&year=2025&compare=previous_period");
+
+    await user.click(
+      await screen.findByRole("link", { name: new RegExp(text.kpi.activeDays.label) }),
+    );
+
+    expect(await screen.findByRole("tab", { name: text.tabs.activity })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await waitFor(() => {
+      expect(document.activeElement).toHaveTextContent(text.habits.title);
+      expect(document.activeElement).not.toHaveTextContent(text.calendar.title);
+    });
+    const update = onUrlUpdate.mock.calls.at(-1)?.[0];
+    expect(update?.searchParams.toString()).toBe(
+      "period=year&year=2025&compare=previous_period&section=habits&tab=activity",
+    );
+    expect(update?.options.history).toBe("push");
+  });
+
   it.each([
+    ["?tab=activity&section=habits", text.habits.title],
     ["?tab=activity&section=calendar", text.calendar.title],
     ["?tab=tastes&section=ratings", text.ratings.title],
   ])("moves focus to the section a deep link names (%s)", async (search, title) => {
     renderStatistics(search);
 
-    await waitFor(() => expect(document.activeElement).toHaveTextContent(title));
+    await waitFor(() => {
+      expect(document.activeElement).not.toBe(document.body);
+      expect(document.activeElement).toHaveTextContent(title);
+    });
   });
 
   it("shows only metric-relevant insights next to the chart and follows the metric toggle", async () => {
@@ -410,5 +474,159 @@ describe("StatisticsOverview compact overview", () => {
       expect(screen.queryByText(text.goal.currentTitle)).toBeNull();
       expect(screen.queryByRole("link", { name: text.goal.create })).toBeNull();
     });
+  });
+});
+
+describe("StatisticsOverview calendar state in the URL", () => {
+  function overviewOverThreeMonths(): ReadingStatisticsOverview {
+    const overview = overviewFixture();
+    return {
+      ...overview,
+      calendar: {
+        ...overview.calendar,
+        displayRange: { from: "2026-01-01", to: "2026-03-31" },
+      },
+    };
+  }
+
+  function lastUpdate(onUrlUpdate: ReturnType<typeof renderStatistics>["onUrlUpdate"]) {
+    return onUrlUpdate.mock.calls.at(-1)?.[0];
+  }
+
+  it("switches the calendar mode in place with a replace, leaving the period, metric and section alone", async () => {
+    const user = userEvent.setup();
+    const { onUrlUpdate } = renderStatistics(
+      "?period=year&year=2025&compare=previous_period&metric=pages&section=calendar&tab=activity",
+    );
+
+    await user.click(await screen.findByRole("radio", { name: text.calendar.modes.books }));
+
+    await waitFor(() =>
+      expect(lastUpdate(onUrlUpdate)?.searchParams.get("calendarMode")).toBe("books"),
+    );
+    const update = lastUpdate(onUrlUpdate);
+    expect(update?.options.history).toBe("replace");
+    expect(update?.searchParams.get("period")).toBe("year");
+    expect(update?.searchParams.get("year")).toBe("2025");
+    expect(update?.searchParams.get("compare")).toBe("previous_period");
+    expect(update?.searchParams.get("metric")).toBe("pages");
+    expect(update?.searchParams.get("section")).toBe("calendar");
+    expect(update?.searchParams.get("tab")).toBe("activity");
+    expect(overviewRequests()).toHaveLength(1);
+  });
+
+  it("steps to the previous calendar month in place with a replace", async () => {
+    const user = userEvent.setup();
+    overviewResponse = () => jsonResponse(overviewOverThreeMonths());
+    const { onUrlUpdate } = renderStatistics("?tab=activity&calendarMode=books");
+
+    await user.click(
+      await screen.findByRole("button", { name: text.calendar.books.previousMonth }),
+    );
+
+    await waitFor(() =>
+      expect(lastUpdate(onUrlUpdate)?.searchParams.get("calendarMonth")).toBe("2026-02"),
+    );
+    expect(lastUpdate(onUrlUpdate)?.options.history).toBe("replace");
+  });
+
+  it("drops an out-of-range calendar month from a deep link with a replace", async () => {
+    const { onUrlUpdate } = renderStatistics("?tab=activity&calendarMonth=1999-01");
+
+    await waitFor(() => expect(onUrlUpdate).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText(text.calendar.title)).toBeInTheDocument();
+    expect(onUrlUpdate).toHaveBeenCalledTimes(1);
+    const update = onUrlUpdate.mock.calls[0]?.[0];
+    expect(update?.searchParams.has("calendarMonth")).toBe(false);
+    expect(update?.searchParams.get("tab")).toBe("activity");
+    expect(update?.options.history).toBe("replace");
+  });
+
+  it("keeps the calendar mode and month across a tab round trip, switching tabs with a push", async () => {
+    const user = userEvent.setup();
+    overviewResponse = () => jsonResponse(overviewOverThreeMonths());
+    const { onUrlUpdate } = renderStatistics(
+      "?tab=activity&calendarMode=books&calendarMonth=2026-02",
+    );
+
+    await user.click(await screen.findByRole("tab", { name: text.tabs.tastes }));
+    await waitFor(() => expect(lastUpdate(onUrlUpdate)?.searchParams.get("tab")).toBe("tastes"));
+    await user.click(screen.getByRole("tab", { name: text.tabs.activity }));
+    await waitFor(() => expect(lastUpdate(onUrlUpdate)?.searchParams.get("tab")).toBe("activity"));
+
+    const update = lastUpdate(onUrlUpdate);
+    expect(update?.options.history).toBe("push");
+    expect(update?.searchParams.get("calendarMode")).toBe("books");
+    expect(update?.searchParams.get("calendarMonth")).toBe("2026-02");
+    expect(
+      await screen.findByRole("button", { name: text.calendar.books.nextMonth }),
+    ).toHaveAttribute("aria-disabled", "false");
+  });
+});
+
+describe("StatisticsOverview activity chart insight", () => {
+  const COMPARISON = {
+    pages: {
+      insight: {
+        category: "reading",
+        code: "pages_read_vs_comparison",
+        params: { absoluteDelta: 120, comparisonValue: 300, currentValue: 420, percentDelta: 40 },
+        tone: "positive",
+      },
+      sentence: "Прочитано 420 сторінок — на 120 більше, ніж у періоді порівняння (300).",
+    },
+    reads: {
+      insight: {
+        category: "reading",
+        code: "completed_reads_vs_comparison",
+        params: { absoluteDelta: -2, comparisonValue: 9, currentValue: 7, percentDelta: -22.2 },
+        tone: "negative",
+      },
+      sentence: "Ви завершили 7 читань — на 2 менше, ніж у періоді порівняння (9).",
+    },
+  } satisfies Record<DynamicsMetric, { insight: ReadingStatisticsInsight; sentence: string }>;
+
+  const [weekdayInsightLead = ""] = text.insights.codes.most_active_weekday.split("<value>");
+
+  const weekdayInsight = new RegExp(weekdayInsightLead.trim());
+
+  function withComparisonInsights(): ReadingStatisticsOverview {
+    const overview = overviewFixture();
+    return {
+      ...overview,
+      overviewInsights: {
+        pages: [...overview.overviewInsights.pages, COMPARISON.pages.insight],
+        reads: [COMPARISON.reads.insight],
+      },
+    };
+  }
+
+  it("puts only the pages comparison inside the dynamics card when the chart counts pages", async () => {
+    overviewResponse = () => jsonResponse(withComparisonInsights());
+    renderStatistics("?tab=activity&metric=pages");
+    const panel = await activePanel();
+
+    expect(panel.firstElementChild).toHaveTextContent(text.dynamics.title);
+    expect(panel.firstElementChild).toHaveTextContent(COMPARISON.pages.sentence);
+    expect(panel).not.toHaveTextContent(weekdayInsight);
+    expect(panel).not.toHaveTextContent(COMPARISON.reads.sentence);
+    expect(panel.childElementCount).toBe(3);
+  });
+
+  it("shows the reads comparison instead of the pages one when the chart counts reads", async () => {
+    overviewResponse = () => jsonResponse(withComparisonInsights());
+    renderStatistics("?tab=activity");
+    const panel = await activePanel();
+
+    expect(panel.firstElementChild).toHaveTextContent(COMPARISON.reads.sentence);
+    expect(panel).not.toHaveTextContent(COMPARISON.pages.sentence);
+  });
+
+  it("leaves the chart without an insight when the period has no comparison observation", async () => {
+    renderStatistics("?tab=activity&metric=pages");
+    const panel = await activePanel();
+
+    expect(panel.firstElementChild).toHaveTextContent(text.dynamics.title);
+    expect(panel).not.toHaveTextContent(weekdayInsight);
   });
 });
