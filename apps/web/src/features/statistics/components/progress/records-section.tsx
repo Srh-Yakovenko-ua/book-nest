@@ -3,6 +3,7 @@
 import type { ReadingStatisticsRecord, ReadingStatisticsRecordsSection } from "@app/shared";
 import type { ReactNode } from "react";
 
+import { RECORDS_LIMIT } from "@app/shared";
 import { useLocale, useTranslations } from "next-intl";
 
 import type { UiIconName } from "@/components/icons";
@@ -10,7 +11,6 @@ import type { UiIconName } from "@/components/icons";
 import { UiIcon } from "@/components/icons";
 import { Card } from "@/components/ui/card";
 import { Link } from "@/i18n/navigation";
-import { formatNumber } from "@/lib/format";
 
 import { resolveReadingDayTarget, toContextActionLink } from "../../model/statistics-drilldown";
 import { formatDayLong, formatMonthKey } from "../../model/statistics-format";
@@ -39,7 +39,7 @@ export function RecordsSection({
   const t = useTranslations("statistics.records");
 
   return (
-    <StatisticsSection description={t("description")} title={t("title")}>
+    <StatisticsSection description={t("description", { limit: RECORDS_LIMIT })} title={t("title")}>
       {records.items.length === 0 ? (
         <StatisticsSectionState kind="empty" title={t("empty")} />
       ) : (
@@ -125,10 +125,12 @@ function RecordBody({
     case "peak_month":
       return (
         <RecordText
+          caveat={isLowerBound ? t("values.peakMonthPagesIncomplete") : undefined}
           detail={t("values.peakMonthDetail", {
-            pages: formatNumber(record.data.pagesRead, locale),
+            pages: record.data.pagesRead,
             reads: record.data.completedReads,
           })}
+          note={t("values.peakMonthByReads")}
           value={formatMonthKey(record.data.month, locale)}
         />
       );
@@ -201,11 +203,13 @@ function RecordCard({
 }
 
 function RecordText({
+  caveat,
   detail,
   headline,
   note,
   value,
 }: {
+  caveat?: string;
   detail?: string;
   headline?: string;
   note?: string;
@@ -217,12 +221,15 @@ function RecordText({
         {value}
       </span>
       {headline === undefined ? null : (
-        <span className="line-clamp-2 text-sm font-medium text-foreground">{headline}</span>
+        <span className="text-sm font-medium break-words text-foreground">{headline}</span>
       )}
       {detail === undefined ? null : (
         <span className="text-xs text-muted-foreground">{detail}</span>
       )}
       {note === undefined ? null : <span className="text-xs text-muted-foreground">{note}</span>}
+      {caveat === undefined ? null : (
+        <span className="text-xs text-muted-foreground">{caveat}</span>
+      )}
     </>
   );
 }

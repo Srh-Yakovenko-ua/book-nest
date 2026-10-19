@@ -11,7 +11,7 @@ import { formatNumber } from "@/lib/format";
 import { formatDayShort, formatShare } from "../../model/statistics-format";
 import { StatisticsSection } from "../statistics-section";
 import { StatisticsStat } from "../statistics-stat";
-import { StatisticsSectionState } from "../statistics-states";
+import { StatisticsNote, StatisticsSectionState } from "../statistics-states";
 import { TasteRankingList } from "../tastes/taste-ranking-list";
 
 const LIFECYCLE_KEYS = ["started", "continued", "completed", "caughtUp"] as const;
@@ -28,30 +28,34 @@ export function SeriesSection({ series }: { series: ReadingStatisticsSeriesSecti
     );
   }
 
+  if (series.completedReadsCount === 0) {
+    return (
+      <StatisticsSection description={t("description")} title={t("title")}>
+        <StatisticsSectionState
+          description={t("noReadsDescription")}
+          kind="empty"
+          title={t("noReadsTitle")}
+        />
+      </StatisticsSection>
+    );
+  }
+
   const marathon = series.marathon.availability === "unavailable" ? null : series.marathon.data;
 
   return (
     <StatisticsSection description={t("description")} title={t("title")}>
-      <div className="flex flex-col gap-1.5">
-        <span className="text-sm text-foreground">
-          {series.seriesShare === null
-            ? t("shareUnknown")
-            : t("share", {
-                percent: formatShare(series.seriesShare, locale),
-                series: series.seriesCompletedReadsCount,
-                total: series.completedReadsCount,
-              })}
-        </span>
-        <Progress aria-hidden className="h-2" value={(series.seriesShare ?? 0) * 100} />
-      </div>
+      <SeriesShare series={series} />
 
       <SeriesLifecycle lifecycle={series.lifecycle} />
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-2">
-          <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            {t("mostActiveTitle")}
-          </span>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              {t("mostActiveTitle")}
+            </span>
+            <span className="text-xs text-muted-foreground">{t("mostActiveCaption")}</span>
+          </div>
           {series.mostActive.length === 0 ? (
             <StatisticsSectionState kind="empty" title={t("empty")} />
           ) : (
@@ -69,9 +73,12 @@ export function SeriesSection({ series }: { series: ReadingStatisticsSeriesSecti
 
         {series.topProgress.length === 0 ? null : (
           <div className="flex min-w-0 flex-col gap-2">
-            <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-              {t("topProgressTitle")}
-            </span>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                {t("topProgressTitle")}
+              </span>
+              <span className="text-xs text-muted-foreground">{t("topProgressCaption")}</span>
+            </div>
             <TasteRankingList
               rows={series.topProgress.map((entry) => ({
                 key: entry.seriesId,
@@ -125,14 +132,40 @@ function SeriesLifecycle({
   }
 
   return (
-    <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      {LIFECYCLE_KEYS.map((key) => (
-        <StatisticsStat
-          key={key}
-          label={t(`lifecycle.${key}`)}
-          value={formatNumber(data[key], locale)}
-        />
-      ))}
-    </dl>
+    <div className="flex flex-col gap-2">
+      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {LIFECYCLE_KEYS.map((key) => (
+          <StatisticsStat
+            key={key}
+            label={t(`lifecycle.${key}`)}
+            value={formatNumber(data[key], locale)}
+          />
+        ))}
+      </dl>
+      <StatisticsNote>{t("lifecycleNote")}</StatisticsNote>
+    </div>
+  );
+}
+
+function SeriesShare({ series }: { series: ReadingStatisticsSeriesSection }) {
+  const locale = useLocale();
+  const t = useTranslations("statistics.series");
+  const share = series.seriesShare;
+
+  if (share === null) {
+    return <span className="text-sm text-muted-foreground">{t("shareUnknown")}</span>;
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-sm text-foreground">
+        {t("share", {
+          percent: formatShare(share, locale),
+          series: series.seriesCompletedReadsCount,
+          total: series.completedReadsCount,
+        })}
+      </span>
+      <Progress aria-hidden className="h-2" value={share * 100} />
+    </div>
   );
 }

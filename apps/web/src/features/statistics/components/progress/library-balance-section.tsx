@@ -10,7 +10,6 @@ import { formatNumber } from "@/lib/format";
 import { formatShare } from "../../model/statistics-format";
 import { StatisticsSection } from "../statistics-section";
 import { StatisticsStat } from "../statistics-stat";
-import { StatisticsNote } from "../statistics-states";
 
 const FORECAST_FRACTION = { maximumFractionDigits: 1 } as const;
 
@@ -23,6 +22,8 @@ export function LibraryBalanceSection({
   const t = useTranslations("statistics.libraryBalance");
 
   const { flow, forecast, readRatio } = libraryBalance;
+  const forecastEstimate = forecast.availability === "unavailable" ? null : forecast.data;
+  const flowCounts = flow.availability === "available" ? flow.data : null;
 
   return (
     <StatisticsSection description={t("description")} title={t("title")}>
@@ -36,6 +37,7 @@ export function LibraryBalanceSection({
         />
 
         <StatisticsStat
+          hint={readRatio === null ? t("readRatioEmpty") : t("readRatioHint")}
           label={t("readRatio")}
           value={
             readRatio === null ? (
@@ -51,38 +53,32 @@ export function LibraryBalanceSection({
 
         <StatisticsStat
           hint={
-            forecast.data === null
-              ? undefined
-              : t("forecastPace", {
-                  rate: formatNumber(forecast.data.readsPerMonth, locale, FORECAST_FRACTION),
+            forecastEstimate === null
+              ? t(`forecastReason.${forecast.reason ?? "INSUFFICIENT_SAMPLE"}`)
+              : t("forecastHint", {
+                  rate: formatNumber(forecastEstimate.readsPerMonth, locale, FORECAST_FRACTION),
                 })
           }
           label={t("forecast")}
           value={
-            forecast.data === null
+            forecastEstimate === null
               ? "—"
               : t("forecastValue", {
-                  months: formatNumber(forecast.data.monthsRemaining, locale, FORECAST_FRACTION),
+                  months: formatNumber(forecastEstimate.monthsRemaining, locale, FORECAST_FRACTION),
                 })
           }
         />
       </dl>
 
-      {flow.availability === "unavailable" || flow.data === null ? null : (
+      {flowCounts === null ? null : (
         <p className="text-sm text-foreground tabular-nums">
           {t("flow", {
-            inflow: flow.data.inflow,
-            net: flow.data.netChange,
-            outflow: flow.data.outflow,
+            inflow: flowCounts.inflow,
+            net: flowCounts.netChange,
+            outflow: flowCounts.outflow,
           })}
         </p>
       )}
-
-      {forecast.availability === "unavailable" ? (
-        <StatisticsNote>
-          {t(`forecastReason.${forecast.reason ?? "INSUFFICIENT_SAMPLE"}`)}
-        </StatisticsNote>
-      ) : null}
     </StatisticsSection>
   );
 }

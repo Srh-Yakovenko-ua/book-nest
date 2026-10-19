@@ -1,14 +1,17 @@
 "use client";
 
-import type { ReadingStatisticsGoalSection } from "@app/shared";
+import type { Nullable, ReadingGoalMetrics, ReadingStatisticsGoalSection } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { GOAL_SIGNAL_TONE } from "@/features/reading-goals/model/goal-status";
 import { Link } from "@/i18n/navigation";
-import { formatDateShort } from "@/lib/format";
+import { formatDateLong, formatDateShort } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 import {
   type StatisticsContextActionLink,
@@ -52,7 +55,7 @@ function CompactReadingGoal({ goal }: { goal: ReadingStatisticsGoalSection }) {
     );
   }
 
-  const percent = Math.round(primary.metrics.progressPercent);
+  const percent = toDisplayPercent(primary.metrics);
   const links = toContextActionLinks(primary.contextActions);
 
   return (
@@ -63,6 +66,7 @@ function CompactReadingGoal({ goal }: { goal: ReadingStatisticsGoalSection }) {
       <GoalProgress
         completed={primary.metrics.completedCount}
         name={primary.name ?? primary.listName ?? t("fallbackName", { count: primary.targetCount })}
+        nameClassName="truncate"
         percent={percent}
         target={primary.targetCount}
       />
@@ -74,13 +78,11 @@ function CompactReadingGoal({ goal }: { goal: ReadingStatisticsGoalSection }) {
 function FullReadingGoal({ goal }: { goal: ReadingStatisticsGoalSection }) {
   const locale = useLocale();
   const t = useTranslations("statistics.goal");
-  const tStatus = useTranslations("goals.status");
   const primary = goal.primaryGoal;
-  const snapshotNote = <p className="text-xs text-muted-foreground">{t("snapshotNote")}</p>;
 
   if (primary === null) {
     return (
-      <StatisticsSection description={t("description")} note={snapshotNote} title={t("title")}>
+      <StatisticsSection description={t("description")} title={t("title")}>
         <StatisticsSectionState
           action={
             <Button asChild size="sm" variant="secondary">
@@ -98,33 +100,29 @@ function FullReadingGoal({ goal }: { goal: ReadingStatisticsGoalSection }) {
     );
   }
 
-  const percent = Math.round(primary.metrics.progressPercent);
+  const percent = toDisplayPercent(primary.metrics);
+  const forecastDate = toReliableForecastDate(primary.metrics);
   const links = toContextActionLinks(primary.contextActions);
 
   return (
-    <StatisticsSection
-      description={t("deadline", { date: formatDateShort(primary.deadline, locale) })}
-      note={snapshotNote}
-      title={t("title")}
-    >
+    <StatisticsSection description={t("description")} title={t("title")}>
       <GoalProgress
         completed={primary.metrics.completedCount}
         name={primary.name ?? primary.listName ?? t("fallbackName", { count: primary.targetCount })}
+        nameClassName="break-words"
         percent={percent}
         target={primary.targetCount}
       />
 
+      <GoalPace pace={primary.metrics.pace} />
+
       <dl className="flex flex-col gap-1 text-xs">
         <div className="flex justify-between gap-2">
-          <dt className="text-muted-foreground">{t("status")}</dt>
-          <dd className="font-medium text-foreground">{tStatus(primary.status)}</dd>
+          <dt className="text-muted-foreground">{t("deadlineLabel")}</dt>
+          <dd className="font-medium text-foreground">
+            {formatDateLong(primary.deadline, locale)}
+          </dd>
         </div>
-        {primary.metrics.pace === null ? null : (
-          <div className="flex justify-between gap-2">
-            <dt className="text-muted-foreground">{t("pace")}</dt>
-            <dd className="font-medium text-foreground">{t(`paces.${primary.metrics.pace}`)}</dd>
-          </div>
-        )}
         <div className="flex justify-between gap-2">
           <dt className="text-muted-foreground">{t("remaining")}</dt>
           <dd className="font-medium text-foreground tabular-nums">
@@ -133,12 +131,10 @@ function FullReadingGoal({ goal }: { goal: ReadingStatisticsGoalSection }) {
         </div>
         <div className="flex justify-between gap-2">
           <dt className="text-muted-foreground">{t("forecast")}</dt>
-          <dd className="font-medium text-foreground">
-            {primary.metrics.projectedCompletionDate === null ||
-            primary.metrics.projectionConfidence === "none" ||
-            primary.metrics.projectionConfidence === "low"
+          <dd className="text-right font-medium text-foreground">
+            {forecastDate === null
               ? t("forecastUnavailable")
-              : formatDateShort(primary.metrics.projectedCompletionDate, locale)}
+              : formatDateLong(forecastDate, locale)}
           </dd>
         </div>
       </dl>
@@ -176,14 +172,34 @@ function GoalLinks({
   );
 }
 
+function GoalPace({ pace }: { pace: ReadingGoalMetrics["pace"] }) {
+  const t = useTranslations("statistics.goal");
+
+  return (
+    <dl className="flex flex-wrap items-center gap-2">
+      <dt className="text-xs text-muted-foreground">{t("pace")}</dt>
+      <dd>
+        <Badge
+          className="h-auto min-h-6 max-w-full px-2.5 whitespace-normal"
+          variant={pace === null ? "secondary" : GOAL_SIGNAL_TONE.pace[pace]}
+        >
+          {pace === null ? t("paceUnknown") : t(`paces.${pace}`)}
+        </Badge>
+      </dd>
+    </dl>
+  );
+}
+
 function GoalProgress({
   completed,
   name,
+  nameClassName,
   percent,
   target,
 }: {
   completed: number;
   name: string;
+  nameClassName: string;
   percent: number;
   target: number;
 }) {
@@ -191,7 +207,7 @@ function GoalProgress({
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="truncate text-sm font-medium text-foreground">{name}</span>
+      <span className={cn("text-sm font-medium text-foreground", nameClassName)}>{name}</span>
       <span className="font-heading text-lg font-semibold text-ink tabular-nums">
         {t("progress", { completed, target })}
       </span>
@@ -205,4 +221,15 @@ function GoalProgress({
       </div>
     </div>
   );
+}
+
+function toDisplayPercent(metrics: ReadingGoalMetrics): number {
+  const rounded = Math.round(metrics.progressPercent);
+  return metrics.remainingCount > 0 ? Math.min(rounded, 99) : rounded;
+}
+
+function toReliableForecastDate(metrics: ReadingGoalMetrics): Nullable<string> {
+  const isReliable =
+    metrics.projectionConfidence === "medium" || metrics.projectionConfidence === "high";
+  return isReliable ? metrics.projectedCompletionDate : null;
 }
