@@ -9575,16 +9575,15 @@
     "goal": {
       "title": "Reading goal",
       "currentTitle": "Current goal",
-      "snapshotNote": "Shows the goal as it stands today, whatever period is selected.",
-      "description": "The active goal with the nearest deadline.",
+      "description": "The current state of your active goal with the nearest deadline. The selected period does not change it.",
       "empty": "No active goal",
       "emptyDescription": "Create a goal to see its progress right here.",
       "create": "Create a goal",
       "deadline": "By {date}",
+      "deadlineLabel": "Deadline",
       "fallbackName": "{count, plural, one {# book} other {# books}}",
       "progress": "{completed} of {target}",
       "progressLabel": "Goal progress: {percent}%",
-      "status": "Status",
       "pace": "Pace",
       "paces": {
         "ahead": "Ahead of plan",
@@ -9592,20 +9591,24 @@
         "behind": "Behind plan",
         "critical": "Needs a noticeably higher pace"
       },
+      "paceUnknown": "Pace not determined yet",
       "remaining": "Remaining",
       "remainingValue": "{count, plural, one {# book} other {# books}}",
       "forecast": "Projected finish",
-      "forecastUnavailable": "Not enough data",
+      "forecastUnavailable": "Not enough data yet for a reliable forecast",
       "open": "Open the goal",
       "otherGoals": "{count, plural, one {# more active goal} other {# more active goals}}"
     },
     "series": {
       "title": "Series reading",
-      "description": "How you moved through book series in this period.",
+      "description": "How you moved through book series in the selected period.",
       "unavailable": "Series data is unavailable",
+      "noReadsTitle": "No finished reads in the selected period",
+      "noReadsDescription": "Series share and rankings will appear once the period has at least one finished read.",
       "share": "{series} of {total} reads came from series · {percent}%",
       "shareUnknown": "The share of series reading could not be computed.",
       "lifecycleUnavailable": "Series milestones are unavailable",
+      "lifecycleNote": "One series can count toward several milestones at once, so these numbers should not be added together.",
       "reason": {
         "LEGACY_HISTORY_INCOMPLETE": "Some completions were carried over from older history, so structural transitions cannot be proven."
       },
@@ -9616,21 +9619,25 @@
         "caughtUp": "Caught up"
       },
       "mostActiveTitle": "Most active series",
+      "mostActiveCaption": "Finished reads, rereads included.",
       "reads": "{count, plural, one {# read} other {# reads}}",
       "empty": "No reads from series were finished in this period.",
-      "topProgressTitle": "Most progress",
+      "topProgressTitle": "Series progress",
+      "topProgressCaption": "Books finished for the first time in the period.",
       "firstCompletions": "{count, plural, one {# new book} other {# new books}}",
-      "marathon": "Series marathon: {length} books in a row from “{name}”, finished {date}."
+      "marathon": "Series marathon: {length, plural, one {# book} other {# books}} in a row from “{name}”, finished {date}."
     },
     "libraryBalance": {
       "title": "Library balance",
-      "description": "How many of your own books are still waiting to be read.",
+      "description": "The current state of the books you own. The selected period does not change it.",
       "currentTbr": "Unread right now",
       "currentTbrValue": "{unread} of {total}",
-      "readRatio": "Share already read",
-      "forecast": "Enough for about",
+      "readRatio": "Read among owned books",
+      "readRatioHint": "Based on current statuses",
+      "readRatioEmpty": "No owned books in your library yet.",
+      "forecast": "Unread books will last about",
       "forecastValue": "{months} mo",
-      "forecastPace": "at {rate} books per month",
+      "forecastHint": "Owned books first finished in the last 12 months: {rate} a month on average. Future purchases not counted.",
       "flow": "In {inflow} · out {outflow} · net {net}",
       "forecastReason": {
         "INSUFFICIENT_SAMPLE": "Too little reading history to estimate a pace.",
@@ -9640,7 +9647,7 @@
     },
     "records": {
       "title": "Your records",
-      "description": "The most notable extremes of this period.",
+      "description": "A selection of up to {limit, plural, one {# standout record} other {# standout records}} from the selected period.",
       "empty": "No records in this period yet.",
       "types": {
         "longest_completed_book": "Longest book finished",
@@ -9656,7 +9663,9 @@
         "elapsedDays": "in {count, plural, one {# day} other {# days}}",
         "marathon": "{count, plural, one {# book in a row} other {# books in a row}}",
         "streakDays": "{count, plural, one {# day in a row} other {# days in a row}}",
-        "peakMonthDetail": "{reads, plural, one {# read} other {# reads}} · {pages} pages",
+        "peakMonthDetail": "{reads, plural, one {# read} other {# reads}} · {pages, plural, one {# page} other {# pages}}",
+        "peakMonthByReads": "Chosen by the number of completed reads.",
+        "peakMonthPagesIncomplete": "The page count may be incomplete: part of the period predates full history tracking.",
         "streakDaysAtLeast": "{count, plural, one {≥ # day in a row} other {≥ # days in a row}}",
         "recordedOnly": "Among recorded days: part of the period predates full history tracking."
       }
