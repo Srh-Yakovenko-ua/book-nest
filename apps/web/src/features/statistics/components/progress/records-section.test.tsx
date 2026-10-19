@@ -174,7 +174,7 @@ describe("RecordsSection", () => {
         translateRecords("values.peakMonthDetail", {
           pages: PEAK_MONTH.data.pagesRead,
           reads: PEAK_MONTH.data.completedReads,
-        }),
+        }).replace(/\s+/g, " "),
       ),
     ).toBeInTheDocument();
   });
