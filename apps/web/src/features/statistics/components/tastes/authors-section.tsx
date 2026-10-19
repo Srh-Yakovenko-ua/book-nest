@@ -2,6 +2,7 @@
 
 import type { ReadingStatisticsAuthorsSection } from "@app/shared";
 
+import { BOOK_RATING } from "@app/shared";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
@@ -20,6 +21,7 @@ type AuthorMode = (typeof AUTHOR_MODES)[number];
 export function AuthorsSection({ authors }: { authors: ReadingStatisticsAuthorsSection }) {
   const locale = useLocale();
   const t = useTranslations("statistics.authors");
+  const tRatings = useTranslations("statistics.ratings");
   const [mode, setMode] = useState<AuthorMode>("frequency");
   const coverage = coverageCaption(authors.coverage);
   const returning =
@@ -79,8 +81,11 @@ export function AuthorsSection({ authors }: { authors: ReadingStatisticsAuthorsS
             label: entry.name,
             secondary: t("ratedReads", { count: entry.ratedReadCount }),
             value: entry.averageRating,
-            valueLabel: formatRatingScore(entry.averageRating, locale),
+            valueLabel: tRatings("scale", {
+              value: formatRatingScore(entry.averageRating, locale),
+            }),
           }))}
+          scaleMax={BOOK_RATING.max}
         />
       )}
 

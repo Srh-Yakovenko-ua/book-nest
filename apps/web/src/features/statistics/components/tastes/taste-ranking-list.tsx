@@ -24,10 +24,17 @@ export type TasteRankingRow = {
   valueLabel: string;
 };
 
-export function TasteRankingList({ rows }: { rows: readonly TasteRankingRow[] }) {
+export function TasteRankingList({
+  rows,
+  scaleMax,
+}: {
+  rows: readonly TasteRankingRow[];
+  scaleMax?: number;
+}) {
   const t = useTranslations("statistics.rankings");
   const [expanded, setExpanded] = useState(false);
   const peak = rows.reduce((max, row) => Math.max(max, row.value), 0);
+  const barScale = scaleMax ?? peak;
   const hiddenCount = Math.max(rows.length - COLLAPSED_ROWS, 0);
 
   return (
@@ -46,7 +53,9 @@ export function TasteRankingList({ rows }: { rows: readonly TasteRankingRow[] })
                 <span className="w-5 shrink-0 text-xs font-semibold text-muted-foreground tabular-nums">
                   {index + 1}
                 </span>
-                <span className="truncate text-sm font-medium text-foreground">{row.label}</span>
+                <span className="min-w-0 text-sm font-medium break-words whitespace-normal text-foreground">
+                  {row.label}
+                </span>
                 <TasteContextActions actions={row.contextActions ?? []} />
               </span>
               <span className="flex shrink-0 items-baseline gap-2">
@@ -63,7 +72,7 @@ export function TasteRankingList({ rows }: { rows: readonly TasteRankingRow[] })
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
               <div
                 className="h-full rounded-full bg-primary transition-[width] duration-500 motion-reduce:transition-none"
-                style={{ width: `${peak <= 0 ? 0 : (row.value / peak) * 100}%` }}
+                style={{ width: `${barScale <= 0 ? 0 : (row.value / barScale) * 100}%` }}
               />
             </div>
           </li>

@@ -9474,9 +9474,10 @@
       "scale": "{value} / 10",
       "highRated": "Rated 8.0 and above",
       "highRatedValue": "{count} · {percent}%",
+      "highRatedHint": "among rated reads",
       "ratedReads": "Rated reads",
       "ratedReadsValue": "{rated} of {total}",
-      "coverage": "{knownCount} of {eligibleCount} reads rated",
+      "coverage": "The average is based on rated reads only.",
       "distributionRow": "Rating {rating}: {count, plural, one {# read} other {# reads}}",
       "topRatedTitle": "Highest rated",
       "topRatedEmpty": "No rated reads yet.",
@@ -9532,7 +9533,8 @@
       "unavailable": "Publishers cannot be measured",
       "unavailableDescription": "None of the reads finished in this period carry a recorded publisher.",
       "totalLabel": "Publishers",
-      "concentrationLabel": "Top 3 share"
+      "concentrationLabel": "Top 3 share",
+      "concentrationHint": "among reads with a known publisher"
     },
     "languages": {
       "title": "Languages",
@@ -9544,7 +9546,8 @@
       "sourceHint": "The edition language recorded in BookNest when the read was finished.",
       "unavailable": "Languages cannot be measured",
       "unavailableDescription": "None of the reads finished in this period carry a recorded edition language.",
-      "countLabel": "Languages"
+      "countLabel": "Languages",
+      "shareHint": "Shares are counted among reads with a known language."
     },
     "discoveries": {
       "title": "New discoveries",
@@ -9561,7 +9564,7 @@
         "publisher": "Publisher"
       },
       "firstRead": "First finished read: {date}",
-      "afterDiscovery": "{count, plural, one {# read after the discovery} other {# reads after the discovery}}",
+      "afterDiscovery": "{count, plural, one {# read in this period (including the first)} other {# reads in this period (including the first)}}",
       "averageRating": "average rating {value}",
       "countLabels": {
         "authors": "New authors",

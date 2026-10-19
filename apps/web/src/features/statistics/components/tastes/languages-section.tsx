@@ -37,6 +37,7 @@ export function LanguagesSection({ languages }: { languages: ReadingStatisticsLa
       note={
         <>
           <StatisticsNote>{t("sourceHint")}</StatisticsNote>
+          {languages.items.length === 0 ? null : <StatisticsNote>{t("shareHint")}</StatisticsNote>}
           {coverage === null ? null : <StatisticsNote>{t("coverage", coverage)}</StatisticsNote>}
         </>
       }
@@ -46,7 +47,7 @@ export function LanguagesSection({ languages }: { languages: ReadingStatisticsLa
         <StatisticsSectionState kind="empty" title={t("empty")} />
       ) : (
         <>
-          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <dl className="w-full sm:max-w-xs">
             <StatisticsStat
               label={t("countLabel")}
               value={formatNumber(languages.items.length, locale)}
