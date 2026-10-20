@@ -18,13 +18,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 
 export type FacetOption = {
-  count: number;
+  count?: number;
   label: string;
   value: string;
 };
 
 type FacetMultiselectProps = {
   emptyText: string;
+  hideSelection?: boolean;
   isSearching?: boolean;
   label: string;
   onSearchChange?: (next: string) => void;
@@ -40,6 +41,7 @@ type FacetMultiselectProps = {
 
 export function FacetMultiselect({
   emptyText,
+  hideSelection = false,
   isSearching,
   label,
   onSearchChange,
@@ -146,6 +148,7 @@ export function FacetMultiselect({
               </CommandEmpty>
               {orderedOptions.map((option) => (
                 <CommandItem
+                  aria-checked={selected.has(option.value)}
                   className="cursor-pointer gap-2.5"
                   data-checked={selected.has(option.value)}
                   key={option.value}
@@ -160,16 +163,18 @@ export function FacetMultiselect({
                     tabIndex={-1}
                   />
                   <span className="min-w-0 flex-1 truncate font-medium">{option.label}</span>
-                  <Badge className="min-w-8 justify-center tabular-nums" variant="primary">
-                    {option.count}
-                  </Badge>
+                  {option.count === undefined ? null : (
+                    <Badge className="min-w-8 justify-center tabular-nums" variant="primary">
+                      {option.count}
+                    </Badge>
+                  )}
                 </CommandItem>
               ))}
             </CommandList>
           </Command>
         </PopoverContent>
       </Popover>
-      {value.length > 0 ? (
+      {value.length > 0 && !hideSelection ? (
         <ul aria-label={label} className="flex flex-wrap gap-1.5">
           {value.map((selectedValue) => {
             const selectedLabel = labelOf(selectedValue);

@@ -6698,12 +6698,12 @@
       }
     },
     "sort": {
-      "usage_count_desc": "By usage",
-      "books_count_desc": "By number of books",
-      "characters_count_desc": "By number of characters",
-      "name_asc": "By name",
-      "type_asc": "By type",
-      "created_desc": "Newest first"
+      "usage_count_desc": "Usage count: most first",
+      "books_count_desc": "Book count: most first",
+      "characters_count_desc": "Character count: most first",
+      "name_asc": "Name: A–Z",
+      "type_asc": "Type: tropes first",
+      "created_desc": "Date created: newest first"
     },
     "quickFilter": {
       "all": "All",
@@ -7860,9 +7860,26 @@
     }
   },
   "characters": {
+    "activeFilters": {
+      "attitude": "My attitude: {label}",
+      "book": "Book: {name}",
+      "gender": "Gender: {label}",
+      "group": "Group: {name}",
+      "importance": "Importance: {label}",
+      "pending": "…",
+      "role": "Role: {label}",
+      "search": "Search: {query}",
+      "series": "Series: {name}",
+      "species": "Species: {name}",
+      "tag": "Tag: {name}",
+      "unknown": "Untitled",
+      "withoutSpoilers": "Without spoilers",
+      "withSpoilers": "With spoilers"
+    },
     "add": {
       "cancel": "Cancel",
       "createNew": "Create “{name}”",
+      "createWithProfile": "Create and fill in profile",
       "description": "Find an existing character or create a new one.",
       "inBookTitle": "Already in this book",
       "link": "Add",
@@ -7963,26 +7980,52 @@
     },
     "catalog": {
       "appearanceCount": "Books: {count}",
+      "counter": "Showing {shown} of {total, plural, one {# character} other {# characters}}",
       "empty": {
         "description": "Characters appear here once you add them to your books.",
         "title": "No characters yet"
       },
       "filters": {
+        "anyBook": "Any book",
         "anySeries": "Any series",
         "apply": "Apply",
         "attitude": "My attitude",
+        "book": "Book",
+        "bookEmpty": "No books found",
+        "bookSearch": "Search book…",
+        "bookSearching": "Searching books…",
         "clear": "Clear",
+        "clearBook": "Reset book",
+        "clearSeries": "Reset series",
+        "clearSpoilers": "Reset spoiler filter",
         "description": "Narrow the catalog down to what you are looking for.",
         "gender": "Gender",
-        "groups": {
-          "about": "About the character",
-          "appearsIn": "Where they appear",
-          "bookRole": "Role in the book",
-          "organisation": "Organisation"
-        },
+        "groups": "Groups",
         "importance": "Importance",
         "noGroups": "You have no character groups yet.",
+        "removeTag": "Remove tag {name}",
         "role": "Role",
+        "series": "Series",
+        "seriesEmpty": "No series found",
+        "seriesSearch": "Search series…",
+        "seriesSearching": "Searching series…",
+        "species": "Species",
+        "speciesEmpty": "No species found",
+        "speciesPlaceholder": "Any species",
+        "speciesSearch": "Search species…",
+        "speciesSearching": "Searching species…",
+        "speciesSelected": "{count, plural, one {# species} other {# species}}",
+        "spoilerOptions": {
+          "all": "All characters",
+          "with": "With spoilers",
+          "without": "Without spoilers"
+        },
+        "spoilers": "Spoilers",
+        "tagEmpty": "No tags found",
+        "tagPlaceholder": "Search tags…",
+        "tags": "Tags",
+        "tagSearching": "Searching tags…",
+        "tagSuggestions": "Your tags",
         "title": "Filters",
         "trigger": "Filters"
       },
@@ -8008,9 +8051,9 @@
         "title": "New features are on the way"
       },
       "sort": {
-        "name": "By name",
-        "recently_added": "Recently added",
-        "recently_updated": "Recently updated"
+        "name": "Name: A–Z",
+        "recently_added": "Date added: newest first",
+        "recently_updated": "Date updated: newest first"
       },
       "sortLabel": "Sort",
       "states": {
@@ -8451,8 +8494,8 @@
       "supporting": "Supporting"
     },
     "sort": {
-      "importance": "Important first",
-      "name": "By name"
+      "importance": "Importance: central first",
+      "name": "Name: A–Z"
     },
     "spoiler": {
       "hidden": "Hidden (spoiler)",
@@ -8500,16 +8543,13 @@
       "transformed": "Transformed",
       "unknown": "Unknown"
     },
-    "summary": {
-      "favorites": "Favorites: {count}",
-      "pov": "POV: {count}"
-    },
     "tab": "Characters",
     "toast": {
       "created": "Character added",
       "createError": "Couldn't create the character",
       "deleted": "Character deleted",
       "deleteError": "Couldn't delete the character",
+      "fillProfile": "Fill in profile",
       "restored": "Character restored",
       "restoreError": "Couldn't restore the character",
       "revealError": "Couldn't show the hidden content",
@@ -8521,16 +8561,32 @@
     },
     "toolbar": {
       "add": "Add character",
-      "clearFilters": "Clear filters",
-      "favoritesOnly": "Favorites",
-      "filtersLabel": "Character filters",
       "importance": "Importance",
-      "povOnly": "POV",
+      "importanceFilter": {
+        "empty": "No levels found",
+        "placeholder": "Choose importance...",
+        "search": "Search importance"
+      },
+      "quick": {
+        "all": "All",
+        "favorites": "Favorites",
+        "pov": "POV"
+      },
+      "quickLabel": "Quick filters",
       "searchClear": "Clear search",
       "searchLabel": "Search characters",
       "searchPlaceholder": "Search in this book...",
       "selectedCount": "Selected: {count}",
-      "sortLabel": "Sort"
+      "sortLabel": "Sort",
+      "sortMobile": {
+        "close": "Close",
+        "description": "Choose the order of characters.",
+        "title": "Sorting",
+        "trigger": {
+          "importance": "Importance",
+          "name": "Name A–Z"
+        }
+      }
     },
     "unlink": {
       "cancel": "Cancel",

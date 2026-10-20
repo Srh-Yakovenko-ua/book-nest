@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import type { OnUrlUpdateFunction, UrlUpdateEvent } from "nuqs/adapters/testing";
 import type { ReactNode } from "react";
 
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
@@ -49,12 +50,17 @@ const yennefer = makeCharacterSummary({
 });
 const triss = makeCharacterSummary({ characterId: "char-3", id: "book-char-3", name: "Трісс" });
 const favoriteYennefer = { ...yennefer, isFavorite: true };
+const bookSummary = makeBookCharacterSummary({
+  byImportance: { central: 1, episodic: 0, major: 4, mentioned: 0, supporting: 2 },
+  favoritesCount: 3,
+  povCount: 2,
+  totalVisibleCharacters: 7,
+});
 
 const fetchMock = vi.fn();
 const viewport = mockIntersectionObserver();
 
 let respondToRoster: (url: string) => Promise<Response> | Response;
-let respondToSummary: () => Response;
 let respondToFavorite: () => Promise<Response> | Response;
 let respondToUnlink: () => Response;
 let holdRoster = false;
@@ -84,9 +90,9 @@ function nextPageRequestCount(): number {
   return rosterRequestUrls().filter((url) => url.includes("pageNumber=2")).length;
 }
 
-function renderTab(search = "", tabBook = book) {
+function renderTab(search = "", tabBook = book, onUrlUpdate?: OnUrlUpdateFunction) {
   return renderWithProviders(
-    <NuqsTestingAdapter hasMemory searchParams={search}>
+    <NuqsTestingAdapter hasMemory onUrlUpdate={onUrlUpdate} searchParams={search}>
       <BookCharactersTab book={tabBook} />
     </NuqsTestingAdapter>,
   );
@@ -137,7 +143,6 @@ function unlinkRequestCount(): number {
 beforeEach(() => {
   holdRoster = false;
   respondToRoster = () => rosterPage([geralt], 1);
-  respondToSummary = () => jsonResponse(makeBookCharacterSummary());
   respondToFavorite = () => jsonResponse(makeCharacterDetails());
   respondToUnlink = () => new Response(null, { status: 204 });
 
@@ -145,7 +150,7 @@ beforeEach(() => {
   fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
-    if (url.includes("/character-summary")) return Promise.resolve(respondToSummary());
+    if (url.includes("/character-summary")) return Promise.resolve(jsonResponse(bookSummary));
     if (method === "GET" && url.includes("/characters?")) {
       if (holdRoster) return new Promise<Response>(() => {});
       return Promise.resolve(respondToRoster(url));
@@ -245,7 +250,7 @@ describe("BookCharactersTab contextual roster", () => {
     expect(rosterQueryOf(rosterRequestUrls()[0])).not.toHaveProperty("contextBookId");
   });
 
-  it("hides the summary and the toolbar for an empty book", async () => {
+  it("hides the toolbar for an empty book", async () => {
     respondToRoster = () => rosterPage([], 1);
 
     renderTab();
@@ -253,7 +258,6 @@ describe("BookCharactersTab contextual roster", () => {
     await screen.findByText("Тут поки немає персонажів");
 
     expect(screen.queryByPlaceholderText("Пошук у цій книзі...")).not.toBeInTheDocument();
-    expect(screen.queryByText(/Персонажів:/)).not.toBeInTheDocument();
   });
 
   it("keeps the toolbar and offers a search reset when a search finds nothing", async () => {
@@ -363,7 +367,7 @@ describe("BookCharactersTab infinite roster", () => {
     await screen.findByRole("heading", { name: "Єнніфер" });
 
     await userEvent.click(screen.getByRole("combobox", { name: "Сортування" }));
-    await userEvent.click(await screen.findByRole("option", { name: "За іменем" }));
+    await userEvent.click(await screen.findByRole("option", { name: "За іменем: А–Я" }));
 
     expect(
       await screen.findByRole("heading", { name: "Трісс" }, { timeout: 3000 }),
@@ -561,34 +565,27 @@ describe("BookCharactersTab unlink focus", () => {
   });
 });
 
-describe("BookCharactersTab summary strip", () => {
-  it("shows favorites and POV without a total characters chip", async () => {
-    respondToSummary = () =>
-      jsonResponse(
-        makeBookCharacterSummary({
-          favoritesCount: 1,
-          povCount: 2,
-          totalVisibleCharacters: 3,
-        }),
-      );
+describe("BookCharactersTab roster-wide signals", () => {
+  it("shows no favorites, POV or total summary badges above a populated roster", async () => {
+    respondToRoster = () => rosterPage([geralt, favoriteYennefer], 1);
 
     renderTab();
 
-    expect(await screen.findByText("Улюблених: 1")).toBeVisible();
-    expect(screen.getByText("POV: 2")).toBeVisible();
+    await screen.findByRole("heading", { name: "Ґеральт" });
+
+    expect(screen.getByRole("radio", { name: /^POV/ })).toBeVisible();
+    expect(screen.queryByText(/Улюблених:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^POV:/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Персонажів:/)).not.toBeInTheDocument();
   });
 
   it("leaves the hidden-content signal to the card lock instead of a roster-wide warning", async () => {
-    respondToSummary = () =>
-      jsonResponse(makeBookCharacterSummary({ favoritesCount: 1, povCount: 2 }));
     respondToRoster = () =>
       rosterPage([{ ...geralt, hiddenFields: ["biography", "appearance"] }, yennefer], 1);
 
     renderTab();
 
     await screen.findByRole("heading", { name: "Ґеральт" });
-    expect(await screen.findByText("Улюблених: 1")).toBeVisible();
     expect(within(cardFor("Ґеральт")).getByText("Приховані поля: 2")).toBeInTheDocument();
     expect(within(cardFor("Єнніфер")).queryByText(/Приховані поля/)).not.toBeInTheDocument();
     expect(screen.queryByText(/приховані записи/i)).not.toBeInTheDocument();
@@ -596,64 +593,187 @@ describe("BookCharactersTab summary strip", () => {
 });
 
 describe("BookCharactersTab filters", () => {
+  function activeFilters(): Promise<HTMLElement> {
+    return screen.findByRole("group", { name: "Активні фільтри" });
+  }
+
   function lastRosterQuery(): URLSearchParams {
     const url = rosterRequestUrls().at(-1);
     return new URL(url ?? "/", "http://localhost").searchParams;
   }
 
+  async function openImportanceFacet(): Promise<HTMLElement> {
+    await userEvent.click(screen.getByRole("button", { name: /^Важливість/ }));
+    return screen.findByRole("listbox", { name: "Важливість" });
+  }
+
   it("sends the URL filters to the backend and keeps the toolbar when nothing matches", async () => {
     respondToRoster = () => rosterPage([], 1);
 
-    renderTab(
-      "characterImportance=not_specified,major&characterFavoritesOnly=true&characterPovOnly=true",
-    );
+    renderTab("characterImportance=not_specified,major&characterFilter=favorites");
 
     expect(await screen.findByText("Нічого не знайдено")).toBeInTheDocument();
     expect(screen.queryByText("Тут поки немає персонажів")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Улюблені" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    expect(screen.getByRole("radio", { name: /^Улюблені/ })).toBeChecked();
     const query = lastRosterQuery();
     expect(query.getAll("importance")).toEqual(["major", "not_specified"]);
     expect(query.get("favoritesOnly")).toBe("true");
+    expect(query.get("povOnly")).toBeNull();
+  });
+
+  it("sends a POV link from the URL to the backend as a POV-only request", async () => {
+    renderTab("characterFilter=pov");
+    await screen.findByRole("heading", { name: "Ґеральт" });
+
+    const query = lastRosterQuery();
     expect(query.get("povOnly")).toBe("true");
+    expect(query.get("favoritesOnly")).toBeNull();
+    expect(screen.getByRole("radio", { name: /^POV/ })).toBeChecked();
+  });
+
+  it("shows each quick filter with its count from the book summary", async () => {
+    renderTab();
+
+    const quickFilters = await screen.findByRole("radiogroup", { name: "Швидкі фільтри" });
+
+    expect(
+      await within(quickFilters).findByRole("radio", { name: "Улюблені 3" }),
+    ).not.toBeChecked();
+    expect(within(quickFilters).getByRole("radio", { name: "POV 2" })).not.toBeChecked();
+    expect(within(quickFilters).getByRole("radio", { name: "Усі 7" })).toBeChecked();
   });
 
   it("reloads from the first page when the favorites filter is switched on", async () => {
     renderTab();
     await screen.findByRole("heading", { name: "Ґеральт" });
 
-    await userEvent.click(screen.getByRole("button", { name: "Улюблені" }));
+    await userEvent.click(screen.getByRole("radio", { name: /^Улюблені/ }));
 
     await waitFor(() => expect(lastRosterQuery().get("favoritesOnly")).toBe("true"));
     expect(lastRosterQuery().get("pageNumber")).toBe("1");
-    expect(screen.getByRole("button", { name: "Улюблені" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    expect(screen.getByRole("radio", { name: /^Улюблені/ })).toBeChecked();
   });
 
-  it("filters by importance, including unspecified, from the toolbar menu", async () => {
+  it("keeps a single quick filter, so choosing POV deselects favorites", async () => {
+    renderTab("characterFilter=favorites");
+    await screen.findByRole("heading", { name: "Ґеральт" });
+
+    await userEvent.click(screen.getByRole("radio", { name: /^POV/ }));
+
+    await waitFor(() => expect(lastRosterQuery().get("povOnly")).toBe("true"));
+    expect(lastRosterQuery().get("favoritesOnly")).toBeNull();
+    expect(screen.getByRole("radio", { name: /^POV/ })).toBeChecked();
+    expect(screen.getByRole("radio", { name: /^Улюблені/ })).not.toBeChecked();
+  });
+
+  it("keeps the quick filter in the URL and drops it once all characters are shown again", async () => {
+    const urlUpdates: UrlUpdateEvent[] = [];
+    renderTab("", book, (event) => urlUpdates.push(event));
+    await screen.findByRole("heading", { name: "Ґеральт" });
+
+    await userEvent.click(screen.getByRole("radio", { name: /^POV/ }));
+    await waitFor(() => expect(urlUpdates.at(-1)?.searchParams.get("characterFilter")).toBe("pov"));
+
+    await userEvent.click(screen.getByRole("radio", { name: /^Усі/ }));
+    await waitFor(() => expect(urlUpdates.at(-1)?.searchParams.has("characterFilter")).toBe(false));
+  });
+
+  it("filters by importance, including unspecified, from the importance facet", async () => {
     renderTab();
     await screen.findByRole("heading", { name: "Ґеральт" });
 
-    await userEvent.click(screen.getByRole("button", { name: /Важливість/ }));
-    await userEvent.click(await screen.findByRole("menuitemcheckbox", { name: "Не вказано" }));
+    const levels = await openImportanceFacet();
+    await userEvent.click(within(levels).getByRole("option", { name: /^Не вказано/ }));
 
     await waitFor(() => expect(lastRosterQuery().getAll("importance")).toEqual(["not_specified"]));
   });
 
-  it("clears only the filters and keeps the search", async () => {
-    renderTab("characterSearch=Ге&characterPovOnly=true&characterSort=name");
+  it("lists every importance level with its count from the book summary", async () => {
+    renderTab();
     await screen.findByRole("heading", { name: "Ґеральт" });
 
-    await userEvent.click(screen.getByRole("button", { name: "Скинути фільтри" }));
+    const levels = await openImportanceFacet();
+
+    await waitFor(() =>
+      expect(within(levels).getByRole("option", { name: /^Головний/ })).toHaveTextContent(
+        /^Головний\s*4$/,
+      ),
+    );
+    expect(within(levels).getByRole("option", { name: /^Центральний/ })).toHaveTextContent(
+      /^Центральний\s*1$/,
+    );
+    expect(within(levels).getByRole("option", { name: /^Другорядний/ })).toHaveTextContent(
+      /^Другорядний\s*2$/,
+    );
+    expect(within(levels).getAllByRole("option")).toHaveLength(6);
+  });
+
+  it("lists each chosen importance level as its own active filter", async () => {
+    renderTab();
+    await screen.findByRole("heading", { name: "Ґеральт" });
+
+    const levels = await openImportanceFacet();
+    await userEvent.click(within(levels).getByRole("option", { name: /^Головний/ }));
+    await userEvent.click(within(levels).getByRole("option", { name: /^Центральний/ }));
+
+    const chips = await activeFilters();
+    expect(await within(chips).findByText("Важливість: Центральний")).toBeInTheDocument();
+    expect(within(chips).getByText("Важливість: Головний")).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Важливість" })).not.toBeInTheDocument();
+  });
+
+  it("drops only the removed importance level and asks the backend without it", async () => {
+    renderTab("characterImportance=central,major");
+
+    const chips = await activeFilters();
+    await userEvent.click(
+      within(chips).getByRole("button", { name: "Прибрати фільтр Важливість: Центральний" }),
+    );
+
+    await waitFor(() => expect(lastRosterQuery().getAll("importance")).toEqual(["major"]));
+    const remaining = screen.getByRole("group", { name: "Активні фільтри" });
+    expect(within(remaining).queryByText("Важливість: Центральний")).not.toBeInTheDocument();
+    expect(within(remaining).getByText("Важливість: Головний")).toBeInTheDocument();
+  });
+
+  it("removes the POV filter chip and keeps the search and the sort", async () => {
+    renderTab("characterSearch=Ге&characterFilter=pov&characterSort=name");
+    await screen.findByRole("heading", { name: "Ґеральт" });
+
+    const chips = await activeFilters();
+    await userEvent.click(within(chips).getByRole("button", { name: "Прибрати фільтр POV" }));
 
     await waitFor(() => expect(lastRosterQuery().get("povOnly")).toBeNull());
     expect(lastRosterQuery().get("search")).toBe("Ге");
     expect(lastRosterQuery().get("sort")).toBe("name");
-    expect(screen.queryByRole("button", { name: "Скинути фільтри" })).not.toBeInTheDocument();
+    const remaining = screen.getByRole("group", { name: "Активні фільтри" });
+    expect(within(remaining).queryByText("POV")).not.toBeInTheDocument();
+    expect(within(remaining).getByText("Пошук: Ге")).toBeInTheDocument();
+  });
+
+  it("clears the search and every filter at once from the active filters but keeps the sort", async () => {
+    renderTab(
+      "characterSearch=Ге&characterFilter=pov&characterImportance=major&characterSort=name",
+    );
+    await screen.findByRole("heading", { name: "Ґеральт" });
+
+    const chips = await activeFilters();
+    expect(within(chips).getByText("Пошук: Ге")).toBeInTheDocument();
+    expect(within(chips).getByText("POV")).toBeInTheDocument();
+    expect(within(chips).getByText("Важливість: Головний")).toBeInTheDocument();
+
+    await userEvent.click(within(chips).getByRole("button", { name: "Очистити все" }));
+
+    await waitFor(() => expect(lastRosterQuery().get("search")).toBeNull());
+    const query = lastRosterQuery();
+    expect(query.get("povOnly")).toBeNull();
+    expect(query.getAll("importance")).toEqual([]);
+    expect(query.get("sort")).toBe("name");
+    await waitFor(() =>
+      expect(screen.getByRole("textbox", { name: "Пошук персонажів" })).toHaveValue(""),
+    );
+    expect(screen.getByRole("radio", { name: /^Усі/ })).toBeChecked();
+    expect(screen.queryByRole("group", { name: "Активні фільтри" })).not.toBeInTheDocument();
   });
 
   it("clears search and filters from the no-results state but keeps the sort", async () => {

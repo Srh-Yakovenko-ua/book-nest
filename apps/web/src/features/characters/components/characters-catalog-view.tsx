@@ -2,6 +2,7 @@
 
 import type { CharacterOverviewView } from "@app/shared";
 
+import { LayoutGrid, List } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
@@ -10,6 +11,7 @@ import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
 import { TitleLeaf } from "@/components/title-leaf";
 import { ChipGroup } from "@/components/ui/chip-group";
+import { Segmented } from "@/components/ui/segmented";
 import {
   Select,
   SelectContent,
@@ -17,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { LibraryActiveFilters } from "@/features/books";
 import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 import { formatNumber } from "@/lib/format";
 
@@ -26,6 +29,8 @@ import {
   CHARACTERS_CATALOG_SORTS,
   CHARACTERS_CATALOG_VIEWS,
 } from "../model/characters-catalog-query";
+import { useCatalogSpeciesNames } from "../model/use-catalog-species-names";
+import { useCharactersCatalogFilterChips } from "../model/use-characters-catalog-filter-chips";
 import { useCharactersCatalogQuery } from "../model/use-characters-catalog-query";
 import { CharactersCatalogContent, CharactersCatalogError } from "./characters-catalog-content";
 import { CharactersCatalogFilters } from "./characters-catalog-filters";
@@ -39,6 +44,7 @@ export function CharactersCatalogView() {
     clearAll,
     hasActiveFilters,
     listParams,
+    patchAdvanced,
     setFilter,
     setSearch,
     setSort,
@@ -48,7 +54,17 @@ export function CharactersCatalogView() {
 
   const overview = useCharactersOverview();
   const catalog = useCharactersCatalog(listParams);
-  const characters = (catalog.data?.pages ?? []).flatMap((page) => page.items);
+  const pages = catalog.data?.pages ?? [];
+  const characters = pages.flatMap((page) => page.items);
+  const totalCount = pages[0]?.totalCount ?? 0;
+  const speciesNames = useCatalogSpeciesNames(characters);
+  const filterChips = useCharactersCatalogFilterChips({
+    onAdvancedChange: patchAdvanced,
+    onFilterChange: setFilter,
+    onSearch: setSearch,
+    resolveSpeciesName: speciesNames.resolve,
+    state,
+  });
   const summaryCards = useCharactersSummaryCards(overview.data);
 
   const hasCatalogError = catalog.isError && !catalog.isFetchNextPageError;
@@ -99,13 +115,7 @@ export function CharactersCatalogView() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <CharactersCatalogFilters
-              activeCount={activeAdvancedCount}
-              onApply={applyAdvanced}
-              state={state}
-            />
-
-            <div className="w-full sm:w-52">
+            <div className="w-full sm:w-80">
               <Select onValueChange={(next) => setSort(toSort(next))} value={state.sort}>
                 <SelectTrigger
                   aria-label={t("sortLabel")}
@@ -123,15 +133,29 @@ export function CharactersCatalogView() {
               </Select>
             </div>
 
-            <ChipGroup
+            <CharactersCatalogFilters
+              activeCount={activeAdvancedCount}
+              onApply={applyAdvanced}
+              speciesNames={speciesNames}
+              state={state}
+            />
+
+            <Segmented
+              className="ml-auto h-10 shrink-0 items-stretch sm:ml-0 [&_[data-slot=segmented-item]]:py-0 max-sm:[&_[data-slot=segmented-item]]:px-2.5"
               label={t("viewLabel")}
-              mode="single"
               onValueChange={(next) => setView(toView(next))}
-              options={CHARACTERS_CATALOG_VIEWS.map((option) => ({
-                label: t(`view.${option}`),
-                value: option,
-              }))}
-              size="sm"
+              options={[
+                {
+                  icon: <LayoutGrid />,
+                  label: <span className="max-sm:sr-only">{t("view.grid")}</span>,
+                  value: "grid",
+                },
+                {
+                  icon: <List />,
+                  label: <span className="max-sm:sr-only">{t("view.list")}</span>,
+                  value: "list",
+                },
+              ]}
               value={state.view}
             />
           </div>
@@ -162,6 +186,16 @@ export function CharactersCatalogView() {
           ]}
           value={state.filter}
         />
+
+        <LibraryActiveFilters chips={filterChips} onClearAll={clearAll} />
+
+        {hasCatalogError ? null : (
+          <p aria-live="polite" className="text-sm text-muted-foreground">
+            {catalog.isPending
+              ? t("states.loading")
+              : t("counter", { shown: characters.length, total: totalCount })}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">

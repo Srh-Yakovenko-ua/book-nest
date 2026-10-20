@@ -1,20 +1,17 @@
 "use client";
 
-import type { BookCharacterImportance, Nullable } from "@app/shared";
+import type { BookCharacterImportance, BookCharacterSummaryView, Nullable } from "@app/shared";
 import type { RefObject } from "react";
 
+import { BOOK_CHARACTER_UNSPECIFIED } from "@app/shared";
 import { useTranslations } from "next-intl";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
+import { FacetMultiselect } from "@/components/facet-multiselect";
 import { UiIcon } from "@/components/icons";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ChipGroup } from "@/components/ui/chip-group";
+import { MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
 import {
   Select,
   SelectContent,
@@ -22,154 +19,205 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { LibraryActiveFilters } from "@/features/books";
 
-import type { CharactersRosterSort } from "../model/characters-roster-query";
+import type {
+  CharactersRosterFilter,
+  CharactersRosterSort,
+} from "../model/characters-roster-query";
 import type { UseCharactersRosterQueryResult } from "../model/use-characters-roster-query";
 
 import { BOOK_CHARACTER_IMPORTANCE } from "../model/character-options";
 import {
+  CHARACTERS_ROSTER_FILTERS,
   CHARACTERS_ROSTER_SORT_DEFAULT,
   CHARACTERS_ROSTER_SORTS,
 } from "../model/characters-roster-query";
+import { useCharactersRosterFilterChips } from "../model/use-characters-roster-filter-chips";
 
 type CharactersToolbarProps = {
   addButtonRef: RefObject<Nullable<HTMLButtonElement>>;
   onAdd: () => void;
   roster: UseCharactersRosterQueryResult;
+  summary: BookCharacterSummaryView | undefined;
+  summaryPending: boolean;
 };
 
-export function CharactersToolbar({ addButtonRef, onAdd, roster }: CharactersToolbarProps) {
+export function CharactersToolbar({
+  addButtonRef,
+  onAdd,
+  roster,
+  summary,
+  summaryPending,
+}: CharactersToolbarProps) {
   const t = useTranslations("characters.toolbar");
-  const tSort = useTranslations("characters.sort");
-  const { characterFavoritesOnly, characterPovOnly } = roster.state;
+  const filterChips = useCharactersRosterFilterChips({
+    onFilterChange: roster.setFilter,
+    onImportanceChange: roster.setImportance,
+    onSearch: roster.setSearch,
+    state: roster.state,
+  });
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <div className="min-w-0 flex-1">
-          <DebouncedSearchInput
-            clearLabel={t("searchClear")}
-            label={t("searchLabel")}
-            onClear={() => roster.setSearch("")}
-            onSearch={roster.setSearch}
-            placeholder={t("searchPlaceholder")}
-            value={roster.state.characterSearch}
-          />
+      <DebouncedSearchInput
+        clearLabel={t("searchClear")}
+        label={t("searchLabel")}
+        onClear={() => roster.setSearch("")}
+        onSearch={roster.setSearch}
+        placeholder={t("searchPlaceholder")}
+        value={roster.state.characterSearch}
+      />
+
+      <div className="flex flex-col gap-3 @3xl/roster:flex-row @3xl/roster:items-start">
+        <div className="min-w-0 @3xl/roster:flex-1">
+          <CharactersImportanceFilter roster={roster} summary={summary} />
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="w-full sm:w-56">
-            <Select
-              onValueChange={(next) => roster.setSort(toSort(next))}
-              value={roster.state.characterSort}
-            >
-              <SelectTrigger
-                aria-label={t("sortLabel")}
-                className="w-full data-[size=default]:h-10"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CHARACTERS_ROSTER_SORTS.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {tSort(option)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <CharactersSort roster={roster} />
 
-          <Button className="h-10" onClick={onAdd} ref={addButtonRef}>
+          <Button className="h-10 shrink-0 sm:ml-auto" onClick={onAdd} ref={addButtonRef}>
             <UiIcon name="plus" size={16} />
             {t("add")}
           </Button>
         </div>
       </div>
 
-      <div
-        aria-label={t("filtersLabel")}
-        className="flex flex-wrap items-center gap-2"
-        role="group"
-      >
-        <ImportanceFilter
-          onChange={roster.setImportance}
-          value={roster.state.characterImportance}
-        />
+      <CharactersQuickFilters roster={roster} summary={summary} summaryPending={summaryPending} />
 
-        <Button
-          aria-pressed={characterFavoritesOnly}
-          className="h-9"
-          onClick={() => roster.setFavoritesOnly(!characterFavoritesOnly)}
-          variant={characterFavoritesOnly ? "tonal" : "outline"}
-        >
-          <UiIcon name={characterFavoritesOnly ? "heart-fill" : "heart"} size={16} />
-          {t("favoritesOnly")}
-        </Button>
-
-        <Button
-          aria-pressed={characterPovOnly}
-          className="h-9"
-          onClick={() => roster.setPovOnly(!characterPovOnly)}
-          variant={characterPovOnly ? "tonal" : "outline"}
-        >
-          <UiIcon name="user" size={16} />
-          {t("povOnly")}
-        </Button>
-
-        {roster.hasActiveFilters ? (
-          <Button className="h-9" onClick={roster.clearFilters} variant="ghost">
-            <UiIcon name="x" size={16} />
-            {t("clearFilters")}
-          </Button>
-        ) : null}
-      </div>
+      <LibraryActiveFilters chips={filterChips} onClearAll={roster.clearSearchAndFilters} />
     </div>
   );
 }
 
-function ImportanceFilter({
-  onChange,
-  value,
-}: {
-  onChange: (value: BookCharacterImportance[]) => void;
-  value: readonly BookCharacterImportance[];
-}) {
+function CharactersImportanceFilter({
+  roster,
+  summary,
+}: Pick<CharactersToolbarProps, "roster" | "summary">) {
   const t = useTranslations("characters.toolbar");
   const tImportance = useTranslations("characters.importance");
 
-  function toggle(option: BookCharacterImportance, isChecked: boolean) {
-    onChange(isChecked ? [...value, option] : value.filter((selected) => selected !== option));
-  }
+  return (
+    <FacetMultiselect
+      emptyText={t("importanceFilter.empty")}
+      hideSelection
+      label={t("importance")}
+      onValueChange={(next) => roster.setImportance(toImportance(next))}
+      options={BOOK_CHARACTER_IMPORTANCE.options.map((importance) => ({
+        count: summary === undefined ? undefined : importanceCount({ importance, summary }),
+        label: tImportance(importance),
+        value: importance,
+      }))}
+      placeholder={t("importanceFilter.placeholder")}
+      searchPlaceholder={t("importanceFilter.search")}
+      selectedText={(count) => t("selectedCount", { count })}
+      value={roster.state.characterImportance}
+    />
+  );
+}
+
+function CharactersQuickFilters({
+  roster,
+  summary,
+  summaryPending,
+}: Pick<CharactersToolbarProps, "roster" | "summary" | "summaryPending">) {
+  const t = useTranslations("characters.toolbar");
+  const counts =
+    summary === undefined
+      ? undefined
+      : ({
+          all: summary.totalVisibleCharacters,
+          favorites: summary.favoritesCount,
+          pov: summary.povCount,
+        } satisfies Record<CharactersRosterFilter, number>);
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button className="h-9" variant={value.length > 0 ? "tonal" : "outline"}>
-          <UiIcon name="filter" size={16} />
-          {t("importance")}
-          {value.length > 0 ? (
-            <Badge variant="secondary">
-              <span aria-hidden>{value.length}</span>
-              <span className="sr-only">{t("selectedCount", { count: value.length })}</span>
-            </Badge>
-          ) : null}
-          <UiIcon name="chevron-down" size={14} />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-56">
-        {BOOK_CHARACTER_IMPORTANCE.options.map((option) => (
-          <DropdownMenuCheckboxItem
-            checked={value.includes(option)}
-            key={option}
-            onCheckedChange={(isChecked) => toggle(option, isChecked)}
-            onSelect={(event) => event.preventDefault()}
-          >
-            {tImportance(option)}
-          </DropdownMenuCheckboxItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="-mx-1 -my-1 no-scrollbar overflow-x-auto px-1 py-1">
+      <ChipGroup
+        className="flex-nowrap"
+        countsPending={summaryPending}
+        label={t("quickLabel")}
+        mode="single"
+        onValueChange={(next) => {
+          const match = CHARACTERS_ROSTER_FILTERS.find((option) => option === next);
+          if (match !== undefined) roster.setFilter(match);
+        }}
+        options={CHARACTERS_ROSTER_FILTERS.map((option) => ({
+          count: counts?.[option],
+          label: t(`quick.${option}`),
+          value: option,
+        }))}
+        size="sm"
+        value={roster.state.characterFilter}
+      />
+    </div>
   );
+}
+
+function CharactersSort({ roster }: Pick<CharactersToolbarProps, "roster">) {
+  const t = useTranslations("characters.toolbar");
+  const tSort = useTranslations("characters.sort");
+  const sort = roster.state.characterSort;
+
+  return (
+    <>
+      <MobileSortSheet
+        className="w-full flex-none sm:hidden"
+        closeLabel={t("sortMobile.close")}
+        description={t("sortMobile.description")}
+        groups={[
+          {
+            key: "sort",
+            options: CHARACTERS_ROSTER_SORTS.map((value) => ({ label: tSort(value), value })),
+          },
+        ]}
+        id="book-characters-sort"
+        label={t("sortLabel")}
+        onChange={roster.setSort}
+        title={t("sortMobile.title")}
+        triggerLabel={t(`sortMobile.trigger.${sort}`)}
+        value={sort}
+      />
+
+      <div className="hidden min-w-0 sm:block sm:w-80">
+        <Select onValueChange={(next) => roster.setSort(toSort(next))} value={sort}>
+          <SelectTrigger aria-label={t("sortLabel")} className="w-full data-[size=default]:h-10">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {CHARACTERS_ROSTER_SORTS.map((option) => (
+              <SelectItem key={option} value={option}>
+                {tSort(option)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </>
+  );
+}
+
+function importanceCount({
+  importance,
+  summary,
+}: {
+  importance: BookCharacterImportance;
+  summary: BookCharacterSummaryView;
+}): number {
+  if (importance !== BOOK_CHARACTER_UNSPECIFIED.importance) {
+    return summary.byImportance[importance];
+  }
+
+  const explicitTotal = Object.values(summary.byImportance).reduce(
+    (total, count) => total + count,
+    0,
+  );
+  return Math.max(0, summary.totalVisibleCharacters - explicitTotal);
+}
+
+function toImportance(values: readonly string[]): BookCharacterImportance[] {
+  return BOOK_CHARACTER_IMPORTANCE.options.filter((option) => values.includes(option));
 }
 
 function toSort(value: string): CharactersRosterSort {

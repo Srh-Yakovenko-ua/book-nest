@@ -6,7 +6,11 @@ import { useQueryStates } from "nuqs";
 
 import type { BookCharactersControllerListParams } from "@/shared/api/generated/model";
 
-import type { CharactersRosterSort, CharactersRosterState } from "./characters-roster-query";
+import type {
+  CharactersRosterFilter,
+  CharactersRosterSort,
+  CharactersRosterState,
+} from "./characters-roster-query";
 
 import {
   canonicalRosterImportance,
@@ -18,16 +22,14 @@ import {
 } from "./characters-roster-query";
 
 export type UseCharactersRosterQueryResult = {
-  clearFilters: () => void;
   clearSearch: () => void;
   clearSearchAndFilters: () => void;
   hasActiveCriteria: boolean;
   hasActiveFilters: boolean;
   hasActiveSearch: boolean;
   listParams: BookCharactersControllerListParams;
-  setFavoritesOnly: (value: boolean) => void;
+  setFilter: (value: CharactersRosterFilter) => void;
   setImportance: (value: readonly BookCharacterImportance[]) => void;
-  setPovOnly: (value: boolean) => void;
   setSearch: (value: string) => void;
   setSort: (value: CharactersRosterSort) => void;
   state: CharactersRosterState;
@@ -41,7 +43,6 @@ export function useCharactersRosterQuery(
   const hasActiveSearch = hasActiveRosterSearch(state);
 
   return {
-    clearFilters: () => void setState(CHARACTERS_ROSTER_RESET.filters),
     clearSearch: () => void setState(CHARACTERS_ROSTER_RESET.search),
     clearSearchAndFilters: () =>
       void setState({ ...CHARACTERS_ROSTER_RESET.search, ...CHARACTERS_ROSTER_RESET.filters }),
@@ -49,10 +50,9 @@ export function useCharactersRosterQuery(
     hasActiveFilters,
     hasActiveSearch,
     listParams: toBookCharactersListParams(state, bookContext),
-    setFavoritesOnly: (characterFavoritesOnly) => void setState({ characterFavoritesOnly }),
+    setFilter: (characterFilter) => void setState({ characterFilter }),
     setImportance: (importance) =>
       void setState({ characterImportance: canonicalRosterImportance(importance) }),
-    setPovOnly: (characterPovOnly) => void setState({ characterPovOnly }),
     setSearch: (characterSearch) => void setState({ characterSearch }),
     setSort: (characterSort) => void setState({ characterSort }),
     state,

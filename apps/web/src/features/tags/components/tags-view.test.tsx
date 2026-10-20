@@ -790,7 +790,9 @@ describe("TagsView URL state", () => {
 
     expect(await screen.findByLabelText("Пошук тегу")).toHaveValue("slow");
     expect(await quickFilter("Використовуються")).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByRole("combobox", { name: "Сортування" })).toHaveTextContent("За назвою");
+    expect(screen.getByRole("combobox", { name: "Сортування" })).toHaveTextContent(
+      "За назвою: А–Я",
+    );
     const chips = screen.getByRole("group", { name: "Активні фільтри" });
     expect(within(chips).getByText("Тропи")).toBeInTheDocument();
     expect(within(chips).getByText("Пудрова троянда")).toBeInTheDocument();
@@ -1002,7 +1004,7 @@ describe("TagsView filters and sort", () => {
     await screen.findByText("Показано 2 із 2 тегів");
 
     await userEvent.click(screen.getByRole("combobox", { name: "Сортування" }));
-    await userEvent.click(await screen.findByRole("option", { name: "За назвою" }));
+    await userEvent.click(await screen.findByRole("option", { name: "За назвою: А–Я" }));
 
     await waitFor(() =>
       expect(
