@@ -1,9 +1,11 @@
+import { createLoader } from "nuqs/server";
 import { describe, expect, it } from "vitest";
 
 import type { CharactersCatalogState } from "./characters-catalog-query";
 
 import {
   CHARACTERS_CATALOG_PAGE_SIZE,
+  charactersCatalogParsers,
   countActiveAdvancedFilters,
   hasActiveCatalogFilters,
   toCharactersCatalogParams,
@@ -32,6 +34,46 @@ const ids = {
   human: "7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c0d",
   tag: "c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f",
 };
+
+const loadCatalogState = createLoader(charactersCatalogParsers);
+
+function stateFrom(search: string): CharactersCatalogState {
+  return loadCatalogState(new URLSearchParams(search));
+}
+
+describe("characters catalog URL state", () => {
+  it("reads a known attitude from the URL", () => {
+    expect(stateFrom("attitude=like,hate").attitude).toEqual(["like", "hate"]);
+  });
+
+  it("drops a stale favorite attitude so the request asks for no attitude", () => {
+    const state = stateFrom("attitude=favorite");
+
+    expect(state.attitude).toEqual([]);
+    expect(toCharactersCatalogParams(state)).toEqual({
+      pageSize: CHARACTERS_CATALOG_PAGE_SIZE,
+      sort: "name",
+    });
+  });
+
+  it("keeps the valid attitude next to a stale favorite one", () => {
+    const state = stateFrom("attitude=favorite,like");
+
+    expect(state.attitude).toEqual(["like"]);
+    expect(toCharactersCatalogParams(state)).toEqual({
+      attitude: ["like"],
+      pageSize: CHARACTERS_CATALOG_PAGE_SIZE,
+      sort: "name",
+    });
+  });
+
+  it("does not count a stale favorite attitude as an active filter", () => {
+    const state = stateFrom("attitude=favorite");
+
+    expect(countActiveAdvancedFilters(state)).toBe(0);
+    expect(hasActiveCatalogFilters(state)).toBe(false);
+  });
+});
 
 describe("toCharactersCatalogParams", () => {
   it("asks for the default page size and sort and nothing else", () => {

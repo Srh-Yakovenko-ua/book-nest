@@ -415,6 +415,14 @@ describe("CharactersCatalogView active filters", () => {
     expect(screen.queryByRole("group", { name: activeFiltersCopy.label })).not.toBeInTheDocument();
   });
 
+  it("ignores a stale favorite attitude from an old link", async () => {
+    renderCatalog("attitude=favorite");
+
+    await screen.findByText("Показано 1 із 1 персонажа");
+    expect(lastCatalogRequest().has("attitude")).toBe(false);
+    expect(screen.queryByRole("group", { name: activeFiltersCopy.label })).not.toBeInTheDocument();
+  });
+
   it("lists a chosen quick filter as a chip next to a clear all action", async () => {
     renderCatalog();
 

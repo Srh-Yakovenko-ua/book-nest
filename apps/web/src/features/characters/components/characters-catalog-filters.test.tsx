@@ -21,6 +21,7 @@ vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
+const attitude = messages.characters.attitude;
 const filters = messages.characters.catalog.filters;
 const importance = messages.characters.importance;
 
@@ -165,6 +166,27 @@ describe("CharactersCatalogFilters sections", () => {
     );
 
     expect(shownAsTitles).toEqual(titles);
+  });
+});
+
+describe("CharactersCatalogFilters attitude", () => {
+  it("offers the six attitudes without a favorite one, which the heart already marks", async () => {
+    renderFilters();
+    await openFilters();
+
+    const attitudes = screen.getByRole("toolbar", { name: filters.attitude });
+    const offered = within(attitudes)
+      .getAllByRole("button")
+      .map((chip) => chip.textContent);
+
+    expect(offered).toEqual([
+      attitude.like,
+      attitude.neutral,
+      attitude.distrust,
+      attitude.dislike,
+      attitude.hate,
+      attitude.unsure,
+    ]);
   });
 });
 

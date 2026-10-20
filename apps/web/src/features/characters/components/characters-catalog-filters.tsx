@@ -175,7 +175,9 @@ export function CharactersCatalogFilters({
             <ChipGroup
               label={t("attitude")}
               mode="multi"
-              onValueChange={(attitude) => patchDraft({ attitude })}
+              onValueChange={(next) =>
+                patchDraft({ attitude: ATTITUDE_OPTIONS.filter((option) => next.includes(option)) })
+              }
               options={ATTITUDE_OPTIONS.map((option) => ({
                 label: tAttitude(option),
                 value: option,

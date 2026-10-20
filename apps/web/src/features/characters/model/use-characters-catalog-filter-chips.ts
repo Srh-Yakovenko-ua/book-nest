@@ -16,7 +16,6 @@ import type { CharactersCatalogAdvancedPatch } from "./use-characters-catalog-qu
 
 import { useCharacterGroupOptions } from "../api/use-character-group-options";
 import {
-  ATTITUDE_OPTIONS,
   BOOK_CHARACTER_IMPORTANCE,
   BOOK_CHARACTER_ROLE,
   GENDER_OPTIONS,
@@ -140,10 +139,9 @@ export function useCharactersCatalogFilterChips({
   }
 
   for (const value of state.attitude) {
-    const option = ATTITUDE_OPTIONS.find((item) => item === value);
     chips.push({
       key: `attitude:${value}`,
-      label: t("attitude", { label: option === undefined ? t("unknown") : tAttitude(option) }),
+      label: t("attitude", { label: tAttitude(value) }),
       onRemove: () =>
         onAdvancedChange({ attitude: state.attitude.filter((item) => item !== value) }),
     });

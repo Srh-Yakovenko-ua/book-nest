@@ -14,7 +14,6 @@ export type UpdateBookCharacterInputDtoAttitude =
   | null;
 
 export const UpdateBookCharacterInputDtoAttitude = {
-  favorite: "favorite",
   like: "like",
   neutral: "neutral",
   distrust: "distrust",

@@ -16,8 +16,7 @@ export type CreateCharacterInBookDto =
         appearanceNotes?: string | null;
         appearanceNotesIsSpoiler?: boolean;
         /** @nullable */
-        attitude?:
-          "favorite" | "like" | "neutral" | "distrust" | "dislike" | "hate" | "unsure" | null;
+        attitude?: "like" | "neutral" | "distrust" | "dislike" | "hate" | "unsure" | null;
         /**
          * @maxLength 5000
          * @nullable
@@ -129,8 +128,7 @@ export type CreateCharacterInBookDto =
         appearanceNotes?: string | null;
         appearanceNotesIsSpoiler?: boolean;
         /** @nullable */
-        attitude?:
-          "favorite" | "like" | "neutral" | "distrust" | "dislike" | "hate" | "unsure" | null;
+        attitude?: "like" | "neutral" | "distrust" | "dislike" | "hate" | "unsure" | null;
         /**
          * @maxLength 5000
          * @nullable
@@ -270,8 +268,7 @@ export type CreateCharacterInBookDto =
         entityKind?: "individual" | "collective" | "unknown";
         gender?: "female" | "male" | "non_binary" | "agender_or_na" | "unknown" | "custom";
         /** @nullable */
-        globalAttitude?:
-          "favorite" | "like" | "neutral" | "distrust" | "dislike" | "hate" | "unsure" | null;
+        globalAttitude?: "like" | "neutral" | "distrust" | "dislike" | "hate" | "unsure" | null;
         isFavorite?: boolean;
         /**
          * @minLength 1
