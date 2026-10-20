@@ -849,6 +849,40 @@ describe("character portability — version 1 bundles", () => {
   });
 });
 
+describe("character portability — legacy favorite attitude", () => {
+  it("imports a file carrying the retired favorite attitude as a hearted like with a like appearance", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken, "Dune");
+    const characterId = await createCharacter(accessToken, {
+      globalAttitude: "neutral",
+      isFavorite: false,
+      name: "Duncan Idaho",
+    });
+    await linkToBook(accessToken, bookId, characterId, { attitude: "neutral" });
+    const exported = await exportParsedBundle(accessToken);
+    const legacyBundle = {
+      ...exported,
+      characters: exported.characters.map((character) => ({
+        ...character,
+        appearances: character.appearances.map((appearance) => ({
+          ...appearance,
+          attitude: "favorite",
+        })),
+        globalAttitude: "favorite",
+        name: "Legacy Duncan",
+      })),
+    };
+
+    const res = await authed("post", "/api/characters/import", accessToken).send(legacyBundle);
+    expect(res.status).toBe(HttpStatus.OK);
+
+    const reexported = await exportParsedBundle(accessToken);
+    const imported = reexported.characters.find((character) => character.name === "Legacy Duncan");
+    expect(imported).toMatchObject({ globalAttitude: "like", isFavorite: true });
+    expect(imported?.appearances.map((appearance) => appearance.attitude)).toEqual(["like"]);
+  });
+});
+
 describe("character portability — facts", () => {
   it("exports facts newest first and breaks createdAt ties by id descending", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();

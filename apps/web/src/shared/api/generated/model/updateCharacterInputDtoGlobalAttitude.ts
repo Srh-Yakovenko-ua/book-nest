@@ -14,7 +14,6 @@ export type UpdateCharacterInputDtoGlobalAttitude =
   | null;
 
 export const UpdateCharacterInputDtoGlobalAttitude = {
-  favorite: "favorite",
   like: "like",
   neutral: "neutral",
   distrust: "distrust",

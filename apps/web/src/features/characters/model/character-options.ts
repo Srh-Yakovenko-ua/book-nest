@@ -103,7 +103,6 @@ export const GENDER_OPTIONS = [
 ] as const satisfies readonly CharacterGender[];
 
 export const ATTITUDE_OPTIONS = [
-  "favorite",
   "like",
   "neutral",
   "distrust",

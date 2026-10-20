@@ -599,7 +599,6 @@ export const CharacterPortabilityControllerExportBundleResponse = zod.object({
         gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
         globalAttitude: zod
           .union([
-            zod.literal("favorite"),
             zod.literal("like"),
             zod.literal("neutral"),
             zod.literal("distrust"),
@@ -658,7 +657,6 @@ export const CharacterPortabilityControllerExportBundleResponse = zod.object({
               appearanceNotesIsSpoiler: zod.boolean(),
               attitude: zod
                 .union([
-                  zod.literal("favorite"),
                   zod.literal("like"),
                   zod.literal("neutral"),
                   zod.literal("distrust"),
@@ -1647,13 +1645,13 @@ export const CharacterPortabilityControllerImportBundleBody = zod.union([
           gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
           globalAttitude: zod
             .union([
-              zod.literal("favorite"),
               zod.literal("like"),
               zod.literal("neutral"),
               zod.literal("distrust"),
               zod.literal("dislike"),
               zod.literal("hate"),
               zod.literal("unsure"),
+              zod.literal("favorite"),
               zod.literal(null),
             ])
             .nullable(),
@@ -1706,13 +1704,13 @@ export const CharacterPortabilityControllerImportBundleBody = zod.union([
                 appearanceNotesIsSpoiler: zod.boolean(),
                 attitude: zod
                   .union([
-                    zod.literal("favorite"),
                     zod.literal("like"),
                     zod.literal("neutral"),
                     zod.literal("distrust"),
                     zod.literal("dislike"),
                     zod.literal("hate"),
                     zod.literal("unsure"),
+                    zod.literal("favorite"),
                     zod.literal(null),
                   ])
                   .nullable(),
@@ -2266,13 +2264,13 @@ export const CharacterPortabilityControllerImportBundleBody = zod.union([
           gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
           globalAttitude: zod
             .union([
-              zod.literal("favorite"),
               zod.literal("like"),
               zod.literal("neutral"),
               zod.literal("distrust"),
               zod.literal("dislike"),
               zod.literal("hate"),
               zod.literal("unsure"),
+              zod.literal("favorite"),
               zod.literal(null),
             ])
             .nullable(),
@@ -2325,13 +2323,13 @@ export const CharacterPortabilityControllerImportBundleBody = zod.union([
                 appearanceNotesIsSpoiler: zod.boolean(),
                 attitude: zod
                   .union([
-                    zod.literal("favorite"),
                     zod.literal("like"),
                     zod.literal("neutral"),
                     zod.literal("distrust"),
                     zod.literal("dislike"),
                     zod.literal("hate"),
                     zod.literal("unsure"),
+                    zod.literal("favorite"),
                     zod.literal(null),
                   ])
                   .nullable(),
@@ -2862,7 +2860,6 @@ export const CharactersControllerCreateBody = zod.object({
       .default(charactersControllerCreateBodyCharacterGenderDefault),
     globalAttitude: zod
       .union([
-        zod.literal("favorite"),
         zod.literal("like"),
         zod.literal("neutral"),
         zod.literal("distrust"),
@@ -2900,7 +2897,6 @@ export const CharactersControllerCreateBody = zod.object({
           ),
         attitude: zod
           .union([
-            zod.literal("favorite"),
             zod.literal("like"),
             zod.literal("neutral"),
             zod.literal("distrust"),
@@ -3118,7 +3114,6 @@ export const CharactersControllerCreateResponse = zod.object({
       appearanceNotesIsSpoiler: zod.boolean(),
       attitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -3341,7 +3336,6 @@ export const CharactersControllerCreateResponse = zod.object({
   gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
   globalAttitude: zod
     .union([
-      zod.literal("favorite"),
       zod.literal("like"),
       zod.literal("neutral"),
       zod.literal("distrust"),
@@ -3417,7 +3411,7 @@ export const charactersControllerListQueryTagIdMax = 100;
 export const CharactersControllerListQueryParams = zod.object({
   archived: zod.string().optional(),
   attitude: zod
-    .array(zod.enum(["favorite", "like", "neutral", "distrust", "dislike", "hate", "unsure"]))
+    .array(zod.enum(["like", "neutral", "distrust", "dislike", "hate", "unsure"]))
     .max(charactersControllerListQueryAttitudeMax)
     .optional(),
   bookId: zod.uuid().regex(charactersControllerListQueryBookIdRegExp).optional(),
@@ -3528,7 +3522,6 @@ export const CharactersControllerListResponse = zod.object({
       gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
       globalAttitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -3650,7 +3643,6 @@ export const CharactersControllerDuplicateCandidatesResponse = zod.object({
       gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
       globalAttitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -3864,7 +3856,6 @@ export const CharactersControllerGetByIdResponse = zod.object({
       appearanceNotesIsSpoiler: zod.boolean(),
       attitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -4087,7 +4078,6 @@ export const CharactersControllerGetByIdResponse = zod.object({
   gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
   globalAttitude: zod
     .union([
-      zod.literal("favorite"),
       zod.literal("like"),
       zod.literal("neutral"),
       zod.literal("distrust"),
@@ -4186,7 +4176,6 @@ export const CharactersControllerUpdateGlobalBody = zod.object({
     .optional(),
   globalAttitude: zod
     .union([
-      zod.literal("favorite"),
       zod.literal("like"),
       zod.literal("neutral"),
       zod.literal("distrust"),
@@ -4268,7 +4257,6 @@ export const CharactersControllerUpdateGlobalResponse = zod.object({
       appearanceNotesIsSpoiler: zod.boolean(),
       attitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -4491,7 +4479,6 @@ export const CharactersControllerUpdateGlobalResponse = zod.object({
   gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
   globalAttitude: zod
     .union([
-      zod.literal("favorite"),
       zod.literal("like"),
       zod.literal("neutral"),
       zod.literal("distrust"),
@@ -4691,7 +4678,6 @@ export const CharactersControllerRestoreResponse = zod.object({
       appearanceNotesIsSpoiler: zod.boolean(),
       attitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -4914,7 +4900,6 @@ export const CharactersControllerRestoreResponse = zod.object({
   gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
   globalAttitude: zod
     .union([
-      zod.literal("favorite"),
       zod.literal("like"),
       zod.literal("neutral"),
       zod.literal("distrust"),
@@ -5871,7 +5856,6 @@ export const BookCharactersControllerCreateBody = zod.union([
         .default(bookCharactersControllerCreateBodyOneBookProfileAppearanceNotesIsSpoilerDefault),
       attitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -6019,7 +6003,6 @@ export const BookCharactersControllerCreateBody = zod.union([
         .default(bookCharactersControllerCreateBodyTwoBookProfileAppearanceNotesIsSpoilerDefault),
       attitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -6204,7 +6187,6 @@ export const BookCharactersControllerCreateBody = zod.union([
         .default(bookCharactersControllerCreateBodyTwoCharacterGenderDefault),
       globalAttitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -6297,7 +6279,6 @@ export const BookCharactersControllerCreateResponse = zod.object({
       appearanceNotesIsSpoiler: zod.boolean(),
       attitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -6520,7 +6501,6 @@ export const BookCharactersControllerCreateResponse = zod.object({
   gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
   globalAttitude: zod
     .union([
-      zod.literal("favorite"),
       zod.literal("like"),
       zod.literal("neutral"),
       zod.literal("distrust"),
@@ -6642,7 +6622,6 @@ export const BookCharactersControllerGetByIdResponse = zod.object({
       appearanceNotesIsSpoiler: zod.boolean(),
       attitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -6865,7 +6844,6 @@ export const BookCharactersControllerGetByIdResponse = zod.object({
   gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
   globalAttitude: zod
     .union([
-      zod.literal("favorite"),
       zod.literal("like"),
       zod.literal("neutral"),
       zod.literal("distrust"),
@@ -6988,7 +6966,6 @@ export const BookCharactersControllerUpdateInBookBody = zod.object({
   appearanceNotesIsSpoiler: zod.boolean().optional(),
   attitude: zod
     .union([
-      zod.literal("favorite"),
       zod.literal("like"),
       zod.literal("neutral"),
       zod.literal("distrust"),
@@ -7160,7 +7137,6 @@ export const BookCharactersControllerUpdateInBookResponse = zod.object({
       appearanceNotesIsSpoiler: zod.boolean(),
       attitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -7393,7 +7369,6 @@ export const BookCharactersControllerUpdateInBookResponse = zod.object({
   gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
   globalAttitude: zod
     .union([
-      zod.literal("favorite"),
       zod.literal("like"),
       zod.literal("neutral"),
       zod.literal("distrust"),
@@ -7499,7 +7474,6 @@ export const BookCharacterSuggestionsControllerListResponse = zod.object({
       gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
       globalAttitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -7883,7 +7857,6 @@ export const SeriesCharactersControllerProfileResponse = zod.object({
     zod.object({
       attitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -7988,7 +7961,6 @@ export const SeriesCharactersControllerProfileResponse = zod.object({
   gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
   globalAttitude: zod
     .union([
-      zod.literal("favorite"),
       zod.literal("like"),
       zod.literal("neutral"),
       zod.literal("distrust"),

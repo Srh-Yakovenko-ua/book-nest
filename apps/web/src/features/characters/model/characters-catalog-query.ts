@@ -1,5 +1,6 @@
 import type { CharacterListSort } from "@app/shared";
 
+import { CharacterAttitudeSchema } from "@app/shared";
 import {
   type inferParserType,
   parseAsArrayOf,
@@ -42,7 +43,7 @@ export type CharactersCatalogState = inferParserType<typeof charactersCatalogPar
 const idList = parseAsArrayOf(parseAsString).withDefault([]);
 
 export const charactersCatalogParsers = {
-  attitude: idList,
+  attitude: parseAsArrayOf(parseAsStringLiteral(CharacterAttitudeSchema.options)).withDefault([]),
   bookId: parseAsString,
   filter: parseAsStringLiteral(CHARACTERS_CATALOG_QUICK_FILTERS).withDefault("all"),
   gender: idList,

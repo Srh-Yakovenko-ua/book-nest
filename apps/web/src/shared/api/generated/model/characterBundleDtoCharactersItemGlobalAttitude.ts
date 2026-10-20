@@ -14,7 +14,6 @@ export type CharacterBundleDtoCharactersItemGlobalAttitude =
   | null;
 
 export const CharacterBundleDtoCharactersItemGlobalAttitude = {
-  favorite: "favorite",
   like: "like",
   neutral: "neutral",
   distrust: "distrust",

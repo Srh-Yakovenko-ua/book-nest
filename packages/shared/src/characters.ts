@@ -71,7 +71,6 @@ export const CharacterGenderSchema = z.enum([
 export type CharacterGender = z.infer<typeof CharacterGenderSchema>;
 
 export const CharacterAttitudeSchema = z.enum([
-  "favorite",
   "like",
   "neutral",
   "distrust",

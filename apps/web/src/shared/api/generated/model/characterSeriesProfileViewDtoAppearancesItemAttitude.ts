@@ -14,7 +14,6 @@ export type CharacterSeriesProfileViewDtoAppearancesItemAttitude =
   | null;
 
 export const CharacterSeriesProfileViewDtoAppearancesItemAttitude = {
-  favorite: "favorite",
   like: "like",
   neutral: "neutral",
   distrust: "distrust",

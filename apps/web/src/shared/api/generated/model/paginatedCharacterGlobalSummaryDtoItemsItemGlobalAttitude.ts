@@ -14,7 +14,6 @@ export type PaginatedCharacterGlobalSummaryDtoItemsItemGlobalAttitude =
   | null;
 
 export const PaginatedCharacterGlobalSummaryDtoItemsItemGlobalAttitude = {
-  favorite: "favorite",
   like: "like",
   neutral: "neutral",
   distrust: "distrust",
