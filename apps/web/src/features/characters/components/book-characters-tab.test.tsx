@@ -306,7 +306,9 @@ describe("BookCharactersTab infinite roster", () => {
     viewport.enterViewport();
 
     await waitFor(() => expect(nextPageRequestCount()).toBe(0));
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(
+      screen.queryAllByRole("status").filter((status) => status.hasAttribute("aria-busy")),
+    ).toHaveLength(0);
   });
 
   it("keeps the first page and offers a retry when the next page fails", async () => {

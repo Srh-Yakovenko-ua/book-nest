@@ -38,7 +38,6 @@ const characterChipsCopy = messages.characters.activeFilters;
 const sheetCopy = messages.characters.catalog.filters;
 const booksCopy = messages.characters.catalog.books;
 const cardCopy = messages.characters.card;
-const catalogCopy = messages.characters.catalog;
 const translateCatalog = createTranslator({
   locale: "uk",
   messages,
@@ -74,6 +73,18 @@ const deepLinkIds = {
   tag: "6c7d8e9f-0a1b-4c2d-9e3f-4a5b6c7d8e9f",
 };
 
+const elf = { category: null, id: deepLinkIds.species, isOwn: false, key: "elf", name: "Ельф" };
+
+const emptyFacets = {
+  attitude: [],
+  gender: [],
+  group: [],
+  importance: [],
+  role: [],
+  species: [],
+  tag: [],
+};
+
 const overview = {
   favoriteCount: 4,
   mostFrequent: {
@@ -94,7 +105,8 @@ let respondToFavorite: () => Promise<Response> | Response;
 let respondToGroups: () => Response;
 let respondToList: (url: string) => Promise<Response> | Response;
 let respondToOverview: () => Response;
-let respondToTags: () => Response;
+let respondToSpecies: (url: string) => Promise<Response> | Response;
+let respondToTags: (url: string) => Promise<Response> | Response;
 
 const viewport = mockIntersectionObserver();
 
@@ -113,9 +125,9 @@ function catalogRequestUrls(): string[] {
 }
 
 function catalogSkeleton(): HTMLElement {
-  const skeleton = screen
-    .getAllByRole("status")
-    .find((candidate) => within(candidate).queryByText(catalogCopy.states.loading) !== null);
+  const skeleton = [...document.querySelectorAll<HTMLElement>('[aria-busy="true"]')].find(
+    (candidate) => candidate.classList.contains("grid"),
+  );
   if (skeleton === undefined) throw new Error("the catalog skeleton is not shown");
   return skeleton;
 }
@@ -154,8 +166,8 @@ function pagedList(url: string, pagesCount: number) {
     items: [makeCharacterCatalogItem({ name: "Ґеральт" })],
     page: pageNumber,
     pagesCount,
-    pageSize: 24,
-    totalCount: pagesCount * 24,
+    pageSize: 1,
+    totalCount: pagesCount,
   });
 }
 
@@ -171,6 +183,20 @@ function renderCatalog(search = "", onUrlUpdate?: OnUrlUpdateFunction) {
   );
 }
 
+function requestUrls(fragment: string): string[] {
+  return fetchMock.mock.calls
+    .map(([input]) => String(input))
+    .filter((url) => url.includes(fragment));
+}
+
+function speciesChip(name: string): string {
+  return characterChipsCopy.species.replace("{name}", name);
+}
+
+function tagChip(name: string): string {
+  return characterChipsCopy.tag.replace("{name}", name);
+}
+
 beforeEach(() => {
   respondToBooks = () => jsonResponse(page([]));
   respondToCharacterBooks = () =>
@@ -178,6 +204,7 @@ beforeEach(() => {
   respondToFavorite = () => Promise.reject(new Error("unexpected favorite update"));
   respondToGroups = () => jsonResponse(page([]));
   respondToOverview = () => jsonResponse(overview);
+  respondToSpecies = () => jsonResponse({ items: [] });
   respondToTags = () => jsonResponse(page([]));
   respondToList = () =>
     jsonResponse(page([makeCharacterCatalogItem({ appearanceCount: 7, name: "Ґеральт" })]));
@@ -188,11 +215,12 @@ beforeEach(() => {
     if (init?.method === "PATCH") return Promise.resolve(respondToFavorite());
     if (url.includes("/api/characters/overview")) return Promise.resolve(respondToOverview());
     if (CHARACTER_BOOKS_PATH.test(url)) return Promise.resolve(respondToCharacterBooks());
+    if (url.includes("/api/characters/facets")) return Promise.resolve(jsonResponse(emptyFacets));
     if (url.includes("/api/character-groups")) return Promise.resolve(respondToGroups());
     if (url.includes("/api/series")) return Promise.resolve(jsonResponse(page([])));
     if (url.includes("/api/books")) return Promise.resolve(respondToBooks(url));
-    if (url.includes("/api/tags")) return Promise.resolve(respondToTags());
-    if (url.includes("/api/species")) return Promise.resolve(jsonResponse({ items: [] }));
+    if (url.includes("/api/tags")) return Promise.resolve(respondToTags(url));
+    if (url.includes("/api/species")) return Promise.resolve(respondToSpecies(url));
     if (url.includes("/api/characters")) return Promise.resolve(respondToList(url));
     return Promise.reject(new Error(`unexpected ${url}`));
   });
@@ -476,10 +504,10 @@ describe("CharactersCatalogView results counter", () => {
 
     renderCatalog();
 
-    await screen.findByText("Показано 1 із 48 персонажів");
+    await screen.findByText("Показано 1 із 2 персонажів");
     viewport.enterViewport();
 
-    expect(await screen.findByText("Показано 2 із 48 персонажів")).toBeInTheDocument();
+    expect(await screen.findByText("Показано 2 із 2 персонажів")).toBeInTheDocument();
   });
 
   it("drops the line when the catalog fails to load", async () => {
@@ -706,6 +734,170 @@ describe("CharactersCatalogView active filters", () => {
     expect(lastCatalogRequest().has("speciesId")).toBe(false);
     expect(lastCatalogRequest().has("tagId")).toBe(false);
     expect(screen.queryByRole("group", { name: activeFiltersCopy.label })).not.toBeInTheDocument();
+  });
+});
+
+describe("CharactersCatalogView malformed deep links", () => {
+  it("loads the catalog rather than failing on a series id that is not a uuid", async () => {
+    respondToList = (url) =>
+      new URL(url, "http://localhost").searchParams.has("seriesId")
+        ? jsonResponse({ message: "seriesId must be a uuid" }, 400)
+        : jsonResponse(page([makeCharacterCatalogItem({ name: "Ґеральт" })]));
+
+    renderCatalog("seriesId=not-a-uuid");
+
+    expect(await screen.findByRole("link", { name: /Ґеральт/ })).toBeInTheDocument();
+    expect(screen.queryByText(messages.characters.states.errorTitle)).not.toBeInTheDocument();
+  });
+
+  it("asks the backend without a series id that is not a uuid", async () => {
+    renderCatalog("seriesId=not-a-uuid");
+
+    await screen.findByText("Показано 1 із 1 персонажа");
+    expect(lastCatalogRequest().has("seriesId")).toBe(false);
+  });
+
+  it("shows no series chip for a series id that is not a uuid", async () => {
+    renderCatalog("seriesId=not-a-uuid");
+
+    await screen.findByText("Показано 1 із 1 персонажа");
+    expect(screen.queryByRole("group", { name: activeFiltersCopy.label })).not.toBeInTheDocument();
+  });
+});
+
+describe("CharactersCatalogView loading", () => {
+  it("announces the loading catalog only once", async () => {
+    respondToList = () => new Promise<Response>(() => {});
+
+    renderCatalog();
+
+    expect((await screen.findAllByText("12")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(messages.characters.catalog.states.loading)).toHaveLength(1);
+  });
+});
+
+describe("CharactersCatalogView tag chip", () => {
+  it("keeps the tag chip pending until the lookup answers, then names the tag", async () => {
+    let answerTagLookup: () => void = () => undefined;
+    const tagLookupAnswered = new Promise<void>((resolve) => {
+      answerTagLookup = () => resolve();
+    });
+    respondToTags = (url) =>
+      url.includes("ids=")
+        ? tagLookupAnswered.then(() =>
+            jsonResponse({
+              items: [{ color: "sage", id: deepLinkIds.tag, name: "повільне кохання" }],
+              page: 1,
+              pagesCount: 1,
+              pageSize: 1,
+              totalCount: 1,
+            }),
+          )
+        : jsonResponse(page([]));
+
+    renderCatalog(`tagId=${deepLinkIds.tag}`);
+
+    const activeFilters = await screen.findByRole("group", { name: activeFiltersCopy.label });
+    expect(
+      within(activeFilters).getByText(tagChip(characterChipsCopy.pending)),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(tagChip(characterChipsCopy.unknown))).not.toBeInTheDocument();
+
+    answerTagLookup();
+
+    expect(await within(activeFilters).findByText(tagChip("повільне кохання"))).toBeInTheDocument();
+    expect(screen.queryByText(tagChip(characterChipsCopy.pending))).not.toBeInTheDocument();
+    expect(screen.queryByText(tagChip(characterChipsCopy.unknown))).not.toBeInTheDocument();
+  });
+
+  it("calls the tag untitled once the lookup answers without it", async () => {
+    renderCatalog(`tagId=${deepLinkIds.tag}`);
+
+    const activeFilters = await screen.findByRole("group", { name: activeFiltersCopy.label });
+
+    expect(
+      await within(activeFilters).findByText(tagChip(characterChipsCopy.unknown)),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("CharactersCatalogView species chip", () => {
+  it("keeps the species chip pending until the lookup answers, then names it", async () => {
+    let answerSpeciesLookup: () => void = () => undefined;
+    const speciesLookupAnswered = new Promise<void>((resolve) => {
+      answerSpeciesLookup = () => resolve();
+    });
+    respondToList = () => jsonResponse(page([]));
+    respondToSpecies = (url) => {
+      const params = new URL(url, "http://localhost").searchParams;
+      return params.getAll("ids").join() === elf.id && params.get("locale") === "uk"
+        ? speciesLookupAnswered.then(() => jsonResponse({ items: [elf] }))
+        : jsonResponse({ items: [] });
+    };
+
+    renderCatalog(`speciesId=${elf.id}`);
+
+    const activeFilters = await screen.findByRole("group", { name: activeFiltersCopy.label });
+    expect(
+      within(activeFilters).getByText(speciesChip(characterChipsCopy.pending)),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(speciesChip(characterChipsCopy.unknown))).not.toBeInTheDocument();
+
+    answerSpeciesLookup();
+
+    expect(await within(activeFilters).findByText(speciesChip(elf.name))).toBeInTheDocument();
+    expect(screen.queryByText(speciesChip(characterChipsCopy.pending))).not.toBeInTheDocument();
+    expect(screen.queryByText(speciesChip(characterChipsCopy.unknown))).not.toBeInTheDocument();
+  });
+
+  it("calls the species untitled once the lookup answers without it", async () => {
+    respondToList = () => jsonResponse(page([]));
+
+    renderCatalog(`speciesId=${elf.id}`);
+
+    const activeFilters = await screen.findByRole("group", { name: activeFiltersCopy.label });
+    expect(
+      await within(activeFilters).findByText(speciesChip(characterChipsCopy.unknown)),
+    ).toBeInTheDocument();
+  });
+
+  it("asks for no species while the url has no species filter", async () => {
+    renderCatalog();
+
+    await screen.findByText("Показано 1 із 1 персонажа");
+    expect(requestUrls("/api/species")).toHaveLength(0);
+  });
+
+  it("names the deep linked species on the species picker of the sheet", async () => {
+    respondToList = () => jsonResponse(page([]));
+    respondToSpecies = (url) =>
+      url.includes("ids=") ? jsonResponse({ items: [elf] }) : jsonResponse({ items: [] });
+
+    renderCatalog(`speciesId=${elf.id}`);
+
+    await screen.findByText(speciesChip(elf.name));
+    await userEvent.click(
+      screen.getByRole("button", { name: new RegExp(`^${sheetCopy.trigger}`) }),
+    );
+    const sheet = within(await screen.findByRole("dialog", { name: sheetCopy.title }));
+
+    expect(
+      sheet.getByRole("button", { name: `${sheetCopy.species} ${elf.name}` }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("CharactersCatalogView facet counts", () => {
+  it("asks for facet counts only once the filters sheet opens", async () => {
+    renderCatalog();
+
+    await screen.findByText("Показано 1 із 1 персонажа");
+    expect(requestUrls("/api/characters/facets")).toHaveLength(0);
+
+    await userEvent.click(screen.getByRole("button", { name: sheetCopy.trigger }));
+    await screen.findByRole("dialog", { name: sheetCopy.title });
+
+    await waitFor(() => expect(requestUrls("/api/characters/facets")).toHaveLength(1));
   });
 });
 

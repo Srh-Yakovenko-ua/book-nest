@@ -1,3 +1,4 @@
+export { useSpeciesByIds } from "./api/use-species-by-ids";
 export { useSpeciesSearch } from "./api/use-species-search";
 export { ManageOwnSpeciesButton } from "./components/manage-own-species-button";
 export { SpeciesPicker } from "./components/species-picker";

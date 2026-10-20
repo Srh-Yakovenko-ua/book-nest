@@ -5,6 +5,7 @@ import type {
   CharacterDeletionResult,
   CharacterDetailsView,
   CharacterDuplicateCandidatesView,
+  CharacterFacetsView,
   CharacterOverviewView,
   Paginator,
 } from "@app/shared";
@@ -13,6 +14,7 @@ import {
   CharacterBooksQuerySchema,
   CharacterDetailsQuerySchema,
   CharacterDuplicateCandidatesQuerySchema,
+  CharacterFacetsQuerySchema,
   CharactersListQuerySchema,
   CreateCharacterSchema,
   DeleteCharacterQuerySchema,
@@ -48,12 +50,14 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { MUTATION_THROTTLE } from "../../../core/throttle.js";
+import { MUTATION_THROTTLE, READ_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
+import { CharacterFacetsService } from "../application/character-facets.service.js";
 import { CharacterLifecycleService } from "../application/character-lifecycle.service.js";
 import { CharactersService } from "../application/characters.service.js";
 import { CharacterBooksQueryDto } from "./input-dto/character-books-query.input-dto.js";
 import { CharacterDetailsQueryDto } from "./input-dto/character-details-query.input-dto.js";
+import { CharacterFacetsQueryDto } from "./input-dto/character-facets-query.input-dto.js";
 import { CharactersListQueryDto } from "./input-dto/characters-list-query.input-dto.js";
 import { CreateCharacterInputDto } from "./input-dto/create-character.input-dto.js";
 import { DeleteCharacterQueryDto } from "./input-dto/delete-character-query.input-dto.js";
@@ -63,6 +67,7 @@ import { CharacterDeletionPreviewDto } from "./view-dto/character-deletion-previ
 import { CharacterDeletionResultDto } from "./view-dto/character-deletion-result.view-dto.js";
 import { CharacterDetailsViewDto } from "./view-dto/character-details.view-dto.js";
 import { CharacterDuplicateCandidatesDto } from "./view-dto/character-duplicate-candidates.view-dto.js";
+import { CharacterFacetsDto } from "./view-dto/character-facets.view-dto.js";
 import { CharacterOverviewDto } from "./view-dto/character-overview.view-dto.js";
 import { PaginatedCharacterBooksDto } from "./view-dto/paginated-character-books.view-dto.js";
 import { PaginatedCharacterCatalogDto } from "./view-dto/paginated-character-catalog.view-dto.js";
@@ -74,6 +79,7 @@ export class CharactersController {
   constructor(
     private readonly charactersService: CharactersService,
     private readonly lifecycleService: CharacterLifecycleService,
+    private readonly facetsService: CharacterFacetsService,
   ) {}
 
   @ApiBadRequestResponse({ description: "Validation failed" })
@@ -149,6 +155,41 @@ export class CharactersController {
   @Get("overview")
   overview(@CurrentUser() user: AuthenticatedUser): Promise<CharacterOverviewView> {
     return this.charactersService.overview({ userId: user.id });
+  }
+
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiNotFoundResponse({ description: "Context book not found" })
+  @ApiOkResponse({
+    description:
+      "How many of the current user's characters each filter option would match. Every dimension is counted under all active list filters except its own selection; options with no match are omitted",
+    type: CharacterFacetsDto,
+  })
+  @ApiOperation({ summary: "Count the characters catalog per filter option" })
+  @ApiQuery({ name: "q", required: false })
+  @ApiQuery({ name: "bookId", required: false })
+  @ApiQuery({ name: "seriesId", required: false })
+  @ApiQuery({ name: "role", required: false })
+  @ApiQuery({ name: "importance", required: false })
+  @ApiQuery({ name: "speciesId", required: false })
+  @ApiQuery({ name: "gender", required: false })
+  @ApiQuery({ name: "attitude", required: false })
+  @ApiQuery({ name: "groupId", required: false })
+  @ApiQuery({ name: "tagId", required: false })
+  @ApiQuery({ name: "favorite", required: false })
+  @ApiQuery({ name: "hasSpoilers", required: false })
+  @ApiQuery({ name: "hasPersonalImpression", required: false })
+  @ApiQuery({ name: "multipleBooks", required: false })
+  @ApiQuery({ name: "possibleDuplicates", required: false })
+  @ApiQuery({ name: "archived", required: false })
+  @ApiQuery({ name: "contextBookId", required: false })
+  @ApiQuery({ name: "includeSpoilerSearch", required: false })
+  @Get("facets")
+  @Throttle(READ_THROTTLE)
+  facets(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(CharacterFacetsQuerySchema)) query: CharacterFacetsQueryDto,
+  ): Promise<CharacterFacetsView> {
+    return this.facetsService.facets({ query, userId: user.id });
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })

@@ -178,3 +178,59 @@ describe("SpeciesService.merge when a concurrent change interferes", () => {
     ).rejects.toMatchObject({ code: "species_merge_conflict", status: 409 });
   });
 });
+
+describe("SpeciesService.search with ids", () => {
+  function searchLookups(byIds: SpeciesWithNames[]) {
+    return {
+      findOwnRecent: vi.fn().mockResolvedValue([]),
+      findSystemByKeys: vi.fn().mockResolvedValue([]),
+      findVisibleByIds: vi.fn().mockResolvedValue(byIds),
+      searchVisible: vi.fn().mockResolvedValue([]),
+    };
+  }
+
+  it("reads the requested ids for the caller and skips the term and suggestion lookups", async () => {
+    const lookups = searchLookups([customSpecies()]);
+    const service = buildService(lookups);
+
+    await service.search({
+      query: { ids: [SOURCE_ID, OTHER_ID], locale: "uk", q: "скель" },
+      userId: USER_ID,
+    });
+
+    expect(lookups.findVisibleByIds).toHaveBeenCalledWith({
+      ids: [SOURCE_ID, OTHER_ID],
+      userId: USER_ID,
+    });
+    expect(lookups.searchVisible).not.toHaveBeenCalled();
+    expect(lookups.findSystemByKeys).not.toHaveBeenCalled();
+    expect(lookups.findOwnRecent).not.toHaveBeenCalled();
+  });
+
+  it("labels each found species in the request locale", async () => {
+    const darkElf = customSpecies({
+      id: OTHER_ID,
+      key: "dark_elf",
+      name: "Темний ельф",
+      names: [
+        { kind: "label", locale: "uk", name: "Темний ельф", normalizedName: "темний ельф" },
+        { kind: "label", locale: "en", name: "Dark elf", normalizedName: "dark elf" },
+      ],
+      normalizedName: "темний ельф",
+      userId: null,
+    });
+    const service = buildService(searchLookups([darkElf, customSpecies()]));
+
+    const result = await service.search({
+      query: { ids: [SOURCE_ID, OTHER_ID], locale: "en" },
+      userId: USER_ID,
+    });
+
+    expect(result).toEqual({
+      items: [
+        { category: null, id: OTHER_ID, isOwn: false, key: "dark_elf", name: "Dark elf" },
+        { category: null, id: SOURCE_ID, isOwn: true, key: null, name: "Скельник" },
+      ],
+    });
+  });
+});

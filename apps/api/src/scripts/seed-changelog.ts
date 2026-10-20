@@ -1507,6 +1507,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Календар і динаміка на вкладці «Активність»",
     version: null,
   },
+  {
+    bodyEn:
+      "In the filters on the Characters page, every importance, role, gender, attitude, species and group option now shows how many characters it would find. The numbers take the other filters you picked into account and update as you change them, before you press Apply. A filter does not narrow its own counts, so after choosing Male you still see how many characters are Female.",
+    bodyUk:
+      "У фільтрах на сторінці «Персонажі» біля кожного варіанта важливості, ролі, гендеру, ставлення, виду та групи тепер видно, скільки персонажів він знайде. Числа враховують інші обрані фільтри й оновлюються, щойно ви щось змінюєте, ще до натискання «Застосувати». Фільтр не звужує власні числа, тож обравши «Чоловіча», ви й далі бачите, скільки персонажів мають позначку «Жіноча».",
+    category: "improvement",
+    publishedAt: "2026-10-20T00:00:00.000Z",
+    slug: "characters-filter-counts",
+    titleEn: "Character filters with counts",
+    titleUk: "Фільтри персонажів із кількістю",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

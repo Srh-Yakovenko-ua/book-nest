@@ -629,6 +629,50 @@ export const CharactersListQuerySchema = z.object({
 
 export type CharactersListQuery = z.infer<typeof CharactersListQuerySchema>;
 
+export const CharacterFacetsQuerySchema = CharactersListQuerySchema.omit({
+  pageNumber: true,
+  pageSize: true,
+  sort: true,
+});
+
+export type CharacterFacetsQuery = z.infer<typeof CharacterFacetsQuerySchema>;
+
+const characterFacetEntry = <Value extends z.ZodType>(value: Value) =>
+  z.object({ count: CountSchema, value });
+
+const CHARACTER_FACET_SELF_EXCLUSION_RULE =
+  "Each count answers to every active filter except this dimension's own selection, so picking one value never hides the others. Values with no matching character are omitted.";
+
+export const CharacterFacetsViewSchema = z.object({
+  attitude: z
+    .array(characterFacetEntry(CharacterAttitudeSchema))
+    .describe(`Characters per overall attitude. ${CHARACTER_FACET_SELF_EXCLUSION_RULE}`),
+  gender: z
+    .array(characterFacetEntry(CharacterGenderSchema))
+    .describe(`Characters per gender. ${CHARACTER_FACET_SELF_EXCLUSION_RULE}`),
+  group: z
+    .array(characterFacetEntry(z.uuid()))
+    .describe(`Characters per group id. ${CHARACTER_FACET_SELF_EXCLUSION_RULE}`),
+  importance: z
+    .array(characterFacetEntry(BookCharacterImportanceSchema))
+    .describe(
+      `Characters per importance in any of their books, or in the context book when one is given. ${CHARACTER_FACET_SELF_EXCLUSION_RULE}`,
+    ),
+  role: z
+    .array(characterFacetEntry(BookCharacterRoleTypeSchema))
+    .describe(
+      `Characters per role in any of their books, or in the context book when one is given. ${CHARACTER_FACET_SELF_EXCLUSION_RULE}`,
+    ),
+  species: z
+    .array(characterFacetEntry(z.uuid()))
+    .describe(`Characters per species id. ${CHARACTER_FACET_SELF_EXCLUSION_RULE}`),
+  tag: z
+    .array(characterFacetEntry(z.uuid()))
+    .describe(`Characters per tag id. ${CHARACTER_FACET_SELF_EXCLUSION_RULE}`),
+});
+
+export type CharacterFacetsView = z.infer<typeof CharacterFacetsViewSchema>;
+
 export const CHARACTER_OVERVIEW_LEADERS_MAX = 3;
 
 export const CharacterOverviewLeaderSchema = z.object({

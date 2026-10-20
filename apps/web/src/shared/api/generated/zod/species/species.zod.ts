@@ -10,10 +10,19 @@ import * as zod from "zod";
 /**
  * @summary Search species visible to the current user (system + own)
  */
+export const speciesControllerSearchQueryIdsMax = 100;
+
 export const speciesControllerSearchQueryQMax = 60;
 
 export const SpeciesControllerSearchQueryParams = zod.object({
   locale: zod.enum(["en", "uk"]).optional(),
+  ids: zod
+    .array(zod.string())
+    .max(speciesControllerSearchQueryIdsMax)
+    .optional()
+    .describe(
+      "Only these species, so a filter restored from a URL can show each species with its name. Takes precedence over q",
+    ),
   q: zod.string().max(speciesControllerSearchQueryQMax).optional(),
 });
 

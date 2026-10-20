@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
+import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import type { FacetOption } from "./facet-multiselect";
 
@@ -9,6 +9,8 @@ import { FacetMultiselect } from "./facet-multiselect";
 
 type RenderOptions = {
   hideSelection?: boolean;
+  isSearching?: boolean;
+  onOpenChange?: (open: boolean) => void;
   onValueChange?: (next: string[]) => void;
   options?: FacetOption[];
   resolveLabel?: (value: string) => string | undefined;
@@ -17,6 +19,8 @@ type RenderOptions = {
 
 function renderMultiselect({
   hideSelection,
+  isSearching,
+  onOpenChange,
   onValueChange = vi.fn(),
   options = [
     { count: 3, label: "Френк Герберт", value: "author-1" },
@@ -30,11 +34,14 @@ function renderMultiselect({
     <FacetMultiselect
       emptyText="Нічого не знайдено"
       hideSelection={hideSelection}
+      isSearching={isSearching}
       label="Автори"
+      onOpenChange={onOpenChange}
       onValueChange={onValueChange}
       options={options}
       placeholder="Усі автори"
       resolveLabel={resolveLabel}
+      searchingText="Шукаємо авторів…"
       searchPlaceholder="Пошук автора"
       selectedText={(count) => `Обрано: ${count}`}
       value={value}
@@ -151,5 +158,58 @@ describe("FacetMultiselect", () => {
 
     expect(screen.getByRole("button", { name: "Автори Обрано: 2" })).toBeInTheDocument();
     expect(screen.queryByRole("list", { name: "Автори" })).not.toBeInTheDocument();
+  });
+
+  it("tells the caller when the list opens and when it closes", async () => {
+    const onOpenChange = vi.fn();
+    renderMultiselect({ onOpenChange, value: [] });
+
+    await userEvent.click(screen.getByRole("button", { name: /^Автори/ }));
+    await screen.findByRole("listbox", { name: "Автори" });
+    expect(onOpenChange.mock.calls).toEqual([[true]]);
+
+    await userEvent.keyboard("{Escape}");
+
+    await waitFor(() =>
+      expect(screen.queryByRole("listbox", { name: "Автори" })).not.toBeInTheDocument(),
+    );
+    expect(onOpenChange.mock.calls).toEqual([[true], [false]]);
+  });
+
+  it("announces the search over the empty text while the open list waits", async () => {
+    renderMultiselect({ isSearching: true, options: [], value: [] });
+
+    await userEvent.click(screen.getByRole("button", { name: /^Автори/ }));
+    await screen.findByRole("listbox", { name: "Автори" });
+
+    expect(screen.getByRole("status")).toHaveTextContent("Шукаємо авторів…");
+  });
+
+  it("announces the empty text when the open list has no options", async () => {
+    renderMultiselect({ options: [], value: [] });
+
+    await userEvent.click(screen.getByRole("button", { name: /^Автори/ }));
+    await screen.findByRole("listbox", { name: "Автори" });
+
+    expect(screen.getByRole("status")).toHaveTextContent("Нічого не знайдено");
+  });
+
+  it("announces nothing once the list closes", async () => {
+    renderMultiselect({ options: [], value: [] });
+
+    await userEvent.click(screen.getByRole("button", { name: /^Автори/ }));
+    await screen.findByRole("listbox", { name: "Автори" });
+    await userEvent.keyboard("{Escape}");
+
+    await waitFor(() =>
+      expect(screen.queryByRole("listbox", { name: "Автори" })).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("");
+  });
+
+  it("announces nothing while the list has never been opened", () => {
+    renderMultiselect({ isSearching: true, options: [], value: [] });
+
+    expect(screen.getByRole("status")).toHaveTextContent("");
   });
 });

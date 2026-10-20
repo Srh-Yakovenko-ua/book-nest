@@ -6,15 +6,7 @@ import { useState } from "react";
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChipGroup } from "@/components/ui/chip-group";
 import { FilterSection } from "@/components/ui/filter-panel";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
@@ -29,13 +21,12 @@ import { cn } from "@/lib/utils";
 
 import type {
   CharactersCatalogAdvancedFilters,
-  CharactersCatalogSpoilerFilter,
   CharactersCatalogState,
 } from "../model/characters-catalog-query";
 import type { CatalogSpeciesNames } from "../model/use-catalog-species-names";
 import type { CharactersCatalogAdvancedPatch } from "../model/use-characters-catalog-query";
 
-import { useCharacterGroupOptions } from "../api/use-character-group-options";
+import { useCharacterFacets } from "../api/use-character-facets";
 import {
   ATTITUDE_OPTIONS,
   BOOK_CHARACTER_IMPORTANCE,
@@ -44,13 +35,16 @@ import {
 } from "../model/character-options";
 import {
   CHARACTERS_CATALOG_ADVANCED_EMPTY,
-  CHARACTERS_CATALOG_SPOILER_FILTERS,
   countActiveAdvancedFilters,
   pickAdvancedFilters,
+  toCharactersCatalogFilterParams,
 } from "../model/characters-catalog-query";
 import { CharactersBookFilter } from "./characters-book-filter";
+import { CharactersEnumFacetFilter } from "./characters-enum-facet-filter";
+import { CharactersGroupFilter } from "./characters-group-filter";
 import { CharactersSeriesFilter } from "./characters-series-filter";
 import { CharactersSpeciesFilter } from "./characters-species-filter";
+import { CharactersSpoilerFilter } from "./characters-spoiler-filter";
 
 type CharactersCatalogFiltersProps = {
   activeCount: number;
@@ -74,6 +68,9 @@ export function CharactersCatalogFilters({
   const [draft, setDraft] = useState<CharactersCatalogAdvancedFilters>(() =>
     pickAdvancedFilters(state),
   );
+  const facets = useCharacterFacets(toCharactersCatalogFilterParams({ ...state, ...draft }), {
+    enabled: open,
+  });
 
   function patchDraft(patch: CharactersCatalogAdvancedPatch) {
     setDraft((current) => ({ ...current, ...patch }));
@@ -125,46 +122,44 @@ export function CharactersCatalogFilters({
           </FilterSection>
 
           <FilterSection title={t("importance")}>
-            <ChipGroup
+            <CharactersEnumFacetFilter
+              counts={facets.data?.importance}
+              countsPending={facets.isPending}
               label={t("importance")}
-              mode="multi"
-              onValueChange={(importance) => patchDraft({ importance })}
-              options={BOOK_CHARACTER_IMPORTANCE.options.map((option) => ({
-                label: tImportance(option),
-                value: option,
-              }))}
-              size="sm"
+              labelOf={(option) => tImportance(option)}
+              onChange={(importance) => patchDraft({ importance })}
+              options={BOOK_CHARACTER_IMPORTANCE.options}
               value={draft.importance}
             />
           </FilterSection>
 
           <FilterSection title={t("role")}>
-            <ChipGroup
+            <CharactersEnumFacetFilter
+              counts={facets.data?.role}
+              countsPending={facets.isPending}
               label={t("role")}
-              mode="multi"
-              onValueChange={(role) => patchDraft({ role })}
-              options={BOOK_CHARACTER_ROLE.options.map((option) => ({
-                label: tRole(option),
-                value: option,
-              }))}
-              size="sm"
+              labelOf={(option) => tRole(option)}
+              onChange={(role) => patchDraft({ role })}
+              options={BOOK_CHARACTER_ROLE.options}
               value={draft.role}
             />
           </FilterSection>
 
           <FilterSection title={t("gender")}>
-            <ChipGroup
+            <CharactersEnumFacetFilter
+              counts={facets.data?.gender}
+              countsPending={facets.isPending}
               label={t("gender")}
-              mode="multi"
-              onValueChange={(gender) => patchDraft({ gender })}
-              options={GENDER_OPTIONS.map((option) => ({ label: tGender(option), value: option }))}
-              size="sm"
+              labelOf={(option) => tGender(option)}
+              onChange={(gender) => patchDraft({ gender })}
+              options={GENDER_OPTIONS}
               value={draft.gender}
             />
           </FilterSection>
 
           <FilterSection title={t("species")}>
             <CharactersSpeciesFilter
+              counts={facets.data?.species}
               names={speciesNames}
               onChange={(speciesId) => patchDraft({ speciesId })}
               value={draft.speciesId}
@@ -172,17 +167,13 @@ export function CharactersCatalogFilters({
           </FilterSection>
 
           <FilterSection title={t("attitude")}>
-            <ChipGroup
+            <CharactersEnumFacetFilter
+              counts={facets.data?.attitude}
+              countsPending={facets.isPending}
               label={t("attitude")}
-              mode="multi"
-              onValueChange={(next) =>
-                patchDraft({ attitude: ATTITUDE_OPTIONS.filter((option) => next.includes(option)) })
-              }
-              options={ATTITUDE_OPTIONS.map((option) => ({
-                label: tAttitude(option),
-                value: option,
-              }))}
-              size="sm"
+              labelOf={(option) => tAttitude(option)}
+              onChange={(attitude) => patchDraft({ attitude })}
+              options={ATTITUDE_OPTIONS}
               value={draft.attitude}
             />
           </FilterSection>
@@ -211,31 +202,19 @@ export function CharactersCatalogFilters({
           </FilterSection>
 
           <FilterSection title={t("groups")}>
-            <GroupFilter onChange={(groupId) => patchDraft({ groupId })} value={draft.groupId} />
+            <CharactersGroupFilter
+              counts={facets.data?.group}
+              countsPending={facets.isPending}
+              onChange={(groupId) => patchDraft({ groupId })}
+              value={draft.groupId}
+            />
           </FilterSection>
 
           <FilterSection title={t("spoilers")}>
-            <Select
-              onValueChange={(next) => patchDraft({ spoilers: toSpoilerFilter(next) })}
+            <CharactersSpoilerFilter
+              onChange={(spoilers) => patchDraft({ spoilers })}
               value={draft.spoilers}
-            >
-              <SelectTrigger
-                aria-label={t("spoilers")}
-                className="h-10 w-full data-[size=default]:h-10"
-                clearLabel={t("clearSpoilers")}
-                isClearable={draft.spoilers !== "all"}
-                onClear={() => patchDraft({ spoilers: "all" })}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CHARACTERS_CATALOG_SPOILER_FILTERS.map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {t(`spoilerOptions.${value}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            />
           </FilterSection>
         </div>
 
@@ -261,35 +240,4 @@ export function CharactersCatalogFilters({
       </SheetContent>
     </Sheet>
   );
-}
-
-function GroupFilter({
-  onChange,
-  value,
-}: {
-  onChange: (value: string[]) => void;
-  value: string[];
-}) {
-  const t = useTranslations("characters.catalog.filters");
-  const groups = useCharacterGroupOptions(true);
-  const options = (groups.data?.items ?? []).filter((group) => group.name !== null);
-
-  if (options.length === 0) {
-    return <p className="text-sm text-muted-foreground">{t("noGroups")}</p>;
-  }
-
-  return (
-    <ChipGroup
-      label={t("groups")}
-      mode="multi"
-      onValueChange={onChange}
-      options={options.map((group) => ({ label: group.name ?? "", value: group.id }))}
-      size="sm"
-      value={value}
-    />
-  );
-}
-
-function toSpoilerFilter(value: string): CharactersCatalogSpoilerFilter {
-  return CHARACTERS_CATALOG_SPOILER_FILTERS.find((option) => option === value) ?? "all";
 }

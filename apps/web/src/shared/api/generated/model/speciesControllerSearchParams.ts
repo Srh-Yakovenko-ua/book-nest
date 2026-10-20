@@ -10,6 +10,11 @@ import type { SpeciesControllerSearchLocale } from "./speciesControllerSearchLoc
 export type SpeciesControllerSearchParams = {
   locale?: SpeciesControllerSearchLocale;
   /**
+   * Only these species, so a filter restored from a URL can show each species with its name. Takes precedence over q
+   * @maxItems 100
+   */
+  ids?: string[];
+  /**
    * @maxLength 60
    */
   q?: string;
