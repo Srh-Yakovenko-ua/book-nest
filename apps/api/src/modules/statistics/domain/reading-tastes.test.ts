@@ -41,6 +41,18 @@ describe("groupByGenre", () => {
     expect(buckets.every((bucket) => bucket.completedReadCount === 1)).toBe(true);
   });
 
+  it("counts a read once for a genre its snapshot lists twice", () => {
+    const buckets = groupByGenre([read({ genres: ["fantasy", "fantasy"], rating: 8 })]);
+    expect(buckets).toEqual([
+      expect.objectContaining({
+        averageRating: 8,
+        completedReadCount: 1,
+        key: "fantasy",
+        ratedReadCount: 1,
+      }),
+    ]);
+  });
+
   it("averages only the rated reads", () => {
     const buckets = groupByGenre([
       read({ genres: ["fantasy"], rating: 8 }),
@@ -66,6 +78,26 @@ describe("groupByAuthor", () => {
       }),
     ]);
     expect(buckets).toHaveLength(2);
+  });
+
+  it("counts a read once for an author its snapshot lists twice", () => {
+    const buckets = groupByAuthor([
+      read({
+        authors: [
+          { authorId: "author-a", name: "A" },
+          { authorId: "author-a", name: "A" },
+        ],
+        rating: 6,
+      }),
+    ]);
+    expect(buckets).toEqual([
+      expect.objectContaining({
+        averageRating: 6,
+        completedReadCount: 1,
+        key: "author-a",
+        ratedReadCount: 1,
+      }),
+    ]);
   });
 });
 

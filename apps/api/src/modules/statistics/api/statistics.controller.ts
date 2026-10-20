@@ -2,11 +2,13 @@ import type {
   ReadingDayDetails,
   ReadingStatisticsActivityPage,
   ReadingStatisticsCompletedReadsPage,
+  ReadingStatisticsCompletedReadsSubsetPage,
   ReadingStatisticsOverview,
 } from "@app/shared";
 
 import {
   isoDay,
+  ReadingStatisticsCompletedReadsSubsetQuerySchema,
   ReadingStatisticsIntervalQuerySchema,
   ReadingStatisticsOverviewQuerySchema,
 } from "@app/shared";
@@ -29,11 +31,13 @@ import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { ReadingDayDetailsService } from "../application/reading-day-details.service.js";
 import { ReadingIntervalDetailsService } from "../application/reading-interval-details.service.js";
 import { StatisticsOverviewService } from "../application/statistics-overview.service.js";
+import { ReadingStatisticsCompletedReadsSubsetQueryDto } from "./input-dto/reading-statistics-completed-reads-subset.query.input-dto.js";
 import { ReadingStatisticsIntervalQueryDto } from "./input-dto/reading-statistics-interval.query.input-dto.js";
 import { ReadingStatisticsOverviewQueryDto } from "./input-dto/reading-statistics-overview.query.input-dto.js";
 import { ReadingDayDetailsDto } from "./view-dto/reading-day-details.view-dto.js";
 import { ReadingStatisticsActivityPageDto } from "./view-dto/reading-statistics-activity-page.view-dto.js";
 import { ReadingStatisticsCompletedReadsPageDto } from "./view-dto/reading-statistics-completed-reads-page.view-dto.js";
+import { ReadingStatisticsCompletedReadsSubsetPageDto } from "./view-dto/reading-statistics-completed-reads-subset-page.view-dto.js";
 import { ReadingStatisticsOverviewDto } from "./view-dto/reading-statistics-overview.view-dto.js";
 
 @ApiTags("statistics")
@@ -64,6 +68,34 @@ export class StatisticsController {
     query: ReadingStatisticsIntervalQueryDto,
   ): Promise<ReadingStatisticsCompletedReadsPage> {
     return this.readingIntervalDetailsService.getCompletedReads({ query, userId: user.id });
+  }
+
+  @ApiBadRequestResponse({ description: "Invalid period, filter, page size or cursor" })
+  @ApiOkResponse({
+    description:
+      "Every finished reading cycle behind one taste ranking row, matched on its completion snapshot, newest first",
+    type: ReadingStatisticsCompletedReadsSubsetPageDto,
+  })
+  @ApiOperation({
+    summary: "List the reading cycles finished in a period that carry one historical attribute",
+  })
+  @ApiQuery({ name: "periodTo", required: true })
+  @ApiQuery({ name: "periodFrom", required: false })
+  @ApiQuery({ name: "authorId", required: false })
+  @ApiQuery({ name: "genre", required: false })
+  @ApiQuery({ name: "language", required: false })
+  @ApiQuery({ name: "publisherId", required: false })
+  @ApiQuery({ name: "cursor", required: false })
+  @ApiQuery({ name: "limit", required: false })
+  @Get("completed-reads/subset")
+  @JwtProtected()
+  @Throttle(READ_THROTTLE)
+  getCompletedReadsSubset(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(ReadingStatisticsCompletedReadsSubsetQuerySchema))
+    query: ReadingStatisticsCompletedReadsSubsetQueryDto,
+  ): Promise<ReadingStatisticsCompletedReadsSubsetPage> {
+    return this.readingIntervalDetailsService.getCompletedReadsSubset({ query, userId: user.id });
   }
 
   @ApiBadRequestResponse({ description: "Invalid period or comparison combination" })

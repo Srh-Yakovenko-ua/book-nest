@@ -74,4 +74,12 @@ describe("DiscoveriesSection", () => {
       screen.getByText("2 читання за період (включно з першим) · середня оцінка 9,0"),
     ).toBeInTheDocument();
   });
+
+  it("keeps the discovered author unclickable even though its reads form an exact subset", () => {
+    renderWithProviders(<DiscoveriesSection discoveries={discoveries} />);
+
+    const discoveredName = screen.getByText("Урсула Ле Ґуїн");
+    expect(discoveredName.closest("button")).toBeNull();
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
+  });
 });

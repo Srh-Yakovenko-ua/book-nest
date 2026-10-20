@@ -140,4 +140,14 @@ describe("LanguagesSection", () => {
     expect(screen.getByText(languagesText.sourceHint)).toBeInTheDocument();
     expect(screen.queryByText(SHARE_NOTE)).not.toBeInTheDocument();
   });
+
+  it("opens a language row's finished reads from its localized label", () => {
+    renderWithProviders(<LanguagesSection languages={languages} />);
+
+    const trigger = screen.getByRole("button", {
+      name: messages.statistics.details.subset.open.replace("{name}", "Українська"),
+    });
+    expect(trigger).toHaveAttribute("aria-haspopup", "dialog");
+    expect(trigger).toHaveTextContent("Українська");
+  });
 });

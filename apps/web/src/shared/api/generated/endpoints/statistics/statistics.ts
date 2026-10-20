@@ -22,8 +22,10 @@ import type {
   ReadingDayDetailsDto,
   ReadingStatisticsActivityPageDto,
   ReadingStatisticsCompletedReadsPageDto,
+  ReadingStatisticsCompletedReadsSubsetPageDto,
   ReadingStatisticsOverviewDto,
   StatisticsControllerGetCompletedReadsParams,
+  StatisticsControllerGetCompletedReadsSubsetParams,
   StatisticsControllerGetOverviewParams,
   StatisticsControllerGetReadingActivityParams,
 } from "../../model";
@@ -243,6 +245,211 @@ export function useStatisticsControllerGetCompletedReads<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getStatisticsControllerGetCompletedReadsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type statisticsControllerGetCompletedReadsSubsetResponse200 = {
+  data: ReadingStatisticsCompletedReadsSubsetPageDto;
+  status: 200;
+};
+
+export type statisticsControllerGetCompletedReadsSubsetResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type statisticsControllerGetCompletedReadsSubsetResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type statisticsControllerGetCompletedReadsSubsetResponseSuccess =
+  statisticsControllerGetCompletedReadsSubsetResponse200 & {
+    headers: Headers;
+  };
+export type statisticsControllerGetCompletedReadsSubsetResponseError = (
+  | statisticsControllerGetCompletedReadsSubsetResponse400
+  | statisticsControllerGetCompletedReadsSubsetResponse401
+) & {
+  headers: Headers;
+};
+
+export type statisticsControllerGetCompletedReadsSubsetResponse =
+  | statisticsControllerGetCompletedReadsSubsetResponseSuccess
+  | statisticsControllerGetCompletedReadsSubsetResponseError;
+
+export const getStatisticsControllerGetCompletedReadsSubsetUrl = (
+  params: StatisticsControllerGetCompletedReadsSubsetParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/statistics/completed-reads/subset?${stringifiedParams}`
+    : `/api/statistics/completed-reads/subset`;
+};
+
+/**
+ * @summary List the reading cycles finished in a period that carry one historical attribute
+ */
+export const statisticsControllerGetCompletedReadsSubset = async (
+  params: StatisticsControllerGetCompletedReadsSubsetParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<statisticsControllerGetCompletedReadsSubsetResponse> => {
+  return customInstance<statisticsControllerGetCompletedReadsSubsetResponse>(
+    getStatisticsControllerGetCompletedReadsSubsetUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getStatisticsControllerGetCompletedReadsSubsetQueryKey = (
+  params?: StatisticsControllerGetCompletedReadsSubsetParams,
+) => {
+  return [`/api/statistics/completed-reads/subset`, ...(params ? [params] : [])] as const;
+};
+
+export const getStatisticsControllerGetCompletedReadsSubsetQueryOptions = <
+  TData = Awaited<ReturnType<typeof statisticsControllerGetCompletedReadsSubset>>,
+  TError = void,
+>(
+  params: StatisticsControllerGetCompletedReadsSubsetParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof statisticsControllerGetCompletedReadsSubset>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getStatisticsControllerGetCompletedReadsSubsetQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof statisticsControllerGetCompletedReadsSubset>>
+  > = ({ signal }) =>
+    statisticsControllerGetCompletedReadsSubset(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof statisticsControllerGetCompletedReadsSubset>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type StatisticsControllerGetCompletedReadsSubsetQueryResult = NonNullable<
+  Awaited<ReturnType<typeof statisticsControllerGetCompletedReadsSubset>>
+>;
+export type StatisticsControllerGetCompletedReadsSubsetQueryError = void;
+
+export function useStatisticsControllerGetCompletedReadsSubset<
+  TData = Awaited<ReturnType<typeof statisticsControllerGetCompletedReadsSubset>>,
+  TError = void,
+>(
+  params: StatisticsControllerGetCompletedReadsSubsetParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof statisticsControllerGetCompletedReadsSubset>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof statisticsControllerGetCompletedReadsSubset>>,
+          TError,
+          Awaited<ReturnType<typeof statisticsControllerGetCompletedReadsSubset>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useStatisticsControllerGetCompletedReadsSubset<
+  TData = Awaited<ReturnType<typeof statisticsControllerGetCompletedReadsSubset>>,
+  TError = void,
+>(
+  params: StatisticsControllerGetCompletedReadsSubsetParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof statisticsControllerGetCompletedReadsSubset>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof statisticsControllerGetCompletedReadsSubset>>,
+          TError,
+          Awaited<ReturnType<typeof statisticsControllerGetCompletedReadsSubset>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useStatisticsControllerGetCompletedReadsSubset<
+  TData = Awaited<ReturnType<typeof statisticsControllerGetCompletedReadsSubset>>,
+  TError = void,
+>(
+  params: StatisticsControllerGetCompletedReadsSubsetParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof statisticsControllerGetCompletedReadsSubset>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the reading cycles finished in a period that carry one historical attribute
+ */
+
+export function useStatisticsControllerGetCompletedReadsSubset<
+  TData = Awaited<ReturnType<typeof statisticsControllerGetCompletedReadsSubset>>,
+  TError = void,
+>(
+  params: StatisticsControllerGetCompletedReadsSubsetParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof statisticsControllerGetCompletedReadsSubset>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getStatisticsControllerGetCompletedReadsSubsetQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

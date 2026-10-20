@@ -61,6 +61,7 @@ export function AuthorsSection({ authors }: { authors: ReadingStatisticsAuthorsS
           <TasteRankingList
             rows={authors.frequency.map((entry) => ({
               contextActions: entry.contextActions,
+              drilldown: entry.drilldown,
               key: entry.authorId,
               label: entry.name,
               value: entry.completedReadCount,

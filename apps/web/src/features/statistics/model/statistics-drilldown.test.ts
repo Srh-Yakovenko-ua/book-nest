@@ -1,3 +1,5 @@
+import type { CompletedReadsFilter, Nullable, ReadingStatisticsSubsetFilter } from "@app/shared";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -6,6 +8,13 @@ import {
   toContextActionLinks,
 } from "./statistics-drilldown";
 import { statisticsIds } from "./statistics.fixtures";
+
+type SingleAttributeCase = {
+  attribute: string;
+  filter: ReadingStatisticsSubsetFilter;
+  filters: CompletedReadsFilter;
+  period: { from: Nullable<string>; to: string };
+};
 
 describe("buildStatisticsDrilldownTarget", () => {
   it("resolves a reading day to its own date", () => {
@@ -24,9 +33,61 @@ describe("buildStatisticsDrilldownTarget", () => {
     expect(target).toEqual({ kind: "reading_cycle", readingCycleId: statisticsIds.cycleId });
   });
 
-  it("fails closed for a completed-reads subset instead of approximating it", () => {
+  it("resolves a single-author subset to that exact attribute over the row's period", () => {
     const target = buildStatisticsDrilldownTarget({
       filters: { authorId: statisticsIds.authorId },
+      kind: "completed_reads_subset",
+      period: { from: "2026-01-01", to: "2026-03-31" },
+    });
+
+    expect(target).toEqual({
+      filter: { field: "authorId", value: statisticsIds.authorId },
+      kind: "completed_reads_subset",
+      period: { from: "2026-01-01", to: "2026-03-31" },
+    });
+  });
+
+  it.each<SingleAttributeCase>([
+    {
+      attribute: "genre",
+      filter: { field: "genre", value: "fantasy" },
+      filters: { genre: "fantasy" },
+      period: { from: "2025-10-01", to: "2025-12-31" },
+    },
+    {
+      attribute: "publisher",
+      filter: { field: "publisherId", value: statisticsIds.publisherId },
+      filters: { publisherId: statisticsIds.publisherId },
+      period: { from: null, to: "2026-03-31" },
+    },
+    {
+      attribute: "language",
+      filter: { field: "language", value: "english" },
+      filters: { language: "english" },
+      period: { from: "2026-04-01", to: "2026-06-30" },
+    },
+  ])("resolves a single-$attribute subset and keeps its period", ({ filter, filters, period }) => {
+    const target = buildStatisticsDrilldownTarget({
+      filters,
+      kind: "completed_reads_subset",
+      period,
+    });
+
+    expect(target).toEqual({ filter, kind: "completed_reads_subset", period });
+  });
+
+  it.each<[string, CompletedReadsFilter]>([
+    ["two attributes", { authorId: statisticsIds.authorId, genre: "fantasy" }],
+    ["an attribute and a rating floor", { genre: "fantasy", ratingMin: 8 }],
+    [
+      "an attribute and a series",
+      { publisherId: statisticsIds.publisherId, seriesId: statisticsIds.seriesId },
+    ],
+    ["an attribute and one finish bound", { finishedFrom: "2026-03-01", language: "english" }],
+    ["a series alone", { seriesId: statisticsIds.seriesId }],
+  ])("fails closed instead of narrowing to one attribute for %s", (_, filters) => {
+    const target = buildStatisticsDrilldownTarget({
+      filters,
       kind: "completed_reads_subset",
       period: { from: "2026-01-01", to: "2026-03-31" },
     });

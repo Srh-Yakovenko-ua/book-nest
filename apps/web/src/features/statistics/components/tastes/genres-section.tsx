@@ -58,6 +58,7 @@ export function GenresSection({ genres }: { genres: ReadingStatisticsGenresSecti
         ) : (
           <TasteRankingList
             rows={genres.frequency.map((entry) => ({
+              drilldown: entry.drilldown,
               key: entry.genreKey,
               label: genreName(entry.genreKey),
               secondary: t("share", {

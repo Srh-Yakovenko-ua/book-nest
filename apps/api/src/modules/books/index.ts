@@ -4,7 +4,10 @@ export { BookViewAssembler } from "./application/book-view-assembler.js";
 export { ReadingHistoryProvenanceService } from "./application/reading-history-provenance.service.js";
 export { BooksModule } from "./books.module.js";
 export { readingStatusUsesProgress } from "./domain/book-blocks.js";
-export { parseReadingCompletionSnapshot } from "./domain/reading-completion-snapshot.js";
+export {
+  parseReadingCompletionSnapshot,
+  READING_COMPLETION_SNAPSHOT_VERSION,
+} from "./domain/reading-completion-snapshot.js";
 export { FIRST_COMPLETION_RELIABILITY, READING_CYCLE_STATE } from "./domain/reading-cycle.js";
 export { resolveWishlistAddedAtChange } from "./domain/wishlist-added-at.js";
 export { buildBookTextSearchConditions } from "./infrastructure/book-search.js";
