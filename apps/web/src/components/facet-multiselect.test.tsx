@@ -3,25 +3,36 @@ import { describe, expect, it, vi } from "vitest";
 
 import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
 
+import type { FacetOption } from "./facet-multiselect";
+
 import { FacetMultiselect } from "./facet-multiselect";
 
 type RenderOptions = {
+  hideSelection?: boolean;
   onValueChange?: (next: string[]) => void;
+  options?: FacetOption[];
   resolveLabel?: (value: string) => string | undefined;
   value: string[];
 };
 
-function renderMultiselect({ onValueChange = vi.fn(), resolveLabel, value }: RenderOptions) {
+function renderMultiselect({
+  hideSelection,
+  onValueChange = vi.fn(),
+  options = [
+    { count: 3, label: "Френк Герберт", value: "author-1" },
+    { count: 2, label: "Урсула Ле Гуїн", value: "author-2" },
+    { count: 1, label: "Террі Пратчетт", value: "author-3" },
+  ],
+  resolveLabel,
+  value,
+}: RenderOptions) {
   renderWithProviders(
     <FacetMultiselect
       emptyText="Нічого не знайдено"
+      hideSelection={hideSelection}
       label="Автори"
       onValueChange={onValueChange}
-      options={[
-        { count: 3, label: "Френк Герберт", value: "author-1" },
-        { count: 2, label: "Урсула Ле Гуїн", value: "author-2" },
-        { count: 1, label: "Террі Пратчетт", value: "author-3" },
-      ]}
+      options={options}
       placeholder="Усі автори"
       resolveLabel={resolveLabel}
       searchPlaceholder="Пошук автора"
@@ -98,5 +109,47 @@ describe("FacetMultiselect", () => {
     await userEvent.click(screen.getByRole("button", { name: /^Автори/ }));
 
     expect(await screen.findByRole("listbox", { name: "Автори" })).toBeInTheDocument();
+  });
+
+  it("shows a count only on the options that carry one", async () => {
+    renderMultiselect({
+      options: [
+        { count: 3, label: "Френк Герберт", value: "author-1" },
+        { label: "Урсула Ле Гуїн", value: "author-2" },
+      ],
+      value: [],
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: /^Автори/ }));
+
+    const listbox = await screen.findByRole("listbox", { name: "Автори" });
+    expect(
+      within(listbox)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["Френк Герберт3", "Урсула Ле Гуїн"]);
+  });
+
+  it("marks only the selected option as checked in the open list", async () => {
+    renderMultiselect({ value: ["author-2"] });
+
+    await userEvent.click(screen.getByRole("button", { name: /^Автори/ }));
+
+    const listbox = await screen.findByRole("listbox", { name: "Автори" });
+    expect(within(listbox).getByRole("option", { name: /Урсула Ле Гуїн/ })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(within(listbox).getByRole("option", { name: /Френк Герберт/ })).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+  });
+
+  it("keeps the selection inside the trigger when the chip list is hidden", () => {
+    renderMultiselect({ hideSelection: true, value: ["author-1", "author-3"] });
+
+    expect(screen.getByRole("button", { name: "Автори Обрано: 2" })).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Автори" })).not.toBeInTheDocument();
   });
 });

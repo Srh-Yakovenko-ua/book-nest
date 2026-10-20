@@ -7,8 +7,13 @@ import { seriesControllerGetById } from "@/shared/api/generated/endpoints/series
 
 import { seriesKeys } from "./series-keys";
 
-export function useSeriesDetails(id: string) {
+type UseSeriesDetailsOptions = {
+  enabled?: boolean;
+};
+
+export function useSeriesDetails(id: string, options: UseSeriesDetailsOptions = {}) {
   return useQuery({
+    enabled: options.enabled ?? true,
     queryFn: async (): Promise<SeriesDetailsView> => {
       const response = await seriesControllerGetById(id);
       return SeriesDetailsViewSchema.parse(response);

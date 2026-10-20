@@ -6698,12 +6698,12 @@
       }
     },
     "sort": {
-      "usage_count_desc": "За використанням",
-      "books_count_desc": "За кількістю книг",
-      "characters_count_desc": "За кількістю персонажів",
-      "name_asc": "За назвою",
-      "type_asc": "За типом",
-      "created_desc": "Спочатку нові"
+      "usage_count_desc": "За кількістю використань: від більшої",
+      "books_count_desc": "За кількістю книг: від більшої",
+      "characters_count_desc": "За кількістю персонажів: від більшої",
+      "name_asc": "За назвою: А–Я",
+      "type_asc": "За типом: спочатку тропи",
+      "created_desc": "За датою створення: спочатку нові"
     },
     "quickFilter": {
       "all": "Усі",
@@ -7860,9 +7860,26 @@
     }
   },
   "characters": {
+    "activeFilters": {
+      "attitude": "Моє ставлення: {label}",
+      "book": "Книга: {name}",
+      "gender": "Гендер: {label}",
+      "group": "Група: {name}",
+      "importance": "Важливість: {label}",
+      "pending": "…",
+      "role": "Роль: {label}",
+      "search": "Пошук: {query}",
+      "series": "Серія: {name}",
+      "species": "Вид: {name}",
+      "tag": "Тег: {name}",
+      "unknown": "Без назви",
+      "withoutSpoilers": "Без спойлерів",
+      "withSpoilers": "Зі спойлерами"
+    },
     "add": {
       "cancel": "Скасувати",
       "createNew": "Створити «{name}»",
+      "createWithProfile": "Створити й заповнити профіль",
       "description": "Знайдіть наявного персонажа або створіть нового.",
       "inBookTitle": "Уже в цій книзі",
       "link": "Додати",
@@ -7963,26 +7980,52 @@
     },
     "catalog": {
       "appearanceCount": "Книг: {count}",
+      "counter": "Показано {shown} із {total, plural, one {# персонажа} few {# персонажів} many {# персонажів} other {# персонажа}}",
       "empty": {
         "description": "Персонажі зʼявляться тут, щойно ви додасте їх до своїх книг.",
         "title": "Персонажів ще немає"
       },
       "filters": {
+        "anyBook": "Будь-яка книга",
         "anySeries": "Будь-яка серія",
         "apply": "Застосувати",
         "attitude": "Моє ставлення",
+        "book": "Книга",
+        "bookEmpty": "Книг не знайдено",
+        "bookSearch": "Пошук книги…",
+        "bookSearching": "Шукаємо книги…",
         "clear": "Очистити",
+        "clearBook": "Скинути книгу",
+        "clearSeries": "Скинути серію",
+        "clearSpoilers": "Скинути фільтр спойлерів",
         "description": "Звузьте каталог до того, що шукаєте.",
         "gender": "Гендер",
-        "groups": {
-          "about": "Про персонажа",
-          "appearsIn": "Де зʼявляється",
-          "bookRole": "Роль у книзі",
-          "organisation": "Організація"
-        },
+        "groups": "Групи",
         "importance": "Важливість",
         "noGroups": "У вас ще немає груп персонажів.",
+        "removeTag": "Прибрати тег {name}",
         "role": "Роль",
+        "series": "Серія",
+        "seriesEmpty": "Серій не знайдено",
+        "seriesSearch": "Пошук серії…",
+        "seriesSearching": "Шукаємо серії…",
+        "species": "Вид",
+        "speciesEmpty": "Видів не знайдено",
+        "speciesPlaceholder": "Будь-який вид",
+        "speciesSearch": "Пошук виду…",
+        "speciesSearching": "Шукаємо види…",
+        "speciesSelected": "{count, plural, one {# вид} few {# види} many {# видів} other {# видів}}",
+        "spoilerOptions": {
+          "all": "Усі персонажі",
+          "with": "Зі спойлерами",
+          "without": "Без спойлерів"
+        },
+        "spoilers": "Спойлери",
+        "tagEmpty": "Тегів не знайдено",
+        "tagPlaceholder": "Пошук тегів…",
+        "tags": "Теги",
+        "tagSearching": "Шукаємо теги…",
+        "tagSuggestions": "Ваші теги",
         "title": "Фільтри",
         "trigger": "Фільтри"
       },
@@ -8008,9 +8051,9 @@
         "title": "Нові можливості вже в дорозі"
       },
       "sort": {
-        "name": "За іменем",
-        "recently_added": "Нещодавно додані",
-        "recently_updated": "Нещодавно змінені"
+        "name": "За іменем: А–Я",
+        "recently_added": "За датою додавання: спочатку нові",
+        "recently_updated": "За датою оновлення: спочатку нові"
       },
       "sortLabel": "Сортування",
       "states": {
@@ -8028,7 +8071,7 @@
       },
       "title": "Персонажі",
       "view": {
-        "grid": "Плитка",
+        "grid": "Сітка",
         "list": "Список"
       },
       "viewLabel": "Вигляд"
@@ -8451,8 +8494,8 @@
       "supporting": "Другорядна"
     },
     "sort": {
-      "importance": "Важливі спочатку",
-      "name": "За іменем"
+      "importance": "За важливістю: спочатку центральні",
+      "name": "За іменем: А–Я"
     },
     "spoiler": {
       "hidden": "Приховано (спойлер)",
@@ -8500,16 +8543,13 @@
       "transformed": "Перевтілений",
       "unknown": "Невідомо"
     },
-    "summary": {
-      "favorites": "Улюблених: {count}",
-      "pov": "POV: {count}"
-    },
     "tab": "Персонажі",
     "toast": {
       "created": "Персонажа додано",
       "createError": "Не вдалося створити персонажа",
       "deleted": "Персонажа видалено",
       "deleteError": "Не вдалося видалити персонажа",
+      "fillProfile": "Заповнити профіль",
       "restored": "Персонажа відновлено",
       "restoreError": "Не вдалося відновити персонажа",
       "revealError": "Не вдалося показати приховане",
@@ -8521,16 +8561,32 @@
     },
     "toolbar": {
       "add": "Додати персонажа",
-      "clearFilters": "Скинути фільтри",
-      "favoritesOnly": "Улюблені",
-      "filtersLabel": "Фільтри персонажів",
       "importance": "Важливість",
-      "povOnly": "POV",
+      "importanceFilter": {
+        "empty": "Рівнів не знайдено",
+        "placeholder": "Оберіть важливість...",
+        "search": "Пошук рівня важливості"
+      },
+      "quick": {
+        "all": "Усі",
+        "favorites": "Улюблені",
+        "pov": "POV"
+      },
+      "quickLabel": "Швидкі фільтри",
       "searchClear": "Очистити пошук",
       "searchLabel": "Пошук персонажів",
       "searchPlaceholder": "Пошук у цій книзі...",
       "selectedCount": "Вибрано: {count}",
-      "sortLabel": "Сортування"
+      "sortLabel": "Сортування",
+      "sortMobile": {
+        "close": "Закрити",
+        "description": "Виберіть порядок персонажів.",
+        "title": "Сортування",
+        "trigger": {
+          "importance": "Важливість",
+          "name": "Ім’я А–Я"
+        }
+      }
     },
     "unlink": {
       "cancel": "Скасувати",

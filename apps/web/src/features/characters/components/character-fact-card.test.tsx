@@ -33,7 +33,10 @@ function makeFact(overrides: Partial<CharacterFactView> = {}): CharacterFactView
 }
 
 function renderCard(fact: CharacterFactView) {
-  renderWithProviders(<CharacterFactCard fact={fact} onDelete={vi.fn()} onEdit={vi.fn()} />);
+  const onDelete = vi.fn();
+  const onEdit = vi.fn();
+  renderWithProviders(<CharacterFactCard fact={fact} onDelete={onDelete} onEdit={onEdit} />);
+  return { onDelete, onEdit };
 }
 
 function stubOverflow(overflowingText: string, overflowPx: number) {
@@ -88,13 +91,41 @@ describe("CharacterFactCard", () => {
     );
   });
 
-  it("offers only the actions menu named after the fact when nothing is clamped", () => {
+  it("offers only the title and the actions menu named after the fact when nothing is clamped", () => {
     renderCard(makeFact());
 
-    expect(within(card()).getAllByRole("button")).toHaveLength(1);
+    expect(within(card()).getAllByRole("button")).toHaveLength(2);
+    expect(within(card()).getByRole("button", { name: "Два мечі" })).toBeInTheDocument();
     expect(
       within(card()).getByRole("button", { name: "Дії з фактом «Два мечі»" }),
     ).toBeInTheDocument();
+    expect(
+      within(card()).queryByRole("button", { name: "Читати повністю" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("edits the fact from its actions menu without opening the full view", async () => {
+    const fact = makeFact();
+    const { onEdit } = renderCard(fact);
+    const menu = within(card()).getByRole("button", { name: "Дії з фактом «Два мечі»" });
+
+    await userEvent.click(menu);
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Редагувати" }));
+
+    expect(onEdit).toHaveBeenCalledExactlyOnceWith(fact, menu);
+    expect(screen.queryByRole("dialog", { name: "Два мечі" })).not.toBeInTheDocument();
+  });
+
+  it("deletes the fact from its actions menu without opening the full view", async () => {
+    const fact = makeFact();
+    const { onDelete } = renderCard(fact);
+    const menu = within(card()).getByRole("button", { name: "Дії з фактом «Два мечі»" });
+
+    await userEvent.click(menu);
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Видалити" }));
+
+    expect(onDelete).toHaveBeenCalledExactlyOnceWith(fact, menu);
+    expect(screen.queryByRole("dialog", { name: "Два мечі" })).not.toBeInTheDocument();
   });
 });
 
@@ -153,5 +184,28 @@ describe("CharacterFactCard full view", () => {
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(readMore).toHaveFocus();
+  });
+
+  it("opens the whole fact from its title even when nothing is cut off", async () => {
+    renderCard(makeFact());
+
+    await userEvent.click(within(card()).getByRole("button", { name: "Два мечі" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Два мечі" });
+    expect(within(dialog).getByRole("region", { name: "Повний текст факту" })).toHaveTextContent(
+      "Носить два мечі: сталевий для людей і срібний для чудовиськ.",
+    );
+  });
+
+  it("returns focus to the title when the full view opened from it closes", async () => {
+    renderCard(makeFact());
+    const title = within(card()).getByRole("button", { name: "Два мечі" });
+    await userEvent.click(title);
+    await screen.findByRole("dialog", { name: "Два мечі" });
+
+    await userEvent.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(title).toHaveFocus();
   });
 });

@@ -10,6 +10,7 @@ import type { CharactersRosterState } from "./characters-roster-query";
 import {
   canonicalRosterImportance,
   CHARACTERS_ROSTER_PAGE_SIZE,
+  CHARACTERS_ROSTER_RESET,
   charactersRosterParsers,
   hasActiveRosterFilters,
   toBookCharactersListParams,
@@ -17,9 +18,8 @@ import {
 } from "./characters-roster-query";
 
 const rosterState: CharactersRosterState = {
-  characterFavoritesOnly: false,
+  characterFilter: "all",
   characterImportance: [],
-  characterPovOnly: false,
   characterSearch: "",
   characterSort: "importance",
 };
@@ -47,14 +47,11 @@ function makeBookAt(currentPage: Nullable<number>, readingStatus: ReadingStatus)
 function parseRosterUrl(search: string): CharactersRosterState {
   const params = new URLSearchParams(search);
   return {
-    characterFavoritesOnly: charactersRosterParsers.characterFavoritesOnly.parseServerSide(
-      params.get("characterFavoritesOnly") ?? undefined,
+    characterFilter: charactersRosterParsers.characterFilter.parseServerSide(
+      params.get("characterFilter") ?? undefined,
     ),
     characterImportance: charactersRosterParsers.characterImportance.parseServerSide(
       params.get("characterImportance") ?? undefined,
-    ),
-    characterPovOnly: charactersRosterParsers.characterPovOnly.parseServerSide(
-      params.get("characterPovOnly") ?? undefined,
     ),
     characterSearch: charactersRosterParsers.characterSearch.parseServerSide(
       params.get("characterSearch") ?? undefined,
@@ -89,9 +86,8 @@ describe("toBookCharactersListParams", () => {
       toBookCharactersListParams(
         {
           ...rosterState,
-          characterFavoritesOnly: true,
+          characterFilter: "favorites",
           characterImportance: ["not_specified", "major", "central", "major"],
-          characterPovOnly: true,
         },
         {},
       ),
@@ -99,13 +95,20 @@ describe("toBookCharactersListParams", () => {
       favoritesOnly: "true",
       importance: ["central", "major", "not_specified"],
       pageSize: CHARACTERS_ROSTER_PAGE_SIZE,
-      povOnly: "true",
       sort: "importance",
     });
     const unfiltered = toBookCharactersListParams(rosterState, {});
     for (const key of ["favoritesOnly", "importance", "povOnly"]) {
       expect(unfiltered).not.toHaveProperty(key);
     }
+  });
+
+  it("sends the POV quick filter as the POV-only flag and nothing for favorites", () => {
+    expect(toBookCharactersListParams({ ...rosterState, characterFilter: "pov" }, {})).toEqual({
+      pageSize: CHARACTERS_ROSTER_PAGE_SIZE,
+      povOnly: "true",
+      sort: "importance",
+    });
   });
 
   it("forwards the context book to the backend", () => {
@@ -152,9 +155,8 @@ describe("toCharacterBookContext", () => {
 describe("roster URL state", () => {
   it("round-trips every criterion and omits defaults", () => {
     const state: CharactersRosterState = {
-      characterFavoritesOnly: true,
+      characterFilter: "pov",
       characterImportance: canonicalRosterImportance(["not_specified", "central"]),
-      characterPovOnly: true,
       characterSearch: "Ґеральт",
       characterSort: "name",
     };
@@ -167,7 +169,7 @@ describe("roster URL state", () => {
   it("falls back to safe defaults for malformed values", () => {
     expect(
       parseRosterUrl(
-        "?characterImportance=heroic,major&characterFavoritesOnly=maybe&characterSort=random",
+        "?characterImportance=heroic,major&characterFilter=maybe&characterSort=random",
       ),
     ).toEqual({ ...rosterState, characterImportance: ["major"] });
   });
@@ -178,6 +180,19 @@ describe("roster URL state", () => {
     expect(hasActiveRosterFilters({ ...rosterState, characterImportance: ["episodic"] })).toBe(
       true,
     );
-    expect(hasActiveRosterFilters({ ...rosterState, characterPovOnly: true })).toBe(true);
+    expect(hasActiveRosterFilters({ ...rosterState, characterFilter: "favorites" })).toBe(true);
+    expect(hasActiveRosterFilters({ ...rosterState, characterFilter: "pov" })).toBe(true);
+  });
+
+  it("drops the quick filter and importance on a filter reset but keeps search and sort", () => {
+    const url = serializeRoster(
+      "?characterSearch=Ге&characterFilter=pov&characterImportance=major&characterSort=name",
+      CHARACTERS_ROSTER_RESET.filters,
+    );
+
+    expect(Object.fromEntries(new URLSearchParams(url))).toEqual({
+      characterSearch: "Ге",
+      characterSort: "name",
+    });
   });
 });

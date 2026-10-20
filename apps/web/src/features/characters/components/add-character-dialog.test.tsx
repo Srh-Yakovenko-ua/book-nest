@@ -1,10 +1,12 @@
 import "@testing-library/jest-dom/vitest";
 import type { BookCharacterSummaryQuery } from "@app/shared";
 
+import { milliseconds } from "date-fns";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import {
@@ -20,6 +22,12 @@ vi.mock("sonner", () => ({
 }));
 
 const DEBOUNCE_SETTLE_MS = 500;
+
+const copy = {
+  add: messages.characters.add,
+  duplicate: messages.characters.duplicate,
+  toast: messages.characters.toast,
+};
 
 const book = makeBookView({ id: "book-1" });
 const fetchMock = vi.fn();
@@ -52,6 +60,21 @@ function duplicateRequestUrls(): string[] {
   return requestUrls().filter((url) => url.includes("/duplicate-candidates"));
 }
 
+function fillProfileAction(): () => void {
+  const action: unknown = vi.mocked(toast.success).mock.lastCall?.[1]?.action;
+  if (!isClickable(action)) throw new Error("the created toast offers no action");
+  return action.onClick;
+}
+
+function isClickable(value: unknown): value is { onClick: () => void } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "onClick" in value &&
+    typeof value.onClick === "function"
+  );
+}
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
@@ -71,16 +94,18 @@ function paramOf(url: string | undefined, name: string): null | string {
 function renderDialog(bookContext: BookCharacterSummaryQuery = {}) {
   const onOpenChange = vi.fn();
   const onOpenDetails = vi.fn();
+  const onOpenEdit = vi.fn();
   const view = renderWithProviders(
     <AddCharacterDialog
       book={book}
       bookContext={bookContext}
       onOpenChange={onOpenChange}
       onOpenDetails={onOpenDetails}
+      onOpenEdit={onOpenEdit}
       open
     />,
   );
-  return { ...view, onOpenChange, onOpenDetails };
+  return { ...view, onOpenChange, onOpenDetails, onOpenEdit };
 }
 
 function requestUrls(): string[] {
@@ -115,7 +140,9 @@ beforeEach(() => {
     if (method === "GET" && url.includes("/characters?")) {
       return Promise.resolve(respondToLookup(url));
     }
-    if (method === "POST") return Promise.resolve(jsonResponse(makeCharacterDetails(), 201));
+    if (method === "POST") {
+      return Promise.resolve(jsonResponse(makeCharacterDetails({ id: "char-created" }), 201));
+    }
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -241,7 +268,7 @@ describe("AddCharacterDialog intent sections", () => {
     });
   });
 
-  it("keeps one screen with no back control and no second create button", async () => {
+  it("keeps one screen with no back control and only the two create buttons", async () => {
     renderDialog();
 
     await search("Geralt");
@@ -249,7 +276,54 @@ describe("AddCharacterDialog intent sections", () => {
 
     expect(screen.queryByRole("button", { name: "Назад" })).not.toBeInTheDocument();
     expect(screen.queryByRole("textbox", { name: "Ім’я" })).not.toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: /Створити/ })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: /Створити/ })).toHaveLength(2);
+  });
+
+  it("offers a quick create and a create that opens the profile when nothing matches", async () => {
+    renderDialog();
+
+    await search("Geralt");
+
+    expect(await screen.findByText(copy.add.noMatch)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Створити «Geralt»" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: copy.add.createWithProfile })).toBeEnabled();
+  });
+
+  it("creates quickly and leaves filling the profile to the toast action", async () => {
+    const { onOpenChange, onOpenEdit } = renderDialog();
+
+    await search("Geralt");
+    await userEvent.click(await screen.findByRole("button", { name: "Створити «Geralt»" }));
+
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+    expect(createBody()).toMatchObject({ mode: "new" });
+    expect(createBody()?.character).toMatchObject({ name: "Geralt" });
+    expect(toast.success).toHaveBeenCalledWith(
+      copy.toast.created,
+      expect.objectContaining({
+        action: expect.objectContaining({ label: copy.toast.fillProfile }),
+        duration: milliseconds({ seconds: 8 }),
+      }),
+    );
+    expect(onOpenEdit).not.toHaveBeenCalled();
+
+    const openProfile = fillProfileAction();
+    openProfile();
+
+    expect(onOpenEdit).toHaveBeenCalledWith("char-created");
+  });
+
+  it("creates and opens the new character's profile in one step", async () => {
+    const { onOpenChange, onOpenDetails, onOpenEdit } = renderDialog();
+
+    await search("Geralt");
+    await userEvent.click(await screen.findByRole("button", { name: copy.add.createWithProfile }));
+
+    await waitFor(() => expect(onOpenEdit).toHaveBeenCalledWith("char-created"));
+    expect(createBody()).toMatchObject({ mode: "new" });
+    expect(createBody()?.character).toMatchObject({ name: "Geralt" });
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(onOpenDetails).not.toHaveBeenCalled();
   });
 
   it("ends create and link in the same state", async () => {
@@ -263,7 +337,7 @@ describe("AddCharacterDialog intent sections", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Створити «Geralt»" }));
 
     await waitFor(() => expect(onCloseAfterCreate).toHaveBeenCalledWith(false));
-    expect(toast.success).toHaveBeenCalledWith("Персонажа додано");
+    expect(toast.success).toHaveBeenCalledWith("Персонажа додано", expect.anything());
     expect(onDetailsAfterCreate).not.toHaveBeenCalled();
 
     unmount();
@@ -340,6 +414,44 @@ describe("AddCharacterDialog duplicate guard", () => {
     expect(createBody()).toMatchObject({ mode: "new" });
     expect(createBody()?.character).toMatchObject({ name: "Geralt" });
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+  });
+
+  it("still opens the profile when the profile create is confirmed past the warning", async () => {
+    respondToDuplicates = () =>
+      jsonResponse({ candidates: [makeCharacterGlobalSummary({ id: "char-5" })] });
+    const { onOpenEdit } = renderDialog();
+
+    await search("Geralt");
+    await userEvent.click(await screen.findByRole("button", { name: copy.add.createWithProfile }));
+
+    expect(await screen.findByText(copy.duplicate.question)).toBeInTheDocument();
+    expect(onOpenEdit).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: copy.duplicate.createAnyway }));
+
+    await waitFor(() => expect(onOpenEdit).toHaveBeenCalledWith("char-created"));
+    expect(createBody()?.character).toMatchObject({ name: "Geralt" });
+  });
+
+  it("keeps a quick create quick when it is confirmed past the warning", async () => {
+    respondToDuplicates = () =>
+      jsonResponse({ candidates: [makeCharacterGlobalSummary({ id: "char-5" })] });
+    const { onOpenChange, onOpenEdit } = renderDialog();
+
+    await search("Geralt");
+    await userEvent.click(await screen.findByRole("button", { name: "Створити «Geralt»" }));
+
+    await userEvent.click(await screen.findByRole("button", { name: copy.duplicate.createAnyway }));
+
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+    expect(createBody()?.character).toMatchObject({ name: "Geralt" });
+    expect(onOpenEdit).not.toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalledWith(
+      copy.toast.created,
+      expect.objectContaining({
+        action: expect.objectContaining({ label: copy.toast.fillProfile }),
+      }),
+    );
   });
 
   it("reviews an unknown candidate instead of linking it blindly", async () => {

@@ -36,7 +36,7 @@ export function CharacterFactActionsMenu({
       <DropdownMenuTrigger asChild>
         <Button
           aria-label={t("menu", { title: factTitle })}
-          className="-mt-1 -mr-1 shrink-0"
+          className="relative z-10 -mt-1 -mr-1 shrink-0"
           data-fact-menu-trigger={factId}
           ref={triggerRef}
           size="icon-sm"

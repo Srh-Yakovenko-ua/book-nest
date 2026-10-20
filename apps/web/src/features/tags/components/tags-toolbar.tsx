@@ -82,7 +82,7 @@ export function TagsToolbar({ query, quickCounts, quickCountsPending }: TagsTool
             value={state.sort}
           />
 
-          <div className="hidden sm:block sm:w-64">
+          <div className="hidden sm:block sm:w-80">
             <Select onValueChange={selectSort} value={state.sort}>
               <SelectTrigger
                 aria-label={t("toolbar.sortLabel")}
@@ -158,7 +158,7 @@ export function TagsToolbarSkeleton() {
         <Skeleton className="h-10 min-w-0 rounded-md lg:flex-1" />
         <div className="flex items-center gap-1.5 sm:gap-3">
           <Skeleton className="h-10 w-[9.5rem] shrink-0 rounded-md sm:hidden" />
-          <Skeleton className="hidden h-10 rounded-md sm:block sm:w-64" />
+          <Skeleton className="hidden h-10 rounded-md sm:block sm:w-80" />
           <Skeleton className="h-10 w-10 shrink-0 rounded-md sm:w-28" />
           <Skeleton className="ml-auto h-10 w-20 shrink-0 rounded-full sm:ml-0 sm:w-44" />
         </div>

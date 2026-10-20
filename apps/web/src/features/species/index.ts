@@ -1,6 +1,8 @@
+export { useSpeciesSearch } from "./api/use-species-search";
 export { ManageOwnSpeciesButton } from "./components/manage-own-species-button";
 export { SpeciesPicker } from "./components/species-picker";
 export { applyOwnSpeciesChange, type OwnSpeciesChange } from "./model/own-species-change";
+export { speciesSearchTerm } from "./model/species-search-term";
 export {
   selectionFromRef,
   type SpeciesSelection,

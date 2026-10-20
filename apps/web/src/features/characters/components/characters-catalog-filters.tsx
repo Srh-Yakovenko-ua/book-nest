@@ -1,12 +1,5 @@
 "use client";
 
-import type {
-  BookCharacterImportance,
-  BookCharacterRoleType,
-  CharacterAttitude,
-  CharacterGender,
-} from "@app/shared";
-
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
@@ -31,9 +24,15 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { useSeriesPickerOptions } from "@/features/series";
+import { LibraryTagFilter } from "@/features/books";
+import { cn } from "@/lib/utils";
 
-import type { CharactersCatalogState } from "../model/characters-catalog-query";
+import type {
+  CharactersCatalogAdvancedFilters,
+  CharactersCatalogSpoilerFilter,
+  CharactersCatalogState,
+} from "../model/characters-catalog-query";
+import type { CatalogSpeciesNames } from "../model/use-catalog-species-names";
 import type { CharactersCatalogAdvancedPatch } from "../model/use-characters-catalog-query";
 
 import { useCharacterGroupOptions } from "../api/use-character-group-options";
@@ -43,134 +42,206 @@ import {
   BOOK_CHARACTER_ROLE,
   GENDER_OPTIONS,
 } from "../model/character-options";
+import {
+  CHARACTERS_CATALOG_ADVANCED_EMPTY,
+  CHARACTERS_CATALOG_SPOILER_FILTERS,
+  countActiveAdvancedFilters,
+  pickAdvancedFilters,
+} from "../model/characters-catalog-query";
+import { CharactersBookFilter } from "./characters-book-filter";
+import { CharactersSeriesFilter } from "./characters-series-filter";
+import { CharactersSpeciesFilter } from "./characters-species-filter";
 
 type CharactersCatalogFiltersProps = {
   activeCount: number;
   onApply: (patch: CharactersCatalogAdvancedPatch) => void;
+  speciesNames: CatalogSpeciesNames;
   state: CharactersCatalogState;
 };
-
-const EMPTY_ADVANCED = {
-  attitude: [],
-  gender: [],
-  groupId: [],
-  importance: [],
-  role: [],
-  seriesId: null,
-} satisfies CharactersCatalogAdvancedPatch;
 
 export function CharactersCatalogFilters({
   activeCount,
   onApply,
+  speciesNames,
   state,
 }: CharactersCatalogFiltersProps) {
   const t = useTranslations("characters.catalog.filters");
+  const tAttitude = useTranslations("characters.attitude");
+  const tGender = useTranslations("characters.gender");
+  const tImportance = useTranslations("characters.importance");
+  const tRole = useTranslations("characters.roleType");
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<CharactersCatalogAdvancedPatch>(EMPTY_ADVANCED);
+  const [draft, setDraft] = useState<CharactersCatalogAdvancedFilters>(() =>
+    pickAdvancedFilters(state),
+  );
 
-  function openWith(next: boolean) {
-    if (next) {
-      setDraft({
-        attitude: state.attitude,
-        gender: state.gender,
-        groupId: state.groupId,
-        importance: state.importance,
-        role: state.role,
-        seriesId: state.seriesId,
-      });
-    }
-    setOpen(next);
+  function patchDraft(patch: CharactersCatalogAdvancedPatch) {
+    setDraft((current) => ({ ...current, ...patch }));
   }
 
   return (
-    <Sheet onOpenChange={openWith} open={open}>
+    <Sheet
+      onOpenChange={(next) => {
+        if (next) setDraft(pickAdvancedFilters(state));
+        setOpen(next);
+      }}
+      open={open}
+    >
       <SheetTrigger asChild>
-        <Button className="h-10" variant="secondary">
-          <UiIcon name="filter" size={16} />
-          {t("trigger")}
-          {activeCount > 0 ? <Badge variant="primary">{activeCount}</Badge> : null}
+        <Button
+          className={cn("h-10", activeCount > 0 ? "max-sm:px-2.5" : "max-sm:w-10 max-sm:px-0")}
+          type="button"
+          variant="secondary"
+        >
+          <UiIcon name="funnel" size={16} />
+          <span className="max-sm:sr-only">{t("trigger")}</span>
+          {activeCount > 0 ? (
+            <Badge className="ml-0.5" variant="secondary">
+              {activeCount}
+            </Badge>
+          ) : null}
         </Button>
       </SheetTrigger>
 
-      <SheetContent className="flex w-full flex-col gap-0 sm:max-w-md" side="right">
-        <SheetHeader className="border-b border-border">
+      <SheetContent className="gap-0 data-[side=right]:w-full sm:max-w-md" side="right">
+        <SheetHeader>
           <SheetTitle>{t("title")}</SheetTitle>
           <SheetDescription>{t("description")}</SheetDescription>
         </SheetHeader>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">
-          <FilterSection title={t("groups.appearsIn")}>
-            <SeriesFilter
-              onChange={(seriesId) => setDraft((current) => ({ ...current, seriesId }))}
-              value={draft.seriesId ?? null}
+        <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-4">
+          <FilterSection title={t("series")}>
+            <CharactersSeriesFilter
+              onChange={(seriesId) => patchDraft({ seriesId })}
+              value={draft.seriesId}
             />
           </FilterSection>
 
-          <FilterSection title={t("groups.bookRole")}>
+          <FilterSection title={t("book")}>
+            <CharactersBookFilter
+              onChange={(bookId) => patchDraft({ bookId })}
+              value={draft.bookId}
+            />
+          </FilterSection>
+
+          <FilterSection title={t("importance")}>
             <ChipGroup
               label={t("importance")}
               mode="multi"
-              onValueChange={(importance) => setDraft((current) => ({ ...current, importance }))}
+              onValueChange={(importance) => patchDraft({ importance })}
               options={BOOK_CHARACTER_IMPORTANCE.options.map((option) => ({
-                label: <ImportanceLabel value={option} />,
+                label: tImportance(option),
                 value: option,
               }))}
               size="sm"
-              value={draft.importance ?? []}
+              value={draft.importance}
             />
+          </FilterSection>
+
+          <FilterSection title={t("role")}>
             <ChipGroup
               label={t("role")}
               mode="multi"
-              onValueChange={(role) => setDraft((current) => ({ ...current, role }))}
+              onValueChange={(role) => patchDraft({ role })}
               options={BOOK_CHARACTER_ROLE.options.map((option) => ({
-                label: <RoleLabel value={option} />,
+                label: tRole(option),
                 value: option,
               }))}
               size="sm"
-              value={draft.role ?? []}
+              value={draft.role}
             />
           </FilterSection>
 
-          <FilterSection title={t("groups.about")}>
+          <FilterSection title={t("gender")}>
             <ChipGroup
               label={t("gender")}
               mode="multi"
-              onValueChange={(gender) => setDraft((current) => ({ ...current, gender }))}
-              options={GENDER_OPTIONS.map((option) => ({
-                label: <GenderLabel value={option} />,
-                value: option,
-              }))}
+              onValueChange={(gender) => patchDraft({ gender })}
+              options={GENDER_OPTIONS.map((option) => ({ label: tGender(option), value: option }))}
               size="sm"
-              value={draft.gender ?? []}
+              value={draft.gender}
             />
+          </FilterSection>
+
+          <FilterSection title={t("species")}>
+            <CharactersSpeciesFilter
+              names={speciesNames}
+              onChange={(speciesId) => patchDraft({ speciesId })}
+              value={draft.speciesId}
+            />
+          </FilterSection>
+
+          <FilterSection title={t("attitude")}>
             <ChipGroup
               label={t("attitude")}
               mode="multi"
-              onValueChange={(attitude) => setDraft((current) => ({ ...current, attitude }))}
+              onValueChange={(attitude) => patchDraft({ attitude })}
               options={ATTITUDE_OPTIONS.map((option) => ({
-                label: <AttitudeLabel value={option} />,
+                label: tAttitude(option),
                 value: option,
               }))}
               size="sm"
-              value={draft.attitude ?? []}
+              value={draft.attitude}
             />
           </FilterSection>
 
-          <FilterSection title={t("groups.organisation")}>
-            <GroupFilter
-              onChange={(groupId) => setDraft((current) => ({ ...current, groupId }))}
-              value={draft.groupId ?? []}
+          <FilterSection title={t("tags")}>
+            <LibraryTagFilter
+              emptyLabel={t("tagEmpty")}
+              id="characters-filter-tag"
+              label={t("tags")}
+              onAdd={(tag) =>
+                setDraft((current) => ({ ...current, tagId: [...current.tagId, tag.id] }))
+              }
+              onRemove={(id) =>
+                setDraft((current) => ({
+                  ...current,
+                  tagId: current.tagId.filter((value) => value !== id),
+                }))
+              }
+              placeholder={t("tagPlaceholder")}
+              removeLabel={(name) => t("removeTag", { name })}
+              resolveName={() => undefined}
+              searchingLabel={t("tagSearching")}
+              suggestionsHeading={t("tagSuggestions")}
+              value={draft.tagId}
             />
+          </FilterSection>
+
+          <FilterSection title={t("groups")}>
+            <GroupFilter onChange={(groupId) => patchDraft({ groupId })} value={draft.groupId} />
+          </FilterSection>
+
+          <FilterSection title={t("spoilers")}>
+            <Select
+              onValueChange={(next) => patchDraft({ spoilers: toSpoilerFilter(next) })}
+              value={draft.spoilers}
+            >
+              <SelectTrigger
+                aria-label={t("spoilers")}
+                className="h-10 w-full data-[size=default]:h-10"
+                clearLabel={t("clearSpoilers")}
+                isClearable={draft.spoilers !== "all"}
+                onClear={() => patchDraft({ spoilers: "all" })}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CHARACTERS_CATALOG_SPOILER_FILTERS.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {t(`spoilerOptions.${value}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </FilterSection>
         </div>
 
-        <SheetFooter className="border-t border-border">
+        <SheetFooter>
           <Button
-            onClick={() => {
-              setDraft(EMPTY_ADVANCED);
-              onApply(EMPTY_ADVANCED);
-              setOpen(false);
-            }}
+            disabled={countActiveAdvancedFilters(draft) === 0}
+            onClick={() => setDraft(CHARACTERS_CATALOG_ADVANCED_EMPTY)}
+            type="button"
             variant="ghost"
           >
             {t("clear")}
@@ -180,6 +251,7 @@ export function CharactersCatalogFilters({
               onApply(draft);
               setOpen(false);
             }}
+            type="button"
           >
             {t("apply")}
           </Button>
@@ -187,16 +259,6 @@ export function CharactersCatalogFilters({
       </SheetContent>
     </Sheet>
   );
-}
-
-function AttitudeLabel({ value }: { value: CharacterAttitude }) {
-  const t = useTranslations("characters.attitude");
-  return <>{t(value)}</>;
-}
-
-function GenderLabel({ value }: { value: CharacterGender }) {
-  const t = useTranslations("characters.gender");
-  return <>{t(value)}</>;
 }
 
 function GroupFilter({
@@ -216,7 +278,7 @@ function GroupFilter({
 
   return (
     <ChipGroup
-      label={t("groups.organisation")}
+      label={t("groups")}
       mode="multi"
       onValueChange={onChange}
       options={options.map((group) => ({ label: group.name ?? "", value: group.id }))}
@@ -226,45 +288,6 @@ function GroupFilter({
   );
 }
 
-function ImportanceLabel({ value }: { value: BookCharacterImportance }) {
-  const t = useTranslations("characters.importance");
-  return <>{t(value)}</>;
-}
-
-function RoleLabel({ value }: { value: BookCharacterRoleType }) {
-  const t = useTranslations("characters.roleType");
-  return <>{t(value)}</>;
-}
-
-function SeriesFilter({
-  onChange,
-  value,
-}: {
-  onChange: (value: null | string) => void;
-  value: null | string;
-}) {
-  const t = useTranslations("characters.catalog.filters");
-  const tCommon = useTranslations("common");
-  const series = useSeriesPickerOptions("");
-  const options = (series.data?.pages ?? []).flatMap((page) => page.items);
-
-  return (
-    <Select onValueChange={onChange} value={value ?? ""}>
-      <SelectTrigger
-        className="w-full data-[size=default]:h-10"
-        clearLabel={tCommon("clear")}
-        isClearable={value !== null}
-        onClear={() => onChange(null)}
-      >
-        <SelectValue placeholder={t("anySeries")} />
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((option) => (
-          <SelectItem key={option.id} value={option.id}>
-            {option.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
+function toSpoilerFilter(value: string): CharactersCatalogSpoilerFilter {
+  return CHARACTERS_CATALOG_SPOILER_FILTERS.find((option) => option === value) ?? "all";
 }

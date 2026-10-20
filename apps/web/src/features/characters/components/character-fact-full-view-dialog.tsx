@@ -14,7 +14,7 @@ type CharacterFactFullViewDialogProps = {
   fact: CharacterFactView;
   onOpenChange: (open: boolean) => void;
   open: boolean;
-  triggerRef: RefObject<Nullable<HTMLButtonElement>>;
+  triggerRef: RefObject<Nullable<HTMLElement>>;
 };
 
 export function CharacterFactFullViewDialog({
