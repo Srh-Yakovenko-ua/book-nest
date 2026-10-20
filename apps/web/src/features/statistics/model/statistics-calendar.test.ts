@@ -4,8 +4,11 @@ import {
   buildHeatmapWeeks,
   buildMonthGrid,
   clipCalendarMonth,
+  heatmapWindowRange,
   listCalendarMonths,
+  listHeatmapWindows,
   resolveCalendarMonth,
+  resolveHeatmapWindowIndex,
   summarizeCalendarMonth,
   weekdayOrder,
 } from "./statistics-calendar";
@@ -20,6 +23,40 @@ const MARCH_2026 = [
   "2026-03-06",
   "2026-03-07",
 ].map((date) => calendarDayFixture({ date, drilldown: { date, kind: "reading_day" } }));
+
+const LONG_RANGE = { from: "2024-01-15", to: "2026-03-10" };
+
+const OLDEST_WINDOW = ["2024-01", "2024-02", "2024-03"];
+
+const MIDDLE_WINDOW = [
+  "2024-04",
+  "2024-05",
+  "2024-06",
+  "2024-07",
+  "2024-08",
+  "2024-09",
+  "2024-10",
+  "2024-11",
+  "2024-12",
+  "2025-01",
+  "2025-02",
+  "2025-03",
+];
+
+const NEWEST_WINDOW = [
+  "2025-04",
+  "2025-05",
+  "2025-06",
+  "2025-07",
+  "2025-08",
+  "2025-09",
+  "2025-10",
+  "2025-11",
+  "2025-12",
+  "2026-01",
+  "2026-02",
+  "2026-03",
+];
 
 describe("weekdayOrder", () => {
   it("starts on Monday for a Monday week start", () => {
@@ -227,5 +264,100 @@ describe("clipCalendarMonth", () => {
       from: "2026-03-01",
       to: "2026-03-10",
     });
+  });
+});
+
+describe("listHeatmapWindows", () => {
+  const manyYears = { from: "2019-05-20", to: "2026-03-10" };
+
+  it("keeps a range shorter than twelve months in one window", () => {
+    expect(listHeatmapWindows({ from: "2026-01-05", to: "2026-03-10" })).toEqual([
+      ["2026-01", "2026-02", "2026-03"],
+    ]);
+  });
+
+  it("keeps a range of exactly twelve months in one window", () => {
+    expect(listHeatmapWindows({ from: "2025-04-01", to: "2026-03-10" })).toEqual([NEWEST_WINDOW]);
+  });
+
+  it("counts windows back from the last month, so only the oldest one is shorter", () => {
+    expect(listHeatmapWindows(LONG_RANGE)).toEqual([OLDEST_WINDOW, MIDDLE_WINDOW, NEWEST_WINDOW]);
+  });
+
+  it("opens a thirteen-month range with a one-month window", () => {
+    expect(listHeatmapWindows({ from: "2025-03-15", to: "2026-03-10" })).toEqual([
+      ["2025-03"],
+      NEWEST_WINDOW,
+    ]);
+  });
+
+  it("never puts more than twelve months in a window", () => {
+    const windows = listHeatmapWindows(manyYears);
+
+    expect(windows.map((months) => months.length)).toEqual([11, 12, 12, 12, 12, 12, 12]);
+  });
+
+  it("repeats no month across windows", () => {
+    const months = listHeatmapWindows(manyYears).flat();
+
+    expect(new Set(months).size).toBe(months.length);
+  });
+
+  it("loses no month of the range", () => {
+    expect(listHeatmapWindows(manyYears).flat()).toEqual(listCalendarMonths(manyYears));
+  });
+});
+
+describe("resolveHeatmapWindowIndex", () => {
+  const windows = [OLDEST_WINDOW, MIDDLE_WINDOW, NEWEST_WINDOW];
+
+  it("opens the newest window when no month is requested", () => {
+    expect(resolveHeatmapWindowIndex({ requested: null, windows })).toBe(2);
+  });
+
+  it("opens an older window for a month from its middle", () => {
+    expect(resolveHeatmapWindowIndex({ requested: "2024-08", windows })).toBe(1);
+  });
+
+  it("opens the oldest window for its last month", () => {
+    expect(resolveHeatmapWindowIndex({ requested: "2024-03", windows })).toBe(0);
+  });
+
+  it.each([["2023-12"], ["2026-04"], ["2024-8"], ["abc"]])(
+    "falls back to the newest window for %s",
+    (requested) => {
+      expect(resolveHeatmapWindowIndex({ requested, windows })).toBe(2);
+    },
+  );
+
+  it("resolves to the first index when there are no windows", () => {
+    expect(resolveHeatmapWindowIndex({ requested: "2024-08", windows: [] })).toBe(0);
+  });
+});
+
+describe("heatmapWindowRange", () => {
+  it("starts the oldest window where the range starts", () => {
+    expect(heatmapWindowRange({ months: OLDEST_WINDOW, range: LONG_RANGE })).toEqual({
+      from: "2024-01-15",
+      to: "2024-03-31",
+    });
+  });
+
+  it("covers whole months for a window inside the range", () => {
+    expect(heatmapWindowRange({ months: MIDDLE_WINDOW, range: LONG_RANGE })).toEqual({
+      from: "2024-04-01",
+      to: "2025-03-31",
+    });
+  });
+
+  it("ends the newest window where the range ends", () => {
+    expect(heatmapWindowRange({ months: NEWEST_WINDOW, range: LONG_RANGE })).toEqual({
+      from: "2025-04-01",
+      to: "2026-03-10",
+    });
+  });
+
+  it("has no range without months", () => {
+    expect(heatmapWindowRange({ months: [], range: LONG_RANGE })).toBeNull();
   });
 });

@@ -29,6 +29,13 @@ const SECTION_TONE: Record<StatisticsSectionStateKind, string> = {
   unavailable: "text-muted-foreground",
 };
 
+type StatisticsRefreshReason = "periodChange" | "refetch";
+
+const REFRESH_MESSAGE = {
+  periodChange: "periodChanging",
+  refetch: "refreshing",
+} as const satisfies Record<StatisticsRefreshReason, string>;
+
 export function StatisticsError({ onRetry }: { onRetry: () => void }) {
   const t = useTranslations("statistics.states");
 
@@ -104,7 +111,11 @@ export function StatisticsRefetchError({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-export function StatisticsRefreshingNote() {
+export function StatisticsRefreshingNote({
+  reason = "refetch",
+}: {
+  reason?: StatisticsRefreshReason;
+}) {
   const t = useTranslations("statistics.states");
 
   return (
@@ -115,7 +126,7 @@ export function StatisticsRefreshingNote() {
         name="refresh"
         size={13}
       />
-      {t("refreshing")}
+      {t(REFRESH_MESSAGE[reason])}
     </p>
   );
 }

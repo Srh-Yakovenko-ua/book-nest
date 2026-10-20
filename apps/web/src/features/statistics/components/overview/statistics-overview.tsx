@@ -3,11 +3,13 @@
 import type { ReadingStatisticsInsightCode, ReadingStatisticsOverview } from "@app/shared";
 
 import { useTranslations } from "next-intl";
+import { useRef } from "react";
 
 import type { PageTabsItem } from "@/components/page-tabs";
 
 import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
 import { TitleLeaf } from "@/components/title-leaf";
+import { cn } from "@/lib/utils";
 
 import type { DynamicsMetric } from "../../model/statistics-dynamics";
 import type { StatisticsScopeState } from "../../model/statistics-scope-state";
@@ -57,6 +59,13 @@ export function StatisticsOverview() {
     enabled: params.isRequestable,
   });
   const scope = toStatisticsScopeState(query);
+  const currentOverview = scope.isPlaceholderData ? undefined : scope.data;
+  const periodTriggerRef = useRef<HTMLButtonElement>(null);
+
+  const showAllTime = () => {
+    periodTriggerRef.current?.focus();
+    params.setPeriod("all_time");
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -71,23 +80,30 @@ export function StatisticsOverview() {
       </header>
 
       <StatisticsPeriodControls
-        comparison={scope.data?.comparison ?? null}
+        comparison={currentOverview?.comparison ?? null}
         params={params}
-        period={scope.data?.period ?? null}
+        period={currentOverview?.period ?? null}
+        periodTriggerRef={periodTriggerRef}
       />
 
-      {scope.isRefreshing ? <StatisticsRefreshingNote /> : null}
+      {scope.isPlaceholderData ? (
+        <StatisticsRefreshingNote reason="periodChange" />
+      ) : scope.isRefreshing ? (
+        <StatisticsRefreshingNote />
+      ) : null}
       {scope.isRefetchError ? <StatisticsRefetchError onRetry={scope.retry} /> : null}
 
-      <StatisticsBody params={params} scope={scope} />
+      <StatisticsBody onShowAllTime={showAllTime} params={params} scope={scope} />
     </div>
   );
 }
 
 function StatisticsBody({
+  onShowAllTime,
   params,
   scope,
 }: {
+  onShowAllTime: () => void;
   params: UseStatisticsParamsResult;
   scope: StatisticsScopeState<ReadingStatisticsOverview>;
 }) {
@@ -113,20 +129,37 @@ function StatisticsBody({
   const isLowerBound = overview.meta.activityHistory.selectedPeriodQuality === "legacy_lower_bound";
 
   return (
-    <div aria-busy={scope.isRefreshing} className="flex flex-col gap-6">
+    <div
+      aria-busy={scope.isRefreshing}
+      className={cn(
+        "flex flex-col gap-6 motion-safe:transition-opacity",
+        scope.isPlaceholderData && "opacity-60",
+      )}
+      inert={scope.isPlaceholderData}
+    >
       {isLowerBound ? <StatisticsNote>{t("states.lowerBound")}</StatisticsNote> : null}
 
-      <StatisticsTabs isLowerBound={isLowerBound} overview={overview} params={params} />
+      <StatisticsTabs
+        isLowerBound={isLowerBound}
+        isPlaceholderData={scope.isPlaceholderData}
+        onShowAllTime={onShowAllTime}
+        overview={overview}
+        params={params}
+      />
     </div>
   );
 }
 
 function StatisticsTabs({
   isLowerBound,
+  isPlaceholderData,
+  onShowAllTime,
   overview,
   params,
 }: {
   isLowerBound: boolean;
+  isPlaceholderData: boolean;
+  onShowAllTime: () => void;
   overview: ReadingStatisticsOverview;
   params: UseStatisticsParamsResult;
 }) {
@@ -153,7 +186,7 @@ function StatisticsTabs({
         <StatisticsOverviewTab
           isComparisonLowerBound={isComparisonLowerBound}
           isLowerBound={isLowerBound}
-          onShowAllTime={() => params.setPeriod("all_time")}
+          onShowAllTime={onShowAllTime}
           overview={overview}
           today={params.today}
           view={view}
@@ -188,6 +221,7 @@ function StatisticsTabs({
             month={view.calendarMonth}
             onModeChange={view.setCalendarMode}
             onMonthChange={view.setCalendarMonth}
+            suspendMonthNormalization={isPlaceholderData}
           />
         </StatisticsFocusTarget>
       </PageTabsPanel>

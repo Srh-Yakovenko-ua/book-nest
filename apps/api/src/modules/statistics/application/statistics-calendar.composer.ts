@@ -16,6 +16,7 @@ import { MediaService } from "../../media/index.js";
 import { isRangeFullyReliable } from "../domain/activity-history-quality.js";
 import {
   buildCalendarDays,
+  buildWeekdayActivity,
   countEligibleDays,
   findMostActiveWeekday,
   toActiveDays,
@@ -111,6 +112,10 @@ export class StatisticsCalendarComposer {
         longestStreak: findLongestStreak(activeDays),
         metricRange: ranges.metricRange,
         mostActiveWeekday: this.buildMostActiveWeekday({ activity, metricReliable }),
+        weekdayActivity: {
+          availability: metricReliable ? "available" : "partial",
+          items: buildWeekdayActivity(activity),
+        },
       },
     };
   }
@@ -222,5 +227,6 @@ function unavailableCalendar(today: string): ReadingStatisticsCalendarSection {
     metricRange: range,
     mostActiveWeekday: { availability: "unavailable", data: null },
     reason: "NO_ACTIVITY_HISTORY",
+    weekdayActivity: { availability: "unavailable", items: [] },
   };
 }
