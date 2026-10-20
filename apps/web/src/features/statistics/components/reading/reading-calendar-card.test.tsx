@@ -176,6 +176,26 @@ describe("ReadingCalendarCard", () => {
     expect(screen.getByText(/Показники за/)).toBeInTheDocument();
   });
 
+  it("ends the narrower-range note of an all-time calendar with a single period after the uk year", () => {
+    const notePrefix = calendarText.displayRange
+      .slice(0, calendarText.displayRange.indexOf("{"))
+      .trim();
+    renderWithProviders(
+      calendarCard({
+        calendar: calendarFixture({
+          displayRange: { from: "2025-04-01", to: "2026-03-31" },
+          metricRange: { from: "2019-05-01", to: "2026-03-31" },
+        }),
+      }),
+    );
+
+    const note = screen.getByText((content) => content.startsWith(notePrefix));
+    const noteText = (note.textContent ?? "").replace(/\s+/g, " ").trim();
+
+    expect(noteText).not.toContain("..");
+    expect(noteText).toMatch(/[^.]\.$/);
+  });
+
   it("renders an unavailable calendar with its reason instead of an empty grid", () => {
     renderWithProviders(
       calendarCard({

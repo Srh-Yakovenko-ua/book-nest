@@ -558,6 +558,117 @@ describe("GET /api/statistics/completed-reads/subset and snapshots the ranking c
   });
 });
 
+describe("GET /api/statistics/completed-reads/subset and the ranking over snapshots that do not parse", () => {
+  type EveryTasteDrill = Record<"author" | "genre" | "language" | "publisher", DrilledCounts>;
+
+  const PARSEABLE_TASTE: SnapshotAttributes = {
+    authors: [SNAPSHOT_REFS.alpha],
+    genres: ["fantasy"],
+    language: "english",
+    publisher: SNAPSHOT_REFS.north,
+  };
+
+  const MALFORMED_SNAPSHOT_CASES: { name: string; snapshot: Prisma.InputJsonObject }[] = [
+    { name: "an unknown provenance", snapshot: parseableSnapshotWith({ provenance: "imported" }) },
+    {
+      name: "a series missing its required fields",
+      snapshot: parseableSnapshotWith({ series: { name: 1 } }),
+    },
+    {
+      name: "a co-author whose id is not an RFC UUID",
+      snapshot: parseableSnapshotWith({
+        authors: [
+          SNAPSHOT_REFS.alpha,
+          { authorId: "12345678-1234-0234-8234-123456789012", name: "Broken Id" },
+        ],
+      }),
+    },
+    {
+      name: "a co-author without a name",
+      snapshot: parseableSnapshotWith({
+        authors: [{ authorId: SNAPSHOT_REFS.beta.authorId }, SNAPSHOT_REFS.alpha],
+      }),
+    },
+    {
+      name: "a publisher without a name",
+      snapshot: parseableSnapshotWith({
+        publisher: { publisherId: SNAPSHOT_REFS.north.publisherId },
+      }),
+    },
+    { name: "a null genre list", snapshot: parseableSnapshotWithBook({ genres: null }) },
+    { name: "a title that is not a string", snapshot: parseableSnapshotWithBook({ title: 42 }) },
+    { name: "a fractional page count", snapshot: parseableSnapshotWithBook({ pagesCount: 12.5 }) },
+  ];
+
+  async function drillIntoEveryTopRow(): Promise<EveryTasteDrill> {
+    const response = await overview({ period: "year", year: "2024" });
+    expect(response.status).toBe(200);
+    const parsed = ReadingStatisticsOverviewSchema.parse(response.body);
+    return {
+      author: await drillInto(firstRow(parsed.authors.frequency)),
+      genre: await drillInto(firstRow(parsed.genres.frequency)),
+      language: await drillInto(firstRow(parsed.languages.items)),
+      publisher: await drillInto(firstRow(parsed.publishers.items)),
+    };
+  }
+
+  function everyRankingAgreeingOn(count: number): EveryTasteDrill {
+    return {
+      author: agreeingCounts(count),
+      genre: agreeingCounts(count),
+      language: agreeingCounts(count),
+      publisher: agreeingCounts(count),
+    };
+  }
+
+  function parseableSnapshotWith(fields: Prisma.InputJsonObject): Prisma.InputJsonObject {
+    return { ...completionSnapshot(PARSEABLE_TASTE), ...fields };
+  }
+
+  function parseableSnapshotWithBook(fields: Prisma.InputJsonObject): Prisma.InputJsonObject {
+    return parseableSnapshotWith({
+      book: {
+        genres: ["fantasy"],
+        language: "english",
+        pagesCount: 320,
+        title: "Title at completion",
+        ...fields,
+      },
+    });
+  }
+
+  async function seedRereads(snapshots: Prisma.InputJsonObject[]): Promise<void> {
+    const bookId = await createBook({ title: "Snapshots" });
+    await seedCycles(
+      snapshots.map((snapshot, index) => ({
+        bookId,
+        finishedAt: addDaysToIsoDate("2024-03-01", index),
+        snapshot,
+      })),
+    );
+  }
+
+  it.each(MALFORMED_SNAPSHOT_CASES)(
+    "counts a read with $name the same way in every taste ranking and the subset",
+    async ({ snapshot }) => {
+      await seedRereads([completionSnapshot(PARSEABLE_TASTE), snapshot]);
+
+      expect(await drillIntoEveryTopRow()).toEqual(everyRankingAgreeingOn(1));
+    },
+  );
+
+  it("counts two parseable reads and a legacy read with a null genre list as two everywhere", async () => {
+    const parseable = completionSnapshot(PARSEABLE_TASTE);
+    await seedRereads([
+      parseable,
+      parseable,
+      { ...parseableSnapshotWithBook({ genres: null }), provenance: "legacy_current_metadata" },
+    ]);
+
+    expect(await drillIntoEveryTopRow()).toEqual(everyRankingAgreeingOn(2));
+  });
+});
+
 describe("GET /api/statistics/completed-reads/subset period bounds and snapshot versions", () => {
   it("includes reads on both bounds and leaves out the days just outside", async () => {
     const period = { periodFrom: "2024-03-10", periodTo: "2024-03-20" } as const;

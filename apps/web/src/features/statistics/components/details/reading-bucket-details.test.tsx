@@ -1,4 +1,5 @@
 import type {
+  Nullable,
   ReadingStatisticsActivityPage,
   ReadingStatisticsBucket,
   ReadingStatisticsCompletedReadsPage,
@@ -14,7 +15,7 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 import messages from "@/messages/uk.json";
-import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
+import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { completedReadFixture, statisticsIds } from "../../model/statistics.fixtures";
 import { ReadingBucketDetails } from "./reading-bucket-details";
@@ -77,6 +78,29 @@ const READS_PAGES: ReadingStatisticsCompletedReadsPage[] = [
   },
 ];
 
+const ACTIVITY_SECOND_PAGE_ITEMS: ReadingStatisticsActivityPage["items"] = [
+  {
+    book: {
+      bookId: statisticsIds.secondBookId,
+      bookState: "active",
+      coverThumbUrl: null,
+      title: "Гробниці Атуану",
+    },
+    date: "2026-03-01",
+    pagesRead: 25,
+  },
+  {
+    book: {
+      bookId: statisticsIds.bookId,
+      bookState: "active",
+      coverThumbUrl: null,
+      title: "Чарівник Земномор'я",
+    },
+    date: "2026-03-01",
+    pagesRead: 15,
+  },
+];
+
 function activityPage(
   overrides: Partial<ReadingStatisticsActivityPage> = {},
 ): ReadingStatisticsActivityPage {
@@ -114,7 +138,7 @@ function activityPage(
   };
 }
 
-let activityResponse: () => Response = () => jsonResponse(activityPage());
+let activityResponse: (url: URL) => Response = () => jsonResponse(activityPage());
 
 const fetchMock = vi.fn((input: RequestInfo | URL) => {
   const url = new URL(String(input), "http://localhost");
@@ -123,7 +147,7 @@ const fetchMock = vi.fn((input: RequestInfo | URL) => {
     return Promise.resolve(jsonResponse(page));
   }
   if (url.pathname === "/api/statistics/reading-activity") {
-    return Promise.resolve(activityResponse());
+    return Promise.resolve(activityResponse(url));
   }
   if (url.pathname === "/api/genres") return Promise.resolve(jsonResponse([]));
   return Promise.reject(new Error(`unexpected fetch ${url.pathname}`));
@@ -144,6 +168,27 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json" },
     status,
   });
+}
+
+function pagedActivity(cursorAfterSecondPage: Nullable<string>): (url: URL) => Response {
+  return (url) =>
+    jsonResponse(
+      url.searchParams.get("cursor") === "activity-2"
+        ? activityPage({ items: ACTIVITY_SECOND_PAGE_ITEMS, nextCursor: cursorAfterSecondPage })
+        : activityPage({ nextCursor: "activity-2" }),
+    );
+}
+
+function readingEntry(title: string): HTMLElement {
+  const entry = screen
+    .getAllByRole("listitem")
+    .find(
+      (item) =>
+        within(item).queryAllByRole("listitem").length === 0 &&
+        within(item).queryByText(title) !== null,
+    );
+  if (entry === undefined) throw new Error(`no reading entry for ${title}`);
+  return entry;
 }
 
 function requestedRanges(pathname: string): string[] {
@@ -216,6 +261,47 @@ describe("ReadingBucketDetails", () => {
     expect(screen.getByText("30 сторінок")).toBeInTheDocument();
     expect(screen.getByText("90")).toBeInTheDocument();
     expect(screen.queryByText(/повний облік/)).toBeNull();
+  });
+
+  it("moves keyboard focus to the first reading of the day page that just arrived", async () => {
+    activityResponse = pagedActivity("activity-3");
+    const user = userEvent.setup();
+    renderWithProviders(
+      <ReadingBucketDetails
+        bucket={MARCH}
+        comparisonBucket={null}
+        metric="pages"
+        onClose={vi.fn()}
+      />,
+    );
+    await screen.findByText("60 сторінок");
+
+    screen.getByRole("button", { name: text.bucket.loadMore }).focus();
+    await user.keyboard("{Enter}");
+
+    await screen.findByText("Гробниці Атуану");
+    await waitFor(() => expect(readingEntry("Гробниці Атуану")).toHaveFocus());
+  });
+
+  it("keeps keyboard focus off the page body when the last day page removes the load-more button", async () => {
+    activityResponse = pagedActivity(null);
+    const user = userEvent.setup();
+    renderWithProviders(
+      <ReadingBucketDetails
+        bucket={MARCH}
+        comparisonBucket={null}
+        metric="pages"
+        onClose={vi.fn()}
+      />,
+    );
+    await screen.findByText("60 сторінок");
+
+    screen.getByRole("button", { name: text.bucket.loadMore }).focus();
+    await user.keyboard("{Enter}");
+    await screen.findByText("Гробниці Атуану");
+
+    expect(screen.queryByRole("button", { name: text.bucket.loadMore })).toBeNull();
+    expect(document.body).not.toHaveFocus();
   });
 
   it("marks observed-only history as a minimum and never claims nothing was read", async () => {

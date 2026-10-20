@@ -13,9 +13,10 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 import messages from "@/messages/uk.json";
-import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
+import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { completedReadFixture, statisticsIds } from "../../model/statistics.fixtures";
+import { StatisticsDetailSurface } from "./statistics-detail-surface";
 import { StatisticsSubsetDetails } from "./statistics-subset-details";
 
 const text = messages.statistics.details;
@@ -201,5 +202,33 @@ describe("StatisticsSubsetDetails", () => {
       "aria-busy",
       "true",
     );
+  });
+
+  it("keeps keyboard focus on the first new read's trigger after loading more inside the mobile drawer", async () => {
+    vi.stubGlobal("innerWidth", 375);
+    const user = userEvent.setup();
+    const drawerTitle = text.subset.title.replace("{name}", "Folio");
+    const openSubset = text.subset.open.replace("{name}", "Folio");
+    renderWithProviders(
+      <StatisticsDetailSurface
+        detail={() => <StatisticsSubsetDetails filter={PUBLISHER_FILTER} period={FIRST_QUARTER} />}
+        label={openSubset}
+        title={drawerTitle}
+      >
+        Folio
+      </StatisticsDetailSurface>,
+    );
+
+    await user.click(screen.getByRole("button", { name: openSubset }));
+    const drawer = await screen.findByRole("dialog", { name: drawerTitle });
+    const loadMore = await within(drawer).findByRole("button", { name: text.bucket.loadMore });
+    loadMore.focus();
+    await user.keyboard("{Enter}");
+    await within(drawer).findByText("Найдальший берег");
+    await waitFor(() =>
+      expect(readTrigger("Найдальший берег")).toHaveAttribute("data-slot", "drawer-trigger"),
+    );
+
+    expect(readTrigger("Найдальший берег")).toHaveFocus();
   });
 });

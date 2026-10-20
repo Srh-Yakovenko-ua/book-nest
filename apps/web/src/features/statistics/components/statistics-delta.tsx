@@ -12,9 +12,17 @@ import { useLocale, useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
 
-import { formatPercentagePoints, formatRatingScore, formatShare } from "../model/statistics-format";
+import {
+  formatPercentagePoints,
+  formatRatingScore,
+  formatShare,
+  isZeroAtPercentPrecision,
+  isZeroAtRatingPrecision,
+} from "../model/statistics-format";
 
 const DIRECTION_ICON = { down: "arrow-down", flat: "minus", up: "arrow-up" } as const;
+
+type ChangeDirection = Exclude<DeltaDirection, "flat">;
 
 type DeltaDirection = keyof typeof DIRECTION_ICON;
 
@@ -44,11 +52,13 @@ export function StatisticsCountDelta({
     );
   }
 
+  const direction = toDirection(comparison.absoluteDelta);
+
   return (
-    <DeltaShell direction={toDirection(comparison.absoluteDelta)}>
-      <span className="font-medium text-foreground tabular-nums">
+    <DeltaShell direction={direction}>
+      <DeltaValue direction={direction}>
         {formatShare(Math.abs(comparison.percentDelta) / 100, locale)}%
-      </span>
+      </DeltaValue>
       <span>{t("previous", { previous: formatValue(comparison.previous) })}</span>
     </DeltaShell>
   );
@@ -64,17 +74,19 @@ export function StatisticsRateDelta({
 
   if (comparison === null) return null;
 
-  if (comparison.percentagePointDelta === 0) {
+  if (isZeroAtPercentPrecision(comparison.percentagePointDelta)) {
     return <DeltaShell direction="flat">{t("unchanged")}</DeltaShell>;
   }
 
+  const direction = toDirection(comparison.percentagePointDelta);
+
   return (
-    <DeltaShell direction={toDirection(comparison.percentagePointDelta)}>
-      <span className="font-medium text-foreground tabular-nums">
+    <DeltaShell direction={direction}>
+      <DeltaValue direction={direction}>
         {t("percentagePoints", {
           value: formatPercentagePoints(comparison.percentagePointDelta, locale),
         })}
-      </span>
+      </DeltaValue>
       <span>{t("previous", { previous: `${formatShare(comparison.previousRate, locale)}%` })}</span>
     </DeltaShell>
   );
@@ -90,15 +102,17 @@ export function StatisticsScoreDelta({
 
   if (comparison === null) return null;
 
-  if (comparison.absoluteDelta === 0) {
+  if (isZeroAtRatingPrecision(comparison.absoluteDelta)) {
     return <DeltaShell direction="flat">{t("unchanged")}</DeltaShell>;
   }
 
+  const direction = toDirection(comparison.absoluteDelta);
+
   return (
-    <DeltaShell direction={toDirection(comparison.absoluteDelta)}>
-      <span className="font-medium text-foreground tabular-nums">
+    <DeltaShell direction={direction}>
+      <DeltaValue direction={direction}>
         {formatRatingScore(Math.abs(comparison.absoluteDelta), locale)}
-      </span>
+      </DeltaValue>
       <span>{t("previous", { previous: formatRatingScore(comparison.previous, locale) })}</span>
     </DeltaShell>
   );
@@ -113,7 +127,17 @@ function DeltaShell({ children, direction }: { children: ReactNode; direction: D
   );
 }
 
-function toDirection(value: number): DeltaDirection {
-  if (value === 0) return "flat";
+function DeltaValue({ children, direction }: { children: ReactNode; direction: ChangeDirection }) {
+  const t = useTranslations("statistics.delta.direction");
+
+  return (
+    <span className="font-medium text-foreground tabular-nums">
+      <span className="sr-only">{t(direction)} </span>
+      {children}
+    </span>
+  );
+}
+
+function toDirection(value: number): ChangeDirection {
   return value > 0 ? "up" : "down";
 }

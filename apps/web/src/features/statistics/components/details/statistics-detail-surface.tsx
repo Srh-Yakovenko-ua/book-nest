@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
 import { createContext, use, useId, useState } from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
@@ -29,6 +29,7 @@ type StatisticsDetailSurfaceProps = {
   label?: string;
   title: string;
   triggerClassName?: string;
+  triggerRef?: Ref<HTMLButtonElement>;
 };
 
 const InsideDrawerContext = createContext(false);
@@ -40,9 +41,10 @@ export function StatisticsDetailSurface({
   label,
   title,
   triggerClassName,
+  triggerRef,
 }: StatisticsDetailSurfaceProps) {
-  const isMobile = useIsMobile();
   const isInsideDrawer = use(InsideDrawerContext);
+  const isMobile = useIsMobile() || isInsideDrawer;
   const [open, setOpen] = useState(false);
   const titleId = useId();
   const close = () => setOpen(false);
@@ -55,6 +57,7 @@ export function StatisticsDetailSurface({
         <DrawerTrigger
           aria-label={label}
           className={cn("cursor-pointer text-left", triggerClassName)}
+          ref={triggerRef}
         >
           {children}
         </DrawerTrigger>
@@ -75,6 +78,7 @@ export function StatisticsDetailSurface({
       <PopoverTrigger
         aria-label={label}
         className={cn("cursor-pointer text-left", triggerClassName)}
+        ref={triggerRef}
       >
         {children}
       </PopoverTrigger>

@@ -54,9 +54,11 @@ export function LoadMore({
 
   return (
     <Button
-      className="self-start"
-      disabled={isLoading}
-      onClick={onLoadMore}
+      aria-disabled={isLoading}
+      className="self-start aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+      onClick={() => {
+        if (!isLoading) onLoadMore();
+      }}
       size="sm"
       variant="secondary"
     >

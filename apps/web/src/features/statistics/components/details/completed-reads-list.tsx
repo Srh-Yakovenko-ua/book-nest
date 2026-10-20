@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 
 import { RatingScore } from "@/components/ui/rating-score";
 
+import { useAppendedPageFocus } from "../../hooks/use-appended-page-focus";
 import { formatDayShort } from "../../model/statistics-format";
 import { StatisticsSectionState } from "../statistics-states";
 import { CompletedReadDetails } from "./completed-read-details";
@@ -32,6 +33,7 @@ export function CompletedReadsList({
   const t = useTranslations("statistics.details.bucket");
   const tDay = useTranslations("statistics.details.day");
   const tRead = useTranslations("statistics.details.completedRead");
+  const { focusRefFor, loadMore } = useAppendedPageFocus({ onLoadMore, pages });
 
   const reads = pages.flatMap((page) => page.items);
   const totalCount = pages[0]?.totalCount ?? 0;
@@ -51,6 +53,7 @@ export function CompletedReadsList({
               label={tRead("open", { title: read.book.title })}
               title={read.book.title}
               triggerClassName="flex w-full items-center gap-3 rounded-md p-1 outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              triggerRef={focusRefFor(read)}
             >
               <StatisticsBookCover
                 className="w-9 shrink-0"
@@ -75,7 +78,7 @@ export function CompletedReadsList({
           </li>
         ))}
       </ul>
-      <LoadMore hasMore={hasMore} isLoading={isLoadingMore} onLoadMore={onLoadMore} />
+      <LoadMore hasMore={hasMore} isLoading={isLoadingMore} onLoadMore={loadMore} />
     </div>
   );
 }

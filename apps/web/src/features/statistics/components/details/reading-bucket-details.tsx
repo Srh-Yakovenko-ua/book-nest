@@ -21,6 +21,7 @@ import {
   useCompletedReadsInterval,
   useReadingActivityInterval,
 } from "../../api/use-reading-interval-details";
+import { useAppendedPageFocus } from "../../hooks/use-appended-page-focus";
 import { buildStatisticsDrilldownTarget } from "../../model/statistics-drilldown";
 import { formatDayLong, formatDayRange } from "../../model/statistics-format";
 import { StatisticsMetricTabs } from "../statistics-section";
@@ -154,6 +155,10 @@ function ReadingActivityOfBucket({ range }: { range: ReadingStatisticsDateRange 
   const tDay = useTranslations("statistics.details.day");
   const tKpi = useTranslations("statistics.kpi");
   const query = useReadingActivityInterval(range);
+  const { focusRefFor, loadMore } = useAppendedPageFocus({
+    onLoadMore: () => void query.fetchNextPage(),
+    pages: query.data?.pages ?? [],
+  });
 
   if (query.isPending) return <DetailsLoading label={t("loading")} />;
   if (query.isError) {
@@ -200,7 +205,12 @@ function ReadingActivityOfBucket({ range }: { range: ReadingStatisticsDateRange 
               </time>
               <ul className="flex flex-col gap-2">
                 {day.items.map((item) => (
-                  <li className="flex items-center gap-3" key={item.book.bookId}>
+                  <li
+                    className="flex items-center gap-3 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                    key={item.book.bookId}
+                    ref={focusRefFor(item)}
+                    tabIndex={-1}
+                  >
                     <StatisticsBookCover
                       className="w-9 shrink-0"
                       coverThumbUrl={item.book.coverThumbUrl}
@@ -228,7 +238,7 @@ function ReadingActivityOfBucket({ range }: { range: ReadingStatisticsDateRange 
       <LoadMore
         hasMore={query.hasNextPage}
         isLoading={query.isFetchingNextPage}
-        onLoadMore={() => void query.fetchNextPage()}
+        onLoadMore={loadMore}
       />
     </div>
   );
