@@ -55,6 +55,7 @@ export function LanguagesSection({ languages }: { languages: ReadingStatisticsLa
           </dl>
           <TasteRankingList
             rows={languages.items.map((entry) => ({
+              drilldown: entry.drilldown,
               key: entry.language,
               label: tLabels(entry.language),
               secondary: t("share", { percent: formatShare(entry.shareOfKnown, locale) }),

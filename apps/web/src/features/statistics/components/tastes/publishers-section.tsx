@@ -63,6 +63,7 @@ export function PublishersSection({
           <TasteRankingList
             rows={publishers.items.map((entry) => ({
               contextActions: entry.contextActions,
+              drilldown: entry.drilldown,
               key: entry.publisherId,
               label: entry.name,
               secondary:

@@ -1,13 +1,18 @@
-import type { Nullable } from "@app/shared";
+import type { Nullable, ReadingStatisticsSubsetFilter } from "@app/shared";
 
+import { BookLanguageSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
-import type { Prisma } from "../../../generated/prisma/client.js";
-
+import { assertNever } from "../../../core/assert-never.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { parseIsoDate, toIsoDate } from "../../../core/iso-date.js";
-import { FIRST_COMPLETION_RELIABILITY, READING_CYCLE_STATE } from "../../books/index.js";
+import { Prisma } from "../../../generated/prisma/client.js";
+import {
+  FIRST_COMPLETION_RELIABILITY,
+  READING_COMPLETION_SNAPSHOT_VERSION,
+  READING_CYCLE_STATE,
+} from "../../books/index.js";
 
 const completedReadArgs = {
   select: {
@@ -27,6 +32,10 @@ const completedReadArgs = {
     startedAt: true,
   },
 } satisfies Prisma.BookReadingCycleDefaultArgs;
+
+const CompletedReadsSubsetCountRowSchema = z.object({ count: z.number().int().nonnegative() });
+
+const CompletedReadsSubsetIdRowSchema = z.object({ id: z.string() });
 
 const CompletionTotalsRowSchema = z.object({
   completedReads: z.number().int().nonnegative(),
@@ -56,6 +65,8 @@ const SeriesFirstCompletionRowSchema = z.object({
 
 export type CompletedReadRow = Prisma.BookReadingCycleGetPayload<typeof completedReadArgs>;
 
+export type CompletedReadsSubsetScope = PeriodScope & { filter: ReadingStatisticsSubsetFilter };
+
 export type CompletionTotals = z.infer<typeof CompletionTotalsRowSchema>;
 
 export type PeriodScope = { from: Nullable<string>; to: string; userId: string };
@@ -73,6 +84,17 @@ type CompletedReadsCursor = { finishedAt: string; id: string };
 @Injectable()
 export class StatisticsCompletionRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  async countCompletedReadsSubset(scope: CompletedReadsSubsetScope): Promise<number> {
+    const rows = await this.prisma.$queryRaw`
+      SELECT COUNT(*)::int AS "count"
+      FROM book_reading_cycles cycle
+      WHERE ${buildCompletedReadsSubsetCondition(scope)}
+    `;
+
+    const [row] = z.array(CompletedReadsSubsetCountRowSchema).parse(rows);
+    return row?.count ?? 0;
+  }
 
   async countPriorExposure({
     before,
@@ -207,6 +229,47 @@ export class StatisticsCompletionRepository {
     });
   }
 
+  async findCompletedReadsSubsetPage({
+    after,
+    limit,
+    ...scope
+  }: CompletedReadsSubsetScope & {
+    after: Nullable<CompletedReadsCursor>;
+    limit: number;
+  }): Promise<CompletedReadRow[]> {
+    const afterCursor =
+      after === null
+        ? Prisma.empty
+        : Prisma.sql`
+            AND (
+              cycle.finished_at < ${after.finishedAt}::date
+              OR (cycle.finished_at = ${after.finishedAt}::date AND cycle.id > ${after.id}::uuid)
+            )
+          `;
+    const rows = await this.prisma.$queryRaw`
+      SELECT cycle.id::text AS "id"
+      FROM book_reading_cycles cycle
+      WHERE ${buildCompletedReadsSubsetCondition(scope)}
+        ${afterCursor}
+      ORDER BY cycle.finished_at DESC, cycle.id ASC
+      LIMIT ${limit}
+    `;
+
+    const ids = z
+      .array(CompletedReadsSubsetIdRowSchema)
+      .parse(rows)
+      .map((row) => row.id);
+    if (ids.length === 0) {
+      return [];
+    }
+
+    return this.prisma.bookReadingCycle.findMany({
+      orderBy: [{ finishedAt: "desc" }, { id: "asc" }],
+      where: { id: { in: ids }, userId: scope.userId },
+      ...completedReadArgs,
+    });
+  }
+
   async findEarliestFinishedAt(userId: string): Promise<Nullable<Date>> {
     const earliest = await this.prisma.bookReadingCycle.aggregate({
       _min: { finishedAt: true },
@@ -244,5 +307,56 @@ export class StatisticsCompletionRepository {
       .array(ReturningAuthorRowSchema)
       .parse(rows)
       .map((row) => ({ ...row, latestFinishedAt: toIsoDate(row.latestFinishedAt) }));
+  }
+}
+
+function buildCompletedReadsSubsetCondition({
+  filter,
+  from,
+  to,
+  userId,
+}: CompletedReadsSubsetScope): Prisma.Sql {
+  return Prisma.sql`
+    cycle.user_id = ${userId}::uuid
+    AND cycle.state = ${READING_CYCLE_STATE.finished}
+    AND cycle.finished_at IS NOT NULL
+    AND (${from}::date IS NULL OR cycle.finished_at >= ${from}::date)
+    AND cycle.finished_at <= ${to}::date
+    AND cycle.completion_metadata -> 'version' = to_jsonb(${READING_COMPLETION_SNAPSHOT_VERSION}::int)
+    AND (
+      jsonb_typeof(cycle.completion_metadata #> '{book,language}') = 'null'
+      OR (
+        jsonb_typeof(cycle.completion_metadata #> '{book,language}') = 'string'
+        AND cycle.completion_metadata #>> '{book,language}' = ANY(${BookLanguageSchema.options}::text[])
+      )
+    )
+    AND (
+      jsonb_typeof(cycle.completion_metadata #> '{book,pagesCount}') = 'null'
+      OR (
+        jsonb_typeof(cycle.completion_metadata #> '{book,pagesCount}') = 'number'
+        AND cycle.completion_metadata #> '{book,pagesCount}' >= '0'::jsonb
+      )
+    )
+    AND ${toSnapshotAttributeCondition(filter)}
+  `;
+}
+
+function toSnapshotAttributeCondition(filter: ReadingStatisticsSubsetFilter): Prisma.Sql {
+  switch (filter.field) {
+    case "authorId":
+      return Prisma.sql`
+        (cycle.completion_metadata -> 'authors')
+          @> jsonb_build_array(jsonb_build_object('authorId', ${filter.value}::text))
+      `;
+    case "genre":
+      return Prisma.sql`
+        (cycle.completion_metadata #> '{book,genres}') @> jsonb_build_array(${filter.value}::text)
+      `;
+    case "language":
+      return Prisma.sql`cycle.completion_metadata #>> '{book,language}' = ${filter.value}`;
+    case "publisherId":
+      return Prisma.sql`cycle.completion_metadata #>> '{publisher,publisherId}' = ${filter.value}`;
+    default:
+      return assertNever(filter);
   }
 }

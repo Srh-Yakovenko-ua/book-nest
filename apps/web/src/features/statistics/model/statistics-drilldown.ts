@@ -3,7 +3,10 @@ import type {
   Nullable,
   ReadingStatisticsContextAction,
   ReadingStatisticsDrilldown,
+  ReadingStatisticsSubsetFilter,
 } from "@app/shared";
+
+import { pickReadingStatisticsSubsetFilter } from "@app/shared";
 
 export type StatisticsContextActionLink = {
   href: string;
@@ -12,18 +15,26 @@ export type StatisticsContextActionLink = {
 
 export type StatisticsDrilldownTarget =
   | { date: string; kind: "reading_day" }
+  | { filter: ReadingStatisticsSubsetFilter; kind: "completed_reads_subset"; period: SubsetPeriod }
   | { from: string; kind: "completed_reads_interval"; to: string }
   | { kind: "reading_cycle"; readingCycleId: string }
   | { kind: "unsupported"; reason: StatisticsUnsupportedReason };
 
 export type StatisticsUnsupportedReason = "COMPLETED_READS_SUBSET_HAS_NO_EXACT_DESTINATION";
 
+type CompletedReadsSubsetDrilldown = Extract<
+  ReadingStatisticsDrilldown,
+  { kind: "completed_reads_subset" }
+>;
+
+type SubsetPeriod = CompletedReadsSubsetDrilldown["period"];
+
 export function buildStatisticsDrilldownTarget(
   drilldown: ReadingStatisticsDrilldown,
 ): StatisticsDrilldownTarget {
   switch (drilldown.kind) {
     case "completed_reads_subset":
-      return toCompletedReadsIntervalTarget(drilldown.filters);
+      return toCompletedReadsTarget(drilldown);
     case "reading_cycle":
       return { kind: "reading_cycle", readingCycleId: drilldown.readingCycleId };
     case "reading_day":
@@ -59,11 +70,26 @@ export function toContextActionLinks(
   return actions.map(toContextActionLink);
 }
 
-function toCompletedReadsIntervalTarget(filters: CompletedReadsFilter): StatisticsDrilldownTarget {
+function toCompletedReadsTarget({
+  filters,
+  period,
+}: CompletedReadsSubsetDrilldown): StatisticsDrilldownTarget {
   const { finishedFrom, finishedTo, ...narrowing } = filters;
   const isDateRangeOnly = Object.values(narrowing).every((value) => value === undefined);
 
-  return finishedFrom !== undefined && finishedTo !== undefined && isDateRangeOnly
-    ? { from: finishedFrom, kind: "completed_reads_interval", to: finishedTo }
-    : { kind: "unsupported", reason: "COMPLETED_READS_SUBSET_HAS_NO_EXACT_DESTINATION" };
+  if (finishedFrom !== undefined && finishedTo !== undefined && isDateRangeOnly) {
+    return { from: finishedFrom, kind: "completed_reads_interval", to: finishedTo };
+  }
+
+  const filter = toSingleSubsetFilter(filters);
+  return filter === null
+    ? { kind: "unsupported", reason: "COMPLETED_READS_SUBSET_HAS_NO_EXACT_DESTINATION" }
+    : { filter, kind: "completed_reads_subset", period };
+}
+
+function toSingleSubsetFilter(
+  filters: CompletedReadsFilter,
+): Nullable<ReadingStatisticsSubsetFilter> {
+  const setValues = Object.values(filters).filter((value) => value !== undefined);
+  return setValues.length === 1 ? pickReadingStatisticsSubsetFilter(filters) : null;
 }

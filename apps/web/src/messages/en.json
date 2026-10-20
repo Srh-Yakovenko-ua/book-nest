@@ -9473,6 +9473,13 @@
         "pagesEmpty": "No pages were recorded in this bucket.",
         "pagesEmptyObservedOnly": "No page records survived for this bucket. That does not mean nothing was read.",
         "loadMore": "Show more"
+      },
+      "subset": {
+        "open": "Show finished reads: {name}",
+        "title": "Finished reads: {name}",
+        "loading": "Loading the finished reads",
+        "error": "Could not load the finished reads",
+        "empty": "No matching reads were finished in this period."
       }
     },
     "ratings": {
