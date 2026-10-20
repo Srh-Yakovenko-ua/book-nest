@@ -9320,7 +9320,11 @@
       "unchanged": "Без змін",
       "fromZero": "з 0 до {current}",
       "previous": "проти {previous}",
-      "percentagePoints": "{value} в.п."
+      "percentagePoints": "{value} в.п.",
+      "direction": {
+        "up": "зростання на",
+        "down": "спад на"
+      }
     },
     "contextActions": {
       "open_author": "Усі книги автора",
@@ -9438,7 +9442,7 @@
         "books": "Книги за днями"
       },
       "metricRange": "Показники за {range}",
-      "displayRange": "Календар показує {range}.",
+      "displayRange": "Календар показує {range}",
       "legacyNote": "Дні до початку повного обліку історії показані як спостережені факти, а порожня клітинка там не доводить, що читання не було.",
       "empty": "За цей період немає жодного дня з активністю.",
       "unavailable": "Календар недоступний",
@@ -9701,7 +9705,7 @@
       "topProgressTitle": "Поступ у серіях",
       "topProgressCaption": "Вперше завершені книги за період.",
       "firstCompletions": "{count, plural, one {# нова книга} few {# нові книги} many {# нових книг} other {# нової книги}}",
-      "marathon": "Серійний марафон: {length, plural, one {# книга} few {# книги} many {# книг} other {# книги}} поспіль із серії «{name}», завершено {date}."
+      "marathon": "Серійний марафон: {length, plural, one {# книга} few {# книги} many {# книг} other {# книги}} поспіль із серії «{name}», завершено {date}"
     },
     "libraryBalance": {
       "title": "Баланс бібліотеки",

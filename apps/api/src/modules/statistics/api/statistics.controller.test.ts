@@ -1,4 +1,4 @@
-import type { OwnershipStatus, ReadingStatus } from "@app/shared";
+import type { Nullable, OwnershipStatus, ReadingStatus, ValueOf } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import {
@@ -20,7 +20,7 @@ import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { insertFinishedReadingCycle } from "../../../test/reading-cycles.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
-import { FIRST_COMPLETION_RELIABILITY } from "../../books/index.js";
+import { FIRST_COMPLETION_RELIABILITY, READING_CYCLE_STATE } from "../../books/index.js";
 import { rollingYearStart } from "../domain/statistics-period.js";
 import { StatisticsModule } from "../statistics.module.js";
 
@@ -810,5 +810,205 @@ describe("GET /api/statistics/reading-activity", () => {
     );
 
     expect(page).toMatchObject({ activeDays: 0, booksCount: 0, items: [], pagesRead: 0 });
+  });
+});
+
+describe("GET /api/statistics/overview discoveries against reads before the period", () => {
+  type DiscoveriesSummary = {
+    authorId: Nullable<string>;
+    genreKey: Nullable<string>;
+    newAuthorsCount: number;
+    newGenresCount: number;
+    newPublishersCount: number;
+    publisherId: Nullable<string>;
+  };
+
+  type SnapshotAuthor = { authorId: string; name: string };
+
+  type SnapshotPublisher = { name: string; publisherId: string };
+
+  const DISCOVERY = {
+    authors: {
+      alpha: { authorId: "d1000000-0000-4000-8000-000000000001", name: "Alpha Author" },
+      beta: { authorId: "d1000000-0000-4000-8000-000000000002", name: "Beta Author" },
+      gamma: { authorId: "d1000000-0000-4000-8000-000000000003", name: "Gamma Author" },
+    },
+    period: { period: "year", year: "2024" },
+    publishers: {
+      north: { name: "North Press", publisherId: "e1000000-0000-4000-8000-000000000001" },
+      south: { name: "South Press", publisherId: "e1000000-0000-4000-8000-000000000002" },
+    },
+  } as const;
+
+  async function discoveriesOfThePeriod(): Promise<DiscoveriesSummary> {
+    const response = await overview(reader, DISCOVERY.period);
+    expect(response.status).toBe(200);
+    const { discoveries } = ReadingStatisticsOverviewSchema.parse(response.body);
+    return {
+      authorId: discoveries.author?.authorId ?? null,
+      genreKey: discoveries.genre?.genreKey ?? null,
+      newAuthorsCount: discoveries.newAuthorsCount,
+      newGenresCount: discoveries.newGenresCount,
+      newPublishersCount: discoveries.newPublishersCount,
+      publisherId: discoveries.publisher?.publisherId ?? null,
+    };
+  }
+
+  async function seedRead({
+    authors = [],
+    finishedAt,
+    genres = [],
+    publisher = null,
+    reliability = FIRST_COMPLETION_RELIABILITY.provenFirst,
+    state = READING_CYCLE_STATE.finished,
+    userId = reader.userId,
+  }: {
+    authors?: SnapshotAuthor[];
+    finishedAt: string;
+    genres?: string[];
+    publisher?: Nullable<SnapshotPublisher>;
+    reliability?: Nullable<ValueOf<typeof FIRST_COMPLETION_RELIABILITY>>;
+    state?: ValueOf<typeof READING_CYCLE_STATE>;
+    userId?: string;
+  }): Promise<void> {
+    const title = `Finished on ${finishedAt}`;
+    const bookId = await createBook({ genres: [], title, userId });
+    await prisma.bookReadingCycle.create({
+      data: {
+        bookId,
+        completionMetadata: {
+          authors,
+          book: { genres, language: "english", pagesCount: 300, title },
+          provenance: "tracked_at_completion",
+          publisher,
+          series: null,
+          version: 1,
+        },
+        finishedAt: parseIsoDate(finishedAt),
+        firstCompletionReliability: reliability,
+        state,
+        userId,
+      },
+    });
+  }
+
+  it("leaves out what was met the day before the period and finds what is first met on its first day", async () => {
+    const { alpha, beta } = DISCOVERY.authors;
+    const { north, south } = DISCOVERY.publishers;
+    await seedRead({
+      authors: [alpha],
+      finishedAt: "2023-12-31",
+      genres: ["fantasy"],
+      publisher: north,
+    });
+    await seedRead({
+      authors: [alpha],
+      finishedAt: "2024-02-01",
+      genres: ["fantasy"],
+      publisher: north,
+    });
+    await seedRead({
+      authors: [beta],
+      finishedAt: "2024-01-01",
+      genres: ["scifi"],
+      publisher: south,
+    });
+
+    expect(await discoveriesOfThePeriod()).toEqual({
+      authorId: beta.authorId,
+      genreKey: "scifi",
+      newAuthorsCount: 1,
+      newGenresCount: 1,
+      newPublishersCount: 1,
+      publisherId: south.publisherId,
+    });
+  });
+
+  it("ignores earlier reads that are another reader's, not finished or not proven first", async () => {
+    const other = await context.registerVerifyAndLogin({
+      email: "other@example.com",
+      nickname: "other",
+    });
+    const fantasyByAlphaAtNorth = {
+      authors: [DISCOVERY.authors.alpha],
+      genres: ["fantasy"],
+      publisher: DISCOVERY.publishers.north,
+    };
+    await seedRead({
+      ...fantasyByAlphaAtNorth,
+      finishedAt: "2023-03-01",
+      reliability: FIRST_COMPLETION_RELIABILITY.firstKnownOnly,
+    });
+    await seedRead({
+      ...fantasyByAlphaAtNorth,
+      finishedAt: "2023-04-01",
+      reliability: FIRST_COMPLETION_RELIABILITY.notFirst,
+    });
+    await seedRead({ ...fantasyByAlphaAtNorth, finishedAt: "2023-05-01", reliability: null });
+    await seedRead({
+      ...fantasyByAlphaAtNorth,
+      finishedAt: "2023-06-01",
+      state: READING_CYCLE_STATE.abandoned,
+    });
+    await seedRead({ ...fantasyByAlphaAtNorth, finishedAt: "2023-07-01", userId: other.userId });
+    await seedRead({ ...fantasyByAlphaAtNorth, finishedAt: "2024-03-01" });
+
+    expect(await discoveriesOfThePeriod()).toEqual({
+      authorId: DISCOVERY.authors.alpha.authorId,
+      genreKey: "fantasy",
+      newAuthorsCount: 1,
+      newGenresCount: 1,
+      newPublishersCount: 1,
+      publisherId: DISCOVERY.publishers.north.publisherId,
+    });
+  });
+
+  it("treats both authors and both genres of an earlier co-authored multi-genre read as met", async () => {
+    const { alpha, beta, gamma } = DISCOVERY.authors;
+    const { north } = DISCOVERY.publishers;
+    await seedRead({
+      authors: [alpha, beta],
+      finishedAt: "2023-06-15",
+      genres: ["fantasy", "scifi"],
+      publisher: north,
+    });
+    await seedRead({
+      authors: [alpha, beta, gamma],
+      finishedAt: "2024-03-01",
+      genres: ["fantasy", "scifi", "horror"],
+      publisher: north,
+    });
+
+    expect(await discoveriesOfThePeriod()).toEqual({
+      authorId: gamma.authorId,
+      genreKey: "horror",
+      newAuthorsCount: 1,
+      newGenresCount: 1,
+      newPublishersCount: 0,
+      publisherId: null,
+    });
+  });
+
+  it("treats an earlier read's authors, genres and publisher as met even when its other lists are empty", async () => {
+    const { alpha, gamma } = DISCOVERY.authors;
+    const { north } = DISCOVERY.publishers;
+    await seedRead({ authors: [alpha], finishedAt: "2023-04-01" });
+    await seedRead({ finishedAt: "2023-05-01", genres: ["fantasy"] });
+    await seedRead({ finishedAt: "2023-06-01", publisher: north });
+    await seedRead({
+      authors: [alpha, gamma],
+      finishedAt: "2024-03-01",
+      genres: ["fantasy", "horror"],
+      publisher: north,
+    });
+
+    expect(await discoveriesOfThePeriod()).toEqual({
+      authorId: gamma.authorId,
+      genreKey: "horror",
+      newAuthorsCount: 1,
+      newGenresCount: 1,
+      newPublishersCount: 0,
+      publisherId: null,
+    });
   });
 });

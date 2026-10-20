@@ -7,8 +7,13 @@ export { readingStatusUsesProgress } from "./domain/book-blocks.js";
 export {
   parseReadingCompletionSnapshot,
   READING_COMPLETION_SNAPSHOT_VERSION,
+  type ReadingCompletionSnapshot,
 } from "./domain/reading-completion-snapshot.js";
-export { FIRST_COMPLETION_RELIABILITY, READING_CYCLE_STATE } from "./domain/reading-cycle.js";
+export {
+  FIRST_COMPLETION_RELIABILITY,
+  READING_CYCLE_METADATA_PROVENANCE,
+  READING_CYCLE_STATE,
+} from "./domain/reading-cycle.js";
 export { resolveWishlistAddedAtChange } from "./domain/wishlist-added-at.js";
 export { buildBookTextSearchConditions } from "./infrastructure/book-search.js";
 export { buildLibraryWhere } from "./infrastructure/book-where.js";

@@ -9320,7 +9320,11 @@
       "unchanged": "No change",
       "fromZero": "from 0 to {current}",
       "previous": "vs {previous}",
-      "percentagePoints": "{value} p.p."
+      "percentagePoints": "{value} p.p.",
+      "direction": {
+        "up": "up",
+        "down": "down"
+      }
     },
     "contextActions": {
       "open_author": "All books by this author",

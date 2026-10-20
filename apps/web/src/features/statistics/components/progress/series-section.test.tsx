@@ -218,4 +218,27 @@ describe("SeriesSection", () => {
       ),
     ).toBeInTheDocument();
   });
+
+  it("ends the marathon line with a single period after a uk abbreviated month", () => {
+    const marathon = series.marathon.data;
+    if (marathon === null) throw new Error("the overview fixture has no marathon");
+
+    renderWithProviders(
+      <SeriesSection
+        series={{
+          ...series,
+          marathon: {
+            availability: "available",
+            data: { ...marathon, endFinishedAt: "2026-04-05" },
+          },
+        }}
+      />,
+    );
+
+    const marathonLine = screen.getByText((content) => content.startsWith(MARATHON_LEAD));
+    const marathonText = (marathonLine.textContent ?? "").replace(/\s+/g, " ").trim();
+
+    expect(marathonText).not.toContain("..");
+    expect(marathonText).toMatch(/[^.]\.$/);
+  });
 });

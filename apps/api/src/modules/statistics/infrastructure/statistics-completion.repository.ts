@@ -11,7 +11,9 @@ import { Prisma } from "../../../generated/prisma/client.js";
 import {
   FIRST_COMPLETION_RELIABILITY,
   READING_COMPLETION_SNAPSHOT_VERSION,
+  READING_CYCLE_METADATA_PROVENANCE,
   READING_CYCLE_STATE,
+  type ReadingCompletionSnapshot,
 } from "../../books/index.js";
 
 const completedReadArgs = {
@@ -63,6 +65,8 @@ const SeriesFirstCompletionRowSchema = z.object({
   seriesId: z.string(),
 });
 
+const ZOD_UUID_PATTERN = z.regexes.uuid().source;
+
 export type CompletedReadRow = Prisma.BookReadingCycleGetPayload<typeof completedReadArgs>;
 
 export type CompletedReadsSubsetScope = PeriodScope & { filter: ReadingStatisticsSubsetFilter };
@@ -80,6 +84,10 @@ export type ReturningAuthor = {
 };
 
 type CompletedReadsCursor = { finishedAt: string; id: string };
+
+type JsonCondition = (value: Prisma.Sql) => Prisma.Sql;
+
+type JsonShapeOf<TValue> = Record<keyof TValue, JsonCondition>;
 
 @Injectable()
 export class StatisticsCompletionRepository {
@@ -108,21 +116,38 @@ export class StatisticsCompletionRepository {
     }
 
     const rows = await this.prisma.$queryRaw`
+      WITH eligible AS (
+        SELECT cycle.completion_metadata AS snapshot
+        FROM book_reading_cycles cycle
+        WHERE cycle.user_id = ${userId}::uuid
+          AND cycle.state = ${READING_CYCLE_STATE.finished}
+          AND cycle.first_completion_reliability = ${FIRST_COMPLETION_RELIABILITY.provenFirst}
+          AND cycle.finished_at < ${before}::date
+      )
       SELECT
-        COALESCE(array_agg(DISTINCT author ->> 'authorId') FILTER (WHERE author IS NOT NULL), '{}') AS "authorIds",
-        COALESCE(array_agg(DISTINCT genre) FILTER (WHERE genre IS NOT NULL), '{}') AS "genreKeys",
         COALESCE(
-          array_agg(DISTINCT cycle.completion_metadata -> 'publisher' ->> 'publisherId')
-            FILTER (WHERE cycle.completion_metadata -> 'publisher' ->> 'publisherId' IS NOT NULL),
+          (
+            SELECT array_agg(DISTINCT author ->> 'authorId')
+            FROM eligible, jsonb_array_elements(eligible.snapshot -> 'authors') AS author
+          ),
+          '{}'
+        ) AS "authorIds",
+        COALESCE(
+          (
+            SELECT array_agg(DISTINCT genre)
+            FROM eligible, jsonb_array_elements_text(eligible.snapshot -> 'book' -> 'genres') AS genre
+            WHERE genre IS NOT NULL
+          ),
+          '{}'
+        ) AS "genreKeys",
+        COALESCE(
+          (
+            SELECT array_agg(DISTINCT eligible.snapshot -> 'publisher' ->> 'publisherId')
+            FROM eligible
+            WHERE eligible.snapshot -> 'publisher' ->> 'publisherId' IS NOT NULL
+          ),
           '{}'
         ) AS "publisherIds"
-      FROM book_reading_cycles cycle
-      LEFT JOIN LATERAL jsonb_array_elements(cycle.completion_metadata -> 'authors') AS author ON TRUE
-      LEFT JOIN LATERAL jsonb_array_elements_text(cycle.completion_metadata -> 'book' -> 'genres') AS genre ON TRUE
-      WHERE cycle.user_id = ${userId}::uuid
-        AND cycle.state = ${READING_CYCLE_STATE.finished}
-        AND cycle.first_completion_reliability = ${FIRST_COMPLETION_RELIABILITY.provenFirst}
-        AND cycle.finished_at < ${before}::date
     `;
 
     const [row] = z.array(PriorExposureRowSchema).parse(rows);
@@ -322,23 +347,105 @@ function buildCompletedReadsSubsetCondition({
     AND cycle.finished_at IS NOT NULL
     AND (${from}::date IS NULL OR cycle.finished_at >= ${from}::date)
     AND cycle.finished_at <= ${to}::date
-    AND cycle.completion_metadata -> 'version' = to_jsonb(${READING_COMPLETION_SNAPSHOT_VERSION}::int)
-    AND (
-      jsonb_typeof(cycle.completion_metadata #> '{book,language}') = 'null'
-      OR (
-        jsonb_typeof(cycle.completion_metadata #> '{book,language}') = 'string'
-        AND cycle.completion_metadata #>> '{book,language}' = ANY(${BookLanguageSchema.options}::text[])
-      )
-    )
-    AND (
-      jsonb_typeof(cycle.completion_metadata #> '{book,pagesCount}') = 'null'
-      OR (
-        jsonb_typeof(cycle.completion_metadata #> '{book,pagesCount}') = 'number'
-        AND cycle.completion_metadata #> '{book,pagesCount}' >= '0'::jsonb
-      )
-    )
+    AND ${parseableSnapshotCondition()}
     AND ${toSnapshotAttributeCondition(filter)}
   `;
+}
+
+function jsonArrayOf(element: JsonCondition): JsonCondition {
+  return (value) => Prisma.sql`(
+    jsonb_typeof(${value}) = 'array'
+    AND NOT EXISTS (
+      SELECT 1
+      FROM jsonb_array_elements(
+        CASE WHEN jsonb_typeof(${value}) = 'array' THEN ${value} ELSE '[]'::jsonb END
+      ) AS item(value)
+      WHERE ${element(Prisma.sql`item.value`)} IS NOT TRUE
+    )
+  )`;
+}
+
+function jsonNonNegativeSafeInteger(value: Prisma.Sql): Prisma.Sql {
+  return Prisma.sql`(${jsonSafeInteger(value)} AND ${value} >= '0'::jsonb)`;
+}
+
+function jsonNullable(condition: JsonCondition): JsonCondition {
+  return (value) => Prisma.sql`(jsonb_typeof(${value}) = 'null' OR ${condition(value)})`;
+}
+
+function jsonNumberLiteral(literal: number): JsonCondition {
+  return (value) => Prisma.sql`(${value} = to_jsonb(${literal}::numeric))`;
+}
+
+function jsonObject(shape: Record<string, JsonCondition>): JsonCondition {
+  return (value) => {
+    const fieldConditions = Object.entries(shape).map(([key, condition]) =>
+      condition(Prisma.sql`(${value} -> ${key}::text)`),
+    );
+    return Prisma.sql`(
+      jsonb_typeof(${value}) = 'object'
+      AND ${Prisma.join(fieldConditions, " AND ")}
+    )`;
+  };
+}
+
+function jsonSafeInteger(value: Prisma.Sql): Prisma.Sql {
+  return Prisma.sql`(
+    CASE
+      WHEN jsonb_typeof(${value}) = 'number'
+        THEN ${value}::numeric = trunc(${value}::numeric)
+          AND abs(${value}::numeric) <= ${Number.MAX_SAFE_INTEGER}::numeric
+      ELSE false
+    END
+  )`;
+}
+
+function jsonString(value: Prisma.Sql): Prisma.Sql {
+  return Prisma.sql`(jsonb_typeof(${value}) = 'string')`;
+}
+
+function jsonStringOneOf(options: readonly string[]): JsonCondition {
+  return (value) =>
+    Prisma.sql`(${jsonString(value)} AND (${value} #>> '{}') = ANY(${options}::text[]))`;
+}
+
+function jsonZodUuid(value: Prisma.Sql): Prisma.Sql {
+  return Prisma.sql`(${jsonString(value)} AND (${value} #>> '{}') ~ ${ZOD_UUID_PATTERN}::text)`;
+}
+
+function parseableSnapshotCondition(): Prisma.Sql {
+  return jsonObject({
+    authors: jsonArrayOf(
+      jsonObject({
+        authorId: jsonZodUuid,
+        name: jsonString,
+      } satisfies JsonShapeOf<ReadingCompletionSnapshot["authors"][number]>),
+    ),
+    book: jsonObject({
+      genres: jsonArrayOf(jsonString),
+      language: jsonNullable(jsonStringOneOf(BookLanguageSchema.options)),
+      pagesCount: jsonNullable(jsonNonNegativeSafeInteger),
+      title: jsonString,
+    } satisfies JsonShapeOf<ReadingCompletionSnapshot["book"]>),
+    provenance: jsonStringOneOf(Object.values(READING_CYCLE_METADATA_PROVENANCE)),
+    publisher: jsonNullable(
+      jsonObject({
+        name: jsonString,
+        publisherId: jsonZodUuid,
+      } satisfies JsonShapeOf<NonNullable<ReadingCompletionSnapshot["publisher"]>>),
+    ),
+    series: jsonNullable(
+      jsonObject({
+        knownBooksCount: jsonNonNegativeSafeInteger,
+        name: jsonString,
+        partNumber: jsonNullable(jsonSafeInteger),
+        seriesId: jsonZodUuid,
+        status: jsonString,
+        totalBooks: jsonNullable(jsonSafeInteger),
+      } satisfies JsonShapeOf<NonNullable<ReadingCompletionSnapshot["series"]>>),
+    ),
+    version: jsonNumberLiteral(READING_COMPLETION_SNAPSHOT_VERSION),
+  } satisfies JsonShapeOf<ReadingCompletionSnapshot>)(Prisma.sql`cycle.completion_metadata`);
 }
 
 function toSnapshotAttributeCondition(filter: ReadingStatisticsSubsetFilter): Prisma.Sql {
