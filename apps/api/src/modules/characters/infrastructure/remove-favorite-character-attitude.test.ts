@@ -9,6 +9,7 @@ import { z } from "zod";
 
 import { env } from "../../../config/env.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { createTestApp } from "../../../test/create-test-app.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 
@@ -113,12 +114,14 @@ async function insertCharacter(
   { archivedAt = null, deletedAt = null, globalAttitude, isFavorite }: CharacterSeed,
 ): Promise<string> {
   const name = `Character ${randomUUID()}`;
+  const purgeAt = deletedAt === null ? null : TRASH_RETENTION.stamp(deletedAt).purgeAt;
   const rows = await prisma.$queryRaw`
     INSERT INTO characters
       (id, user_id, name, normalized_name, global_attitude, is_favorite, archived_at, deleted_at,
-       updated_at)
+       purge_at, updated_at)
     VALUES (gen_random_uuid(), ${userId}::uuid, ${name}, ${name.toLowerCase()}, ${globalAttitude},
-            ${isFavorite}, ${archivedAt}::timestamptz, ${deletedAt}::timestamptz, ${STAMPS.seeded})
+            ${isFavorite}, ${archivedAt}::timestamptz, ${deletedAt}::timestamptz,
+            ${purgeAt}::timestamptz, ${STAMPS.seeded})
     RETURNING id::text AS id
   `;
   return z.tuple([IdRowSchema]).parse(rows)[0].id;
