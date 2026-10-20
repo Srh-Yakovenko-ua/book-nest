@@ -7978,7 +7978,17 @@
       "unlink": "Прибрати з цієї книги"
     },
     "catalog": {
-      "appearanceCount": "Книг: {count}",
+      "books": {
+        "count": "{count, plural, one {У # книзі} few {У # книгах} many {У # книгах} other {У # книги}}",
+        "error": "Не вдалося завантажити книги",
+        "loading": "Завантаження книг",
+        "loadMoreError": "Не вдалося завантажити ще книги",
+        "more": "Показати ще {count, plural, one {# книгу} few {# книги} many {# книг} other {# книги}}",
+        "none": "Ще немає в жодній книзі",
+        "openProfile": "Відкрити профіль персонажа",
+        "title": "Книги з персонажем",
+        "total": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}"
+      },
       "counter": "Показано {shown} із {total, plural, one {# персонажа} few {# персонажів} many {# персонажів} other {# персонажа}}",
       "empty": {
         "description": "Персонажі зʼявляться тут, щойно ви додасте їх до своїх книг.",
@@ -8067,6 +8077,9 @@
         "sharedLeaders": "Ділять перше місце: {count}",
         "total": "Усього персонажів",
         "withImpression": "З моїми враженнями"
+      },
+      "tags": {
+        "more": "Ще {count, plural, one {# тег} few {# теги} many {# тегів} other {# тегу}}: {names}"
       },
       "title": "Персонажі",
       "view": {

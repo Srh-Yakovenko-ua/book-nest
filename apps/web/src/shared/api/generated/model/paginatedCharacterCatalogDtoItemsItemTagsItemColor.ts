@@ -9,10 +9,10 @@
 /**
  * Effective palette color; a missing or legacy color reads as parchment.
  */
-export type PaginatedCharacterGlobalSummaryDtoItemsItemTagsItemColor =
-  (typeof PaginatedCharacterGlobalSummaryDtoItemsItemTagsItemColor)[keyof typeof PaginatedCharacterGlobalSummaryDtoItemsItemTagsItemColor];
+export type PaginatedCharacterCatalogDtoItemsItemTagsItemColor =
+  (typeof PaginatedCharacterCatalogDtoItemsItemTagsItemColor)[keyof typeof PaginatedCharacterCatalogDtoItemsItemTagsItemColor];
 
-export const PaginatedCharacterGlobalSummaryDtoItemsItemTagsItemColor = {
+export const PaginatedCharacterCatalogDtoItemsItemTagsItemColor = {
   parchment: "parchment",
   terracotta: "terracotta",
   honey: "honey",

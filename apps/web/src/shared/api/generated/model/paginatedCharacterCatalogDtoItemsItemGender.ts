@@ -6,10 +6,10 @@
  * OpenAPI spec version: 1.0
  */
 
-export type PaginatedCharacterGlobalSummaryDtoItemsItemGender =
-  (typeof PaginatedCharacterGlobalSummaryDtoItemsItemGender)[keyof typeof PaginatedCharacterGlobalSummaryDtoItemsItemGender];
+export type PaginatedCharacterCatalogDtoItemsItemGender =
+  (typeof PaginatedCharacterCatalogDtoItemsItemGender)[keyof typeof PaginatedCharacterCatalogDtoItemsItemGender];
 
-export const PaginatedCharacterGlobalSummaryDtoItemsItemGender = {
+export const PaginatedCharacterCatalogDtoItemsItemGender = {
   female: "female",
   male: "male",
   non_binary: "non_binary",

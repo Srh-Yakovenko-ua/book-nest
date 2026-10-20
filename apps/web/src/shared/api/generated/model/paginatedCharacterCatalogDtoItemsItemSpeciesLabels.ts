@@ -6,7 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 
-export type PaginatedCharacterGlobalSummaryDtoItemsItemSpeciesLabels = {
+export type PaginatedCharacterCatalogDtoItemsItemSpeciesLabels = {
   en: string;
   uk: string;
 };

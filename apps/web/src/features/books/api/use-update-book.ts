@@ -2,6 +2,7 @@ import type { UpdateBookInput } from "@app/shared";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { characterKeys } from "@/features/characters/api/character-keys";
 import { invalidateGenreDerivedQueries } from "@/features/genres/api/genres-keys";
 import { listKeys } from "@/features/lists/api/list-keys";
 import { invalidatePublisherQueries } from "@/features/publishers/api/publisher-keys";
@@ -21,6 +22,7 @@ export function useUpdateBook(id: string) {
     mutationFn: (input: UpdateBookInput) => booksControllerUpdate(id, input),
     onSuccess: (_book, input) => {
       void queryClient.invalidateQueries({ queryKey: ["/api/books"] });
+      void queryClient.invalidateQueries({ queryKey: characterKeys.all });
       void queryClient.invalidateQueries({ queryKey: listKeys.root });
       void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
       void queryClient.invalidateQueries({ predicate: matchesReadingQueueKey });

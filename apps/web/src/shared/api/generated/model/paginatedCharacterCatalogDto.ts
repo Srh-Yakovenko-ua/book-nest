@@ -5,10 +5,10 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
-import type { PaginatedCharacterGlobalSummaryDtoItemsItem } from "./paginatedCharacterGlobalSummaryDtoItemsItem";
+import type { PaginatedCharacterCatalogDtoItemsItem } from "./paginatedCharacterCatalogDtoItemsItem";
 
-export interface PaginatedCharacterGlobalSummaryDto {
-  items: PaginatedCharacterGlobalSummaryDtoItemsItem[];
+export interface PaginatedCharacterCatalogDto {
+  items: PaginatedCharacterCatalogDtoItemsItem[];
   /**
    * @minimum -9007199254740991
    * @maximum 9007199254740991

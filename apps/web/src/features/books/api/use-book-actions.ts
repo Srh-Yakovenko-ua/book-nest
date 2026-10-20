@@ -4,6 +4,7 @@ import type { InfiniteData, QueryKey } from "@tanstack/react-query";
 import { BulkActionResultSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { characterKeys } from "@/features/characters/api/character-keys";
 import { invalidateGenreDerivedQueries } from "@/features/genres/api/genres-keys";
 import { listKeys } from "@/features/lists/api/list-keys";
 import { invalidatePublisherQueries } from "@/features/publishers/api/publisher-keys";
@@ -94,6 +95,7 @@ export function useBulkDeleteBooks() {
       BulkActionResultSchema.parse(await bulkBooksControllerDelete({ bookIds })),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: bookKeys.root });
+      void queryClient.invalidateQueries({ queryKey: characterKeys.all });
       void invalidatePublisherQueries(queryClient);
       void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
       void invalidateStatisticsQueries(queryClient);
@@ -156,6 +158,7 @@ export function useDeleteBook() {
     mutationFn: (id: string) => booksControllerDelete(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: bookKeys.root });
+      void queryClient.invalidateQueries({ queryKey: characterKeys.all });
       void invalidatePublisherQueries(queryClient);
       void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
       void invalidateStatisticsQueries(queryClient);

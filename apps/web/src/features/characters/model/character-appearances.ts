@@ -1,5 +1,7 @@
 import type { BookCharacterView, Nullable } from "@app/shared";
 
+import { compareCharacterBooks } from "@app/shared";
+
 export const APPEARANCE_LIST = {
   collapsedCount: 4,
 } as const;
@@ -31,35 +33,5 @@ export function appearanceListWindow({
 }
 
 export function sortAppearances(appearances: readonly BookCharacterView[]): BookCharacterView[] {
-  return [...appearances].sort(compareAppearances);
-}
-
-function compareAppearances(left: BookCharacterView, right: BookCharacterView): number {
-  const leftSeries = left.book.series;
-  const rightSeries = right.book.series;
-  if (leftSeries === null || rightSeries === null) {
-    if (leftSeries !== rightSeries) return leftSeries === null ? 1 : -1;
-    return compareBooks(left, right);
-  }
-  if (leftSeries.id !== rightSeries.id) {
-    return (
-      leftSeries.name.localeCompare(rightSeries.name) || leftSeries.id.localeCompare(rightSeries.id)
-    );
-  }
-  return (
-    comparePartNumbers(leftSeries.partNumber, rightSeries.partNumber) || compareBooks(left, right)
-  );
-}
-
-function compareBooks(left: BookCharacterView, right: BookCharacterView): number {
-  return (
-    left.book.title.localeCompare(right.book.title) || left.book.id.localeCompare(right.book.id)
-  );
-}
-
-function comparePartNumbers(left: Nullable<number>, right: Nullable<number>): number {
-  if (left === right) return 0;
-  if (left === null) return 1;
-  if (right === null) return -1;
-  return left - right;
+  return [...appearances].sort((left, right) => compareCharacterBooks(left.book, right.book));
 }

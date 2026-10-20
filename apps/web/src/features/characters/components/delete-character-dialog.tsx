@@ -35,6 +35,7 @@ const DELETION_IMPACT_ROWS = [
 type DeleteCharacterDialogProps = {
   characterId: null | string;
   isDeleting: boolean;
+  onCloseAutoFocus?: (event: Event) => void;
   onConfirm: () => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
@@ -43,6 +44,7 @@ type DeleteCharacterDialogProps = {
 export function DeleteCharacterDialog({
   characterId,
   isDeleting,
+  onCloseAutoFocus,
   onConfirm,
   onOpenChange,
   open,
@@ -52,7 +54,7 @@ export function DeleteCharacterDialog({
 
   return (
     <AlertDialog onOpenChange={onOpenChange} open={open}>
-      <AlertDialogContent size="sm">
+      <AlertDialogContent onCloseAutoFocus={onCloseAutoFocus} size="sm">
         <AlertDialogHeader>
           <AlertDialogMedia>
             <UiIcon name="alert-triangle" size={24} />

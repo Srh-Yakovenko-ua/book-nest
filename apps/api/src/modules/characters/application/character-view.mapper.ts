@@ -2,6 +2,8 @@ import type {
   BookCharacterRosterItem,
   BookCharacterView,
   CharacterAppearanceBook,
+  CharacterBookOrderKey,
+  CharacterCatalogItemView,
   CharacterDetailsView,
   CharacterFormView,
   CharacterGlobalSummaryView,
@@ -25,6 +27,7 @@ import type {
 
 import { MediaService } from "../../media/index.js";
 import { toBookCharacterRosterItem } from "../domain/book-character-roster-item.js";
+import { toCharacterBookOrderKey } from "../domain/character-books.js";
 import {
   toBookCharacterView,
   toCharacterDetailsView,
@@ -40,6 +43,31 @@ export class CharacterViewMapper {
 
   mediaViewOf(asset: Nullable<MediaAssetModel>): Nullable<MediaView> {
     return this.mediaService.buildViewOrNull(asset);
+  }
+
+  toAppearanceBookView({
+    book,
+    coverMedia,
+  }: {
+    book: CharacterBookOrderKey;
+    coverMedia: Nullable<MediaAssetModel>;
+  }): CharacterAppearanceBook {
+    return {
+      cover: this.mediaViewOf(coverMedia),
+      id: book.id,
+      series: book.series,
+      title: book.title,
+    };
+  }
+
+  toCatalogItemView({
+    booksPreview,
+    row,
+  }: {
+    booksPreview: CharacterAppearanceBook[];
+    row: CharacterGlobalSummaryRow;
+  }): CharacterCatalogItemView {
+    return { ...this.toGlobalSummaryView(row), booksPreview };
   }
 
   toDetailsView(row: CharacterDetailsRow): CharacterDetailsView {
@@ -112,15 +140,10 @@ export class CharacterViewMapper {
   private mapAppearanceBook(
     book: CharacterDetailsRow["bookAppearances"][number]["book"],
   ): CharacterAppearanceBook {
-    return {
-      cover: this.mediaViewOf(book.coverMedia),
-      id: book.id,
-      series:
-        book.series === null
-          ? null
-          : { id: book.series.id, name: book.series.name, partNumber: book.partNumber },
-      title: book.title,
-    };
+    return this.toAppearanceBookView({
+      book: toCharacterBookOrderKey(book),
+      coverMedia: book.coverMedia,
+    });
   }
 
   private mapForm(form: CharacterDetailsRow["forms"][number]): CharacterFormView {

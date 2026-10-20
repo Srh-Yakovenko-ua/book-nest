@@ -1,15 +1,17 @@
 import type {
+  CharacterAppearanceBook,
+  CharacterCatalogItemView,
   CharacterDeletionPreview,
   CharacterDeletionResult,
   CharacterDetailsView,
   CharacterDuplicateCandidatesView,
   CharacterFacetsView,
-  CharacterGlobalSummaryView,
   CharacterOverviewView,
   Paginator,
 } from "@app/shared";
 
 import {
+  CharacterBooksQuerySchema,
   CharacterDetailsQuerySchema,
   CharacterDuplicateCandidatesQuerySchema,
   CharacterFacetsQuerySchema,
@@ -53,6 +55,7 @@ import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { CharacterFacetsService } from "../application/character-facets.service.js";
 import { CharacterLifecycleService } from "../application/character-lifecycle.service.js";
 import { CharactersService } from "../application/characters.service.js";
+import { CharacterBooksQueryDto } from "./input-dto/character-books-query.input-dto.js";
 import { CharacterDetailsQueryDto } from "./input-dto/character-details-query.input-dto.js";
 import { CharacterFacetsQueryDto } from "./input-dto/character-facets-query.input-dto.js";
 import { CharactersListQueryDto } from "./input-dto/characters-list-query.input-dto.js";
@@ -66,7 +69,8 @@ import { CharacterDetailsViewDto } from "./view-dto/character-details.view-dto.j
 import { CharacterDuplicateCandidatesDto } from "./view-dto/character-duplicate-candidates.view-dto.js";
 import { CharacterFacetsDto } from "./view-dto/character-facets.view-dto.js";
 import { CharacterOverviewDto } from "./view-dto/character-overview.view-dto.js";
-import { PaginatedCharacterGlobalSummaryDto } from "./view-dto/paginated-character-global-summary.view-dto.js";
+import { PaginatedCharacterBooksDto } from "./view-dto/paginated-character-books.view-dto.js";
+import { PaginatedCharacterCatalogDto } from "./view-dto/paginated-character-catalog.view-dto.js";
 
 @ApiTags("characters")
 @Controller("api/characters")
@@ -93,8 +97,9 @@ export class CharactersController {
   }
 
   @ApiOkResponse({
-    description: "A spoiler-safe global summary list of the current user's characters",
-    type: PaginatedCharacterGlobalSummaryDto,
+    description:
+      "A spoiler-safe global summary list of the current user's characters, each with up to three of its active books in the canonical order",
+    type: PaginatedCharacterCatalogDto,
   })
   @ApiOperation({ summary: "List the current user's characters as spoiler-safe global summaries" })
   @ApiQuery({ name: "q", required: false })
@@ -120,7 +125,7 @@ export class CharactersController {
   list(
     @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(CharactersListQuerySchema)) query: CharactersListQueryDto,
-  ): Promise<Paginator<CharacterGlobalSummaryView>> {
+  ): Promise<Paginator<CharacterCatalogItemView>> {
     return this.charactersService.listGlobal({ query, userId: user.id });
   }
 
@@ -220,6 +225,26 @@ export class CharactersController {
     @Param("characterId", ParseUUIDPipe) characterId: string,
   ): Promise<CharacterDeletionPreview> {
     return this.lifecycleService.deletionPreview({ characterId, userId: user.id });
+  }
+
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiNotFoundResponse({ description: "Character not found" })
+  @ApiOkResponse({
+    description:
+      "The active books the character appears in, in the canonical order, without appearance details or spoiler fields",
+    type: PaginatedCharacterBooksDto,
+  })
+  @ApiOperation({ summary: "List every active book a character appears in" })
+  @ApiParam({ description: "Character id", name: "characterId" })
+  @ApiQuery({ name: "pageNumber", required: false })
+  @ApiQuery({ name: "pageSize", required: false })
+  @Get(":characterId/books")
+  listBooks(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("characterId", ParseUUIDPipe) characterId: string,
+    @Query(new ZodQueryPipe(CharacterBooksQuerySchema)) query: CharacterBooksQueryDto,
+  ): Promise<Paginator<CharacterAppearanceBook>> {
+    return this.charactersService.listCharacterBooks({ characterId, query, userId: user.id });
   }
 
   @ApiBadRequestResponse({ description: "Validation failed or a book-scoped field was sent" })

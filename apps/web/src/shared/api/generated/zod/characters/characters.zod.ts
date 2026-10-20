@@ -3480,6 +3480,12 @@ export const charactersControllerListResponseItemsItemAppearanceCountMax = 90071
 export const charactersControllerListResponseItemsItemSpeciesIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
+export const charactersControllerListResponseItemsItemBooksPreviewItemSeriesPartNumberMin =
+  -9007199254740991;
+export const charactersControllerListResponseItemsItemBooksPreviewItemSeriesPartNumberMax = 9007199254740991;
+
+export const charactersControllerListResponseItemsItemBooksPreviewMax = 3;
+
 export const charactersControllerListResponsePageMin = -9007199254740991;
 export const charactersControllerListResponsePageMax = 9007199254740991;
 
@@ -3555,6 +3561,42 @@ export const CharactersControllerListResponse = zod.object({
           name: zod.string(),
         }),
       ),
+      booksPreview: zod
+        .array(
+          zod.object({
+            cover: zod
+              .object({
+                contentType: zod.string(),
+                createdAt: zod.string(),
+                height: zod.number(),
+                id: zod.string(),
+                kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+                name: zod.string().nullable(),
+                sizeBytes: zod.number(),
+                urls: zod.object({
+                  card: zod.string(),
+                  full: zod.string(),
+                  thumb: zod.string(),
+                }),
+                width: zod.number(),
+              })
+              .nullable(),
+            id: zod.string(),
+            series: zod
+              .object({
+                id: zod.string(),
+                name: zod.string(),
+                partNumber: zod
+                  .int()
+                  .min(charactersControllerListResponseItemsItemBooksPreviewItemSeriesPartNumberMin)
+                  .max(charactersControllerListResponseItemsItemBooksPreviewItemSeriesPartNumberMax)
+                  .nullable(),
+              })
+              .nullable(),
+            title: zod.string(),
+          }),
+        )
+        .max(charactersControllerListResponseItemsItemBooksPreviewMax),
     }),
   ),
   page: zod
@@ -4840,6 +4882,100 @@ export const CharactersControllerDeletionPreviewResponse = zod.object({
     .int()
     .min(charactersControllerDeletionPreviewResponseTheoryCountMin)
     .max(charactersControllerDeletionPreviewResponseTheoryCountMax),
+});
+
+/**
+ * @summary List every active book a character appears in
+ */
+export const CharactersControllerListBooksParams = zod.object({
+  characterId: zod.string().describe("Character id"),
+});
+
+export const charactersControllerListBooksQueryPageNumberDefault = 1;
+export const charactersControllerListBooksQueryPageNumberMax = 21474836;
+
+export const charactersControllerListBooksQueryPageSizeDefault = 20;
+export const charactersControllerListBooksQueryPageSizeMax = 100;
+
+export const CharactersControllerListBooksQueryParams = zod.object({
+  pageNumber: zod
+    .int()
+    .min(1)
+    .max(charactersControllerListBooksQueryPageNumberMax)
+    .default(charactersControllerListBooksQueryPageNumberDefault),
+  pageSize: zod
+    .int()
+    .min(1)
+    .max(charactersControllerListBooksQueryPageSizeMax)
+    .default(charactersControllerListBooksQueryPageSizeDefault),
+});
+
+export const charactersControllerListBooksResponseItemsItemSeriesPartNumberMin = -9007199254740991;
+export const charactersControllerListBooksResponseItemsItemSeriesPartNumberMax = 9007199254740991;
+
+export const charactersControllerListBooksResponsePageMin = -9007199254740991;
+export const charactersControllerListBooksResponsePageMax = 9007199254740991;
+
+export const charactersControllerListBooksResponsePagesCountMin = -9007199254740991;
+export const charactersControllerListBooksResponsePagesCountMax = 9007199254740991;
+
+export const charactersControllerListBooksResponsePageSizeMin = -9007199254740991;
+export const charactersControllerListBooksResponsePageSizeMax = 9007199254740991;
+
+export const charactersControllerListBooksResponseTotalCountMin = -9007199254740991;
+export const charactersControllerListBooksResponseTotalCountMax = 9007199254740991;
+
+export const CharactersControllerListBooksResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      cover: zod
+        .object({
+          contentType: zod.string(),
+          createdAt: zod.string(),
+          height: zod.number(),
+          id: zod.string(),
+          kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+          name: zod.string().nullable(),
+          sizeBytes: zod.number(),
+          urls: zod.object({
+            card: zod.string(),
+            full: zod.string(),
+            thumb: zod.string(),
+          }),
+          width: zod.number(),
+        })
+        .nullable(),
+      id: zod.string(),
+      series: zod
+        .object({
+          id: zod.string(),
+          name: zod.string(),
+          partNumber: zod
+            .int()
+            .min(charactersControllerListBooksResponseItemsItemSeriesPartNumberMin)
+            .max(charactersControllerListBooksResponseItemsItemSeriesPartNumberMax)
+            .nullable(),
+        })
+        .nullable(),
+      title: zod.string(),
+    }),
+  ),
+  page: zod
+    .int()
+    .min(charactersControllerListBooksResponsePageMin)
+    .max(charactersControllerListBooksResponsePageMax),
+  pagesCount: zod
+    .int()
+    .min(charactersControllerListBooksResponsePagesCountMin)
+    .max(charactersControllerListBooksResponsePagesCountMax),
+  pageSize: zod
+    .int()
+    .min(charactersControllerListBooksResponsePageSizeMin)
+    .max(charactersControllerListBooksResponsePageSizeMax),
+  totalCount: zod
+    .int()
+    .min(charactersControllerListBooksResponseTotalCountMin)
+    .max(charactersControllerListBooksResponseTotalCountMax),
 });
 
 /**

@@ -30,6 +30,23 @@ const characterScopedAppearanceSelect = {
   characterId: true,
 } satisfies Prisma.BookCharacterSelect;
 
+const characterBookOrderKeySelect = {
+  book: {
+    select: {
+      id: true,
+      partNumber: true,
+      series: { select: { id: true, name: true } },
+      title: true,
+    },
+  },
+  characterId: true,
+} satisfies Prisma.BookCharacterSelect;
+
+const characterBookCoverSelect = {
+  coverMedia: true,
+  id: true,
+} satisfies Prisma.BookSelect;
+
 const detailsInclude = {
   aliases: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] },
   avatarMedia: true,
@@ -190,6 +207,14 @@ export type BookContextRow = {
   partNumber: Nullable<number>;
   seriesId: Nullable<string>;
 };
+
+export type CharacterBookCoverRow = Prisma.BookGetPayload<{
+  select: typeof characterBookCoverSelect;
+}>;
+
+export type CharacterBookOrderKeyRow = Prisma.BookCharacterGetPayload<{
+  select: typeof characterBookOrderKeySelect;
+}>;
 
 export type CharacterDeletionImpact = {
   aliasCount: number;
@@ -841,6 +866,42 @@ export class CharactersRepository {
       select: characterScopedAppearanceSelect,
       where: {
         book: SOFT_DELETE_SCOPE.active,
+        character: { deletedAt: null, userId },
+        characterId: { in: characterIds },
+      },
+    });
+  }
+
+  listBookCovers({
+    bookIds,
+    userId,
+  }: {
+    bookIds: string[];
+    userId: string;
+  }): Promise<CharacterBookCoverRow[]> {
+    if (bookIds.length === 0) {
+      return Promise.resolve([]);
+    }
+    return this.prisma.book.findMany({
+      select: characterBookCoverSelect,
+      where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId },
+    });
+  }
+
+  listBookOrderKeys({
+    characterIds,
+    userId,
+  }: {
+    characterIds: string[];
+    userId: string;
+  }): Promise<CharacterBookOrderKeyRow[]> {
+    if (characterIds.length === 0) {
+      return Promise.resolve([]);
+    }
+    return this.prisma.bookCharacter.findMany({
+      select: characterBookOrderKeySelect,
+      where: {
+        book: { ...SOFT_DELETE_SCOPE.active, userId },
         character: { deletedAt: null, userId },
         characterId: { in: characterIds },
       },
