@@ -102,7 +102,7 @@ function removeFilterLabel(label: string): string {
 
 function renderCatalog(search = "", onUrlUpdate?: OnUrlUpdateFunction) {
   return renderWithProviders(
-    <NuqsTestingAdapter onUrlUpdate={onUrlUpdate} searchParams={search}>
+    <NuqsTestingAdapter hasMemory onUrlUpdate={onUrlUpdate} searchParams={search}>
       <CharactersCatalogView />
     </NuqsTestingAdapter>,
   );
@@ -402,7 +402,7 @@ describe("CharactersCatalogView results counter", () => {
 
     renderCatalog();
 
-    await screen.findByRole("alert");
+    await screen.findAllByRole("alert");
     expect(screen.queryByText(/Показано/)).not.toBeInTheDocument();
   });
 });
