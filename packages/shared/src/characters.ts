@@ -779,6 +779,26 @@ export const PaginatedCharacterGlobalSummarySchema = createPaginatedSchema(
   CharacterGlobalSummaryViewSchema,
 );
 
+export const CHARACTER_CATALOG_BOOKS_PREVIEW_MAX = 3;
+
+export const CharacterCatalogItemViewSchema = CharacterGlobalSummaryViewSchema.extend({
+  booksPreview: z.array(CharacterAppearanceBookSchema).max(CHARACTER_CATALOG_BOOKS_PREVIEW_MAX),
+});
+
+export type CharacterCatalogItemView = z.infer<typeof CharacterCatalogItemViewSchema>;
+
+export const PaginatedCharacterCatalogSchema = createPaginatedSchema(
+  CharacterCatalogItemViewSchema,
+);
+
+export const CharacterBooksQuerySchema = z.object({
+  ...paginationQueryFields({ pageSizeDefault: CHARACTERS_DEFAULT_PAGE_SIZE }),
+});
+
+export type CharacterBooksQuery = z.infer<typeof CharacterBooksQuerySchema>;
+
+export const PaginatedCharacterBooksSchema = createPaginatedSchema(CharacterAppearanceBookSchema);
+
 export const CharacterDuplicateCandidatesViewSchema = z.object({
   candidates: z.array(CharacterGlobalSummaryViewSchema),
 });

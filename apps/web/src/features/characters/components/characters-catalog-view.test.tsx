@@ -2,6 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import type { OnUrlUpdateFunction, UrlUpdateEvent } from "nuqs/adapters/testing";
 import type { ReactNode } from "react";
 
+import { createTranslator } from "next-intl";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -16,7 +17,11 @@ import {
   within,
 } from "@/test-utils";
 
-import { makeCharacterGlobalSummary } from "../model/characters.fixtures";
+import {
+  makeCharacterAppearanceBook,
+  makeCharacterCatalogItem,
+  SPECIES_REFS,
+} from "../model/characters.fixtures";
 import { CharactersCatalogView } from "./characters-catalog-view";
 
 vi.mock("@/i18n/navigation", () => ({
@@ -31,6 +36,37 @@ vi.mock("@/i18n/navigation", () => ({
 const activeFiltersCopy = messages.books.library.activeFilters;
 const characterChipsCopy = messages.characters.activeFilters;
 const sheetCopy = messages.characters.catalog.filters;
+const booksCopy = messages.characters.catalog.books;
+const cardCopy = messages.characters.card;
+const catalogCopy = messages.characters.catalog;
+const translateCatalog = createTranslator({
+  locale: "uk",
+  messages,
+  namespace: "characters.catalog",
+});
+
+const CARD_CHARACTER_ID = "2b7e4c1a-9d3f-4e6b-8a5c-7f0e1d2c3b4a";
+
+const CHARACTER_BOOKS_PATH = /\/api\/characters\/[^/?]+\/books/;
+
+const PREVIEW_BOOKS = [
+  makeCharacterAppearanceBook({ id: "book-wish", title: "Останнє бажання" }),
+  makeCharacterAppearanceBook({ id: "book-sword", title: "Меч призначення" }),
+  makeCharacterAppearanceBook({ id: "book-blood", title: "Кров ельфів" }),
+];
+
+const WITCHER_DESCRIPTION = "Мандрує Північчю й береться за будь-яке замовлення на чудовиськ.";
+
+const DESCRIBED_CHARACTER = makeCharacterCatalogItem({
+  name: "Ґеральт",
+  neutralDescription: WITCHER_DESCRIPTION,
+  species: SPECIES_REFS.witcher,
+  tags: [
+    { color: "sage", id: "tag-brave", name: "сміливість" },
+    { color: "sage", id: "tag-irony", name: "іронія" },
+    { color: "sage", id: "tag-loyal", name: "вірність" },
+  ],
+});
 
 const deepLinkIds = {
   book: "9a8b7c6d-5e4f-4a3b-9c2d-1e0f9a8b7c6d",
@@ -50,20 +86,47 @@ const overview = {
   withPersonalImpressionCount: 2,
 };
 
-const fetchMock = vi.fn();
+const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
 
 let respondToBooks: (url: string) => Response;
+let respondToCharacterBooks: () => Response;
+let respondToFavorite: () => Promise<Response> | Response;
 let respondToGroups: () => Response;
-let respondToList: (url: string) => Response;
+let respondToList: (url: string) => Promise<Response> | Response;
 let respondToOverview: () => Response;
 let respondToTags: () => Response;
 
 const viewport = mockIntersectionObserver();
 
+function catalogList(): HTMLElement {
+  const list = screen
+    .getAllByRole("list")
+    .find((candidate) => within(candidate).queryAllByRole("article").length > 0);
+  if (list === undefined) throw new Error("the catalog list is not shown");
+  return list;
+}
+
 function catalogRequestUrls(): string[] {
   return fetchMock.mock.calls
     .map(([input]) => String(input))
     .filter((url) => url.includes("/api/characters?"));
+}
+
+function catalogSkeleton(): HTMLElement {
+  const skeleton = screen
+    .getAllByRole("status")
+    .find((candidate) => within(candidate).queryByText(catalogCopy.states.loading) !== null);
+  if (skeleton === undefined) throw new Error("the catalog skeleton is not shown");
+  return skeleton;
+}
+
+function favoriteRequests(): { body: RequestInit["body"]; path: string }[] {
+  return fetchMock.mock.calls
+    .filter(([, init]) => init?.method === "PATCH")
+    .map(([input, init]) => ({
+      body: init?.body,
+      path: new URL(String(input), "http://localhost").pathname,
+    }));
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -81,14 +144,14 @@ function nextPageRequestCount(): number {
   return catalogRequestUrls().filter((url) => url.includes("pageNumber=2")).length;
 }
 
-function page(items: ReturnType<typeof makeCharacterGlobalSummary>[], pagesCount = 1) {
+function page(items: ReturnType<typeof makeCharacterCatalogItem>[], pagesCount = 1) {
   return { items, page: 1, pagesCount, pageSize: 24, totalCount: items.length };
 }
 
 function pagedList(url: string, pagesCount: number) {
   const pageNumber = Number(new URL(url, "http://localhost").searchParams.get("pageNumber") ?? 1);
   return jsonResponse({
-    items: [makeCharacterGlobalSummary({ name: "Ґеральт" })],
+    items: [makeCharacterCatalogItem({ name: "Ґеральт" })],
     page: pageNumber,
     pagesCount,
     pageSize: 24,
@@ -110,16 +173,21 @@ function renderCatalog(search = "", onUrlUpdate?: OnUrlUpdateFunction) {
 
 beforeEach(() => {
   respondToBooks = () => jsonResponse(page([]));
+  respondToCharacterBooks = () =>
+    jsonResponse({ items: [], page: 1, pagesCount: 0, pageSize: 20, totalCount: 0 });
+  respondToFavorite = () => Promise.reject(new Error("unexpected favorite update"));
   respondToGroups = () => jsonResponse(page([]));
   respondToOverview = () => jsonResponse(overview);
   respondToTags = () => jsonResponse(page([]));
   respondToList = () =>
-    jsonResponse(page([makeCharacterGlobalSummary({ appearanceCount: 7, name: "Ґеральт" })]));
+    jsonResponse(page([makeCharacterCatalogItem({ appearanceCount: 7, name: "Ґеральт" })]));
 
   fetchMock.mockReset();
-  fetchMock.mockImplementation((input: RequestInfo | URL) => {
+  fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
+    if (init?.method === "PATCH") return Promise.resolve(respondToFavorite());
     if (url.includes("/api/characters/overview")) return Promise.resolve(respondToOverview());
+    if (CHARACTER_BOOKS_PATH.test(url)) return Promise.resolve(respondToCharacterBooks());
     if (url.includes("/api/character-groups")) return Promise.resolve(respondToGroups());
     if (url.includes("/api/series")) return Promise.resolve(jsonResponse(page([])));
     if (url.includes("/api/books")) return Promise.resolve(respondToBooks(url));
@@ -198,11 +266,28 @@ describe("CharactersCatalogView quick filters", () => {
 });
 
 describe("CharactersCatalogView catalog", () => {
-  it("links a row to the character page without a book context", async () => {
+  it("links the card title to the character page and every preview cover to its own book", async () => {
+    respondToList = () =>
+      jsonResponse(
+        page([
+          makeCharacterCatalogItem({
+            appearanceCount: 3,
+            booksPreview: PREVIEW_BOOKS,
+            name: "Ґеральт",
+          }),
+        ]),
+      );
+
     renderCatalog();
 
-    const link = await screen.findByRole("link", { name: /Ґеральт/ });
-    expect(link).toHaveAttribute("href", "/characters/char-1");
+    const title = await screen.findByRole("heading", { name: "Ґеральт" });
+    expect(within(title).getByRole("link")).toHaveAttribute("href", "/characters/char-1");
+    expect(
+      PREVIEW_BOOKS.map((book) =>
+        screen.getByRole("link", { name: book.title }).getAttribute("href"),
+      ),
+    ).toEqual(["/books/book-wish", "/books/book-sword", "/books/book-blood"]);
+    expect(screen.getByText(translateCatalog("books.count", { count: 3 }))).toBeInTheDocument();
   });
 
   it("tells a true empty catalog apart from an empty search", async () => {
@@ -334,8 +419,8 @@ describe("CharactersCatalogView results counter", () => {
     respondToList = () =>
       jsonResponse({
         items: [
-          makeCharacterGlobalSummary({ id: "char-1", name: "Ґеральт" }),
-          makeCharacterGlobalSummary({ id: "char-2", name: "Єнніфер" }),
+          makeCharacterCatalogItem({ id: "char-1", name: "Ґеральт" }),
+          makeCharacterCatalogItem({ id: "char-2", name: "Єнніфер" }),
         ],
         page: 1,
         pagesCount: 3,
@@ -349,7 +434,7 @@ describe("CharactersCatalogView results counter", () => {
   });
 
   it("uses the singular form for a total of one", async () => {
-    respondToList = () => jsonResponse(page([makeCharacterGlobalSummary({ name: "Ґеральт" })]));
+    respondToList = () => jsonResponse(page([makeCharacterCatalogItem({ name: "Ґеральт" })]));
 
     renderCatalog();
 
@@ -360,7 +445,7 @@ describe("CharactersCatalogView results counter", () => {
     respondToList = (url) =>
       url.includes("favorite=true")
         ? jsonResponse({
-            items: [makeCharacterGlobalSummary({ id: "char-3", name: "Цірі" })],
+            items: [makeCharacterCatalogItem({ id: "char-3", name: "Цірі" })],
             page: 1,
             pagesCount: 4,
             pageSize: 1,
@@ -368,8 +453,8 @@ describe("CharactersCatalogView results counter", () => {
           })
         : jsonResponse({
             items: [
-              makeCharacterGlobalSummary({ id: "char-1", name: "Ґеральт" }),
-              makeCharacterGlobalSummary({ id: "char-2", name: "Єнніфер" }),
+              makeCharacterCatalogItem({ id: "char-1", name: "Ґеральт" }),
+              makeCharacterCatalogItem({ id: "char-2", name: "Єнніфер" }),
             ],
             page: 1,
             pagesCount: 3,
@@ -640,5 +725,164 @@ describe("CharactersCatalogView filters sheet", () => {
 
     await waitFor(() => expect(urlUpdates.at(-1)?.searchParams.get("spoilers")).toBe("with"));
     await waitFor(() => expect(lastCatalogRequest().get("hasSpoilers")).toBe("true"));
+  });
+});
+
+describe("CharactersCatalogView cards", () => {
+  it.each([
+    { search: "", twoColumns: true, view: "grid" },
+    { search: "view=list", twoColumns: false, view: "list" },
+  ])(
+    "lays out the skeleton and the loaded cards for the $view view",
+    async ({ search, twoColumns }) => {
+      let releaseList = (): void => undefined;
+      respondToList = () =>
+        new Promise<Response>((resolve) => {
+          releaseList = () =>
+            resolve(jsonResponse(page([makeCharacterCatalogItem({ name: "Ґеральт" })])));
+        });
+
+      renderCatalog(search);
+
+      expect(catalogSkeleton()).toHaveClass("grid", "grid-cols-1", "gap-4");
+      expect(catalogSkeleton().classList.contains("lg:grid-cols-2")).toBe(twoColumns);
+
+      await waitFor(() => expect(catalogRequestUrls()).toHaveLength(1));
+      releaseList();
+      await screen.findByRole("heading", { name: "Ґеральт" });
+
+      expect(catalogList()).toHaveClass("grid", "grid-cols-1", "gap-4");
+      expect(catalogList().classList.contains("lg:grid-cols-2")).toBe(twoColumns);
+    },
+  );
+
+  it("shows the species, the description and two tags with a counter for the rest on a grid card", async () => {
+    respondToList = () => jsonResponse(page([DESCRIBED_CHARACTER]));
+
+    renderCatalog();
+
+    const card = await screen.findByRole("article");
+    expect(within(card).getByText("Відьмак")).toBeInTheDocument();
+    expect(within(card).getByText(WITCHER_DESCRIPTION)).toBeInTheDocument();
+    expect(within(card).getByText("сміливість")).toBeInTheDocument();
+    expect(within(card).getByText("іронія")).toBeInTheDocument();
+    expect(within(card).queryByText("вірність")).not.toBeInTheDocument();
+    expect(
+      within(card).getByRole("button", {
+        name: translateCatalog("tags.more", { count: 1, names: "вірність" }),
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the species but drops the description and the tags on a list card", async () => {
+    respondToList = () => jsonResponse(page([DESCRIBED_CHARACTER]));
+
+    renderCatalog("view=list");
+
+    const card = await screen.findByRole("article");
+    expect(within(card).getByText("Відьмак")).toBeInTheDocument();
+    expect(within(card).queryByText(WITCHER_DESCRIPTION)).not.toBeInTheDocument();
+    expect(within(card).queryByText("сміливість")).not.toBeInTheDocument();
+    expect(within(card).queryByText("іронія")).not.toBeInTheDocument();
+    expect(
+      within(card).queryByRole("button", {
+        name: translateCatalog("tags.more", { count: 1, names: "вірність" }),
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens every book of the character from the more button without leaving the catalog", async () => {
+    respondToList = () =>
+      jsonResponse(
+        page([
+          makeCharacterCatalogItem({
+            appearanceCount: 7,
+            booksPreview: PREVIEW_BOOKS,
+            name: "Ґеральт",
+          }),
+        ]),
+      );
+
+    renderCatalog();
+
+    const more = await screen.findByRole("button", {
+      name: translateCatalog("books.more", { count: 4 }),
+    });
+    expect(screen.getByText(translateCatalog("books.count", { count: 7 }))).toBeInTheDocument();
+
+    await userEvent.click(more);
+
+    expect(await screen.findByRole("dialog", { name: booksCopy.title })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Ґеральт" })).toBeInTheDocument();
+  });
+
+  it("says a character is in no book yet and offers no book controls", async () => {
+    respondToList = () =>
+      jsonResponse(page([makeCharacterCatalogItem({ appearanceCount: 0, name: "Ґеральт" })]));
+
+    renderCatalog();
+
+    const card = await screen.findByRole("article");
+    expect(within(card).getByText(booksCopy.none)).toBeInTheDocument();
+    expect(within(card).getAllByRole("link")).toEqual([
+      within(card).getByRole("link", { name: "Ґеральт" }),
+    ]);
+    expect(within(card).getAllByRole("button")).toEqual([
+      within(card).getByRole("button", { name: cardCopy.favorite }),
+      within(card).getByRole("button", { name: cardCopy.menu }),
+    ]);
+  });
+
+  it("fills the heart before the server answers and empties it again when the update fails", async () => {
+    let refuseFavorite = (): void => undefined;
+    respondToList = () =>
+      favoriteRequests().length === 0
+        ? jsonResponse(page([makeCharacterCatalogItem({ id: CARD_CHARACTER_ID, name: "Ґеральт" })]))
+        : new Promise<Response>(() => undefined);
+    respondToFavorite = () =>
+      new Promise<Response>((resolve) => {
+        refuseFavorite = () => resolve(jsonResponse({ message: "boom" }, 500));
+      });
+
+    renderCatalog();
+
+    await userEvent.click(await screen.findByRole("button", { name: cardCopy.favorite }));
+
+    expect(await screen.findByRole("button", { name: cardCopy.unfavorite })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await waitFor(() =>
+      expect(favoriteRequests()).toEqual([
+        {
+          body: JSON.stringify({ isFavorite: true }),
+          path: `/api/characters/${CARD_CHARACTER_ID}`,
+        },
+      ]),
+    );
+
+    refuseFavorite();
+
+    expect(await screen.findByRole("button", { name: cardCopy.favorite })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
+  it("offers the general edit page and a full delete in the card menu", async () => {
+    respondToList = () =>
+      jsonResponse(page([makeCharacterCatalogItem({ id: CARD_CHARACTER_ID, name: "Ґеральт" })]));
+
+    renderCatalog();
+
+    await userEvent.click(await screen.findByRole("button", { name: cardCopy.menu }));
+
+    expect(await screen.findByRole("menuitem", { name: cardCopy.edit })).toHaveAttribute(
+      "href",
+      `/characters/${CARD_CHARACTER_ID}/edit?view=global`,
+    );
+    expect(
+      screen.getByRole("menuitem", { name: messages.characters.page.deleteAction }),
+    ).toBeInTheDocument();
   });
 });

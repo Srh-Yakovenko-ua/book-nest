@@ -1,9 +1,12 @@
 import type {
+  CharacterAppearanceBook,
+  CharacterBookOrderKey,
+  CharacterBooksQuery,
+  CharacterCatalogItemView,
   CharacterDetailsQuery,
   CharacterDetailsView,
   CharacterDuplicateCandidatesQuery,
   CharacterDuplicateCandidatesView,
-  CharacterGlobalSummaryView,
   CharacterOverviewView,
   CharactersListQuery,
   CreateCharacter,
@@ -12,6 +15,7 @@ import type {
 } from "@app/shared";
 
 import {
+  CHARACTER_CATALOG_BOOKS_PREVIEW_MAX,
   CHARACTER_DUPLICATE_CANDIDATES_MAX,
   CHARACTER_ERROR_CODES,
   CHARACTER_OVERVIEW_LEADERS_MAX,
@@ -21,12 +25,16 @@ import {
 } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
-import type { GlobalCharacterFilter } from "../infrastructure/characters.repository.js";
+import type {
+  CharacterBookCoverRow,
+  GlobalCharacterFilter,
+} from "../infrastructure/characters.repository.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { buildBookCharacterData } from "../domain/book-character-write.js";
+import { groupSortedCharacterBooks } from "../domain/character-books.js";
 import {
   buildCharacterData,
   buildCharacterUpdateData,
@@ -172,13 +180,43 @@ export class CharactersService {
     });
   }
 
+  async listCharacterBooks({
+    characterId,
+    query,
+    userId,
+  }: {
+    characterId: string;
+    query: CharacterBooksQuery;
+    userId: string;
+  }): Promise<Paginator<CharacterAppearanceBook>> {
+    await this.accessAsserter.assertCharacterOwned({ characterId, userId });
+    const keys = await this.charactersRepository.listBookOrderKeys({
+      characterIds: [characterId],
+      userId,
+    });
+    const sortedBooks = groupSortedCharacterBooks(keys).get(characterId) ?? [];
+    const { skip, take } = pageSlice({ pageNumber: query.pageNumber, pageSize: query.pageSize });
+    const pageBooks = sortedBooks.slice(skip, skip + take);
+    const coverMediaByBookId = await this.loadCoverMediaByBookId({
+      bookIds: pageBooks.map((book) => book.id),
+      userId,
+    });
+
+    return buildPaginator({
+      items: this.toAppearanceBookViews({ books: pageBooks, coverMediaByBookId }),
+      pageNumber: query.pageNumber,
+      pageSize: query.pageSize,
+      totalCount: sortedBooks.length,
+    });
+  }
+
   async listGlobal({
     query,
     userId,
   }: {
     query: CharactersListQuery;
     userId: string;
-  }): Promise<Paginator<CharacterGlobalSummaryView>> {
+  }): Promise<Paginator<CharacterCatalogItemView>> {
     if (query.contextBookId !== undefined) {
       await this.accessAsserter.assertBookOwned({ bookId: query.contextBookId, userId });
     }
@@ -208,9 +246,18 @@ export class CharactersService {
       }),
       this.charactersRepository.countGlobalSummaries(filter),
     ]);
+    const booksPreviewByCharacterId = await this.loadBooksPreview({
+      characterIds: rows.map((row) => row.id),
+      userId,
+    });
 
     return buildPaginator({
-      items: rows.map((row) => this.viewMapper.toGlobalSummaryView(row)),
+      items: rows.map((row) =>
+        this.viewMapper.toCatalogItemView({
+          booksPreview: booksPreviewByCharacterId.get(row.id) ?? [],
+          row,
+        }),
+      ),
       pageNumber: query.pageNumber,
       pageSize: query.pageSize,
       totalCount,
@@ -323,5 +370,64 @@ export class CharactersService {
     });
 
     return this.viewMapper.toDetailsView(detailsRow);
+  }
+
+  private async loadBooksPreview({
+    characterIds,
+    userId,
+  }: {
+    characterIds: string[];
+    userId: string;
+  }): Promise<Map<string, CharacterAppearanceBook[]>> {
+    const keys = await this.charactersRepository.listBookOrderKeys({ characterIds, userId });
+    const previewBooksByCharacterId = new Map<string, CharacterBookOrderKey[]>();
+    for (const [characterId, sortedBooks] of groupSortedCharacterBooks(keys)) {
+      previewBooksByCharacterId.set(
+        characterId,
+        sortedBooks.slice(0, CHARACTER_CATALOG_BOOKS_PREVIEW_MAX),
+      );
+    }
+    const coverMediaByBookId = await this.loadCoverMediaByBookId({
+      bookIds: [...previewBooksByCharacterId.values()].flat().map((book) => book.id),
+      userId,
+    });
+
+    const booksPreviewByCharacterId = new Map<string, CharacterAppearanceBook[]>();
+    for (const [characterId, books] of previewBooksByCharacterId) {
+      booksPreviewByCharacterId.set(
+        characterId,
+        this.toAppearanceBookViews({ books, coverMediaByBookId }),
+      );
+    }
+    return booksPreviewByCharacterId;
+  }
+
+  private async loadCoverMediaByBookId({
+    bookIds,
+    userId,
+  }: {
+    bookIds: string[];
+    userId: string;
+  }): Promise<Map<string, CharacterBookCoverRow["coverMedia"]>> {
+    const covers = await this.charactersRepository.listBookCovers({
+      bookIds: [...new Set(bookIds)],
+      userId,
+    });
+    return new Map(covers.map((cover) => [cover.id, cover.coverMedia]));
+  }
+
+  private toAppearanceBookViews({
+    books,
+    coverMediaByBookId,
+  }: {
+    books: CharacterBookOrderKey[];
+    coverMediaByBookId: ReadonlyMap<string, CharacterBookCoverRow["coverMedia"]>;
+  }): CharacterAppearanceBook[] {
+    return books.map((book) =>
+      this.viewMapper.toAppearanceBookView({
+        book,
+        coverMedia: coverMediaByBookId.get(book.id) ?? null,
+      }),
+    );
   }
 }

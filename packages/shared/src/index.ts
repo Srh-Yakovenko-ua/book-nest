@@ -7,6 +7,7 @@ export * from "./book-store-links.js";
 export * from "./books.js";
 export * from "./bounded-array.js";
 export * from "./changelog.js";
+export * from "./character-book-order.js";
 export * from "./character-facts.js";
 export * from "./character-graph-layouts.js";
 export * from "./character-graph.js";

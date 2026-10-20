@@ -9,11 +9,11 @@
 /**
  * @nullable
  */
-export type PaginatedCharacterGlobalSummaryDtoItemsItemGlobalAttitude =
-  | (typeof PaginatedCharacterGlobalSummaryDtoItemsItemGlobalAttitude)[keyof typeof PaginatedCharacterGlobalSummaryDtoItemsItemGlobalAttitude]
+export type PaginatedCharacterCatalogDtoItemsItemGlobalAttitude =
+  | (typeof PaginatedCharacterCatalogDtoItemsItemGlobalAttitude)[keyof typeof PaginatedCharacterCatalogDtoItemsItemGlobalAttitude]
   | null;
 
-export const PaginatedCharacterGlobalSummaryDtoItemsItemGlobalAttitude = {
+export const PaginatedCharacterCatalogDtoItemsItemGlobalAttitude = {
   like: "like",
   neutral: "neutral",
   distrust: "distrust",

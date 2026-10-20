@@ -7978,7 +7978,17 @@
       "unlink": "Remove from this book"
     },
     "catalog": {
-      "appearanceCount": "Books: {count}",
+      "books": {
+        "count": "{count, plural, one {In # book} other {In # books}}",
+        "error": "Couldn't load the books",
+        "loading": "Loading books",
+        "loadMoreError": "Couldn't load more books",
+        "more": "Show {count, plural, one {# more book} other {# more books}}",
+        "none": "Not in any book yet",
+        "openProfile": "Open character profile",
+        "title": "Books with this character",
+        "total": "{count, plural, one {# book} other {# books}}"
+      },
       "counter": "Showing {shown} of {total, plural, one {# character} other {# characters}}",
       "empty": {
         "description": "Characters appear here once you add them to your books.",
@@ -8067,6 +8077,9 @@
         "sharedLeaders": "{count} share the lead",
         "total": "Characters in total",
         "withImpression": "With my impressions"
+      },
+      "tags": {
+        "more": "{count, plural, one {# more tag} other {# more tags}}: {names}"
       },
       "title": "Characters",
       "view": {

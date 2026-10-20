@@ -2,6 +2,8 @@ import type {
   BookCharacterRosterItem,
   BookCharacterSummaryView,
   BookCharacterView,
+  CharacterAppearanceBook,
+  CharacterCatalogItemView,
   CharacterDeletionPreview,
   CharacterDeletionResult,
   CharacterDetailsView,
@@ -83,6 +85,28 @@ export function makeBookCharacterView(
     statusCustomText: null,
     statusIsSpoiler: false,
     updatedAt: "2026-01-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+export function makeCharacterAppearanceBook(
+  overrides: Partial<CharacterAppearanceBook> = {},
+): CharacterAppearanceBook {
+  return {
+    cover: null,
+    id: "book-1",
+    series: null,
+    title: "Останнє бажання",
+    ...overrides,
+  };
+}
+
+export function makeCharacterCatalogItem(
+  overrides: Partial<CharacterCatalogItemView> = {},
+): CharacterCatalogItemView {
+  return {
+    ...makeCharacterGlobalSummary(),
+    booksPreview: [],
     ...overrides,
   };
 }

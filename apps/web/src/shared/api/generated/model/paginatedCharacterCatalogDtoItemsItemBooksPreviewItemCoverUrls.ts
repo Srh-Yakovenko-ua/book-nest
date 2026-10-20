@@ -6,7 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 
-export type PaginatedCharacterGlobalSummaryDtoItemsItemAvatarUrls = {
+export type PaginatedCharacterCatalogDtoItemsItemBooksPreviewItemCoverUrls = {
   card: string;
   full: string;
   thumb: string;

@@ -40,6 +40,7 @@ export const characterKeys = {
   bookRosterInfiniteScope: (bookId: string) =>
     [CHARACTERS_ROOT, BOOK_ROSTER.root, bookId, BOOK_ROSTER.infinite] as const,
   bookRosterScope: (bookId: string) => [CHARACTERS_ROOT, BOOK_ROSTER.root, bookId] as const,
+  books: (characterId: string) => [CHARACTERS_ROOT, "books", characterId] as const,
   bookSummary: (bookId: string, bookContext: BookCharacterSummaryQuery) =>
     [CHARACTERS_ROOT, "book-summary", bookId, bookContext] as const,
   customLabels: () => [CHARACTERS_ROOT, "custom-labels"] as const,
@@ -60,6 +61,7 @@ export const characterKeys = {
     [CHARACTER_GROUPS_ROOT, "options", params] as const,
   overview: () => [CHARACTERS_ROOT, "overview"] as const,
   search: (params: CharactersControllerListParams) => [CHARACTERS_ROOT, "search", params] as const,
+  searchScope: () => [CHARACTERS_ROOT, "search"] as const,
   suggestions: (bookId: string, params: BookCharacterSuggestionsControllerListParams) =>
     [CHARACTERS_ROOT, "suggestions", bookId, params] as const,
 };
