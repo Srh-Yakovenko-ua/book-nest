@@ -34,6 +34,7 @@ All endpoints require a valid access token (`JwtAccessGuard`, `@ApiBearerAuth`).
 | ------ | ----------------------------------------------- | ------- | ------------- | ----------------------------------------- | --------------------------------------- |
 | POST   | `/api/characters`                               | 201     | 400, 401, 404 | `CreateCharacterSchema`                   | `CharacterDetailsView`                  |
 | GET    | `/api/characters`                               | 200     | 401, 404      | `CharactersListQuerySchema`               | `Paginator<CharacterGlobalSummaryView>` |
+| GET    | `/api/characters/facets`                        | 200     | 400, 401, 404 | `CharacterFacetsQuerySchema`              | `CharacterFacetsView`                   |
 | GET    | `/api/characters/duplicate-candidates`          | 200     | 401, 404      | `CharacterDuplicateCandidatesQuerySchema` | `CharacterDuplicateCandidatesView`      |
 | GET    | `/api/characters/:characterId`                  | 200     | 401, 404      | `:characterId` `ParseUUIDPipe`            | `CharacterDetailsView`                  |
 | GET    | `/api/characters/:characterId/deletion-preview` | 200     | 401, 404      | `:characterId` `ParseUUIDPipe`            | `CharacterDeletionPreview`              |
@@ -42,6 +43,8 @@ All endpoints require a valid access token (`JwtAccessGuard`, `@ApiBearerAuth`).
 | POST   | `/api/characters/:characterId/restore`          | 200     | 401, 404      | `:characterId` `ParseUUIDPipe`            | `CharacterDetailsView`                  |
 
 `GET /api/characters` is the global spoiler-safe summary list that also backs the planned command-palette search: `q` free-text (name/alias/displayName, spoiler-aware), multi-value `role`/`importance`/`species`/`gender`/`attitude`, `favorite`, `archived`, `sort` (`name` | `recently_added` | `recently_updated`), `contextBookId` (masks the character behind a `hidePresenceAsSpoiler` appearance in that book), and `includeSpoilerSearch`.
+
+`GET /api/characters/facets` takes the same filters as the list, without paging and sort, and returns how many characters each filter option would match: `importance`, `role`, `gender`, `species`, `attitude`, `tag` and `group`, each a list of `{ value, count }`. Every group is counted with all the other active filters applied but not its own, so choosing "male" still shows how many female characters there are. Options with no matches are left out. The catalog filter sheet shows these counts for its draft, before the user applies it. The route is declared above `:characterId` so the path is not read as an id.
 
 `DELETE` requires `?confirm=true` — `DeleteCharacterQuerySchema` is `z.object({ confirm: z.literal("true") })` (`packages/shared/src/characters.ts:309`), so a missing/other value is a 400 before the service runs.
 

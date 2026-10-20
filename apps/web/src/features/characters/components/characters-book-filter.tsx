@@ -39,8 +39,8 @@ export function CharactersBookFilter({ onChange, value }: CharactersBookFilterPr
   );
 }
 
-function useBookSearchResult(query: string): EntitySearchResult {
-  const books = useCharacterBookOptions(query);
+function useBookSearchResult(query: string, options: { enabled: boolean }): EntitySearchResult {
+  const books = useCharacterBookOptions(query, options);
 
   return {
     fetchNextPage: () => void books.fetchNextPage(),

@@ -38,8 +38,8 @@ export function CharactersSeriesFilter({ onChange, value }: CharactersSeriesFilt
   );
 }
 
-function useSeriesSearchResult(query: string): EntitySearchResult {
-  const series = useSeriesPickerOptions(query);
+function useSeriesSearchResult(query: string, options: { enabled: boolean }): EntitySearchResult {
+  const series = useSeriesPickerOptions(query, options);
 
   return {
     fetchNextPage: () => void series.fetchNextPage(),

@@ -1196,7 +1196,9 @@ const PERSONAL_IMPRESSION_APPEARANCE = {
   book: SOFT_DELETE_SCOPE.active,
 } satisfies Prisma.BookCharacterWhereInput;
 
-function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.CharacterWhereInput {
+export function buildGlobalCharacterWhere(
+  filter: GlobalCharacterFilter,
+): Prisma.CharacterWhereInput {
   const {
     archived,
     attitudes,
@@ -1246,17 +1248,13 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
     where.id = { in: multipleBookCharacterIds };
   }
 
-  const scopeAppearance = (
-    extra: Prisma.BookCharacterWhereInput,
-  ): Prisma.BookCharacterWhereInput =>
-    contextBookId === undefined ? extra : { ...extra, bookId: contextBookId };
+  const scopeAppearance = (extra: Prisma.BookCharacterWhereInput): Prisma.BookCharacterWhereInput =>
+    scopeAppearanceToContextBook({ contextBookId, extra });
 
   const scopeMembership = (
     extra: Prisma.CharacterGroupMembershipWhereInput,
   ): Prisma.CharacterGroupMembershipWhereInput =>
-    contextBookId === undefined
-      ? extra
-      : { ...extra, OR: [{ bookId: null }, { bookId: contextBookId }] };
+    scopeMembershipToContextBook({ contextBookId, extra });
 
   const and: Prisma.CharacterWhereInput[] = [];
   if (importances !== undefined) {
@@ -1269,7 +1267,7 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
           roles: {
             some: {
               roleType: { in: roleTypes },
-              ...(includeSpoilerSearch ? {} : { isSpoiler: false }),
+              ...spoilerSearchScope(includeSpoilerSearch),
             },
           },
         }),
@@ -1295,7 +1293,7 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
       groupMemberships: {
         some: scopeMembership({
           groupId: { in: groupIds },
-          ...(includeSpoilerSearch ? {} : { isSpoiler: false }),
+          ...spoilerSearchScope(includeSpoilerSearch),
         }),
       },
     });
@@ -1317,7 +1315,7 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
         { name: contains },
         {
           aliases: {
-            some: { name: contains, ...(includeSpoilerSearch ? {} : { isSpoiler: false }) },
+            some: { name: contains, ...spoilerSearchScope(includeSpoilerSearch) },
           },
         },
         {
@@ -1335,6 +1333,32 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
     where.AND = and;
   }
   return where;
+}
+
+export function scopeAppearanceToContextBook({
+  contextBookId,
+  extra,
+}: {
+  contextBookId: string | undefined;
+  extra: Prisma.BookCharacterWhereInput;
+}): Prisma.BookCharacterWhereInput {
+  return contextBookId === undefined ? extra : { ...extra, bookId: contextBookId };
+}
+
+export function scopeMembershipToContextBook({
+  contextBookId,
+  extra,
+}: {
+  contextBookId: string | undefined;
+  extra: Prisma.CharacterGroupMembershipWhereInput;
+}): Prisma.CharacterGroupMembershipWhereInput {
+  return contextBookId === undefined
+    ? extra
+    : { ...extra, OR: [{ bookId: null }, { bookId: contextBookId }] };
+}
+
+export function spoilerSearchScope(includeSpoilerSearch: boolean): { isSpoiler?: false } {
+  return includeSpoilerSearch ? {} : { isSpoiler: false };
 }
 
 function buildHasSpoilerContentWhere({

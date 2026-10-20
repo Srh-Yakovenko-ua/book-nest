@@ -7866,7 +7866,7 @@
       "gender": "Gender: {label}",
       "group": "Group: {name}",
       "importance": "Importance: {label}",
-      "pending": "…",
+      "pending": "loading…",
       "role": "Role: {label}",
       "search": "Search: {query}",
       "series": "Series: {name}",

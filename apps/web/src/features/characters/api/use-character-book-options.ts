@@ -14,7 +14,10 @@ const CHARACTER_BOOK_OPTIONS_QUERY = {
   sort: BooksControllerListSort.title_asc,
 } as const satisfies BooksControllerListParams;
 
-export function useCharacterBookOptions(search: string) {
+export function useCharacterBookOptions(
+  search: string,
+  { enabled = true }: { enabled?: boolean } = {},
+) {
   const trimmed = search.trim();
   const params: BooksControllerListParams = {
     ...CHARACTER_BOOK_OPTIONS_QUERY,
@@ -22,6 +25,7 @@ export function useCharacterBookOptions(search: string) {
   };
 
   return useInfiniteQuery({
+    enabled,
     getNextPageParam: (lastPage: CharacterBookOptionsPage) =>
       lastPage.page < lastPage.pagesCount ? lastPage.page + 1 : undefined,
     initialPageParam: 1,

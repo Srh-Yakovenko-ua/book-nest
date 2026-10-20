@@ -5,6 +5,7 @@ import type {
   BookCharacterSuggestionsControllerListParams,
   CharacterGroupsControllerListParams,
   CharactersControllerDuplicateCandidatesParams,
+  CharactersControllerFacetsParams,
   CharactersControllerGetByIdParams,
   CharactersControllerListParams,
 } from "@/shared/api/generated/model";
@@ -50,6 +51,8 @@ export const characterKeys = {
   detailsScope: (characterId: string) => [CHARACTERS_ROOT, "details", characterId] as const,
   duplicates: (params: CharactersControllerDuplicateCandidatesParams) =>
     [CHARACTERS_ROOT, "duplicates", params] as const,
+  facets: (params: CharactersControllerFacetsParams) =>
+    [CHARACTERS_ROOT, "facets", params] as const,
   factsInfinite: ({ bookId, characterId, q }: CharacterFactsScope & { q: string }) =>
     [CHARACTERS_ROOT, FACTS.root, characterId, bookId, FACTS.infinite, q] as const,
   factsScope: ({ bookId, characterId }: CharacterFactsScope) =>

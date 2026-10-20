@@ -29,6 +29,7 @@ import {
   CHARACTERS_CATALOG_SORTS,
   CHARACTERS_CATALOG_VIEWS,
 } from "../model/characters-catalog-query";
+import { countShownCharacters } from "../model/characters-catalog-shown-count";
 import { useCatalogSpeciesNames } from "../model/use-catalog-species-names";
 import { useCharactersCatalogFilterChips } from "../model/use-characters-catalog-filter-chips";
 import { useCharactersCatalogQuery } from "../model/use-characters-catalog-query";
@@ -56,13 +57,12 @@ export function CharactersCatalogView() {
   const catalog = useCharactersCatalog(listParams);
   const pages = catalog.data?.pages ?? [];
   const characters = pages.flatMap((page) => page.items);
-  const totalCount = pages[0]?.totalCount ?? 0;
-  const speciesNames = useCatalogSpeciesNames(characters);
+  const speciesNames = useCatalogSpeciesNames({ characters, speciesIds: state.speciesId });
   const filterChips = useCharactersCatalogFilterChips({
     onAdvancedChange: patchAdvanced,
     onFilterChange: setFilter,
     onSearch: setSearch,
-    resolveSpeciesName: speciesNames.resolve,
+    speciesNames,
     state,
   });
   const summaryCards = useCharactersSummaryCards(overview.data);
@@ -191,9 +191,7 @@ export function CharactersCatalogView() {
 
         {hasCatalogError ? null : (
           <p aria-live="polite" className="text-sm text-muted-foreground">
-            {catalog.isPending
-              ? t("states.loading")
-              : t("counter", { shown: characters.length, total: totalCount })}
+            {catalog.isPending ? t("states.loading") : t("counter", countShownCharacters(pages))}
           </p>
         )}
       </div>

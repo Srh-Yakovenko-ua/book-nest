@@ -10,13 +10,14 @@ import {
   GenreSortSchema,
 } from "@app/shared";
 import {
-  createParser,
   type inferParserType,
   parseAsArrayOf,
   parseAsString,
   parseAsStringLiteral,
 } from "nuqs/server";
 import { z } from "zod";
+
+import { parseAsSchema } from "@/lib/parse-as-schema";
 
 export type GenresAdvancedFilters = {
   booksMax: Nullable<number>;
@@ -72,16 +73,6 @@ export const GENRES_QUERY = {
   },
   sortOptions: GenreSortSchema.options,
 };
-
-function parseAsSchema<T>(schema: z.ZodType<T>) {
-  return createParser({
-    parse: (value: string) => {
-      const result = schema.safeParse(value);
-      return result.success ? result.data : null;
-    },
-    serialize: (value: T) => String(value),
-  });
-}
 
 export const GENRES_QUERY_PARSERS = {
   booksMax: parseAsSchema(GENRES_QUERY.booksBoundSchema),

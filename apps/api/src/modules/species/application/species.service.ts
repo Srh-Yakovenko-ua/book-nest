@@ -327,8 +327,13 @@ export class SpeciesService {
     query: SpeciesSearchQuery;
     userId: string;
   }): Promise<SpeciesSearchResult> {
-    const { locale } = query;
+    const { ids, locale } = query;
     const context = this.viewContext({ locale, userId });
+
+    if (ids !== undefined) {
+      return { items: await this.itemsByIds({ context, ids }) };
+    }
+
     const normalizedQuery = normalizeSpeciesName(query.q ?? "");
 
     if (normalizedQuery.length < SPECIES_SEARCH.minQueryLength) {
@@ -412,6 +417,17 @@ export class SpeciesService {
       client,
     );
     return holders.find((species) => species.id !== excludeSpeciesId) ?? null;
+  }
+
+  private async itemsByIds({
+    context,
+    ids,
+  }: {
+    context: SpeciesViewContext;
+    ids: readonly string[];
+  }): Promise<SpeciesOptionView[]> {
+    const visible = await this.speciesRepository.findVisibleByIds({ ids, userId: context.userId });
+    return visible.map((species) => toSpeciesOptionView({ context, species }));
   }
 
   private async loadOwnCustom(

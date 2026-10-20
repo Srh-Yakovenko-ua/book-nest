@@ -7866,7 +7866,7 @@
       "gender": "Гендер: {label}",
       "group": "Група: {name}",
       "importance": "Важливість: {label}",
-      "pending": "…",
+      "pending": "завантаження…",
       "role": "Роль: {label}",
       "search": "Пошук: {query}",
       "series": "Серія: {name}",

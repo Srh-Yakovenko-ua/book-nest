@@ -30,6 +30,7 @@ import type {
   CharacterDeletionResultDto,
   CharacterDetailsViewDto,
   CharacterDuplicateCandidatesDto,
+  CharacterFacetsDto,
   CharacterFactViewDto,
   CharacterFactsControllerListParams,
   CharacterImportBundleDto,
@@ -42,6 +43,7 @@ import type {
   CharacterSeriesProfileViewDto,
   CharacterSuggestionsDto,
   CharactersControllerDuplicateCandidatesParams,
+  CharactersControllerFacetsParams,
   CharactersControllerGetByIdParams,
   CharactersControllerListParams,
   CharactersControllerSoftDeleteParams,
@@ -1189,6 +1191,208 @@ export function useCharactersControllerOverview<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getCharactersControllerOverviewQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type charactersControllerFacetsResponse200 = {
+  data: CharacterFacetsDto;
+  status: 200;
+};
+
+export type charactersControllerFacetsResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type charactersControllerFacetsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type charactersControllerFacetsResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type charactersControllerFacetsResponseSuccess = charactersControllerFacetsResponse200 & {
+  headers: Headers;
+};
+export type charactersControllerFacetsResponseError = (
+  | charactersControllerFacetsResponse400
+  | charactersControllerFacetsResponse401
+  | charactersControllerFacetsResponse404
+) & {
+  headers: Headers;
+};
+
+export type charactersControllerFacetsResponse =
+  charactersControllerFacetsResponseSuccess | charactersControllerFacetsResponseError;
+
+export const getCharactersControllerFacetsUrl = (params?: CharactersControllerFacetsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = [
+      "attitude",
+      "gender",
+      "groupId",
+      "importance",
+      "role",
+      "speciesId",
+      "tagId",
+    ];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/characters/facets?${stringifiedParams}`
+    : `/api/characters/facets`;
+};
+
+/**
+ * @summary Count the characters catalog per filter option
+ */
+export const charactersControllerFacets = async (
+  params?: CharactersControllerFacetsParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<charactersControllerFacetsResponse> => {
+  return customInstance<charactersControllerFacetsResponse>(
+    getCharactersControllerFacetsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getCharactersControllerFacetsQueryKey = (
+  params?: CharactersControllerFacetsParams,
+) => {
+  return [`/api/characters/facets`, ...(params ? [params] : [])] as const;
+};
+
+export const getCharactersControllerFacetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof charactersControllerFacets>>,
+  TError = void,
+>(
+  params?: CharactersControllerFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCharactersControllerFacetsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof charactersControllerFacets>>> = ({
+    signal,
+  }) => charactersControllerFacets(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof charactersControllerFacets>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type CharactersControllerFacetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof charactersControllerFacets>>
+>;
+export type CharactersControllerFacetsQueryError = void;
+
+export function useCharactersControllerFacets<
+  TData = Awaited<ReturnType<typeof charactersControllerFacets>>,
+  TError = void,
+>(
+  params: undefined | CharactersControllerFacetsParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerFacets>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof charactersControllerFacets>>,
+          TError,
+          Awaited<ReturnType<typeof charactersControllerFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharactersControllerFacets<
+  TData = Awaited<ReturnType<typeof charactersControllerFacets>>,
+  TError = void,
+>(
+  params?: CharactersControllerFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerFacets>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof charactersControllerFacets>>,
+          TError,
+          Awaited<ReturnType<typeof charactersControllerFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharactersControllerFacets<
+  TData = Awaited<ReturnType<typeof charactersControllerFacets>>,
+  TError = void,
+>(
+  params?: CharactersControllerFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Count the characters catalog per filter option
+ */
+
+export function useCharactersControllerFacets<
+  TData = Awaited<ReturnType<typeof charactersControllerFacets>>,
+  TError = void,
+>(
+  params?: CharactersControllerFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getCharactersControllerFacetsQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

@@ -46,8 +46,7 @@ export function CharactersCatalogContent({
 
   if (isPending) {
     return (
-      <div aria-busy className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" role="status">
-        <span className="sr-only">{t("states.loading")}</span>
+      <div aria-busy className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {Array.from({ length: SKELETON_COUNT }, (_unused, index) => (
           <CharacterCardSkeleton key={index} />
         ))}

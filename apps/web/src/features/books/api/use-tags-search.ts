@@ -46,6 +46,13 @@ export function useSearchedTagColors(): ReadonlyMap<string, TagColor> {
 }
 
 export function useSelectedTags(ids: readonly string[]): ReadonlyMap<string, TagView> {
+  return useSelectedTagsLookup(ids).tags;
+}
+
+export function useSelectedTagsLookup(ids: readonly string[]): {
+  isPending: boolean;
+  tags: ReadonlyMap<string, TagView>;
+} {
   const queryClient = useQueryClient();
   const requestedIds = [...new Set(ids)].sort().slice(0, SELECTED_TAGS_MAX);
   const selected = useQuery({
@@ -64,7 +71,10 @@ export function useSelectedTags(ids: readonly string[]): ReadonlyMap<string, Tag
     .getQueriesData<InfiniteData<TagsSearchPage>>({ queryKey: tagsKeys.pickers })
     .flatMap(([, data]) => (data?.pages ?? []).flatMap((page) => page.items));
 
-  return new Map([...searched, ...(selected.data ?? [])].map((tag) => [tag.id, tag] as const));
+  return {
+    isPending: requestedIds.length > 0 && (selected.isPending || selected.isPlaceholderData),
+    tags: new Map([...searched, ...(selected.data ?? [])].map((tag) => [tag.id, tag] as const)),
+  };
 }
 
 export function useTagsSearch(search: string) {

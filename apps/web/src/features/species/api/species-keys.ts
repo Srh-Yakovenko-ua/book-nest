@@ -15,6 +15,7 @@ export const speciesKeys = {
   all: [SPECIES_ROOT] as const,
   browse: (params: Omit<SpeciesControllerBrowseParams, "pageNumber">) =>
     [SPECIES_ROOT, "browse", params] as const,
+  byIds: (params: SpeciesControllerSearchParams) => [SPECIES_ROOT, "by-ids", params] as const,
   candidates: (params: SpeciesControllerCandidatesParams) =>
     [SPECIES_ROOT, "candidates", params] as const,
   deletionPreview: (speciesId: string) => [SPECIES_ROOT, "deletion-preview", speciesId] as const,

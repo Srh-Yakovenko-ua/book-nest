@@ -1,14 +1,22 @@
 import type { CharacterListSort } from "@app/shared";
 
-import { CharacterAttitudeSchema } from "@app/shared";
+import {
+  BookCharacterImportanceSchema,
+  BookCharacterRoleTypeSchema,
+  CharacterAttitudeSchema,
+  CharacterGenderSchema,
+} from "@app/shared";
 import {
   type inferParserType,
   parseAsArrayOf,
   parseAsString,
   parseAsStringLiteral,
 } from "nuqs/server";
+import { z } from "zod";
 
 import type { CharactersControllerListParams } from "@/shared/api/generated/model";
+
+import { parseAsSchema } from "@/lib/parse-as-schema";
 
 export const CHARACTERS_CATALOG_PAGE_SIZE = 24;
 
@@ -40,22 +48,31 @@ export type CharactersCatalogSpoilerFilter = (typeof CHARACTERS_CATALOG_SPOILER_
 
 export type CharactersCatalogState = inferParserType<typeof charactersCatalogParsers>;
 
-const idList = parseAsArrayOf(parseAsString).withDefault([]);
+type CharactersCatalogFilterParams = Omit<
+  CharactersControllerListParams,
+  "pageNumber" | "pageSize" | "sort"
+>;
+
+const uuidParser = parseAsSchema(z.uuid());
+
+const uuidListParser = parseAsArrayOf(uuidParser).withDefault([]);
 
 export const charactersCatalogParsers = {
   attitude: parseAsArrayOf(parseAsStringLiteral(CharacterAttitudeSchema.options)).withDefault([]),
-  bookId: parseAsString,
+  bookId: uuidParser,
   filter: parseAsStringLiteral(CHARACTERS_CATALOG_QUICK_FILTERS).withDefault("all"),
-  gender: idList,
-  groupId: idList,
-  importance: idList,
+  gender: parseAsArrayOf(parseAsStringLiteral(CharacterGenderSchema.options)).withDefault([]),
+  groupId: uuidListParser,
+  importance: parseAsArrayOf(
+    parseAsStringLiteral(BookCharacterImportanceSchema.options),
+  ).withDefault([]),
   q: parseAsString.withDefault(""),
-  role: idList,
-  seriesId: parseAsString,
+  role: parseAsArrayOf(parseAsStringLiteral(BookCharacterRoleTypeSchema.options)).withDefault([]),
+  seriesId: uuidParser,
   sort: parseAsStringLiteral(CHARACTERS_CATALOG_SORTS).withDefault("name"),
-  speciesId: idList,
+  speciesId: uuidListParser,
   spoilers: parseAsStringLiteral(CHARACTERS_CATALOG_SPOILER_FILTERS).withDefault("all"),
-  tagId: idList,
+  tagId: uuidListParser,
   view: parseAsStringLiteral(CHARACTERS_CATALOG_VIEWS).withDefault("grid"),
 };
 
@@ -128,14 +145,12 @@ export function pickAdvancedFilters(
   };
 }
 
-export function toCharactersCatalogParams(
-  state: CharactersCatalogState,
-): CharactersControllerListParams {
+export function toCharactersCatalogFilterParams(
+  state: Omit<CharactersCatalogState, "sort" | "view">,
+): CharactersCatalogFilterParams {
   const search = state.q.trim();
 
   return {
-    pageSize: CHARACTERS_CATALOG_PAGE_SIZE,
-    sort: state.sort,
     ...quickFilterParams(state.filter),
     ...(search === "" ? {} : { q: search }),
     ...(state.seriesId === null ? {} : { seriesId: state.seriesId }),
@@ -151,25 +166,31 @@ export function toCharactersCatalogParams(
   };
 }
 
+export function toCharactersCatalogParams(
+  state: CharactersCatalogState,
+): CharactersControllerListParams {
+  return {
+    pageSize: CHARACTERS_CATALOG_PAGE_SIZE,
+    sort: state.sort,
+    ...toCharactersCatalogFilterParams(state),
+  };
+}
+
 function listParam(
   key: "attitude" | "gender" | "groupId" | "importance" | "role" | "speciesId" | "tagId",
   values: string[],
-): Partial<CharactersControllerListParams> {
-  return values.length === 0 ? {} : { [key]: values };
+): CharactersCatalogFilterParams {
+  return values.length === 0 ? {} : { [key]: [...new Set(values)].sort() };
 }
 
-function quickFilterParams(
-  filter: CharactersCatalogQuickFilter,
-): Partial<CharactersControllerListParams> {
+function quickFilterParams(filter: CharactersCatalogQuickFilter): CharactersCatalogFilterParams {
   if (filter === "favorites") return { favorite: "true" };
   if (filter === "multiple_books") return { multipleBooks: "true" };
   if (filter === "with_impression") return { hasPersonalImpression: "true" };
   return {};
 }
 
-function spoilerParams(
-  spoilers: CharactersCatalogSpoilerFilter,
-): Partial<CharactersControllerListParams> {
+function spoilerParams(spoilers: CharactersCatalogSpoilerFilter): CharactersCatalogFilterParams {
   if (spoilers === "with") return { hasSpoilers: "true" };
   if (spoilers === "without") return { hasSpoilers: "false" };
   return {};
