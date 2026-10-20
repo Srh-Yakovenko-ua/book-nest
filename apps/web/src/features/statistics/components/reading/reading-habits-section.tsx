@@ -8,6 +8,7 @@ import { formatDayRange } from "../../model/statistics-format";
 import { StatisticsSection } from "../statistics-section";
 import { StatisticsSectionState } from "../statistics-states";
 import { ReadingCalendarSummary } from "./reading-calendar-summary";
+import { ReadingWeekdayActivity } from "./reading-weekday-activity";
 
 export function ReadingHabitsSection({
   calendar,
@@ -48,6 +49,7 @@ export function ReadingHabitsSection({
       title={t("habits.title")}
     >
       <ReadingCalendarSummary calendar={calendar} isLowerBound={isLowerBound} />
+      <ReadingWeekdayActivity calendar={calendar} weekStartDay={meta.weekStartDay} />
     </StatisticsSection>
   );
 }

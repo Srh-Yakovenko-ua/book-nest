@@ -46,4 +46,31 @@ describe("AuthorsSection", () => {
     const bar = screen.getByRole("listitem").querySelector<HTMLElement>("[style*='width']");
     expect(bar?.style.width).toBe("80%");
   });
+
+  it("marks the returning author's years and reads as all-time figures", () => {
+    const [allTimeMarker = ""] = messages.statistics.authors.returningMeta.split(" · ");
+    renderWithProviders(
+      <AuthorsSection
+        authors={{
+          ...authors,
+          returning: {
+            availability: "available",
+            items: [
+              {
+                authorId: statisticsIds.authorId,
+                completedReadCount: 11,
+                distinctReadingYears: 4,
+                latestFinishedAt: "2026-03-14",
+                name: "Ursula K. Le Guin",
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText(`${allTimeMarker} · 4 роки · 11 читань · востаннє 14 бер.`),
+    ).toBeInTheDocument();
+  });
 });

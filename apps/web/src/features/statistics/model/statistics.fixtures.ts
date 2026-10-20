@@ -98,6 +98,18 @@ export function calendarFixture(
       availability: "available",
       data: { activeDays: 2, pagesRead: 184, weekday: 1 },
     },
+    weekdayActivity: {
+      availability: "available",
+      items: [
+        { activeDays: 0, pagesRead: 0, weekday: 0 },
+        { activeDays: 2, pagesRead: 184, weekday: 1 },
+        { activeDays: 1, pagesRead: 60, weekday: 2 },
+        { activeDays: 0, pagesRead: 0, weekday: 3 },
+        { activeDays: 0, pagesRead: 0, weekday: 4 },
+        { activeDays: 0, pagesRead: 0, weekday: 5 },
+        { activeDays: 0, pagesRead: 0, weekday: 6 },
+      ],
+    },
     ...overrides,
   };
 }

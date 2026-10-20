@@ -16,8 +16,8 @@ import { formatDayRange } from "../../model/statistics-format";
 import { STATISTICS_VIEW } from "../../model/statistics-view";
 import { StatisticsMetricTabs, StatisticsSection } from "../statistics-section";
 import { StatisticsNote, StatisticsSectionState } from "../statistics-states";
+import { ReadingActivityHeatmap } from "./reading-activity-heatmap";
 import { ReadingBooksCalendar } from "./reading-books-calendar";
-import { ReadingHeatmap } from "./reading-heatmap";
 
 export function ReadingCalendarCard({
   calendar,
@@ -26,6 +26,7 @@ export function ReadingCalendarCard({
   month,
   onModeChange,
   onMonthChange,
+  suspendMonthNormalization,
 }: {
   calendar: ReadingStatisticsCalendarSection;
   meta: ReadingStatisticsMeta;
@@ -33,12 +34,14 @@ export function ReadingCalendarCard({
   month: Nullable<string>;
   onModeChange: (mode: CalendarMode) => void;
   onMonthChange: (month: Nullable<string>) => void;
+  suspendMonthNormalization: boolean;
 }) {
   const locale = useLocale();
   const t = useTranslations("statistics.calendar");
 
   const isMonthStale =
-    calendar.availability === "available" &&
+    calendar.availability !== "unavailable" &&
+    !suspendMonthNormalization &&
     month !== null &&
     !listCalendarMonths(calendar.displayRange).includes(month);
   const discardStaleMonth = useEffectEvent(() => onMonthChange(null));
@@ -101,7 +104,12 @@ export function ReadingCalendarCard({
       {calendar.days.length === 0 ? (
         <StatisticsSectionState kind="empty" title={t("empty")} />
       ) : mode === "activity" ? (
-        <ReadingHeatmap days={calendar.days} weekStartDay={meta.weekStartDay} />
+        <ReadingActivityHeatmap
+          calendar={calendar}
+          month={month}
+          onMonthChange={onMonthChange}
+          weekStartDay={meta.weekStartDay}
+        />
       ) : (
         <ReadingBooksCalendar
           calendar={calendar}

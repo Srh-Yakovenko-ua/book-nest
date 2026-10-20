@@ -9206,6 +9206,7 @@
     "states": {
       "loading": "Loading statistics",
       "refreshing": "Refreshing data",
+      "periodChanging": "Updating the statistics for the selected period. The previous results are temporarily unavailable for interaction.",
       "refetchError": "Could not refresh the statistics. Showing the previous data.",
       "lowerBound": "Reading history before the day full tracking began may be incomplete. Pages, active days and streaks are shown as the lowest known values.",
       "error": {
@@ -9361,7 +9362,16 @@
       "title": "Reading habits",
       "description": "How often and how steadily you read.",
       "metricRange": "Figures for {range}",
-      "unavailable": "Reading habits are unavailable"
+      "unavailable": "Reading habits are unavailable",
+      "weekdays": {
+        "title": "Reading by day of the week",
+        "caption": "Number of active days; next to it, the pages recorded.",
+        "criterion": "The “Most active weekday” above is chosen by pages read, while the bars show the number of active days.",
+        "partialNote": "Only saved records are shown; data for older days may not have been kept.",
+        "empty": "There were no reading days in this period yet.",
+        "pages": "{pagesCount, plural, one {{pages} page} other {{pages} pages}}",
+        "value": "{days} · {pages}"
+      }
     },
     "calendar": {
       "title": "Reading calendar",
@@ -9404,7 +9414,10 @@
         "dayUnknown": "{date}: this day may be missing from the history",
         "daySummary": "{date}: {pages} pages, {books, plural, one {# book} other {# books}}",
         "intensityLegend": "Intensity by number of pages read",
-        "unknownLegend": "Unknown history"
+        "unknownLegend": "Unknown history",
+        "previousWindow": "Previous calendar period",
+        "nextWindow": "Next calendar period",
+        "windowRange": "Showing {range}"
       },
       "books": {
         "more": "+{count}",
@@ -9520,7 +9533,7 @@
         "INSUFFICIENT_SAMPLE": "An author needs at least 3 rated reads to be ranked."
       },
       "returningTitle": "You keep coming back to",
-      "returningMeta": "{years, plural, one {# year} other {# years}} · {reads, plural, one {# read} other {# reads}} · last read {lastRead}",
+      "returningMeta": "All time · {years, plural, one {# year} other {# years}} · {reads, plural, one {# read} other {# reads}} · last read {lastRead}",
       "unavailable": "Authors cannot be measured",
       "unavailableDescription": "None of the reads finished in this period carry a recorded author."
     },

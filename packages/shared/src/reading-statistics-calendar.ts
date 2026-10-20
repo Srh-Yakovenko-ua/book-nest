@@ -1,3 +1,4 @@
+import { daysInWeek } from "date-fns/constants";
 import { z } from "zod";
 
 import { CountSchema, isoDay } from "./internal.js";
@@ -85,6 +86,25 @@ export const StatisticsMostActiveWeekdaySchema = z.object({
 
 export type StatisticsMostActiveWeekday = z.infer<typeof StatisticsMostActiveWeekdaySchema>;
 
+export const StatisticsWeekdayActivityItemSchema = z.object({
+  activeDays: CountSchema,
+  pagesRead: CountSchema,
+  weekday: z.number().int().min(0).max(6),
+});
+
+export type StatisticsWeekdayActivityItem = z.infer<typeof StatisticsWeekdayActivityItemSchema>;
+
+export const StatisticsWeekdayActivitySchema = z
+  .object({
+    availability: StatisticsAvailabilitySchema,
+    items: z.array(StatisticsWeekdayActivityItemSchema).max(daysInWeek),
+  })
+  .describe(
+    "Reading spread across the week. weekday runs 0..6 with 0 = Sunday, the same numbering as date-fns getDay. For available and partial, items lists all seven weekdays in order 0..6, zeros included; for unavailable it is an empty list rather than seven zeros. activeDays counts the days with more than zero pages read and pagesRead sums the recorded pages; both are computed over metricRange, not displayRange. partial means metricRange starts before reliable history, so the counts are a lower bound.",
+  );
+
+export type StatisticsWeekdayActivity = z.infer<typeof StatisticsWeekdayActivitySchema>;
+
 export const StatisticsActiveDaysRateSchema = z.object({
   availability: StatisticsAvailabilitySchema,
   reason: z.literal("LEGACY_HISTORY_INCOMPLETE").optional(),
@@ -105,6 +125,7 @@ export const ReadingStatisticsCalendarSectionSchema = z
     metricRange: ReadingStatisticsDateRangeSchema,
     mostActiveWeekday: StatisticsMostActiveWeekdaySchema,
     reason: z.literal("NO_ACTIVITY_HISTORY").optional(),
+    weekdayActivity: StatisticsWeekdayActivitySchema,
   })
   .describe(
     "metricRange is what the summary numbers describe; displayRange is what days[] draws. For all time the two differ on purpose: the heatmap shows the last twelve months while the summary still covers every tracked day.",

@@ -387,6 +387,13 @@ describe("GET /api/statistics/overview", () => {
 
     expect(parsed.calendar.metricRange).toEqual({ from: earliest, to: TODAY });
     expect(parsed.calendar.displayRange).toEqual({ from: rollingYearStart(TODAY), to: TODAY });
+    expect(parsed.calendar.days.filter((day) => day.pagesRead > 0)).toHaveLength(1);
+    expect(parsed.calendar.weekdayActivity.items.map((item) => item.weekday)).toEqual([
+      0, 1, 2, 3, 4, 5, 6,
+    ]);
+    expect(
+      parsed.calendar.weekdayActivity.items.reduce((total, item) => total + item.activeDays, 0),
+    ).toBe(2);
   });
 
   it("balances the library over owned and lent books only", async () => {

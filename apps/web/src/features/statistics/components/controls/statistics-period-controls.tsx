@@ -1,6 +1,7 @@
 "use client";
 
 import type { Nullable, ReadingStatisticsComparison, ReadingStatisticsPeriod } from "@app/shared";
+import type { RefObject } from "react";
 
 import { READING_STATISTICS_CUSTOM_PERIOD_BOUNDS } from "@app/shared";
 import { parseISO } from "date-fns";
@@ -38,10 +39,12 @@ export function StatisticsPeriodControls({
   comparison,
   params,
   period,
+  periodTriggerRef,
 }: {
   comparison: Nullable<ReadingStatisticsComparison>;
   params: UseStatisticsParamsResult;
   period: Nullable<ReadingStatisticsPeriod>;
+  periodTriggerRef?: RefObject<HTMLButtonElement | null>;
 }) {
   const locale = useLocale();
   const t = useTranslations("statistics.period");
@@ -76,7 +79,11 @@ export function StatisticsPeriodControls({
           }}
           value={params.state.period}
         >
-          <SelectTrigger aria-label={t("label")} className="w-[13.5rem] data-[size=default]:h-9">
+          <SelectTrigger
+            aria-label={t("label")}
+            className="w-[13.5rem] data-[size=default]:h-9"
+            ref={periodTriggerRef}
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
