@@ -28,6 +28,7 @@ type FacetMultiselectProps = {
   hideSelection?: boolean;
   isSearching?: boolean;
   label: string;
+  onOpenChange?: (open: boolean) => void;
   onSearchChange?: (next: string) => void;
   onValueChange: (next: string[]) => void;
   options: FacetOption[];
@@ -44,6 +45,7 @@ export function FacetMultiselect({
   hideSelection = false,
   isSearching,
   label,
+  onOpenChange,
   onSearchChange,
   onValueChange,
   options,
@@ -83,8 +85,16 @@ export function FacetMultiselect({
     return selectedText(value.length);
   }
 
+  function statusText() {
+    if (!open) return "";
+    if (isSearching === true && searchingText !== undefined) return searchingText;
+    if (orderedOptions.length === 0) return emptyText;
+    return "";
+  }
+
   function handleOpenChange(next: boolean) {
     setOpen(next);
+    onOpenChange?.(next);
     if (next) {
       setPinnedOnOpen(new Set(value));
       return;
@@ -197,6 +207,9 @@ export function FacetMultiselect({
           })}
         </ul>
       ) : null}
+      <span className="sr-only" role="status">
+        {statusText()}
+      </span>
     </div>
   );
 }

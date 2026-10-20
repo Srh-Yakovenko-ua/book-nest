@@ -38,6 +38,7 @@ import { BookCharactersService } from "./book-characters.service.js";
 import { CharacterAccessAsserter } from "./character-access.asserter.js";
 import { CharacterDetailsAssembler } from "./character-details.assembler.js";
 import { CharacterViewMapper } from "./character-view.mapper.js";
+import { GlobalCharacterFilterResolver } from "./global-character-filter.resolver.js";
 
 @Injectable()
 export class CharactersService {
@@ -48,6 +49,7 @@ export class CharactersService {
     private readonly detailsAssembler: CharacterDetailsAssembler,
     private readonly accessAsserter: CharacterAccessAsserter,
     private readonly bookCharactersService: BookCharactersService,
+    private readonly filterResolver: GlobalCharacterFilterResolver,
   ) {}
 
   async createGlobalCharacter({
@@ -179,26 +181,7 @@ export class CharactersService {
     query: CharactersListQuery;
     userId: string;
   }): Promise<Paginator<CharacterGlobalSummaryView>> {
-    if (query.contextBookId !== undefined) {
-      await this.accessAsserter.assertBookOwned({ bookId: query.contextBookId, userId });
-    }
-    const [duplicateNormalizedNames, multipleBookCharacterIds] = await Promise.all([
-      query.possibleDuplicates
-        ? this.charactersRepository.findDuplicateNormalizedNames({
-            archived: query.archived ?? false,
-            userId,
-          })
-        : undefined,
-      query.multipleBooks === true
-        ? this.charactersRepository.listMultipleBookCharacterIds({ userId })
-        : undefined,
-    ]);
-    const filter = toGlobalFilter({
-      duplicateNormalizedNames,
-      multipleBookCharacterIds,
-      query,
-      userId,
-    });
+    const filter = await this.filterResolver.resolve({ query, userId });
 
     const [rows, totalCount] = await Promise.all([
       this.charactersRepository.listGlobalSummaries({

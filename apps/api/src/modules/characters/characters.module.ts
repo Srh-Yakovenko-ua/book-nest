@@ -30,6 +30,7 @@ import { BookCharactersService } from "./application/book-characters.service.js"
 import { CharacterAccessAsserter } from "./application/character-access.asserter.js";
 import { CharacterCustomLabelsService } from "./application/character-custom-labels.service.js";
 import { CharacterDetailsAssembler } from "./application/character-details.assembler.js";
+import { CharacterFacetsService } from "./application/character-facets.service.js";
 import { CharacterFactsService } from "./application/character-facts.service.js";
 import { CharacterFormsService } from "./application/character-forms.service.js";
 import { CharacterGraphLayoutsService } from "./application/character-graph-layouts.service.js";
@@ -46,12 +47,14 @@ import { CharacterRelationshipsService } from "./application/character-relations
 import { CharacterTheoriesService } from "./application/character-theories.service.js";
 import { CharacterViewMapper } from "./application/character-view.mapper.js";
 import { CharactersService } from "./application/characters.service.js";
+import { GlobalCharacterFilterResolver } from "./application/global-character-filter.resolver.js";
 import { RelationshipBookStateService } from "./application/relationship-book-state.service.js";
 import { RelationshipContextService } from "./application/relationship-context.service.js";
 import { RelationshipReaderScopeResolver } from "./application/relationship-reader-scope.resolver.js";
 import { SeriesCharactersService } from "./application/series-characters.service.js";
 import { CHARACTER_PURGE_QUEUE_NAME } from "./domain/character-purge.js";
 import { CharacterCustomLabelsRepository } from "./infrastructure/character-custom-labels.repository.js";
+import { CharacterFacetsRepository } from "./infrastructure/character-facets.repository.js";
 import { CharacterFactsRepository } from "./infrastructure/character-facts.repository.js";
 import { CharacterFormsRepository } from "./infrastructure/character-forms.repository.js";
 import { CharacterGraphLayoutsRepository } from "./infrastructure/character-graph-layouts.repository.js";
@@ -103,6 +106,9 @@ import { CharactersRepository } from "./infrastructure/characters.repository.js"
     CharacterDetailsAssembler,
     CharacterAccessAsserter,
     CharactersRepository,
+    GlobalCharacterFilterResolver,
+    CharacterFacetsService,
+    CharacterFacetsRepository,
     CharacterGraphService,
     CharacterGraphLayoutsService,
     CharacterGraphLayoutsRepository,

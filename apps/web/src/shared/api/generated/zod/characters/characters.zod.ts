@@ -3762,6 +3762,237 @@ export const CharactersControllerOverviewResponse = zod.object({
 });
 
 /**
+ * @summary Count the characters catalog per filter option
+ */
+export const charactersControllerFacetsQueryAttitudeMax = 100;
+
+export const charactersControllerFacetsQueryBookIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const charactersControllerFacetsQueryContextBookIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const charactersControllerFacetsQueryGenderMax = 100;
+
+export const charactersControllerFacetsQueryGroupIdItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const charactersControllerFacetsQueryGroupIdMax = 100;
+
+export const charactersControllerFacetsQueryImportanceMax = 100;
+
+export const charactersControllerFacetsQueryQMax = 100;
+
+export const charactersControllerFacetsQueryRoleMax = 100;
+
+export const charactersControllerFacetsQuerySeriesIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const charactersControllerFacetsQuerySpeciesIdItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const charactersControllerFacetsQuerySpeciesIdMax = 100;
+
+export const charactersControllerFacetsQueryTagIdItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const charactersControllerFacetsQueryTagIdMax = 100;
+
+export const CharactersControllerFacetsQueryParams = zod.object({
+  archived: zod.string().optional(),
+  attitude: zod
+    .array(zod.enum(["like", "neutral", "distrust", "dislike", "hate", "unsure"]))
+    .max(charactersControllerFacetsQueryAttitudeMax)
+    .optional(),
+  bookId: zod.uuid().regex(charactersControllerFacetsQueryBookIdRegExp).optional(),
+  contextBookId: zod.uuid().regex(charactersControllerFacetsQueryContextBookIdRegExp).optional(),
+  favorite: zod.string().optional(),
+  gender: zod
+    .array(zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]))
+    .max(charactersControllerFacetsQueryGenderMax)
+    .optional(),
+  groupId: zod
+    .array(zod.uuid().regex(charactersControllerFacetsQueryGroupIdItemRegExp))
+    .max(charactersControllerFacetsQueryGroupIdMax)
+    .optional(),
+  hasPersonalImpression: zod.string().optional(),
+  hasSpoilers: zod.string().optional(),
+  importance: zod
+    .array(zod.enum(["central", "major", "supporting", "episodic", "mentioned", "not_specified"]))
+    .max(charactersControllerFacetsQueryImportanceMax)
+    .optional(),
+  includeSpoilerSearch: zod.string().optional(),
+  multipleBooks: zod.string().optional(),
+  possibleDuplicates: zod.string().optional(),
+  q: zod.string().max(charactersControllerFacetsQueryQMax).optional(),
+  role: zod
+    .array(
+      zod.enum([
+        "protagonist",
+        "deuteragonist",
+        "antagonist",
+        "love_interest",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "custom",
+      ]),
+    )
+    .max(charactersControllerFacetsQueryRoleMax)
+    .optional(),
+  seriesId: zod.uuid().regex(charactersControllerFacetsQuerySeriesIdRegExp).optional(),
+  speciesId: zod
+    .array(zod.uuid().regex(charactersControllerFacetsQuerySpeciesIdItemRegExp))
+    .max(charactersControllerFacetsQuerySpeciesIdMax)
+    .optional(),
+  tagId: zod
+    .array(zod.uuid().regex(charactersControllerFacetsQueryTagIdItemRegExp))
+    .max(charactersControllerFacetsQueryTagIdMax)
+    .optional(),
+});
+
+export const charactersControllerFacetsResponseAttitudeItemCountMin = 0;
+export const charactersControllerFacetsResponseAttitudeItemCountMax = 9007199254740991;
+
+export const charactersControllerFacetsResponseGenderItemCountMin = 0;
+export const charactersControllerFacetsResponseGenderItemCountMax = 9007199254740991;
+
+export const charactersControllerFacetsResponseGroupItemCountMin = 0;
+export const charactersControllerFacetsResponseGroupItemCountMax = 9007199254740991;
+
+export const charactersControllerFacetsResponseGroupItemValueRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const charactersControllerFacetsResponseImportanceItemCountMin = 0;
+export const charactersControllerFacetsResponseImportanceItemCountMax = 9007199254740991;
+
+export const charactersControllerFacetsResponseRoleItemCountMin = 0;
+export const charactersControllerFacetsResponseRoleItemCountMax = 9007199254740991;
+
+export const charactersControllerFacetsResponseSpeciesItemCountMin = 0;
+export const charactersControllerFacetsResponseSpeciesItemCountMax = 9007199254740991;
+
+export const charactersControllerFacetsResponseSpeciesItemValueRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const charactersControllerFacetsResponseTagItemCountMin = 0;
+export const charactersControllerFacetsResponseTagItemCountMax = 9007199254740991;
+
+export const charactersControllerFacetsResponseTagItemValueRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+
+export const CharactersControllerFacetsResponse = zod.object({
+  attitude: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(charactersControllerFacetsResponseAttitudeItemCountMin)
+          .max(charactersControllerFacetsResponseAttitudeItemCountMax),
+        value: zod.enum(["like", "neutral", "distrust", "dislike", "hate", "unsure"]),
+      }),
+    )
+    .describe(
+      "Characters per overall attitude. Each count answers to every active filter except this dimension's own selection, so picking one value never hides the others. Values with no matching character are omitted.",
+    ),
+  gender: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(charactersControllerFacetsResponseGenderItemCountMin)
+          .max(charactersControllerFacetsResponseGenderItemCountMax),
+        value: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
+      }),
+    )
+    .describe(
+      "Characters per gender. Each count answers to every active filter except this dimension's own selection, so picking one value never hides the others. Values with no matching character are omitted.",
+    ),
+  group: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(charactersControllerFacetsResponseGroupItemCountMin)
+          .max(charactersControllerFacetsResponseGroupItemCountMax),
+        value: zod.uuid().regex(charactersControllerFacetsResponseGroupItemValueRegExp),
+      }),
+    )
+    .describe(
+      "Characters per group id. Each count answers to every active filter except this dimension's own selection, so picking one value never hides the others. Values with no matching character are omitted.",
+    ),
+  importance: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(charactersControllerFacetsResponseImportanceItemCountMin)
+          .max(charactersControllerFacetsResponseImportanceItemCountMax),
+        value: zod.enum([
+          "central",
+          "major",
+          "supporting",
+          "episodic",
+          "mentioned",
+          "not_specified",
+        ]),
+      }),
+    )
+    .describe(
+      "Characters per importance in any of their books, or in the context book when one is given. Each count answers to every active filter except this dimension's own selection, so picking one value never hides the others. Values with no matching character are omitted.",
+    ),
+  role: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(charactersControllerFacetsResponseRoleItemCountMin)
+          .max(charactersControllerFacetsResponseRoleItemCountMax),
+        value: zod.enum([
+          "protagonist",
+          "deuteragonist",
+          "antagonist",
+          "love_interest",
+          "supporting",
+          "episodic",
+          "mentioned",
+          "custom",
+        ]),
+      }),
+    )
+    .describe(
+      "Characters per role in any of their books, or in the context book when one is given. Each count answers to every active filter except this dimension's own selection, so picking one value never hides the others. Values with no matching character are omitted.",
+    ),
+  species: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(charactersControllerFacetsResponseSpeciesItemCountMin)
+          .max(charactersControllerFacetsResponseSpeciesItemCountMax),
+        value: zod.uuid().regex(charactersControllerFacetsResponseSpeciesItemValueRegExp),
+      }),
+    )
+    .describe(
+      "Characters per species id. Each count answers to every active filter except this dimension's own selection, so picking one value never hides the others. Values with no matching character are omitted.",
+    ),
+  tag: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(charactersControllerFacetsResponseTagItemCountMin)
+          .max(charactersControllerFacetsResponseTagItemCountMax),
+        value: zod.uuid().regex(charactersControllerFacetsResponseTagItemValueRegExp),
+      }),
+    )
+    .describe(
+      "Characters per tag id. Each count answers to every active filter except this dimension's own selection, so picking one value never hides the others. Values with no matching character are omitted.",
+    ),
+});
+
+/**
  * @summary Get a global character with its book appearances
  */
 export const CharactersControllerGetByIdParams = zod.object({

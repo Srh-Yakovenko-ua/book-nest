@@ -78,11 +78,12 @@ export class SpeciesController {
   @ApiBadRequestResponse({ description: "Validation failed" })
   @ApiOkResponse({
     description:
-      "Popular system species plus own recent entries for a short query, otherwise ranked visible matches",
+      "The visible species among ids when ids is given (missing or foreign ids are omitted, q is ignored); otherwise popular system species plus own recent entries for a short query, or ranked visible matches",
     type: SpeciesSearchResultDto,
   })
   @ApiOperation({ summary: "Search species visible to the current user (system + own)" })
   @ApiQuery({ name: "q", required: false })
+  @ApiQuery({ isArray: true, name: "ids", required: false, type: String })
   @ApiQuery({ enum: CatalogLocaleSchema.options, name: "locale", required: false })
   @Get()
   @JwtProtected()

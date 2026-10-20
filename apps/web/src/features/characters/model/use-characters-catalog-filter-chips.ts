@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 
 import type { ActiveFilterChip } from "@/features/books";
 
-import { useBook, useSelectedTags } from "@/features/books";
+import { useBook, useSelectedTagsLookup } from "@/features/books";
 import { useSeriesDetails } from "@/features/series";
 
 import type {
@@ -12,14 +12,10 @@ import type {
   CharactersCatalogSpoilerFilter,
   CharactersCatalogState,
 } from "./characters-catalog-query";
+import type { CatalogSpeciesNames } from "./use-catalog-species-names";
 import type { CharactersCatalogAdvancedPatch } from "./use-characters-catalog-query";
 
 import { useCharacterGroupOptions } from "../api/use-character-group-options";
-import {
-  BOOK_CHARACTER_IMPORTANCE,
-  BOOK_CHARACTER_ROLE,
-  GENDER_OPTIONS,
-} from "./character-options";
 
 const CHIP_LABEL_KEY = {
   quick: {
@@ -40,7 +36,7 @@ type UseCharactersCatalogFilterChipsOptions = {
   onAdvancedChange: (patch: CharactersCatalogAdvancedPatch) => void;
   onFilterChange: (value: CharactersCatalogQuickFilter) => void;
   onSearch: (value: string) => void;
-  resolveSpeciesName: (id: string) => string | undefined;
+  speciesNames: CatalogSpeciesNames;
   state: CharactersCatalogState;
 };
 
@@ -48,7 +44,7 @@ export function useCharactersCatalogFilterChips({
   onAdvancedChange,
   onFilterChange,
   onSearch,
-  resolveSpeciesName,
+  speciesNames,
   state,
 }: UseCharactersCatalogFilterChipsOptions): ActiveFilterChip[] {
   const t = useTranslations("characters.activeFilters");
@@ -60,7 +56,7 @@ export function useCharactersCatalogFilterChips({
   const groups = useCharacterGroupOptions(state.groupId.length > 0);
   const series = useSeriesDetails(state.seriesId ?? "", { enabled: state.seriesId !== null });
   const book = useBook(state.bookId ?? "", { enabled: state.bookId !== null });
-  const tags = useSelectedTags(state.tagId);
+  const { isPending: isTagLookupPending, tags } = useSelectedTagsLookup(state.tagId);
 
   const chips: ActiveFilterChip[] = [];
 
@@ -102,29 +98,26 @@ export function useCharactersCatalogFilterChips({
   }
 
   for (const value of state.importance) {
-    const option = BOOK_CHARACTER_IMPORTANCE.options.find((item) => item === value);
     chips.push({
       key: `importance:${value}`,
-      label: t("importance", { label: option === undefined ? t("unknown") : tImportance(option) }),
+      label: t("importance", { label: tImportance(value) }),
       onRemove: () =>
         onAdvancedChange({ importance: state.importance.filter((item) => item !== value) }),
     });
   }
 
   for (const value of state.role) {
-    const option = BOOK_CHARACTER_ROLE.options.find((item) => item === value);
     chips.push({
       key: `role:${value}`,
-      label: t("role", { label: option === undefined ? t("unknown") : tRole(option) }),
+      label: t("role", { label: tRole(value) }),
       onRemove: () => onAdvancedChange({ role: state.role.filter((item) => item !== value) }),
     });
   }
 
   for (const value of state.gender) {
-    const option = GENDER_OPTIONS.find((item) => item === value);
     chips.push({
       key: `gender:${value}`,
-      label: t("gender", { label: option === undefined ? t("unknown") : tGender(option) }),
+      label: t("gender", { label: tGender(value) }),
       onRemove: () => onAdvancedChange({ gender: state.gender.filter((item) => item !== value) }),
     });
   }
@@ -132,7 +125,9 @@ export function useCharactersCatalogFilterChips({
   for (const value of state.speciesId) {
     chips.push({
       key: `speciesId:${value}`,
-      label: t("species", { name: resolveSpeciesName(value) ?? t("unknown") }),
+      label: t("species", {
+        name: speciesNames.resolve(value) ?? (speciesNames.isPending ? t("pending") : t("unknown")),
+      }),
       onRemove: () =>
         onAdvancedChange({ speciesId: state.speciesId.filter((item) => item !== value) }),
     });
@@ -150,7 +145,9 @@ export function useCharactersCatalogFilterChips({
   for (const value of state.tagId) {
     chips.push({
       key: `tagId:${value}`,
-      label: t("tag", { name: tags.get(value)?.name ?? t("unknown") }),
+      label: t("tag", {
+        name: tags.get(value)?.name ?? (isTagLookupPending ? t("pending") : t("unknown")),
+      }),
       onRemove: () => onAdvancedChange({ tagId: state.tagId.filter((item) => item !== value) }),
     });
   }

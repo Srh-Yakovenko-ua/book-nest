@@ -23,6 +23,7 @@ vi.mock("@/i18n/navigation", () => ({
 
 const attitude = messages.characters.attitude;
 const filters = messages.characters.catalog.filters;
+const gender = messages.characters.gender;
 const importance = messages.characters.importance;
 
 const series = {
@@ -39,6 +40,24 @@ const series = {
 };
 
 const DUNE_SEARCH = "Дюн";
+
+const elf = {
+  category: null,
+  id: "2b4d6f8a-0c2e-4a4b-8d6f-8a0c2e4a6b8d",
+  isOwn: false,
+  key: "elf",
+  name: "Ельф",
+};
+
+const emptyFacets = {
+  attitude: [],
+  gender: [],
+  group: [],
+  importance: [],
+  role: [],
+  species: [],
+  tag: [],
+};
 
 const noFilters: CharactersCatalogAdvancedFilters = {
   attitude: [],
@@ -63,10 +82,23 @@ const appliedState: CharactersCatalogState = {
 
 const fetchMock = vi.fn<(input: RequestInfo | URL) => Promise<Response>>();
 
+let respondToBooks: () => Promise<Response>;
+let respondToFacets: () => Promise<Response>;
+let respondToSeries: (term: null | string) => Promise<Response>;
+let respondToSpecies: () => Promise<Response>;
+
 function centralImportanceChip(): HTMLElement {
-  return within(screen.getByRole("toolbar", { name: filters.importance })).getByRole("button", {
-    name: importance.central,
+  return chipIn(filters.importance, importance.central);
+}
+
+function chipIn(groupLabel: string, label: string): HTMLElement {
+  return within(screen.getByRole("toolbar", { name: groupLabel })).getByRole("button", {
+    name: new RegExp(`^${label}`),
   });
+}
+
+function chipLabel(chip: HTMLElement): string {
+  return (chip.textContent ?? "").replace(/\d+$/, "");
 }
 
 function jsonResponse(body: unknown): Promise<Response> {
@@ -93,11 +125,17 @@ function renderFilters(state: CharactersCatalogState = appliedState) {
     <CharactersCatalogFilters
       activeCount={0}
       onApply={onApply}
-      speciesNames={{ remember: vi.fn(), resolve: () => undefined }}
+      speciesNames={{ isPending: false, remember: vi.fn(), resolve: () => undefined }}
       state={state}
     />,
   );
   return { onApply };
+}
+
+function requestsTo(pathname: string): URL[] {
+  return fetchMock.mock.calls
+    .map(([input]) => new URL(String(input), "http://localhost"))
+    .filter((url) => url.pathname === pathname);
 }
 
 async function searchSeries() {
@@ -114,23 +152,33 @@ function seriesSearchTerms(): Array<null | string> {
     .map((url) => url.searchParams.get("search"));
 }
 
+function sheetAnnouncements(sheet: HTMLElement): string[] {
+  return within(sheet)
+    .getAllByRole("status")
+    .map((status) => status.textContent ?? "")
+    .filter((text) => text !== "");
+}
+
 beforeEach(() => {
+  respondToBooks = () => jsonResponse(page([]));
+  respondToFacets = () => jsonResponse(emptyFacets);
+  respondToSeries = (term) =>
+    jsonResponse(page(term === DUNE_SEARCH ? [series.dune] : [series.empyrean]));
+  respondToSpecies = () => jsonResponse({ items: [] });
   fetchMock.mockReset();
   fetchMock.mockImplementation((input) => {
     const url = new URL(String(input), "http://localhost");
-    if (url.pathname === "/api/series") {
-      const term = url.searchParams.get("search");
-      return jsonResponse(page(term === DUNE_SEARCH ? [series.dune] : [series.empyrean]));
-    }
+    if (url.pathname === "/api/series") return respondToSeries(url.searchParams.get("search"));
     const detailed = Object.values(series).find(
       (item) => url.pathname === `/api/series/${item.id}`,
     );
     if (detailed !== undefined) {
       return jsonResponse(makeSeriesDetailsView({ id: detailed.id, name: detailed.name }));
     }
-    if (url.pathname === "/api/books") return jsonResponse(page([]));
+    if (url.pathname === "/api/books") return respondToBooks();
     if (url.pathname === "/api/tags") return jsonResponse(page([]));
-    if (url.pathname === "/api/species") return jsonResponse({ items: [] });
+    if (url.pathname === "/api/species") return respondToSpecies();
+    if (url.pathname === "/api/characters/facets") return respondToFacets();
     if (url.pathname === "/api/character-groups") return jsonResponse(page([]));
     return Promise.reject(new Error(`unexpected ${url.pathname}${url.search}`));
   });
@@ -175,9 +223,7 @@ describe("CharactersCatalogFilters attitude", () => {
     await openFilters();
 
     const attitudes = screen.getByRole("toolbar", { name: filters.attitude });
-    const offered = within(attitudes)
-      .getAllByRole("button")
-      .map((chip) => chip.textContent);
+    const offered = within(attitudes).getAllByRole("button").map(chipLabel);
 
     expect(offered).toEqual([
       attitude.like,
@@ -305,6 +351,177 @@ describe("CharactersCatalogFilters series", () => {
     expect(
       within(sheet).getByRole("button", { name: `${filters.series} ${filters.anySeries}` }),
     ).toHaveFocus();
+  });
+});
+
+describe("CharactersCatalogFilters picker requests", () => {
+  it("asks for no series, books or species when the sheet opens", async () => {
+    renderFilters();
+    await openFilters();
+
+    await waitFor(() => expect(requestsTo("/api/character-groups").length).toBeGreaterThan(0));
+    expect(requestsTo("/api/series")).toHaveLength(0);
+    expect(requestsTo("/api/books")).toHaveLength(0);
+    expect(requestsTo("/api/species")).toHaveLength(0);
+  });
+
+  it("asks for the series list once, when the series picker opens", async () => {
+    renderFilters();
+    await openFilters();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: `${filters.series} ${filters.anySeries}` }),
+    );
+
+    expect(await screen.findByRole("option", { name: /Емпіреї/ })).toBeInTheDocument();
+    expect(requestsTo("/api/series")).toHaveLength(1);
+    expect(requestsTo("/api/books")).toHaveLength(0);
+    expect(requestsTo("/api/species")).toHaveLength(0);
+  });
+
+  it("asks for the book list once, when the book picker opens", async () => {
+    renderFilters();
+    await openFilters();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: `${filters.book} ${filters.anyBook}` }),
+    );
+
+    await waitFor(() => expect(requestsTo("/api/books")).toHaveLength(1));
+    const books = await screen.findByRole("listbox", { name: filters.book });
+    expect(await within(books).findByText(filters.bookEmpty)).toBeInTheDocument();
+    expect(requestsTo("/api/books")).toHaveLength(1);
+    expect(requestsTo("/api/series")).toHaveLength(0);
+    expect(requestsTo("/api/species")).toHaveLength(0);
+  });
+
+  it("asks for the species list in the uk locale once, when the species picker opens", async () => {
+    renderFilters();
+    await openFilters();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: `${filters.species} ${filters.speciesPlaceholder}` }),
+    );
+
+    await waitFor(() =>
+      expect(requestsTo("/api/species").map((url) => url.search)).toEqual(["?locale=uk"]),
+    );
+    const species = await screen.findByRole("listbox", { name: filters.species });
+    expect(await within(species).findByText(filters.speciesEmpty)).toBeInTheDocument();
+    expect(requestsTo("/api/species")).toHaveLength(1);
+    expect(requestsTo("/api/series")).toHaveLength(0);
+    expect(requestsTo("/api/books")).toHaveLength(0);
+  });
+});
+
+describe("CharactersCatalogFilters picker announcements", () => {
+  it("announces the book search while the first book list is on its way", async () => {
+    respondToBooks = () => new Promise<Response>(() => {});
+    renderFilters();
+    const sheet = await openFilters();
+
+    await userEvent.click(
+      within(sheet).getByRole("button", { name: `${filters.book} ${filters.anyBook}` }),
+    );
+
+    await waitFor(() => expect(sheetAnnouncements(sheet)).toEqual([filters.bookSearching]));
+  });
+
+  it("announces that no book was found once the book list comes back empty", async () => {
+    renderFilters();
+    const sheet = await openFilters();
+
+    await userEvent.click(
+      within(sheet).getByRole("button", { name: `${filters.book} ${filters.anyBook}` }),
+    );
+
+    await waitFor(() => expect(sheetAnnouncements(sheet)).toEqual([filters.bookEmpty]));
+  });
+
+  it("announces the series search while the first series list is on its way", async () => {
+    respondToSeries = () => new Promise<Response>(() => {});
+    renderFilters();
+    const sheet = await openFilters();
+
+    await userEvent.click(
+      within(sheet).getByRole("button", { name: `${filters.series} ${filters.anySeries}` }),
+    );
+
+    await waitFor(() => expect(sheetAnnouncements(sheet)).toEqual([filters.seriesSearching]));
+  });
+
+  it("announces that no series was found once the series list comes back empty", async () => {
+    respondToSeries = () => jsonResponse(page([]));
+    renderFilters();
+    const sheet = await openFilters();
+
+    await userEvent.click(
+      within(sheet).getByRole("button", { name: `${filters.series} ${filters.anySeries}` }),
+    );
+
+    await waitFor(() => expect(sheetAnnouncements(sheet)).toEqual([filters.seriesEmpty]));
+  });
+});
+
+describe("CharactersCatalogFilters facet counts", () => {
+  it("shows on an importance chip how many characters it would match", async () => {
+    respondToFacets = () =>
+      jsonResponse({ ...emptyFacets, importance: [{ count: 12, value: "central" }] });
+    renderFilters();
+    await openFilters();
+
+    expect(
+      await within(chipIn(filters.importance, importance.central)).findByText("12"),
+    ).toBeInTheDocument();
+  });
+
+  it("shows 0 on an importance the facets leave out", async () => {
+    respondToFacets = () =>
+      jsonResponse({ ...emptyFacets, importance: [{ count: 12, value: "central" }] });
+    renderFilters();
+    await openFilters();
+
+    await within(chipIn(filters.importance, importance.central)).findByText("12");
+
+    expect(within(chipIn(filters.importance, importance.major)).getByText("0")).toBeInTheDocument();
+  });
+
+  it("asks for draft facets with the applied search and quick filter, before Apply", async () => {
+    const { onApply } = renderFilters({
+      ...appliedState,
+      filter: "favorites",
+      importance: ["central"],
+      q: "Ґер",
+    });
+    await openFilters();
+    await waitFor(() => expect(requestsTo("/api/characters/facets")).toHaveLength(1));
+
+    await userEvent.click(chipIn(filters.gender, gender.female));
+
+    await waitFor(() => expect(requestsTo("/api/characters/facets")).toHaveLength(2));
+    const draftParams = [...(requestsTo("/api/characters/facets").at(-1)?.searchParams ?? [])];
+    expect(draftParams.sort(([left], [right]) => left.localeCompare(right))).toEqual([
+      ["favorite", "true"],
+      ["gender", "female"],
+      ["importance", "central"],
+      ["q", "Ґер"],
+    ]);
+    expect(onApply).not.toHaveBeenCalled();
+  });
+
+  it("shows on a species option how many characters it would match", async () => {
+    respondToFacets = () =>
+      jsonResponse({ ...emptyFacets, species: [{ count: 3, value: elf.id }] });
+    respondToSpecies = () => jsonResponse({ items: [elf] });
+    renderFilters();
+    await openFilters();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: `${filters.species} ${filters.speciesPlaceholder}` }),
+    );
+
+    const option = await screen.findByRole("option", { name: new RegExp(`^${elf.name}`) });
+    expect(await within(option).findByText("3")).toBeInTheDocument();
   });
 });
 

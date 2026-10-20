@@ -49,7 +49,7 @@ type EntitySearchSelectProps = {
   labels: EntitySearchSelectLabels;
   onChange: (value: Nullable<string>) => void;
   selectedName: string | undefined;
-  useSearch: (query: string) => EntitySearchResult;
+  useSearch: (query: string, options: { enabled: boolean }) => EntitySearchResult;
   value: Nullable<string>;
 };
 
@@ -69,7 +69,7 @@ export function EntitySearchSelect({
   const [query, setQuery] = useState("");
   const [picked, setPicked] = useState<Nullable<EntitySearchOption>>(null);
   const debouncedQuery = useDebouncedValue(query, ENTITY_SEARCH_SELECT.searchDebounceMs);
-  const search = useSearch(debouncedQuery);
+  const search = useSearch(debouncedQuery, { enabled: open });
   const { onScroll, scrollRef } = useInfiniteScroll({
     hasNextPage: search.hasNextPage,
     isFetchingNextPage: search.isFetchingNextPage,
@@ -81,6 +81,13 @@ export function EntitySearchSelect({
     if (value === null) return labels.placeholder;
     if (picked?.id === value) return picked.name;
     return selectedName ?? labels.searching;
+  }
+
+  function statusText(): string {
+    if (!open) return "";
+    if (search.isFetching) return labels.searching;
+    if (search.items.length === 0) return labels.empty;
+    return "";
   }
 
   function handleOpenChange(next: boolean) {
@@ -171,6 +178,9 @@ export function EntitySearchSelect({
           <UiIcon name="x" size={16} />
         </Button>
       )}
+      <span className="sr-only" role="status">
+        {statusText()}
+      </span>
     </div>
   );
 }

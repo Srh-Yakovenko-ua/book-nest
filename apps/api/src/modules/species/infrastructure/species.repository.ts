@@ -192,6 +192,17 @@ export class SpeciesRepository {
     });
   }
 
+  findVisibleByIds(
+    { ids, userId }: { ids: readonly string[]; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<SpeciesWithNames[]> {
+    return client.species.findMany({
+      orderBy: SYSTEM_FIRST_ORDER,
+      where: { AND: [{ id: { in: [...ids] } }, visibleToUser(userId)] },
+      ...speciesWithNamesArgs,
+    });
+  }
+
   findVisibleByNormalizedName(
     { normalizedName, userId }: { normalizedName: string; userId: string },
     client: Prisma.TransactionClient = this.prisma,
