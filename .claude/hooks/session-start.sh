@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -u
 
+command -v jq >/dev/null 2>&1 || echo "WARNING: jq is not on PATH. The .claude/hooks/*.sh hooks parse their input with jq, so right now guard-bash and guard-files allow every command and file, claims-check never blocks, and subagents start without the report envelope or the no-tooling rules. Install jq (winget install jqlang.jq, brew install jq), then restart the app the terminal runs in, because a terminal keeps the PATH it started with. Until then follow the hook rules in CLAUDE.md §9 by hand and tell the user."
+
 INPUT="$(cat)"
 SOURCE="$(printf '%s' "$INPUT" | jq -r '.source // empty')"
 SESSION_ID="$(printf '%s' "$INPUT" | jq -r '.session_id // empty')"

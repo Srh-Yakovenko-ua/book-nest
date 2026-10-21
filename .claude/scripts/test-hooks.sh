@@ -367,5 +367,11 @@ sec_git add deploy/Caddyfile
 sec_commit_case ask 'git commit -m "fix(deploy): x"' "edited after the review"
 sec_commit_case deny 'git commit -m "update"' "a commitlint deny still wins"
 
+NO_JQ_START="$(PATH=/nonexistent CLAUDE_PROJECT_DIR="$SEC_REPO" "$BASH" "$HOOKS/session-start.sh" < /dev/null 2>/dev/null)"
+check yes "$(printf '%s' "$NO_JQ_START" | grep -q "jq is not on PATH" && echo yes || echo no)" "session-start: warns when jq is missing"
+JQ_START="$(printf '{}' | CLAUDE_PROJECT_DIR="$SEC_REPO" "$HOOKS/session-start.sh" 2>/dev/null)"
+JQ_START_CODE=$?
+check "no 0" "$(printf '%s' "$JQ_START" | grep -q "jq is not on PATH" && echo yes || echo no) $JQ_START_CODE" "session-start: silent when jq is present"
+
 echo "hooks: $PASS passed, $FAIL failed"
 [ "$FAIL" = 0 ]
