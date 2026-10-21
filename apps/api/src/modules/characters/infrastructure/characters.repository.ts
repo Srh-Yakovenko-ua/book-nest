@@ -888,6 +888,19 @@ export class CharactersRepository {
     });
   }
 
+  listBookLinks(
+    { bookIds, characterIds }: { bookIds: string[]; characterIds: string[] },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<{ bookId: string; characterId: string }[]> {
+    if (bookIds.length === 0 || characterIds.length === 0) {
+      return Promise.resolve([]);
+    }
+    return client.bookCharacter.findMany({
+      select: { bookId: true, characterId: true },
+      where: { bookId: { in: bookIds }, characterId: { in: characterIds } },
+    });
+  }
+
   listBookOrderKeys({
     characterIds,
     userId,

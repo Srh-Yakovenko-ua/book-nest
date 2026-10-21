@@ -90,6 +90,17 @@ async function createSeriesWithTwoBooks(
   return { firstBookId: first.body.id, secondBookId: second.body.id, seriesId };
 }
 
+async function linkToBook(token: string, bookId: string, characterIds: string[]): Promise<void> {
+  for (const characterId of characterIds) {
+    const res = await authed("post", `/api/books/${bookId}/characters`, token).send({
+      bookProfile: {},
+      characterId,
+      mode: "existing",
+    });
+    expect(res.status).toBe(HttpStatus.CREATED);
+  }
+}
+
 function socialEdge({
   bookId,
   extraState = {},
@@ -120,6 +131,7 @@ describe("character relationship path finder", () => {
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
     const carol = await createCharacter(accessToken, "Carol");
+    await linkToBook(accessToken, bookId, [alice, bob, carol]);
     await createRelationship(
       accessToken,
       socialEdge({ bookId, sourceCharacterId: alice, targetCharacterId: bob }),
@@ -149,6 +161,7 @@ describe("character relationship path finder", () => {
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
     const carol = await createCharacter(accessToken, "Carol");
+    await linkToBook(accessToken, bookId, [alice, bob, carol]);
     await createRelationship(
       accessToken,
       socialEdge({ bookId, sourceCharacterId: alice, targetCharacterId: bob }),
@@ -195,6 +208,7 @@ describe("character relationship path finder", () => {
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
+    await linkToBook(accessToken, bookId, [alice, bob]);
     await createRelationship(accessToken, {
       category: "family",
       directionality: "directed",
@@ -227,6 +241,8 @@ describe("character relationship path finder", () => {
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
     const carol = await createCharacter(accessToken, "Carol");
+    await linkToBook(accessToken, firstBookId, [alice, bob, carol]);
+    await linkToBook(accessToken, secondBookId, [alice, carol]);
     await createRelationship(
       accessToken,
       socialEdge({ bookId: firstBookId, sourceCharacterId: alice, targetCharacterId: bob }),
@@ -317,6 +333,7 @@ describe("character relationship path finder", () => {
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
+    await linkToBook(accessToken, bookId, [alice, bob]);
     await createRelationship(
       accessToken,
       socialEdge({ bookId, sourceCharacterId: alice, targetCharacterId: bob }),

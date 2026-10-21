@@ -67,6 +67,17 @@ async function createRelationship(
   return authed("post", "/api/character-relationships", token).send(body);
 }
 
+async function linkToBook(token: string, bookId: string, characterIds: string[]): Promise<void> {
+  for (const characterId of characterIds) {
+    const res = await authed("post", `/api/books/${bookId}/characters`, token).send({
+      bookProfile: {},
+      characterId,
+      mode: "existing",
+    });
+    expect(res.status).toBe(HttpStatus.CREATED);
+  }
+}
+
 describe("character relationship CRUD", () => {
   it("creates a directed relationship and reads it back as safe reader details", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
@@ -122,6 +133,7 @@ describe("character relationship CRUD", () => {
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
+    await linkToBook(accessToken, bookId, [alice, bob]);
     const created = await createRelationship(accessToken, {
       category: "family",
       directionality: "directed",
@@ -277,6 +289,7 @@ describe("character relationship CRUD", () => {
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
+    await linkToBook(accessToken, bookId, [alice, bob]);
 
     const created = await createRelationship(accessToken, {
       category: "social",
@@ -367,6 +380,7 @@ describe("character relationship CRUD", () => {
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
+    await linkToBook(accessToken, bookId, [alice, bob]);
     const created = await createRelationship(accessToken, {
       category: "social",
       directionality: "symmetric",
@@ -399,6 +413,7 @@ describe("character relationship per-book state", () => {
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
+    await linkToBook(accessToken, bookId, [alice, bob]);
     const created = await createRelationship(accessToken, {
       category: "social",
       directionality: "symmetric",
@@ -578,6 +593,7 @@ describe("character relationship spoiler masking", () => {
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
+    await linkToBook(accessToken, bookId, [alice, bob]);
     await createRelationship(accessToken, {
       category: "family",
       directionality: "directed",
@@ -597,6 +613,7 @@ describe("character relationship spoiler masking", () => {
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
+    await linkToBook(accessToken, bookId, [alice, bob]);
     await createRelationship(accessToken, {
       category: "social",
       directionality: "symmetric",
@@ -636,6 +653,7 @@ describe("character relationship spoiler masking", () => {
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
+    await linkToBook(accessToken, bookId, [alice, bob]);
     await createRelationship(accessToken, {
       category: "family",
       directionality: "directed",
@@ -663,6 +681,7 @@ describe("character relationship spoiler masking", () => {
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
+    await linkToBook(accessToken, bookId, [alice, bob]);
     await createRelationship(accessToken, {
       category: "social",
       directionality: "symmetric",
@@ -719,6 +738,8 @@ describe("character relationship spoiler masking", () => {
 
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
+    await linkToBook(accessToken, firstBookId, [alice, bob]);
+    await linkToBook(accessToken, secondBookId, [alice, bob]);
     const created = await createRelationship(accessToken, {
       category: "social",
       directionality: "symmetric",

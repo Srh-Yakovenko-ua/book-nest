@@ -4,9 +4,8 @@ import type { CharacterRelationshipDetailsView, Nullable, RelationshipCategory }
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
@@ -22,22 +21,20 @@ import type {
   RelationshipFormValues,
 } from "../model/relationship-form-schema";
 
-import { useUpdateRelationship } from "../api/use-update-relationship";
-import { useUpsertRelationshipBookState } from "../api/use-upsert-relationship-book-state";
 import {
   defaultRelationshipBookId,
   toRelationshipEditBookStep,
 } from "../model/relationship-book-step";
+import { focusFirstRelationshipControl } from "../model/relationship-editor-focus";
 import {
   findRelationshipBookState,
   relationshipBookStateDefaults,
   relationshipEditDefaults,
-  toRelationshipBookStateChange,
   toRelationshipEdgeSignature,
-  toUpdateRelationshipInput,
 } from "../model/relationship-form-input";
 import { buildRelationshipFormSchema } from "../model/relationship-form-schema";
 import { toRelationshipFocusCharacterId } from "../model/relationship-scope";
+import { useRelationshipEditSave } from "../model/use-relationship-edit-save";
 import { useRelationshipFormMessages } from "../model/use-relationship-form-messages";
 import { useRelationshipSaveErrorReporter } from "../model/use-relationship-save-error-reporter";
 import { RelationshipBookField } from "./relationship-book-field";
@@ -45,6 +42,7 @@ import { RelationshipBookStateFields } from "./relationship-book-state-fields";
 import { RelationshipFamilyCycleNotice } from "./relationship-family-cycle-notice";
 import { RelationshipFormRootError } from "./relationship-form-root-error";
 import { RelationshipLabelFields } from "./relationship-label-fields";
+import { RelationshipPartialSaveNotice } from "./relationship-partial-save-notice";
 import { RelationshipParticipants } from "./relationship-participants";
 import { RelationshipTypeFields } from "./relationship-type-fields";
 import { RemoveRelationshipBookStateDialog } from "./remove-relationship-book-state-dialog";
@@ -81,10 +79,7 @@ export function RelationshipEditForm({
   subject,
 }: RelationshipEditFormProps) {
   const t = useTranslations("relationships.editor");
-  const tToast = useTranslations("relationships.toast");
   const messages = useRelationshipFormMessages();
-  const updateRelationship = useUpdateRelationship();
-  const upsertBookState = useUpsertRelationshipBookState();
   const bookStep = toRelationshipEditBookStep({ ...subject, relationship });
   const [familyCycle, setFamilyCycle] = useState<Nullable<FamilyCycleNotice>>(null);
   const [removal, setRemoval] = useState<Nullable<StateRemoval>>(null);
@@ -127,6 +122,11 @@ export function RelationshipEditForm({
   const isFamilyCycleShown = familyCycle !== null && familyCycle.signature === edgeSignature;
   const storedState = findRelationshipBookState({ bookId, relationship });
   const selectedBookTitle = toBookTitle({ bookId, step: bookStep });
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    focusFirstRelationshipControl(formRef.current);
+  }, []);
 
   useEffect(() => {
     onDraftChange({ isDirty, isPending: isSubmitting });
@@ -138,6 +138,12 @@ export function RelationshipEditForm({
     onFamilyCycle: (overridable) => setFamilyCycle({ overridable, signature: edgeSignature }),
     onGone: onSaved,
     revealField: (field) => !EDIT_HIDDEN_FIELDS.has(field),
+  });
+  const editSave = useRelationshipEditSave({
+    onEdgeSaved: () => setFamilyCycle(null),
+    onSaved,
+    relationship,
+    reportSaveError,
   });
 
   function changeCategory(next: RelationshipCategory) {
@@ -160,29 +166,9 @@ export function RelationshipEditForm({
     setRemoval((current) => (current === null ? null : { ...current, open: false }));
   }
 
-  async function save(
-    values: RelationshipFormValues,
-    { allowFamilyCycle }: { allowFamilyCycle: boolean },
-  ) {
-    try {
-      const update = toUpdateRelationshipInput({ allowFamilyCycle, relationship, values });
-      const bookStateChange = toRelationshipBookStateChange({ relationship, values });
-      if (update !== null) {
-        await updateRelationship.mutateAsync({ input: update, relationshipId: relationship.id });
-      }
-      if (bookStateChange !== null) {
-        await upsertBookState.mutateAsync({ ...bookStateChange, relationshipId: relationship.id });
-      }
-      toast.success(tToast("updated"));
-      onSaved();
-    } catch (error) {
-      reportSaveError(error);
-    }
-  }
-
-  const submit = handleSubmit((values) => save(values, { allowFamilyCycle: false }));
+  const submit = handleSubmit((values) => editSave.save(values, { allowFamilyCycle: false }));
   const submitAllowingFamilyCycle = handleSubmit((values) =>
-    save(values, { allowFamilyCycle: true }),
+    editSave.save(values, { allowFamilyCycle: true }),
   );
 
   return (
@@ -197,6 +183,7 @@ export function RelationshipEditForm({
           }
           void submit(event);
         }}
+        ref={formRef}
       >
         <div className="-mx-1 flex min-h-0 flex-col gap-5 overflow-y-auto px-1 py-0.5">
           <div className="flex min-w-0 flex-col gap-2">
@@ -221,19 +208,18 @@ export function RelationshipEditForm({
           </div>
           <RelationshipTypeFields
             control={control}
-            customDirectionality={{ kind: "fixed", value: relationship.directionality }}
+            customDirectionality={relationship.directionality}
             errors={errors}
             onCategoryChange={changeCategory}
-            register={register}
           />
           <RelationshipLabelFields
+            control={control}
             defaultOpen={relationship.sourceLabel !== null || relationship.targetLabel !== null}
             errors={errors}
             names={{
               source: relationship.sourceCharacterName,
               target: relationship.targetCharacterName,
             }}
-            register={register}
           />
           <Separator />
           <section
@@ -287,6 +273,9 @@ export function RelationshipEditForm({
           ) : null}
           <RelationshipFormRootError message={errors.root?.server?.message} />
         </div>
+        {editSave.isPartiallySaved ? (
+          <RelationshipPartialSaveNotice isPending={isSubmitting} onRetry={() => void submit()} />
+        ) : null}
         <DialogFooter className="shrink-0">
           <Button disabled={isSubmitting} onClick={onCancel} type="button" variant="secondary">
             {t("actions.cancel")}

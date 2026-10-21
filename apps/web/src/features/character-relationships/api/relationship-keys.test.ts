@@ -24,12 +24,28 @@ const DEFAULT_CRITERIA: RelationshipListCriteria = { sort: "name_asc" };
 
 const NO_REVEAL: RelationshipReveal = { descriptionBookStateId: null, isTypeRevealed: false };
 
+const SUGGESTION_KEYS = {
+  browsedRoles: relationshipKeys.roleSuggestions(""),
+  customTypes: relationshipKeys.customTypes({ directionality: "symmetric", term: "" }),
+  directedCustomTypes: relationshipKeys.customTypes({ directionality: "directed", term: "побр" }),
+  roleSuggestions: relationshipKeys.roleSuggestions("наставник"),
+  roster: relationshipKeys.roster({ bookId: BOOK_ID, sort: "name", term: "" }),
+} as const;
+
 function detailsKey(scope: RelationshipScope, reveal: RelationshipReveal = NO_REVEAL) {
   return relationshipKeys.details({
     relationshipId: RELATIONSHIP_FIXTURE.relationshipId,
     reveal,
     scopeKey: toRelationshipScopeKey(scope),
   });
+}
+
+function keysReachedBy(queryKey: readonly unknown[]): unknown[] {
+  const client = new QueryClient();
+  client.setQueryData(listKey(SCOPES.book), { pageParams: [1], pages: [] });
+  for (const key of Object.values(SUGGESTION_KEYS)) client.setQueryData(key, {});
+  client.setQueryData(["characters", "detail", CHARACTER_ID], {});
+  return client.getQueriesData({ queryKey }).map(([key]) => key);
 }
 
 function listKey(scope: RelationshipScope, criteria: RelationshipListCriteria = DEFAULT_CRITERIA) {
@@ -94,6 +110,26 @@ describe("relationshipKeys.all", () => {
     expect(client.getQueriesData({ queryKey: relationshipKeys.all }).map(([key]) => key)).toEqual([
       listKey(SCOPES.book),
       detailsKey(SCOPES.series),
+    ]);
+  });
+
+  it("§11.3 E02 leaves the role, custom type and roster suggestions outside the relationships root", () => {
+    expect(keysReachedBy(relationshipKeys.all)).toEqual([listKey(SCOPES.book)]);
+  });
+});
+
+describe("relationshipKeys.dictionaries", () => {
+  it("§11.3 E02 reaches the custom type suggestions of every direction and term and nothing else", () => {
+    expect(keysReachedBy(relationshipKeys.dictionaries.customTypes)).toEqual([
+      SUGGESTION_KEYS.customTypes,
+      SUGGESTION_KEYS.directedCustomTypes,
+    ]);
+  });
+
+  it("§11.3 E02 reaches the role suggestions of every term and nothing else", () => {
+    expect(keysReachedBy(relationshipKeys.dictionaries.roleSuggestions)).toEqual([
+      SUGGESTION_KEYS.browsedRoles,
+      SUGGESTION_KEYS.roleSuggestions,
     ]);
   });
 });

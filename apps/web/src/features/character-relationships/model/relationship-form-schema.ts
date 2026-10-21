@@ -74,20 +74,6 @@ type RelationshipFormRequirement = "optional" | "required";
 
 type RelationshipFormSchema = ReturnType<typeof buildRelationshipFormSchema>;
 
-export const RELATIONSHIP_EDGE_FIELDS = [
-  "category",
-  "customType",
-  "directionality",
-  "isCanonical",
-  "source",
-  "sourceLabel",
-  "target",
-  "targetLabel",
-  "type",
-] as const satisfies readonly RelationshipFormField[];
-
-const EDGE_FIELD_NAMES: ReadonlySet<RelationshipFormField> = new Set(RELATIONSHIP_EDGE_FIELDS);
-
 export function buildRelationshipFormSchema({
   messages,
   rules,
@@ -170,8 +156,4 @@ export function buildRelationshipFormSchema({
         path: ["customType"],
       });
     });
-}
-
-export function isRelationshipEdgeField(field: RelationshipFormField): boolean {
-  return EDGE_FIELD_NAMES.has(field);
 }

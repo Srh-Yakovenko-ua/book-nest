@@ -7,6 +7,14 @@ export function refreshRelationships(queryClient: QueryClient): Promise<void> {
   return queryClient.invalidateQueries({ queryKey: relationshipKeys.all });
 }
 
+export async function refreshRelationshipsAndDictionaries(queryClient: QueryClient): Promise<void> {
+  await Promise.all([
+    refreshRelationships(queryClient),
+    queryClient.resetQueries({ queryKey: relationshipKeys.dictionaries.customTypes }),
+    queryClient.resetQueries({ queryKey: relationshipKeys.dictionaries.roleSuggestions }),
+  ]);
+}
+
 export async function refreshRelationshipsWhenGone({
   error,
   queryClient,

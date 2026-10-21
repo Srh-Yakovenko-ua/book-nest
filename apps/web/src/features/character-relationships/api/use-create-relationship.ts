@@ -7,7 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { characterRelationshipsControllerCreate } from "@/shared/api/generated/endpoints/character-relationships/character-relationships";
 
-import { refreshRelationships } from "./relationship-mutation-effects";
+import { refreshRelationshipsAndDictionaries } from "./relationship-mutation-effects";
 
 export function useCreateRelationship() {
   const queryClient = useQueryClient();
@@ -19,6 +19,6 @@ export function useCreateRelationship() {
       CharacterRelationshipDetailsViewSchema.parse(
         await characterRelationshipsControllerCreate(input),
       ),
-    onSuccess: () => refreshRelationships(queryClient),
+    onSuccess: () => refreshRelationshipsAndDictionaries(queryClient),
   });
 }

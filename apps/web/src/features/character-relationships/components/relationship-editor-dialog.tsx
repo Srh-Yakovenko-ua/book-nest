@@ -1,7 +1,5 @@
 "use client";
 
-import type { Nullable } from "@app/shared";
-
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 
@@ -21,14 +19,10 @@ import type {
 } from "../model/relationship-authoring";
 
 import { toRelationshipAuthoringSubject } from "../model/relationship-authoring";
+import { focusFirstRelationshipControl } from "../model/relationship-editor-focus";
 import { useRelationshipDraftGuard } from "../model/use-relationship-draft-guard";
 import { RelationshipCreateForm } from "./relationship-create-form";
 import { RelationshipEditContent } from "./relationship-edit-content";
-
-const EDITOR_FOCUS = {
-  fallback: "input:not([type='hidden']), textarea, button:not([disabled])",
-  preferred: "[data-relationship-autofocus]",
-} as const;
 
 const CLEAN_DRAFT: RelationshipDraftState = { isDirty: false, isPending: false };
 
@@ -48,7 +42,7 @@ export function RelationshipEditorDialog(props: RelationshipEditorDialogProps) {
   const isEdit = target.mode === "edit";
 
   function focusDraft() {
-    focusFirstControl(contentRef.current);
+    focusFirstRelationshipControl(contentRef.current);
   }
 
   const guard = useRelationshipDraftGuard({
@@ -109,23 +103,4 @@ export function RelationshipEditorDialog(props: RelationshipEditorDialogProps) {
       />
     </>
   );
-}
-
-function findShownControl({
-  container,
-  selector,
-}: {
-  container: Nullable<HTMLElement>;
-  selector: string;
-}): Nullable<HTMLElement> {
-  if (container === null) return null;
-  const controls = Array.from(container.querySelectorAll<HTMLElement>(selector));
-  return controls.find((control) => control.closest("[hidden]") === null) ?? null;
-}
-
-function focusFirstControl(container: Nullable<HTMLElement>) {
-  const target =
-    findShownControl({ container, selector: EDITOR_FOCUS.preferred }) ??
-    findShownControl({ container, selector: EDITOR_FOCUS.fallback });
-  target?.focus();
 }

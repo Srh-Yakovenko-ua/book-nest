@@ -8,7 +8,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { characterRelationshipsControllerUpdate } from "@/shared/api/generated/endpoints/character-relationships/character-relationships";
 
 import {
-  refreshRelationships,
+  refreshRelationshipsAndDictionaries,
   refreshRelationshipsWhenGone,
 } from "./relationship-mutation-effects";
 
@@ -29,6 +29,6 @@ export function useUpdateRelationship() {
         await characterRelationshipsControllerUpdate(relationshipId, input),
       ),
     onError: (error) => refreshRelationshipsWhenGone({ error, queryClient }),
-    onSuccess: () => refreshRelationships(queryClient),
+    onSuccess: () => refreshRelationshipsAndDictionaries(queryClient),
   });
 }

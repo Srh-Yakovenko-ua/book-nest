@@ -18,6 +18,8 @@ import { CharacterGraphLayoutsController } from "./api/character-graph-layouts.c
 import { CharacterGroupsController } from "./api/character-groups.controller.js";
 import { CharacterMergeController } from "./api/character-merge.controller.js";
 import { CharacterPortabilityController } from "./api/character-portability.controller.js";
+import { CharacterRelationshipCustomTypesController } from "./api/character-relationship-custom-types.controller.js";
+import { CharacterRelationshipRoleSuggestionsController } from "./api/character-relationship-role-suggestions.controller.js";
 import { CharacterRelationshipsController } from "./api/character-relationships.controller.js";
 import { CharacterTheoriesController } from "./api/character-theories.controller.js";
 import { CharactersController } from "./api/characters.controller.js";
@@ -50,7 +52,9 @@ import { CharactersService } from "./application/characters.service.js";
 import { GlobalCharacterFilterResolver } from "./application/global-character-filter.resolver.js";
 import { RelationshipBookStateService } from "./application/relationship-book-state.service.js";
 import { RelationshipContextService } from "./application/relationship-context.service.js";
+import { RelationshipCustomTypesService } from "./application/relationship-custom-types.service.js";
 import { RelationshipReaderScopeResolver } from "./application/relationship-reader-scope.resolver.js";
+import { RelationshipRoleSuggestionsService } from "./application/relationship-role-suggestions.service.js";
 import { SeriesCharactersService } from "./application/series-characters.service.js";
 import { CHARACTER_PURGE_QUEUE_NAME } from "./domain/character-purge.js";
 import { CharacterCustomLabelsRepository } from "./infrastructure/character-custom-labels.repository.js";
@@ -65,6 +69,8 @@ import { CharacterRelationshipsListRepository } from "./infrastructure/character
 import { CharacterRelationshipsRepository } from "./infrastructure/character-relationships.repository.js";
 import { CharacterTheoriesRepository } from "./infrastructure/character-theories.repository.js";
 import { CharactersRepository } from "./infrastructure/characters.repository.js";
+import { RelationshipCustomTypesRepository } from "./infrastructure/relationship-custom-types.repository.js";
+import { RelationshipRoleSuggestionsRepository } from "./infrastructure/relationship-role-suggestions.repository.js";
 
 @Module({
   controllers: [
@@ -73,6 +79,8 @@ import { CharactersRepository } from "./infrastructure/characters.repository.js"
     CharacterGroupsController,
     CharacterMergeController,
     CharacterRelationshipsController,
+    CharacterRelationshipCustomTypesController,
+    CharacterRelationshipRoleSuggestionsController,
     CharacterTheoriesController,
     CharacterFactsController,
     CharacterFormsController,
@@ -126,6 +134,10 @@ import { CharactersRepository } from "./infrastructure/characters.repository.js"
     CharacterRelationshipsListService,
     CharacterRelationshipsListRepository,
     CharacterRelationshipPathService,
+    RelationshipCustomTypesService,
+    RelationshipCustomTypesRepository,
+    RelationshipRoleSuggestionsService,
+    RelationshipRoleSuggestionsRepository,
     CharacterTheoriesService,
     CharacterTheoriesRepository,
     CharacterFactsService,

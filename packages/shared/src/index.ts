@@ -14,6 +14,8 @@ export * from "./character-graph.js";
 export * from "./character-groups.js";
 export * from "./character-path.js";
 export * from "./character-portability.js";
+export * from "./character-relationship-custom-types.js";
+export * from "./character-relationship-role-suggestions.js";
 export * from "./character-relationships-list.js";
 export * from "./character-relationships.js";
 export * from "./character-theories.js";

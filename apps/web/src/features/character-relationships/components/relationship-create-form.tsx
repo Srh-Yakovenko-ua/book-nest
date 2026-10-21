@@ -1,60 +1,57 @@
 "use client";
 
-import type { Nullable, RelationshipCategory } from "@app/shared";
-
+import { collapseSpaces } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { flushSync } from "react-dom";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
-import { DialogFooter } from "@/components/ui/dialog";
 import { Stepper } from "@/components/ui/stepper";
 
 import type {
   RelationshipAuthoringSubject,
   RelationshipDraftState,
 } from "../model/relationship-authoring";
+import type { CreateOrientation } from "../model/relationship-create-semantics";
 import type {
-  RelationshipFormField,
   RelationshipFormInput,
   RelationshipFormValues,
 } from "../model/relationship-form-schema";
 
 import { useCreateRelationship } from "../api/use-create-relationship";
-import { relationshipRosterBookId } from "../model/relationship-authoring";
 import {
-  defaultRelationshipBookId,
-  toRelationshipCreateBookStep,
+  findRelationshipCreateBookTitle,
+  resolveRelationshipCreateBookContext,
+  toRelationshipCreateInitialBookId,
 } from "../model/relationship-book-step";
 import {
-  relationshipCreateDefaults,
-  toCreateRelationshipInput,
-  toRelationshipEdgeSignature,
-} from "../model/relationship-form-input";
+  invertCreateOrientation,
+  toCreateRelationshipRequest,
+  toEffectiveCreateEdgeSignature,
+  toRelationshipCreateSemantics,
+} from "../model/relationship-create-semantics";
+import { CREATE_STEPS } from "../model/relationship-create-step";
+import { createRelationshipTypeActions } from "../model/relationship-create-type-actions";
 import {
-  buildRelationshipFormSchema,
-  isRelationshipEdgeField,
-  RELATIONSHIP_EDGE_FIELDS,
-} from "../model/relationship-form-schema";
+  relationshipCreateDefaults,
+  resolveRelationshipDirectionality,
+} from "../model/relationship-form-input";
+import { buildRelationshipFormSchema } from "../model/relationship-form-schema";
+import { useRelationshipCreateBookChange } from "../model/use-relationship-create-book-change";
+import { useRelationshipCreateFamilyCycle } from "../model/use-relationship-create-family-cycle";
+import { useRelationshipCreateFlow } from "../model/use-relationship-create-flow";
 import { useRelationshipFormMessages } from "../model/use-relationship-form-messages";
-import { useRelationshipSaveErrorReporter } from "../model/use-relationship-save-error-reporter";
-import { RelationshipBookField } from "./relationship-book-field";
-import { RelationshipBookStateFields } from "./relationship-book-state-fields";
+import { RelationshipBookChangeDialog } from "./relationship-book-change-dialog";
+import { RelationshipCreateBookSection } from "./relationship-create-book-section";
+import { RelationshipCreateBookStateStep } from "./relationship-create-book-state-step";
+import { RelationshipCreateFooter } from "./relationship-create-footer";
+import { RelationshipCreateTypeFields } from "./relationship-create-type-fields";
 import { RelationshipFamilyCycleNotice } from "./relationship-family-cycle-notice";
 import { RelationshipFormRootError } from "./relationship-form-root-error";
-import { RelationshipLabelFields } from "./relationship-label-fields";
+import { RelationshipOrientationField } from "./relationship-orientation-field";
 import { RelationshipParticipantFields } from "./relationship-participant-fields";
-import { RelationshipTypeFields } from "./relationship-type-fields";
-
-const CREATE_STEPS = ["edge", "book"] as const;
-
-type FamilyCycleNotice = {
-  overridable: boolean;
-  signature: string;
-};
+import { RelationshipPreview } from "./relationship-preview";
 
 type RelationshipCreateFormProps = {
   onCancel: () => void;
@@ -62,8 +59,6 @@ type RelationshipCreateFormProps = {
   onSaved: () => void;
   subject: RelationshipAuthoringSubject;
 };
-
-type RelationshipCreateStep = (typeof CREATE_STEPS)[number];
 
 export function RelationshipCreateForm({
   onCancel,
@@ -75,17 +70,13 @@ export function RelationshipCreateForm({
   const tToast = useTranslations("relationships.toast");
   const messages = useRelationshipFormMessages();
   const createRelationship = useCreateRelationship();
-  const bookStep = toRelationshipCreateBookStep(subject);
-  const [step, setStep] = useState<RelationshipCreateStep>("edge");
-  const [familyCycle, setFamilyCycle] = useState<Nullable<FamilyCycleNotice>>(null);
+  const bookContext = resolveRelationshipCreateBookContext(subject);
+  const [orientation, setOrientation] = useState<CreateOrientation>("forward");
+  const [committedCustomName, setCommittedCustomName] = useState("");
 
   const form = useForm<RelationshipFormInput, unknown, RelationshipFormValues>({
     defaultValues: relationshipCreateDefaults({
-      bookId: defaultRelationshipBookId({
-        relationship: null,
-        scope: subject.scope,
-        step: bookStep,
-      }),
+      bookId: toRelationshipCreateInitialBookId(bookContext),
       focusCharacter: subject.focusCharacter,
     }),
     mode: "onTouched",
@@ -93,12 +84,10 @@ export function RelationshipCreateForm({
       zodResolver(
         buildRelationshipFormSchema({
           messages,
-          rules: {
-            book: bookStep.kind === "required" ? "required" : "optional",
-            participants: "required",
-          },
+          rules: { book: "required", participants: "required" },
         }),
-      )(values, context, options),
+      )({ ...values, customType: collapseSpaces(values.customType) }, context, options),
+    shouldFocusError: false,
   });
   const {
     clearErrors,
@@ -107,106 +96,99 @@ export function RelationshipCreateForm({
     getValues,
     handleSubmit,
     register,
-    setFocus,
     setValue,
-    trigger,
   } = form;
-  const [source, target, category, type, customType, bookId] = useWatch({
+  const [source, target, type, customType, directionality, bookId] = useWatch({
     control,
-    name: ["source", "target", "category", "type", "customType", "bookId"],
+    name: ["source", "target", "type", "customType", "directionality", "bookId"],
   });
-  const edgeSignature = toRelationshipEdgeSignature({ category, customType, source, target, type });
-  const isFamilyCycleShown = familyCycle !== null && familyCycle.signature === edgeSignature;
-
-  useEffect(() => {
-    onDraftChange({ isDirty, isPending: isSubmitting });
-  }, [isDirty, isSubmitting, onDraftChange]);
-
-  const reportSaveError = useRelationshipSaveErrorReporter({
+  const effectiveDirectionality = resolveRelationshipDirectionality({ directionality, type });
+  const draft = { bookId, customType, directionality, source, target, type };
+  const semantics = toRelationshipCreateSemantics({ draft, orientation });
+  const announcedSemantics = toRelationshipCreateSemantics({
+    draft: { ...draft, customType: committedCustomName },
+    orientation,
+  });
+  const familyCycle = useRelationshipCreateFamilyCycle(toEffectiveCreateEdgeSignature(semantics));
+  const { bodyRef, bookStepHeadingRef, edgeStepRef, pairErrorRef, rootErrorRef, ...flow } =
+    useRelationshipCreateFlow({
+      bookContextKind: bookContext.kind,
+      directionality: effectiveDirectionality,
+      form,
+      onFamilyCycle: familyCycle.report,
+      orientation,
+    });
+  const bookChange = useRelationshipCreateBookChange({
+    focusCharacterId: subject.focusCharacter?.id ?? null,
     form,
-    mode: "create",
-    onFamilyCycle: (overridable) => setFamilyCycle({ overridable, signature: edgeSignature }),
-    onGone: onCancel,
-    revealField: (field) => {
-      showStep(stepOf(field));
-      return true;
+    onBookChanged: () => {
+      setOrientation("forward");
+      familyCycle.clear();
+      flow.resetSections();
     },
   });
+  const typeActions = createRelationshipTypeActions({
+    form,
+    onOrientationReset: () => setOrientation("forward"),
+  });
+  const orientationPair =
+    type !== null &&
+    effectiveDirectionality === "directed" &&
+    source !== null &&
+    target !== null &&
+    source.id !== target.id
+      ? { participantA: source, participantB: target }
+      : null;
+  const isBookBlocked = bookContext.kind === "blocked";
+  const isDraftDirty = isDirty || orientation !== "forward";
 
-  function showStep(next: RelationshipCreateStep) {
-    if (next === step) return;
-    flushSync(() => setStep(next));
-  }
-
-  async function goToBookStep() {
-    const isEdgeValid = await trigger([...RELATIONSHIP_EDGE_FIELDS], { shouldFocus: true });
-    if (!isEdgeValid) return;
-    showStep("book");
-    setFocus(bookStep.kind === "fixed" ? "bookState.description" : "bookId");
-  }
-
-  function goToEdgeStep() {
-    showStep("edge");
-    setFocus(getValues("category") === "custom" ? "customType" : "type");
-  }
+  useEffect(() => {
+    onDraftChange({ isDirty: isDraftDirty, isPending: isSubmitting });
+  }, [isDraftDirty, isSubmitting, onDraftChange]);
 
   function swapParticipants() {
-    const [currentSource, currentTarget, sourceLabel, targetLabel] = getValues([
-      "source",
-      "target",
-      "sourceLabel",
-      "targetLabel",
-    ]);
+    const [currentSource, currentTarget] = getValues(["source", "target"]);
     setValue("source", currentTarget, { shouldDirty: true });
     setValue("target", currentSource, { shouldDirty: true });
-    setValue("sourceLabel", targetLabel, { shouldDirty: true });
-    setValue("targetLabel", sourceLabel, { shouldDirty: true });
-    clearErrors(["source", "target", "sourceLabel", "targetLabel"]);
-  }
-
-  function changeCategory(next: RelationshipCategory) {
-    setValue("category", next, { shouldDirty: true });
-    setValue("type", next === "custom" ? "custom" : null, { shouldDirty: true });
-    clearErrors(["type", "customType"]);
+    clearErrors(["source", "target"]);
+    flow.clearPairError();
+    if (effectiveDirectionality === "directed") setOrientation(invertCreateOrientation);
   }
 
   async function save(
     values: RelationshipFormValues,
     { allowFamilyCycle }: { allowFamilyCycle: boolean },
   ) {
-    const { source: savedSource, target: savedTarget } = values;
-    if (savedSource === null || savedTarget === null) return;
+    const savedSemantics = toRelationshipCreateSemantics({ draft: values, orientation });
+    if (savedSemantics === null) return;
     try {
       await createRelationship.mutateAsync(
-        toCreateRelationshipInput({
+        toCreateRelationshipRequest({
           allowFamilyCycle,
-          source: savedSource,
-          target: savedTarget,
-          values,
+          bookState: values.bookState,
+          semantics: savedSemantics,
         }),
       );
       toast.success(tToast("created"));
       onSaved();
     } catch (error) {
-      reportSaveError(error);
-    }
-  }
-
-  function showInvalidStep(fieldErrors: object) {
-    const fields = Object.keys(fieldErrors);
-    if (fields.some((field) => RELATIONSHIP_EDGE_FIELDS.some((edgeField) => edgeField === field))) {
-      showStep("edge");
+      flow.reportSaveError(error);
     }
   }
 
   const submit = handleSubmit(
     (values) => save(values, { allowFamilyCycle: false }),
-    showInvalidStep,
+    flow.rejectSubmit,
   );
   const submitAllowingFamilyCycle = handleSubmit(
     (values) => save(values, { allowFamilyCycle: true }),
-    showInvalidStep,
+    flow.rejectSubmit,
   );
+
+  function confirmFamilyCycle() {
+    if (isSubmitting || familyCycle.warning === null || !familyCycle.warning.overridable) return;
+    void submitAllowingFamilyCycle();
+  }
 
   return (
     <form
@@ -217,99 +199,97 @@ export function RelationshipCreateForm({
           event.preventDefault();
           return;
         }
-        if (step === "edge") {
+        if (flow.step === "edge") {
           event.preventDefault();
-          void goToBookStep();
+          if (!isBookBlocked) void flow.goToBookStep();
+          return;
+        }
+        if (!flow.canSubmitBookStep()) {
+          event.preventDefault();
           return;
         }
         void submit(event);
       }}
     >
       <Stepper
-        current={CREATE_STEPS.indexOf(step)}
+        current={CREATE_STEPS.indexOf(flow.step)}
         steps={[{ label: t("steps.edge") }, { label: t("steps.book") }]}
       />
-      <div className="-mx-1 flex min-h-0 flex-col gap-5 overflow-y-auto px-1 py-0.5">
-        <div className="flex min-w-0 flex-col gap-5" hidden={step !== "edge"}>
-          <RelationshipParticipantFields
-            control={control}
-            errors={errors}
-            focusCharacter={subject.focusCharacter}
-            onSwap={swapParticipants}
-            rosterBookId={relationshipRosterBookId(subject.scope)}
-          />
-          <RelationshipTypeFields
-            control={control}
-            customDirectionality={{ kind: "choose" }}
-            errors={errors}
-            onCategoryChange={changeCategory}
-            register={register}
-          />
-          <RelationshipLabelFields
-            defaultOpen={false}
-            errors={errors}
-            names={{ source: source?.name ?? null, target: target?.name ?? null }}
-            register={register}
-          />
-        </div>
-        <div className="flex min-w-0 flex-col gap-5" hidden={step !== "book"}>
-          <RelationshipBookField
+      <div className="-mx-1 flex min-h-0 flex-col gap-5 overflow-y-auto px-1 py-0.5" ref={bodyRef}>
+        <div
+          className="flex min-w-0 flex-col gap-5"
+          hidden={flow.step !== "edge"}
+          ref={edgeStepRef}
+        >
+          <RelationshipCreateBookSection
+            context={bookContext}
             control={control}
             error={errors.bookId}
-            noBookLabel={t("book.none")}
-            onBookChange={(next) =>
-              setValue("bookId", next, { shouldDirty: true, shouldValidate: true })
-            }
-            step={bookStep}
+            onBookChange={bookChange.requestBookChange}
           />
-          {bookId === null ? (
-            <p className="text-sm text-muted-foreground">
-              {bookStep.kind === "optional" ? t("book.skipHint") : t("book.requiredHint")}
-            </p>
-          ) : (
-            <RelationshipBookStateFields control={control} errors={errors} register={register} />
+          {isBookBlocked ? null : (
+            <>
+              <RelationshipParticipantFields
+                bookId={bookId}
+                control={control}
+                errors={errors}
+                focusCharacter={subject.focusCharacter}
+                onParticipantChange={flow.clearPairError}
+                onSwap={swapParticipants}
+                pairErrorRef={pairErrorRef}
+              />
+              <RelationshipCreateTypeFields
+                control={control}
+                errors={errors}
+                onCustomDirectionalityChange={typeActions.changeCustomDirectionality}
+                onCustomTypeCommit={setCommittedCustomName}
+                onCustomTypePick={typeActions.pickCustomType}
+                onCustomTypeStart={typeActions.startCustomType}
+                onStandardTypeChange={typeActions.selectStandardType}
+              />
+              {orientationPair === null ? null : (
+                <RelationshipOrientationField
+                  {...orientationPair}
+                  onOrientationChange={setOrientation}
+                  orientation={orientation}
+                />
+              )}
+              <RelationshipPreview announcedSemantics={announcedSemantics} semantics={semantics} />
+            </>
           )}
-          {isFamilyCycleShown ? (
+        </div>
+        <div className="flex min-w-0 flex-col gap-5" hidden={flow.step !== "book"}>
+          <RelationshipCreateBookStateStep
+            bookTitle={findRelationshipCreateBookTitle({ bookId, context: bookContext })}
+            control={control}
+            errors={errors}
+            headingRef={bookStepHeadingRef}
+            onSectionOpenChange={flow.setSectionOpen}
+            onStatusEnded={flow.openPositions}
+            register={register}
+            sections={flow.sections}
+            semantics={semantics}
+          />
+          {familyCycle.warning === null ? null : (
             <RelationshipFamilyCycleNotice
               isPending={isSubmitting}
-              onConfirm={() => void submitAllowingFamilyCycle()}
-              overridable={familyCycle.overridable}
+              onConfirm={confirmFamilyCycle}
+              overridable={familyCycle.warning.overridable}
             />
-          ) : null}
+          )}
         </div>
-        <RelationshipFormRootError message={errors.root?.server?.message} />
+        <div className="outline-none" ref={rootErrorRef} tabIndex={-1}>
+          <RelationshipFormRootError message={errors.root?.server?.message} />
+        </div>
       </div>
-      <DialogFooter className="shrink-0">
-        {step === "edge" ? (
-          <>
-            <Button key="cancel" onClick={onCancel} type="button" variant="secondary">
-              {t("actions.cancel")}
-            </Button>
-            <Button key="next" type="submit">
-              {t("actions.next")}
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button
-              disabled={isSubmitting}
-              key="back"
-              onClick={goToEdgeStep}
-              type="button"
-              variant="secondary"
-            >
-              {t("actions.back")}
-            </Button>
-            <Button disabled={isSubmitting} key="create" loading={isSubmitting} type="submit">
-              {t("actions.create")}
-            </Button>
-          </>
-        )}
-      </DialogFooter>
+      <RelationshipCreateFooter
+        isBookBlocked={isBookBlocked}
+        isSubmitting={isSubmitting}
+        onBack={flow.goToEdgeStep}
+        onCancel={onCancel}
+        step={flow.step}
+      />
+      <RelationshipBookChangeDialog {...bookChange.dialog} />
     </form>
   );
-}
-
-function stepOf(field: RelationshipFormField): RelationshipCreateStep {
-  return isRelationshipEdgeField(field) ? "edge" : "book";
 }

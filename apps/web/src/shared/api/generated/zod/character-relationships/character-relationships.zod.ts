@@ -2375,6 +2375,142 @@ export const CharacterRelationshipsControllerRemoveBookStateParams = zod.object(
 export const CharacterRelationshipsControllerRemoveBookStateResponse = zod.void();
 
 /**
+ * @summary List or search the custom relationship types the current user has already used
+ */
+export const characterRelationshipCustomTypesControllerListQueryPageNumberDefault = 1;
+export const characterRelationshipCustomTypesControllerListQueryPageNumberMax = 21474836;
+
+export const characterRelationshipCustomTypesControllerListQueryPageSizeDefault = 20;
+export const characterRelationshipCustomTypesControllerListQueryPageSizeMax = 100;
+
+export const CharacterRelationshipCustomTypesControllerListQueryParams = zod.object({
+  pageNumber: zod
+    .int()
+    .min(1)
+    .max(characterRelationshipCustomTypesControllerListQueryPageNumberMax)
+    .default(characterRelationshipCustomTypesControllerListQueryPageNumberDefault),
+  pageSize: zod
+    .int()
+    .min(1)
+    .max(characterRelationshipCustomTypesControllerListQueryPageSizeMax)
+    .default(characterRelationshipCustomTypesControllerListQueryPageSizeDefault),
+  directionality: zod
+    .enum(["directed", "symmetric"])
+    .optional()
+    .describe("Only types with this directionality"),
+  q: zod
+    .string()
+    .optional()
+    .describe("Case- and whitespace-insensitive search over the whole dictionary; blank browses"),
+});
+
+export const characterRelationshipCustomTypesControllerListResponsePageMin = -9007199254740991;
+export const characterRelationshipCustomTypesControllerListResponsePageMax = 9007199254740991;
+
+export const characterRelationshipCustomTypesControllerListResponsePagesCountMin =
+  -9007199254740991;
+export const characterRelationshipCustomTypesControllerListResponsePagesCountMax = 9007199254740991;
+
+export const characterRelationshipCustomTypesControllerListResponsePageSizeMin = -9007199254740991;
+export const characterRelationshipCustomTypesControllerListResponsePageSizeMax = 9007199254740991;
+
+export const characterRelationshipCustomTypesControllerListResponseTotalCountMin =
+  -9007199254740991;
+export const characterRelationshipCustomTypesControllerListResponseTotalCountMax = 9007199254740991;
+
+export const CharacterRelationshipCustomTypesControllerListResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      directionality: zod.enum(["directed", "symmetric"]),
+      id: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+  page: zod
+    .int()
+    .min(characterRelationshipCustomTypesControllerListResponsePageMin)
+    .max(characterRelationshipCustomTypesControllerListResponsePageMax),
+  pagesCount: zod
+    .int()
+    .min(characterRelationshipCustomTypesControllerListResponsePagesCountMin)
+    .max(characterRelationshipCustomTypesControllerListResponsePagesCountMax),
+  pageSize: zod
+    .int()
+    .min(characterRelationshipCustomTypesControllerListResponsePageSizeMin)
+    .max(characterRelationshipCustomTypesControllerListResponsePageSizeMax),
+  totalCount: zod
+    .int()
+    .min(characterRelationshipCustomTypesControllerListResponseTotalCountMin)
+    .max(characterRelationshipCustomTypesControllerListResponseTotalCountMax),
+});
+
+/**
+ * @summary List or search the relationship role labels the current user has already saved
+ */
+export const characterRelationshipRoleSuggestionsControllerListQueryPageNumberDefault = 1;
+export const characterRelationshipRoleSuggestionsControllerListQueryPageNumberMax = 21474836;
+
+export const characterRelationshipRoleSuggestionsControllerListQueryPageSizeDefault = 20;
+export const characterRelationshipRoleSuggestionsControllerListQueryPageSizeMax = 100;
+
+export const CharacterRelationshipRoleSuggestionsControllerListQueryParams = zod.object({
+  pageNumber: zod
+    .int()
+    .min(1)
+    .max(characterRelationshipRoleSuggestionsControllerListQueryPageNumberMax)
+    .default(characterRelationshipRoleSuggestionsControllerListQueryPageNumberDefault),
+  pageSize: zod
+    .int()
+    .min(1)
+    .max(characterRelationshipRoleSuggestionsControllerListQueryPageSizeMax)
+    .default(characterRelationshipRoleSuggestionsControllerListQueryPageSizeDefault),
+  q: zod
+    .string()
+    .optional()
+    .describe("Case- and whitespace-insensitive search over the whole dictionary; blank browses"),
+});
+
+export const characterRelationshipRoleSuggestionsControllerListResponsePageMin = -9007199254740991;
+export const characterRelationshipRoleSuggestionsControllerListResponsePageMax = 9007199254740991;
+
+export const characterRelationshipRoleSuggestionsControllerListResponsePagesCountMin =
+  -9007199254740991;
+export const characterRelationshipRoleSuggestionsControllerListResponsePagesCountMax = 9007199254740991;
+
+export const characterRelationshipRoleSuggestionsControllerListResponsePageSizeMin =
+  -9007199254740991;
+export const characterRelationshipRoleSuggestionsControllerListResponsePageSizeMax = 9007199254740991;
+
+export const characterRelationshipRoleSuggestionsControllerListResponseTotalCountMin =
+  -9007199254740991;
+export const characterRelationshipRoleSuggestionsControllerListResponseTotalCountMax = 9007199254740991;
+
+export const CharacterRelationshipRoleSuggestionsControllerListResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      id: zod.string(),
+      label: zod.string(),
+    }),
+  ),
+  page: zod
+    .int()
+    .min(characterRelationshipRoleSuggestionsControllerListResponsePageMin)
+    .max(characterRelationshipRoleSuggestionsControllerListResponsePageMax),
+  pagesCount: zod
+    .int()
+    .min(characterRelationshipRoleSuggestionsControllerListResponsePagesCountMin)
+    .max(characterRelationshipRoleSuggestionsControllerListResponsePagesCountMax),
+  pageSize: zod
+    .int()
+    .min(characterRelationshipRoleSuggestionsControllerListResponsePageSizeMin)
+    .max(characterRelationshipRoleSuggestionsControllerListResponsePageSizeMax),
+  totalCount: zod
+    .int()
+    .min(characterRelationshipRoleSuggestionsControllerListResponseTotalCountMin)
+    .max(characterRelationshipRoleSuggestionsControllerListResponseTotalCountMax),
+});
+
+/**
  * @summary List spoiler-safe relationships effective in a book
  */
 export const BookCharacterRelationshipsControllerListParams = zod.object({
