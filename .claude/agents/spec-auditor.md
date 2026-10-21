@@ -105,7 +105,7 @@ A dense report: scope, task count by layer, the assertion table (only non-`CONFI
 
 # Mode VERIFY (post-code, pre-done)
 
-Input: the same `tasks.json`, plus the branch state.
+Input: the same `tasks.json`, plus the branch state. A narrow-lane stage (`/spec-to-ship`, Narrow lane) has no `tasks.json`: the brief hands you the spec's work list and regression matrix, and each item there stands in for a task, with the spec's own wording as its `doneWhen`.
 
 1. Derive the real diff mechanically: `git diff --stat <base>..HEAD` and `git diff --name-only <base>..HEAD`. Never audit from memory of what was requested.
 2. For **every** task in `tasks.json`, check each `doneWhen` criterion against the code, with a `file:line` proof. Mark `done` / `partial` / `missing`. A task with a matching filename but an unmet criterion is `partial`, never `done`.

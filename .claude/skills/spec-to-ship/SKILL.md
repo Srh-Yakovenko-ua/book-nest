@@ -9,6 +9,22 @@ Head-on implementation is the failure mode. The spec gets read once, code gets w
 
 **Hard rule: no stage is skipped because the spec "looks small". Small specs are where a requirement buried in an appendix gets silently marked optional.**
 
+## Narrow lane
+
+A stage spec that already did its own planning takes a shorter chain. The lane applies only when the spec, or the user's message, carries all three: an ordered work list, a closed list of files, and an explicit "no approvals". Size is never the signal, so the hard rule above still holds for every other spec.
+
+- Stage 0 records the spec's path in the report instead of copying it into `docs/`, so the diff stays inside the closed file list.
+- Skip stages 1 to 3: no PLAN run, no `tasks.json`, no question block. The spec's work list is the contract. A spec claim the code contradicts becomes a stated assumption in the report, not a question and not a loop back to stage 1.
+- Stages 4 and 5 run with the spec's work list in place of `tasks.json`.
+- Stage 6 still runs: `spec-auditor` in mode VERIFY, briefed with the spec's work list and its regression matrix in place of `tasks.json`. It is what catches the requirement a narrow scope dropped.
+- A defect the change itself introduces is in scope even when its fix needs a file outside the closed list (`/unlazy`, Scope).
+
+The full chain spends two `spec-auditor` runs and a question round, sized for a large spec. On a three-item stage that brings its own work order, it costs more than the work and contradicts the prompt that launched it.
+
+### A series of stages on one branch
+
+When the user asks for one commit across stages and the earlier stage is already committed: if that commit is not pushed (`git fetch origin`, then `git branch -r --contains <sha>` prints nothing; a stale remote ref would make a pushed commit look local, and amending it means a force push), fold the new work into it with `git commit --amend`; if it is pushed, add a new commit and say why one commit was not possible. A stage prompt written ahead of time assumes the earlier stage is still uncommitted, so check before believing it.
+
 The main agent orchestrates. Specialist work is delegated per `CLAUDE.md` §10.
 
 ---
@@ -50,6 +66,7 @@ Walk `tasks.json` in dependency order, grouping into slices that leave the repo 
 - Contract first: shared Zod DTO in `packages/shared` before the code that satisfies it.
 - Delegate implementation to `backend-engineer` / `frontend-engineer`, tests to `backend-test-engineer` / `frontend-test-engineer`, migrations through the `/db-migrate` skill and `migration-reviewer`.
 - Hand the subagent the relevant `tasks.json` entries verbatim, including `doneWhen`. A subagent does not see this conversation.
+- User-facing copy the spec gives goes into the brief verbatim, quoted, never paraphrased. When the spec gives one locale and asks for the other, write the translation, then read it against the source line by line before the brief goes out: a dropped qualifier ("for interaction") is what review caught the last time a brief paraphrased.
 - Mark each task `done` in `tasks.json` only after its `doneWhen` criteria hold.
 
 **Gate:** each slice ends with its review, not with gates: per-slice gate runs on a long feature pinned the dev machine. Gates run once at the end through `/check` (or per slice only if the user asks), and a red gate is fixed before the report, not carried forward.
