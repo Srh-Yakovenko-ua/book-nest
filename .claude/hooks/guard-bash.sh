@@ -3,7 +3,7 @@ set -u
 set -f
 
 INPUT="$(cat)"
-RAW="$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)"
+RAW="$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null | tr -d '\r')"
 [ -z "$RAW" ] && exit 0
 AGENT_ID="$(printf '%s' "$INPUT" | jq -r '.agent_id // empty' 2>/dev/null)"
 AGENT_TYPE="$(printf '%s' "$INPUT" | jq -r '.agent_type // empty' 2>/dev/null)"
@@ -34,7 +34,9 @@ PNPM_OPTS='([[:space:]]+(-w|-r|-s|--recursive|--workspace-root|--silent|--filter
 IS_COMMIT=0
 IS_PROSE=0
 in_code "${G}commit([[:space:]]|$)" && IS_COMMIT=1
-in_code "gh[[:space:]]+(pr|issue|release)[[:space:]]+(create|edit|comment|review)|${G}tag[[:space:]]+${A}-[amF]|${G}merge[[:space:]]+${A}-m" && IS_PROSE=1
+in_code "gh[[:space:]]+(pr|issue|release)[[:space:]]+(create|edit|comment|review)|${G}tag[[:space:]]+${A}-[amF]|${G}merge[[:space:]]+${A}-m|${G}commit-tree[[:space:]]+${A}-m" && IS_PROSE=1
+
+names_assistant() { printf '%s' "$1" | LC_ALL=C grep -qiE 'claude|(^|[^a-z])anthropic'; }
 
 check_server_databases() {
   local server_port="(:553[23]([^0-9]|$)|-p[[:space:]]*553[23]([^0-9]|$)|PGPORT=${Q}553[23]|port=553[23])"
@@ -240,21 +242,63 @@ refused_gate_families() {
 
 commit_message() {
   local file
-  file="$(printf '%s' "$CODE" | grep -oE '(-F|--file|--body-file)([[:space:]]+|=)[^[:space:]]+' | head -1 | sed -E 's/^[^[:space:]=]+([[:space:]]+|=)//')"
+  file="$(printf '%s' "$RAW" | perl -ne 'if (/(?:^|\s)(?:-F|--file|--body-file|--notes-file)(?:=|\s+)(?:"([^"]+)"|\x27([^\x27]+)\x27|(\S+))/) { print defined $1 ? $1 : defined $2 ? $2 : $3; exit }')"
   if printf '%s' "$RAW" | grep -qE "<<-?[[:space:]]*${Q}[A-Za-z_]+"; then
     printf '%s' "$RAW" | perl -0777 -ne 'print $3 if /<<-?\s*([\x27"]?)(\w+)\1[^\n]*\n(.*?)\n[ \t]*\2[ \t]*(\n|$)/s'
   elif [ -n "$file" ] && [ -f "${CWD:-.}/$file" ]; then
     cat "${CWD:-.}/$file"
   elif [ -n "$file" ] && [ -f "$file" ]; then
     cat "$file"
-  else
-    printf '%s' "$RAW" | perl -0777 -ne '
-      my @parts;
-      while (/(?:^|\s)(?:-[a-zA-Z]*m|--message|--title|--body)(?:=|\s+)(?:"((?:[^"\\]|\\.)*)"|\x27([^\x27]*)\x27|(\S+))/gs) {
-        push @parts, defined $1 ? $1 : defined $2 ? $2 : $3;
-      }
-      print join("\n\n", @parts);'
   fi
+  printf '%s' "$RAW" | perl -0777 -ne '
+    my @parts;
+    my $short = /\bgh\s+(?:pr|issue|release)\s+\w+/ ? "|-[tbn]" : "";
+    while (/(?:^|\s)(?:-[a-zA-Z]*m|--message|--title|--body|--notes|--trailer$short)(?:=|\s+)(?:"((?:[^"\\]|\\.)*)"|\x27([^\x27]*)\x27|(\S+))/gs) {
+      push @parts, defined $1 ? $1 : defined $2 ? $2 : $3;
+    }
+    print "\n\n", join("\n\n", @parts) if @parts;'
+}
+
+check_ref_names() {
+  local segment sub token dir branch
+  local -a words positionals
+  while IFS= read -r segment; do
+    [ -n "$segment" ] || continue
+    dir="$(printf '%s' "$segment" | perl -ne 'print $1 if /^git\s+(?:(?:-c\s+\S+|--no-pager)\s+)*-C\s+(\S+)/')"
+    case "$dir" in '' | /* | [A-Za-z]:*) ;; *) dir="${CWD:-$PROJECT_DIR}/$dir" ;; esac
+    read -r -a words <<< "$(printf '%s' "$segment" | sed -E "s/^${G}//")"
+    [ "${#words[@]}" -gt 0 ] || continue
+    sub="${words[0]}"
+    words=("${words[@]:1}")
+    [ "$sub" = worktree ] && words=("${words[@]:1}")
+    case "$sub: ${words[*]:-} " in
+      branch:*" -d "* | branch:*" -D "* | branch:*" --delete "* | push:*" -d "* | push:*" --delete "* | tag:*" -d "* | tag:*" --delete "*) continue ;;
+    esac
+    positionals=()
+    for token in "${words[@]:-}"; do
+      [ "$token" = "--" ] && break
+      case "$token" in '' | -* | *'<'* | *'>'*) continue ;; esac
+      positionals+=("$token")
+    done
+    case "$sub: ${words[*]:-} " in
+      branch:*" -m "* | branch:*" -M "* | branch:*" --move "*) [ "${#positionals[@]}" -ge 2 ] && positionals=("${positionals[@]:1}") ;;
+    esac
+    for token in "${positionals[@]:-}"; do
+      case "$token" in '' | .* | /* | '$'* | '~'* | :* | [A-Za-z]:[/\\]*) continue ;; esac
+      if names_assistant "$token"; then
+        deny "The branch or tag name '$token' names the assistant, and pushing it publishes that name. Pick one without claude or anthropic, for example chore/agents-<topic>."
+        return 0
+      fi
+    done
+    if [ "$sub" = push ] && [ "${#positionals[@]}" -lt 2 ]; then
+      branch="$(git -C "${dir:-${CWD:-$PROJECT_DIR}}" branch --show-current 2>/dev/null)"
+      if names_assistant "$branch"; then
+        deny "The current branch '$branch' names the assistant, so pushing it publishes that name. Rename it first: git branch -m <new-name>."
+        return 0
+      fi
+    fi
+  done <<< "$(printf '%s' "$RAW" | tr -d "\"'" | grep -oE "${G}(push|switch|checkout|branch|tag|worktree[[:space:]]+add)([[:space:]][^|;&]*)?")"
+  return 0
 }
 
 check_commit_text() {
@@ -268,6 +312,17 @@ check_commit_text() {
   fi
   if printf '%s' "$scan" | LC_ALL=C grep -q -e $'\xe2\x80\x94' -e $'\xe2\x80\x93'; then
     deny "The text contains an em or en dash. Use a comma, colon, full stop or brackets (a plain hyphen for ranges)."
+  fi
+  if names_assistant "$msg"; then
+    deny "The commit or PR text names the assistant: claude or anthropic in any form, a .claude/ path or the CLAUDE.md filename included. Nothing published from this repo does. Use the scope agents for agent config changes and write agent config, the hooks or project instructions instead."
+  fi
+  if [ "$IS_COMMIT" = 1 ]; then
+    local identity
+    identity="$(printf '%s' "$RAW" | perl -ne 'print((defined $1 ? $1 : defined $2 ? $2 : $3), "\n") while /(?:--author|user\.(?:name|email)|GIT_(?:AUTHOR|COMMITTER)_(?:NAME|EMAIL))[=\s]+(?:"([^"]*)"|\x27([^\x27]*)\x27|(\S+))/g')"
+    identity="$identity $(git -C "${CWD:-$PROJECT_DIR}" var GIT_AUTHOR_IDENT 2>/dev/null) $(git -C "${CWD:-$PROJECT_DIR}" var GIT_COMMITTER_IDENT 2>/dev/null)"
+    if names_assistant "$identity"; then
+      deny "The commit author or committer names the assistant. Commits from this repo carry the developer's own git identity only."
+    fi
   fi
   [ "$IS_COMMIT" = 1 ] && [ -n "$msg" ] || return 0
   subject="$(printf '%s\n' "$msg" | sed -E 's/^[[:space:]]+//' | grep -v '^$' | head -1)"
@@ -312,6 +367,7 @@ check_security_review() {
 check_server_databases
 check_local_data
 check_git
+check_ref_names
 check_ux_lookup_wrapper
 check_subagent_limits
 check_main_loop_gates

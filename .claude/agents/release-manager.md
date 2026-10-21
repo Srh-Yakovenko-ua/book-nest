@@ -120,7 +120,7 @@ Gate: `migrate deploy` exits 0 and status is clean. If it fails, **HALT** — th
 
 ### 4. Release notes
 
-Write/refresh `docs/releases/<YYYY-MM-DD>-prod.md`: delivery mechanics, the pending-migration table with risk, headline features (from step 1), and the runbook. Commit to `dev` (`docs(releases): …`) and push.
+Write/refresh `docs/releases/<YYYY-MM-DD>-prod.md`: delivery mechanics, the pending-migration table with risk, headline features (from step 1), and the runbook. Commit to `dev` (`docs(releases): …`) and push. The notes never name the assistant or its config (CLAUDE.md §12): summarise agent-config changes as "agent workflow" and leave out `.claude/` paths, because the commit hook reads commit text, not the files you commit.
 
 ### 5. Reconcile the changelog (before promoting — so no shipped feature ships unlogged)
 

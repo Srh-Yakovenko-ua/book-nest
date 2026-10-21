@@ -139,6 +139,40 @@ bash_case allow 'git commit -m "feat(api): add thing"'
 bash_case allow "git commit -m \"\$(cat <<'EOF'${NL}fix(web): handle an empty list${NL}${NL}The list rendered a stray divider.${NL}EOF${NL})\""
 bash_case allow 'git commit -m "docs: explain why reset --hard is denied"'
 bash_case allow 'git commit-tree "origin/dev^{tree}" -p origin/prod -m "Release to prod: lists"'
+
+printf 'chore(agents): tighten the hooks\n\nThe file guard now reads Windows paths.\n' > "$STATE/msg-ok.txt"
+printf 'chore(agents): tighten the hooks\n\nEdits .claude/hooks/guard-files.sh.\n' > "$STATE/msg-named.txt"
+printf 'update\n' > "$STATE/msg-bad.txt"
+bash_case deny  'git commit -m "chore(claude): tighten the hooks"'
+bash_case deny  'git commit -m "chore(agents): tighten the hooks" -m "See CLAUDE.md"'
+bash_case allow "git commit -F \"$STATE/msg-ok.txt\""
+bash_case deny  "git commit -F \"$STATE/msg-named.txt\""
+bash_case deny  "git commit -F \"$STATE/msg-bad.txt\""
+bash_case allow "gh pr create --title \"chore(agents): tighten the hooks\" --body-file \"$STATE/msg-ok.txt\""
+bash_case deny  "gh pr create --title \"chore(claude): tighten the hooks\" --body-file \"$STATE/msg-ok.txt\""
+bash_case deny  "gh pr create --title \"chore(agents): tighten the hooks\" --body-file \"$STATE/msg-named.txt\""
+bash_case deny  "gh pr edit 12 --title \"Anthropic tooling\""
+bash_case deny  'git commit --author="Claude <noreply@example.com>" -m "feat(web): x"'
+bash_case deny  'git -c user.name=Claude commit -m "feat(web): x"'
+bash_case deny  "git switch -c chore/claude-notes"
+bash_case deny  "git checkout -b claude/notes"
+bash_case deny  "git push -u origin claude/notes"
+bash_case deny  "git tag claude-v1"
+bash_case allow "git -C $ROOT/.claude/worktrees/notes push -u origin chore/agents-notes"
+bash_case allow "git worktree add .claude/worktrees/notes -b chore/agents-notes origin/dev"
+bash_case allow "git branch -m claude/old chore/agents-old"
+bash_case deny  "git commit -m \"\$(cat <<'EOF'${NL}chore(claude): tighten the hooks${NL}EOF${NL})\""
+bash_case deny  'gh pr create -t "chore(claude): tighten the hooks" -b "y"'
+bash_case deny  'git commit -m "feat(web): x" --trailer "Assisted-by: Claude"'
+bash_case deny  'git commit-tree "origin/dev^{tree}" -p origin/prod -m "Release to prod: claude notes"'
+bash_case deny  'git switch -c "claude/notes"'
+bash_case deny  "git branch -m old claude/new 2>&1"
+bash_case deny  "git switch -c claude/notes && git branch -m a b"
+bash_case deny  "git push origin a:claude/notes"
+bash_case allow "git checkout -- CLAUDE.md"
+bash_case allow "git branch -d claude/old"
+bash_case allow "git push origin --delete claude/old"
+bash_case allow 'git commit -m "feat(books): track philanthropic donations"'
 bash_case allow "git log --oneline -5"
 bash_case allow "git restore --staged ."
 bash_case allow 'echo "git reset --hard"'
@@ -189,6 +223,8 @@ bash_case ask   ".claude/scripts/gates.sh origin/dev"
 bash_case allow "cat .claude/scripts/gates.sh"
 bash_case deny  "bash .claude/scripts/gates.sh" "$AGENT"
 bash_case allow "cat .claude/scripts/gates.sh" "$AGENT"
+bash_case allow "cd apps/web && TZ=UTC node -e 'const { addDays, formatISO, parseISO } = require(\"date-fns\"); console.log(formatISO(addDays(parseISO(\"2024-01-01\"), 1)))'" "$AGENT"
+bash_case allow "cd apps/api && TZ=UTC node -e 'console.log(require(\"date-fns\").isMonday(new Date(\"2026-02-23\")))'" "$AGENT"
 
 bash_case deny  "pnpm typecheck" "$AGENT"
 bash_case deny  "pnpm --filter @app/web exec vitest run src/x.test.tsx" "$AGENT"
