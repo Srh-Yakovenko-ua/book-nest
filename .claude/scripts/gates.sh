@@ -55,6 +55,27 @@ OTHER_LINTABLE="$(printf '%s\n' "$LINTABLE" | grep -v '^apps/web/' || true)"
 API_TESTS="$(tests_for api)"
 WEB_TESTS="$(tests_for web)"
 
+STAMP="$(git rev-parse --git-path booknest-gates-ok)"
+
+checked_tree() {
+  local index="$LOGS/index"
+  cp "$(git rev-parse --git-path index)" "$index" \
+    && GIT_INDEX_FILE="$index" git add -u \
+    && git ls-files --others --exclude-standard -- apps packages | GIT_INDEX_FILE="$index" git update-index --add --stdin \
+    && GIT_INDEX_FILE="$index" git write-tree
+  rm -f "$index"
+}
+
+stamp_blocker() {
+  local base paths
+  base="$(git merge-base HEAD origin/dev 2>/dev/null || git rev-parse HEAD)"
+  paths="$({ git diff --name-only "$base"; git ls-files --others --exclude-standard; } | sort -u)"
+  printf '%s\n' "$paths" | grep -m1 -E '(^|/)(eslint\.config\.[cm]?js|package\.json|tsconfig[^/]*\.json)$|^(pnpm-lock\.yaml|pnpm-workspace\.yaml|turbo\.json)$' && return 0
+  printf '%s\n' "$paths" | grep -vE '^(apps|packages|\.claude)/' | grep -m1 -E '\.(ts|tsx|js|jsx|mjs|cjs)$'
+}
+
+rm -f "$STAMP"
+TREE_BEFORE="$(checked_tree)"
 echo "base $BASE, $(printf '%s' "$CHANGED" | grep -c . ) changed files under apps/ and packages/"
 run_step typecheck pnpm typecheck
 if [ -n "$WEB_LINTABLE" ]; then
@@ -81,5 +102,17 @@ fi
 SECURITY_SHAPED="$({ git diff --name-only "$BASE"; git ls-files --others --exclude-standard; } | sort -u | bash "$ROOT/.claude/scripts/security-shaped.sh")"
 if [ -n "$SECURITY_SHAPED" ]; then
   echo "note security-shaped change ($(printf '%s\n' "$SECURITY_SHAPED" | grep -c .) files: $(printf '%s\n' "$SECURITY_SHAPED" | head -5 | paste -sd, -)): run security-reviewer on the diff before committing; the commit hook asks for any such file it has not seen"
+fi
+if [ "$FAILED" = 0 ]; then
+  BLOCKER="$(stamp_blocker || true)"
+  TREE_AFTER="$(checked_tree)"
+  if [ -n "$BLOCKER" ]; then
+    echo "no stamp: $BLOCKER changes what lint sees in files this run did not lint, so pre-push keeps its full typecheck and lint"
+  elif [ -z "$TREE_BEFORE" ] || [ "$TREE_AFTER" != "$TREE_BEFORE" ]; then
+    echo "no stamp: the tree changed while the gates ran, so pre-push keeps its full typecheck and lint"
+  else
+    printf '%s\n' "$TREE_AFTER" > "$STAMP"
+    echo "stamp gates passed on tree ${TREE_AFTER:0:12}: pre-push skips typecheck and lint when the pushed commit has exactly this tree"
+  fi
 fi
 exit "$FAILED"
