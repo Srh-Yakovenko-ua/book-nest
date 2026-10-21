@@ -32,6 +32,7 @@ const statCardIconBadge = cva("grid shrink-0 place-items-center rounded-full", {
     size: {
       default: "size-[54px] [&_svg]:size-[26px]",
       compact: "size-10 sm:size-11 [&_svg]:size-5",
+      md: "size-8 [&_svg]:size-4",
       sm: "size-6 [&_svg]:size-3",
     },
     tone: {

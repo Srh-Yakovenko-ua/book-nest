@@ -18,16 +18,13 @@ export function StatisticsRecentReads({ reads }: { reads: readonly CompletedRead
       ) : (
         <div
           aria-label={t("title")}
-          className="-mx-1 snap-x snap-mandatory overflow-x-auto rounded-lg px-1 pb-1 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:overflow-visible"
+          className="-m-1 snap-x snap-mandatory scroll-px-1 overflow-x-auto rounded-lg p-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           role="region"
           tabIndex={0}
         >
-          <ul className="flex gap-3 sm:grid sm:grid-cols-4">
+          <ul className="flex gap-3 sm:gap-4">
             {reads.map((read) => (
-              <li
-                className="w-28 shrink-0 snap-start sm:w-auto sm:shrink"
-                key={read.readingCycleId}
-              >
+              <li className="w-28 shrink-0 snap-start sm:w-32" key={read.readingCycleId}>
                 <CompletedReadCard read={read} variant="recent" />
               </li>
             ))}

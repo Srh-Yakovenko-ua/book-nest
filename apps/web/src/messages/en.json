@@ -9357,7 +9357,7 @@
       "lowerBoundValue": "≥ {value}",
       "lowerBoundHint": "Lowest known value",
       "completedReads": {
-        "label": "Reads finished",
+        "label": "Finished reads",
         "unit": "{count, plural, one {read} other {reads}}",
         "value": "{count, plural, one {# read} other {# reads}}",
         "unique": "{count, plural, one {# distinct book} other {# distinct books}}"
@@ -9417,8 +9417,8 @@
       "legendCurrent": "Current period: {range}",
       "legendComparison": "Comparison period: {range}",
       "comparisonLowerBound": "Pages are not compared: the comparison period starts before full tracking began, so its pages are incomplete.",
-      "peakReads": "Busiest stretch: {range} — {reads, plural, one {# read} other {# reads}}.",
-      "peakPages": "Busiest stretch: {range} — {pages, plural, one {# page} other {# pages}}.",
+      "peakReads": "Busiest stretch: {range} — <value>{reads, plural, one {# read} other {# reads}}</value>.",
+      "peakPages": "Busiest stretch: {range} — <value>{pages, plural, one {# page} other {# pages}}</value>.",
       "tooltip": {
         "reads": "{count, plural, one {# read} other {# reads}}",
         "uniqueBooks": "{count, plural, one {# distinct book} other {# distinct books}}",
@@ -9686,6 +9686,7 @@
       "paceUnknown": "Pace not determined yet",
       "remaining": "Remaining",
       "remainingValue": "{count, plural, one {# book} other {# books}}",
+      "notStarted": "Not started yet: {count, plural, one {# book} other {# books}} to go.",
       "forecast": "Projected finish",
       "forecastUnavailable": "Not enough data yet for a reliable forecast",
       "open": "Open the goal",

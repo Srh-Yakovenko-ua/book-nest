@@ -14,7 +14,8 @@ vi.mock("@/i18n/navigation", () => ({
   ),
 }));
 
-import { renderWithProviders, screen, userEvent } from "@/test-utils";
+import messages from "@/messages/uk.json";
+import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
 
 import type { StatisticsDestination } from "../../model/statistics-view";
 
@@ -23,10 +24,16 @@ import { StatisticsKpiGrid } from "./statistics-kpi-grid";
 
 const { kpis } = overviewFixture();
 
+const kpiText = messages.statistics.kpi;
+
 const onOpen = vi.fn<(destination: StatisticsDestination) => void>();
 
 function destinationHref(destination: StatisticsDestination): string {
   return `/statistics?${new URLSearchParams(destination).toString()}`;
+}
+
+function kpiLink(label: string): HTMLElement {
+  return screen.getByRole("link", { name: (name) => name.includes(label) });
 }
 
 describe("StatisticsKpiGrid", () => {
@@ -139,6 +146,70 @@ describe("StatisticsKpiGrid", () => {
 
     expect(screen.getByText("≥ 12 840")).toBeInTheDocument();
     expect(screen.getByText("≥ 96")).toBeInTheDocument();
+  });
+
+  it("labels the reads card as completed reads so it cannot be mistaken for the pages card", () => {
+    renderWithProviders(
+      <StatisticsKpiGrid
+        destinationHref={destinationHref}
+        isLowerBound={false}
+        kpis={kpis}
+        onOpen={onOpen}
+      />,
+    );
+
+    expect(kpiLink("Завершені читання")).toHaveAttribute(
+      "href",
+      "/statistics?metric=reads&section=dynamics&tab=activity",
+    );
+  });
+
+  it("explains the lower bound inside exactly the pages and active days cards", () => {
+    renderWithProviders(
+      <StatisticsKpiGrid
+        destinationHref={destinationHref}
+        isLowerBound
+        kpis={kpis}
+        onOpen={onOpen}
+      />,
+    );
+    const pagesLink = kpiLink(kpiText.pagesRead.label);
+    const activeDaysLink = kpiLink(kpiText.activeDays.label);
+
+    expect(within(pagesLink).getByText(kpiText.lowerBoundHint)).toBeInTheDocument();
+    expect(within(activeDaysLink).getByText(kpiText.lowerBoundHint)).toBeInTheDocument();
+    expect(pagesLink).toHaveAccessibleName(expect.stringContaining(kpiText.lowerBoundHint));
+    expect(activeDaysLink).toHaveAccessibleName(expect.stringContaining(kpiText.lowerBoundHint));
+    expect(screen.getAllByText(kpiText.lowerBoundHint)).toHaveLength(2);
+  });
+
+  it("keeps the active days rate and puts the lower-bound hint after it", () => {
+    renderWithProviders(
+      <StatisticsKpiGrid
+        destinationHref={destinationHref}
+        isLowerBound
+        kpis={kpis}
+        onOpen={onOpen}
+      />,
+    );
+
+    expect(kpiLink(kpiText.activeDays.label)).toHaveAccessibleName(
+      new RegExp(`41,6% днів періоду.*${kpiText.lowerBoundHint}`),
+    );
+  });
+
+  it("shows no lower-bound hint when the history is exact", () => {
+    renderWithProviders(
+      <StatisticsKpiGrid
+        destinationHref={destinationHref}
+        isLowerBound={false}
+        kpis={kpis}
+        onOpen={onOpen}
+      />,
+    );
+
+    expect(screen.getByText("12 840")).toBeInTheDocument();
+    expect(screen.queryByText(kpiText.lowerBoundHint)).not.toBeInTheDocument();
   });
 
   it("renders a zero-baseline comparison without inventing a percentage", () => {

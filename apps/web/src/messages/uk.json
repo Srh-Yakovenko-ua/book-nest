@@ -9357,7 +9357,7 @@
       "lowerBoundValue": "≥ {value}",
       "lowerBoundHint": "Мінімальне відоме значення",
       "completedReads": {
-        "label": "Прочитано",
+        "label": "Завершені читання",
         "unit": "{count, plural, one {читання} few {читання} many {читань} other {читання}}",
         "value": "{count, plural, one {# читання} few {# читання} many {# читань} other {# читання}}",
         "unique": "{count, plural, one {# унікальна книга} few {# унікальні книги} many {# унікальних книг} other {# унікальної книги}}"
@@ -9417,8 +9417,8 @@
       "legendCurrent": "Поточний період: {range}",
       "legendComparison": "Період порівняння: {range}",
       "comparisonLowerBound": "Сторінки не порівнюються: період порівняння починається раніше, ніж запрацював повний облік, тож його сторінки неповні.",
-      "peakReads": "Найактивніший відрізок: {range} — {reads, plural, one {# читання} few {# читання} many {# читань} other {# читання}}.",
-      "peakPages": "Найактивніший відрізок: {range} — {pages, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінки}}.",
+      "peakReads": "Найактивніший відрізок: {range} — <value>{reads, plural, one {# читання} few {# читання} many {# читань} other {# читання}}</value>.",
+      "peakPages": "Найактивніший відрізок: {range} — <value>{pages, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінки}}</value>.",
       "tooltip": {
         "reads": "{count, plural, one {# читання} few {# читання} many {# читань} other {# читання}}",
         "uniqueBooks": "{count, plural, one {# унікальна книга} few {# унікальні книги} many {# унікальних книг} other {# унікальної книги}}",
@@ -9686,6 +9686,7 @@
       "paceUnknown": "Темп ще не визначено",
       "remaining": "Залишилось",
       "remainingValue": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
+      "notStarted": "Ще не розпочато: попереду {count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}.",
       "forecast": "Прогноз завершення",
       "forecastUnavailable": "Поки замало даних для надійного прогнозу",
       "open": "Відкрити ціль",

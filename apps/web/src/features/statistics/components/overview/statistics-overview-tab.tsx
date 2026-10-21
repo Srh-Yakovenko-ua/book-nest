@@ -15,7 +15,7 @@ import { StatisticsKpiGrid } from "./statistics-kpi-grid";
 import { StatisticsRecentReads } from "./statistics-recent-reads";
 
 const OVERVIEW_LAYOUT = {
-  row: "grid grid-cols-1 items-start gap-4 xl:grid-cols-3",
+  row: "grid grid-cols-1 items-start gap-6 xl:grid-cols-3",
   whole: "xl:col-span-3",
   wide: "xl:col-span-2",
 } as const;

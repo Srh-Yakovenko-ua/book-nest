@@ -8,6 +8,7 @@ import type {
 } from "@app/shared";
 import type { ReactNode } from "react";
 
+import { TrendingUp } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 
@@ -28,6 +29,21 @@ import {
   type DynamicsLegendRanges,
   ReadingDynamicsChart,
 } from "./reading-dynamics-chart";
+
+const PEAK_SUMMARY = {
+  icon: "mt-1 size-4 shrink-0 text-icon",
+  row: "flex items-start gap-2 rounded-lg bg-muted px-3 py-2 text-sm leading-relaxed text-foreground",
+  value: {
+    compact: (chunks: ReactNode) => (
+      <strong className="font-semibold text-ink tabular-nums">{chunks}</strong>
+    ),
+    full: (chunks: ReactNode) => chunks,
+  },
+} as const satisfies {
+  icon: string;
+  row: string;
+  value: Record<DynamicsChartVariant, (chunks: ReactNode) => ReactNode>;
+};
 
 export function ReadingDynamicsCard({
   comparison,
@@ -68,6 +84,20 @@ export function ReadingDynamicsCard({
   const peak = metric === "pages" ? dynamics.peakPagesRead : dynamics.peakCompletedReads;
   const peakRange =
     peak === null ? null : formatDayRange({ from: peak.start, locale, to: peak.end });
+  const peakSummary =
+    peak === null || peakRange === null
+      ? null
+      : metric === "pages"
+        ? t.rich("peakPages", {
+            pages: peak.pagesRead,
+            range: peakRange,
+            value: PEAK_SUMMARY.value[variant],
+          })
+        : t.rich("peakReads", {
+            range: peakRange,
+            reads: peak.completedReads,
+            value: PEAK_SUMMARY.value[variant],
+          });
 
   return (
     <StatisticsSection
@@ -83,13 +113,9 @@ export function ReadingDynamicsCard({
       description={t(`subtitles.${period.granularity}`)}
       note={
         <>
-          {peak === null || peakRange === null ? null : (
-            <p className="text-xs text-muted-foreground">
-              {metric === "pages"
-                ? t("peakPages", { pages: peak.pagesRead, range: peakRange })
-                : t("peakReads", { range: peakRange, reads: peak.completedReads })}
-            </p>
-          )}
+          {variant === "full" && peakSummary !== null ? (
+            <p className="text-xs text-muted-foreground">{peakSummary}</p>
+          ) : null}
           {isComparisonHidden ? (
             <p className="text-xs text-muted-foreground">{t("comparisonLowerBound")}</p>
           ) : null}
@@ -98,6 +124,12 @@ export function ReadingDynamicsCard({
       }
       title={t("title")}
     >
+      {variant === "compact" && peakSummary !== null ? (
+        <p className={PEAK_SUMMARY.row}>
+          <TrendingUp aria-hidden className={PEAK_SUMMARY.icon} />
+          <span>{peakSummary}</span>
+        </p>
+      ) : null}
       {points.length === 0 ? (
         <StatisticsSectionState kind="empty" title={t("empty")} />
       ) : (
