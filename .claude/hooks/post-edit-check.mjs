@@ -8,7 +8,7 @@ const MAX_FINDINGS = 8;
 const input = JSON.parse(readFileSync(0, "utf8"));
 const projectDir =
   process.env.CLAUDE_PROJECT_DIR ?? join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const filePath = input.tool_input?.file_path ?? "";
+const filePath = (input.tool_input?.file_path ?? "").replaceAll("\\", "/");
 if (!filePath) process.exit(0);
 
 recordEditedFile();
@@ -204,9 +204,13 @@ function recordEditedFile() {
 
 function regeneratePrismaClient() {
   const apiDir = filePath.replace(/\/prisma\/schema\.prisma$/, "");
-  const result = spawnSync("pnpm", ["db:generate"], { cwd: apiDir, encoding: "utf8" });
+  const result = spawnSync("pnpm", ["db:generate"], {
+    cwd: apiDir,
+    encoding: "utf8",
+    shell: process.platform === "win32",
+  });
   if (result.status === 0) process.exit(0);
-  const output = `${result.stdout ?? ""}${result.stderr ?? ""}`
+  const output = `${result.error?.message ?? ""}${result.stdout ?? ""}${result.stderr ?? ""}`
     .trim()
     .split("\n")
     .slice(-15)

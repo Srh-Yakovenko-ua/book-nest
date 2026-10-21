@@ -2,6 +2,7 @@
 set -u
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+WIN_ROOT="$(cygpath -m "$ROOT" 2>/dev/null || printf '%s' "$ROOT")"
 HOOKS="$ROOT/.claude/hooks"
 SID="hooktest-$$"
 STATE="$ROOT/.claude/state/$SID"
@@ -62,9 +63,9 @@ grep_case() {
   check "$want" "$(decision_of "$out" 0)" "Grep: $path"
 }
 
-edit_case() {
+edit_path_case() {
   local want="$1" path="$2" old="$3" new="$4"
-  jq -n --arg p "$ROOT/$path" --arg o "$old" --arg n "$new" --arg s "$SID" \
+  MSYS_NO_PATHCONV=1 jq -n --arg p "$path" --arg o "$old" --arg n "$new" --arg s "$SID" \
     '{tool_name:"Edit",tool_input:{file_path:$p,old_string:$o,new_string:$n},session_id:$s}' \
     | node "$HOOKS/post-edit-check.mjs" 2>/dev/null
   local code=$?
@@ -72,6 +73,10 @@ edit_case() {
   [ "$code" = 2 ] && got=flag
   check "$want" "$got" "post-edit: $path :: $new"
 }
+
+edit_case() { edit_path_case "$1" "$WIN_ROOT/$2" "$3" "$4"; }
+
+backslashed() { printf '%s' "$1" | tr '/' '\\'; }
 
 AGENT='{"agent_id":"a1","agent_type":"frontend-engineer"}'
 RELEASE='{"agent_id":"a2","agent_type":"release-manager"}'
@@ -223,6 +228,12 @@ file_case allow Read  "$ROOT/apps/api/.env.local"
 file_case allow Read  "$ROOT/apps/api/.env.prod.example"
 file_case allow Edit  "$ROOT/apps/api/.env.prod.example"
 file_case allow Edit  "$ROOT/apps/api/src/modules/books/application/books.service.ts"
+file_case deny  Write "$(backslashed "$WIN_ROOT/apps/api/.env")"
+file_case deny  Read  "$(backslashed "$HOME/.ssh/config")"
+file_case deny  Edit  "$(backslashed "$WIN_ROOT/apps/web/src/shared/api/generated/books.ts")"
+file_case deny  Edit  "$(backslashed "$WIN_ROOT/pnpm-lock.yaml")"
+[ -n "$COMMITTED_MIGRATION" ] && file_case deny Edit "$(backslashed "$WIN_ROOT/$COMMITTED_MIGRATION")"
+file_case allow Edit  "$(backslashed "$WIN_ROOT/apps/api/src/modules/books/application/books.service.ts")"
 
 SVC="apps/api/src/modules/books/application/hooktest.service.ts"
 WEB="apps/web/src/features/books/components/hooktest-card.tsx"
@@ -243,6 +254,9 @@ edit_case allow "$SVC" "" "// eslint-disable-next-line no-restricted-syntax"
 edit_case allow "$SVC" "" 'throw new NotFoundError("as any other book");'
 edit_case allow "$SVC" "" "if (!book) return null;"
 edit_case allow "$SVC" "" "const isSame = a !== b;"
+edit_path_case flag  "$(backslashed "$WIN_ROOT/$SVC")" "" "const row = payload as any;"
+edit_path_case flag  "$(backslashed "$WIN_ROOT/$WEB")" "" "<p>Книги</p>"
+edit_path_case allow "$(backslashed "$WIN_ROOT/$SVC")" "" "if (!book) return null;"
 edit_case allow "$WEB" "" '<p className="text-sm text-muted-foreground">{t("empty")}</p>'
 edit_case allow "$WEB" "" '<div className="max-w-[65ch] grid-cols-[1fr_auto]">'
 edit_case allow "$WEB" '<p className="text-[10px] uppercase">' '<p className="text-[10px] uppercase tracking-[0.22em]">'
@@ -269,6 +283,8 @@ stop_case() {
 
 WEB_EDIT="$(t_call e1 Edit "{\"file_path\":\"$ROOT/apps/web/src/features/x.tsx\"}")"
 DOC_EDIT="$(t_call e2 Edit "{\"file_path\":\"$ROOT/docs/x.md\"}")"
+WIN_WEB_EDIT="$(t_call e3 Edit "$(jq -nc --arg p "$(backslashed "$WIN_ROOT/apps/web/src/features/x.tsx")" '{file_path:$p}')")"
+WIN_STATE_EDIT="$(t_call e4 Edit "$(jq -nc --arg p "$(backslashed "$WIN_ROOT/.claude/state/s1/notes.txt")" '{file_path:$p}')")"
 ESLINT_RUN="$(t_call b1 Bash '{"command":"cd apps/web && pnpm exec eslint src/features/x.tsx"}')"
 CHROME_SHOT="$(t_call c1 mcp__claude-in-chrome__computer '{"action":"screenshot"}')"
 ENGINEER="$(t_call a1 Agent '{"subagent_type":"backend-engineer","description":"Fix loan reminder"}')"
@@ -284,6 +300,8 @@ stop_case allow "Готово. NOT_VERIFIED: CI: x.test.tsx" "code edit with spl
 stop_case allow "Готово, eslint чистый." "code edit with eslint" "" "$(t_prompt 'почини')" "$WEB_EDIT" "$ESLINT_RUN"
 stop_case allow "Готово, на 375 и 1280 ок." "code edit with chrome pass" "" "$(t_prompt 'почини')" "$WEB_EDIT" "$CHROME_SHOT"
 stop_case allow "Готово." "docs-only edit" "" "$(t_prompt 'обнови доку')" "$DOC_EDIT"
+stop_case block "Готово." "backslash code edit counts" "" "$(t_prompt 'почини')" "$WIN_WEB_EDIT"
+stop_case allow "Готово." "backslash state edit is not code" "" "$(t_prompt 'почини')" "$WIN_STATE_EDIT"
 stop_case allow "Готово." "edit in previous turn" "" "$(t_prompt 'почини')" "$WEB_EDIT" "$(t_prompt 'что дальше?')"
 stop_case block "Готово." "meta text keeps the turn" "" "$(t_prompt 'почини')" "$WEB_EDIT" "$(t_meta 'Base directory for this skill')"
 stop_case block "Готово, сервис исправлен." "agent NOT_VERIFIED dropped" "" "$(t_prompt 'почини')" "$ENGINEER" "$ENGINEER_DONE"

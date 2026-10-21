@@ -38,7 +38,7 @@ TURN="$(tail -n 600 "$TRANSCRIPT" | jq -cs --arg checks "$CHECKS" '
       else ([$l[$k] | sub("^[ *_>#-]*" + $name + "[ *_]*:"; "")] + ($l[$k + 1:] | take_until(is_key)))
         | map(select(test("\\S")) | select(is_none | not))
       end;
-  def is_code_path: test("\\.md$|/memory/|^/private/tmp/|^/tmp/|/\\.claude/state/") | not;
+  def is_code_path: gsub("\\\\"; "/") | test("\\.md$|/memory/|^/private/tmp/|^/tmp/|/\\.claude/state/") | not;
   def first_path: gsub("[`*]"; "") | sub("^[ \\t>-]+"; "") | split(" ")[0];
   map(select(.type == "user" or .type == "assistant")) as $m
   | ([$m | to_entries[] | select(.value | is_prompt) | .key] | last // 0) as $i0
