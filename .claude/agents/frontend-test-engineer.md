@@ -116,6 +116,15 @@ const organization = messages.books.organization;
 
 6. **Mock at the network boundary, not deeper.** Don't mock React Query hooks or the generated client — stub `fetch` so the generated endpoint, the `request()` mutator, the feature's `api/` hook and the real query lifecycle all run.
 
+# Lint rules a first draft fails
+
+You cannot run ESLint here; the main loop runs it once at commit. So every rule below that your draft breaks costs a full fix round after you report, and these are the ones that broke in recent runs.
+
+- **Imports.** `act` comes from `react` (`import { act } from "react"`); everything else comes from `@/test-utils`. Do not import from `@testing-library/*` directly: a direct import switches on `testing-library/no-node-access` for the whole file, and lines nobody touched start failing. The one exception is `renderHook`, which `@/test-utils` does not re-export: take it from `@testing-library/react`, and keep that file free of the DOM access listed below.
+- **`testing-library/no-node-access`.** No `.closest()`, `.querySelector()`, `.parentElement`, `.children`, sibling properties or `document.activeElement`. Reach the element by role, label or text, scope with `within(screen.getByRole("article", { name: ... }))`, and assert focus with `toHaveFocus()`. If the component gives you no accessible handle, do not reach into the DOM: say so under FINDINGS, because a missing accessible name is a component defect.
+- **`testing-library/prefer-presence-queries`.** Absence is `expect(screen.queryByRole(...)).not.toBeInTheDocument()`; presence is `getBy*` or `findBy*`. `expect(getByRole(...).closest(...)).toBeNull()` breaks this rule and the one above.
+- **`testing-library/render-result-naming-convention`.** Name a render result `view` (`const view = renderDialog()`) or destructure it. The rule treats every function whose name contains `render`, in any case, as a render call, and so is any helper that returns a render result (`function setup() { return renderWithProviders(...) }` makes `const dialog = setup()` fail). A helper that does not render must keep the word out of its name: `const shown = renderedDates()` failed this way, and `getRenderedRows()` would too.
+
 # Mocking fetch
 
 Stub the global `fetch` with `vi.stubGlobal`, route by URL, and reject anything unexpected so a stray request fails loudly instead of hanging. From `apps/web/src/features/books/components/library-organization-section.test.tsx`:
