@@ -61,7 +61,7 @@ checked_tree() {
   local index="$LOGS/index"
   cp "$(git rev-parse --git-path index)" "$index" \
     && GIT_INDEX_FILE="$index" git add -u \
-    && git ls-files --others --exclude-standard -- apps packages | GIT_INDEX_FILE="$index" git update-index --add --stdin \
+    && git ls-files --others --exclude-standard | GIT_INDEX_FILE="$index" git update-index --add --stdin \
     && GIT_INDEX_FILE="$index" git write-tree
   rm -f "$index"
 }
