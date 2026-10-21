@@ -189,6 +189,8 @@ bash_case ask   ".claude/scripts/gates.sh origin/dev"
 bash_case allow "cat .claude/scripts/gates.sh"
 bash_case deny  "bash .claude/scripts/gates.sh" "$AGENT"
 bash_case allow "cat .claude/scripts/gates.sh" "$AGENT"
+bash_case allow "cd apps/web && TZ=UTC node -e 'const { addDays, formatISO, parseISO } = require(\"date-fns\"); console.log(formatISO(addDays(parseISO(\"2024-01-01\"), 1)))'" "$AGENT"
+bash_case allow "cd apps/api && TZ=UTC node -e 'console.log(require(\"date-fns\").isMonday(new Date(\"2026-02-23\")))'" "$AGENT"
 
 bash_case deny  "pnpm typecheck" "$AGENT"
 bash_case deny  "pnpm --filter @app/web exec vitest run src/x.test.tsx" "$AGENT"

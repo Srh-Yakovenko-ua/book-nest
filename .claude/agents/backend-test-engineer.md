@@ -306,11 +306,19 @@ await expect(service.deleteUser("00000000-0000-0000-0000-000000000000")).rejects
 1. **Read the code under test** — controller, service, repository, the `@app/shared` schema. Understand inputs, outputs, side effects, error types.
 2. **Pick the test type.** Endpoint → integration via `createTestApp([modules])`. Pure logic → unit via `new Service(mockRepo)`. Auth/filter → integration through an endpoint.
 3. **Identify the minimal module list.** Trace constructor injections. Get it wrong and Nest throws "can't resolve dependencies of X" at compile.
-4. **You do not run the tests.** Vitest, typecheck, lint, format and prisma run only in the main loop: a PreToolUse hook denies them inside agents, because a long silent run trips the 600s stream watchdog and kills the agent, and parallel agents running suites pinned the dev machine. Trying one wastes a turn and then fails. If you want to know whether Postgres is up, `docker ps --filter name=booknest-local-db` is read-only and allowed.
-5. **Write the happy path first**, then each non-200 status / invariant as its own `it`.
-6. **Hand the run to CI.** List each file you added or touched under `NOT_VERIFIED` as `CI: <exact path>`, then `MAIN: pnpm typecheck` and `MAIN: pnpm lint`. Tests never run on the dev machine: an API run boots Nest against Postgres, Redis and Mailpit and saturates it, while CI runs the suite sharded on every PR and push.
-7. **A test written to fail is a good deliverable.** When the brief is a bug repro, write the failing test, say which assertion should go red and why, and list it as `MAIN: VITEST_MAX_WORKERS=1 pnpm --filter @app/api exec vitest run <exact path>`. A bug repro is the one test the main loop runs locally, so it sees the red before the fix.
-8. **Report back**: tests added, what each covers, the `MAIN:` lines, and the `git diff --stat` proof that no existing `it` was removed. Never claim green for a run you did not see.
+4. **Look calendar facts up, never work them out by hand.** When an expected value depends on dates (the weekday of a date, the date N days later, the last day of a period), print it with plain JS and `date-fns` from `apps/api`, then paste it into the test as a literal: `cd apps/api && TZ=UTC node -e 'const { addDays, formatISO, parseISO } = require("date-fns"); console.log(formatISO(addDays(parseISO("2026-02-27"), 2), { representation: "date" }))'`.
+   - `TZ=UTC` always: CI runs in UTC and this machine does not, so a value with a time in it shifts by hours and the literal goes red in CI.
+   - Compute the facts the spec states, not the service's own chain of calls: an expectation that replays the implementation replays its off-by-one too, which is the Tautological anti-pattern above.
+   - A `format` pattern quotes literal text with apostrophes (`"yyyy-MM-dd'T'HH:mm"`), which ends the single-quoted `node -e '...'`. Use `formatISO` instead.
+   - Only plain JS works: `node -e` is allowed in agents, while `tsx` and `node --import @swc-node` (needed to import the TypeScript under test) are denied along with test, lint, build, prisma and package tooling.
+
+   Working a 786-day fixture out by hand made one frontend test run take 13 minutes, against under 3 for the agent that wrote the feature, and a service test over streaks or periods invites the same. If the brief carries a table of expected values, use it as given.
+
+5. **You do not run the tests.** Vitest, typecheck, lint, format and prisma run only in the main loop: a PreToolUse hook denies them inside agents, because a long silent run trips the 600s stream watchdog and kills the agent, and parallel agents running suites pinned the dev machine. Trying one wastes a turn and then fails. If you want to know whether Postgres is up, `docker ps --filter name=booknest-local-db` is read-only and allowed.
+6. **Write the happy path first**, then each non-200 status / invariant as its own `it`.
+7. **Hand the run to CI.** List each file you added or touched under `NOT_VERIFIED` as `CI: <exact path>`, then `MAIN: pnpm typecheck` and `MAIN: pnpm lint`. Tests never run on the dev machine: an API run boots Nest against Postgres, Redis and Mailpit and saturates it, while CI runs the suite sharded on every PR and push.
+8. **A test written to fail is a good deliverable.** When the brief is a bug repro, write the failing test, say which assertion should go red and why, and list it as `MAIN: VITEST_MAX_WORKERS=1 pnpm --filter @app/api exec vitest run <exact path>`. A bug repro is the one test the main loop runs locally, so it sees the red before the fix.
+9. **Report back**: tests added, what each covers, the `MAIN:` lines, and the `git diff --stat` proof that no existing `it` was removed. Never claim green for a run you did not see.
 
 # Common gotchas in this codebase
 
