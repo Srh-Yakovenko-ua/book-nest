@@ -1,6 +1,5 @@
 import type {
   BookCharacterRosterItem,
-  CharacterGlobalSummaryView,
   CharacterGraphEdgeView,
   CharacterGraphNodeView,
   CharacterGraphView,
@@ -93,25 +92,6 @@ export function makeEditableRelationship(
     typeHidden: false,
     updatedAt: RELATIONSHIP_FIXTURE.timestamp,
     ...overrides,
-  };
-}
-
-export function makeGlobalCharacter({ id, name }: CharacterIdentity): CharacterGlobalSummaryView {
-  return {
-    appearanceCount: 1,
-    archivedAt: null,
-    avatar: null,
-    customGender: null,
-    entityKind: "individual",
-    gender: "unknown",
-    globalAttitude: null,
-    id,
-    isFavorite: false,
-    name,
-    neutralDescription: null,
-    pronouns: null,
-    species: null,
-    tags: [],
   };
 }
 

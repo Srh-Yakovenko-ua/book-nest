@@ -262,7 +262,9 @@ describe("BookCharactersPanel relationships mode", () => {
     await userEvent.click(within(dialog).getByRole("button", { name: editor.actions.next }));
     const create = await within(dialog).findByRole("button", { name: editor.actions.create });
 
-    expect(within(dialog).getByText(BOOK.title)).toBeVisible();
+    expect(
+      within(dialog).getByRole("heading", { name: `${editor.steps.bookHeading} ${BOOK.title}` }),
+    ).toBeVisible();
     expect(
       within(dialog).queryByRole("combobox", { name: editor.book.label }),
     ).not.toBeInTheDocument();
