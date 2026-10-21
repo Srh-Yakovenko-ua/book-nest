@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 import { ReadingGoalPaceSchema } from "@app/shared";
 import { createTranslator } from "next-intl";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
@@ -12,9 +12,10 @@ vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
+import { stubTextMetrics } from "@/features/quotes/model/quotes.fixtures";
 import { formatDateLong } from "@/lib/format";
 import messages from "@/messages/uk.json";
-import { renderWithProviders, screen } from "@/test-utils";
+import { renderWithProviders, screen, userEvent } from "@/test-utils";
 
 import { overviewFixture, statisticsIds } from "../../model/statistics.fixtures";
 import { ReadingGoalCard } from "./reading-goal-card";
@@ -35,6 +36,13 @@ const UNRELIABLE_FORECASTS: Partial<ReadingGoalMetrics>[] = [
   { projectedCompletionDate: "2026-12-20", projectionConfidence: "none" },
   { projectedCompletionDate: null, projectionConfidence: "high" },
 ];
+
+let restoreMetrics: () => void = () => undefined;
+
+afterEach(() => {
+  restoreMetrics();
+  restoreMetrics = () => undefined;
+});
 
 function goalWith({
   activeGoalsCount = 1,
@@ -71,6 +79,18 @@ describe("ReadingGoalCard", () => {
     );
 
     expect(screen.getByText(LONG_NAME)).toHaveClass("truncate");
+  });
+
+  it("reveals the full goal name on hover once the compact name is cut short", async () => {
+    restoreMetrics = stubTextMetrics({ clientWidth: 120, scrollWidth: 400 });
+    const user = userEvent.setup();
+    renderWithProviders(
+      <ReadingGoalCard goal={goalWith({ primary: { name: LONG_NAME } })} variant="compact" />,
+    );
+
+    await user.hover(screen.getByText(LONG_NAME));
+
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(LONG_NAME);
   });
 
   it("labels the pace instead of repeating the goal status", () => {
@@ -212,5 +232,69 @@ describe("ReadingGoalCard", () => {
     renderWithProviders(<ReadingGoalCard goal={goalWith()} variant="full" />);
 
     expect(screen.getAllByText(goalText.description)).toHaveLength(1);
+  });
+
+  it("dates the deadline under the progress bar in the compact card", () => {
+    renderWithProviders(
+      <ReadingGoalCard
+        goal={goalWith({ primary: { deadline: "2027-02-14" } })}
+        variant="compact"
+      />,
+    );
+
+    expect(screen.getByText(translateGoal("deadline", { date: "14 лют." }))).toBeInTheDocument();
+    expect(screen.queryByText(goalText.deadlineLabel)).not.toBeInTheDocument();
+  });
+
+  it("shows the books ahead of a not-started goal in the compact card", () => {
+    renderWithProviders(
+      <ReadingGoalCard
+        goal={goalWith({ metrics: { completedCount: 0, progressPercent: 0, remainingCount: 12 } })}
+        variant="compact"
+      />,
+    );
+
+    expect(screen.getByText(translateGoal("notStarted", { count: 12 }))).toBeInTheDocument();
+    expect(screen.queryByText(goalText.remaining)).not.toBeInTheDocument();
+  });
+
+  it("counts the books left in a compact card with the goal under way", () => {
+    renderWithProviders(
+      <ReadingGoalCard
+        goal={goalWith({ metrics: { completedCount: 3, progressPercent: 25, remainingCount: 9 } })}
+        variant="compact"
+      />,
+    );
+
+    expect(screen.getByText(goalText.remaining)).toBeInTheDocument();
+    expect(screen.getByText(translateGoal("remainingValue", { count: 9 }))).toBeInTheDocument();
+    expect(screen.queryByText(translateGoal("notStarted", { count: 9 }))).not.toBeInTheDocument();
+  });
+
+  it("drops the caption from a compact card whose goal is done", () => {
+    renderWithProviders(
+      <ReadingGoalCard
+        goal={goalWith({
+          metrics: { completedCount: 12, progressPercent: 100, remainingCount: 0 },
+          primary: { targetCount: 12 },
+        })}
+        variant="compact"
+      />,
+    );
+
+    expect(screen.queryByText(goalText.remaining)).not.toBeInTheDocument();
+    expect(screen.queryByText(translateGoal("notStarted", { count: 0 }))).not.toBeInTheDocument();
+  });
+
+  it("keeps the remaining count, not the not-started line, in the full card", () => {
+    renderWithProviders(
+      <ReadingGoalCard
+        goal={goalWith({ metrics: { completedCount: 0, progressPercent: 0, remainingCount: 12 } })}
+        variant="full"
+      />,
+    );
+
+    expect(screen.getByText(translateGoal("remainingValue", { count: 12 }))).toBeInTheDocument();
+    expect(screen.queryByText(translateGoal("notStarted", { count: 12 }))).not.toBeInTheDocument();
   });
 });

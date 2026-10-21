@@ -1,6 +1,7 @@
 import type { ReadingStatisticsBucket } from "@app/shared";
 import type { ReactNode } from "react";
 
+import { createTranslator } from "next-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/i18n/navigation", () => ({
@@ -10,7 +11,9 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 import messages from "@/messages/uk.json";
-import { renderWithProviders, screen, userEvent } from "@/test-utils";
+import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
+
+import type { DynamicsChartVariant } from "./reading-dynamics-chart";
 
 import { overviewFixture } from "../../model/statistics.fixtures";
 import { ReadingDynamicsCard } from "./reading-dynamics-card";
@@ -32,6 +35,46 @@ function monthBucket(month: string, pagesRead: number): ReadingStatisticsBucket 
     start: `2026-${month}-01`,
     uniqueBooksCompleted: 1,
   };
+}
+
+const translateDynamics = createTranslator({
+  locale: "uk",
+  messages,
+  namespace: "statistics.dynamics",
+});
+
+function peakSentencePattern(): RegExp {
+  const rangeSlot = "RANGE_SLOT";
+  const sentence = translateDynamics
+    .markup("peakReads", { range: rangeSlot, reads: 3, value: (chunks: string) => chunks })
+    .replace(/\s+/g, " ")
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`^${sentence.replace(rangeSlot, ".+")}$`);
+}
+
+const peak = {
+  bucket: { ...monthBucket("02", 20), completedReads: 3 },
+  count: "3 читання",
+  sentence: peakSentencePattern(),
+};
+
+function showPeakCard(variant: DynamicsChartVariant) {
+  renderWithProviders(
+    <ReadingDynamicsCard
+      comparison={null}
+      dynamics={{
+        ...overview.dynamics,
+        buckets: [monthBucket("01", 10), peak.bucket, monthBucket("03", 30)],
+        peakCompletedReads: peak.bucket,
+        peakPagesRead: null,
+      }}
+      isComparisonLowerBound={false}
+      metric="reads"
+      onMetricChange={vi.fn()}
+      period={overview.period}
+      variant={variant}
+    />,
+  );
 }
 
 const fetchMock = vi.fn((input: RequestInfo | URL) => {
@@ -105,5 +148,34 @@ describe("ReadingDynamicsCard bucket selection", () => {
 
     expect(screen.queryByRole("heading", { name: /^Сторінки: / })).toBeNull();
     expect(buckets[1]).toHaveFocus();
+  });
+});
+
+describe("ReadingDynamicsCard peak summary", () => {
+  it("reads the compact peak summary as the full sentence above the chart", () => {
+    showPeakCard("compact");
+    const paragraphs = screen.getAllByRole("paragraph");
+    const peakRow = paragraphs.find(
+      (paragraph) => within(paragraph).queryByRole("strong") !== null,
+    );
+    if (peakRow === undefined) throw new Error("compact peak summary is missing");
+
+    expect(peakRow).toHaveTextContent(peak.sentence);
+    expect(paragraphs.indexOf(peakRow)).toBeLessThan(
+      paragraphs.indexOf(screen.getByText(text.dynamics.openHint)),
+    );
+  });
+
+  it("puts only the peak count in bold in the compact summary", () => {
+    showPeakCard("compact");
+
+    expect(screen.getByRole("strong")).toHaveTextContent(new RegExp(`^${peak.count}$`));
+  });
+
+  it("keeps the full peak summary a plain sentence with no bold count", () => {
+    showPeakCard("full");
+
+    expect(screen.getByText(peak.sentence)).toBeInTheDocument();
+    expect(screen.queryByRole("strong")).not.toBeInTheDocument();
   });
 });

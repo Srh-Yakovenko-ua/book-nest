@@ -25,13 +25,31 @@ const INSIGHT_TONE_CLASS = {
   positive: "bg-success-soft text-success",
 } as const satisfies Record<ReadingStatisticsInsightTone, string>;
 
+const INSIGHT_EMPHASIS = {
+  figure: {
+    body: "flex min-w-0 flex-col gap-1.5 pt-1",
+    sentence: "text-sm leading-relaxed text-muted-foreground",
+    value: "font-heading text-lg leading-none font-semibold text-ink",
+  },
+  plain: {
+    body: "flex min-w-0 flex-col gap-1.5",
+    sentence: "text-sm leading-relaxed text-foreground",
+    value: "font-semibold text-ink",
+  },
+} as const;
+
+type InsightEmphasis = keyof typeof INSIGHT_EMPHASIS;
+
 export function StatisticsInsightBody({
+  emphasis = "plain",
   insight,
   isLowerBound,
 }: {
+  emphasis?: InsightEmphasis;
   insight: ReadingStatisticsInsight;
   isLowerBound: boolean;
 }) {
+  const emphasisClass = INSIGHT_EMPHASIS[emphasis];
   const locale = useLocale();
   const t = useTranslations("statistics.insights.codes");
   const tActions = useTranslations("statistics.contextActions");
@@ -63,11 +81,11 @@ export function StatisticsInsightBody({
       >
         <UiIcon name={view.icon} size={16} />
       </span>
-      <div className="flex min-w-0 flex-col gap-1.5">
-        <p className="text-sm leading-relaxed text-foreground">
+      <div className={emphasisClass.body}>
+        <p className={emphasisClass.sentence}>
           {t.rich(view.code, {
             ...view.values,
-            value: (chunks) => <strong className="font-semibold text-ink">{chunks}</strong>,
+            value: (chunks) => <strong className={emphasisClass.value}>{chunks}</strong>,
           })}
         </p>
         {action === null ? null : (
@@ -100,7 +118,11 @@ export function StatisticsInsights({
       <ul className="flex flex-col divide-y divide-border">
         {insights.map((insight) => (
           <li className="py-3 first:pt-0 last:pb-0" key={`${insight.code}-${insight.category}`}>
-            <StatisticsInsightBody insight={insight} isLowerBound={isLowerBound} />
+            <StatisticsInsightBody
+              emphasis="figure"
+              insight={insight}
+              isLowerBound={isLowerBound}
+            />
           </li>
         ))}
       </ul>
