@@ -168,6 +168,18 @@ check_subagent_limits() {
   if in_code "$vcs_write"; then
     deny "Subagents never commit, push, stage, switch branches or touch PRs. Leave the working tree as you changed it and list CHANGED files; the main loop owns git."
   fi
+  local names="(node|nodejs|bash|sh|zsh|dash|python[0-9.]*|py|perl|ruby|bun|deno|cmd|powershell|pwsh)(\.exe)?"
+  local inline_flag="(-[a-zA-Z]*[ecp]|--eval|--print|//?[cC]|-Command|-EncodedCommand)"
+  local interpreter="(^|[;&|(\`[:space:]/\\\\])${names}(([[:space:]]+[^;&|[:space:]]+)*[[:space:]]+${inline_flag}([[:space:]=\"']|$)|[[:space:]]+eval([[:space:]]|$)|[^;&|]*<<)|[|][[:space:]]*([^;&|[:space:]]*[/\\\\])?${names}([[:space:]]|$)"
+  in_raw_i "$interpreter" || return 0
+  if in_raw_i "(powershell|pwsh)(\.exe)?([[:space:]]+[^;&|[:space:]]+)*[[:space:]]+-(e|ec|en[a-z]*)([[:space:]]|$)"; then
+    deny "Subagents do not run encoded PowerShell commands: the guard cannot read what they do. List the check under NOT_VERIFIED as 'MAIN: <exact command>'; the main loop runs it."
+    return 0
+  fi
+  if printf '%s' "$RAW" | sed -E "s/[\"']/ ; /g; s#(^|[[:space:]])${inline_flag}([[:space:]=]|$)# ; #g" | grep -qE -- "$tooling|$vcs_write" \
+    || in_raw 'child_process|subprocess|Popen|os\.(system|popen)|IO\.popen|Open3|Bun\.spawn|Deno\.(Command|run)|Start-Process|Invoke-Expression|(^|[^A-Za-z_.])(execSync|execFileSync|spawnSync|spawn|exec|execFile|fork|system)\('; then
+    deny "Subagents do not run gates, builds, codegen, package-manager tasks or git writes through an interpreter either (node -e, bash -c and the like), and do not start child processes from one. Plain JS for calendar facts is fine. List the check under NOT_VERIFIED as 'MAIN: <exact command>'; the main loop runs it."
+  fi
 }
 
 check_main_loop_gates() {
