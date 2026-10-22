@@ -50,7 +50,6 @@ export function ReadingCalendarCard({
     if (isMonthStale) discardStaleMonth();
   }, [isMonthStale, month]);
 
-  const isLowerBound = meta.activityHistory.selectedPeriodQuality === "legacy_lower_bound";
   const metricLabel = formatDayRange({
     from: calendar.metricRange.from,
     locale,
@@ -92,12 +91,9 @@ export function ReadingCalendarCard({
         metricLabel === null ? t("description") : t("metricRange", { range: metricLabel })
       }
       note={
-        <>
-          {isDisplayNarrower && displayLabel !== null ? (
-            <StatisticsNote>{t("displayRange", { range: displayLabel })}</StatisticsNote>
-          ) : null}
-          {isLowerBound ? <StatisticsNote>{t("legacyNote")}</StatisticsNote> : null}
-        </>
+        isDisplayNarrower && displayLabel !== null ? (
+          <StatisticsNote>{t("displayRange", { range: displayLabel })}</StatisticsNote>
+        ) : null
       }
       title={t("title")}
     >

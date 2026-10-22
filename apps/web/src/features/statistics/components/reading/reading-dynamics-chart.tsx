@@ -46,8 +46,13 @@ const ActiveIndexSchema = z.coerce.number().int().nonnegative();
 
 const CHART_HEIGHT = {
   compact: "h-44 sm:h-48",
-  full: "h-[16rem] sm:h-[20rem]",
+  full: "h-56 sm:h-64",
 } as const satisfies Record<DynamicsChartVariant, string>;
+
+const BAR_MAX_WIDTH = {
+  compact: 20,
+  full: 30,
+} as const satisfies Record<DynamicsChartVariant, number>;
 
 const CHART_FRAME = {
   marginTop: 8,
@@ -117,7 +122,7 @@ export function ReadingDynamicsChart({
   }
 
   const hasComparison = points.some((point) => point.comparisonBucket !== null);
-  const showsValueLabels = variant === "compact" && !hasComparison;
+  const showsValueLabels = !hasComparison;
   const longestValueLabel = Math.max(
     0,
     ...points.map((point) => formatNumber(point.value, locale).length),
@@ -224,7 +229,7 @@ export function ReadingDynamicsChart({
             <Bar
               dataKey="comparisonValue"
               fill={COMPARISON_FILL}
-              maxBarSize={20}
+              maxBarSize={BAR_MAX_WIDTH.compact}
               radius={[4, 4, 0, 0]}
               stroke={COMPARISON_STROKE}
               strokeDasharray="3 3"
@@ -234,7 +239,7 @@ export function ReadingDynamicsChart({
           <Bar
             dataKey="value"
             fill={CURRENT_FILL}
-            maxBarSize={variant === "compact" ? 20 : 44}
+            maxBarSize={BAR_MAX_WIDTH[variant]}
             radius={[4, 4, 0, 0]}
           >
             {points.map((point) => (
@@ -250,7 +255,7 @@ export function ReadingDynamicsChart({
                 offset={VALUE_LABEL.offset}
                 position="top"
                 valueAccessor={(entry) =>
-                  compactValueLabel({ entry, locale, longestValueLabel, slots: points.length })
+                  fittingValueLabel({ entry, locale, longestValueLabel, slots: points.length })
                 }
               />
             ) : null}
@@ -287,27 +292,6 @@ export function ReadingDynamicsChart({
       <p className="text-xs text-muted-foreground">{t("openHint")}</p>
     </>
   );
-}
-
-function compactValueLabel({
-  entry,
-  locale,
-  longestValueLabel,
-  slots,
-}: {
-  entry: ValueLabelEntry;
-  locale: string;
-  longestValueLabel: number;
-  slots: number;
-}): string | undefined {
-  const { parentViewBox: chart, value } = entry;
-  if (typeof value !== "number" || value <= 0) return undefined;
-  if (chart === undefined || !("width" in chart)) return undefined;
-
-  const plotWidth = chart.width - CHART_FRAME.yAxisWidth - CHART_FRAME.marginX * 2;
-  const barSlotWidth = plotWidth / slots;
-  const labelWidth = longestValueLabel * VALUE_LABEL.charWidth + VALUE_LABEL.gap;
-  return labelWidth <= barSlotWidth ? formatNumber(value, locale) : undefined;
 }
 
 function DynamicsTooltip({
@@ -360,6 +344,27 @@ function DynamicsTooltip({
       )}
     </div>
   );
+}
+
+function fittingValueLabel({
+  entry,
+  locale,
+  longestValueLabel,
+  slots,
+}: {
+  entry: ValueLabelEntry;
+  locale: string;
+  longestValueLabel: number;
+  slots: number;
+}): string | undefined {
+  const { parentViewBox: chart, value } = entry;
+  if (typeof value !== "number" || value <= 0) return undefined;
+  if (chart === undefined || !("width" in chart)) return undefined;
+
+  const plotWidth = chart.width - CHART_FRAME.yAxisWidth - CHART_FRAME.marginX * 2;
+  const barSlotWidth = plotWidth / slots;
+  const labelWidth = longestValueLabel * VALUE_LABEL.charWidth + VALUE_LABEL.gap;
+  return labelWidth <= barSlotWidth ? formatNumber(value, locale) : undefined;
 }
 
 function nextBucketIndex({

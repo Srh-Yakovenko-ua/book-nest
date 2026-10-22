@@ -210,7 +210,7 @@ describe("ReadingBucketDetails", () => {
       />,
     );
 
-    expect(await screen.findByText("2 завершені читання")).toBeInTheDocument();
+    expect(await screen.findByText("2 завершення")).toBeInTheDocument();
     expect(screen.getByRole("heading")).toHaveFocus();
     expect(screen.queryByText(text.day.deletedBook)).toBeNull();
 

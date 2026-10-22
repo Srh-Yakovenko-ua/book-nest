@@ -1,5 +1,5 @@
-import type { ReadingStatisticsBucket } from "@app/shared";
-import type { ReactNode } from "react";
+import type { ReadingStatisticsBucket, ReadingStatisticsComparison } from "@app/shared";
+import type { ComponentProps, ReactNode } from "react";
 
 import { createTranslator } from "next-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -54,9 +54,11 @@ function peakSentencePattern(): RegExp {
 
 const peak = {
   bucket: { ...monthBucket("02", 20), completedReads: 3 },
-  count: "3 читання",
+  count: "3 завершення",
   sentence: peakSentencePattern(),
 };
+
+type DynamicsCardProps = ComponentProps<typeof ReadingDynamicsCard>;
 
 function showPeakCard(variant: DynamicsChartVariant) {
   renderWithProviders(
@@ -71,6 +73,43 @@ function showPeakCard(variant: DynamicsChartVariant) {
       isComparisonLowerBound={false}
       metric="reads"
       onMetricChange={vi.fn()}
+      period={overview.period}
+      variant={variant}
+    />,
+  );
+}
+
+const comparisonPeriod: ReadingStatisticsComparison = {
+  from: "2025-01-01",
+  mode: "same_period_last_year",
+  to: "2025-03-31",
+};
+
+const comparisonResults = {
+  fewerReads: { absoluteDelta: -2, comparisonValue: 9, currentValue: 7, percentDelta: -22.2 },
+  morePages: { absoluteDelta: 120, comparisonValue: 300, currentValue: 420, percentDelta: 40 },
+} as const satisfies Record<string, NonNullable<DynamicsCardProps["comparisonResult"]>>;
+
+function showComparisonCard({
+  comparisonResult,
+  isComparisonLowerBound = false,
+  metric,
+  onMetricChange = vi.fn(),
+  variant,
+}: Partial<Pick<DynamicsCardProps, "isComparisonLowerBound" | "onMetricChange">> &
+  Pick<DynamicsCardProps, "comparisonResult" | "metric" | "variant">) {
+  renderWithProviders(
+    <ReadingDynamicsCard
+      comparison={comparisonPeriod}
+      comparisonResult={comparisonResult}
+      dynamics={{
+        ...overview.dynamics,
+        buckets: [monthBucket("01", 10), monthBucket("02", 20), monthBucket("03", 30)],
+        comparisonBuckets: [monthBucket("01", 5), monthBucket("02", 15), monthBucket("03", 25)],
+      }}
+      isComparisonLowerBound={isComparisonLowerBound}
+      metric={metric}
+      onMetricChange={onMetricChange}
       period={overview.period}
       variant={variant}
     />,
@@ -172,10 +211,124 @@ describe("ReadingDynamicsCard peak summary", () => {
     expect(screen.getByRole("strong")).toHaveTextContent(new RegExp(`^${peak.count}$`));
   });
 
-  it("keeps the full peak summary a plain sentence with no bold count", () => {
+  it("reads the full peak summary chip as the full sentence above the chart", () => {
+    showPeakCard("full");
+    const paragraphs = screen.getAllByRole("paragraph");
+    const peakChip = paragraphs.find(
+      (paragraph) => within(paragraph).queryByRole("strong") !== null,
+    );
+    if (peakChip === undefined) throw new Error("full peak summary is missing");
+
+    expect(peakChip).toHaveTextContent(peak.sentence);
+    expect(paragraphs.indexOf(peakChip)).toBeLessThan(
+      paragraphs.indexOf(screen.getByText(text.dynamics.openHint)),
+    );
+  });
+
+  it("puts only the peak count in bold in the full summary chip", () => {
     showPeakCard("full");
 
-    expect(screen.getByText(peak.sentence)).toBeInTheDocument();
-    expect(screen.queryByRole("strong")).not.toBeInTheDocument();
+    expect(screen.getByRole("strong")).toHaveTextContent(new RegExp(`^${peak.count}$`));
+  });
+});
+
+describe("ReadingDynamicsCard metric switch", () => {
+  it("offers completions and pages as the metrics and marks the current one", () => {
+    showPeakCard("full");
+    const metrics = screen.getByRole("radiogroup", { name: text.dynamics.metricLabel });
+
+    expect(within(metrics).getByRole("radio", { name: text.dynamics.metrics.reads })).toBeChecked();
+    expect(
+      within(metrics).getByRole("radio", { name: text.dynamics.metrics.pages }),
+    ).not.toBeChecked();
+  });
+
+  it("asks for the pages metric when the reader picks it", async () => {
+    const user = userEvent.setup();
+    const onMetricChange = vi.fn();
+    showComparisonCard({ metric: "reads", onMetricChange, variant: "full" });
+
+    await user.click(screen.getByRole("radio", { name: text.dynamics.metrics.pages }));
+
+    expect(onMetricChange).toHaveBeenCalledWith("pages");
+  });
+});
+
+describe("ReadingDynamicsCard comparison", () => {
+  it.each(["compact", "full"] as const)(
+    "explains on the %s card that pages cannot be compared with an incomplete previous period",
+    (variant) => {
+      showComparisonCard({
+        comparisonResult: comparisonResults.morePages,
+        isComparisonLowerBound: true,
+        metric: "pages",
+        variant,
+      });
+      const notice = screen.getByRole("status");
+
+      expect(notice).toHaveTextContent(text.dynamics.comparisonUnavailable.title);
+      expect(notice).toHaveTextContent(text.dynamics.comparisonUnavailable.description);
+    },
+  );
+
+  it("drops the page comparison result when the previous period is incomplete", () => {
+    showComparisonCard({
+      comparisonResult: comparisonResults.morePages,
+      isComparisonLowerBound: true,
+      metric: "pages",
+      variant: "full",
+    });
+
+    expect(screen.queryByText("На 120 сторінок більше")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Поточний період: 420 · Період порівняння: 300"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps comparing completions when only the page history is incomplete", () => {
+    showComparisonCard({
+      comparisonResult: comparisonResults.fewerReads,
+      isComparisonLowerBound: true,
+      metric: "reads",
+      variant: "full",
+    });
+
+    expect(screen.getByRole("status")).toHaveTextContent("На 2 завершені прочитання менше");
+    expect(screen.queryByText(text.dynamics.comparisonUnavailable.title)).not.toBeInTheDocument();
+  });
+
+  it("states how many more pages the current period has than the comparison period", () => {
+    showComparisonCard({
+      comparisonResult: comparisonResults.morePages,
+      metric: "pages",
+      variant: "full",
+    });
+    const result = screen.getByRole("status");
+
+    expect(result).toHaveTextContent("На 120 сторінок більше");
+    expect(result).toHaveTextContent("Поточний період: 420 · Період порівняння: 300");
+  });
+
+  it("states how many fewer completions the current period has than the comparison period", () => {
+    showComparisonCard({
+      comparisonResult: comparisonResults.fewerReads,
+      metric: "reads",
+      variant: "full",
+    });
+    const result = screen.getByRole("status");
+
+    expect(result).toHaveTextContent("На 2 завершені прочитання менше");
+    expect(result).toHaveTextContent("Поточний період: 7 · Період порівняння: 9");
+  });
+
+  it("leaves the comparison result off the compact card", () => {
+    showComparisonCard({
+      comparisonResult: comparisonResults.morePages,
+      metric: "pages",
+      variant: "compact",
+    });
+
+    expect(screen.queryByText("На 120 сторінок більше")).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 });

@@ -29,6 +29,7 @@ import { SeriesSection } from "../progress/series-section";
 import { ReadingCalendarCard } from "../reading/reading-calendar-card";
 import { ReadingDynamicsCard } from "../reading/reading-dynamics-card";
 import { ReadingHabitsSection } from "../reading/reading-habits-section";
+import { ReadingWeekdayActivity } from "../reading/reading-weekday-activity";
 import { StatisticsFocusTarget } from "../statistics-focus-target";
 import {
   StatisticsError,
@@ -44,7 +45,6 @@ import { GenresSection } from "../tastes/genres-section";
 import { LanguagesSection } from "../tastes/languages-section";
 import { PublishersSection } from "../tastes/publishers-section";
 import { RatingsSection } from "../tastes/ratings-section";
-import { StatisticsInsightBody } from "./statistics-insights";
 import { StatisticsOverviewTab } from "./statistics-overview-tab";
 
 const ACTIVITY_COMPARISON_INSIGHT_CODE = {
@@ -172,6 +172,11 @@ function StatisticsTabs({
   const comparisonInsight = overview.overviewInsights[view.metric].find(
     (insight) => insight.code === ACTIVITY_COMPARISON_INSIGHT_CODE[view.metric],
   );
+  const comparisonResult =
+    comparisonInsight?.code === "completed_reads_vs_comparison" ||
+    comparisonInsight?.code === "pages_read_vs_comparison"
+      ? comparisonInsight.params
+      : undefined;
 
   const items: PageTabsItem[] = STATISTICS_VIEW.tabs.map((value) => ({ label: t(value), value }));
 
@@ -194,25 +199,34 @@ function StatisticsTabs({
       </PageTabsPanel>
 
       <PageTabsPanel className="flex flex-col gap-6" value="activity">
-        <StatisticsFocusTarget isTarget={view.section === "dynamics"}>
-          <ReadingDynamicsCard
-            comparison={overview.comparison}
-            dynamics={overview.dynamics}
-            insight={
-              comparisonInsight === undefined ? null : (
-                <StatisticsInsightBody insight={comparisonInsight} isLowerBound={isLowerBound} />
-              )
-            }
-            isComparisonLowerBound={isComparisonLowerBound}
-            metric={view.metric}
-            onMetricChange={view.setMetric}
-            period={overview.period}
-            variant="full"
-          />
-        </StatisticsFocusTarget>
-        <StatisticsFocusTarget isTarget={view.section === "habits"}>
-          <ReadingHabitsSection calendar={overview.calendar} meta={overview.meta} />
-        </StatisticsFocusTarget>
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-20 xl:items-start">
+          <StatisticsFocusTarget
+            className="min-w-0 xl:col-span-11"
+            isTarget={view.section === "dynamics"}
+          >
+            <ReadingDynamicsCard
+              comparison={overview.comparison}
+              comparisonResult={comparisonResult}
+              dynamics={overview.dynamics}
+              isComparisonLowerBound={isComparisonLowerBound}
+              metric={view.metric}
+              onMetricChange={view.setMetric}
+              period={overview.period}
+              variant="full"
+            />
+          </StatisticsFocusTarget>
+          <StatisticsFocusTarget
+            className="min-w-0 xl:col-span-9"
+            isTarget={view.section === "habits"}
+          >
+            <ReadingHabitsSection calendar={overview.calendar} meta={overview.meta} />
+          </StatisticsFocusTarget>
+        </div>
+        <ReadingWeekdayActivity
+          calendar={overview.calendar}
+          key={[overview.period.from, overview.period.to].join(":")}
+          weekStartDay={overview.meta.weekStartDay}
+        />
         <StatisticsFocusTarget isTarget={view.section === "calendar"}>
           <ReadingCalendarCard
             calendar={overview.calendar}

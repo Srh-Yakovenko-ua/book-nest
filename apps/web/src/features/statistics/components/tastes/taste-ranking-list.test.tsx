@@ -287,7 +287,7 @@ describe("TasteRankingList finished-reads drill-down", () => {
     await user.click(screen.getByRole("button", { name: openLabel(AUTHOR) }));
 
     const dialog = await screen.findByRole("dialog", { name: dialogTitle(AUTHOR) });
-    expect(await within(dialog).findByText("2 завершені читання")).toBeInTheDocument();
+    expect(await within(dialog).findByText("2 завершення")).toBeInTheDocument();
     expect(subsetRequests()).toEqual([expected]);
   });
 
@@ -326,7 +326,7 @@ describe("TasteRankingList finished-reads drill-down", () => {
     await user.tab();
     await user.keyboard("{Enter}");
     const dialog = await screen.findByRole("dialog", { name: dialogTitle(AUTHOR) });
-    await within(dialog).findByText("2 завершені читання");
+    await within(dialog).findByText("2 завершення");
     await user.keyboard("{Escape}");
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
@@ -341,7 +341,7 @@ describe("TasteRankingList finished-reads drill-down", () => {
     await user.click(trigger);
 
     const popover = await screen.findByRole("dialog", { name: dialogTitle(AUTHOR) });
-    await within(popover).findByText("2 завершені читання");
+    await within(popover).findByText("2 завершення");
     expect(screen.getByRole("button", { name: openLabel(AUTHOR) })).toBe(trigger);
     expect(trigger).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("link")).toBeInTheDocument();
@@ -355,7 +355,7 @@ describe("TasteRankingList finished-reads drill-down", () => {
     await user.click(screen.getByRole("button", { name: openLabel(AUTHOR) }));
 
     const drawer = await screen.findByRole("dialog", { name: dialogTitle(AUTHOR) });
-    expect(await within(drawer).findByText("2 завершені читання")).toBeInTheDocument();
+    expect(await within(drawer).findByText("2 завершення")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: openLabel(AUTHOR) })).not.toBeInTheDocument();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
@@ -366,7 +366,7 @@ describe("TasteRankingList finished-reads drill-down", () => {
 
     await user.click(screen.getByRole("button", { name: openLabel(AUTHOR) }));
     const dialog = await screen.findByRole("dialog", { name: dialogTitle(AUTHOR) });
-    await within(dialog).findByText("2 завершені читання");
+    await within(dialog).findByText("2 завершення");
 
     rerender(<TasteRankingList rows={[authorRow(SECOND_QUARTER)]} />);
 
@@ -375,7 +375,7 @@ describe("TasteRankingList finished-reads drill-down", () => {
 
     await user.click(screen.getByRole("button", { name: openLabel(AUTHOR) }));
     const reopened = await screen.findByRole("dialog", { name: dialogTitle(AUTHOR) });
-    await within(reopened).findByText("2 завершені читання");
+    await within(reopened).findByText("2 завершення");
 
     expect(subsetRequests()).toEqual([
       authorSubsetRequest(FIRST_QUARTER),

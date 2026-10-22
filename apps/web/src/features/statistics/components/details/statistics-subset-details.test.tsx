@@ -120,13 +120,13 @@ describe("StatisticsSubsetDetails", () => {
   it("counts the whole subset rather than the reads on the first page", async () => {
     renderSubset();
 
-    expect(await screen.findByText("3 завершені читання")).toBeInTheDocument();
+    expect(await screen.findByText("3 завершення")).toBeInTheDocument();
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
   });
 
   it("shows each read's finish date and its rating only when it has one", async () => {
     renderSubset();
-    await screen.findByText("3 завершені читання");
+    await screen.findByText("3 завершення");
 
     const rated = readTrigger("Чарівник Земномор'я");
     expect(within(rated).getByText("14 бер.")).toBeInTheDocument();
@@ -138,7 +138,7 @@ describe("StatisticsSubsetDetails", () => {
 
   it("notes the read whose book was moved to trash and only that one", async () => {
     renderSubset();
-    await screen.findByText("3 завершені читання");
+    await screen.findByText("3 завершення");
 
     const trashed = readTrigger("Гробниці Атуану");
     expect(within(trashed).getByText(text.day.deletedBook)).toBeInTheDocument();
@@ -182,7 +182,7 @@ describe("StatisticsSubsetDetails", () => {
     firstPageResponse = () => Promise.resolve(jsonResponse(FIRST_PAGE));
     await user.click(screen.getByRole("button", { name: text.bucket.retry }));
 
-    expect(await screen.findByText("3 завершені читання")).toBeInTheDocument();
+    expect(await screen.findByText("3 завершення")).toBeInTheDocument();
   });
 
   it("says the period has no such reads when the subset is empty", async () => {

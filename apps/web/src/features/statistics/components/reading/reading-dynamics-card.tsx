@@ -4,6 +4,7 @@ import type {
   Nullable,
   ReadingStatisticsComparison,
   ReadingStatisticsDynamicsSection,
+  ReadingStatisticsInsight,
   ReadingStatisticsPeriod,
 } from "@app/shared";
 import type { ReactNode } from "react";
@@ -12,7 +13,10 @@ import { TrendingUp } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 
+import { formatNumber } from "@/lib/format";
+
 import type { DynamicsMetric } from "../../model/statistics-dynamics";
+import type { ComparisonNoticeTone } from "./reading-comparison-notice";
 
 import {
   canCompareDynamicsMetric,
@@ -23,6 +27,7 @@ import { formatDayRange } from "../../model/statistics-format";
 import { ReadingBucketDetails } from "../details/reading-bucket-details";
 import { StatisticsMetricTabs, StatisticsSection } from "../statistics-section";
 import { StatisticsSectionState } from "../statistics-states";
+import { ReadingComparisonNotice } from "./reading-comparison-notice";
 import {
   type DynamicsChartHandle,
   type DynamicsChartVariant,
@@ -31,24 +36,42 @@ import {
 } from "./reading-dynamics-chart";
 
 const PEAK_SUMMARY = {
-  icon: "mt-1 size-4 shrink-0 text-icon",
-  row: "flex items-start gap-2 rounded-lg bg-muted px-3 py-2 text-sm leading-relaxed text-foreground",
-  value: {
-    compact: (chunks: ReactNode) => (
+  compact: {
+    icon: "mt-1 size-4 shrink-0 text-icon",
+    row: "flex items-start gap-2 rounded-lg bg-muted px-3 py-2 text-sm leading-relaxed text-foreground",
+    value: (chunks: ReactNode) => (
       <strong className="font-semibold text-ink tabular-nums">{chunks}</strong>
     ),
-    full: (chunks: ReactNode) => chunks,
   },
-} as const satisfies {
-  icon: string;
-  row: string;
-  value: Record<DynamicsChartVariant, (chunks: ReactNode) => ReactNode>;
-};
+  full: {
+    icon: "size-3.5 shrink-0 text-primary",
+    row: "inline-flex w-fit max-w-full items-center gap-1.5 rounded-md bg-primary/10 px-2.5 py-1 text-xs text-foreground",
+    value: (chunks: ReactNode) => (
+      <strong className="font-semibold text-ink tabular-nums">{chunks}</strong>
+    ),
+  },
+} as const satisfies Record<
+  DynamicsChartVariant,
+  { icon: string; row: string; value: (chunks: ReactNode) => ReactNode }
+>;
+
+const COMPARISON_TONE = {
+  down: "negative",
+  same: "same",
+  up: "positive",
+} as const satisfies Record<ComparisonDirection, ComparisonNoticeTone>;
+
+type ComparisonDirection = "down" | "same" | "up";
+
+type ComparisonResult = Extract<
+  ReadingStatisticsInsight,
+  { code: "completed_reads_vs_comparison" | "pages_read_vs_comparison" }
+>["params"];
 
 export function ReadingDynamicsCard({
   comparison,
+  comparisonResult,
   dynamics,
-  insight,
   isComparisonLowerBound,
   metric,
   onMetricChange,
@@ -56,8 +79,8 @@ export function ReadingDynamicsCard({
   variant,
 }: {
   comparison: Nullable<ReadingStatisticsComparison>;
+  comparisonResult?: ComparisonResult;
   dynamics: ReadingStatisticsDynamicsSection;
-  insight?: ReactNode;
   isComparisonLowerBound: boolean;
   metric: DynamicsMetric;
   onMetricChange: (metric: DynamicsMetric) => void;
@@ -84,6 +107,7 @@ export function ReadingDynamicsCard({
   const peak = metric === "pages" ? dynamics.peakPagesRead : dynamics.peakCompletedReads;
   const peakRange =
     peak === null ? null : formatDayRange({ from: peak.start, locale, to: peak.end });
+  const peakStyle = PEAK_SUMMARY[variant];
   const peakSummary =
     peak === null || peakRange === null
       ? null
@@ -91,12 +115,12 @@ export function ReadingDynamicsCard({
         ? t.rich("peakPages", {
             pages: peak.pagesRead,
             range: peakRange,
-            value: PEAK_SUMMARY.value[variant],
+            value: peakStyle.value,
           })
         : t.rich("peakReads", {
             range: peakRange,
             reads: peak.completedReads,
-            value: PEAK_SUMMARY.value[variant],
+            value: peakStyle.value,
           });
 
   return (
@@ -110,26 +134,29 @@ export function ReadingDynamicsCard({
           value={metric}
         />
       }
-      description={t(`subtitles.${period.granularity}`)}
+      description={
+        metric === "pages" ? t("descriptions.pages") : t(`descriptions.reads.${period.granularity}`)
+      }
       note={
-        <>
-          {variant === "full" && peakSummary !== null ? (
-            <p className="text-xs text-muted-foreground">{peakSummary}</p>
-          ) : null}
-          {isComparisonHidden ? (
-            <p className="text-xs text-muted-foreground">{t("comparisonLowerBound")}</p>
-          ) : null}
-          {variant === "full" ? insight : null}
-        </>
+        variant === "full" && !isComparisonHidden && comparisonResult !== undefined ? (
+          <DynamicsComparisonResult metric={metric} result={comparisonResult} />
+        ) : null
       }
       title={t("title")}
     >
-      {variant === "compact" && peakSummary !== null ? (
-        <p className={PEAK_SUMMARY.row}>
-          <TrendingUp aria-hidden className={PEAK_SUMMARY.icon} />
+      {isComparisonHidden ? (
+        <ReadingComparisonNotice
+          description={t("comparisonUnavailable.description")}
+          title={t("comparisonUnavailable.title")}
+          tone="unavailable"
+        />
+      ) : null}
+      {peakSummary === null ? null : (
+        <p className={peakStyle.row}>
+          <TrendingUp aria-hidden className={peakStyle.icon} />
           <span>{peakSummary}</span>
         </p>
-      ) : null}
+      )}
       {points.length === 0 ? (
         <StatisticsSectionState kind="empty" title={t("empty")} />
       ) : (
@@ -158,6 +185,35 @@ export function ReadingDynamicsCard({
         </>
       )}
     </StatisticsSection>
+  );
+}
+
+function comparisonDirectionOf(absoluteDelta: number): ComparisonDirection {
+  if (absoluteDelta > 0) return "up";
+  if (absoluteDelta < 0) return "down";
+  return "same";
+}
+
+function DynamicsComparisonResult({
+  metric,
+  result,
+}: {
+  metric: DynamicsMetric;
+  result: ComparisonResult;
+}) {
+  const locale = useLocale();
+  const t = useTranslations("statistics.dynamics.comparisonResult");
+  const direction = comparisonDirectionOf(result.absoluteDelta);
+
+  return (
+    <ReadingComparisonNotice
+      description={t("values", {
+        comparison: formatNumber(result.comparisonValue, locale),
+        current: formatNumber(result.currentValue, locale),
+      })}
+      title={t(metric, { delta: Math.abs(result.absoluteDelta), direction })}
+      tone={COMPARISON_TONE[direction]}
+    />
   );
 }
 

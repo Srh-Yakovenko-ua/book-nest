@@ -9276,7 +9276,7 @@
       "refreshing": "Refreshing data",
       "periodChanging": "Updating the statistics for the selected period. The previous results are temporarily unavailable for interaction.",
       "refetchError": "Could not refresh the statistics. Showing the previous data.",
-      "lowerBound": "Reading history before the day full tracking began may be incomplete. Pages, active days and streaks are shown as the lowest known values.",
+      "lowerBound": "Some older reading history may be incomplete. The ≥ mark means the minimum known value.",
       "error": {
         "title": "Could not show the statistics",
         "description": "Try reloading the page. If that does not help, come back a little later.",
@@ -9402,30 +9402,41 @@
       "title": "Reading dynamics",
       "metricLabel": "Dynamics metric",
       "metrics": {
-        "reads": "Reads",
+        "reads": "Completions",
         "pages": "Pages"
       },
-      "subtitles": {
-        "day": "Split by day of the period.",
-        "week": "Split by week of the period.",
-        "month": "Split by month of the period.",
-        "year": "Split by year."
+      "descriptions": {
+        "reads": {
+          "day": "Completed book reads per day. Rereads count separately.",
+          "week": "Completed book reads per week. Rereads count separately.",
+          "month": "Completed book reads per month. Rereads count separately.",
+          "year": "Completed book reads per year. Rereads count separately."
+        },
+        "pages": "Pages read, from saved progress entries."
       },
       "empty": "No data to chart for this period.",
       "current": "Current period",
       "comparison": "Comparison period",
       "legendCurrent": "Current period: {range}",
       "legendComparison": "Comparison period: {range}",
-      "comparisonLowerBound": "Pages are not compared: the comparison period starts before full tracking began, so its pages are incomplete.",
-      "peakReads": "Busiest stretch: {range} — <value>{reads, plural, one {# read} other {# reads}}</value>.",
+      "comparisonUnavailable": {
+        "title": "Page comparison unavailable",
+        "description": "Reading history for the comparison period is incomplete, so only the current period is shown."
+      },
+      "comparisonResult": {
+        "reads": "{direction, select, up {{delta, plural, one {# more completed read} other {# more completed reads}}} down {{delta, plural, one {# fewer completed read} other {# fewer completed reads}}} other {Same number of completed reads as the comparison period}}",
+        "pages": "{direction, select, up {{delta, plural, one {# more page} other {# more pages}}} down {{delta, plural, one {# fewer page} other {# fewer pages}}} other {Same number of pages as the comparison period}}",
+        "values": "Current period: {current} · Comparison period: {comparison}"
+      },
+      "peakReads": "Busiest stretch: {range} — <value>{reads, plural, one {# completion} other {# completions}}</value>.",
       "peakPages": "Busiest stretch: {range} — <value>{pages, plural, one {# page} other {# pages}}</value>.",
       "tooltip": {
-        "reads": "{count, plural, one {# read} other {# reads}}",
+        "reads": "{count, plural, one {# completion} other {# completions}}",
         "uniqueBooks": "{count, plural, one {# distinct book} other {# distinct books}}",
         "pages": "{count, plural, one {# page} other {# pages}}",
         "comparison": "{metric} in the comparison period: {value}"
       },
-      "srBucket": "{range}: {reads, plural, one {# read} other {# reads}} · {pages} pages",
+      "srBucket": "{range}: {reads, plural, one {# completion} other {# completions}} · {pages} pages",
       "srComparison": "Comparison period, {range}: {metric} — {value}.",
       "bucketsLabel": "Chart buckets: arrow keys move between buckets, Enter opens the details",
       "openHint": "Select a bar to see exactly what went into it."
@@ -9436,13 +9447,22 @@
       "metricRange": "Figures for {range}",
       "unavailable": "Reading habits are unavailable",
       "weekdays": {
-        "title": "Reading by day of the week",
-        "caption": "Number of active days; next to it, the pages recorded.",
-        "criterion": "The “Most active weekday” above is chosen by pages read, while the bars show the number of active days.",
-        "partialNote": "Only saved records are shown; data for older days may not have been kept.",
-        "empty": "There were no reading days in this period yet.",
-        "pages": "{pagesCount, plural, one {{pages} page} other {{pages} pages}}",
-        "value": "{days} · {pages}"
+        "title": "Reading by weekday",
+        "description": "Number of days with recorded reading and pages read for each weekday.",
+        "columns": {
+          "day": "Day",
+          "bar": "Reading days",
+          "days": "Days",
+          "pages": "Pages"
+        },
+        "panel": {
+          "label": "Selected weekday",
+          "days": "Reading days",
+          "pages": "Pages total",
+          "summary": "{days, plural, =0 {No saved reading entries for {weekday, select, mon {Mondays} tue {Tuesdays} wed {Wednesdays} thu {Thursdays} fri {Fridays} sat {Saturdays} other {Sundays}} in the selected period.} one {In the selected period, reading was recorded on # {weekday, select, mon {Monday} tue {Tuesday} wed {Wednesday} thu {Thursday} fri {Friday} sat {Saturday} other {Sunday}}.} other {In the selected period, reading was recorded on # different {weekday, select, mon {Mondays} tue {Tuesdays} wed {Wednesdays} thu {Thursdays} fri {Fridays} sat {Saturdays} other {Sundays}}.}}",
+          "note": "Totals cover the whole selected period and include only saved entries."
+        },
+        "empty": "There were no reading days in this period yet."
       }
     },
     "calendar": {
@@ -9455,29 +9475,34 @@
       },
       "metricRange": "Figures for {range}",
       "displayRange": "The calendar shows {range}.",
-      "legacyNote": "Days before full history tracking began are observed facts; an empty cell there does not prove that you did not read.",
       "empty": "No day with activity in this period.",
       "unavailable": "The calendar is unavailable",
       "reason": {
         "NO_ACTIVITY_HISTORY": "There is not a single recorded page read yet."
       },
       "summary": {
-        "activeDays": "Active days",
-        "activeDaysRate": "Share of the period",
+        "activeDays": "Reading days",
+        "activeDaysRate": "Share of reading days",
         "longestStreak": "Longest streak",
         "currentStreak": "Current streak",
-        "mostActiveWeekday": "Most active weekday",
+        "mostActiveWeekday": "Top day by pages",
+        "definitions": {
+          "activeDays": "Distinct dates with logged progress",
+          "activeDaysRate": "Of all days in the selected period",
+          "longestStreak": "Consecutive reading days",
+          "mostActiveWeekday": "Weekday with the most pages in total"
+        },
         "days": "{count, plural, one {# day} other {# days}}",
         "daysAtLeast": "{count, plural, one {#+ day} other {#+ days}}",
         "lowerBoundValue": "≥ {value}",
         "continuesBeforeRange": "The streak started before this period",
-        "weekdayHint": "{days} active days · {pages} pages",
-        "unavailable": "—",
+        "undetermined": "Not determined",
         "reason": {
-          "LEGACY_HISTORY_INCOMPLETE": "Part of this period predates full history tracking, so the figure would mislead.",
+          "LEGACY_HISTORY_INCOMPLETE": "History for this period is incomplete",
           "PERIOD_NOT_CURRENT": "A closed period has no running streak."
         },
-        "currentStreakLine": "Current streak: <value>{days}</value>"
+        "currentStreakLine": "Current streak: <value>{days}</value>",
+        "currentStreakDefinition": "consecutive reading days up to today or yesterday"
       },
       "heatmap": {
         "legendLess": "less",
@@ -9538,7 +9563,7 @@
         "error": "Could not load the bucket details",
         "retry": "Try again",
         "unsupported": "There is no exact list for this bucket.",
-        "readsTotal": "{count, plural, one {# finished read} other {# finished reads}}",
+        "readsTotal": "{count, plural, one {# completion} other {# completions}}",
         "readsEmpty": "No reads were finished in this bucket.",
         "activeDaysLabel": "Active days",
         "observedOnly": "This bucket starts before {date}, when full tracking began, so it shows only the records that survived.",

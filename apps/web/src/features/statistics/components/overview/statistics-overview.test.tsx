@@ -48,7 +48,12 @@ vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams()
 const text = messages.statistics;
 
 const SECTION_TITLES = {
-  activity: [text.dynamics.title, text.habits.title, text.calendar.title],
+  activity: [
+    text.dynamics.title,
+    text.habits.title,
+    text.habits.weekdays.title,
+    text.calendar.title,
+  ],
   overview: [text.kpi.completedReads.label, text.dynamics.title, text.recentReads.title],
   progress: [text.goal.title, text.series.title, text.libraryBalance.title, text.records.title],
   tastes: [
@@ -169,18 +174,22 @@ describe("StatisticsOverview tabs", () => {
     await expectSections(SECTION_TITLES[tab]);
   });
 
-  it("stacks the activity tab as dynamics, habits and the calendar, with no fourth section", async () => {
+  it("stacks the activity tab as dynamics beside habits, then weekday activity and the calendar, with no fifth section", async () => {
     renderStatistics("?tab=activity");
     const panel = await activePanel();
 
     const dynamics = await within(panel).findByText(text.dynamics.title);
     const habits = within(panel).getByText(text.habits.title);
+    const weekdays = within(panel).getByText(text.habits.weekdays.title);
     const calendar = within(panel).getByText(text.calendar.title);
 
     expect(dynamics.compareDocumentPosition(habits) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
-    expect(habits.compareDocumentPosition(calendar) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+    expect(habits.compareDocumentPosition(weekdays) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(weekdays.compareDocumentPosition(calendar) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
     expect(panel.childElementCount).toBe(3);
@@ -569,7 +578,7 @@ describe("StatisticsOverview calendar state in the URL", () => {
   });
 });
 
-describe("StatisticsOverview activity chart insight", () => {
+describe("StatisticsOverview activity comparison result", () => {
   const COMPARISON = {
     pages: {
       insight: {
@@ -578,7 +587,8 @@ describe("StatisticsOverview activity chart insight", () => {
         params: { absoluteDelta: 120, comparisonValue: 300, currentValue: 420, percentDelta: 40 },
         tone: "positive",
       },
-      sentence: "Прочитано 420 сторінок — на 120 більше, ніж у періоді порівняння (300).",
+      title: "На 120 сторінок більше",
+      values: "Поточний період: 420 · Період порівняння: 300",
     },
     reads: {
       insight: {
@@ -587,13 +597,19 @@ describe("StatisticsOverview activity chart insight", () => {
         params: { absoluteDelta: -2, comparisonValue: 9, currentValue: 7, percentDelta: -22.2 },
         tone: "negative",
       },
-      sentence: "Ви завершили 7 читань — на 2 менше, ніж у періоді порівняння (9).",
+      title: "На 2 завершені прочитання менше",
+      values: "Поточний період: 7 · Період порівняння: 9",
     },
-  } satisfies Record<DynamicsMetric, { insight: ReadingStatisticsInsight; sentence: string }>;
+  } satisfies Record<
+    DynamicsMetric,
+    { insight: ReadingStatisticsInsight; title: string; values: string }
+  >;
 
-  const [weekdayInsightLead = ""] = text.insights.codes.most_active_weekday.split("<value>");
-
-  const weekdayInsight = new RegExp(weekdayInsightLead.trim());
+  const comparisonValues = new RegExp(
+    text.dynamics.comparisonResult.values
+      .replace("{current}", "\\d+")
+      .replace("{comparison}", "\\d+"),
+  );
 
   function withComparisonInsights(): ReadingStatisticsOverview {
     const overview = overviewFixture();
@@ -606,33 +622,40 @@ describe("StatisticsOverview activity chart insight", () => {
     };
   }
 
-  it("puts only the pages comparison inside the dynamics card when the chart counts pages", async () => {
+  async function findComparisonNotices(): Promise<HTMLElement[]> {
+    const panel = await activePanel();
+    await within(panel).findByText(text.dynamics.title);
+    return within(panel)
+      .queryAllByRole("status")
+      .filter((status) => comparisonValues.test(status.textContent ?? ""));
+  }
+
+  it("shows only the pages comparison result when the chart counts pages", async () => {
     overviewResponse = () => jsonResponse(withComparisonInsights());
     renderStatistics("?tab=activity&metric=pages");
-    const panel = await activePanel();
 
-    expect(panel.firstElementChild).toHaveTextContent(text.dynamics.title);
-    expect(panel.firstElementChild).toHaveTextContent(COMPARISON.pages.sentence);
-    expect(panel).not.toHaveTextContent(weekdayInsight);
-    expect(panel).not.toHaveTextContent(COMPARISON.reads.sentence);
-    expect(panel.childElementCount).toBe(3);
+    const notices = await findComparisonNotices();
+
+    expect(notices).toHaveLength(1);
+    expect(notices[0]).toHaveTextContent(COMPARISON.pages.title);
+    expect(notices[0]).toHaveTextContent(COMPARISON.pages.values);
   });
 
-  it("shows the reads comparison instead of the pages one when the chart counts reads", async () => {
+  it("shows the reads comparison result instead of the pages one when the chart counts reads", async () => {
     overviewResponse = () => jsonResponse(withComparisonInsights());
     renderStatistics("?tab=activity");
-    const panel = await activePanel();
 
-    expect(panel.firstElementChild).toHaveTextContent(COMPARISON.reads.sentence);
-    expect(panel).not.toHaveTextContent(COMPARISON.pages.sentence);
+    const notices = await findComparisonNotices();
+
+    expect(notices).toHaveLength(1);
+    expect(notices[0]).toHaveTextContent(COMPARISON.reads.title);
+    expect(notices[0]).toHaveTextContent(COMPARISON.reads.values);
   });
 
-  it("leaves the chart without an insight when the period has no comparison observation", async () => {
+  it("shows no comparison result when the period has no comparison observation", async () => {
     renderStatistics("?tab=activity&metric=pages");
-    const panel = await activePanel();
 
-    expect(panel.firstElementChild).toHaveTextContent(text.dynamics.title);
-    expect(panel).not.toHaveTextContent(weekdayInsight);
+    expect(await findComparisonNotices()).toHaveLength(0);
   });
 });
 
@@ -667,6 +690,11 @@ describe("StatisticsOverview period change", () => {
 
   function periodToolbar(): HTMLElement {
     return screen.getByRole("region", { name: text.period.toolbarLabel });
+  }
+
+  async function findWeekdayRow(weekday: string): Promise<HTMLElement> {
+    const list = await screen.findByRole("list", { name: text.habits.weekdays.title });
+    return within(list).getByRole("button", { name: weekday });
   }
 
   async function renderYear2025() {
@@ -752,6 +780,24 @@ describe("StatisticsOverview period change", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(text.states.error.title);
     expect(screen.queryByRole("tablist")).toBeNull();
+  });
+
+  it("returns the weekday pick to the most active weekday once the new year arrives", async () => {
+    const user = userEvent.setup();
+    await renderYear2025();
+    await user.click(screen.getByRole("tab", { name: text.tabs.activity }));
+    await user.click(await findWeekdayRow("вівторок"));
+    expect(await findWeekdayRow("вівторок")).toHaveAttribute("aria-pressed", "true");
+
+    const respond = await switchYearTo2026();
+    await screen.findByText(text.states.periodChanging);
+    respond(jsonResponse(overviewOfYear(2026)));
+
+    await waitFor(() =>
+      expect(within(periodToolbar()).getByText(captionPattern)).toHaveTextContent("2026"),
+    );
+    expect(await findWeekdayRow("понеділок")).toHaveAttribute("aria-pressed", "true");
+    expect(await findWeekdayRow("вівторок")).toHaveAttribute("aria-pressed", "false");
   });
 });
 
