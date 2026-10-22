@@ -39,7 +39,7 @@ Spend disproportionate effort here. Be aggressive, be creative, refuse to give u
 
 Ways to build one, roughly in order of preference in this repo:
 
-1. **A failing test** at whatever seam reaches the bug, one file, run from the app's directory with the commands in step 6 of the chain, never from the repo root. This is the one local test run the repo allows (tests otherwise run only in CI); the guard hook allows a single test file when the user's message reports a bug or asks for a repro, and asks otherwise.
+1. **A failing test** at whatever seam reaches the bug, one file, run from the app's directory with the commands in step 6 of the chain, never from the repo root. This is the one local test run the repo allows (tests otherwise run only in CI); the guard hook allows a single test file when the user's message reports a bug or asks for a repro, and denies it otherwise.
 2. **A curl against the running dev server.** `pnpm dev:api`, then hit the endpoint. Capture the full response including `x-request-id`, and grep the server log for that id.
 3. **A direct Prisma query** in a throwaway script, to separate "the query is wrong" from "the service is wrong".
 4. **Direct SQL** via `docker exec booknest-local-db psql -U <user> -d booknest_dev -c "..."` — the only way to see what the database actually holds versus what Prisma reports.
