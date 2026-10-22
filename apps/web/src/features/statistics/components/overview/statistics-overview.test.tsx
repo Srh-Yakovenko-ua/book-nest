@@ -1,12 +1,7 @@
-import type {
-  ReadingStatisticsActivityPage,
-  ReadingStatisticsInsight,
-  ReadingStatisticsOverview,
-} from "@app/shared";
+import type { ReadingStatisticsInsight, ReadingStatisticsOverview } from "@app/shared";
 import type { MouseEventHandler, ReactNode } from "react";
 
 import { defaultUserProfileSettings } from "@app/shared";
-import { eachDayOfInterval, format, parseISO } from "date-fns";
 import { NuqsTestingAdapter, type UrlUpdateEvent } from "nuqs/adapters/testing";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -16,9 +11,7 @@ import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-
 
 import type { DynamicsMetric } from "../../model/statistics-dynamics";
 
-import { formatDayRange, formatMonthKey } from "../../model/statistics-format";
 import {
-  calendarDayFixture,
   completedReadFixture,
   overviewFixture,
   statisticsIds,
@@ -52,7 +45,7 @@ const SECTION_TITLES = {
     text.dynamics.title,
     text.habits.title,
     text.habits.weekdays.title,
-    text.calendar.title,
+    text.calendarLink.title,
   ],
   overview: [text.kpi.completedReads.label, text.dynamics.title, text.recentReads.title],
   progress: [text.goal.title, text.series.title, text.libraryBalance.title, text.records.title],
@@ -66,25 +59,11 @@ const SECTION_TITLES = {
   ],
 } as const;
 
-const MONTH_BOOKS_PAGE: ReadingStatisticsActivityPage = {
-  activeDays: 2,
-  booksCount: 5,
-  historyQuality: "exact",
-  items: [],
-  nextCursor: null,
-  pagesRead: 184,
-  range: { from: "2026-03-01", to: "2026-03-31" },
-  reliableFrom: "2026-01-01",
-};
-
 let overviewResponse: () => Promise<Response> | Response = () => jsonResponse(overviewFixture());
 
 const fetchMock = vi.fn((input: RequestInfo | URL) => {
   const url = String(input);
   if (url.includes("/api/statistics/overview")) return Promise.resolve(overviewResponse());
-  if (url.includes("/api/statistics/reading-activity")) {
-    return Promise.resolve(jsonResponse(MONTH_BOOKS_PAGE));
-  }
   if (url.includes("/api/profile/settings")) {
     return Promise.resolve(jsonResponse(defaultUserProfileSettings));
   }
@@ -174,14 +153,14 @@ describe("StatisticsOverview tabs", () => {
     await expectSections(SECTION_TITLES[tab]);
   });
 
-  it("stacks the activity tab as dynamics beside habits, then weekday activity and the calendar, with no fifth section", async () => {
+  it("stacks the activity tab as dynamics beside habits, then weekday activity and the calendar link, with no fifth section", async () => {
     renderStatistics("?tab=activity");
     const panel = await activePanel();
 
     const dynamics = await within(panel).findByText(text.dynamics.title);
     const habits = within(panel).getByText(text.habits.title);
     const weekdays = within(panel).getByText(text.habits.weekdays.title);
-    const calendar = within(panel).getByText(text.calendar.title);
+    const calendar = within(panel).getByText(text.calendarLink.title);
 
     expect(dynamics.compareDocumentPosition(habits) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
@@ -193,6 +172,19 @@ describe("StatisticsOverview tabs", () => {
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
     expect(panel.childElementCount).toBe(3);
+  });
+
+  it("links the activity tab to the reading calendar page instead of a calendar with mode radios", async () => {
+    renderStatistics("?tab=activity");
+    const panel = await activePanel();
+
+    const link = await within(panel).findByRole("link", { name: text.calendarLink.action });
+
+    expect(link).toHaveAttribute("href", expect.stringMatching(/\/reading-calendar$/));
+    expect(within(panel).getAllByRole("radio")).toEqual([
+      within(panel).getByRole("radio", { name: text.dynamics.metrics.reads }),
+      within(panel).getByRole("radio", { name: text.dynamics.metrics.pages }),
+    ]);
   });
 
   it("switches tabs through the URL without touching the period or refetching the overview", async () => {
@@ -357,7 +349,7 @@ describe("StatisticsOverview compact overview", () => {
     );
     await waitFor(() => {
       expect(document.activeElement).toHaveTextContent(text.habits.title);
-      expect(document.activeElement).not.toHaveTextContent(text.calendar.title);
+      expect(document.activeElement).not.toHaveTextContent(text.calendarLink.title);
     });
     const update = onUrlUpdate.mock.calls.at(-1)?.[0];
     expect(update?.searchParams.toString()).toBe(
@@ -368,7 +360,6 @@ describe("StatisticsOverview compact overview", () => {
 
   it.each([
     ["?tab=activity&section=habits", text.habits.title],
-    ["?tab=activity&section=calendar", text.calendar.title],
     ["?tab=tastes&section=ratings", text.ratings.title],
   ])("moves focus to the section a deep link names (%s)", async (search, title) => {
     renderStatistics(search);
@@ -488,93 +479,6 @@ describe("StatisticsOverview compact overview", () => {
       expect(screen.queryByText(text.goal.currentTitle)).toBeNull();
       expect(screen.queryByRole("link", { name: text.goal.create })).toBeNull();
     });
-  });
-});
-
-describe("StatisticsOverview calendar state in the URL", () => {
-  function overviewOverThreeMonths(): ReadingStatisticsOverview {
-    const overview = overviewFixture();
-    return {
-      ...overview,
-      calendar: {
-        ...overview.calendar,
-        displayRange: { from: "2026-01-01", to: "2026-03-31" },
-      },
-    };
-  }
-
-  function lastUpdate(onUrlUpdate: ReturnType<typeof renderStatistics>["onUrlUpdate"]) {
-    return onUrlUpdate.mock.calls.at(-1)?.[0];
-  }
-
-  it("switches the calendar mode in place with a replace, leaving the period, metric and section alone", async () => {
-    const user = userEvent.setup();
-    const { onUrlUpdate } = renderStatistics(
-      "?period=year&year=2025&compare=previous_period&metric=pages&section=calendar&tab=activity",
-    );
-
-    await user.click(await screen.findByRole("radio", { name: text.calendar.modes.books }));
-
-    await waitFor(() =>
-      expect(lastUpdate(onUrlUpdate)?.searchParams.get("calendarMode")).toBe("books"),
-    );
-    const update = lastUpdate(onUrlUpdate);
-    expect(update?.options.history).toBe("replace");
-    expect(update?.searchParams.get("period")).toBe("year");
-    expect(update?.searchParams.get("year")).toBe("2025");
-    expect(update?.searchParams.get("compare")).toBe("previous_period");
-    expect(update?.searchParams.get("metric")).toBe("pages");
-    expect(update?.searchParams.get("section")).toBe("calendar");
-    expect(update?.searchParams.get("tab")).toBe("activity");
-    expect(overviewRequests()).toHaveLength(1);
-  });
-
-  it("steps to the previous calendar month in place with a replace", async () => {
-    const user = userEvent.setup();
-    overviewResponse = () => jsonResponse(overviewOverThreeMonths());
-    const { onUrlUpdate } = renderStatistics("?tab=activity&calendarMode=books");
-
-    await user.click(
-      await screen.findByRole("button", { name: text.calendar.books.previousMonth }),
-    );
-
-    await waitFor(() =>
-      expect(lastUpdate(onUrlUpdate)?.searchParams.get("calendarMonth")).toBe("2026-02"),
-    );
-    expect(lastUpdate(onUrlUpdate)?.options.history).toBe("replace");
-  });
-
-  it("drops an out-of-range calendar month from a deep link with a replace", async () => {
-    const { onUrlUpdate } = renderStatistics("?tab=activity&calendarMonth=1999-01");
-
-    await waitFor(() => expect(onUrlUpdate).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText(text.calendar.title)).toBeInTheDocument();
-    expect(onUrlUpdate).toHaveBeenCalledTimes(1);
-    const update = onUrlUpdate.mock.calls[0]?.[0];
-    expect(update?.searchParams.has("calendarMonth")).toBe(false);
-    expect(update?.searchParams.get("tab")).toBe("activity");
-    expect(update?.options.history).toBe("replace");
-  });
-
-  it("keeps the calendar mode and month across a tab round trip, switching tabs with a push", async () => {
-    const user = userEvent.setup();
-    overviewResponse = () => jsonResponse(overviewOverThreeMonths());
-    const { onUrlUpdate } = renderStatistics(
-      "?tab=activity&calendarMode=books&calendarMonth=2026-02",
-    );
-
-    await user.click(await screen.findByRole("tab", { name: text.tabs.tastes }));
-    await waitFor(() => expect(lastUpdate(onUrlUpdate)?.searchParams.get("tab")).toBe("tastes"));
-    await user.click(screen.getByRole("tab", { name: text.tabs.activity }));
-    await waitFor(() => expect(lastUpdate(onUrlUpdate)?.searchParams.get("tab")).toBe("activity"));
-
-    const update = lastUpdate(onUrlUpdate);
-    expect(update?.options.history).toBe("push");
-    expect(update?.searchParams.get("calendarMode")).toBe("books");
-    expect(update?.searchParams.get("calendarMonth")).toBe("2026-02");
-    expect(
-      await screen.findByRole("button", { name: text.calendar.books.nextMonth }),
-    ).toHaveAttribute("aria-disabled", "false");
   });
 });
 
@@ -798,86 +702,5 @@ describe("StatisticsOverview period change", () => {
     );
     expect(await findWeekdayRow("понеділок")).toHaveAttribute("aria-pressed", "true");
     expect(await findWeekdayRow("вівторок")).toHaveAttribute("aria-pressed", "false");
-  });
-});
-
-describe("StatisticsOverview long calendar", () => {
-  const RANGES = {
-    calendar: { from: "2024-01-15", to: "2026-03-10" },
-    newestWindow: { from: "2025-04-01", to: "2026-03-10" },
-    previousWindow: { from: "2024-04-01", to: "2025-03-31" },
-  } as const;
-
-  function overviewOverTwoYears(): ReadingStatisticsOverview {
-    const overview = overviewFixture();
-    const days = eachDayOfInterval({
-      end: parseISO(RANGES.calendar.to),
-      start: parseISO(RANGES.calendar.from),
-    }).map((day) => {
-      const date = format(day, "yyyy-MM-dd");
-      return calendarDayFixture({ date, drilldown: { date, kind: "reading_day" } });
-    });
-    return {
-      ...overview,
-      calendar: {
-        ...overview.calendar,
-        days,
-        displayRange: RANGES.calendar,
-        metricRange: RANGES.calendar,
-      },
-    };
-  }
-
-  function windowLabel(visible: { from: string; to: string }): string {
-    const rangeLabel = formatDayRange({ ...visible, locale: "uk" }) ?? "";
-    return text.calendar.heatmap.windowRange.replace("{range}", rangeLabel).replace(/\s+/g, " ");
-  }
-
-  async function renderNewestWindow() {
-    overviewResponse = () => jsonResponse(overviewOverTwoYears());
-    const view = renderStatistics("?tab=activity");
-    expect(await screen.findByText(windowLabel(RANGES.newestWindow))).toBeInTheDocument();
-    return view;
-  }
-
-  it("pages a calendar longer than a year back by twelve months without refetching the overview", async () => {
-    const user = userEvent.setup();
-    await renderNewestWindow();
-
-    await user.click(screen.getByRole("button", { name: text.calendar.heatmap.previousWindow }));
-
-    expect(await screen.findByText(windowLabel(RANGES.previousWindow))).toBeInTheDocument();
-    expect(screen.queryByText(windowLabel(RANGES.newestWindow))).not.toBeInTheDocument();
-    expect(overviewRequests()).toHaveLength(1);
-    expect((await activePanel()).childElementCount).toBe(3);
-  });
-
-  it("keeps the paged window in the URL as its last month, replacing the history entry", async () => {
-    const user = userEvent.setup();
-    const { onUrlUpdate } = await renderNewestWindow();
-
-    await user.click(screen.getByRole("button", { name: text.calendar.heatmap.previousWindow }));
-
-    await waitFor(() =>
-      expect(onUrlUpdate.mock.calls.at(-1)?.[0].searchParams.get("calendarMonth")).toBe("2025-03"),
-    );
-    expect(onUrlUpdate.mock.calls.at(-1)?.[0].options.history).toBe("replace");
-  });
-
-  it("opens the books calendar on the last month of the paged window and returns to the same window", async () => {
-    const user = userEvent.setup();
-    await renderNewestWindow();
-    await user.click(screen.getByRole("button", { name: text.calendar.heatmap.previousWindow }));
-    await screen.findByText(windowLabel(RANGES.previousWindow));
-
-    await user.click(screen.getByRole("radio", { name: text.calendar.modes.books }));
-
-    expect(
-      await screen.findByText(formatMonthKey("2025-03", "uk").replace(/\s+/g, " ")),
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByRole("radio", { name: text.calendar.modes.activity }));
-
-    expect(await screen.findByText(windowLabel(RANGES.previousWindow))).toBeInTheDocument();
   });
 });

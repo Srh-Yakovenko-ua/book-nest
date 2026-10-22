@@ -4,6 +4,7 @@ import {
   BookCopy,
   BookOpenCheck,
   Building2,
+  CalendarDays,
   ChartColumnBig,
   Feather,
   Handshake,
@@ -81,6 +82,7 @@ type NavMessageKey =
   | "nav.notesSeries"
   | "nav.publishers"
   | "nav.quotes"
+  | "nav.readingCalendar"
   | "nav.readingQueue"
   | "nav.series"
   | "nav.settings"
@@ -198,6 +200,13 @@ export const APP_NAV = {
           labelKey: "nav.statistics",
           match: "prefix",
           to: "/statistics",
+        },
+        {
+          icon: CalendarDays,
+          kind: "link",
+          labelKey: "nav.readingCalendar",
+          match: "prefix",
+          to: "/reading-calendar",
         },
       ],
       labelKey: "nav.groups.tracking",

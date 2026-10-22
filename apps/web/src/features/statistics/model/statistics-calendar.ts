@@ -17,8 +17,6 @@ const DAYS_IN_WEEK = 7;
 
 const WEEK_START_INDEX: Record<WeekStartDay, number> = { monday: 1, sunday: 0 };
 
-export const HEATMAP_WINDOW = { maxDays: 366, months: 12 } as const;
-
 export type CalendarMonthSummary = {
   activeDays: number;
   books: { count: number; isLowerBound: boolean };
@@ -114,23 +112,6 @@ export function clipCalendarMonth({
   };
 }
 
-export function heatmapWindowRange({
-  months,
-  range,
-}: {
-  months: readonly string[];
-  range: ReadingStatisticsDateRange;
-}): Nullable<ReadingStatisticsDateRange> {
-  const firstMonth = months.at(0);
-  const lastMonth = months.at(-1);
-  if (firstMonth === undefined || lastMonth === undefined) return null;
-
-  return {
-    from: clipCalendarMonth({ monthKey: firstMonth, range }).from,
-    to: clipCalendarMonth({ monthKey: lastMonth, range }).to,
-  };
-}
-
 export function isDateInMonth(date: string, monthKey: string): boolean {
   return date.startsWith(monthKey);
 }
@@ -152,17 +133,6 @@ export function listCalendarMonths({ from, to }: { from: string; to: string }): 
   return months;
 }
 
-export function listHeatmapWindows(range: ReadingStatisticsDateRange): string[][] {
-  const months = listCalendarMonths(range);
-  const windows: string[][] = [];
-
-  for (let end = months.length; end > 0; end -= HEATMAP_WINDOW.months) {
-    windows.unshift(months.slice(Math.max(end - HEATMAP_WINDOW.months, 0), end));
-  }
-
-  return windows;
-}
-
 export function resolveCalendarMonth({
   months,
   requested,
@@ -172,20 +142,6 @@ export function resolveCalendarMonth({
 }): Nullable<string> {
   if (requested !== null && months.includes(requested)) return requested;
   return months.at(-1) ?? null;
-}
-
-export function resolveHeatmapWindowIndex({
-  requested,
-  windows,
-}: {
-  requested: Nullable<string>;
-  windows: readonly (readonly string[])[];
-}): number {
-  const newestIndex = Math.max(windows.length - 1, 0);
-  if (requested === null) return newestIndex;
-
-  const requestedIndex = windows.findIndex((months) => months.includes(requested));
-  return requestedIndex === -1 ? newestIndex : requestedIndex;
 }
 
 export function summarizeCalendarMonth(

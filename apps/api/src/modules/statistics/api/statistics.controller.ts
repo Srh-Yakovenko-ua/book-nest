@@ -1,6 +1,7 @@
 import type {
   ReadingDayDetails,
   ReadingStatisticsActivityPage,
+  ReadingStatisticsCalendarPage,
   ReadingStatisticsCompletedReadsPage,
   ReadingStatisticsCompletedReadsSubsetPage,
   ReadingStatisticsOverview,
@@ -8,6 +9,7 @@ import type {
 
 import {
   isoDay,
+  ReadingStatisticsCalendarPageQuerySchema,
   ReadingStatisticsCompletedReadsSubsetQuerySchema,
   ReadingStatisticsIntervalQuerySchema,
   ReadingStatisticsOverviewQuerySchema,
@@ -28,14 +30,17 @@ import { ZodParamPipe } from "../../../core/pipes/zod-param.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { HEAVY_READ_THROTTLE, READ_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
+import { ReadingCalendarPageService } from "../application/reading-calendar-page.service.js";
 import { ReadingDayDetailsService } from "../application/reading-day-details.service.js";
 import { ReadingIntervalDetailsService } from "../application/reading-interval-details.service.js";
 import { StatisticsOverviewService } from "../application/statistics-overview.service.js";
+import { ReadingStatisticsCalendarPageQueryDto } from "./input-dto/reading-statistics-calendar-page.query.input-dto.js";
 import { ReadingStatisticsCompletedReadsSubsetQueryDto } from "./input-dto/reading-statistics-completed-reads-subset.query.input-dto.js";
 import { ReadingStatisticsIntervalQueryDto } from "./input-dto/reading-statistics-interval.query.input-dto.js";
 import { ReadingStatisticsOverviewQueryDto } from "./input-dto/reading-statistics-overview.query.input-dto.js";
 import { ReadingDayDetailsDto } from "./view-dto/reading-day-details.view-dto.js";
 import { ReadingStatisticsActivityPageDto } from "./view-dto/reading-statistics-activity-page.view-dto.js";
+import { ReadingStatisticsCalendarPageDto } from "./view-dto/reading-statistics-calendar-page.view-dto.js";
 import { ReadingStatisticsCompletedReadsPageDto } from "./view-dto/reading-statistics-completed-reads-page.view-dto.js";
 import { ReadingStatisticsCompletedReadsSubsetPageDto } from "./view-dto/reading-statistics-completed-reads-subset-page.view-dto.js";
 import { ReadingStatisticsOverviewDto } from "./view-dto/reading-statistics-overview.view-dto.js";
@@ -44,10 +49,30 @@ import { ReadingStatisticsOverviewDto } from "./view-dto/reading-statistics-over
 @Controller("api/statistics")
 export class StatisticsController {
   constructor(
+    private readonly readingCalendarPageService: ReadingCalendarPageService,
     private readonly readingDayDetailsService: ReadingDayDetailsService,
     private readonly readingIntervalDetailsService: ReadingIntervalDetailsService,
     private readonly statisticsOverviewService: StatisticsOverviewService,
   ) {}
+
+  @ApiBadRequestResponse({ description: "Invalid or future year" })
+  @ApiOkResponse({
+    description:
+      "The reading heatmap and per-day books of one calendar year, with every year the calendar can show",
+    type: ReadingStatisticsCalendarPageDto,
+  })
+  @ApiOperation({ summary: "Get the reading calendar of one year" })
+  @ApiQuery({ name: "year", required: true })
+  @Get("calendar")
+  @JwtProtected()
+  @Throttle(READ_THROTTLE)
+  getCalendarPage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(ReadingStatisticsCalendarPageQuerySchema))
+    query: ReadingStatisticsCalendarPageQueryDto,
+  ): Promise<ReadingStatisticsCalendarPage> {
+    return this.readingCalendarPageService.getCalendarPage({ query, userId: user.id });
+  }
 
   @ApiBadRequestResponse({ description: "Invalid range, page size or cursor" })
   @ApiOkResponse({

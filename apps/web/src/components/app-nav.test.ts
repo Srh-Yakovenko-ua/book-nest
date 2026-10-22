@@ -61,6 +61,15 @@ describe("APP_NAV", () => {
     ]);
   });
 
+  it("places the reading calendar right after statistics in the tracking group", () => {
+    expect(itemsOfGroup("nav.groups.tracking").map(pathOf)).toEqual([
+      "/loans",
+      "/delivery",
+      "/statistics",
+      "/reading-calendar",
+    ]);
+  });
+
   it("keeps settings out of the scrollable groups", () => {
     expect(APP_NAV.settings.to).toBe("/settings");
     expect(GROUP_ITEMS).not.toContain(APP_NAV.settings);
@@ -121,6 +130,16 @@ describe("isNavItemActive", () => {
     expect(isNavItemActive(navItem("/delivery"), "/delivery/in-transit")).toBe(true);
     expect(isNavItemActive(navItem("/notes"), "/notes/series")).toBe(true);
     expect(isNavItemActive(navItem("/notes"), "/series")).toBe(false);
+  });
+
+  it("keeps the reading calendar active on its own route and nested routes", () => {
+    expect(isNavItemActive(navItem("/reading-calendar"), "/reading-calendar")).toBe(true);
+    expect(isNavItemActive(navItem("/reading-calendar"), "/reading-calendar/x")).toBe(true);
+  });
+
+  it("keeps statistics and the reading calendar from lighting each other up", () => {
+    expect(isNavItemActive(navItem("/statistics"), "/reading-calendar")).toBe(false);
+    expect(isNavItemActive(navItem("/reading-calendar"), "/statistics")).toBe(false);
   });
 
   it("keeps settings active on its own route", () => {

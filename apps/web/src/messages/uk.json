@@ -43,6 +43,7 @@
     "settings": "Налаштування",
     "loansContacts": "Контакти",
     "statistics": "Статистика",
+    "readingCalendar": "Читацький календар",
     "characters": "Персонажі",
     "groups": {
       "books": "Книги",
@@ -9465,16 +9466,12 @@
         "empty": "У цьому періоді ще не було днів із читанням."
       }
     },
-    "calendar": {
+    "calendarLink": {
       "title": "Читацький календар",
-      "description": "Дні, коли ви справді читали.",
-      "modeLabel": "Режим календаря",
-      "modes": {
-        "activity": "Активність",
-        "books": "Книги за днями"
-      },
-      "metricRange": "Показники за {range}",
-      "displayRange": "Календар показує {range}",
+      "description": "Річна карта активності та книги за днями.",
+      "action": "Відкрити календар"
+    },
+    "calendar": {
       "empty": "За цей період немає жодного дня з активністю.",
       "unavailable": "Календар недоступний",
       "reason": {
@@ -9511,10 +9508,7 @@
         "dayUnknown": "{date}: даних за цей день може не бути",
         "daySummary": "{date}: {pages} сторінок, {books, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
         "intensityLegend": "Інтенсивність за кількістю прочитаних сторінок",
-        "unknownLegend": "Історія невідома",
-        "previousWindow": "Попередній період календаря",
-        "nextWindow": "Наступний період календаря",
-        "windowRange": "Показано {range}"
+        "unknownLegend": "Історія невідома"
       },
       "books": {
         "more": "+{count}",
@@ -9787,6 +9781,19 @@
         "streakDaysAtLeast": "{count, plural, one {≥ # день поспіль} few {≥ # дні поспіль} many {≥ # днів поспіль} other {≥ # дня поспіль}}",
         "recordedOnly": "Серед зафіксованих днів: частина періоду передує повному обліку історії."
       }
+    }
+  },
+  "readingCalendar": {
+    "metaTitle": "Читацький календар",
+    "title": "Читацький календар",
+    "subtitle": "Ваш рік читання день за днем: активність і книги.",
+    "activity": {
+      "title": "Календар активності",
+      "description": "Скільки сторінок ви прочитали кожного дня року."
+    },
+    "books": {
+      "title": "Книги за днями",
+      "description": "Що ви читали кожного дня вибраного місяця."
     }
   },
   "relationships": {

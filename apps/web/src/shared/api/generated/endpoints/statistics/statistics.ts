@@ -21,9 +21,11 @@ import type {
 import type {
   ReadingDayDetailsDto,
   ReadingStatisticsActivityPageDto,
+  ReadingStatisticsCalendarPageDto,
   ReadingStatisticsCompletedReadsPageDto,
   ReadingStatisticsCompletedReadsSubsetPageDto,
   ReadingStatisticsOverviewDto,
+  StatisticsControllerGetCalendarPageParams,
   StatisticsControllerGetCompletedReadsParams,
   StatisticsControllerGetCompletedReadsSubsetParams,
   StatisticsControllerGetOverviewParams,
@@ -48,6 +50,208 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export type statisticsControllerGetCalendarPageResponse200 = {
+  data: ReadingStatisticsCalendarPageDto;
+  status: 200;
+};
+
+export type statisticsControllerGetCalendarPageResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type statisticsControllerGetCalendarPageResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type statisticsControllerGetCalendarPageResponseSuccess =
+  statisticsControllerGetCalendarPageResponse200 & {
+    headers: Headers;
+  };
+export type statisticsControllerGetCalendarPageResponseError = (
+  statisticsControllerGetCalendarPageResponse400 | statisticsControllerGetCalendarPageResponse401
+) & {
+  headers: Headers;
+};
+
+export type statisticsControllerGetCalendarPageResponse =
+  | statisticsControllerGetCalendarPageResponseSuccess
+  | statisticsControllerGetCalendarPageResponseError;
+
+export const getStatisticsControllerGetCalendarPageUrl = (
+  params: StatisticsControllerGetCalendarPageParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/statistics/calendar?${stringifiedParams}`
+    : `/api/statistics/calendar`;
+};
+
+/**
+ * @summary Get the reading calendar of one year
+ */
+export const statisticsControllerGetCalendarPage = async (
+  params: StatisticsControllerGetCalendarPageParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<statisticsControllerGetCalendarPageResponse> => {
+  return customInstance<statisticsControllerGetCalendarPageResponse>(
+    getStatisticsControllerGetCalendarPageUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getStatisticsControllerGetCalendarPageQueryKey = (
+  params?: StatisticsControllerGetCalendarPageParams,
+) => {
+  return [`/api/statistics/calendar`, ...(params ? [params] : [])] as const;
+};
+
+export const getStatisticsControllerGetCalendarPageQueryOptions = <
+  TData = Awaited<ReturnType<typeof statisticsControllerGetCalendarPage>>,
+  TError = void,
+>(
+  params: StatisticsControllerGetCalendarPageParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof statisticsControllerGetCalendarPage>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getStatisticsControllerGetCalendarPageQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof statisticsControllerGetCalendarPage>>> = ({
+    signal,
+  }) => statisticsControllerGetCalendarPage(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof statisticsControllerGetCalendarPage>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type StatisticsControllerGetCalendarPageQueryResult = NonNullable<
+  Awaited<ReturnType<typeof statisticsControllerGetCalendarPage>>
+>;
+export type StatisticsControllerGetCalendarPageQueryError = void;
+
+export function useStatisticsControllerGetCalendarPage<
+  TData = Awaited<ReturnType<typeof statisticsControllerGetCalendarPage>>,
+  TError = void,
+>(
+  params: StatisticsControllerGetCalendarPageParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof statisticsControllerGetCalendarPage>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof statisticsControllerGetCalendarPage>>,
+          TError,
+          Awaited<ReturnType<typeof statisticsControllerGetCalendarPage>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useStatisticsControllerGetCalendarPage<
+  TData = Awaited<ReturnType<typeof statisticsControllerGetCalendarPage>>,
+  TError = void,
+>(
+  params: StatisticsControllerGetCalendarPageParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof statisticsControllerGetCalendarPage>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof statisticsControllerGetCalendarPage>>,
+          TError,
+          Awaited<ReturnType<typeof statisticsControllerGetCalendarPage>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useStatisticsControllerGetCalendarPage<
+  TData = Awaited<ReturnType<typeof statisticsControllerGetCalendarPage>>,
+  TError = void,
+>(
+  params: StatisticsControllerGetCalendarPageParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof statisticsControllerGetCalendarPage>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the reading calendar of one year
+ */
+
+export function useStatisticsControllerGetCalendarPage<
+  TData = Awaited<ReturnType<typeof statisticsControllerGetCalendarPage>>,
+  TError = void,
+>(
+  params: StatisticsControllerGetCalendarPageParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof statisticsControllerGetCalendarPage>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getStatisticsControllerGetCalendarPageQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export type statisticsControllerGetCompletedReadsResponse200 = {
   data: ReadingStatisticsCompletedReadsPageDto;

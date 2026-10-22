@@ -43,6 +43,7 @@
     "settings": "Settings",
     "loansContacts": "Contacts",
     "statistics": "Statistics",
+    "readingCalendar": "Reading calendar",
     "characters": "Characters",
     "groups": {
       "books": "Books",
@@ -9465,16 +9466,12 @@
         "empty": "There were no reading days in this period yet."
       }
     },
-    "calendar": {
+    "calendarLink": {
       "title": "Reading calendar",
-      "description": "The days you actually read.",
-      "modeLabel": "Calendar mode",
-      "modes": {
-        "activity": "Activity",
-        "books": "Books by day"
-      },
-      "metricRange": "Figures for {range}",
-      "displayRange": "The calendar shows {range}.",
+      "description": "The yearly activity map and books by day.",
+      "action": "Open the calendar"
+    },
+    "calendar": {
       "empty": "No day with activity in this period.",
       "unavailable": "The calendar is unavailable",
       "reason": {
@@ -9511,10 +9508,7 @@
         "dayUnknown": "{date}: this day may be missing from the history",
         "daySummary": "{date}: {pages} pages, {books, plural, one {# book} other {# books}}",
         "intensityLegend": "Intensity by number of pages read",
-        "unknownLegend": "Unknown history",
-        "previousWindow": "Previous calendar period",
-        "nextWindow": "Next calendar period",
-        "windowRange": "Showing {range}"
+        "unknownLegend": "Unknown history"
       },
       "books": {
         "more": "+{count}",
@@ -9787,6 +9781,19 @@
         "streakDaysAtLeast": "{count, plural, one {≥ # day in a row} other {≥ # days in a row}}",
         "recordedOnly": "Among recorded days: part of the period predates full history tracking."
       }
+    }
+  },
+  "readingCalendar": {
+    "metaTitle": "Reading calendar",
+    "title": "Reading calendar",
+    "subtitle": "Your reading year day by day: activity and books.",
+    "activity": {
+      "title": "Activity calendar",
+      "description": "How many pages you read on each day of the year."
+    },
+    "books": {
+      "title": "Books by day",
+      "description": "What you read on each day of the selected month."
     }
   },
   "relationships": {

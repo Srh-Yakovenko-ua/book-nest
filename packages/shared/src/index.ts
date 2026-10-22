@@ -43,6 +43,7 @@ export * from "./publishers.js";
 export * from "./quotes.js";
 export * from "./reading-goals.js";
 export * from "./reading-queue.js";
+export * from "./reading-statistics-calendar-page.js";
 export * from "./reading-statistics-calendar.js";
 export * from "./reading-statistics-common.js";
 export * from "./reading-statistics-insights.js";

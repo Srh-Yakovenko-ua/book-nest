@@ -26,7 +26,7 @@ import { LibraryBalanceSection } from "../progress/library-balance-section";
 import { ReadingGoalCard } from "../progress/reading-goal-card";
 import { RecordsSection } from "../progress/records-section";
 import { SeriesSection } from "../progress/series-section";
-import { ReadingCalendarCard } from "../reading/reading-calendar-card";
+import { ReadingCalendarLink } from "../reading/reading-calendar-link";
 import { ReadingDynamicsCard } from "../reading/reading-dynamics-card";
 import { ReadingHabitsSection } from "../reading/reading-habits-section";
 import { ReadingWeekdayActivity } from "../reading/reading-weekday-activity";
@@ -141,7 +141,6 @@ function StatisticsBody({
 
       <StatisticsTabs
         isLowerBound={isLowerBound}
-        isPlaceholderData={scope.isPlaceholderData}
         onShowAllTime={onShowAllTime}
         overview={overview}
         params={params}
@@ -152,13 +151,11 @@ function StatisticsBody({
 
 function StatisticsTabs({
   isLowerBound,
-  isPlaceholderData,
   onShowAllTime,
   overview,
   params,
 }: {
   isLowerBound: boolean;
-  isPlaceholderData: boolean;
   onShowAllTime: () => void;
   overview: ReadingStatisticsOverview;
   params: UseStatisticsParamsResult;
@@ -227,17 +224,7 @@ function StatisticsTabs({
           key={[overview.period.from, overview.period.to].join(":")}
           weekStartDay={overview.meta.weekStartDay}
         />
-        <StatisticsFocusTarget isTarget={view.section === "calendar"}>
-          <ReadingCalendarCard
-            calendar={overview.calendar}
-            meta={overview.meta}
-            mode={view.calendarMode}
-            month={view.calendarMonth}
-            onModeChange={view.setCalendarMode}
-            onMonthChange={view.setCalendarMonth}
-            suspendMonthNormalization={isPlaceholderData}
-          />
-        </StatisticsFocusTarget>
+        <ReadingCalendarLink />
       </PageTabsPanel>
 
       <PageTabsPanel className="flex flex-col gap-6" value="tastes">
