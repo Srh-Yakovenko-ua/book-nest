@@ -1,6 +1,5 @@
 import type {
   CompletedReadRef,
-  ReadingDayDetails,
   ReadingStatisticsCalendarSection,
   ReadingStatisticsOverview,
   StatisticsCalendarDay,
@@ -414,34 +413,6 @@ export function overviewFixture(
       seriesShare: 0.43,
       topProgress: [{ distinctFirstCompletions: 4, name: "Земномор'я", seriesId: SERIES_ID }],
     },
-    ...overrides,
-  };
-}
-
-export function readingDayDetailsFixture(
-  overrides: Partial<ReadingDayDetails> = {},
-): ReadingDayDetails {
-  return {
-    books: [
-      {
-        bookId: BOOK_ID,
-        bookState: "active",
-        coverThumbUrl: null,
-        pagesRead: 80,
-        title: "Чарівник Земномор'я",
-      },
-      {
-        bookId: SECOND_BOOK_ID,
-        bookState: "soft_deleted",
-        coverThumbUrl: null,
-        pagesRead: 44,
-        title: "Видалена книга",
-      },
-    ],
-    booksCount: 2,
-    date: "2026-03-02",
-    historyQuality: "exact",
-    pagesRead: 124,
     ...overrides,
   };
 }

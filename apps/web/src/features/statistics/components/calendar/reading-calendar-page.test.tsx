@@ -110,10 +110,15 @@ function readingDay(date: string) {
   });
 }
 
-function renderCalendar(searchParams = "") {
+function renderCalendar(searchParams = "", { resetUrlUpdateQueueOnMount = true } = {}) {
   const onUrlUpdate = vi.fn<(event: UrlUpdateEvent) => void>();
   renderWithProviders(
-    <NuqsTestingAdapter hasMemory onUrlUpdate={onUrlUpdate} searchParams={searchParams}>
+    <NuqsTestingAdapter
+      hasMemory
+      onUrlUpdate={onUrlUpdate}
+      resetUrlUpdateQueueOnMount={resetUrlUpdateQueueOnMount}
+      searchParams={searchParams}
+    >
       <ReadingCalendarPage />
     </NuqsTestingAdapter>,
   );
@@ -176,7 +181,7 @@ describe("ReadingCalendarPage", () => {
     ["?year=abc&month=2025-13", ""],
     ["?year=2025&month=2026-03", "year=2025"],
   ])("cleans the invalid params of %s down to %j with a replace", async (search, cleaned) => {
-    const { onUrlUpdate } = renderCalendar(search);
+    const { onUrlUpdate } = renderCalendar(search, { resetUrlUpdateQueueOnMount: false });
 
     await waitFor(() => expect(onUrlUpdate).toHaveBeenCalled());
     const update = lastUrlUpdate(onUrlUpdate);
