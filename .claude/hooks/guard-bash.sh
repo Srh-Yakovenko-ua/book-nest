@@ -195,29 +195,29 @@ check_main_loop_gates() {
   local test_words='тест|test|vitest|storybook'
   if in_code "$full_suite"; then
     refused_by_prompt "$last" "$test_words|knip" \
-      && { ask "The user's last message says not to run tests. CI runs them."; return 0; }
+      && { deny "The user's last message says not to run tests. CI runs them. Do not run them another way."; return 0; }
     printf '%s' "$last" | grep -qiE 'полн|весь|все тест|всех тест|full|whole|suite|pnpm test|knip' \
-      || ask "Full test suite (~7 min, pins the machine). Tests run in CI: every PR into dev/prod, every push to dev/prod, or gh workflow run ci.yml --ref <branch>. Locally only when the user asks for the full run."
+      || deny "Full test suite (~7 min, pins the machine). Tests run in CI: every PR into dev/prod, every push to dev/prod, or gh workflow run ci.yml --ref <branch>. Locally only when the user asks for the full run. List it under NOT_VERIFIED as 'MAIN: <exact command>' instead."
     return 0
   fi
   if in_code "$test_run"; then
     refused_by_prompt "$last" "$test_words" \
-      && { ask "The user's last message says not to run tests. CI runs them."; return 0; }
+      && { deny "The user's last message says not to run tests. CI runs them. Do not run them another way."; return 0; }
     printf '%s' "$last" | grep -qiE 'тест|(^|[^a-z])tests?([^a-z]|$)|vitest|storybook|красн|(^|[^a-z])red([^a-z]|$)|воспроизв|відтвор|repro' && return 0
     in_code '\.test\.tsx?([[:space:]]|$)' \
       && printf '%s' "$last" | grep -qiE 'баг|(^|[^a-z])bugs?([^a-z]|$)|не работа|не працю|слома|злама|пада|ошибк|помилк|(^|[^0-9])5[0-9]{2}([^0-9]|$)|crash|broken|fail|flaky|регресс|регрес' \
       && return 0
-    ask "Tests run in CI, not on this machine (they saturate it). Locally only when the user asks for a test run, reports a bug (one test file as the repro), or to reproduce a red CI test."
+    deny "Tests run in CI, not on this machine (they saturate it). Locally only when the user asks for a test run, reports a bug (one test file as the repro), or to reproduce a red CI test. List it under NOT_VERIFIED as 'MAIN: <exact command>' instead."
     return 0
   fi
   local refused
   refused="$(refused_gate_families "$last")"
   if [ -n "$refused" ]; then
-    ask "The user's last message says not to run: ${refused}. Run only the checks it asked for."
+    deny "The user's last message says not to run: ${refused}. Run only the checks it asked for."
     return 0
   fi
   printf '%s' "$last" | grep -qiE '(^|[[:space:]])/[a-z]|commit|push|коммит|коміт|пуш|прогон|прогна|gate|гейт|typecheck|lint|линт|лінт|тест|test|knip|vitest|ревью|review|релиз|реліз|release|build|билд|білд|провер|перевір|check|verify|ci([^a-z]|$)' \
-    || ask "No gates during development: they run once, when the user says commit / push / прогони. Approve to run this one anyway."
+    || deny "No gates during development: they run once, when the user says commit / push / прогони. List it under NOT_VERIFIED as 'MAIN: <exact command>' for that moment."
 }
 
 refused_by_prompt() {
