@@ -33,6 +33,7 @@ type RelationshipBookFieldProps = {
   error: RelationshipFormErrors["bookId"];
   noBookLabel: string;
   onBookChange: (bookId: Nullable<string>) => void;
+  preferInitialFocus?: boolean;
   step: RelationshipBookStep;
 };
 
@@ -41,6 +42,7 @@ export function RelationshipBookField({
   error,
   noBookLabel,
   onBookChange,
+  preferInitialFocus = false,
   step,
 }: RelationshipBookFieldProps) {
   const t = useTranslations("relationships.editor.book");
@@ -72,6 +74,7 @@ export function RelationshipBookField({
               aria-describedby={error ? BOOK_FIELD.errorId : undefined}
               aria-invalid={error !== undefined}
               className="w-full data-[size=default]:h-10"
+              data-relationship-autofocus={preferInitialFocus ? "" : undefined}
               id={BOOK_FIELD.id}
               onBlur={field.onBlur}
               ref={field.ref}

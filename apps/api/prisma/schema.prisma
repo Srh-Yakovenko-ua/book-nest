@@ -63,6 +63,8 @@ model User {
   characterGroups             CharacterGroup[]
   characterTheories           CharacterTheory[]
   characterRelationships      CharacterRelationship[]
+  relationshipCustomTypes     UserRelationshipCustomType[]
+  relationshipRoleSuggestions UserRelationshipRoleSuggestion[]
   characterGraphLayouts       CharacterGraphLayout[]
   readingCycles               BookReadingCycle[]
   readingHistoryState         UserReadingHistoryState?
@@ -1338,6 +1340,37 @@ model CharacterRelationship {
   @@index([targetCharacterId])
   @@index([userId, category])
   @@map("character_relationships")
+}
+
+model UserRelationshipCustomType {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  name           String
+  normalizedName String   @map("normalized_name")
+  directionality String
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  lastUsedAt     DateTime @default(now()) @map("last_used_at") @db.Timestamptz
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, normalizedName, directionality])
+  @@index([userId, lastUsedAt(sort: Desc), id])
+  @@map("user_relationship_custom_types")
+}
+
+model UserRelationshipRoleSuggestion {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  label           String
+  normalizedLabel String   @map("normalized_label")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  lastUsedAt      DateTime @default(now()) @map("last_used_at") @db.Timestamptz
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, normalizedLabel])
+  @@index([userId, lastUsedAt(sort: Desc), id])
+  @@map("user_relationship_role_suggestions")
 }
 
 model CharacterGraphLayout {

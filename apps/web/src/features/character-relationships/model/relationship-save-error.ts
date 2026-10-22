@@ -42,7 +42,12 @@ const SERVER_FIELD_TO_FORM_FIELD = {
 } as const satisfies Record<string, RelationshipFormField>;
 
 export type RelationshipFieldErrorReason =
-  "bookNotFound" | "characterNotFound" | "directionMismatch" | "duplicate" | "selfReference";
+  | "bookContextInvalid"
+  | "bookNotFound"
+  | "characterNotFound"
+  | "directionMismatch"
+  | "duplicate"
+  | "selfReference";
 
 export type RelationshipSaveError =
   | { field: RelationshipFormField; kind: "field"; reason: RelationshipFieldErrorReason }
@@ -62,6 +67,7 @@ export function toRelationshipSaveError(error: unknown): RelationshipSaveError {
 
   switch (error.code) {
     case CHARACTER_RELATIONSHIP_ERROR_CODES.bookContextInvalid:
+      return { field: "bookId", kind: "field", reason: "bookContextInvalid" };
     case CHARACTER_RELATIONSHIP_ERROR_CODES.bookNotFound:
       return { field: "bookId", kind: "field", reason: "bookNotFound" };
     case CHARACTER_RELATIONSHIP_ERROR_CODES.characterNotFound:

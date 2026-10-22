@@ -1,4 +1,6 @@
-import type { Nullable } from "@app/shared";
+import type { Nullable, RelationshipDirectionality } from "@app/shared";
+
+import type { BookCharactersControllerListSort } from "@/shared/api/generated/model";
 
 import type { RelationshipGraphCriteria } from "../model/relationship-graph-criteria";
 import type { RelationshipGraphPathQuery } from "../model/relationship-graph-path";
@@ -7,7 +9,14 @@ import type { RelationshipListCriteria } from "../model/relationship-list-query"
 import type { RelationshipReveal } from "../model/relationship-reveal";
 import type { RelationshipScopeKey } from "../model/relationship-scope";
 
-const RELATIONSHIPS_ROOT = "character-relationships";
+const RELATIONSHIP_KEY_ROOTS = {
+  customTypes: "character-relationship-custom-types",
+  relationships: "character-relationships",
+  roleSuggestions: "character-relationship-role-suggestions",
+  roster: "character-relationship-roster",
+} as const;
+
+const RELATIONSHIPS_ROOT = RELATIONSHIP_KEY_ROOTS.relationships;
 
 const RELATIONSHIP_KEY_SEGMENTS = {
   details: "details",
@@ -15,14 +24,18 @@ const RELATIONSHIP_KEY_SEGMENTS = {
   graph: "graph",
   graphLayout: "graph-layout",
   list: "list",
-  participants: "participants",
   path: "path",
 } as const;
 
-export type RelationshipParticipantPool = "book" | "global";
-
 export const relationshipKeys = {
   all: [RELATIONSHIPS_ROOT] as const,
+  customTypes: ({
+    directionality,
+    term,
+  }: {
+    directionality: Nullable<RelationshipDirectionality>;
+    term: string;
+  }) => [RELATIONSHIP_KEY_ROOTS.customTypes, directionality, term] as const,
   details: ({
     relationshipId,
     reveal,
@@ -39,6 +52,10 @@ export const relationshipKeys = {
       scopeKey,
       reveal,
     ] as const,
+  dictionaries: {
+    customTypes: [RELATIONSHIP_KEY_ROOTS.customTypes] as const,
+    roleSuggestions: [RELATIONSHIP_KEY_ROOTS.roleSuggestions] as const,
+  },
   editable: (relationshipId: string) =>
     [RELATIONSHIPS_ROOT, RELATIONSHIP_KEY_SEGMENTS.editable, relationshipId] as const,
   graph: ({
@@ -57,15 +74,16 @@ export const relationshipKeys = {
     criteria: RelationshipListCriteria;
     scopeKey: RelationshipScopeKey;
   }) => [RELATIONSHIPS_ROOT, RELATIONSHIP_KEY_SEGMENTS.list, scopeKey, criteria] as const,
-  participants: ({
-    bookId,
-    pool,
-    query,
-  }: {
-    bookId: Nullable<string>;
-    pool: RelationshipParticipantPool;
-    query: string;
-  }) => [RELATIONSHIPS_ROOT, RELATIONSHIP_KEY_SEGMENTS.participants, pool, bookId, query] as const,
   path: (pathQuery: RelationshipGraphPathQuery) =>
     [RELATIONSHIPS_ROOT, RELATIONSHIP_KEY_SEGMENTS.path, pathQuery] as const,
+  roleSuggestions: (term: string) => [RELATIONSHIP_KEY_ROOTS.roleSuggestions, term] as const,
+  roster: ({
+    bookId,
+    sort,
+    term,
+  }: {
+    bookId: Nullable<string>;
+    sort: BookCharactersControllerListSort;
+    term: string;
+  }) => [RELATIONSHIP_KEY_ROOTS.roster, bookId, sort, term] as const,
 };

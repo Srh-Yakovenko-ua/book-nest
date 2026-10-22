@@ -7,31 +7,31 @@ import { ChevronsUpDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
-import { normalizeSearchQuery } from "@/components/debounced-search-input";
 import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { Command, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { useLockedWheelScroll } from "@/hooks/use-locked-wheel-scroll";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { assertNever } from "@/lib/assert-never";
 
+import type {
+  RelationshipRosterSearch,
+  RelationshipRosterSearchState,
+} from "../api/use-relationship-roster-search";
 import type { RelationshipParticipant } from "../model/relationship-form-schema";
+import type { RelationshipPickerStatusMessage } from "./relationship-picker-status";
 
-import {
-  RELATIONSHIP_PARTICIPANT_SEARCH,
-  useRelationshipParticipantSearch,
-} from "../api/use-relationship-participant-search";
+import { useRelationshipRosterSearch } from "../api/use-relationship-roster-search";
 import { RelationshipParticipantChip } from "./relationship-participant-chip";
+import {
+  RelationshipPickerRetryItem,
+  RelationshipPickerStatus,
+} from "./relationship-picker-status";
 
 const PARTICIPANT_PICKER = {
-  debounceMs: 300,
+  searchMaxLength: 100,
 } as const;
+
+type ParticipantPick = (participant: RelationshipParticipant) => void;
 
 type RelationshipParticipantPickerProps = {
   bookId: Nullable<string>;
@@ -40,7 +40,7 @@ type RelationshipParticipantPickerProps = {
   id: string;
   invalid: boolean;
   onBlur: () => void;
-  onChange: (participant: RelationshipParticipant) => void;
+  onChange: ParticipantPick;
   ref?: Ref<HTMLButtonElement>;
   value: Nullable<RelationshipParticipant>;
 };
@@ -58,44 +58,15 @@ export function RelationshipParticipantPicker({
 }: RelationshipParticipantPickerProps) {
   const t = useTranslations("relationships.editor.picker");
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const listRef = useLockedWheelScroll();
-  const debouncedQuery = useDebouncedValue(
-    normalizeSearchQuery(query),
-    PARTICIPANT_PICKER.debounceMs,
-  );
-  const search = useRelationshipParticipantSearch({
-    bookId,
-    enabled: open,
-    excludedIds,
-    query: debouncedQuery,
-  });
-  const hasMatches = search.bookMatches.length > 0 || search.otherMatches.length > 0;
 
   function toggle(next: boolean) {
     setOpen(next);
-    if (next) return;
-    setQuery("");
-    onBlur();
+    if (!next) onBlur();
   }
 
   function pick(participant: RelationshipParticipant) {
     onChange(participant);
     toggle(false);
-  }
-
-  function renderOption(participant: RelationshipParticipant) {
-    return (
-      <CommandItem
-        className="cursor-pointer"
-        data-checked={participant.id === value?.id}
-        key={participant.id}
-        onSelect={() => pick(participant)}
-        value={participant.id}
-      >
-        <RelationshipParticipantChip participant={participant} />
-      </CommandItem>
-    );
   }
 
   return (
@@ -105,8 +76,9 @@ export function RelationshipParticipantPicker({
           aria-describedby={describedBy}
           aria-expanded={open}
           aria-invalid={invalid}
-          className="h-10 w-full justify-between gap-2 px-3 font-normal"
+          className="h-11 w-full justify-between gap-2 px-3 font-normal sm:h-10"
           data-relationship-autofocus=""
+          disabled={bookId === null}
           id={id}
           ref={ref}
           role="combobox"
@@ -121,41 +93,126 @@ export function RelationshipParticipantPicker({
           <ChevronsUpDown aria-hidden className="text-muted-foreground" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-(--radix-popover-trigger-width) p-0">
-        <Command shouldFilter={false}>
-          <CommandInput
-            aria-label={t("search")}
-            onValueChange={setQuery}
-            placeholder={t("search")}
-            value={query}
-          />
-          <CommandList ref={listRef}>
-            {search.isError ? (
-              <p className="px-3 py-4 text-center text-sm text-error" role="alert">
-                {t("error")}
-              </p>
-            ) : null}
-            {!search.isError && !hasMatches ? (
-              <CommandEmpty>{search.isFetching ? t("loading") : t("empty")}</CommandEmpty>
-            ) : null}
-            {search.bookMatches.length === 0 ? null : (
-              <CommandGroup heading={t("inBook")}>
-                {search.bookMatches.map(renderOption)}
-              </CommandGroup>
-            )}
-            {search.otherMatches.length === 0 ? null : (
-              <CommandGroup heading={t("all")}>
-                {search.otherMatches.map(renderOption)}
-              </CommandGroup>
-            )}
-          </CommandList>
-          {bookId === null || search.isSearching ? null : (
-            <p className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
-              {t("searchHint", { min: RELATIONSHIP_PARTICIPANT_SEARCH.minQueryLength })}
-            </p>
-          )}
-        </Command>
+      <PopoverContent align="start" className="w-(--radix-popover-trigger-width) min-w-64 p-0">
+        <ParticipantSearchPanel
+          bookId={bookId}
+          excludedIds={excludedIds}
+          onPick={pick}
+          selectedId={value?.id ?? null}
+        />
       </PopoverContent>
     </Popover>
   );
+}
+
+function ParticipantResults({
+  onPick,
+  search,
+  selectedId,
+}: {
+  onPick: ParticipantPick;
+  search: RelationshipRosterSearch;
+  selectedId: Nullable<string>;
+}) {
+  const t = useTranslations("relationships.editor.picker");
+  const { state } = search;
+  const { onScroll, scrollRef } = useInfiniteScroll({
+    hasNextPage: search.hasNextPage,
+    isFetchingNextPage: search.isFetchingNextPage,
+    itemCount: state.kind === "results" ? state.participants.length : 0,
+    onLoadMore: search.fetchNextPage,
+  });
+
+  return (
+    <CommandList
+      aria-busy={state.kind === "loading" || search.isFetchingNextPage}
+      label={t("results")}
+      onScroll={onScroll}
+      ref={scrollRef}
+    >
+      {state.kind === "results"
+        ? state.participants.map((participant) => (
+            <CommandItem
+              className="min-h-11 cursor-pointer sm:min-h-0"
+              data-checked={participant.id === selectedId}
+              disabled={state.isStale}
+              key={participant.id}
+              onSelect={() => onPick(participant)}
+              value={participant.id}
+            >
+              <RelationshipParticipantChip participant={participant} />
+            </CommandItem>
+          ))
+        : null}
+      {state.kind === "error" || search.isLoadMoreError ? (
+        <RelationshipPickerRetryItem onRetry={search.retry} />
+      ) : null}
+    </CommandList>
+  );
+}
+
+function ParticipantSearchPanel({
+  bookId,
+  excludedIds,
+  onPick,
+  selectedId,
+}: {
+  bookId: Nullable<string>;
+  excludedIds: readonly string[];
+  onPick: ParticipantPick;
+  selectedId: Nullable<string>;
+}) {
+  const t = useTranslations("relationships.editor.picker");
+  const [query, setQuery] = useState("");
+  const search = useRelationshipRosterSearch({ bookId, excludedIds, search: query });
+  const term = query.trim();
+
+  return (
+    <Command label={t("search")} shouldFilter={false}>
+      <CommandInput
+        maxLength={PARTICIPANT_PICKER.searchMaxLength}
+        onValueChange={setQuery}
+        placeholder={t("search")}
+        value={query}
+      />
+      <RelationshipPickerStatus
+        loadMoreErrorText={t("loadMoreError")}
+        message={toStatusMessage({ isBrowsing: term === "", state: search.state, t })}
+        pagination={search}
+      />
+      <ParticipantResults
+        key={`${bookId ?? ""}:${term}`}
+        onPick={onPick}
+        search={search}
+        selectedId={selectedId}
+      />
+    </Command>
+  );
+}
+
+function toStatusMessage({
+  isBrowsing,
+  state,
+  t,
+}: {
+  isBrowsing: boolean;
+  state: RelationshipRosterSearchState;
+  t: ReturnType<typeof useTranslations<"relationships.editor.picker">>;
+}): Nullable<RelationshipPickerStatusMessage> {
+  switch (state.kind) {
+    case "empty":
+      return { text: isBrowsing ? t("emptyBook") : t("empty"), tone: "info" };
+    case "error":
+      return { text: t("error"), tone: "error" };
+    case "hint":
+      return { text: t("hint"), tone: "info" };
+    case "loading":
+      return { text: t("loading"), tone: "progress" };
+    case "no-book":
+      return { text: t("noBook"), tone: "info" };
+    case "results":
+      return null;
+    default:
+      return assertNever(state);
+  }
 }

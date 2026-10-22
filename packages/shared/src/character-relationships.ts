@@ -4,8 +4,8 @@ import { CHARACTER_INT4_MAX } from "./characters.js";
 import { readingPositionQueryFields } from "./common.js";
 import { MediaViewSchema } from "./media.js";
 
-const RELATIONSHIP_LABEL_MAX = 120;
-const RELATIONSHIP_CUSTOM_TYPE_MAX = 60;
+export const RELATIONSHIP_LABEL_MAX = 120;
+export const RELATIONSHIP_CUSTOM_TYPE_MAX = 60;
 const RELATIONSHIP_DESCRIPTION_MAX = 5000;
 const RELATIONSHIP_CHAPTER_MAX = 200;
 

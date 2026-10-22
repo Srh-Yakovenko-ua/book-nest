@@ -105,6 +105,12 @@ async function linkCharacter({
   expect(res.status).toBe(HttpStatus.CREATED);
 }
 
+async function linkToBook(token: string, bookId: string, characterIds: string[]): Promise<void> {
+  for (const characterId of characterIds) {
+    await linkCharacter({ bookId, bookProfile: {}, characterId, token });
+  }
+}
+
 describe("book character graph", () => {
   it("assembles a spoiler-safe graph with node fields and edge degree", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
@@ -159,6 +165,7 @@ describe("book character graph", () => {
       characterId: bob,
       token: accessToken,
     });
+    await linkToBook(accessToken, bookId, [alice, carol]);
     await createRelationship(accessToken, {
       category: "social",
       directionality: "symmetric",
@@ -195,6 +202,7 @@ describe("book character graph", () => {
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
+    await linkToBook(accessToken, bookId, [alice, bob]);
     await createRelationship(accessToken, {
       category: "family",
       directionality: "directed",
@@ -223,6 +231,7 @@ describe("book character graph", () => {
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
     const carol = await createCharacter(accessToken, "Carol");
+    await linkToBook(accessToken, bookId, [alice, bob, carol]);
     await createRelationship(accessToken, {
       category: "social",
       directionality: "symmetric",
@@ -258,6 +267,7 @@ describe("book character graph", () => {
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
     const carol = await createCharacter(accessToken, "Carol");
+    await linkToBook(accessToken, bookId, [alice, bob, carol]);
     const revealedId = await createRelationship(accessToken, {
       category: "social",
       directionality: "symmetric",
@@ -293,6 +303,7 @@ describe("book character graph", () => {
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
+    await linkToBook(accessToken, bookId, [alice, bob]);
     await createRelationship(accessToken, {
       category: "social",
       directionality: "symmetric",
@@ -328,6 +339,7 @@ describe("book character graph", () => {
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
+    await linkToBook(accessToken, bookId, [alice, bob]);
     await createRelationship(accessToken, {
       category: "social",
       directionality: "symmetric",
@@ -407,6 +419,7 @@ describe("book character graph", () => {
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
+    await linkToBook(accessToken, bookId, [alice, bob]);
     await createRelationship(accessToken, {
       category: "social",
       directionality: "symmetric",
@@ -432,6 +445,7 @@ describe("book character graph", () => {
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
+    await linkToBook(accessToken, bookId, [alice, bob]);
     await createRelationship(accessToken, {
       category: "social",
       directionality: "symmetric",
@@ -457,6 +471,7 @@ describe("book character graph", () => {
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
+    await linkToBook(accessToken, bookId, [alice, bob]);
     await createRelationship(accessToken, {
       category: "social",
       directionality: "symmetric",
@@ -517,6 +532,8 @@ describe("series character graph", () => {
     const { firstBookId, secondBookId, seriesId } = await createSeriesWithTwoBooks(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
+    await linkToBook(accessToken, firstBookId, [alice, bob]);
+    await linkToBook(accessToken, secondBookId, [alice, bob]);
     await createRelationship(accessToken, {
       category: "social",
       directionality: "symmetric",

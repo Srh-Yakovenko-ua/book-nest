@@ -126,6 +126,15 @@ function createBodies(): unknown[] {
   });
 }
 
+async function createForChosenBook(dialog: HTMLElement) {
+  await pickParticipant({ name: GERALT.name, slot: editor.participants.source });
+  await pickParticipant({ name: CIRI.name, slot: editor.participants.target });
+  await pickType(copy.types.guardian_of);
+  await userEvent.click(within(dialog).getByRole("button", { name: editor.actions.next }));
+  await userEvent.click(await within(dialog).findByRole("button", { name: editor.actions.create }));
+  await waitFor(() => expect(createBodies()).toHaveLength(1));
+}
+
 function endingWith(text: string): RegExp {
   return new RegExp(`${text}$`);
 }
@@ -161,6 +170,11 @@ function modeSwitch(name: string): HTMLElement {
   return within(screen.getByRole("radiogroup", { name: viewModes.label })).getByRole("radio", {
     name,
   });
+}
+
+async function openCreateDialog(): Promise<HTMLElement> {
+  await userEvent.click(await screen.findByRole("button", { name: copy.toolbar.create }));
+  return screen.findByRole("dialog", { name: editor.createTitle });
 }
 
 function openLabel(item: CharacterRelationshipListItemView): string {
@@ -224,17 +238,6 @@ function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Response
         ? json(makeCharacterPage([GERALT, CIRI].map(makeRosterCharacter)))
         : Promise.reject(new Error(`unexpected fetch: ${route}`));
   }
-}
-
-async function startCreatingAtBookStep(): Promise<HTMLElement> {
-  await userEvent.click(await screen.findByRole("button", { name: copy.toolbar.create }));
-  const dialog = await screen.findByRole("dialog", { name: editor.createTitle });
-  await pickParticipant({ name: GERALT.name, slot: editor.participants.source });
-  await pickParticipant({ name: CIRI.name, slot: editor.participants.target });
-  await pickType(copy.types.guardian_of);
-  await userEvent.click(within(dialog).getByRole("button", { name: editor.actions.next }));
-  await within(dialog).findByRole("button", { name: editor.actions.create });
-  return dialog;
 }
 
 beforeEach(() => {
@@ -373,11 +376,11 @@ describe("SeriesCharactersTab relationships", () => {
     ]);
   });
 
-  it("offers only the series books up to the selected one when creating", async () => {
+  it("R04 R49 offers every series book when creating while the list stays as of the selected one", async () => {
     renderTab({
       search: `?tab=characters&charactersView=relationships&charactersBookId=${BOOKS.second.id}`,
     });
-    const dialog = await startCreatingAtBookStep();
+    const dialog = await openCreateDialog();
 
     await userEvent.click(within(dialog).getByRole("combobox", { name: editor.book.label }));
 
@@ -386,27 +389,46 @@ describe("SeriesCharactersTab relationships", () => {
       within(listbox)
         .getAllByRole("option")
         .map((option) => option.textContent),
-    ).toEqual([BOOKS.first.title, BOOKS.second.title]);
+    ).toEqual([BOOKS.first.title, BOOKS.second.title, BOOKS.third.title]);
+    expect(relationshipScopeParams()).toEqual([
+      { contextBookId: BOOKS.second.id, scope: "series", scopeId: SERIES.id },
+    ]);
   });
 
-  it("creates the relationship for the selected book unless the author picks another", async () => {
+  it("R04 R49 creates the relationship for the selected book by default", async () => {
     renderTab({
       search: `?tab=characters&charactersView=relationships&charactersBookId=${BOOKS.second.id}`,
     });
-    const dialog = await startCreatingAtBookStep();
+    const dialog = await openCreateDialog();
 
     expect(within(dialog).getByRole("combobox", { name: editor.book.label })).toHaveTextContent(
       BOOKS.second.title,
     );
+    await createForChosenBook(dialog);
 
-    await userEvent.click(within(dialog).getByRole("button", { name: editor.actions.create }));
-
-    await waitFor(() => expect(createBodies()).toHaveLength(1));
     expect(createBodies()).toEqual([
       expect.objectContaining({
         initialBookStates: [expect.objectContaining({ bookId: BOOKS.second.id })],
       }),
     ]);
+  });
+
+  it("R04 R49 creates the relationship for a series book after the selected one", async () => {
+    renderTab({
+      search: `?tab=characters&charactersView=relationships&charactersBookId=${BOOKS.second.id}`,
+    });
+    const dialog = await openCreateDialog();
+
+    await userEvent.click(within(dialog).getByRole("combobox", { name: editor.book.label }));
+    await userEvent.click(await screen.findByRole("option", { name: BOOKS.third.title }));
+    await createForChosenBook(dialog);
+
+    expect(createBodies()).toEqual([
+      expect.objectContaining({
+        initialBookStates: [expect.objectContaining({ bookId: BOOKS.third.id })],
+      }),
+    ]);
+    expect(getRequests(`/api/books/${BOOKS.third.id}/characters`).length).toBeGreaterThan(0);
   });
 });
 

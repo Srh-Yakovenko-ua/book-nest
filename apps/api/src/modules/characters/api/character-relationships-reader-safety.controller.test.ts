@@ -1,5 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 
+import { CHARACTER_ERROR_CODES } from "@app/shared";
 import { getQueueToken } from "@nestjs/bullmq";
 import { HttpStatus } from "@nestjs/common";
 import request from "supertest";
@@ -26,7 +27,7 @@ type EdgeInput = {
   isCanonical?: boolean;
   source: string;
   sourceLabel?: string;
-  states: Record<string, unknown>[];
+  states: (Record<string, unknown> & { bookId: string })[];
   target: string;
   targetLabel?: string;
   type?: string;
@@ -97,6 +98,10 @@ async function createCharacter(token: string, name: string): Promise<string> {
 }
 
 async function createEdge(token: string, edge: EdgeInput): Promise<CreatedRelationship> {
+  for (const state of edge.states) {
+    await ensureLinkedToBook(token, state.bookId, edge.source);
+    await ensureLinkedToBook(token, state.bookId, edge.target);
+  }
   const res = await authed("post", RELATIONSHIPS, token).send({
     category: edge.category ?? "social",
     directionality: edge.directionality ?? "symmetric",
@@ -143,6 +148,23 @@ async function createSeries(
 
 function edgeIds(body: { edges: { id: string }[] }): string[] {
   return body.edges.map((edge) => edge.id).sort();
+}
+
+async function ensureLinkedToBook(
+  token: string,
+  bookId: string,
+  characterId: string,
+): Promise<void> {
+  const res = await authed("post", `/api/books/${bookId}/characters`, token).send({
+    bookProfile: {},
+    characterId,
+    mode: "existing",
+  });
+  if (res.status === HttpStatus.CONFLICT) {
+    expect(res.body.code).toBe(CHARACTER_ERROR_CODES.alreadyLinkedToBook);
+    return;
+  }
+  expect(res.status).toBe(HttpStatus.CREATED);
 }
 
 function listIds(body: { relationship: { id: string } }[]): string[] {

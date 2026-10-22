@@ -22,16 +22,20 @@ import type {
   BookCharacterGraphControllerGetParams,
   BookCharacterRelationshipsControllerListParams,
   CharacterGraphViewDto,
+  CharacterRelationshipCustomTypesControllerListParams,
   CharacterRelationshipDeletionResultViewDto,
   CharacterRelationshipDetailsViewDto,
   CharacterRelationshipPathViewDto,
+  CharacterRelationshipRoleSuggestionsControllerListParams,
   CharacterRelationshipSafeContextViewDto,
   CharacterRelationshipSafeDetailsViewDto,
   CharacterRelationshipsControllerFindPathParams,
   CharacterRelationshipsControllerGetByIdParams,
   CharacterRelationshipsControllerListParams,
   CreateCharacterRelationshipInputDto,
+  PaginatedCharacterRelationshipCustomTypesViewDto,
   PaginatedCharacterRelationshipListViewDto,
+  PaginatedCharacterRelationshipRoleSuggestionsViewDto,
   SeriesCharacterGraphControllerGetParams,
   SeriesCharacterRelationshipsControllerListParams,
   UpdateCharacterRelationshipInputDto,
@@ -2015,6 +2019,422 @@ export function useCharacterRelationshipsControllerRemoveBookState<
   const queryOptions = getCharacterRelationshipsControllerRemoveBookStateQueryOptions(
     relationshipId,
     bookId,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type characterRelationshipCustomTypesControllerListResponse200 = {
+  data: PaginatedCharacterRelationshipCustomTypesViewDto;
+  status: 200;
+};
+
+export type characterRelationshipCustomTypesControllerListResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type characterRelationshipCustomTypesControllerListResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type characterRelationshipCustomTypesControllerListResponseSuccess =
+  characterRelationshipCustomTypesControllerListResponse200 & {
+    headers: Headers;
+  };
+export type characterRelationshipCustomTypesControllerListResponseError = (
+  | characterRelationshipCustomTypesControllerListResponse400
+  | characterRelationshipCustomTypesControllerListResponse401
+) & {
+  headers: Headers;
+};
+
+export type characterRelationshipCustomTypesControllerListResponse =
+  | characterRelationshipCustomTypesControllerListResponseSuccess
+  | characterRelationshipCustomTypesControllerListResponseError;
+
+export const getCharacterRelationshipCustomTypesControllerListUrl = (
+  params?: CharacterRelationshipCustomTypesControllerListParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/character-relationship-custom-types?${stringifiedParams}`
+    : `/api/character-relationship-custom-types`;
+};
+
+/**
+ * @summary List or search the custom relationship types the current user has already used
+ */
+export const characterRelationshipCustomTypesControllerList = async (
+  params?: CharacterRelationshipCustomTypesControllerListParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<characterRelationshipCustomTypesControllerListResponse> => {
+  return customInstance<characterRelationshipCustomTypesControllerListResponse>(
+    getCharacterRelationshipCustomTypesControllerListUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getCharacterRelationshipCustomTypesControllerListQueryKey = (
+  params?: CharacterRelationshipCustomTypesControllerListParams,
+) => {
+  return [`/api/character-relationship-custom-types`, ...(params ? [params] : [])] as const;
+};
+
+export const getCharacterRelationshipCustomTypesControllerListQueryOptions = <
+  TData = Awaited<ReturnType<typeof characterRelationshipCustomTypesControllerList>>,
+  TError = void,
+>(
+  params?: CharacterRelationshipCustomTypesControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterRelationshipCustomTypesControllerList>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCharacterRelationshipCustomTypesControllerListQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof characterRelationshipCustomTypesControllerList>>
+  > = ({ signal }) =>
+    characterRelationshipCustomTypesControllerList(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof characterRelationshipCustomTypesControllerList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type CharacterRelationshipCustomTypesControllerListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof characterRelationshipCustomTypesControllerList>>
+>;
+export type CharacterRelationshipCustomTypesControllerListQueryError = void;
+
+export function useCharacterRelationshipCustomTypesControllerList<
+  TData = Awaited<ReturnType<typeof characterRelationshipCustomTypesControllerList>>,
+  TError = void,
+>(
+  params: undefined | CharacterRelationshipCustomTypesControllerListParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterRelationshipCustomTypesControllerList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof characterRelationshipCustomTypesControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof characterRelationshipCustomTypesControllerList>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharacterRelationshipCustomTypesControllerList<
+  TData = Awaited<ReturnType<typeof characterRelationshipCustomTypesControllerList>>,
+  TError = void,
+>(
+  params?: CharacterRelationshipCustomTypesControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterRelationshipCustomTypesControllerList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof characterRelationshipCustomTypesControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof characterRelationshipCustomTypesControllerList>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharacterRelationshipCustomTypesControllerList<
+  TData = Awaited<ReturnType<typeof characterRelationshipCustomTypesControllerList>>,
+  TError = void,
+>(
+  params?: CharacterRelationshipCustomTypesControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterRelationshipCustomTypesControllerList>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List or search the custom relationship types the current user has already used
+ */
+
+export function useCharacterRelationshipCustomTypesControllerList<
+  TData = Awaited<ReturnType<typeof characterRelationshipCustomTypesControllerList>>,
+  TError = void,
+>(
+  params?: CharacterRelationshipCustomTypesControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterRelationshipCustomTypesControllerList>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getCharacterRelationshipCustomTypesControllerListQueryOptions(
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type characterRelationshipRoleSuggestionsControllerListResponse200 = {
+  data: PaginatedCharacterRelationshipRoleSuggestionsViewDto;
+  status: 200;
+};
+
+export type characterRelationshipRoleSuggestionsControllerListResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type characterRelationshipRoleSuggestionsControllerListResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type characterRelationshipRoleSuggestionsControllerListResponseSuccess =
+  characterRelationshipRoleSuggestionsControllerListResponse200 & {
+    headers: Headers;
+  };
+export type characterRelationshipRoleSuggestionsControllerListResponseError = (
+  | characterRelationshipRoleSuggestionsControllerListResponse400
+  | characterRelationshipRoleSuggestionsControllerListResponse401
+) & {
+  headers: Headers;
+};
+
+export type characterRelationshipRoleSuggestionsControllerListResponse =
+  | characterRelationshipRoleSuggestionsControllerListResponseSuccess
+  | characterRelationshipRoleSuggestionsControllerListResponseError;
+
+export const getCharacterRelationshipRoleSuggestionsControllerListUrl = (
+  params?: CharacterRelationshipRoleSuggestionsControllerListParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/character-relationship-role-suggestions?${stringifiedParams}`
+    : `/api/character-relationship-role-suggestions`;
+};
+
+/**
+ * @summary List or search the relationship role labels the current user has already saved
+ */
+export const characterRelationshipRoleSuggestionsControllerList = async (
+  params?: CharacterRelationshipRoleSuggestionsControllerListParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<characterRelationshipRoleSuggestionsControllerListResponse> => {
+  return customInstance<characterRelationshipRoleSuggestionsControllerListResponse>(
+    getCharacterRelationshipRoleSuggestionsControllerListUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getCharacterRelationshipRoleSuggestionsControllerListQueryKey = (
+  params?: CharacterRelationshipRoleSuggestionsControllerListParams,
+) => {
+  return [`/api/character-relationship-role-suggestions`, ...(params ? [params] : [])] as const;
+};
+
+export const getCharacterRelationshipRoleSuggestionsControllerListQueryOptions = <
+  TData = Awaited<ReturnType<typeof characterRelationshipRoleSuggestionsControllerList>>,
+  TError = void,
+>(
+  params?: CharacterRelationshipRoleSuggestionsControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterRelationshipRoleSuggestionsControllerList>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCharacterRelationshipRoleSuggestionsControllerListQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof characterRelationshipRoleSuggestionsControllerList>>
+  > = ({ signal }) =>
+    characterRelationshipRoleSuggestionsControllerList(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof characterRelationshipRoleSuggestionsControllerList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type CharacterRelationshipRoleSuggestionsControllerListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof characterRelationshipRoleSuggestionsControllerList>>
+>;
+export type CharacterRelationshipRoleSuggestionsControllerListQueryError = void;
+
+export function useCharacterRelationshipRoleSuggestionsControllerList<
+  TData = Awaited<ReturnType<typeof characterRelationshipRoleSuggestionsControllerList>>,
+  TError = void,
+>(
+  params: undefined | CharacterRelationshipRoleSuggestionsControllerListParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterRelationshipRoleSuggestionsControllerList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof characterRelationshipRoleSuggestionsControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof characterRelationshipRoleSuggestionsControllerList>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharacterRelationshipRoleSuggestionsControllerList<
+  TData = Awaited<ReturnType<typeof characterRelationshipRoleSuggestionsControllerList>>,
+  TError = void,
+>(
+  params?: CharacterRelationshipRoleSuggestionsControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterRelationshipRoleSuggestionsControllerList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof characterRelationshipRoleSuggestionsControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof characterRelationshipRoleSuggestionsControllerList>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharacterRelationshipRoleSuggestionsControllerList<
+  TData = Awaited<ReturnType<typeof characterRelationshipRoleSuggestionsControllerList>>,
+  TError = void,
+>(
+  params?: CharacterRelationshipRoleSuggestionsControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterRelationshipRoleSuggestionsControllerList>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List or search the relationship role labels the current user has already saved
+ */
+
+export function useCharacterRelationshipRoleSuggestionsControllerList<
+  TData = Awaited<ReturnType<typeof characterRelationshipRoleSuggestionsControllerList>>,
+  TError = void,
+>(
+  params?: CharacterRelationshipRoleSuggestionsControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterRelationshipRoleSuggestionsControllerList>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getCharacterRelationshipRoleSuggestionsControllerListQueryOptions(
+    params,
     options,
   );
 

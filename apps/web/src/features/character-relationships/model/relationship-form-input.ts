@@ -1,7 +1,6 @@
 import type {
   CharacterRelationshipBookStateView,
   CharacterRelationshipDetailsView,
-  CreateCharacterRelationship,
   Nullable,
   RelationshipDirectionality,
   RelationshipType,
@@ -10,7 +9,6 @@ import type {
 } from "@app/shared";
 
 import {
-  CreateCharacterRelationshipSchema,
   getRelationshipTypeDirectionality,
   isCatalogRelationshipType,
   UpdateCharacterRelationshipSchema,
@@ -119,35 +117,6 @@ export function resolveRelationshipDirectionality({
 }): RelationshipDirectionality {
   if (type === null || !isCatalogRelationshipType(type)) return directionality;
   return getRelationshipTypeDirectionality(type);
-}
-
-export function toCreateRelationshipInput({
-  allowFamilyCycle,
-  source,
-  target,
-  values,
-}: {
-  allowFamilyCycle: boolean;
-  source: RelationshipParticipant;
-  target: RelationshipParticipant;
-  values: RelationshipFormValues;
-}): CreateCharacterRelationship {
-  return CreateCharacterRelationshipSchema.parse({
-    allowFamilyCycle,
-    category: values.category,
-    customType: values.type === "custom" ? values.customType : null,
-    directionality: resolveRelationshipDirectionality(values),
-    initialBookStates:
-      values.bookId === null
-        ? []
-        : [{ ...toRelationshipBookStateInput(values.bookState), bookId: values.bookId }],
-    isCanonical: values.isCanonical,
-    sourceCharacterId: source.id,
-    sourceLabel: toOptionalText(values.sourceLabel),
-    targetCharacterId: target.id,
-    targetLabel: toOptionalText(values.targetLabel),
-    type: values.type,
-  });
 }
 
 export function toRelationshipBookStateChange({

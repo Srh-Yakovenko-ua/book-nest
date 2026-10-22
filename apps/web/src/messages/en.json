@@ -9852,21 +9852,42 @@
         "save": "Save"
       },
       "book": {
+        "blocked": {
+          "characterDescription": "Add the character to a book first, then create their relationships.",
+          "characterTitle": "This character is not in any book yet",
+          "seriesDescription": "Add a book to the series to create relationships between its characters.",
+          "seriesTitle": "This series has no books yet"
+        },
+        "changeConfirm": {
+          "cancel": "Keep current book",
+          "confirm": "Change book",
+          "description": "The details you entered for the current book will be lost.",
+          "title": "Change the book?"
+        },
         "current": "Current book",
         "editHint": "Status, description and spoilers are stored separately for each book.",
         "heading": "Details for a book",
         "label": "Book",
         "noState": "This book has no details yet. Fill in the fields to add them.",
-        "none": "No book, add later",
         "noneEdit": "Not selected",
         "placeholder": "Choose a book",
         "remove": "Remove details for this book",
-        "requiredHint": "Choose the series book these details belong to.",
-        "skipHint": "The relationship will be saved without book details. You can add them later.",
         "untitled": "Untitled book"
       },
       "createDescription": "Choose a character and the relationship type, then add details for a book.",
       "createTitle": "New relationship",
+      "customType": {
+        "directed": "One direction",
+        "emptyBrowse": "Custom types you have used will appear here.",
+        "emptySearch": "No matches. The name joins your types when you save the relationship.",
+        "error": "Could not load suggestions. You can still type a name.",
+        "loadMoreError": "Could not load more suggestions",
+        "loading": "Loading suggestions…",
+        "searchHint": "Type at least 2 characters to search",
+        "suggestions": "Your custom types",
+        "symmetric": "Mutual",
+        "useTyped": "Use “{name}”"
+      },
       "discard": {
         "description": "Unsaved changes to the relationship will be lost.",
         "title": "Discard changes?"
@@ -9875,12 +9896,14 @@
       "editTitle": "Edit relationship",
       "errors": {
         "audioInvalid": "Enter a time above zero as h:mm:ss or mm:ss.",
+        "bookContextInvalid": "One of the characters is not in this book. Choose characters from its cast or another book.",
         "bookNotFound": "This book was not found. Choose another one.",
         "bookRequired": "Choose a book",
         "characterNotFound": "This character no longer exists. Choose another one.",
         "customTypeRequired": "Enter a type name",
         "directionMismatch": "The direction does not match the type. Choose the type again.",
         "duplicate": "This relationship between these characters already exists.",
+        "duplicateCreate": "A relationship of this type between these characters already exists. To add details for another book, edit the existing relationship.",
         "invalidValue": "Check this field.",
         "pageInvalid": "Enter a whole number above zero",
         "participantRequired": "Choose a character",
@@ -9905,6 +9928,16 @@
         "placeholder": "For example, mentor",
         "source": "Role: {name}",
         "sourceFallback": "Role of the first character",
+        "suggestions": {
+          "emptyBrowse": "Roles you have used will appear here.",
+          "emptySearch": "No matches. The role joins your suggestions when you save the relationship.",
+          "error": "Could not load suggestions. You can still type a role.",
+          "list": "Your roles",
+          "loadMoreError": "Could not load more suggestions",
+          "loading": "Loading suggestions…",
+          "searchHint": "Type at least 2 characters to search",
+          "useTyped": "Use “{role}”"
+        },
         "target": "Role: {name}",
         "targetFallback": "Role of the second character",
         "toggle": "More settings"
@@ -9915,8 +9948,18 @@
         "title": "Could not load the relationship"
       },
       "loading": "Loading relationship",
+      "orientation": {
+        "hint": "The type name describes the character the arrow starts from.",
+        "legend": "Relationship direction",
+        "option": "From {source} to {target}"
+      },
+      "partialSave": {
+        "description": "The type, roles and canonical setting are saved. The book details are still in the form, try saving them again.",
+        "retry": "Save book details",
+        "title": "Relationship partly saved"
+      },
       "participants": {
-        "directedHint": "The type reads from the first character to the second.",
+        "bookFirst": "Choose a book first: characters come from that book only.",
         "focus": "This character",
         "legend": "Characters",
         "locked": "Participants and direction cannot be changed after creation.",
@@ -9925,46 +9968,65 @@
         "target": "Second character"
       },
       "picker": {
-        "all": "All characters",
         "empty": "No characters found",
+        "emptyBook": "No other characters in this book",
         "error": "Could not load characters",
-        "inBook": "In this book",
+        "hint": "Type at least 2 characters to search",
+        "loadMoreError": "Could not load more characters",
         "loading": "Searching…",
+        "noBook": "Choose a book first",
         "placeholder": "Choose a character",
-        "search": "Search characters",
-        "searchHint": "Type at least {min} characters to search all characters."
+        "results": "Characters in the book",
+        "search": "Search characters"
       },
       "positions": {
         "audio": "Audio",
         "audioPlaceholder": "1:05:30",
         "chapter": "Chapter",
+        "chapterHint": "To track progress by chapter, enter a number, for example 5",
         "ended": "End",
         "introduced": "Start",
-        "page": "Page"
+        "page": "Page",
+        "section": "Start and end"
+      },
+      "preview": {
+        "directed": "{source} — “{type}” toward {target}",
+        "placeholder": "Choose the characters and the relationship type",
+        "symmetric": "Mutual relationship between {first} and {second}",
+        "title": "Preview"
       },
       "spoilers": {
         "description": "Description is a spoiler",
-        "descriptionHint": "The description for this book stays hidden until the reader reaches the start of the relationship.",
+        "descriptionHint": "Hide the description text until it is explicitly revealed in a permitted way",
         "heading": "Spoilers",
         "hint": "These settings hide the relationship from readers, not from the characters.",
         "relationship": "Hide the whole relationship",
-        "relationshipHint": "Until the reader reaches the start of the relationship, it does not appear at all.",
+        "relationshipHint": "The relationship does not appear in reader mode, regardless of progress, while this setting is on",
+        "section": "Spoilers and visibility",
+        "summaryHidden": "The relationship is fully hidden",
+        "summaryNone": "No extra hiding",
+        "summarySome": "Some hiding is set",
         "type": "Relationship type is a spoiler",
-        "typeHint": "Until the reader reaches the start of the relationship, they only see that the characters are connected."
+        "typeHint": "Hide the relationship type, category and direction from readers. These details can only be revealed through a separate permitted action"
       },
       "state": {
         "description": "Description",
+        "descriptionCounter": "{count}/{max}",
         "descriptionPlaceholder": "What happens between the characters in this book",
+        "endedWithoutPositionHint": "Without an end position, readers may see that the relationship has ended as soon as it becomes available to them",
         "intensity": "Intensity",
         "intensityNone": "Not set",
+        "optional": "(optional)",
         "status": "Status",
-        "statusHint": "“Secret” means the characters keep this relationship hidden within the story. To hide it from readers, use the spoiler settings below."
+        "statusHint": "This status describes secrecy between the characters in the story. To hide information from readers, use the spoiler settings"
       },
       "steps": {
         "book": "Details for a book",
+        "bookHeading": "Step 2 of 2:",
         "edge": "Relationship"
       },
       "type": {
+        "allCategories": "All",
         "canonical": "Canonical relationship",
         "canonicalHint": "Confirmed by the text, not your guess or a fan theory.",
         "category": "Category",
@@ -9976,7 +10038,9 @@
         "directionalityPending": "Depends on the type",
         "empty": "No type found",
         "label": "Relationship type",
+        "ownType": "Own type",
         "placeholder": "Choose a type",
+        "results": "Relationship types",
         "search": "Search types"
       }
     },
