@@ -57,6 +57,27 @@ export class CharacterAccessAsserter {
     });
   }
 
+  async assertCharacterInBook({
+    bookId,
+    characterId,
+    notFoundCode = CHARACTER_ERROR_CODES.notFound,
+    userId,
+  }: {
+    bookId: string;
+    characterId: string;
+    notFoundCode?: string;
+    userId: string;
+  }): Promise<void> {
+    const link = await this.charactersRepository.findOwnedBookCharacter({
+      bookId,
+      characterId,
+      userId,
+    });
+    if (link === null) {
+      throw new NotFoundError("Character not found", { code: notFoundCode });
+    }
+  }
+
   async assertCharacterOwned({
     characterId,
     notFoundCode = CHARACTER_ERROR_CODES.notFound,

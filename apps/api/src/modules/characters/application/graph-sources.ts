@@ -1,5 +1,6 @@
-import type { Nullable } from "@app/shared";
+import type { MediaView, Nullable } from "@app/shared";
 
+import type { MediaAssetModel } from "../../../generated/prisma/models.js";
 import type {
   GraphEdgeSource,
   GraphMembershipSource,
@@ -8,6 +9,8 @@ import type {
 import type { GraphMembershipRow } from "../infrastructure/character-groups.repository.js";
 import type { RelationshipDetailsRow } from "../infrastructure/character-relationships.repository.js";
 import type { GraphNodeRow } from "../infrastructure/characters.repository.js";
+
+export type GraphMediaViewBuilder = (asset: Nullable<MediaAssetModel>) => Nullable<MediaView>;
 
 export function collectEndpointCharacterIds(relationships: RelationshipDetailsRow[]): string[] {
   const ids = new Set<string>();
@@ -54,9 +57,25 @@ export function toGraphMembershipSource(row: GraphMembershipRow): GraphMembershi
   };
 }
 
-export function toGraphNodeSource(node: GraphNodeRow): GraphNodeSource {
+export function toGraphNodeSource({
+  mediaViewOf,
+  node,
+}: {
+  mediaViewOf: GraphMediaViewBuilder;
+  node: GraphNodeRow;
+}): GraphNodeSource {
   return {
-    appearances: node.bookAppearances,
+    appearances: node.bookAppearances.map((appearance) => ({
+      bookId: appearance.bookId,
+      createdAt: appearance.createdAt,
+      displayName: appearance.displayName,
+      displayNameIsSpoiler: appearance.displayNameIsSpoiler,
+      importance: appearance.importance,
+      portrait: mediaViewOf(appearance.portraitMedia),
+      portraitIsSpoiler: appearance.portraitIsSpoiler,
+      portraitMediaId: appearance.portraitMediaId,
+    })),
+    avatar: mediaViewOf(node.avatarMedia),
     entityKind: node.entityKind,
     id: node.id,
     isFavorite: node.isFavorite,

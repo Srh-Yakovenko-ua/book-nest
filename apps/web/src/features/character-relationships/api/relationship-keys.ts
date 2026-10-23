@@ -8,6 +8,11 @@ import type { RelationshipGraphLayoutKey } from "../model/relationship-graph-sco
 import type { RelationshipListCriteria } from "../model/relationship-list-query";
 import type { RelationshipReveal } from "../model/relationship-reveal";
 import type { RelationshipScopeKey } from "../model/relationship-scope";
+import type {
+  GraphReaderKey,
+  GraphWorkspacePathRequest,
+  GraphWorkspaceSceneRequest,
+} from "../model/workspace/graph-workspace-request";
 
 const RELATIONSHIP_KEY_ROOTS = {
   customTypes: "character-relationship-custom-types",
@@ -25,7 +30,13 @@ const RELATIONSHIP_KEY_SEGMENTS = {
   graphLayout: "graph-layout",
   list: "list",
   path: "path",
+  workspace: "workspace",
 } as const;
+
+type GraphWorkspaceQueryRequest =
+  | GraphWorkspacePathRequest
+  | GraphWorkspaceSceneRequest
+  | { characterId: string; kind: "endpoint" };
 
 export const relationshipKeys = {
   all: [RELATIONSHIPS_ROOT] as const,
@@ -86,4 +97,13 @@ export const relationshipKeys = {
     sort: BookCharactersControllerListSort;
     term: string;
   }) => [RELATIONSHIP_KEY_ROOTS.roster, bookId, sort, term] as const,
+  workspace: ({
+    bookId,
+    reader,
+    request,
+  }: {
+    bookId: string;
+    reader: GraphReaderKey;
+    request: GraphWorkspaceQueryRequest;
+  }) => [RELATIONSHIPS_ROOT, RELATIONSHIP_KEY_SEGMENTS.workspace, bookId, reader, request] as const,
 };

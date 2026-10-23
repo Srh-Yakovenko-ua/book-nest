@@ -7,7 +7,7 @@ import { bookKeys } from "@/features/books/api/book-keys";
 import { invalidateTagAggregateQueries } from "@/features/tags/api/tags-keys";
 import { bookCharactersControllerUpdateInBook } from "@/shared/api/generated/endpoints/characters/characters";
 
-import { characterKeys } from "./character-keys";
+import { invalidateCharacterIdentityViews } from "./character-identity-sync";
 
 type UpdateBookCharacterVariables = {
   bookId: string;
@@ -28,7 +28,7 @@ export function useUpdateBookCharacter() {
         await bookCharactersControllerUpdateInBook(bookId, characterId, input),
       ),
     onSuccess: (_character, { bookId }) => {
-      void queryClient.invalidateQueries({ queryKey: characterKeys.all });
+      invalidateCharacterIdentityViews(queryClient);
       void queryClient.invalidateQueries({ queryKey: bookKeys.chapters(bookId) });
       void invalidateTagAggregateQueries(queryClient);
     },

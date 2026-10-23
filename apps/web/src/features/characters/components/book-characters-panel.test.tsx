@@ -30,9 +30,11 @@ import {
 import { makeBookCharacterSummary } from "../model/characters.fixtures";
 import { BookCharactersPanel } from "./book-characters-panel";
 
+const navigation = vi.hoisted(() => ({ replace: vi.fn() }));
+
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, ...props }: ComponentProps<"a">) => <a {...props}>{children}</a>,
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace: navigation.replace }),
 }));
 
 vi.mock("sonner", () => ({
@@ -280,18 +282,30 @@ describe("BookCharactersPanel relationships mode", () => {
   });
 });
 
-describe("BookCharactersPanel graph mode", () => {
-  it("asks for the book graph only once the graph mode is chosen", async () => {
+describe("BookCharactersPanel relationship map entry", () => {
+  const GRAPH_PATH = `/books/${BOOK.id}/characters/graph`;
+
+  it("links to the relationship map page instead of embedding a graph", async () => {
     renderPanel();
     await screen.findByRole("heading", { name: GERALT.name });
 
-    expect(getRequests(API.graph)).toEqual([]);
-
-    await userEvent.click(modeSwitch(viewModes.graph));
-
     expect(
-      await screen.findByRole("heading", { name: copy.graph.empty.title }),
-    ).toBeInTheDocument();
-    expect(getRequests(API.graph)).toHaveLength(1);
+      within(screen.getByRole("radiogroup", { name: viewModes.label })).queryByRole("radio", {
+        name: viewModes.graph,
+      }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: viewModes.openGraph })).toHaveAttribute(
+      "href",
+      GRAPH_PATH,
+    );
+    expect(getRequests(API.graph)).toEqual([]);
+  });
+
+  it("replaces the legacy graph deep link with the relationship map page", async () => {
+    navigation.replace.mockClear();
+    renderPanel({ search: "?tab=characters&charactersView=graph" });
+
+    await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith(GRAPH_PATH));
+    expect(getRequests(API.graph)).toEqual([]);
   });
 });

@@ -12,4 +12,7 @@ export type CharacterGraphLayoutsControllerGetMode =
 export const CharacterGraphLayoutsControllerGetMode = {
   family: "family",
   all: "all",
+  person: "person",
+  tree: "tree",
+  network: "network",
 } as const;

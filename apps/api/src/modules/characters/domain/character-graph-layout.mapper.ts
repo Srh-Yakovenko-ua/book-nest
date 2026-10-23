@@ -2,8 +2,8 @@ import type { CharacterGraphLayoutView, Nullable } from "@app/shared";
 
 import {
   CharacterGraphLayoutScopeTypeSchema,
-  CharacterGraphModeSchema,
   CharacterGraphPositionsSchema,
+  CharacterGraphStorageModeSchema,
   CharacterGraphViewportSchema,
 } from "@app/shared";
 
@@ -28,7 +28,7 @@ export function toCharacterGraphLayoutView(
     createdAt: layout.createdAt.toISOString(),
     id: layout.id,
     layoutVersion: layout.layoutVersion,
-    mode: CharacterGraphModeSchema.parse(layout.mode),
+    mode: CharacterGraphStorageModeSchema.parse(layout.mode),
     positions: CharacterGraphPositionsSchema.parse(layout.positions),
     scopeId: layout.scopeId,
     scopeType: CharacterGraphLayoutScopeTypeSchema.parse(layout.scopeType),

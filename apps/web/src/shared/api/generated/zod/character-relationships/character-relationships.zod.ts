@@ -1249,6 +1249,24 @@ export const CharacterRelationshipsControllerFindPathResponse = zod.object({
         .int()
         .min(characterRelationshipsControllerFindPathResponseNodesItemDegreeMin)
         .max(characterRelationshipsControllerFindPathResponseNodesItemDegreeMax),
+      displayMedia: zod
+        .object({
+          contentType: zod.string(),
+          createdAt: zod.string(),
+          height: zod.number(),
+          id: zod.string(),
+          kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+          name: zod.string().nullable(),
+          sizeBytes: zod.number(),
+          urls: zod.object({
+            card: zod.string(),
+            full: zod.string(),
+            thumb: zod.string(),
+          }),
+          width: zod.number(),
+        })
+        .nullable(),
+      displayName: zod.string(),
       entityKind: zod.enum(["individual", "collective", "unknown"]),
       id: zod.string(),
       importance: zod
@@ -1266,6 +1284,7 @@ export const CharacterRelationshipsControllerFindPathResponse = zod.object({
       name: zod.string(),
     }),
   ),
+  searchLimited: zod.boolean().optional(),
   toId: zod.uuid().regex(characterRelationshipsControllerFindPathResponseToIdRegExp),
 });
 
@@ -2825,6 +2844,10 @@ export const bookCharacterGraphControllerGetQueryRevealEdgeIdsItemRegExp = new R
 );
 export const bookCharacterGraphControllerGetQueryRevealEdgeIdsMax = 100;
 
+export const bookCharacterGraphControllerGetQueryAncestorsMax = 3;
+
+export const bookCharacterGraphControllerGetQueryDescendantsMax = 3;
+
 export const BookCharacterGraphControllerGetQueryParams = zod.object({
   contextAudioSeconds: zod
     .int()
@@ -2953,222 +2976,484 @@ export const BookCharacterGraphControllerGetQueryParams = zod.object({
     .array(zod.uuid().regex(bookCharacterGraphControllerGetQueryRevealEdgeIdsItemRegExp))
     .max(bookCharacterGraphControllerGetQueryRevealEdgeIdsMax)
     .optional(),
+  ancestors: zod
+    .int()
+    .min(1)
+    .max(bookCharacterGraphControllerGetQueryAncestorsMax)
+    .optional()
+    .describe("Ancestor generations for projection=family_tree (1-3, default 2)"),
+  descendants: zod
+    .int()
+    .min(1)
+    .max(bookCharacterGraphControllerGetQueryDescendantsMax)
+    .optional()
+    .describe("Descendant generations for projection=family_tree (1-3, default 2)"),
+  projection: zod
+    .enum(["family_tree"])
+    .optional()
+    .describe("Opt-in genealogy projection built from immediate parent and child records"),
 });
 
-export const bookCharacterGraphControllerGetResponseClustersItemOneSizeExclusiveMin = 0;
-export const bookCharacterGraphControllerGetResponseClustersItemOneSizeMax = 9007199254740991;
+export const bookCharacterGraphControllerGetResponseOneClustersItemOneSizeExclusiveMin = 0;
+export const bookCharacterGraphControllerGetResponseOneClustersItemOneSizeMax = 9007199254740991;
 
-export const bookCharacterGraphControllerGetResponseClustersItemTwoSizeExclusiveMin = 0;
-export const bookCharacterGraphControllerGetResponseClustersItemTwoSizeMax = 9007199254740991;
+export const bookCharacterGraphControllerGetResponseOneClustersItemTwoSizeExclusiveMin = 0;
+export const bookCharacterGraphControllerGetResponseOneClustersItemTwoSizeMax = 9007199254740991;
 
-export const bookCharacterGraphControllerGetResponseNodesItemDegreeMin = 0;
-export const bookCharacterGraphControllerGetResponseNodesItemDegreeMax = 9007199254740991;
+export const bookCharacterGraphControllerGetResponseOneNodesItemDegreeMin = 0;
+export const bookCharacterGraphControllerGetResponseOneNodesItemDegreeMax = 9007199254740991;
 
-export const BookCharacterGraphControllerGetResponse = zod.object({
-  clusterBy: zod
-    .union([zod.literal("group"), zod.literal("importance"), zod.literal(null)])
-    .nullable(),
-  clusters: zod.array(
-    zod.union([
+export const bookCharacterGraphControllerGetResponseTwoAncestorsMax = 3;
+
+export const bookCharacterGraphControllerGetResponseTwoDescendantsMax = 3;
+
+export const bookCharacterGraphControllerGetResponseTwoFocusCharacterIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const bookCharacterGraphControllerGetResponseTwoLineageItemChildIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const bookCharacterGraphControllerGetResponseTwoLineageItemParentIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const bookCharacterGraphControllerGetResponseTwoLineageItemRelationshipIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const bookCharacterGraphControllerGetResponseTwoNodesItemDegreeMin = 0;
+export const bookCharacterGraphControllerGetResponseTwoNodesItemDegreeMax = 9007199254740991;
+
+export const BookCharacterGraphControllerGetResponse = zod.union([
+  zod.object({
+    clusterBy: zod
+      .union([zod.literal("group"), zod.literal("importance"), zod.literal(null)])
+      .nullable(),
+    clusters: zod.array(
+      zod.union([
+        zod.object({
+          groupType: zod.enum([
+            "family",
+            "clan",
+            "house",
+            "court",
+            "kingdom",
+            "order",
+            "guild",
+            "team",
+            "organization",
+            "cult",
+            "custom",
+          ]),
+          id: zod.string(),
+          kind: zod.enum(["group"]),
+          name: zod.string().nullable(),
+          size: zod
+            .int()
+            .gt(bookCharacterGraphControllerGetResponseOneClustersItemOneSizeExclusiveMin)
+            .max(bookCharacterGraphControllerGetResponseOneClustersItemOneSizeMax),
+        }),
+        zod.object({
+          id: zod.string(),
+          importance: zod.enum([
+            "central",
+            "major",
+            "supporting",
+            "episodic",
+            "mentioned",
+            "not_specified",
+          ]),
+          kind: zod.enum(["importance"]),
+          size: zod
+            .int()
+            .gt(bookCharacterGraphControllerGetResponseOneClustersItemTwoSizeExclusiveMin)
+            .max(bookCharacterGraphControllerGetResponseOneClustersItemTwoSizeMax),
+        }),
+      ]),
+    ),
+    diagnostics: zod.array(
       zod.object({
-        groupType: zod.enum([
-          "family",
-          "clan",
-          "house",
-          "court",
-          "kingdom",
-          "order",
-          "guild",
-          "team",
-          "organization",
-          "cult",
-          "custom",
-        ]),
-        id: zod.string(),
-        kind: zod.enum(["group"]),
-        name: zod.string().nullable(),
-        size: zod
-          .int()
-          .gt(bookCharacterGraphControllerGetResponseClustersItemOneSizeExclusiveMin)
-          .max(bookCharacterGraphControllerGetResponseClustersItemOneSizeMax),
+        characterIds: zod.array(zod.string()),
+        code: zod.string(),
+        message: zod.string(),
+        severity: zod.enum(["conflict", "warning"]),
       }),
+    ),
+    edges: zod.array(
       zod.object({
+        category: zod
+          .union([
+            zod.literal("family"),
+            zod.literal("romantic"),
+            zod.literal("social"),
+            zod.literal("conflict"),
+            zod.literal("mentorship"),
+            zod.literal("hierarchy"),
+            zod.literal("supernatural"),
+            zod.literal("custom"),
+            zod.literal(null),
+          ])
+          .nullable(),
+        description: zod.string().nullable(),
+        descriptionHidden: zod.boolean(),
+        directionality: zod
+          .union([zod.literal("directed"), zod.literal("symmetric"), zod.literal(null)])
+          .nullable(),
         id: zod.string(),
-        importance: zod.enum([
-          "central",
-          "major",
-          "supporting",
-          "episodic",
-          "mentioned",
-          "not_specified",
-        ]),
-        kind: zod.enum(["importance"]),
-        size: zod
-          .int()
-          .gt(bookCharacterGraphControllerGetResponseClustersItemTwoSizeExclusiveMin)
-          .max(bookCharacterGraphControllerGetResponseClustersItemTwoSizeMax),
+        intensity: zod
+          .union([
+            zod.literal("low"),
+            zod.literal("medium"),
+            zod.literal("high"),
+            zod.literal(null),
+          ])
+          .nullable(),
+        revealed: zod.boolean(),
+        source: zod.string(),
+        sourceLabel: zod.string().nullable(),
+        status: zod
+          .union([
+            zod.literal("active"),
+            zod.literal("ended"),
+            zod.literal("unknown"),
+            zod.literal("hidden"),
+            zod.literal(null),
+          ])
+          .nullable(),
+        target: zod.string(),
+        targetLabel: zod.string().nullable(),
+        type: zod
+          .union([
+            zod.literal("biological_parent_of"),
+            zod.literal("biological_child_of"),
+            zod.literal("adoptive_parent_of"),
+            zod.literal("adoptive_child_of"),
+            zod.literal("step_parent_of"),
+            zod.literal("step_child_of"),
+            zod.literal("guardian_of"),
+            zod.literal("ward_of"),
+            zod.literal("ancestor_of"),
+            zod.literal("descendant_of"),
+            zod.literal("sibling_of"),
+            zod.literal("half_sibling_of"),
+            zod.literal("step_sibling_of"),
+            zod.literal("twin_of"),
+            zod.literal("spouse_of"),
+            zod.literal("ex_spouse_of"),
+            zod.literal("relative_of"),
+            zod.literal("partner_of"),
+            zod.literal("ex_partner_of"),
+            zod.literal("romantic_interest_of"),
+            zod.literal("mutual_romantic_interest"),
+            zod.literal("engaged_to"),
+            zod.literal("romantic_tension_with"),
+            zod.literal("unrequited_love_for"),
+            zod.literal("friend_of"),
+            zod.literal("best_friend_of"),
+            zod.literal("ally_of"),
+            zod.literal("acquaintance_of"),
+            zod.literal("companion_of"),
+            zod.literal("neighbor_of"),
+            zod.literal("trusted_by"),
+            zod.literal("distrusts"),
+            zod.literal("enemy_of"),
+            zod.literal("rival_of"),
+            zod.literal("betrayed"),
+            zod.literal("betrayed_by"),
+            zod.literal("hunts"),
+            zod.literal("hunted_by"),
+            zod.literal("opposes"),
+            zod.literal("feud_with"),
+            zod.literal("mentor_of"),
+            zod.literal("student_of"),
+            zod.literal("teacher_of"),
+            zod.literal("pupil_of"),
+            zod.literal("protector_of"),
+            zod.literal("protected_by"),
+            zod.literal("healer_of"),
+            zod.literal("patient_of"),
+            zod.literal("leader_of"),
+            zod.literal("subordinate_of"),
+            zod.literal("commander_of"),
+            zod.literal("serves_under"),
+            zod.literal("employer_of"),
+            zod.literal("employee_of"),
+            zod.literal("master_of"),
+            zod.literal("servant_of"),
+            zod.literal("member_of_same_group"),
+            zod.literal("rules_over"),
+            zod.literal("subject_of"),
+            zod.literal("creator_of"),
+            zod.literal("creation_of"),
+            zod.literal("summoner_of"),
+            zod.literal("summoned_by"),
+            zod.literal("magically_bonded_to"),
+            zod.literal("soulmate_of"),
+            zod.literal("blood_bonded_to"),
+            zod.literal("possesses"),
+            zod.literal("possessed_by"),
+            zod.literal("shares_body_with"),
+            zod.literal("reincarnation_of"),
+            zod.literal("clone_of"),
+            zod.literal("custom"),
+            zod.literal(null),
+          ])
+          .nullable(),
+        typeHidden: zod.boolean(),
       }),
-    ]),
-  ),
-  diagnostics: zod.array(
-    zod.object({
-      characterIds: zod.array(zod.string()),
-      code: zod.string(),
-      message: zod.string(),
-      severity: zod.enum(["conflict", "warning"]),
+    ),
+    graphVersion: zod.string(),
+    hiddenContent: zod.object({
+      hasHiddenEdges: zod.boolean(),
+      hasLockedEdges: zod.boolean(),
+      truncated: zod.boolean(),
     }),
-  ),
-  edges: zod.array(
-    zod.object({
-      category: zod
-        .union([
-          zod.literal("family"),
-          zod.literal("romantic"),
-          zod.literal("social"),
-          zod.literal("conflict"),
-          zod.literal("mentorship"),
-          zod.literal("hierarchy"),
-          zod.literal("supernatural"),
-          zod.literal("custom"),
-          zod.literal(null),
-        ])
-        .nullable(),
-      description: zod.string().nullable(),
-      descriptionHidden: zod.boolean(),
-      directionality: zod
-        .union([zod.literal("directed"), zod.literal("symmetric"), zod.literal(null)])
-        .nullable(),
-      id: zod.string(),
-      intensity: zod
-        .union([zod.literal("low"), zod.literal("medium"), zod.literal("high"), zod.literal(null)])
-        .nullable(),
-      revealed: zod.boolean(),
-      source: zod.string(),
-      sourceLabel: zod.string().nullable(),
-      status: zod
-        .union([
-          zod.literal("active"),
-          zod.literal("ended"),
-          zod.literal("unknown"),
-          zod.literal("hidden"),
-          zod.literal(null),
-        ])
-        .nullable(),
-      target: zod.string(),
-      targetLabel: zod.string().nullable(),
-      type: zod
-        .union([
-          zod.literal("biological_parent_of"),
-          zod.literal("biological_child_of"),
-          zod.literal("adoptive_parent_of"),
-          zod.literal("adoptive_child_of"),
-          zod.literal("step_parent_of"),
-          zod.literal("step_child_of"),
-          zod.literal("guardian_of"),
-          zod.literal("ward_of"),
-          zod.literal("ancestor_of"),
-          zod.literal("descendant_of"),
-          zod.literal("sibling_of"),
-          zod.literal("half_sibling_of"),
-          zod.literal("step_sibling_of"),
-          zod.literal("twin_of"),
-          zod.literal("spouse_of"),
-          zod.literal("ex_spouse_of"),
-          zod.literal("relative_of"),
-          zod.literal("partner_of"),
-          zod.literal("ex_partner_of"),
-          zod.literal("romantic_interest_of"),
-          zod.literal("mutual_romantic_interest"),
-          zod.literal("engaged_to"),
-          zod.literal("romantic_tension_with"),
-          zod.literal("unrequited_love_for"),
-          zod.literal("friend_of"),
-          zod.literal("best_friend_of"),
-          zod.literal("ally_of"),
-          zod.literal("acquaintance_of"),
-          zod.literal("companion_of"),
-          zod.literal("neighbor_of"),
-          zod.literal("trusted_by"),
-          zod.literal("distrusts"),
-          zod.literal("enemy_of"),
-          zod.literal("rival_of"),
-          zod.literal("betrayed"),
-          zod.literal("betrayed_by"),
-          zod.literal("hunts"),
-          zod.literal("hunted_by"),
-          zod.literal("opposes"),
-          zod.literal("feud_with"),
-          zod.literal("mentor_of"),
-          zod.literal("student_of"),
-          zod.literal("teacher_of"),
-          zod.literal("pupil_of"),
-          zod.literal("protector_of"),
-          zod.literal("protected_by"),
-          zod.literal("healer_of"),
-          zod.literal("patient_of"),
-          zod.literal("leader_of"),
-          zod.literal("subordinate_of"),
-          zod.literal("commander_of"),
-          zod.literal("serves_under"),
-          zod.literal("employer_of"),
-          zod.literal("employee_of"),
-          zod.literal("master_of"),
-          zod.literal("servant_of"),
-          zod.literal("member_of_same_group"),
-          zod.literal("rules_over"),
-          zod.literal("subject_of"),
-          zod.literal("creator_of"),
-          zod.literal("creation_of"),
-          zod.literal("summoner_of"),
-          zod.literal("summoned_by"),
-          zod.literal("magically_bonded_to"),
-          zod.literal("soulmate_of"),
-          zod.literal("blood_bonded_to"),
-          zod.literal("possesses"),
-          zod.literal("possessed_by"),
-          zod.literal("shares_body_with"),
-          zod.literal("reincarnation_of"),
-          zod.literal("clone_of"),
-          zod.literal("custom"),
-          zod.literal(null),
-        ])
-        .nullable(),
-      typeHidden: zod.boolean(),
-    }),
-  ),
-  graphVersion: zod.string(),
-  hiddenContent: zod.object({
-    hasHiddenEdges: zod.boolean(),
-    hasLockedEdges: zod.boolean(),
-    truncated: zod.boolean(),
+    mode: zod.enum(["family", "all"]),
+    nodes: zod.array(
+      zod.object({
+        clusterId: zod.string().nullable(),
+        degree: zod
+          .int()
+          .min(bookCharacterGraphControllerGetResponseOneNodesItemDegreeMin)
+          .max(bookCharacterGraphControllerGetResponseOneNodesItemDegreeMax),
+        displayMedia: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        displayName: zod.string(),
+        entityKind: zod.enum(["individual", "collective", "unknown"]),
+        id: zod.string(),
+        importance: zod
+          .union([
+            zod.literal("central"),
+            zod.literal("major"),
+            zod.literal("supporting"),
+            zod.literal("episodic"),
+            zod.literal("mentioned"),
+            zod.literal("not_specified"),
+            zod.literal(null),
+          ])
+          .nullable(),
+        isFavorite: zod.boolean(),
+        name: zod.string(),
+      }),
+    ),
+    updatedAt: zod.string().nullable(),
   }),
-  mode: zod.enum(["family", "all"]),
-  nodes: zod.array(
-    zod.object({
-      clusterId: zod.string().nullable(),
-      degree: zod
-        .int()
-        .min(bookCharacterGraphControllerGetResponseNodesItemDegreeMin)
-        .max(bookCharacterGraphControllerGetResponseNodesItemDegreeMax),
-      entityKind: zod.enum(["individual", "collective", "unknown"]),
-      id: zod.string(),
-      importance: zod
-        .union([
-          zod.literal("central"),
-          zod.literal("major"),
-          zod.literal("supporting"),
-          zod.literal("episodic"),
-          zod.literal("mentioned"),
-          zod.literal("not_specified"),
-          zod.literal(null),
-        ])
-        .nullable(),
-      isFavorite: zod.boolean(),
-      name: zod.string(),
+  zod.object({
+    ancestors: zod.int().min(1).max(bookCharacterGraphControllerGetResponseTwoAncestorsMax),
+    descendants: zod.int().min(1).max(bookCharacterGraphControllerGetResponseTwoDescendantsMax),
+    diagnostics: zod.array(
+      zod.object({
+        characterIds: zod.array(zod.string()),
+        code: zod.string(),
+        message: zod.string(),
+        severity: zod.enum(["conflict", "warning"]),
+      }),
+    ),
+    edges: zod.array(
+      zod.object({
+        category: zod
+          .union([
+            zod.literal("family"),
+            zod.literal("romantic"),
+            zod.literal("social"),
+            zod.literal("conflict"),
+            zod.literal("mentorship"),
+            zod.literal("hierarchy"),
+            zod.literal("supernatural"),
+            zod.literal("custom"),
+            zod.literal(null),
+          ])
+          .nullable(),
+        description: zod.string().nullable(),
+        descriptionHidden: zod.boolean(),
+        directionality: zod
+          .union([zod.literal("directed"), zod.literal("symmetric"), zod.literal(null)])
+          .nullable(),
+        id: zod.string(),
+        intensity: zod
+          .union([
+            zod.literal("low"),
+            zod.literal("medium"),
+            zod.literal("high"),
+            zod.literal(null),
+          ])
+          .nullable(),
+        revealed: zod.boolean(),
+        source: zod.string(),
+        sourceLabel: zod.string().nullable(),
+        status: zod
+          .union([
+            zod.literal("active"),
+            zod.literal("ended"),
+            zod.literal("unknown"),
+            zod.literal("hidden"),
+            zod.literal(null),
+          ])
+          .nullable(),
+        target: zod.string(),
+        targetLabel: zod.string().nullable(),
+        type: zod
+          .union([
+            zod.literal("biological_parent_of"),
+            zod.literal("biological_child_of"),
+            zod.literal("adoptive_parent_of"),
+            zod.literal("adoptive_child_of"),
+            zod.literal("step_parent_of"),
+            zod.literal("step_child_of"),
+            zod.literal("guardian_of"),
+            zod.literal("ward_of"),
+            zod.literal("ancestor_of"),
+            zod.literal("descendant_of"),
+            zod.literal("sibling_of"),
+            zod.literal("half_sibling_of"),
+            zod.literal("step_sibling_of"),
+            zod.literal("twin_of"),
+            zod.literal("spouse_of"),
+            zod.literal("ex_spouse_of"),
+            zod.literal("relative_of"),
+            zod.literal("partner_of"),
+            zod.literal("ex_partner_of"),
+            zod.literal("romantic_interest_of"),
+            zod.literal("mutual_romantic_interest"),
+            zod.literal("engaged_to"),
+            zod.literal("romantic_tension_with"),
+            zod.literal("unrequited_love_for"),
+            zod.literal("friend_of"),
+            zod.literal("best_friend_of"),
+            zod.literal("ally_of"),
+            zod.literal("acquaintance_of"),
+            zod.literal("companion_of"),
+            zod.literal("neighbor_of"),
+            zod.literal("trusted_by"),
+            zod.literal("distrusts"),
+            zod.literal("enemy_of"),
+            zod.literal("rival_of"),
+            zod.literal("betrayed"),
+            zod.literal("betrayed_by"),
+            zod.literal("hunts"),
+            zod.literal("hunted_by"),
+            zod.literal("opposes"),
+            zod.literal("feud_with"),
+            zod.literal("mentor_of"),
+            zod.literal("student_of"),
+            zod.literal("teacher_of"),
+            zod.literal("pupil_of"),
+            zod.literal("protector_of"),
+            zod.literal("protected_by"),
+            zod.literal("healer_of"),
+            zod.literal("patient_of"),
+            zod.literal("leader_of"),
+            zod.literal("subordinate_of"),
+            zod.literal("commander_of"),
+            zod.literal("serves_under"),
+            zod.literal("employer_of"),
+            zod.literal("employee_of"),
+            zod.literal("master_of"),
+            zod.literal("servant_of"),
+            zod.literal("member_of_same_group"),
+            zod.literal("rules_over"),
+            zod.literal("subject_of"),
+            zod.literal("creator_of"),
+            zod.literal("creation_of"),
+            zod.literal("summoner_of"),
+            zod.literal("summoned_by"),
+            zod.literal("magically_bonded_to"),
+            zod.literal("soulmate_of"),
+            zod.literal("blood_bonded_to"),
+            zod.literal("possesses"),
+            zod.literal("possessed_by"),
+            zod.literal("shares_body_with"),
+            zod.literal("reincarnation_of"),
+            zod.literal("clone_of"),
+            zod.literal("custom"),
+            zod.literal(null),
+          ])
+          .nullable(),
+        typeHidden: zod.boolean(),
+      }),
+    ),
+    focusCharacterId: zod
+      .uuid()
+      .regex(bookCharacterGraphControllerGetResponseTwoFocusCharacterIdRegExp),
+    graphVersion: zod.string(),
+    hiddenContent: zod.object({
+      hasHiddenEdges: zod.boolean(),
+      hasLockedEdges: zod.boolean(),
+      truncated: zod.boolean(),
     }),
-  ),
-  updatedAt: zod.string().nullable(),
-});
+    lineage: zod.array(
+      zod.object({
+        childId: zod
+          .uuid()
+          .regex(bookCharacterGraphControllerGetResponseTwoLineageItemChildIdRegExp),
+        kind: zod.enum(["biological", "adoptive", "step"]),
+        parentId: zod
+          .uuid()
+          .regex(bookCharacterGraphControllerGetResponseTwoLineageItemParentIdRegExp),
+        relationshipId: zod
+          .uuid()
+          .regex(bookCharacterGraphControllerGetResponseTwoLineageItemRelationshipIdRegExp),
+      }),
+    ),
+    nodes: zod.array(
+      zod.object({
+        clusterId: zod.string().nullable(),
+        degree: zod
+          .int()
+          .min(bookCharacterGraphControllerGetResponseTwoNodesItemDegreeMin)
+          .max(bookCharacterGraphControllerGetResponseTwoNodesItemDegreeMax),
+        displayMedia: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        displayName: zod.string(),
+        entityKind: zod.enum(["individual", "collective", "unknown"]),
+        id: zod.string(),
+        importance: zod
+          .union([
+            zod.literal("central"),
+            zod.literal("major"),
+            zod.literal("supporting"),
+            zod.literal("episodic"),
+            zod.literal("mentioned"),
+            zod.literal("not_specified"),
+            zod.literal(null),
+          ])
+          .nullable(),
+        isFavorite: zod.boolean(),
+        name: zod.string(),
+      }),
+    ),
+    projection: zod.enum(["family_tree"]),
+    updatedAt: zod.string().nullable(),
+  }),
+]);
 
 /**
  * @summary Build a spoiler-safe character relationship graph for a series
@@ -3536,6 +3821,24 @@ export const SeriesCharacterGraphControllerGetResponse = zod.object({
         .int()
         .min(seriesCharacterGraphControllerGetResponseNodesItemDegreeMin)
         .max(seriesCharacterGraphControllerGetResponseNodesItemDegreeMax),
+      displayMedia: zod
+        .object({
+          contentType: zod.string(),
+          createdAt: zod.string(),
+          height: zod.number(),
+          id: zod.string(),
+          kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+          name: zod.string().nullable(),
+          sizeBytes: zod.number(),
+          urls: zod.object({
+            card: zod.string(),
+            full: zod.string(),
+            thumb: zod.string(),
+          }),
+          width: zod.number(),
+        })
+        .nullable(),
+      displayName: zod.string(),
       entityKind: zod.enum(["individual", "collective", "unknown"]),
       id: zod.string(),
       importance: zod

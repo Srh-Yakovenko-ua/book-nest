@@ -8615,7 +8615,8 @@
       "graph": "Graph",
       "label": "Characters view",
       "list": "List",
-      "relationships": "Relationships"
+      "relationships": "Relationships",
+      "openGraph": "Open relationship map"
     }
   },
   "species": {
@@ -10404,6 +10405,228 @@
       "twin_of": "Twin of",
       "unrequited_love_for": "Unrequited love for",
       "ward_of": "Ward of"
+    },
+    "workspace": {
+      "metaTitle": "Relationship map",
+      "header": {
+        "back": "To book characters",
+        "breadcrumb": "Breadcrumb",
+        "characters": "Characters",
+        "title": "Relationship map"
+      },
+      "views": {
+        "label": "Map mode",
+        "network": "Whole network",
+        "person": "Around a character",
+        "tree": "Family tree"
+      },
+      "pathEntry": "How are two characters connected?",
+      "picker": {
+        "clear": "Clear character",
+        "label": "Central character"
+      },
+      "depth": {
+        "label": "Circle of connections",
+        "option": "{depth, plural, one {Direct (1 step)} other {Up to # steps}}"
+      },
+      "generations": {
+        "ancestors": "Ancestors",
+        "descendants": "Descendants",
+        "option": "{count, plural, one {# generation} other {# generations}}",
+        "trigger": "Generations: ↑{up} / ↓{down}"
+      },
+      "treeOptions": {
+        "distant": "Distant relatives",
+        "exUnions": "Former unions",
+        "guardians": "Guardians",
+        "lineage": "Parents and children are always shown.",
+        "marriages": "Marriages",
+        "partners": "Romantic partners are not shown in the family tree yet.",
+        "siblings": "Siblings",
+        "trigger": "Family relationship types"
+      },
+      "grouping": {
+        "components": "By connectivity",
+        "group": "Groups",
+        "importance": "By importance",
+        "label": "Grouping"
+      },
+      "filters": {
+        "active": "Active filters",
+        "categories": "Categories",
+        "remove": "Remove filter “{label}”",
+        "reset": "Reset filters",
+        "treeDormant": "Category and type filters do not apply to the family tree. They are kept for the other modes.",
+        "trigger": "Filters",
+        "triggerCount": "Filters · {count}",
+        "types": "Types"
+      },
+      "help": {
+        "click": "Clicking a card opens its details. The center changes only with “Make center”.",
+        "depth": "A step is one connection between two characters, whatever its direction.",
+        "filters": "Filters narrow the connections, not the book’s character list.",
+        "spoilers": "The map shows only what is available in your reading context.",
+        "title": "How the map works",
+        "trigger": "How the map works"
+      },
+      "guided": {
+        "charactersCount": "{count, plural, one {# character in the book} other {# characters in the book}}",
+        "charactersTitle": "Book characters",
+        "errorDescription": "Check your connection and try again.",
+        "errorTitle": "Could not load the characters",
+        "hint": "Use the character search above or pick someone below.",
+        "noCharactersDescription": "Add characters to the book to build a relationship map.",
+        "noCharactersTitle": "This book has no characters yet",
+        "personTitle": "Pick a character to see their connections",
+        "pick": "Show connections of {name}",
+        "retry": "Try again",
+        "toCharacters": "To book characters",
+        "treeTitle": "Pick a character to see their family"
+      },
+      "states": {
+        "bookUnavailable": {
+          "description": "The book is unavailable or could not be loaded.",
+          "title": "Could not open the map"
+        },
+        "error": {
+          "description": "Check your connection and try again.",
+          "retry": "Try again",
+          "title": "Could not load the map"
+        },
+        "filteredEmpty": {
+          "description": "No connection matches the filters.",
+          "title": "Nothing found."
+        },
+        "loading": "Loading the map…",
+        "networkEmpty": {
+          "description": "There are no connections to show in the current reading context.",
+          "title": "No connections available."
+        },
+        "noRelations": {
+          "description": "This character has no connections to show in the current reading context.",
+          "title": "This character has no available connections."
+        },
+        "unavailableCharacter": {
+          "action": "Pick another character",
+          "description": "This character is not in the book or is unavailable in the current reading context.",
+          "title": "Character unavailable"
+        }
+      },
+      "notices": {
+        "fallbackComponents": "This network has no available groups, so it is shown by connectivity.",
+        "irregular": "Some generations could not be placed because of conflicting records.",
+        "locked": "Some details are hidden.",
+        "noAncestry": "The records contain no confirmed parent and child relationships.",
+        "overBudget": "The map shows many characters. Collapse some branches or groups to keep it readable.",
+        "truncated": "Only part of the available network is shown."
+      },
+      "counters": {
+        "expanded": "Expanded: {nodes, plural, one {# character} other {# characters}} · {edges, plural, one {# connection} other {# connections}}",
+        "groups": "On the map: {groups, plural, one {# group} other {# groups}}",
+        "people": "On the map: {nodes, plural, one {# character} other {# characters}} · {edges, plural, one {# connection} other {# connections}}"
+      },
+      "more": {
+        "clusters": "Show more groups",
+        "members": "Show more characters",
+        "ring": "Show more at step {hop}"
+      },
+      "node": {
+        "collapse": "Collapse the connections of {name}",
+        "expand": "Expand the connections of {name}",
+        "open": "Open details of {name}",
+        "openFavorite": "Open details of {name}, in favorites",
+        "openRoot": "Open details of the central character {name}"
+      },
+      "cluster": {
+        "collapse": "Collapse group “{name}”, {count, plural, one {# character} other {# characters}}",
+        "expand": "Expand group “{name}”, {count, plural, one {# character} other {# characters}}",
+        "fragment": "Network fragment {index}",
+        "groupHidden": "Group",
+        "importanceUnknown": "Importance not set",
+        "members": "{count, plural, one {# character} other {# characters}} on the map",
+        "ungrouped": "No group specified"
+      },
+      "connection": {
+        "custom": "Custom relationship type",
+        "hidden": "Relationship details are hidden",
+        "many": "Several connections"
+      },
+      "canvas": {
+        "a11yEdge": "Click to open the connection details.",
+        "a11yNode": "Press Enter to open the character details.",
+        "cancelOverwrite": "Cancel",
+        "confirmOverwrite": "Replace",
+        "enterFullscreen": "Full screen",
+        "exitFullscreen": "Exit full screen",
+        "fit": "Fit the map",
+        "label": "Relationship map canvas",
+        "overwrite": "A different layout is already saved for this mode. Replace it?",
+        "relayout": "Rearrange",
+        "reset": "Reset layout",
+        "resetError": "Could not reset the layout",
+        "save": "Save layout",
+        "saved": "Layout saved",
+        "saveError": "Could not save the layout",
+        "zoomIn": "Zoom in",
+        "zoomOut": "Zoom out"
+      },
+      "list": {
+        "aggregate": "The shown characters of “{source}” and “{target}” are connected",
+        "item": "{source} — {target}",
+        "title": "Connections on the map ({count})"
+      },
+      "panel": {
+        "character": {
+          "collapse": "Collapse connections",
+          "connections": "{count, plural, =0 {Connections on the map} one {# connection on the map} other {# connections on the map}}",
+          "expand": "Expand connections",
+          "explore": "Explore around",
+          "favorite": "In favorites",
+          "findPath": "Find a path from this character",
+          "makeCenter": "Make center",
+          "noConnections": "No connections of this character are shown on the map.",
+          "profile": "Character profile",
+          "root": "Current center"
+        },
+        "close": "Close details",
+        "connection": {
+          "back": "Back to the connection list",
+          "group": "Connections between {source} and {target}",
+          "item": "Record {index}",
+          "title": "{source} and {target}"
+        },
+        "description": "Details of the selected map element.",
+        "title": "Details"
+      },
+      "path": {
+        "back": "To the map",
+        "clear": "Clear selection",
+        "context": "The path uses the connections available in the book’s reading context.",
+        "direction": {
+          "forward": "{source} → {target}",
+          "symmetric": "Mutual",
+          "unknown": "Direction not revealed"
+        },
+        "error": "Could not find a path.",
+        "filtered": "The search uses the active filters.",
+        "found": "Shortest chain found: {count, plural, one {# step} other {# steps}}.",
+        "from": "Character A",
+        "idle": "Pick two characters to see how they are connected.",
+        "limited": "The search stopped at a safety limit, so the answer is incomplete. Try narrowing the filters.",
+        "loading": "Searching for a path…",
+        "notFound": "No path was found among the connections available for reading.",
+        "retry": "Try again",
+        "same": "Pick two different characters.",
+        "sequence": "Path between the characters",
+        "step": "Step {index}",
+        "stepHint": "A step is one available connection between two characters. The connection’s own direction may differ from the path order.",
+        "stepTitle": "Path step",
+        "swap": "Swap the characters",
+        "title": "How are two characters connected?",
+        "to": "Character B",
+        "unavailable": "The character is unavailable in this book.",
+        "unknown": "Could not confirm that the search finished completely."
+      }
     }
   }
 }

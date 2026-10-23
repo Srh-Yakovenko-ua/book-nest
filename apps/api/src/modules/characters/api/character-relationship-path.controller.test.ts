@@ -188,6 +188,7 @@ describe("character relationship path finder", () => {
       found: false,
       fromId: alice,
       nodes: [],
+      searchLimited: false,
       toId: carol,
     });
     expect(JSON.stringify(viaHidden.body)).not.toContain(hiddenRelationshipId);
@@ -365,5 +366,100 @@ describe("character relationship path finder", () => {
     );
 
     expect(res.status).toBe(HttpStatus.NOT_FOUND);
+  });
+});
+
+describe("character relationship path search outcome", () => {
+  it("reports a found path as an unlimited search", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const alice = await createCharacter(accessToken, "Alice");
+    const bob = await createCharacter(accessToken, "Bob");
+    const carol = await createCharacter(accessToken, "Carol");
+    await linkToBook(accessToken, bookId, [alice, bob, carol]);
+    await createRelationship(
+      accessToken,
+      socialEdge({ bookId, sourceCharacterId: alice, targetCharacterId: bob }),
+    );
+    await createRelationship(
+      accessToken,
+      socialEdge({ bookId, sourceCharacterId: bob, targetCharacterId: carol, type: "ally_of" }),
+    );
+
+    const res = await authed(
+      "get",
+      `/api/character-relationships/path?fromId=${alice}&toId=${carol}&contextBookId=${bookId}`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body).toMatchObject({ found: true, searchLimited: false });
+  });
+
+  it("reports an unreachable pair as not found without a search limit", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const alice = await createCharacter(accessToken, "Alice");
+    const bob = await createCharacter(accessToken, "Bob");
+    const carol = await createCharacter(accessToken, "Carol");
+    const dave = await createCharacter(accessToken, "Dave");
+    await linkToBook(accessToken, bookId, [alice, bob, carol, dave]);
+    await createRelationship(
+      accessToken,
+      socialEdge({ bookId, sourceCharacterId: alice, targetCharacterId: bob }),
+    );
+    await createRelationship(
+      accessToken,
+      socialEdge({ bookId, sourceCharacterId: carol, targetCharacterId: dave }),
+    );
+
+    const res = await authed(
+      "get",
+      `/api/character-relationships/path?fromId=${alice}&toId=${dave}&contextBookId=${bookId}`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body).toEqual({
+      edges: [],
+      found: false,
+      fromId: alice,
+      nodes: [],
+      searchLimited: false,
+      toId: dave,
+    });
+  });
+
+  it("returns each path node with its book display name", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const alice = await createCharacter(accessToken, "Alice");
+    const bob = await createCharacter(accessToken, "Bob");
+    const carol = await createCharacter(accessToken, "Carol");
+    await linkToBook(accessToken, bookId, [alice, carol]);
+    const linkedBob = await authed("post", `/api/books/${bookId}/characters`, accessToken).send({
+      bookProfile: { displayName: "The Bastard" },
+      characterId: bob,
+      mode: "existing",
+    });
+    expect(linkedBob.status).toBe(HttpStatus.CREATED);
+    await createRelationship(
+      accessToken,
+      socialEdge({ bookId, sourceCharacterId: alice, targetCharacterId: bob }),
+    );
+    await createRelationship(
+      accessToken,
+      socialEdge({ bookId, sourceCharacterId: bob, targetCharacterId: carol, type: "ally_of" }),
+    );
+
+    const res = await authed(
+      "get",
+      `/api/character-relationships/path?fromId=${alice}&toId=${carol}&contextBookId=${bookId}`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.nodes.map((node: { displayName: string }) => node.displayName)).toEqual([
+      "Alice",
+      "The Bastard",
+      "Carol",
+    ]);
   });
 });

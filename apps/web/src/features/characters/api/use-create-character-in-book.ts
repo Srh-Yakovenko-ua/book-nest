@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { invalidateTagAggregateQueries } from "@/features/tags/api/tags-keys";
 import { bookCharactersControllerCreate } from "@/shared/api/generated/endpoints/characters/characters";
 
-import { characterKeys } from "./character-keys";
+import { invalidateCharacterIdentityViews } from "./character-identity-sync";
 
 type CreateCharacterInBookVariables = {
   bookId: string;
@@ -23,7 +23,7 @@ export function useCreateCharacterInBook() {
     }: CreateCharacterInBookVariables): Promise<CharacterDetailsView> =>
       CharacterDetailsViewSchema.parse(await bookCharactersControllerCreate(bookId, input)),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: characterKeys.all });
+      invalidateCharacterIdentityViews(queryClient);
       void invalidateTagAggregateQueries(queryClient);
     },
   });

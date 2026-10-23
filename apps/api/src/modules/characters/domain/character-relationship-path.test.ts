@@ -20,8 +20,11 @@ const ALICE = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const BOB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const CAROL = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 const DAVE = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+const ERIN = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+const FRANK = "ffffffff-ffff-4fff-8fff-ffffffffffff";
 const BOOK = "20000000-0000-4000-8000-000000000001";
 const MAX_VISITED = 5000;
+const LONG_CHAIN_IDS = [ALICE, BOB, CAROL, DAVE, ERIN, FRANK];
 
 function chain(): GraphEdgeSource[] {
   return [
@@ -103,15 +106,48 @@ function find({
   });
 }
 
+function linkSource({
+  id,
+  source,
+  target,
+}: {
+  id: string;
+  source: string;
+  target: string;
+}): GraphEdgeSource {
+  return edgeSource({
+    bookStates: [stateSource({ id: `state-${id}`, relationshipId: id })],
+    id,
+    sourceCharacterId: source,
+    targetCharacterId: target,
+  });
+}
+
+function longChain(): GraphEdgeSource[] {
+  return [
+    linkSource({ id: "rel-1", source: ALICE, target: BOB }),
+    linkSource({ id: "rel-2", source: BOB, target: CAROL }),
+    linkSource({ id: "rel-3", source: CAROL, target: DAVE }),
+    linkSource({ id: "rel-4", source: DAVE, target: ERIN }),
+    linkSource({ id: "rel-5", source: ERIN, target: FRANK }),
+  ];
+}
+
 function nodeSource(overrides: Partial<GraphNodeSource> & { id: string }): GraphNodeSource {
   return {
     appearances: [
       {
         bookId: BOOK,
         createdAt: new Date("2024-01-01T00:00:00.000Z"),
+        displayName: null,
+        displayNameIsSpoiler: false,
         importance: "major",
+        portrait: null,
+        portraitIsSpoiler: false,
+        portraitMediaId: null,
       },
     ],
+    avatar: null,
     entityKind: "individual",
     isFavorite: false,
     name: overrides.id,
@@ -153,6 +189,7 @@ describe("findVisibleRelationshipPath", () => {
     });
 
     expect(result.found).toBe(true);
+    expect(result.searchLimited).toBe(false);
     expect(result.nodes.map((node) => node.id)).toEqual([ALICE, BOB, CAROL]);
     expect(result.edges.map((edge) => edge.id)).toEqual(["rel-1", "rel-2"]);
     expect(result.fromId).toBe(ALICE);
@@ -209,7 +246,14 @@ describe("findVisibleRelationshipPath", () => {
       toId: CAROL,
     });
 
-    expect(hiddenPath).toEqual({ edges: [], found: false, fromId: ALICE, nodes: [], toId: CAROL });
+    expect(hiddenPath).toEqual({
+      edges: [],
+      found: false,
+      fromId: ALICE,
+      nodes: [],
+      searchLimited: false,
+      toId: CAROL,
+    });
     expect(hiddenPath).toEqual(genuinelyUnconnected);
     expect(JSON.stringify(hiddenPath)).not.toContain("rel-2");
     expect(JSON.stringify(hiddenPath)).not.toContain(BOB);
@@ -321,5 +365,64 @@ describe("findVisibleRelationshipPath", () => {
     expect(result.found).toBe(true);
     expect(result.nodes.map((node) => node.id)).toEqual([ALICE, CAROL, DAVE]);
     expect(result.edges.map((edge) => edge.id)).toEqual(["rel-3", "rel-4"]);
+  });
+
+  describe("visit budget", () => {
+    it("finds the target when the budget equals the number of nodes on the path", () => {
+      const result = find({
+        edges: longChain(),
+        fromId: ALICE,
+        maxVisitedNodes: 6,
+        nodes: LONG_CHAIN_IDS.map((id) => nodeSource({ id })),
+        toId: FRANK,
+      });
+
+      expect(result.found).toBe(true);
+      expect(result.searchLimited).toBe(false);
+      expect(result.nodes.map((node) => node.id)).toEqual(LONG_CHAIN_IDS);
+    });
+
+    it("reports a limited search with no path when the budget is one node short", () => {
+      const result = find({
+        edges: longChain(),
+        fromId: ALICE,
+        maxVisitedNodes: 5,
+        nodes: LONG_CHAIN_IDS.map((id) => nodeSource({ id })),
+        toId: FRANK,
+      });
+
+      expect(result).toEqual({
+        edges: [],
+        found: false,
+        fromId: ALICE,
+        nodes: [],
+        searchLimited: true,
+        toId: FRANK,
+      });
+    });
+
+    it("reports an unreachable target as not limited when its search ran out before the budget", () => {
+      const result = find({
+        edges: chain(),
+        fromId: ALICE,
+        maxVisitedNodes: 4,
+        nodes: [
+          nodeSource({ id: ALICE }),
+          nodeSource({ id: BOB }),
+          nodeSource({ id: CAROL }),
+          nodeSource({ id: DAVE }),
+        ],
+        toId: DAVE,
+      });
+
+      expect(result).toEqual({
+        edges: [],
+        found: false,
+        fromId: ALICE,
+        nodes: [],
+        searchLimited: false,
+        toId: DAVE,
+      });
+    });
   });
 });

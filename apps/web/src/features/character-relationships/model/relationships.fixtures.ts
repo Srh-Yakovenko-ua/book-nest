@@ -219,14 +219,17 @@ export function makeRelationshipGraphEdge(
 export function makeRelationshipGraphNode(
   overrides: Partial<CharacterGraphNodeView> = {},
 ): CharacterGraphNodeView {
+  const name = overrides.name ?? RELATIONSHIP_FIXTURE.geralt.name;
   return {
     clusterId: null,
     degree: 1,
+    displayMedia: null,
+    displayName: name,
     entityKind: "individual",
     id: RELATIONSHIP_FIXTURE.geralt.id,
     importance: "major",
     isFavorite: false,
-    name: RELATIONSHIP_FIXTURE.geralt.name,
+    name,
     ...overrides,
   };
 }

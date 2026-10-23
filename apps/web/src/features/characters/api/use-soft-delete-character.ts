@@ -7,7 +7,7 @@ import { matchesAnyBookChapters } from "@/features/books/api/book-keys";
 import { invalidateTagAggregateQueries } from "@/features/tags/api/tags-keys";
 import { charactersControllerSoftDelete } from "@/shared/api/generated/endpoints/characters/characters";
 
-import { characterKeys } from "./character-keys";
+import { invalidateCharacterIdentityViews } from "./character-identity-sync";
 
 export function useSoftDeleteCharacter() {
   const queryClient = useQueryClient();
@@ -18,7 +18,7 @@ export function useSoftDeleteCharacter() {
         await charactersControllerSoftDelete(characterId, { confirm: "true" }),
       ),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: characterKeys.all });
+      invalidateCharacterIdentityViews(queryClient);
       void queryClient.invalidateQueries({ predicate: matchesAnyBookChapters });
       void invalidateTagAggregateQueries(queryClient);
     },

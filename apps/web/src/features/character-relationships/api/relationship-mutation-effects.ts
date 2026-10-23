@@ -25,3 +25,7 @@ export async function refreshRelationshipsWhenGone({
   if (!isRelationshipGone(error)) return;
   await refreshRelationships(queryClient);
 }
+
+export function resetRelationshipReaderViews(queryClient: QueryClient): Promise<void> {
+  return queryClient.resetQueries({ queryKey: relationshipKeys.all });
+}
