@@ -3,7 +3,7 @@
 import type { CharacterGraphEdgeView, Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,18 @@ export function GraphConnectionDetails({
   const t = useTranslations("relationships.workspace.panel.connection");
   const toLabel = useGraphEdgeLabel();
   const [selectedEdgeId, setSelectedEdgeId] = useState<Nullable<string>>(null);
+  const backButton = useRef<HTMLButtonElement>(null);
+  const lastOpenedEdgeId = useRef<Nullable<string>>(null);
+  const itemIdPrefix = useId();
+
+  useEffect(() => {
+    if (selectedEdgeId !== null) {
+      backButton.current?.focus();
+      return;
+    }
+    const opened = lastOpenedEdgeId.current;
+    if (opened !== null) document.getElementById(`${itemIdPrefix}-${opened}`)?.focus();
+  }, [itemIdPrefix, selectedEdgeId]);
   const [single] = edges;
   const activeEdgeId = edges.length === 1 && single !== undefined ? single.id : selectedEdgeId;
 
@@ -42,6 +54,7 @@ export function GraphConnectionDetails({
           <Button
             className="self-start"
             onClick={() => setSelectedEdgeId(null)}
+            ref={backButton}
             size="sm"
             type="button"
             variant="ghost"
@@ -70,7 +83,11 @@ export function GraphConnectionDetails({
           <li key={edge.id}>
             <Button
               className="h-auto w-full justify-between gap-2 py-2 text-left"
-              onClick={() => setSelectedEdgeId(edge.id)}
+              id={`${itemIdPrefix}-${edge.id}`}
+              onClick={() => {
+                lastOpenedEdgeId.current = edge.id;
+                setSelectedEdgeId(edge.id);
+              }}
               type="button"
               variant="ghost"
             >

@@ -590,6 +590,16 @@
   }
 }
 
+@utility graph-workspace-viewport {
+  min-height: calc(100dvh - var(--shell-header-height) - var(--spacing) * 18);
+}
+
+@utility graph-workspace-immersive {
+  position: fixed;
+  inset: var(--shell-header-height) 0 0 0;
+  z-index: 50;
+}
+
 @utility hero-content-branch {
   position: relative;
   isolation: isolate;

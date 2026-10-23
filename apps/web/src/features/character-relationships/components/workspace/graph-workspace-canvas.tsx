@@ -39,7 +39,7 @@ const WORKSPACE_CANVAS = {
     [GRAPH_SCENE_FLOW.aggregateEdge]: GraphAggregateEdge,
     [GRAPH_SCENE_FLOW.connectionEdge]: GraphConnectionEdge,
   },
-  fitViewOptions: { padding: 0.2 },
+  fitViewOptions: { maxZoom: 1, padding: 0.2 },
   maxZoom: 2,
   minZoom: 0.1,
   nodeOrigin: [0.5, 0.5],

@@ -3,7 +3,7 @@
 import type { BookDetailsView, CharacterGraphViewport, Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Segmented } from "@/components/ui/segmented";
@@ -77,7 +77,7 @@ type WorkspaceLocalState = {
 export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
   const t = useTranslations("relationships.workspace");
   const bookId = book.id;
-  const { actions, params } = useGraphWorkspaceState();
+  const { actions: urlActions, params } = useGraphWorkspaceState();
   const reader = toGraphReaderKey(book);
   const sceneRequest = toGraphWorkspaceSceneRequest(params);
   const scene = useGraphWorkspaceScene({ bookId, reader, request: sceneRequest });
@@ -85,6 +85,28 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
   const [immersive, setImmersive] = useState(false);
   const [treeOptions, setTreeOptions] = useState<TreeOptions>(TREE_SCENE.defaultOptions);
   const lastTrigger = useRef<Nullable<HTMLElement>>(null);
+  const focusSceneStatus = useRef(false);
+  const statusId = useId();
+  const filtersTriggerId = useId();
+  const actions = {
+    ...urlActions,
+    chooseCharacter: (characterId: string) => {
+      focusSceneStatus.current = true;
+      urlActions.chooseCharacter(characterId);
+    },
+    closePath: () => {
+      focusSceneStatus.current = true;
+      urlActions.closePath();
+    },
+    exploreFromPath: (characterId: string) => {
+      focusSceneStatus.current = true;
+      urlActions.exploreFromPath(characterId);
+    },
+    makeCenter: (characterId: string) => {
+      focusSceneStatus.current = true;
+      urlActions.makeCenter(characterId);
+    },
+  };
   const scope: RelationshipScope = { bookId, kind: "book" };
   const authoring = useRelationshipAuthoring({
     bookOptions: [{ id: bookId, title: book.title }],
@@ -106,6 +128,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
           treeOptions,
         });
 
+  const isSceneMode = !params.path && (sceneRequest !== null || params.view === "network");
   const isUnavailable =
     isGraphWorkspaceNotFound(scene.error) ||
     (scene.isSuccess && presentation === null && !params.path);
@@ -131,6 +154,13 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
   });
 
   const selection = reconcileSelection({ presentation, selection: local.selection });
+  const isSceneReady = presentation !== null;
+
+  useEffect(() => {
+    if (!isSceneReady || !focusSceneStatus.current) return;
+    focusSceneStatus.current = false;
+    document.getElementById(statusId)?.focus();
+  }, [isSceneReady, identityKey, statusId]);
   const hasSelection = selection !== null;
 
   useEffect(() => {
@@ -257,7 +287,8 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
     <div
       className={cn(
         "@container/workspace flex flex-col gap-4",
-        immersive && "fixed inset-0 z-50 overflow-y-auto bg-background p-3 sm:p-4",
+        isSceneMode && "graph-workspace-viewport",
+        immersive && "graph-workspace-immersive overflow-y-auto bg-background p-3 sm:p-4",
       )}
       ref={containerRef}
     >
@@ -282,7 +313,12 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
                 if (view !== undefined) actions.setView(view);
               }}
               options={GRAPH_WORKSPACE_VIEWS.map((view) => ({
-                label: t(`views.${view}`),
+                label: (
+                  <>
+                    <span className="@lg/workspace:hidden">{t(`views.short.${view}`)}</span>
+                    <span className="hidden @lg/workspace:inline">{t(`views.${view}`)}</span>
+                  </>
+                ),
                 value: view,
               }))}
               tone="accent"
@@ -291,6 +327,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
             <GraphWorkspaceToolbar
               actions={actions}
               bookId={bookId}
+              filtersTriggerId={filtersTriggerId}
               onTreeOptionsChange={setTreeOptions}
               params={params}
               rootParticipant={toRootParticipant({ presentation, rootId: params.characterId })}
@@ -299,6 +336,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
             <GraphActiveFilters
               categories={params.categories}
               dormant={params.view === "tree"}
+              filtersTriggerId={filtersTriggerId}
               onChange={actions.setFilters}
               onReset={actions.resetFilters}
               types={params.types}
@@ -364,6 +402,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
               sceneKey={toGraphSceneKey([identityKey, restore === null ? null : layoutVersion])}
               sceneValue={sceneValue}
               selection={selection}
+              statusId={statusId}
               widthClass={widthClass}
             />
           )}
@@ -396,7 +435,12 @@ function makeSurroundingsInert(element: HTMLElement): () => void {
   let current = element;
   while (current.parentElement !== null && current !== document.body) {
     for (const sibling of current.parentElement.children) {
-      if (sibling !== current && sibling instanceof HTMLElement && !sibling.inert) {
+      if (
+        sibling !== current &&
+        sibling instanceof HTMLElement &&
+        sibling.tagName !== "HEADER" &&
+        !sibling.inert
+      ) {
         sibling.inert = true;
         inerted.push(sibling);
       }

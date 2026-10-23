@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useRef } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ export function GraphConnectionsList({
 }: GraphConnectionsListProps) {
   const t = useTranslations("relationships.workspace.list");
   const toBucketLabel = useNetworkBucketLabel();
+  const trigger = useRef<HTMLButtonElement>(null);
   const total = connections.length + aggregates.length;
   if (total === 0) return null;
 
@@ -46,7 +48,7 @@ export function GraphConnectionsList({
   return (
     <Collapsible>
       <CollapsibleTrigger asChild>
-        <Button className="self-start" size="sm" type="button" variant="ghost">
+        <Button className="self-start" ref={trigger} size="sm" type="button" variant="ghost">
           <UiIcon name="list" size={14} />
           {t("title", { count: total })}
         </Button>
@@ -74,7 +76,10 @@ export function GraphConnectionsList({
             <li key={aggregate.id}>
               <Button
                 className="h-auto w-full justify-start py-2 text-left whitespace-normal"
-                onClick={() => onAggregateOpen(aggregate.sourceId, aggregate.targetId)}
+                onClick={() => {
+                  onAggregateOpen(aggregate.sourceId, aggregate.targetId);
+                  requestAnimationFrame(() => trigger.current?.focus());
+                }}
                 type="button"
                 variant="outline"
               >

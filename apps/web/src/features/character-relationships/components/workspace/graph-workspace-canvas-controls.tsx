@@ -15,6 +15,7 @@ import type { GraphSceneFlowEdge, GraphSceneFlowNode } from "./graph-scene-conte
 
 const CANVAS_CONTROLS = {
   durationMs: 250,
+  fitMaxZoom: 1,
   fitPadding: 0.2,
   reducedDurationMs: 0,
 } as const;
@@ -60,7 +61,10 @@ export function GraphWorkspaceCanvasControls({
     if (!initialized || fittedScene.current === sceneKey) return;
     fittedScene.current = sceneKey;
     if (viewport === null) {
-      void flow.fitView({ padding: CANVAS_CONTROLS.fitPadding });
+      void flow.fitView({
+        maxZoom: CANVAS_CONTROLS.fitMaxZoom,
+        padding: CANVAS_CONTROLS.fitPadding,
+      });
     } else {
       void flow.setViewport(viewport);
     }
@@ -96,7 +100,13 @@ export function GraphWorkspaceCanvasControls({
       </Button>
       <Button
         aria-label={t("fit")}
-        onClick={() => void flow.fitView({ duration, padding: CANVAS_CONTROLS.fitPadding })}
+        onClick={() =>
+          void flow.fitView({
+            duration,
+            maxZoom: CANVAS_CONTROLS.fitMaxZoom,
+            padding: CANVAS_CONTROLS.fitPadding,
+          })
+        }
         size="icon"
         type="button"
         variant="secondary"

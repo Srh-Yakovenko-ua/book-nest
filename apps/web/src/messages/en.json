@@ -10418,6 +10418,11 @@
         "label": "Map mode",
         "network": "Whole network",
         "person": "Around a character",
+        "short": {
+          "network": "Network",
+          "person": "Character",
+          "tree": "Tree"
+        },
         "tree": "Family tree"
       },
       "pathEntry": "How are two characters connected?",

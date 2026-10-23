@@ -55,6 +55,7 @@ type GraphSceneSectionProps = {
   sceneKey: string;
   sceneValue: Nullable<GraphSceneValue>;
   selection: GraphSceneSelection;
+  statusId: string;
   widthClass: WorkspaceWidthClass;
 };
 
@@ -78,7 +79,12 @@ export function GraphSceneSection(props: GraphSceneSectionProps) {
     <div className="flex min-h-0 flex-1 flex-col">
       <p
         aria-live="polite"
-        className={cn("pb-2 text-sm text-muted-foreground", announcement === "" && "sr-only")}
+        className={cn(
+          "pb-2 text-sm text-muted-foreground outline-none",
+          announcement === "" && "sr-only",
+        )}
+        id={props.statusId}
+        tabIndex={-1}
       >
         {announcement}
       </p>
@@ -123,7 +129,7 @@ function ReadyScene({
   for (const [id, point] of restore?.positions ?? []) positions.set(id, point);
 
   return (
-    <section className={cn("flex flex-col gap-3", immersive && "min-h-0 flex-1")}>
+    <section className="flex min-h-0 flex-1 flex-col gap-3">
       <GraphSceneStatus
         empty={presentation.empty}
         notices={presentation.notices}
@@ -163,7 +169,7 @@ function ReadyScene({
           </Button>
         </div>
       ) : null}
-      <div className={cn("flex gap-3", immersive ? "min-h-0 flex-1" : "h-128 sm:h-160")}>
+      <div className="flex min-h-80 flex-1 gap-3">
         <div className="relative min-w-0 flex-1 overflow-hidden rounded-2xl border border-border bg-card">
           <GraphWorkspaceCanvasLazy
             aggregates={presentation.aggregates}
@@ -250,8 +256,8 @@ function SceneContent(props: GraphSceneSectionProps) {
 
   if (presentation === null || sceneValue === null) {
     return (
-      <div aria-busy className="flex flex-col gap-2">
-        <Skeleton className="h-128 w-full rounded-2xl" />
+      <div aria-busy className="flex min-h-80 flex-1 flex-col">
+        <Skeleton className="w-full flex-1 rounded-2xl" />
       </div>
     );
   }

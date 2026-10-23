@@ -79,6 +79,11 @@ export function GraphPathExplorer({
   const toDirection = usePathDirectionText();
   const [selection, setSelection] = useState<PathSelection>(null);
   const lastTrigger = useRef<HTMLElement>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    heading.current?.focus();
+  }, []);
   const hasSelection = selection !== null;
   const fromEndpoint = useGraphWorkspaceEndpoint({ bookId, characterId: params.from, reader });
   const toEndpoint = useGraphWorkspaceEndpoint({ bookId, characterId: params.to, reader });
@@ -132,7 +137,12 @@ export function GraphPathExplorer({
   return (
     <section aria-labelledby="graph-path-title" className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-heading text-xl font-medium" id="graph-path-title">
+        <h2
+          className="font-heading text-xl font-medium outline-none"
+          id="graph-path-title"
+          ref={heading}
+          tabIndex={-1}
+        >
           {t("title")}
         </h2>
         <Button onClick={actions.closePath} type="button" variant="outline">

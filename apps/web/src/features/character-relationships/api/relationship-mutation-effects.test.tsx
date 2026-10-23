@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { toRelationshipScopeKey } from "../model/relationship-scope";
 import { makeEditableRelationship, RELATIONSHIP_FIXTURE } from "../model/relationships.fixtures";
 import { relationshipKeys } from "./relationship-keys";
+import { resetRelationshipReaderViews } from "./relationship-mutation-effects";
 import { useCreateRelationship } from "./use-create-relationship";
 import { useUpdateRelationship } from "./use-update-relationship";
 
@@ -31,6 +32,13 @@ const AFTER_SAVE = {
   customTypes: "cleared",
   list: "invalidated",
   roleSuggestions: "cleared",
+  roster: "untouched",
+} as const satisfies Record<keyof typeof SEEDED_KEYS, CacheEntryState>;
+
+const AFTER_READER_RESET = {
+  customTypes: "untouched",
+  list: "cleared",
+  roleSuggestions: "untouched",
   roster: "untouched",
 } as const satisfies Record<keyof typeof SEEDED_KEYS, CacheEntryState>;
 
@@ -132,5 +140,15 @@ describe("relationship saves refresh the suggestion dictionaries", () => {
     );
 
     expect(cacheStates(client)).toEqual(AFTER_SAVE);
+  });
+});
+
+describe("reading progress moving backwards", () => {
+  it("drops the cached relationship views and keeps the views outside the relationship root", async () => {
+    const client = seededClient();
+
+    await resetRelationshipReaderViews(client);
+
+    expect(cacheStates(client)).toEqual(AFTER_READER_RESET);
   });
 });

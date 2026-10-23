@@ -1519,6 +1519,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Фільтри персонажів із кількістю",
     version: null,
   },
+  {
+    bodyEn:
+      "A book's relationship graph now has its own page: open it from the Characters tab with Open relationship map. It replaces the Graph mode on that tab, and old links to it lead to the new page. The map has three views. Around a character shows the people connected to the one you pick, one to three steps away, and you can expand any branch further. Family tree is built from the parents and children you recorded, one to three generations up and down. Whole network shows everyone, grouped by character groups, by how connected they are or by importance. How are two characters connected? finds the shortest chain between two characters and walks you through it step by step. Each view remembers its own layout, the map can go full screen, and details open in a side panel, or in a sheet from the bottom on a phone. Spoilers stay hidden according to how far you have read. Series graphs work as before.",
+    bodyUk:
+      "Граф зв'язків книги тепер має окрему сторінку: відкрийте її з вкладки «Персонажі» кнопкою «Відкрити карту зв'язків». Вона замінює режим «Граф» на цій вкладці, а старі посилання на нього ведуть на нову сторінку. На карті три режими. «Навколо персонажа» показує тих, хто пов'язаний з обраним персонажем, на відстані від одного до трьох кроків, і будь-яку гілку можна розгорнути далі. «Родинне дерево» будується з записаних вами батьків і дітей, на одне-три покоління вгору та вниз. «Уся мережа» показує всіх персонажів, згрупованих за групами персонажів, за кількістю зв'язків або за важливістю. «Як пов'язані два персонажі?» знаходить найкоротший ланцюжок між двома персонажами й проводить вас ним крок за кроком. Кожен режим запам'ятовує власне розташування, карту можна розгорнути на весь екран, а подробиці відкриваються в бічній панелі, а на телефоні в панелі знизу. Спойлери приховані відповідно до того, скільки ви прочитали. Графи серій працюють як і раніше.",
+    category: "feature",
+    publishedAt: "2026-10-23T00:00:00.000Z",
+    slug: "book-relationship-map",
+    titleEn: "Relationship map for a book",
+    titleUk: "Карта зв'язків книги",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;
