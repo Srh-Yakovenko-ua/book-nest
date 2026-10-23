@@ -33,6 +33,7 @@ import type {
   CharacterRelationshipsControllerGetByIdParams,
   CharacterRelationshipsControllerListParams,
   CreateCharacterRelationshipInputDto,
+  FamilyTreeGraphViewDto,
   PaginatedCharacterRelationshipCustomTypesViewDto,
   PaginatedCharacterRelationshipListViewDto,
   PaginatedCharacterRelationshipRoleSuggestionsViewDto,
@@ -2668,8 +2669,13 @@ export function useBookCharacterRelationshipsControllerList<
 }
 
 export type bookCharacterGraphControllerGetResponse200 = {
-  data: CharacterGraphViewDto;
+  data: CharacterGraphViewDto | FamilyTreeGraphViewDto;
   status: 200;
+};
+
+export type bookCharacterGraphControllerGetResponse400 = {
+  data: void;
+  status: 400;
 };
 
 export type bookCharacterGraphControllerGetResponse401 = {
@@ -2687,7 +2693,9 @@ export type bookCharacterGraphControllerGetResponseSuccess =
     headers: Headers;
   };
 export type bookCharacterGraphControllerGetResponseError = (
-  bookCharacterGraphControllerGetResponse401 | bookCharacterGraphControllerGetResponse404
+  | bookCharacterGraphControllerGetResponse400
+  | bookCharacterGraphControllerGetResponse401
+  | bookCharacterGraphControllerGetResponse404
 ) & {
   headers: Headers;
 };

@@ -8,6 +8,7 @@ import { charactersControllerUpdateGlobal } from "@/shared/api/generated/endpoin
 
 import type { CharactersCatalogPage } from "./use-characters-catalog";
 
+import { invalidateCharacterIdentityViews } from "./character-identity-sync";
 import { characterKeys } from "./character-keys";
 
 type CatalogPages = InfiniteData<CharactersCatalogPage>;
@@ -56,7 +57,7 @@ export function useToggleCatalogCharacterFavorite() {
       return { previousCatalogs };
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: characterKeys.all });
+      invalidateCharacterIdentityViews(queryClient);
     },
   });
 }

@@ -152,6 +152,7 @@ const purgeSelect = {
 } satisfies Prisma.CharacterSelect;
 
 const graphNodeSelect = {
+  avatarMedia: true,
   entityKind: true,
   id: true,
   isFavorite: true,
@@ -344,10 +345,16 @@ export type GlobalCharacterFilter = {
 };
 
 export type GraphNodeRow = {
+  avatarMedia: Nullable<MediaAssetModel>;
   bookAppearances: {
     bookId: string;
     createdAt: Date;
+    displayName: Nullable<string>;
+    displayNameIsSpoiler: boolean;
     importance: string;
+    portraitIsSpoiler: boolean;
+    portraitMedia: Nullable<MediaAssetModel>;
+    portraitMediaId: Nullable<string>;
   }[];
   entityKind: string;
   id: string;
@@ -957,7 +964,16 @@ export class CharactersRepository {
       select: {
         ...graphNodeSelect,
         bookAppearances: {
-          select: { bookId: true, createdAt: true, importance: true },
+          select: {
+            bookId: true,
+            createdAt: true,
+            displayName: true,
+            displayNameIsSpoiler: true,
+            importance: true,
+            portraitIsSpoiler: true,
+            portraitMedia: true,
+            portraitMediaId: true,
+          },
           where: { book: SOFT_DELETE_SCOPE.active, bookId: { in: bookIds } },
         },
       },

@@ -22,7 +22,7 @@ export const CharacterGraphLayoutsControllerGetQueryParams = zod.object({
     .uuid()
     .regex(characterGraphLayoutsControllerGetQueryContextBookIdRegExp)
     .nullish(),
-  mode: zod.enum(["family", "all"]),
+  mode: zod.enum(["family", "all", "person", "tree", "network"]),
   scopeId: zod.uuid().regex(characterGraphLayoutsControllerGetQueryScopeIdRegExp).nullish(),
   scopeType: zod.enum(["book", "series", "global"]),
 });
@@ -47,7 +47,7 @@ export const CharacterGraphLayoutsControllerGetResponse = zod.object({
   createdAt: zod.string(),
   id: zod.string(),
   layoutVersion: zod.string(),
-  mode: zod.enum(["family", "all"]),
+  mode: zod.enum(["family", "all", "person", "tree", "network"]),
   positions: zod.record(
     zod.string(),
     zod.object({
@@ -113,7 +113,7 @@ export const CharacterGraphLayoutsControllerSaveBody = zod.object({
     .uuid()
     .regex(characterGraphLayoutsControllerSaveBodyContextBookIdRegExp)
     .nullish(),
-  mode: zod.enum(["family", "all"]),
+  mode: zod.enum(["family", "all", "person", "tree", "network"]),
   scopeId: zod.uuid().regex(characterGraphLayoutsControllerSaveBodyScopeIdRegExp).nullish(),
   scopeType: zod.enum(["book", "series", "global"]),
   layoutVersion: zod.string().min(1).max(characterGraphLayoutsControllerSaveBodyLayoutVersionMax),
@@ -168,7 +168,7 @@ export const CharacterGraphLayoutsControllerSaveResponse = zod.object({
   createdAt: zod.string(),
   id: zod.string(),
   layoutVersion: zod.string(),
-  mode: zod.enum(["family", "all"]),
+  mode: zod.enum(["family", "all", "person", "tree", "network"]),
   positions: zod.record(
     zod.string(),
     zod.object({
@@ -218,7 +218,7 @@ export const CharacterGraphLayoutsControllerRemoveQueryParams = zod.object({
     .uuid()
     .regex(characterGraphLayoutsControllerRemoveQueryContextBookIdRegExp)
     .nullish(),
-  mode: zod.enum(["family", "all"]),
+  mode: zod.enum(["family", "all", "person", "tree", "network"]),
   scopeId: zod.uuid().regex(characterGraphLayoutsControllerRemoveQueryScopeIdRegExp).nullish(),
   scopeType: zod.enum(["book", "series", "global"]),
 });

@@ -7,6 +7,7 @@ import type {
   CharacterGraphNodeView,
   CharacterGraphView,
   CharacterRelationshipDiagnosticView,
+  MediaView,
   Nullable,
   RelationshipBookStateStatus,
   RelationshipCategory,
@@ -29,8 +30,10 @@ import type { RelationshipBookStateSource } from "./character-relationship.mappe
 import type { RelationshipReaderContext } from "./relationship-reader-projection.js";
 
 import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
+import { emptyToNull } from "./character-fields.js";
 import { isMembershipVisibleInContext } from "./character-group-visibility.js";
 import { pickEffectiveBookState } from "./character-relationship.mapper.js";
+import { isMaskableSpoiler } from "./maskable-spoiler.js";
 import {
   isBookStateDescriptionHidden,
   maskBookStateStatus,
@@ -45,6 +48,13 @@ const MODE_CATEGORIES: Record<CharacterGraphMode, Nullable<RelationshipCategory[
   all: null,
   family: ["family", "romantic"],
 };
+
+export type AncestryEdge = {
+  ancestorId: string;
+  descendantId: string;
+};
+
+export type GraphCapPolicy = "connected" | "legacy";
 
 export type GraphEdgeSource = {
   bookStates: RelationshipBookStateSource[];
@@ -79,11 +89,17 @@ export type GraphMembershipSource = {
 export type GraphNodeAppearance = {
   bookId: string;
   createdAt: Date;
+  displayName: Nullable<string>;
+  displayNameIsSpoiler: boolean;
   importance: string;
+  portrait: Nullable<MediaView>;
+  portraitIsSpoiler: boolean;
+  portraitMediaId: Nullable<string>;
 };
 
 export type GraphNodeSource = {
   appearances: GraphNodeAppearance[];
+  avatar: Nullable<MediaView>;
   entityKind: string;
   id: string;
   isFavorite: boolean;
@@ -109,13 +125,9 @@ export type PreparedEdge = {
   updatedAt: Date;
 };
 
-type AncestryEdge = {
-  ancestorId: string;
-  descendantId: string;
-};
-
 type BuildCharacterGraphInput = {
   allowedBookIds: string[];
+  capPolicy: GraphCapPolicy;
   categoryFilter: Nullable<Set<RelationshipCategory>>;
   clusterBy: Nullable<CharacterGraphClusterBy>;
   depth: number;
@@ -143,6 +155,20 @@ type ClusterResult = {
   clusters: CharacterGraphClusterView[];
 };
 
+export function addAdjacency({
+  adjacency,
+  from,
+  to,
+}: {
+  adjacency: Map<string, string[]>;
+  from: string;
+  to: string;
+}): void {
+  const neighbors = adjacency.get(from) ?? [];
+  neighbors.push(to);
+  adjacency.set(from, neighbors);
+}
+
 export function buildCharacterGraph(input: BuildCharacterGraphInput): CharacterGraphView {
   const nodeById = new Map(input.nodes.map((node) => [node.id, node]));
   const preparedEdges = computeVisibleGraphEdges({
@@ -161,7 +187,8 @@ export function buildCharacterGraph(input: BuildCharacterGraphInput): CharacterG
     focusCharacterId: input.focusCharacterId,
     nodeById,
   });
-  const bounded = applyPayloadCap({
+  const applyCap = input.capPolicy === "connected" ? applyConnectedPayloadCap : applyPayloadCap;
+  const bounded = applyCap({
     edgeLimit: input.edgeLimit,
     edges: focused.edges,
     focusCharacterId: input.focusCharacterId,
@@ -230,6 +257,28 @@ export function computeDegrees(edges: PreparedEdge[]): Map<string, number> {
     degrees.set(edge.target, (degrees.get(edge.target) ?? 0) + 1);
   }
   return degrees;
+}
+
+export function computeUpdatedAt({
+  edges,
+  nodeById,
+  nodeIds,
+}: {
+  edges: PreparedEdge[];
+  nodeById: Map<string, GraphNodeSource>;
+  nodeIds: Set<string>;
+}): Nullable<string> {
+  let latest: Nullable<Date> = null;
+  for (const edge of edges) {
+    latest = maxNullableDate(latest, edge.updatedAt);
+  }
+  for (const id of nodeIds) {
+    const node = nodeById.get(id);
+    if (node !== undefined) {
+      latest = maxNullableDate(latest, node.updatedAt);
+    }
+  }
+  return latest === null ? null : latest.toISOString();
 }
 
 export function computeVisibleGraphEdges({
@@ -307,6 +356,48 @@ export function computeVisibleGraphEdges({
   return preparedEdges;
 }
 
+export function findAncestryCycle(edges: AncestryEdge[]): Nullable<string[]> {
+  const adjacency = new Map<string, string[]>();
+  const nodes = new Set<string>();
+  for (const edge of edges) {
+    nodes.add(edge.ancestorId);
+    nodes.add(edge.descendantId);
+    addAdjacency({ adjacency, from: edge.ancestorId, to: edge.descendantId });
+  }
+
+  const state = new Map<string, "done" | "visiting">();
+  const stack: string[] = [];
+  const visit = (node: string): Nullable<string[]> => {
+    state.set(node, "visiting");
+    stack.push(node);
+    for (const next of adjacency.get(node) ?? []) {
+      const status = state.get(next);
+      if (status === "visiting") {
+        return stack.slice(stack.indexOf(next));
+      }
+      if (status === undefined) {
+        const found = visit(next);
+        if (found !== null) {
+          return found;
+        }
+      }
+    }
+    stack.pop();
+    state.set(node, "done");
+    return null;
+  };
+
+  for (const node of nodes) {
+    if (state.get(node) === undefined) {
+      const found = visit(node);
+      if (found !== null) {
+        return found;
+      }
+    }
+  }
+  return null;
+}
+
 export function toGraphEdgeView(edge: PreparedEdge): CharacterGraphEdgeView {
   return {
     category: edge.category,
@@ -341,6 +432,8 @@ export function toGraphNodeView({
   return {
     clusterId: null,
     degree,
+    displayMedia: resolveDisplayMedia({ appearance: representative, avatar: node.avatar }),
+    displayName: resolveDisplayName({ appearance: representative, globalName: node.name }),
     entityKind: CharacterEntityKindSchema.parse(node.entityKind),
     id: node.id,
     importance,
@@ -349,18 +442,67 @@ export function toGraphNodeView({
   };
 }
 
-function addAdjacency({
-  adjacency,
-  from,
-  to,
+function applyConnectedPayloadCap({
+  edgeLimit,
+  edges,
+  focusCharacterId,
+  nodeIds,
+  nodeLimit,
 }: {
-  adjacency: Map<string, string[]>;
-  from: string;
-  to: string;
-}): void {
-  const neighbors = adjacency.get(from) ?? [];
-  neighbors.push(to);
-  adjacency.set(from, neighbors);
+  edgeLimit: number;
+  edges: PreparedEdge[];
+  focusCharacterId: Nullable<string>;
+  nodeIds: Set<string>;
+  nodeLimit: number;
+}): { edges: PreparedEdge[]; nodeIds: Set<string>; truncated: boolean } {
+  if (nodeIds.size <= nodeLimit && edges.length <= edgeLimit) {
+    return { edges, nodeIds, truncated: false };
+  }
+  const adjacency = buildStableAdjacency(edges);
+  const keptNodeIds = new Set<string>();
+  const spanningEdges: PreparedEdge[] = [];
+  for (const seed of rankSpanningSeeds({ edges, focusCharacterId, nodeIds })) {
+    if (keptNodeIds.size >= nodeLimit) {
+      break;
+    }
+    if (keptNodeIds.has(seed)) {
+      continue;
+    }
+    keptNodeIds.add(seed);
+    let frontier = [seed];
+    while (frontier.length > 0 && keptNodeIds.size < nodeLimit) {
+      const next: string[] = [];
+      for (const node of frontier) {
+        for (const { edge, to } of adjacency.get(node) ?? []) {
+          if (keptNodeIds.size >= nodeLimit) {
+            break;
+          }
+          if (keptNodeIds.has(to) || !nodeIds.has(to)) {
+            continue;
+          }
+          keptNodeIds.add(to);
+          spanningEdges.push(edge);
+          next.push(to);
+        }
+      }
+      frontier = next;
+    }
+  }
+  const spanningEdgeIds = new Set(spanningEdges.map((edge) => edge.id));
+  const crossLinks = edges
+    .filter(
+      (edge) =>
+        !spanningEdgeIds.has(edge.id) &&
+        keptNodeIds.has(edge.source) &&
+        keptNodeIds.has(edge.target),
+    )
+    .sort((left, right) => left.id.localeCompare(right.id));
+  const keptEdges = [...spanningEdges, ...crossLinks].slice(0, edgeLimit);
+  return {
+    edges: keptEdges,
+    nodeIds: keptNodeIds,
+    truncated: keptNodeIds.size < nodeIds.size || keptEdges.length < edges.length,
+  };
 }
 
 function applyFocus({
@@ -432,6 +574,27 @@ function applyPayloadCap({
   }
 
   return { edges: keptEdges, nodeIds: keptNodeIds, truncated };
+}
+
+function buildStableAdjacency(
+  edges: PreparedEdge[],
+): Map<string, { edge: PreparedEdge; to: string }[]> {
+  const adjacency = new Map<string, { edge: PreparedEdge; to: string }[]>();
+  const append = (from: string, entry: { edge: PreparedEdge; to: string }): void => {
+    const neighbors = adjacency.get(from) ?? [];
+    neighbors.push(entry);
+    adjacency.set(from, neighbors);
+  };
+  for (const edge of edges) {
+    append(edge.source, { edge, to: edge.target });
+    append(edge.target, { edge, to: edge.source });
+  }
+  for (const neighbors of adjacency.values()) {
+    neighbors.sort(
+      (left, right) => left.to.localeCompare(right.to) || left.edge.id.localeCompare(right.edge.id),
+    );
+  }
+  return adjacency;
 }
 
 function collectEndpointIds(edges: PreparedEdge[]): Set<string> {
@@ -547,7 +710,7 @@ function computeGroupClusters({
 
   const visibleByCharacter = new Map<string, GraphMembershipSource[]>();
   for (const membership of memberships) {
-    if (!nodeIds.has(membership.characterId)) {
+    if (!nodeIds.has(membership.characterId) || membership.group.isSpoiler) {
       continue;
     }
     if (!isMembershipVisibleInContext({ context, membership })) {
@@ -580,7 +743,7 @@ function computeGroupClusters({
       groupType: CharacterGroupTypeSchema.parse(group.type),
       id: group.id,
       kind: "group" as const,
-      name: group.isSpoiler ? null : group.name,
+      name: group.name,
       size,
     }))
     .sort((left, right) => right.size - left.size || left.id.localeCompare(right.id));
@@ -617,28 +780,6 @@ function computeModeCategories(mode: CharacterGraphMode): Nullable<Set<Relations
   return categories === null ? null : new Set(categories);
 }
 
-function computeUpdatedAt({
-  edges,
-  nodeById,
-  nodeIds,
-}: {
-  edges: PreparedEdge[];
-  nodeById: Map<string, GraphNodeSource>;
-  nodeIds: Set<string>;
-}): Nullable<string> {
-  let latest: Nullable<Date> = null;
-  for (const edge of edges) {
-    latest = maxNullableDate(latest, edge.updatedAt);
-  }
-  for (const id of nodeIds) {
-    const node = nodeById.get(id);
-    if (node !== undefined) {
-      latest = maxNullableDate(latest, node.updatedAt);
-    }
-  }
-  return latest === null ? null : latest.toISOString();
-}
-
 function detectGraphFamilyDiagnostics(
   edges: PreparedEdge[],
 ): CharacterRelationshipDiagnosticView[] {
@@ -670,48 +811,6 @@ function detectGraphFamilyDiagnostics(
       severity: "conflict",
     },
   ];
-}
-
-function findAncestryCycle(edges: AncestryEdge[]): Nullable<string[]> {
-  const adjacency = new Map<string, string[]>();
-  const nodes = new Set<string>();
-  for (const edge of edges) {
-    nodes.add(edge.ancestorId);
-    nodes.add(edge.descendantId);
-    addAdjacency({ adjacency, from: edge.ancestorId, to: edge.descendantId });
-  }
-
-  const state = new Map<string, "done" | "visiting">();
-  const stack: string[] = [];
-  const visit = (node: string): Nullable<string[]> => {
-    state.set(node, "visiting");
-    stack.push(node);
-    for (const next of adjacency.get(node) ?? []) {
-      const status = state.get(next);
-      if (status === "visiting") {
-        return stack.slice(stack.indexOf(next));
-      }
-      if (status === undefined) {
-        const found = visit(next);
-        if (found !== null) {
-          return found;
-        }
-      }
-    }
-    stack.pop();
-    state.set(node, "done");
-    return null;
-  };
-
-  for (const node of nodes) {
-    if (state.get(node) === undefined) {
-      const found = visit(node);
-      if (found !== null) {
-        return found;
-      }
-    }
-  }
-  return null;
 }
 
 function maxDate(left: Date, right: Date): Date {
@@ -752,4 +851,49 @@ function pickRepresentativeMembership(memberships: GraphMembershipSource[]): Gra
   return memberships.reduce((best, candidate) =>
     candidate.group.id < best.group.id ? candidate : best,
   );
+}
+
+function rankSpanningSeeds({
+  edges,
+  focusCharacterId,
+  nodeIds,
+}: {
+  edges: PreparedEdge[];
+  focusCharacterId: Nullable<string>;
+  nodeIds: Set<string>;
+}): string[] {
+  if (focusCharacterId !== null && nodeIds.has(focusCharacterId)) {
+    return [focusCharacterId];
+  }
+  const degreeById = computeDegrees(edges);
+  return [...nodeIds].sort(
+    (left, right) =>
+      (degreeById.get(right) ?? 0) - (degreeById.get(left) ?? 0) || left.localeCompare(right),
+  );
+}
+
+function resolveDisplayMedia({
+  appearance,
+  avatar,
+}: {
+  appearance: Nullable<GraphNodeAppearance>;
+  avatar: Nullable<MediaView>;
+}): Nullable<MediaView> {
+  if (appearance === null || isMaskableSpoiler.portrait(appearance)) {
+    return avatar;
+  }
+  return appearance.portrait ?? avatar;
+}
+
+function resolveDisplayName({
+  appearance,
+  globalName,
+}: {
+  appearance: Nullable<GraphNodeAppearance>;
+  globalName: string;
+}): string {
+  if (appearance === null || isMaskableSpoiler.displayName(appearance)) {
+    return globalName;
+  }
+  return emptyToNull(appearance.displayName) ?? globalName;
 }

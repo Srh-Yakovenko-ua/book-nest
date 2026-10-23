@@ -15,6 +15,7 @@ import {
 import { CharacterRelationshipsRepository } from "../infrastructure/character-relationships.repository.js";
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
 import { CharacterAccessAsserter } from "./character-access.asserter.js";
+import { CharacterViewMapper } from "./character-view.mapper.js";
 import {
   collectEndpointCharacterIds,
   toGraphEdgeSource,
@@ -30,6 +31,7 @@ export class CharacterRelationshipPathService {
     private readonly charactersRepository: CharactersRepository,
     private readonly accessAsserter: CharacterAccessAsserter,
     private readonly scopeResolver: RelationshipReaderScopeResolver,
+    private readonly viewMapper: CharacterViewMapper,
   ) {}
 
   async findPath({
@@ -58,6 +60,7 @@ export class CharacterRelationshipPathService {
       characterIds,
       userId,
     });
+    const mediaViewOf = this.viewMapper.mediaViewOf.bind(this.viewMapper);
 
     return findVisibleRelationshipPath({
       categoryFilter: toGraphFilterSet(query.categories),
@@ -65,7 +68,7 @@ export class CharacterRelationshipPathService {
       fromId: query.fromId,
       maxVisitedNodes: CHARACTER_PATH_MAX_VISITED_NODES,
       mode: query.mode,
-      nodes: nodeRows.map(toGraphNodeSource),
+      nodes: nodeRows.map((node) => toGraphNodeSource({ mediaViewOf, node })),
       partNumberById: readerPartNumberById(context),
       readerContext: context,
       revealEdgeIds: new Set(query.revealEdgeIds ?? []),

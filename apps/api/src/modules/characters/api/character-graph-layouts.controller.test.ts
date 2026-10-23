@@ -275,3 +275,142 @@ describe("character graph layout validation", () => {
     expect(res.status).toBe(HttpStatus.UNAUTHORIZED);
   });
 });
+
+describe("character graph workspace layouts", () => {
+  const GROUP_ID = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+
+  function bookLayoutBody(
+    bookId: string,
+    overrides: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    return globalLayoutBody({ scopeId: bookId, scopeType: "book", ...overrides });
+  }
+
+  function bookLayoutQuery(bookId: string, mode: string): string {
+    return `${LAYOUTS_PATH}?scopeType=book&scopeId=${bookId}&mode=${mode}`;
+  }
+
+  it("saves and reads back a person layout for a book", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createOwnedBook(accessToken);
+
+    const saved = await authed("put", LAYOUTS_PATH, accessToken).send(
+      bookLayoutBody(bookId, { layoutVersion: "person-v1", mode: "person" }),
+    );
+    expect(saved.status).toBe(HttpStatus.OK);
+
+    const read = await authed("get", bookLayoutQuery(bookId, "person"), accessToken);
+    expect(read.status).toBe(HttpStatus.OK);
+    expect(read.body).toMatchObject({
+      layoutVersion: "person-v1",
+      mode: "person",
+      scopeId: bookId,
+      scopeType: "book",
+    });
+  });
+
+  it("keeps the all layout of a book when a person layout is saved for it", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createOwnedBook(accessToken);
+    const all = await authed("put", LAYOUTS_PATH, accessToken).send(
+      bookLayoutBody(bookId, { layoutVersion: "all-v1" }),
+    );
+    expect(all.status).toBe(HttpStatus.OK);
+    const person = await authed("put", LAYOUTS_PATH, accessToken).send(
+      bookLayoutBody(bookId, { layoutVersion: "person-v1", mode: "person" }),
+    );
+    expect(person.status).toBe(HttpStatus.OK);
+    expect(person.body.id).not.toBe(all.body.id);
+
+    const readAll = await authed("get", bookLayoutQuery(bookId, "all"), accessToken);
+    expect(readAll.status).toBe(HttpStatus.OK);
+    expect(readAll.body).toMatchObject({ layoutVersion: "all-v1", mode: "all" });
+
+    const readPerson = await authed("get", bookLayoutQuery(bookId, "person"), accessToken);
+    expect(readPerson.status).toBe(HttpStatus.OK);
+    expect(readPerson.body).toMatchObject({ layoutVersion: "person-v1", mode: "person" });
+  });
+
+  it("accepts a cluster group position key in a network layout", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createOwnedBook(accessToken);
+    const positions = {
+      [`cluster:group:${GROUP_ID}`]: { x: 120, y: -45 },
+      [CHARACTER_A]: { x: 10, y: 20 },
+    };
+
+    const saved = await authed("put", LAYOUTS_PATH, accessToken).send(
+      bookLayoutBody(bookId, { mode: "network", positions }),
+    );
+    expect(saved.status).toBe(HttpStatus.OK);
+
+    const read = await authed("get", bookLayoutQuery(bookId, "network"), accessToken);
+    expect(read.status).toBe(HttpStatus.OK);
+    expect(read.body.positions).toEqual(positions);
+  });
+
+  it.each(["cluster:group:Has Spaces", "group-x"])(
+    "rejects the position key %s",
+    async (positionKey) => {
+      const { accessToken } = await context.registerVerifyAndLogin();
+      const bookId = await createOwnedBook(accessToken);
+
+      const res = await authed("put", LAYOUTS_PATH, accessToken).send(
+        bookLayoutBody(bookId, { mode: "network", positions: { [positionKey]: { x: 1, y: 2 } } }),
+      );
+      expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(res.body.errorsMessages).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ field: expect.stringMatching(/^positions/) }),
+        ]),
+      );
+    },
+  );
+
+  it("rejects a tree layout scoped to a series", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const seriesId = await createOwnedSeries(accessToken);
+
+    const res = await authed("put", LAYOUTS_PATH, accessToken).send(
+      globalLayoutBody({ mode: "tree", scopeId: seriesId, scopeType: "series" }),
+    );
+    expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "mode" })]),
+    );
+  });
+
+  it("rejects a person layout with a contextBookId", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createOwnedBook(accessToken);
+
+    const res = await authed("put", LAYOUTS_PATH, accessToken).send(
+      bookLayoutBody(bookId, { contextBookId: bookId, mode: "person" }),
+    );
+    expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "mode" })]),
+    );
+  });
+
+  it("deletes the person layout of a book and leaves its all layout intact", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createOwnedBook(accessToken);
+    await authed("put", LAYOUTS_PATH, accessToken).send(
+      bookLayoutBody(bookId, { layoutVersion: "all-v1" }),
+    );
+    await authed("put", LAYOUTS_PATH, accessToken).send(
+      bookLayoutBody(bookId, { layoutVersion: "person-v1", mode: "person" }),
+    );
+
+    const removed = await authed("delete", bookLayoutQuery(bookId, "person"), accessToken);
+    expect(removed.status).toBe(HttpStatus.NO_CONTENT);
+
+    const readPerson = await authed("get", bookLayoutQuery(bookId, "person"), accessToken);
+    expect(readPerson.status).toBe(HttpStatus.NOT_FOUND);
+
+    const readAll = await authed("get", bookLayoutQuery(bookId, "all"), accessToken);
+    expect(readAll.status).toBe(HttpStatus.OK);
+    expect(readAll.body.layoutVersion).toBe("all-v1");
+  });
+});

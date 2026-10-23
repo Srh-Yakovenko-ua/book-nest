@@ -334,12 +334,14 @@ describe("book character graph", () => {
     ]);
   });
 
-  it("masks a spoiler group name in the legend while still forming the cluster", async () => {
+  it("forms no cluster from a spoiler group and never names it", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
     const bob = await createCharacter(accessToken, "Bob");
-    await linkToBook(accessToken, bookId, [alice, bob]);
+    const carol = await createCharacter(accessToken, "Carol");
+    const dave = await createCharacter(accessToken, "Dave");
+    await linkToBook(accessToken, bookId, [alice, bob, carol, dave]);
     await createRelationship(accessToken, {
       category: "social",
       directionality: "symmetric",
@@ -348,12 +350,26 @@ describe("book character graph", () => {
       targetCharacterId: bob,
       type: "friend_of",
     });
-    const groupId = await createGroup({
+    await createRelationship(accessToken, {
+      category: "social",
+      directionality: "symmetric",
+      initialBookStates: [{ bookId, status: "active" }],
+      sourceCharacterId: carol,
+      targetCharacterId: dave,
+      type: "friend_of",
+    });
+    const spoilerGroupId = await createGroup({
       isSpoiler: true,
       members: [{ characterId: alice }, { characterId: bob }],
       name: "The Faceless Men",
       token: accessToken,
       type: "cult",
+    });
+    const starkGroupId = await createGroup({
+      members: [{ characterId: carol }, { characterId: dave }],
+      name: "House Stark",
+      token: accessToken,
+      type: "house",
     });
 
     const res = await authed(
@@ -362,12 +378,15 @@ describe("book character graph", () => {
       accessToken,
     );
     expect(res.status).toBe(HttpStatus.OK);
-    expect(res.body.nodes.every((node: { clusterId: string }) => node.clusterId === groupId)).toBe(
-      true,
+    expect(res.body.clusters.map((cluster: { id: string }) => cluster.id)).toEqual([starkGroupId]);
+    const spoilerClustered = res.body.nodes.filter(
+      (node: { clusterId: null | string }) => node.clusterId === spoilerGroupId,
     );
-    expect(res.body.clusters).toEqual([
-      { groupType: "cult", id: groupId, kind: "group", name: null, size: 2 },
-    ]);
+    expect(spoilerClustered).toEqual([]);
+    expect(res.body.nodes.find((node: { id: string }) => node.id === alice).clusterId).toBeNull();
+    expect(res.body.nodes.find((node: { id: string }) => node.id === carol).clusterId).toBe(
+      starkGroupId,
+    );
     expect(JSON.stringify(res.body)).not.toContain("Faceless Men");
   });
 
@@ -501,6 +520,294 @@ describe("book character graph", () => {
   });
 });
 
+describe("book character graph display fields", () => {
+  it("returns every node with a display name and display media", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const alice = await createCharacter(accessToken, "Alice");
+    const bob = await createCharacter(accessToken, "Bob");
+    await linkCharacter({
+      bookId,
+      bookProfile: { displayName: "Lady Alice" },
+      characterId: alice,
+      token: accessToken,
+    });
+    await linkToBook(accessToken, bookId, [bob]);
+    await createRelationship(accessToken, {
+      category: "social",
+      directionality: "symmetric",
+      initialBookStates: [{ bookId, status: "active" }],
+      sourceCharacterId: alice,
+      targetCharacterId: bob,
+      type: "friend_of",
+    });
+
+    const res = await authed("get", `/api/books/${bookId}/character-graph`, accessToken);
+    expect(res.status).toBe(HttpStatus.OK);
+    const displayById = Object.fromEntries(
+      res.body.nodes.map((node: { displayMedia: unknown; displayName: string; id: string }) => [
+        node.id,
+        { displayMedia: node.displayMedia, displayName: node.displayName },
+      ]),
+    );
+    expect(displayById).toEqual({
+      [alice]: { displayMedia: null, displayName: "Lady Alice" },
+      [bob]: { displayMedia: null, displayName: "Bob" },
+    });
+  });
+
+  it("falls back to the global name when the book display name is a spoiler", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const jon = await createCharacter(accessToken, "Jon");
+    const sam = await createCharacter(accessToken, "Sam");
+    await linkCharacter({
+      bookId,
+      bookProfile: { displayName: "Lord Snow", displayNameIsSpoiler: true },
+      characterId: jon,
+      token: accessToken,
+    });
+    await linkToBook(accessToken, bookId, [sam]);
+    await createRelationship(accessToken, {
+      category: "social",
+      directionality: "symmetric",
+      initialBookStates: [{ bookId, status: "active" }],
+      sourceCharacterId: jon,
+      targetCharacterId: sam,
+      type: "friend_of",
+    });
+
+    const res = await authed("get", `/api/books/${bookId}/character-graph`, accessToken);
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.nodes.find((node: { id: string }) => node.id === jon).displayName).toBe("Jon");
+    expect(JSON.stringify(res.body)).not.toContain("Lord Snow");
+  });
+});
+
+describe("book character graph focus character", () => {
+  const RELATIONSHIP_CHARACTER_NOT_FOUND = "relationship_character_not_found";
+
+  async function seedBookWithLinkedPair(token: string): Promise<string> {
+    const bookId = await createBook(token);
+    const alice = await createCharacter(token, "Alice");
+    const bob = await createCharacter(token, "Bob");
+    await linkToBook(token, bookId, [alice, bob]);
+    await createRelationship(token, {
+      category: "social",
+      directionality: "symmetric",
+      initialBookStates: [{ bookId, status: "active" }],
+      sourceCharacterId: alice,
+      targetCharacterId: bob,
+      type: "friend_of",
+    });
+    return bookId;
+  }
+
+  it("returns 404 for an owned focus character that is not linked to the book", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await seedBookWithLinkedPair(accessToken);
+    const unlinked = await createCharacter(accessToken, "Dave");
+
+    const res = await authed(
+      "get",
+      `/api/books/${bookId}/character-graph?focusCharacterId=${unlinked}`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.NOT_FOUND);
+    expect(res.body.code).toBe(RELATIONSHIP_CHARACTER_NOT_FOUND);
+  });
+
+  it("returns the same 404 for a focus character owned by another user", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const intruder = await context.registerVerifyAndLogin({ email: "intruder@example.com" });
+    const bookId = await seedBookWithLinkedPair(owner.accessToken);
+    const intruderBookId = await createBook(intruder.accessToken);
+    const foreign = await createCharacter(intruder.accessToken, "Eve");
+    await linkToBook(intruder.accessToken, intruderBookId, [foreign]);
+
+    const res = await authed(
+      "get",
+      `/api/books/${bookId}/character-graph?focusCharacterId=${foreign}`,
+      owner.accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.NOT_FOUND);
+    expect(res.body.code).toBe(RELATIONSHIP_CHARACTER_NOT_FOUND);
+  });
+
+  it("returns only the focus node for a linked character without relationships", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await seedBookWithLinkedPair(accessToken);
+    const loner = await createCharacter(accessToken, "Carol");
+    await linkToBook(accessToken, bookId, [loner]);
+
+    const res = await authed(
+      "get",
+      `/api/books/${bookId}/character-graph?focusCharacterId=${loner}`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.nodes.map((node: { id: string }) => node.id)).toEqual([loner]);
+    expect(res.body.nodes[0].degree).toBe(0);
+    expect(res.body.edges).toEqual([]);
+  });
+});
+
+describe("book family tree projection", () => {
+  async function seedStarkFamily(token: string): Promise<{
+    bookId: string;
+    catelyn: string;
+    ned: string;
+    parentRelationshipId: string;
+    rickard: string;
+    spouseRelationshipId: string;
+  }> {
+    const bookId = await createBook(token);
+    const rickard = await createCharacter(token, "Rickard");
+    const ned = await createCharacter(token, "Ned");
+    const catelyn = await createCharacter(token, "Catelyn");
+    await linkToBook(token, bookId, [rickard, ned, catelyn]);
+    const parentRelationshipId = await createRelationship(token, {
+      category: "family",
+      directionality: "directed",
+      initialBookStates: [{ bookId, status: "active" }],
+      sourceCharacterId: rickard,
+      targetCharacterId: ned,
+      type: "biological_parent_of",
+    });
+    const spouseRelationshipId = await createRelationship(token, {
+      category: "family",
+      directionality: "symmetric",
+      initialBookStates: [{ bookId, status: "active" }],
+      sourceCharacterId: ned,
+      targetCharacterId: catelyn,
+      type: "spouse_of",
+    });
+    return { bookId, catelyn, ned, parentRelationshipId, rickard, spouseRelationshipId };
+  }
+
+  it("returns the family_tree projection with two generations each way by default", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId, ned } = await seedStarkFamily(accessToken);
+
+    const res = await authed(
+      "get",
+      `/api/books/${bookId}/character-graph?projection=family_tree&focusCharacterId=${ned}`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body).toMatchObject({
+      ancestors: 2,
+      descendants: 2,
+      focusCharacterId: ned,
+      projection: "family_tree",
+    });
+  });
+
+  it("echoes the requested ancestor and descendant generations", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId, ned } = await seedStarkFamily(accessToken);
+
+    const res = await authed(
+      "get",
+      `/api/books/${bookId}/character-graph?projection=family_tree&focusCharacterId=${ned}&ancestors=1&descendants=3`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body).toMatchObject({ ancestors: 1, descendants: 3, projection: "family_tree" });
+  });
+
+  it("records a biological_parent_of relationship as lineage from parent to child", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId, ned, parentRelationshipId, rickard } = await seedStarkFamily(accessToken);
+
+    const res = await authed(
+      "get",
+      `/api/books/${bookId}/character-graph?projection=family_tree&focusCharacterId=${ned}`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.lineage).toEqual([
+      {
+        childId: ned,
+        kind: "biological",
+        parentId: rickard,
+        relationshipId: parentRelationshipId,
+      },
+    ]);
+  });
+
+  it("keeps a spouse_of relationship among the edges but out of the lineage", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId, catelyn, ned, parentRelationshipId, spouseRelationshipId } =
+      await seedStarkFamily(accessToken);
+
+    const res = await authed(
+      "get",
+      `/api/books/${bookId}/character-graph?projection=family_tree&focusCharacterId=${ned}`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.edges.map((edge: { id: string }) => edge.id).sort()).toEqual(
+      [parentRelationshipId, spouseRelationshipId].sort(),
+    );
+    expect(
+      res.body.lineage.map((link: { relationshipId: string }) => link.relationshipId),
+    ).not.toContain(spouseRelationshipId);
+    expect(res.body.nodes.map((node: { id: string }) => node.id)).toContain(catelyn);
+  });
+
+  it("rejects projection=family_tree without a focus character", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId } = await seedStarkFamily(accessToken);
+
+    const res = await authed(
+      "get",
+      `/api/books/${bookId}/character-graph?projection=family_tree`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "focusCharacterId" })]),
+    );
+  });
+
+  it.each([
+    ["mode=family", "projection"],
+    ["categories=family", "projection"],
+    ["clusterBy=group", "projection"],
+    ["ancestors=0", "ancestors"],
+    ["ancestors=4", "ancestors"],
+  ])("rejects a family tree request combined with %s", async (extraQuery, field) => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId, ned } = await seedStarkFamily(accessToken);
+
+    const res = await authed(
+      "get",
+      `/api/books/${bookId}/character-graph?projection=family_tree&focusCharacterId=${ned}&${extraQuery}`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field })]),
+    );
+  });
+
+  it("rejects ancestors without projection=family_tree", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId, ned } = await seedStarkFamily(accessToken);
+
+    const res = await authed(
+      "get",
+      `/api/books/${bookId}/character-graph?focusCharacterId=${ned}&ancestors=2`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "projection" })]),
+    );
+  });
+});
+
 describe("series character graph", () => {
   async function createSeriesWithTwoBooks(
     token: string,
@@ -576,5 +883,83 @@ describe("series character graph", () => {
       intruder.accessToken,
     );
     expect(res.status).toBe(HttpStatus.NOT_FOUND);
+  });
+
+  it("returns every series node with a display name and display media", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { firstBookId, seriesId } = await createSeriesWithTwoBooks(accessToken);
+    const alice = await createCharacter(accessToken, "Alice");
+    const bob = await createCharacter(accessToken, "Bob");
+    await linkCharacter({
+      bookId: firstBookId,
+      bookProfile: { displayName: "Lady Alice" },
+      characterId: alice,
+      token: accessToken,
+    });
+    await linkToBook(accessToken, firstBookId, [bob]);
+    await createRelationship(accessToken, {
+      category: "social",
+      directionality: "symmetric",
+      initialBookStates: [{ bookId: firstBookId, status: "active" }],
+      sourceCharacterId: alice,
+      targetCharacterId: bob,
+      type: "friend_of",
+    });
+
+    const res = await authed(
+      "get",
+      `/api/series/${seriesId}/character-graph?contextBookId=${firstBookId}`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    const displayById = Object.fromEntries(
+      res.body.nodes.map((node: { displayMedia: unknown; displayName: string; id: string }) => [
+        node.id,
+        { displayMedia: node.displayMedia, displayName: node.displayName },
+      ]),
+    );
+    expect(displayById).toEqual({
+      [alice]: { displayMedia: null, displayName: "Lady Alice" },
+      [bob]: { displayMedia: null, displayName: "Bob" },
+    });
+  });
+
+  it("keeps serving a series graph with the supported graph filters", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { firstBookId, seriesId } = await createSeriesWithTwoBooks(accessToken);
+    const alice = await createCharacter(accessToken, "Alice");
+    const bob = await createCharacter(accessToken, "Bob");
+    await linkToBook(accessToken, firstBookId, [alice, bob]);
+    const relationshipId = await createRelationship(accessToken, {
+      category: "social",
+      directionality: "symmetric",
+      initialBookStates: [{ bookId: firstBookId, status: "active" }],
+      sourceCharacterId: alice,
+      targetCharacterId: bob,
+      type: "friend_of",
+    });
+
+    const res = await authed(
+      "get",
+      `/api/series/${seriesId}/character-graph?contextBookId=${firstBookId}&mode=all&depth=2&focusCharacterId=${alice}&categories=social&clusterBy=importance`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.clusterBy).toBe("importance");
+    expect(res.body.edges.map((edge: { id: string }) => edge.id)).toEqual([relationshipId]);
+  });
+
+  it("rejects projection=family_tree on a series graph as an unknown query key", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { seriesId } = await createSeriesWithTwoBooks(accessToken);
+
+    const res = await authed(
+      "get",
+      `/api/series/${seriesId}/character-graph?projection=family_tree`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(res.body.errorsMessages).toEqual(expect.any(Array));
+    expect(res.body.errorsMessages.length).toBeGreaterThan(0);
   });
 });

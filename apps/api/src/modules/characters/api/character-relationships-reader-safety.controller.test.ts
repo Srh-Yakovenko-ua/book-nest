@@ -582,6 +582,7 @@ describe("fully hidden and not-yet-introduced edges", () => {
       found: false,
       fromId: seed.cast.alice,
       nodes: [],
+      searchLimited: false,
       toId: seed.cast.carol,
     });
     expect(open.body.edges.map((edge: { id: string }) => edge.id)).toEqual([seed.visibleId]);

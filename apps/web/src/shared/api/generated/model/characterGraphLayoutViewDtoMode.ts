@@ -12,4 +12,7 @@ export type CharacterGraphLayoutViewDtoMode =
 export const CharacterGraphLayoutViewDtoMode = {
   family: "family",
   all: "all",
+  person: "person",
+  tree: "tree",
+  network: "network",
 } as const;

@@ -5,6 +5,7 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { CharacterGraphViewDtoNodesItemDisplayMedia } from "./characterGraphViewDtoNodesItemDisplayMedia";
 import type { CharacterGraphViewDtoNodesItemEntityKind } from "./characterGraphViewDtoNodesItemEntityKind";
 import type { CharacterGraphViewDtoNodesItemImportance } from "./characterGraphViewDtoNodesItemImportance";
 
@@ -16,6 +17,9 @@ export type CharacterGraphViewDtoNodesItem = {
    * @maximum 9007199254740991
    */
   degree: number;
+  /** @nullable */
+  displayMedia: CharacterGraphViewDtoNodesItemDisplayMedia;
+  displayName: string;
   entityKind: CharacterGraphViewDtoNodesItemEntityKind;
   id: string;
   /** @nullable */

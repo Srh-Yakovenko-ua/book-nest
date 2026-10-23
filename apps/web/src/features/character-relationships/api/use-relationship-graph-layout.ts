@@ -28,12 +28,16 @@ export type RelationshipGraphLayoutSnapshot = {
   viewport: CharacterGraphViewport;
 };
 
-export function useRelationshipGraphLayout(layoutKey: RelationshipGraphLayoutKey) {
+export function useRelationshipGraphLayout(
+  layoutKey: RelationshipGraphLayoutKey,
+  { enabled = true }: { enabled?: boolean } = {},
+) {
   const queryClient = useQueryClient();
   const queryKey = relationshipKeys.graphLayout(layoutKey);
   const params = toLayoutKeyParams(layoutKey);
 
   const layout = useQuery({
+    enabled,
     queryFn: async ({ signal }): Promise<Nullable<CharacterGraphLayoutView>> => {
       try {
         return CharacterGraphLayoutViewSchema.parse(

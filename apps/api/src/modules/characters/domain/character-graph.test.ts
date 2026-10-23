@@ -1,6 +1,8 @@
 import type {
   CharacterGraphClusterBy,
+  CharacterGraphEdgeView,
   CharacterGraphMode,
+  MediaView,
   Nullable,
   RelationshipCategory,
   RelationshipType,
@@ -8,7 +10,13 @@ import type {
 
 import { describe, expect, it } from "vitest";
 
-import type { GraphEdgeSource, GraphMembershipSource, GraphNodeSource } from "./character-graph.js";
+import type {
+  GraphCapPolicy,
+  GraphEdgeSource,
+  GraphMembershipSource,
+  GraphNodeAppearance,
+  GraphNodeSource,
+} from "./character-graph.js";
 import type { RelationshipBookStateSource } from "./character-relationship.mapper.js";
 import type {
   ReaderBookPosition,
@@ -20,9 +28,29 @@ import { buildCharacterGraph } from "./character-graph.js";
 const ALICE = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const BOB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const CAROL = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+const DAVE = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+const ERIN = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+const FRANK = "ffffffff-ffff-4fff-8fff-ffffffffffff";
 const BOOK = "20000000-0000-4000-8000-000000000001";
+const GROUP_CABAL = "0c0c0c0c-0c0c-4c0c-8c0c-0c0c0c0c0c0c";
 const GROUP_STARK = "10000000-0000-4000-8000-000000000001";
 const GROUP_SECRET = "10000000-0000-4000-8000-000000000002";
+const AVATAR_MEDIA = "40000000-0000-4000-8000-000000000001";
+const PORTRAIT_MEDIA = "40000000-0000-4000-8000-000000000002";
+
+function appearanceSource(overrides: Partial<GraphNodeAppearance>): GraphNodeAppearance {
+  return {
+    bookId: BOOK,
+    createdAt: new Date("2024-01-01T00:00:00.000Z"),
+    displayName: null,
+    displayNameIsSpoiler: false,
+    importance: "major",
+    portrait: null,
+    portraitIsSpoiler: false,
+    portraitMediaId: null,
+    ...overrides,
+  };
+}
 
 function asOfReaderContext({
   allowedBookIds,
@@ -52,6 +80,7 @@ function asOfReaderContext({
 
 function build({
   allowedBookIds = [BOOK],
+  capPolicy = "legacy",
   categoryFilter = null,
   clusterBy = null,
   depth = 1,
@@ -68,6 +97,7 @@ function build({
   typeFilter = null,
 }: {
   allowedBookIds?: string[];
+  capPolicy?: GraphCapPolicy;
   categoryFilter?: Nullable<Set<RelationshipCategory>>;
   clusterBy?: Nullable<CharacterGraphClusterBy>;
   depth?: number;
@@ -85,6 +115,7 @@ function build({
 }) {
   return buildCharacterGraph({
     allowedBookIds,
+    capPolicy,
     categoryFilter,
     clusterBy,
     depth,
@@ -121,6 +152,41 @@ function edgeSource(overrides: Partial<GraphEdgeSource>): GraphEdgeSource {
   };
 }
 
+function linkSource({
+  id,
+  source,
+  target,
+}: {
+  id: string;
+  source: string;
+  target: string;
+}): GraphEdgeSource {
+  return edgeSource({
+    bookStates: [stateSource({ id: `state-${id}`, relationshipId: id })],
+    id,
+    sourceCharacterId: source,
+    targetCharacterId: target,
+  });
+}
+
+function mediaView(id: string): MediaView {
+  return {
+    contentType: "image/webp",
+    createdAt: "2024-01-01T00:00:00.000Z",
+    height: 512,
+    id,
+    kind: "avatar",
+    name: null,
+    sizeBytes: 2048,
+    urls: {
+      card: `/media/${id}/card.webp`,
+      full: `/media/${id}/full.webp`,
+      thumb: `/media/${id}/thumb.webp`,
+    },
+    width: 512,
+  };
+}
+
 function membershipSource(
   overrides: Partial<GraphMembershipSource> & { characterId: string },
 ): GraphMembershipSource {
@@ -139,19 +205,40 @@ function membershipSource(
 
 function nodeSource(overrides: Partial<GraphNodeSource> & { id: string }): GraphNodeSource {
   return {
-    appearances: [
-      {
-        bookId: BOOK,
-        createdAt: new Date("2024-01-01T00:00:00.000Z"),
-        importance: "major",
-      },
-    ],
+    appearances: [appearanceSource({})],
+    avatar: null,
     entityKind: "individual",
     isFavorite: false,
     name: overrides.id,
     updatedAt: new Date("2024-01-02T00:00:00.000Z"),
     ...overrides,
   };
+}
+
+function reachableFrom({
+  edges,
+  start,
+}: {
+  edges: CharacterGraphEdgeView[];
+  start: string;
+}): Set<string> {
+  const reached = new Set<string>([start]);
+  let frontier = [start];
+  while (frontier.length > 0) {
+    const next: string[] = [];
+    for (const edge of edges) {
+      if (frontier.includes(edge.source) && !reached.has(edge.target)) {
+        reached.add(edge.target);
+        next.push(edge.target);
+      }
+      if (frontier.includes(edge.target) && !reached.has(edge.source)) {
+        reached.add(edge.source);
+        next.push(edge.source);
+      }
+    }
+    frontier = next;
+  }
+  return reached;
 }
 
 function stateSource(overrides: Partial<RelationshipBookStateSource>): RelationshipBookStateSource {
@@ -206,13 +293,7 @@ describe("buildCharacterGraph", () => {
       nodes: [
         nodeSource({ id: ALICE }),
         nodeSource({
-          appearances: [
-            {
-              bookId: BOOK,
-              createdAt: new Date("2024-01-01T00:00:00.000Z"),
-              importance: "central",
-            },
-          ],
+          appearances: [appearanceSource({ importance: "central" })],
           id: BOB,
         }),
         nodeSource({ id: CAROL }),
@@ -550,13 +631,7 @@ describe("buildCharacterGraph", () => {
       nodes: [
         nodeSource({ id: ALICE }),
         nodeSource({
-          appearances: [
-            {
-              bookId: BOOK,
-              createdAt: new Date("2024-01-01T00:00:00.000Z"),
-              importance: "central",
-            },
-          ],
+          appearances: [appearanceSource({ importance: "central" })],
           id: BOB,
         }),
         nodeSource({ id: CAROL }),
@@ -569,7 +644,7 @@ describe("buildCharacterGraph", () => {
     ]);
   });
 
-  it("masks a spoiler group name in the legend while the cluster still forms", () => {
+  it("forms no cluster for a spoiler group and leaks none of its id, type, name or size", () => {
     const graph = build({
       clusterBy: "group",
       edges: [edgeSource({})],
@@ -586,11 +661,49 @@ describe("buildCharacterGraph", () => {
       nodes: [nodeSource({ id: ALICE }), nodeSource({ id: BOB })],
     });
 
-    expect(graph.nodes.every((node) => node.clusterId === GROUP_SECRET)).toBe(true);
+    expect(graph.clusters).toEqual([]);
+    expect(graph.nodes.map((node) => node.clusterId)).toEqual([null, null]);
+    const serialized = JSON.stringify(graph);
+    expect(serialized).not.toContain(GROUP_SECRET);
+    expect(serialized).not.toContain("cult");
+    expect(serialized).not.toContain("Faceless Men");
+  });
+
+  it("forms no cluster from memberships that are themselves spoilers", () => {
+    const graph = build({
+      clusterBy: "group",
+      edges: [edgeSource({})],
+      memberships: [
+        membershipSource({ characterId: ALICE, isSpoiler: true }),
+        membershipSource({ characterId: BOB, isSpoiler: true }),
+      ],
+      nodes: [nodeSource({ id: ALICE }), nodeSource({ id: BOB })],
+    });
+
+    expect(graph.clusters).toEqual([]);
+    expect(graph.nodes.map((node) => node.clusterId)).toEqual([null, null]);
+    expect(JSON.stringify(graph)).not.toContain(GROUP_STARK);
+  });
+
+  it("clusters a node only under its safe group when it also belongs to a spoiler group", () => {
+    const graph = build({
+      clusterBy: "group",
+      edges: [edgeSource({})],
+      memberships: [
+        membershipSource({
+          characterId: ALICE,
+          group: { id: GROUP_CABAL, isSpoiler: true, name: "The Cabal", type: "cult" },
+        }),
+        membershipSource({ characterId: ALICE }),
+      ],
+      nodes: [nodeSource({ id: ALICE }), nodeSource({ id: BOB })],
+    });
+
+    expect(graph.nodes.find((node) => node.id === ALICE)?.clusterId).toBe(GROUP_STARK);
     expect(graph.clusters).toEqual([
-      { groupType: "cult", id: GROUP_SECRET, kind: "group", name: null, size: 2 },
+      { groupType: "house", id: GROUP_STARK, kind: "group", name: "House Stark", size: 1 },
     ]);
-    expect(JSON.stringify(graph)).not.toContain("Faceless Men");
+    expect(JSON.stringify(graph)).not.toContain(GROUP_CABAL);
   });
 
   it("excludes a membership scoped to a book beyond the reading context", () => {
@@ -626,13 +739,7 @@ describe("buildCharacterGraph", () => {
       ],
       nodes: [
         nodeSource({
-          appearances: [
-            {
-              bookId: BOOK,
-              createdAt: new Date("2024-01-01T00:00:00.000Z"),
-              importance: "central",
-            },
-          ],
+          appearances: [appearanceSource({ importance: "central" })],
           id: ALICE,
         }),
         nodeSource({ id: BOB }),
@@ -715,5 +822,239 @@ describe("buildCharacterGraph", () => {
 
     expect(midway.edges[0]?.status).toBeNull();
     expect(finished.edges[0]?.status).toBe("ended");
+  });
+
+  describe("node identity", () => {
+    it("shows the trimmed book display name when it is not a spoiler", () => {
+      const graph = build({
+        edges: [edgeSource({})],
+        nodes: [
+          nodeSource({
+            appearances: [appearanceSource({ displayName: "  Arya Stark  " })],
+            id: ALICE,
+            name: "Arya",
+          }),
+          nodeSource({ id: BOB }),
+        ],
+      });
+
+      expect(graph.nodes.find((node) => node.id === ALICE)).toMatchObject({
+        displayName: "Arya Stark",
+        name: "Arya",
+      });
+    });
+
+    it("falls back to the global name when the book display name is a spoiler", () => {
+      const graph = build({
+        edges: [edgeSource({})],
+        nodes: [
+          nodeSource({
+            appearances: [appearanceSource({ displayName: "No One", displayNameIsSpoiler: true })],
+            id: ALICE,
+            name: "Arya",
+          }),
+          nodeSource({ id: BOB }),
+        ],
+      });
+
+      expect(graph.nodes.find((node) => node.id === ALICE)?.displayName).toBe("Arya");
+      expect(JSON.stringify(graph)).not.toContain("No One");
+    });
+
+    it("falls back to the global name when the book display name is blank", () => {
+      const graph = build({
+        edges: [edgeSource({})],
+        nodes: [
+          nodeSource({
+            appearances: [appearanceSource({ displayName: "   " })],
+            id: ALICE,
+            name: "Arya",
+          }),
+          nodeSource({ id: BOB }),
+        ],
+      });
+
+      expect(graph.nodes.find((node) => node.id === ALICE)?.displayName).toBe("Arya");
+    });
+
+    it("falls back to the global name and avatar when the node has no appearance in the reading context", () => {
+      const graph = build({
+        edges: [edgeSource({})],
+        nodes: [
+          nodeSource({
+            appearances: [],
+            avatar: mediaView(AVATAR_MEDIA),
+            id: ALICE,
+            name: "Arya",
+          }),
+          nodeSource({ id: BOB }),
+        ],
+      });
+
+      expect(graph.nodes.find((node) => node.id === ALICE)).toMatchObject({
+        displayMedia: mediaView(AVATAR_MEDIA),
+        displayName: "Arya",
+      });
+    });
+
+    it("shows the book portrait over the avatar when the portrait is not a spoiler", () => {
+      const graph = build({
+        edges: [edgeSource({})],
+        nodes: [
+          nodeSource({
+            appearances: [
+              appearanceSource({
+                portrait: mediaView(PORTRAIT_MEDIA),
+                portraitMediaId: PORTRAIT_MEDIA,
+              }),
+            ],
+            avatar: mediaView(AVATAR_MEDIA),
+            id: ALICE,
+          }),
+          nodeSource({ id: BOB }),
+        ],
+      });
+
+      expect(graph.nodes.find((node) => node.id === ALICE)?.displayMedia).toEqual(
+        mediaView(PORTRAIT_MEDIA),
+      );
+    });
+
+    it("shows the avatar instead of a portrait marked as a spoiler", () => {
+      const graph = build({
+        edges: [edgeSource({})],
+        nodes: [
+          nodeSource({
+            appearances: [
+              appearanceSource({
+                portrait: mediaView(PORTRAIT_MEDIA),
+                portraitIsSpoiler: true,
+                portraitMediaId: PORTRAIT_MEDIA,
+              }),
+            ],
+            avatar: mediaView(AVATAR_MEDIA),
+            id: ALICE,
+          }),
+          nodeSource({ id: BOB }),
+        ],
+      });
+
+      expect(graph.nodes.find((node) => node.id === ALICE)?.displayMedia).toEqual(
+        mediaView(AVATAR_MEDIA),
+      );
+      expect(JSON.stringify(graph)).not.toContain(PORTRAIT_MEDIA);
+    });
+
+    it("shows no media for a spoiler portrait when the character has no avatar", () => {
+      const graph = build({
+        edges: [edgeSource({})],
+        nodes: [
+          nodeSource({
+            appearances: [
+              appearanceSource({
+                portrait: mediaView(PORTRAIT_MEDIA),
+                portraitIsSpoiler: true,
+                portraitMediaId: PORTRAIT_MEDIA,
+              }),
+            ],
+            id: ALICE,
+          }),
+          nodeSource({ id: BOB }),
+        ],
+      });
+
+      expect(graph.nodes.find((node) => node.id === ALICE)?.displayMedia).toBeNull();
+      expect(JSON.stringify(graph)).not.toContain(PORTRAIT_MEDIA);
+    });
+  });
+
+  describe("connected cap policy", () => {
+    it("returns only the focused root when it has no visible edges", () => {
+      const graph = build({
+        capPolicy: "connected",
+        edges: [
+          edgeSource({
+            bookStates: [stateSource({ hideRelationshipAsSpoiler: true })],
+            id: "rel-1",
+            sourceCharacterId: ALICE,
+            targetCharacterId: BOB,
+          }),
+          linkSource({ id: "rel-2", source: BOB, target: CAROL }),
+        ],
+        focusCharacterId: ALICE,
+        nodes: [nodeSource({ id: ALICE }), nodeSource({ id: BOB }), nodeSource({ id: CAROL })],
+      });
+
+      expect(graph.nodes.map((node) => node.id)).toEqual([ALICE]);
+      expect(graph.edges).toEqual([]);
+      expect(graph.hiddenContent.truncated).toBe(false);
+    });
+
+    it("keeps the focused root and a tree connected to it when the node limit is exceeded", () => {
+      const graph = build({
+        capPolicy: "connected",
+        depth: 3,
+        edges: [
+          linkSource({ id: "rel-1", source: ERIN, target: DAVE }),
+          linkSource({ id: "rel-2", source: DAVE, target: ALICE }),
+          linkSource({ id: "rel-3", source: DAVE, target: BOB }),
+          linkSource({ id: "rel-4", source: ALICE, target: BOB }),
+          linkSource({ id: "rel-5", source: ALICE, target: CAROL }),
+          linkSource({ id: "rel-6", source: BOB, target: CAROL }),
+        ],
+        focusCharacterId: ERIN,
+        nodeLimit: 3,
+        nodes: [ALICE, BOB, CAROL, DAVE, ERIN].map((id) => nodeSource({ id })),
+      });
+
+      const keptIds = new Set(graph.nodes.map((node) => node.id));
+      expect(keptIds.size).toBe(3);
+      expect(keptIds.has(ERIN)).toBe(true);
+      expect(keptIds.has(DAVE)).toBe(true);
+      expect(reachableFrom({ edges: graph.edges, start: ERIN })).toEqual(keptIds);
+      expect(graph.hiddenContent.truncated).toBe(true);
+    });
+
+    it("keeps the spanning tree edges before cross-links ordered by id when the edge limit is exceeded", () => {
+      const graph = build({
+        capPolicy: "connected",
+        edgeLimit: 4,
+        edges: [
+          linkSource({ id: "rel-1", source: BOB, target: CAROL }),
+          linkSource({ id: "rel-2", source: CAROL, target: DAVE }),
+          linkSource({ id: "rel-7", source: ALICE, target: BOB }),
+          linkSource({ id: "rel-8", source: ALICE, target: CAROL }),
+          linkSource({ id: "rel-9", source: ALICE, target: DAVE }),
+        ],
+        focusCharacterId: ALICE,
+        nodes: [ALICE, BOB, CAROL, DAVE].map((id) => nodeSource({ id })),
+      });
+
+      expect(graph.edges.map((edge) => edge.id)).toEqual(["rel-1", "rel-7", "rel-8", "rel-9"]);
+      expect(graph.hiddenContent.truncated).toBe(true);
+    });
+
+    it("caps an unfocused network to the same nodes and edges whatever order the sources arrive in", () => {
+      const edges = [
+        linkSource({ id: "rel-1", source: DAVE, target: ALICE }),
+        linkSource({ id: "rel-2", source: DAVE, target: BOB }),
+        linkSource({ id: "rel-3", source: DAVE, target: CAROL }),
+        linkSource({ id: "rel-4", source: ERIN, target: FRANK }),
+      ];
+      const nodes = [ALICE, BOB, CAROL, DAVE, ERIN, FRANK].map((id) => nodeSource({ id }));
+
+      const first = build({ capPolicy: "connected", edges, nodeLimit: 3, nodes });
+      const second = build({
+        capPolicy: "connected",
+        edges: [...edges].reverse(),
+        nodeLimit: 3,
+        nodes: [...nodes].reverse(),
+      });
+
+      expect(first.nodes).toHaveLength(3);
+      expect(first.hiddenContent.truncated).toBe(true);
+      expect(second.nodes.map((node) => node.id)).toEqual(first.nodes.map((node) => node.id));
+      expect(second.edges.map((edge) => edge.id)).toEqual(first.edges.map((edge) => edge.id));
+    });
   });
 });
