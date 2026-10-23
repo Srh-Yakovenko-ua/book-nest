@@ -3,6 +3,7 @@
 import type { StatisticsCalendarDay, WeekStartDay } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
+import { useRef } from "react";
 
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -26,9 +27,11 @@ const VISIBLE_WEEKDAY_ROWS = [0, 2, 4] as const;
 
 export function ReadingHeatmap({
   days,
+  onShowInBooksCalendar,
   weekStartDay,
 }: {
   days: readonly StatisticsCalendarDay[];
+  onShowInBooksCalendar?: (date: string) => void;
   weekStartDay: WeekStartDay;
 }) {
   const locale = useLocale();
@@ -73,7 +76,11 @@ export function ReadingHeatmap({
                     day === null ? (
                       <span aria-hidden className="size-[13px]" key={dayIndex} />
                     ) : (
-                      <HeatmapCell day={day} key={day.date} />
+                      <HeatmapCell
+                        day={day}
+                        key={day.date}
+                        onShowInBooksCalendar={onShowInBooksCalendar}
+                      />
                     ),
                   )}
                 </div>
@@ -110,9 +117,16 @@ function firstDate(week: readonly (null | StatisticsCalendarDay)[]): null | stri
   return week.find((day) => day !== null)?.date ?? null;
 }
 
-function HeatmapCell({ day }: { day: StatisticsCalendarDay }) {
+function HeatmapCell({
+  day,
+  onShowInBooksCalendar,
+}: {
+  day: StatisticsCalendarDay;
+  onShowInBooksCalendar?: (date: string) => void;
+}) {
   const locale = useLocale();
   const t = useTranslations("statistics.calendar.heatmap");
+  const isBooksCalendarRequested = useRef(false);
 
   const date = formatDayLong(day.date, locale);
   const isUnknown = isUnknownCalendarDay(day);
@@ -139,8 +153,26 @@ function HeatmapCell({ day }: { day: StatisticsCalendarDay }) {
 
   return (
     <StatisticsDetailSurface
-      detail={() => <ReadingDayDetails date={detailDate} />}
+      detail={({ close }) => (
+        <ReadingDayDetails
+          date={detailDate}
+          onShowInBooksCalendar={
+            onShowInBooksCalendar === undefined
+              ? undefined
+              : () => {
+                  isBooksCalendarRequested.current = true;
+                  close();
+                }
+          }
+        />
+      )}
       label={label}
+      onCloseAutoFocus={(event) => {
+        if (onShowInBooksCalendar === undefined || !isBooksCalendarRequested.current) return;
+        isBooksCalendarRequested.current = false;
+        event.preventDefault();
+        onShowInBooksCalendar(detailDate);
+      }}
       title={date}
       triggerClassName={cn(
         cellClass,

@@ -9513,19 +9513,23 @@
       "books": {
         "more": "+{count}",
         "empty": "No months to show.",
-        "emptyMonth": "You did not read this month.",
+        "emptyMonth": "No reading was recorded this month.",
+        "emptyMonthUncertainTitle": "No saved records for this month.",
+        "emptyMonthUncertainDescription": "Part of your reading history may not have been saved.",
+        "legacyMonthNote": "Part of this month predates full history tracking, so its records may be incomplete.",
         "previousMonth": "Previous month",
         "nextMonth": "Next month",
         "daySummary": "{date}: {pages} pages, {books, plural, one {# book} other {# books}}",
         "dayEmpty": "{date}: no reading",
         "dayUnknown": "{date}: this day may be missing from the history",
+        "dayFuture": "{date}: this day has not come yet",
         "diaryMeta": "{books, plural, one {# book} other {# books}} · {pages} pages",
-        "monthActiveDays": "Active days",
-        "monthBooks": "Books",
+        "monthActiveDays": "Reading days",
+        "monthBooks": "Books with progress",
         "monthBooksLoading": "Getting the exact number of books this month",
         "monthBooksError": "Could not get the exact number of books this month",
         "monthBooksRetry": "Try again",
-        "monthPages": "Pages",
+        "monthPages": "Pages read",
         "atLeast": "≥ {value}",
         "unknownLegend": "Unknown history: this day predates full tracking, so an empty cell does not prove there was no reading."
       }
@@ -9540,7 +9544,8 @@
         "deletedBook": "This book was removed from the library",
         "legacyQuality": "This day predates full history tracking, so it may be incomplete.",
         "booksLabel": "Books",
-        "pagesLabel": "Pages"
+        "pagesLabel": "Pages",
+        "showInBooksCalendar": "Show in the books calendar"
       },
       "completedRead": {
         "open": "Read details: {title}",
