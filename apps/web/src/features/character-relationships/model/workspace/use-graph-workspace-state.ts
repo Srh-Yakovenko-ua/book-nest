@@ -4,7 +4,7 @@ import type { Nullable, RelationshipCategory, RelationshipType } from "@app/shar
 
 import { useSearchParams } from "next/navigation";
 import { useQueryStates } from "nuqs";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import type {
   GraphWorkspaceParams,
@@ -51,14 +51,18 @@ export function useGraphWorkspaceState(): GraphWorkspaceState {
   const search = useSearchParams();
   const params = canonicalizeGraphWorkspaceParams(rawParams);
   const searchString = search.toString();
+  const replacedSearch = useRef<Nullable<string>>(null);
 
   useEffect(() => {
     const canonical = canonicalizeGraphWorkspaceParams(rawParams);
-    if (
-      needsGraphWorkspaceCanonicalReplace({ canonical, search: new URLSearchParams(searchString) })
-    ) {
-      void setParams(canonical, HISTORY.replace);
+    const currentSearch = new URLSearchParams(searchString);
+    if (!needsGraphWorkspaceCanonicalReplace({ canonical, search: currentSearch })) {
+      replacedSearch.current = null;
+      return;
     }
+    if (replacedSearch.current === searchString) return;
+    replacedSearch.current = searchString;
+    void setParams(canonical, HISTORY.replace);
   }, [rawParams, searchString, setParams]);
 
   const actions: GraphWorkspaceActions = {

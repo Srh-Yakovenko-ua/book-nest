@@ -25,6 +25,7 @@ type GraphWorkspaceFiltersProps = {
   disabled: boolean;
   onChange: (filters: { categories: RelationshipCategory[]; types: RelationshipType[] }) => void;
   onReset: () => void;
+  triggerId: string;
   types: RelationshipType[];
 };
 
@@ -33,6 +34,7 @@ export function GraphWorkspaceFilters({
   disabled,
   onChange,
   onReset,
+  triggerId,
   types,
 }: GraphWorkspaceFiltersProps) {
   const t = useTranslations("relationships.workspace.filters");
@@ -48,7 +50,7 @@ export function GraphWorkspaceFilters({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button disabled={disabled} type="button" variant="outline">
+        <Button disabled={disabled} id={triggerId} type="button" variant="outline">
           <UiIcon name="filter" size={16} />
           {count === 0 ? t("trigger") : t("triggerCount", { count })}
         </Button>

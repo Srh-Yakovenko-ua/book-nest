@@ -51,6 +51,7 @@ const TOOLBAR = {
 type GraphWorkspaceToolbarProps = {
   actions: GraphWorkspaceState["actions"];
   bookId: string;
+  filtersTriggerId: string;
   onTreeOptionsChange: (options: TreeOptions) => void;
   params: GraphWorkspaceParams;
   rootParticipant: Nullable<RelationshipParticipant>;
@@ -60,6 +61,7 @@ type GraphWorkspaceToolbarProps = {
 export function GraphWorkspaceToolbar({
   actions,
   bookId,
+  filtersTriggerId,
   onTreeOptionsChange,
   params,
   rootParticipant,
@@ -75,15 +77,17 @@ export function GraphWorkspaceToolbar({
           <label className="sr-only" htmlFor={TOOLBAR.pickerId}>
             {t("picker.label")}
           </label>
-          <RelationshipParticipantPicker
-            bookId={bookId}
-            excludedIds={[]}
-            id={TOOLBAR.pickerId}
-            invalid={false}
-            onBlur={() => undefined}
-            onChange={(participant) => actions.chooseCharacter(participant.id)}
-            value={rootParticipant}
-          />
+          <div className="min-w-0 flex-1">
+            <RelationshipParticipantPicker
+              bookId={bookId}
+              excludedIds={[]}
+              id={TOOLBAR.pickerId}
+              invalid={false}
+              onBlur={() => undefined}
+              onChange={(participant) => actions.chooseCharacter(participant.id)}
+              value={rootParticipant}
+            />
+          </div>
           {params.characterId === null ? null : (
             <Button
               aria-label={t("picker.clear")}
@@ -146,6 +150,7 @@ export function GraphWorkspaceToolbar({
         disabled={params.view === "tree"}
         onChange={actions.setFilters}
         onReset={actions.resetFilters}
+        triggerId={filtersTriggerId}
         types={params.types}
       />
       <Button

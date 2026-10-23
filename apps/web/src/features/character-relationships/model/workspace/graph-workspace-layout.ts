@@ -7,7 +7,7 @@ import type { TreeScene } from "./graph-tree-scene";
 
 export const GRAPH_NODE_BOX = {
   character: { height: 112, width: 144 },
-  cluster: { height: 80, width: 176 },
+  cluster: { height: 96, width: 176 },
   root: { height: 128, width: 160 },
 } as const;
 

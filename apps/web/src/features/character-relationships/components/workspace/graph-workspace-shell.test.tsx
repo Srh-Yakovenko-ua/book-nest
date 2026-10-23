@@ -13,6 +13,7 @@ import { makeBookDetailsView } from "@/features/books/components/book-details.fi
 import {
   makeBookCharacterSummary,
   makeCharacterDetails,
+  makeCharacterSummary,
 } from "@/features/characters/model/characters.fixtures";
 import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
@@ -38,19 +39,44 @@ vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, ...props }: ComponentProps<"a">) => <a {...props}>{children}</a>,
 }));
 
-vi.mock("./graph-workspace-canvas-lazy", () => ({
-  GraphWorkspaceCanvasLazy: ({ value }: { value: GraphSceneValue }) => (
-    <ul>
-      {[...value.characters.values()].map(({ node }) => (
-        <li key={node.id}>
-          <button onClick={() => value.onCharacterOpen(node.id)} type="button">
-            {node.displayName}
-          </button>
-        </li>
-      ))}
-    </ul>
-  ),
-}));
+const canvasMounts = vi.hoisted(() => ({ count: 0 }));
+
+vi.mock("./graph-workspace-canvas-lazy", async () => {
+  const { useEffect } = await import("react");
+  const { default: catalog } = await import("@/messages/uk.json");
+  const canvasCopy = catalog.relationships.workspace.canvas;
+
+  function MountCountingCanvas({
+    controls,
+    value,
+  }: {
+    controls: { immersive: boolean; onToggleImmersive: () => void };
+    value: GraphSceneValue;
+  }) {
+    useEffect(() => {
+      canvasMounts.count += 1;
+    }, []);
+
+    return (
+      <>
+        <button onClick={controls.onToggleImmersive} type="button">
+          {controls.immersive ? canvasCopy.exitFullscreen : canvasCopy.enterFullscreen}
+        </button>
+        <ul>
+          {[...value.characters.values()].map(({ node }) => (
+            <li key={node.id}>
+              <button onClick={() => value.onCharacterOpen(node.id)} type="button">
+                {node.displayName}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </>
+    );
+  }
+
+  return { GraphWorkspaceCanvasLazy: MountCountingCanvas };
+});
 
 type GraphRoutes = {
   graph: () => Promise<Response>;
@@ -71,6 +97,7 @@ const JASKIER = { id: "d4d4d4d4-0000-4000-8000-000000000005", name: "Любис�
 const CAST = [GERALT, CIRI, YENNEFER, JASKIER];
 
 const IDS = {
+  bookCharacter: "f1f1f1f1-0000-4000-8000-000000000031",
   geraltCiri: "a1a1a1a1-0000-4000-8000-000000000011",
   geraltJaskier: "a2a2a2a2-0000-4000-8000-000000000012",
   geraltYennefer: "a3a3a3a3-0000-4000-8000-000000000013",
@@ -88,6 +115,7 @@ const API = {
 } as const;
 
 const SEARCH = {
+  filters: "?categories=social&types=friend_of",
   network: "?view=network",
   path: `?path=1&from=${GERALT.id}&to=${CIRI.id}`,
   person: `?characterId=${GERALT.id}`,
@@ -102,6 +130,14 @@ const EXPECTED_TEXT = {
   peopleCounter: "На карті: 3 персонажі · 2 зв’язки",
   summaryHeading: "2 персонажі у книзі",
 } as const;
+
+const LABELS = {
+  friendChip: copy.filters.remove.replace("{label}", messages.relationships.types.friend_of),
+  pickGeralt: copy.guided.pick.replace("{name}", GERALT.name),
+  socialChip: copy.filters.remove.replace("{label}", messages.relationships.categories.social),
+} as const;
+
+const PHONE_WIDTH = 375;
 
 const EDGES = {
   geraltCiri: makeRelationshipGraphEdge({ id: IDS.geraltCiri }),
@@ -170,6 +206,29 @@ const FAMILY_TREE: FamilyTreeGraphView = {
 };
 
 const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
+
+class PhoneWidthResizeObserver implements ResizeObserver {
+  private readonly callback: ResizeObserverCallback;
+  private readonly observed = new Set<Element>();
+
+  constructor(callback: ResizeObserverCallback) {
+    this.callback = callback;
+  }
+
+  disconnect() {
+    this.observed.clear();
+  }
+
+  observe(target: Element) {
+    this.observed.add(target);
+    Object.defineProperty(target, "clientWidth", { configurable: true, value: PHONE_WIDTH });
+    this.callback([], this);
+  }
+
+  unobserve(target: Element) {
+    this.observed.delete(target);
+  }
+}
 
 function getRequests(pathname: string): URL[] {
   return fetchMock.mock.calls
@@ -256,7 +315,19 @@ function respond({
     case `GET ${API.path}`:
       return routes.path();
     case `GET ${API.summary}`:
-      return json(makeBookCharacterSummary({ bookId: BOOK.id, totalVisibleCharacters: 2 }));
+      return json(
+        makeBookCharacterSummary({
+          bookId: BOOK.id,
+          top: [
+            makeCharacterSummary({
+              characterId: GERALT.id,
+              id: IDS.bookCharacter,
+              name: GERALT.name,
+            }),
+          ],
+          totalVisibleCharacters: 2,
+        }),
+      );
     default:
       return Promise.reject(new Error(`unexpected fetch: ${route}`));
   }
@@ -454,5 +525,106 @@ describe("GraphWorkspaceShell path view", () => {
     renderWorkspace({ search: SEARCH.path });
 
     expect(await screen.findByText(message)).toBeInTheDocument();
+  });
+});
+
+describe("GraphWorkspaceShell details and full screen", () => {
+  beforeEach(() => {
+    canvasMounts.count = 0;
+  });
+
+  it("keeps one canvas and one graph request through details and full screen", async () => {
+    renderWorkspace({ search: SEARCH.person });
+
+    await userEvent.click(await screen.findByRole("button", { name: CIRI.name }));
+    await screen.findByRole("complementary", { name: CIRI.name });
+    await userEvent.keyboard("{Escape}");
+    await userEvent.click(screen.getByRole("button", { name: copy.canvas.enterFullscreen }));
+    await userEvent.click(await screen.findByRole("button", { name: copy.canvas.exitFullscreen }));
+    await screen.findByRole("button", { name: copy.canvas.enterFullscreen });
+
+    expect(canvasMounts.count).toBe(1);
+    expect(getRequests(API.graph)).toHaveLength(1);
+  });
+
+  it("closes only the details on the first Escape and refocuses their opener", async () => {
+    renderWorkspace({ search: SEARCH.person });
+    const trigger = await screen.findByRole("button", { name: CIRI.name });
+    await userEvent.click(screen.getByRole("button", { name: copy.canvas.enterFullscreen }));
+    await userEvent.click(trigger);
+    await screen.findByRole("complementary", { name: CIRI.name });
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(screen.queryByRole("complementary", { name: CIRI.name })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: copy.canvas.exitFullscreen })).toBeInTheDocument();
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it("leaves full screen on the Escape after the details are closed", async () => {
+    renderWorkspace({ search: SEARCH.person });
+    const trigger = await screen.findByRole("button", { name: CIRI.name });
+    await userEvent.click(screen.getByRole("button", { name: copy.canvas.enterFullscreen }));
+    await userEvent.click(trigger);
+    await screen.findByRole("complementary", { name: CIRI.name });
+    await userEvent.keyboard("{Escape}");
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(
+      await screen.findByRole("button", { name: copy.canvas.enterFullscreen }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("GraphWorkspaceShell details at different widths", () => {
+  it("shows the details inline, named after the character, at the default width", async () => {
+    renderWorkspace({ search: SEARCH.person });
+
+    await userEvent.click(await screen.findByRole("button", { name: CIRI.name }));
+
+    expect(await screen.findByRole("complementary", { name: CIRI.name })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("shows the details as a dialog instead of an inline panel at phone width", async () => {
+    vi.stubGlobal("ResizeObserver", PhoneWidthResizeObserver);
+    renderWorkspace({ search: SEARCH.person });
+
+    await userEvent.click(await screen.findByRole("button", { name: CIRI.name }));
+
+    expect(await screen.findByRole("dialog", { name: CIRI.name })).toBeInTheDocument();
+    expect(screen.queryByRole("complementary", { name: CIRI.name })).not.toBeInTheDocument();
+  });
+});
+
+describe("GraphWorkspaceShell focus", () => {
+  it("moves focus to the map status once the chosen character's graph loads", async () => {
+    renderWorkspace();
+
+    await userEvent.click(await screen.findByRole("button", { name: LABELS.pickGeralt }));
+
+    const status = await screen.findByText(EXPECTED_TEXT.peopleCounter);
+    await waitFor(() => expect(status).toHaveFocus());
+  });
+
+  it("moves focus to the next chip when an active filter is removed", async () => {
+    renderWorkspace({ search: SEARCH.filters });
+
+    const friendChip = await screen.findByRole("button", { name: LABELS.friendChip });
+
+    await userEvent.click(screen.getByRole("button", { name: LABELS.socialChip }));
+
+    await waitFor(() => expect(friendChip).toHaveFocus());
+  });
+
+  it("moves focus to the filters button when the last active filter is removed", async () => {
+    renderWorkspace({ search: SEARCH.filters });
+    await userEvent.click(await screen.findByRole("button", { name: LABELS.socialChip }));
+
+    await userEvent.click(await screen.findByRole("button", { name: LABELS.friendChip }));
+
+    const filtersButton = await screen.findByRole("button", { name: copy.filters.trigger });
+    await waitFor(() => expect(filtersButton).toHaveFocus());
   });
 });

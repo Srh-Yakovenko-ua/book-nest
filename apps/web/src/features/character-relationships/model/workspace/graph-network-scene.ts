@@ -123,7 +123,11 @@ export function buildNetworkScene({
     const source = elementOf(edge.source);
     const target = elementOf(edge.target);
     if (source === null || target === null || source === target) continue;
-    if (source === edge.source && target === edge.target) {
+    const isRealEdge = source === edge.source && target === edge.target;
+    const isInsideOneBucket =
+      (bucketByNodeId.get(source) ?? source) === (bucketByNodeId.get(target) ?? target);
+    if (!isRealEdge && isInsideOneBucket) continue;
+    if (isRealEdge) {
       edges.push(edge);
       continue;
     }

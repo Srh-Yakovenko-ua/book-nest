@@ -1,4 +1,4 @@
-import type { CharacterGraphClusterView } from "@app/shared";
+import type { CharacterGraphClusterView, CharacterGraphView } from "@app/shared";
 
 import { describe, expect, it } from "vitest";
 
@@ -26,6 +26,8 @@ const GROUP = {
 const CHARACTER = {
   loner: "a3a3a3a3-0000-4000-8000-000000000001",
   northFirst: "a1a1a1a1-0000-4000-8000-000000000001",
+  northHiddenFirst: "a1a1a1a1-0000-4000-8000-000000000003",
+  northHiddenSecond: "a1a1a1a1-0000-4000-8000-000000000004",
   northSecond: "a1a1a1a1-0000-4000-8000-000000000002",
   southFirst: "a2a2a2a2-0000-4000-8000-000000000001",
   southSecond: "a2a2a2a2-0000-4000-8000-000000000002",
@@ -76,6 +78,50 @@ const MIXED_GRAPH = makeRelationshipGraph({
     }),
     makeRelationshipGraphNode({ clusterId: null, id: CHARACTER.loner, importance: null }),
     makeRelationshipGraphNode({ clusterId: null, id: CHARACTER.southFirst, importance: "major" }),
+  ],
+});
+
+const CROWDED_NORTH_NODES = [
+  ...[CHARACTER.northFirst, CHARACTER.northSecond, ...characterIds(10)].map((id) =>
+    makeRelationshipGraphNode({ clusterId: GROUP.north, id, importance: "central" }),
+  ),
+  ...[CHARACTER.northHiddenFirst, CHARACTER.northHiddenSecond].map((id) =>
+    makeRelationshipGraphNode({ clusterId: GROUP.north, id, importance: "supporting" }),
+  ),
+];
+
+const SHOWN_TO_HIDDEN_NORTH = makeRelationshipGraphEdge({
+  id: RELATIONSHIP.first,
+  source: CHARACTER.northFirst,
+  target: CHARACTER.northHiddenFirst,
+});
+
+const CROWDED_BUCKET = makeRelationshipGraph({
+  clusters: [groupCluster(GROUP.north, 14)],
+  edges: [
+    SHOWN_TO_HIDDEN_NORTH,
+    makeRelationshipGraphEdge({
+      id: RELATIONSHIP.second,
+      source: CHARACTER.northFirst,
+      target: CHARACTER.northSecond,
+    }),
+  ],
+  nodes: CROWDED_NORTH_NODES,
+});
+
+const CROWDED_AND_COLLAPSED_BUCKETS = makeRelationshipGraph({
+  clusters: [groupCluster(GROUP.north, 14), groupCluster(GROUP.south, 1)],
+  edges: [
+    SHOWN_TO_HIDDEN_NORTH,
+    makeRelationshipGraphEdge({
+      id: RELATIONSHIP.third,
+      source: CHARACTER.northSecond,
+      target: CHARACTER.southFirst,
+    }),
+  ],
+  nodes: [
+    ...CROWDED_NORTH_NODES,
+    makeRelationshipGraphNode({ clusterId: GROUP.south, id: CHARACTER.southFirst }),
   ],
 });
 
@@ -219,6 +265,29 @@ describe("buildNetworkScene", () => {
     expect(scene.aggregates).toEqual([]);
   });
 
+  it("draws no connector from a shown member to a hidden member of its bucket", () => {
+    const scene = withNorthExpanded(CROWDED_BUCKET);
+
+    expect(scene.aggregates).toEqual([]);
+    expect(scene.edges.map(({ id }) => id)).not.toContain(RELATIONSHIP.first);
+  });
+
+  it("draws the relationship between two shown members of one expanded bucket as an edge", () => {
+    const scene = withNorthExpanded(CROWDED_BUCKET);
+
+    expect(scene.edges.map(({ id }) => id)).toEqual([RELATIONSHIP.second]);
+  });
+
+  it("still joins a shown member of an expanded bucket to another collapsed bucket's card", () => {
+    const scene = withNorthExpanded(CROWDED_AND_COLLAPSED_BUCKETS);
+    const endpoints = scene.aggregates.map((aggregate) => [aggregate.sourceId, aggregate.targetId]);
+    const south = bucketIdOf(scene, CHARACTER.southFirst);
+
+    expect(endpoints.map((pair) => new Set(pair))).toEqual([
+      new Set([CHARACTER.northSecond, south]),
+    ]);
+  });
+
   it.each<{ count: number; grouping: NetworkGrouping }>([
     { count: 2, grouping: "group" },
     { count: 2, grouping: "components" },
@@ -249,4 +318,20 @@ function characterIds(count: number): string[] {
 
 function groupCluster(id: string, size: number): CharacterGraphClusterView {
   return { groupType: "family", id, kind: "group", name: "Kaer Morhen", size };
+}
+
+function withNorthExpanded(graph: CharacterGraphView): NetworkScene {
+  const collapsed = buildNetworkScene({
+    expansion: EMPTY_NETWORK_EXPANSION,
+    graph,
+    grouping: "group",
+  });
+  return buildNetworkScene({
+    expansion: toggleNetworkCluster({
+      bucketId: bucketIdOf(collapsed, CHARACTER.northFirst),
+      expansion: EMPTY_NETWORK_EXPANSION,
+    }),
+    graph,
+    grouping: "group",
+  });
 }
