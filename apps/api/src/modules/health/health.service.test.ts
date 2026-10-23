@@ -60,3 +60,68 @@ describe("HealthService.getHealth", () => {
     expect(health.status).toBe("degraded");
   });
 });
+
+describe("HealthService.getReadiness", () => {
+  it("reports ok when postgres and redis both respond", async () => {
+    const service = buildService({
+      clientInfo: async () => "redis_version:7",
+      pingPostgres: async () => undefined,
+    });
+
+    const readiness = await service.getReadiness();
+
+    expect(readiness.postgres).toBe("ok");
+    expect(readiness.redis).toBe("ok");
+    expect(readiness.status).toBe("ok");
+    expect(typeof readiness.timestamp).toBe("string");
+    expect(typeof readiness.uptimeSeconds).toBe("number");
+  });
+
+  it("reports degraded when redis is down even though postgres responds", async () => {
+    const service = buildService({
+      clientInfo: async () => {
+        throw new Error("redis unreachable");
+      },
+      pingPostgres: async () => undefined,
+    });
+
+    const readiness = await service.getReadiness();
+
+    expect(readiness.postgres).toBe("ok");
+    expect(readiness.redis).toBe("down");
+    expect(readiness.status).toBe("degraded");
+  });
+
+  it("reports degraded when postgres is down", async () => {
+    const service = buildService({
+      clientInfo: async () => "redis_version:7",
+      pingPostgres: async () => {
+        throw new Error("db down");
+      },
+    });
+
+    const readiness = await service.getReadiness();
+
+    expect(readiness.postgres).toBe("down");
+    expect(readiness.status).toBe("degraded");
+  });
+});
+
+describe("HealthService.getLiveness", () => {
+  it("reports ok without probing dependencies", () => {
+    const service = buildService({
+      clientInfo: async () => {
+        throw new Error("redis unreachable");
+      },
+      pingPostgres: async () => {
+        throw new Error("db down");
+      },
+    });
+
+    const liveness = service.getLiveness();
+
+    expect(liveness.status).toBe("ok");
+    expect(typeof liveness.timestamp).toBe("string");
+    expect(typeof liveness.uptimeSeconds).toBe("number");
+  });
+});
