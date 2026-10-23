@@ -6,16 +6,20 @@ import type {
   ReadingStatisticsCalendarSection,
   WeekStartDay,
 } from "@app/shared";
+import type { RefObject } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useRef } from "react";
 
-import { UiIcon } from "@/components/icons";
+import type { UiIconName } from "@/components/icons";
+import type { StatCardIconTone } from "@/components/ui/stat-card";
+
 import { Button } from "@/components/ui/button";
+import { StatCard } from "@/components/ui/stat-card";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+import type { BooksCalendarJumpTarget } from "../../hooks/use-books-calendar-jump";
 import type { CalendarMonthSummary } from "../../model/statistics-calendar";
 
 import { useReadingMonthBooks } from "../../api/use-reading-month-books";
@@ -26,27 +30,40 @@ import {
   resolveCalendarMonth,
   summarizeCalendarMonth,
 } from "../../model/statistics-calendar";
-import { formatMonthKey } from "../../model/statistics-format";
-import { StatisticsStat } from "../statistics-stat";
-import { StatisticsSectionState } from "../statistics-states";
+import { StatisticsNote, StatisticsSectionState } from "../statistics-states";
 import { ReadingBooksDiary } from "./reading-books-diary";
 import { ReadingBooksMonthGrid } from "./reading-books-month-grid";
 
+const MONTH_KPI_LAYOUT = {
+  grid: "grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3",
+  tile: "px-3 py-2.5 sm:px-3 sm:py-2.5",
+} as const;
+
+type MonthKpi = {
+  icon: UiIconName;
+  label: "monthActiveDays" | "monthBooks" | "monthPages";
+  tone: StatCardIconTone;
+  value: string;
+};
+
 export function ReadingBooksCalendar({
   calendar,
+  jumpTarget,
   month,
-  onMonthChange,
+  monthLabelRef,
+  today,
   weekStartDay,
 }: {
   calendar: ReadingStatisticsCalendarSection;
+  jumpTarget?: Nullable<BooksCalendarJumpTarget>;
   month: Nullable<string>;
-  onMonthChange: (month: string) => void;
+  monthLabelRef?: RefObject<Nullable<HTMLSpanElement>>;
+  today: string;
   weekStartDay: WeekStartDay;
 }) {
   const isMobile = useIsMobile();
   const locale = useLocale();
   const t = useTranslations("statistics.calendar.books");
-  const monthLabel = useRef<HTMLSpanElement>(null);
   const months = listCalendarMonths(calendar.displayRange);
   const monthKey = resolveCalendarMonth({ months, requested: month });
   const monthDays =
@@ -66,7 +83,6 @@ export function ReadingBooksCalendar({
     return <StatisticsSectionState kind="empty" title={t("empty")} />;
   }
 
-  const index = months.indexOf(monthKey);
   const lowerBound = (isLowerBound: boolean, value: number) =>
     isLowerBound
       ? t("atLeast", { value: formatNumber(value, locale) })
@@ -77,65 +93,52 @@ export function ReadingBooksCalendar({
   const isMonthBooksStatusShown =
     isExactCountMissing && (monthBooks.isFetching || monthBooks.isError);
   const hasMonthBooksFailed = monthBooks.errorUpdateCount > 0;
+  const isHistoryUncertain = summary.hasUnknownDays || summary.hasLegacyHistory;
+  const kpis: MonthKpi[] = [
+    {
+      icon: "calendar",
+      label: "monthActiveDays",
+      tone: "primary",
+      value: lowerBound(summary.hasUnknownDays, summary.activeDays),
+    },
+    {
+      icon: "book-copy",
+      label: "monthBooks",
+      tone: "genre",
+      value: lowerBound(books.isLowerBound, books.count),
+    },
+    {
+      icon: "book-open-text",
+      label: "monthPages",
+      tone: "info",
+      value: lowerBound(summary.hasUnknownDays, summary.pagesRead),
+    },
+  ];
 
   const retryMonthBooks = async () => {
     if (monthBooks.isFetching) return;
     const result = await monthBooks.refetch();
-    if (result.isSuccess) monthLabel.current?.focus();
+    if (result.isSuccess) monthLabelRef?.current?.focus();
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-2">
-        <Button
-          aria-disabled={index <= 0}
-          aria-label={t("previousMonth")}
-          className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
-          onClick={() => {
-            if (index > 0) onMonthChange(months[index - 1] ?? monthKey);
-          }}
-          size="icon-lg"
-          variant="ghost"
-        >
-          <UiIcon name="chevron-left" size={16} />
-        </Button>
-        <span
-          aria-live="polite"
-          className="font-heading text-sm font-semibold text-ink outline-none"
-          ref={monthLabel}
-          tabIndex={-1}
-        >
-          {formatMonthKey(monthKey, locale)}
-        </span>
-        <Button
-          aria-disabled={index >= months.length - 1}
-          aria-label={t("nextMonth")}
-          className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
-          onClick={() => {
-            if (index < months.length - 1) onMonthChange(months[index + 1] ?? monthKey);
-          }}
-          size="icon-lg"
-          variant="ghost"
-        >
-          <UiIcon name="chevron-right" size={16} />
-        </Button>
-      </div>
-
+    <div className="mx-auto flex w-full max-w-250 flex-col gap-3">
       <div>
-        <dl className="grid grid-cols-3 gap-2">
-          <StatisticsStat
-            label={t("monthActiveDays")}
-            value={lowerBound(summary.hasUnknownDays, summary.activeDays)}
-          />
-          <StatisticsStat
-            label={t("monthBooks")}
-            value={lowerBound(books.isLowerBound, books.count)}
-          />
-          <StatisticsStat
-            label={t("monthPages")}
-            value={lowerBound(summary.hasUnknownDays, summary.pagesRead)}
-          />
-        </dl>
+        <div className={MONTH_KPI_LAYOUT.grid}>
+          {kpis.map((kpi) => (
+            <StatCard
+              className={MONTH_KPI_LAYOUT.tile}
+              icon={kpi.icon}
+              iconBadgeSize="md"
+              iconTone={kpi.tone}
+              key={kpi.label}
+              label={t(kpi.label)}
+              labelOverflow="wrap"
+              size="compact"
+              value={kpi.value}
+            />
+          ))}
+        </div>
         <div aria-live="polite">
           {isMonthBooksStatusShown ? (
             <p
@@ -162,22 +165,23 @@ export function ReadingBooksCalendar({
       </div>
 
       {isMobile ? (
-        <ReadingBooksDiary days={monthDays} />
+        <ReadingBooksDiary
+          days={monthDays}
+          isHistoryUncertain={isHistoryUncertain}
+          jumpTarget={jumpTarget}
+        />
       ) : (
-        <ReadingBooksMonthGrid days={monthDays} monthKey={monthKey} weekStartDay={weekStartDay} />
+        <>
+          <ReadingBooksMonthGrid
+            days={monthDays}
+            jumpTarget={jumpTarget}
+            monthKey={monthKey}
+            today={today}
+            weekStartDay={weekStartDay}
+          />
+          <MonthGridHistoryNote summary={summary} />
+        </>
       )}
-
-      {summary.hasUnknownDays ? (
-        <p className="flex items-start gap-2 text-xs text-muted-foreground">
-          <span
-            aria-hidden
-            className="flex size-5 shrink-0 items-center justify-center rounded-sm border border-dashed border-muted-foreground/40 text-[0.625rem] font-medium"
-          >
-            ?
-          </span>
-          {t("unknownLegend")}
-        </p>
-      ) : null}
     </div>
   );
 }
@@ -199,4 +203,28 @@ function monthBooksCount({
     count: exact.booksCount,
     isLowerBound: summary.hasLegacyHistory || exact.historyQuality === "legacy_observed_only",
   };
+}
+
+function MonthGridHistoryNote({ summary }: { summary: CalendarMonthSummary }) {
+  const t = useTranslations("statistics.calendar.books");
+
+  if (summary.hasUnknownDays) {
+    return (
+      <p className="flex items-start gap-2 text-xs text-muted-foreground">
+        <span
+          aria-hidden
+          className="flex size-5 shrink-0 items-center justify-center rounded-sm border border-dashed border-muted-foreground/40 text-[0.625rem] font-medium"
+        >
+          ?
+        </span>
+        {t("unknownLegend")}
+      </p>
+    );
+  }
+
+  if (summary.hasLegacyHistory) {
+    return <StatisticsNote>{t("legacyMonthNote")}</StatisticsNote>;
+  }
+
+  return null;
 }

@@ -2,6 +2,8 @@
 
 import { useLocale, useTranslations } from "next-intl";
 
+import { UiIcon } from "@/components/icons";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatNumber } from "@/lib/format";
 
@@ -10,7 +12,13 @@ import { StatisticsStat } from "../statistics-stat";
 import { StatisticsNote, StatisticsSectionState } from "../statistics-states";
 import { StatisticsBookCover } from "./statistics-book-cover";
 
-export function ReadingDayDetails({ date }: { date: string }) {
+export function ReadingDayDetails({
+  date,
+  onShowInBooksCalendar,
+}: {
+  date: string;
+  onShowInBooksCalendar?: () => void;
+}) {
   const locale = useLocale();
   const t = useTranslations("statistics.details.day");
   const { data, isError, isPending, refetch } = useReadingDayDetails(date);
@@ -78,6 +86,18 @@ export function ReadingDayDetails({ date }: { date: string }) {
       {data.historyQuality === "legacy_observed_only" ? (
         <StatisticsNote>{t("legacyQuality")}</StatisticsNote>
       ) : null}
+
+      {onShowInBooksCalendar === undefined ? null : (
+        <Button
+          className="self-start"
+          onClick={onShowInBooksCalendar}
+          size="sm"
+          variant="secondary"
+        >
+          <UiIcon aria-hidden name="calendar" size={14} />
+          {t("showInBooksCalendar")}
+        </Button>
+      )}
     </div>
   );
 }

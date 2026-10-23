@@ -9514,19 +9514,23 @@
       "books": {
         "more": "+{count}",
         "empty": "Немає місяців для показу.",
-        "emptyMonth": "Цього місяця ви ще не читали.",
+        "emptyMonth": "За цей місяць немає зафіксованого читання.",
+        "emptyMonthUncertainTitle": "За цей місяць немає збережених записів.",
+        "emptyMonthUncertainDescription": "Частина історії читання могла не зберегтися.",
+        "legacyMonthNote": "Частина цього місяця передує повному обліку історії, тому записи можуть бути неповними.",
         "previousMonth": "Попередній місяць",
         "nextMonth": "Наступний місяць",
         "daySummary": "{date}: {pages} сторінок, {books, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
         "dayEmpty": "{date}: читання не було",
         "dayUnknown": "{date}: даних за цей день може не бути",
+        "dayFuture": "{date}: цей день ще не настав",
         "diaryMeta": "{books, plural, one {# книга} few {# книги} many {# книг} other {# книги}} · {pages} сторінок",
-        "monthActiveDays": "Активні дні",
-        "monthBooks": "Книги",
+        "monthActiveDays": "Днів із читанням",
+        "monthBooks": "Книг із прогресом",
         "monthBooksLoading": "Уточнюємо кількість книг за місяць",
         "monthBooksError": "Не вдалося уточнити кількість книг за місяць",
         "monthBooksRetry": "Спробувати ще раз",
-        "monthPages": "Сторінки",
+        "monthPages": "Прочитано сторінок",
         "atLeast": "≥ {value}",
         "unknownLegend": "Історія невідома: цей день передує повному обліку, тож порожня клітинка не доводить, що читання не було."
       }
@@ -9541,7 +9545,8 @@
         "deletedBook": "Книгу видалено з бібліотеки",
         "legacyQuality": "Цей день передує повному обліку історії, тому дані можуть бути неповними.",
         "booksLabel": "Книги",
-        "pagesLabel": "Сторінки"
+        "pagesLabel": "Сторінки",
+        "showInBooksCalendar": "Показати в календарі книг"
       },
       "completedRead": {
         "open": "Деталі читання: {title}",

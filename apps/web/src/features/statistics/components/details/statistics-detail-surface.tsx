@@ -27,6 +27,7 @@ type StatisticsDetailSurfaceProps = {
   contentClassName?: string;
   detail: (context: { close: () => void }) => ReactNode;
   label?: string;
+  onCloseAutoFocus?: (event: Event) => void;
   title: string;
   triggerClassName?: string;
   triggerRef?: Ref<HTMLButtonElement>;
@@ -39,6 +40,7 @@ export function StatisticsDetailSurface({
   contentClassName,
   detail,
   label,
+  onCloseAutoFocus,
   title,
   triggerClassName,
   triggerRef,
@@ -61,7 +63,7 @@ export function StatisticsDetailSurface({
         >
           {children}
         </DrawerTrigger>
-        <DrawerContent>
+        <DrawerContent onCloseAutoFocus={onCloseAutoFocus}>
           <DrawerHeader>
             <DrawerTitle>{title}</DrawerTitle>
           </DrawerHeader>
@@ -86,6 +88,7 @@ export function StatisticsDetailSurface({
         align="start"
         aria-labelledby={titleId}
         className={cn("w-80", contentClassName)}
+        onCloseAutoFocus={onCloseAutoFocus}
       >
         <PopoverHeader>
           <PopoverTitle id={titleId}>{title}</PopoverTitle>
