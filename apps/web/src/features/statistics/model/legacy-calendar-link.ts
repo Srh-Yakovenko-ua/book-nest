@@ -1,5 +1,6 @@
 import type { Nullable } from "@app/shared";
 
+import { getYear, parseISO } from "date-fns";
 import { z } from "zod";
 
 import { READING_CALENDAR_PAGE } from "./reading-calendar-params";
@@ -21,12 +22,18 @@ export function legacyReadingCalendarHref(
 
   const { calendarMonth, period, year } = link.data;
   const keptYear = period === undefined || period === "year" ? year : undefined;
+  const redirectYear = keptYear ?? yearOfMonth(calendarMonth);
 
   return {
     pathname: READING_CALENDAR_PAGE.path,
     query: {
       ...(calendarMonth === undefined ? {} : { month: calendarMonth }),
-      ...(keptYear === undefined ? {} : { year: keptYear }),
+      ...(redirectYear === undefined ? {} : { year: redirectYear }),
     },
   };
+}
+
+function yearOfMonth(month: string | undefined): string | undefined {
+  if (month === undefined || !READING_CALENDAR_PAGE.monthPattern.test(month)) return undefined;
+  return String(getYear(parseISO(month)));
 }
