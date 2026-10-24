@@ -27,7 +27,7 @@ catalog:
   "@opentelemetry/sdk-node": ^0.221.0
   "@prisma/adapter-pg": ^7.9.1
   "@prisma/client": ^7.9.1
-  "@storybook/addon-vitest": ^10.5.5
+  "@storybook/addon-vitest": ^10.6.2
   "@storybook/nextjs-vite": ^10.5.5
   "@storybook/react": ^10.5.5
   "@swc-node/register": ^1.12.0
