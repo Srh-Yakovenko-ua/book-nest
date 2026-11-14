@@ -10,6 +10,7 @@ import { flushSync } from "react-dom";
 import { toast } from "sonner";
 
 import { UiIcon } from "@/components/icons";
+import { Spinner } from "@/components/spinner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -52,7 +53,7 @@ const VARIANT_STYLES = {
     controls: "flex flex-wrap items-center gap-2",
     fallback: "text-2xl",
     status: "text-xs",
-    statusIconSize: 14,
+    statusSpinnerSize: "sm",
   },
   default: {
     avatar: "size-20",
@@ -60,7 +61,7 @@ const VARIANT_STYLES = {
     controls: "flex flex-col gap-2",
     fallback: "text-3xl",
     status: "mt-4 text-sm",
-    statusIconSize: 16,
+    statusSpinnerSize: "md",
   },
 } as const;
 
@@ -167,11 +168,7 @@ export function CharacterImageField({
             styles.status,
           )}
         >
-          <UiIcon
-            className="motion-safe:animate-spin"
-            name="refresh"
-            size={styles.statusIconSize}
-          />
+          <Spinner size={styles.statusSpinnerSize} />
           {tEdit("portraitUploading")}
         </p>
       ) : null}

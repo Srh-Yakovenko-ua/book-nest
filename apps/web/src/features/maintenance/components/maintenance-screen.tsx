@@ -4,6 +4,7 @@ import { BookOpen, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 
+import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
 
 export type MaintenanceScreenProps = {
@@ -51,7 +52,7 @@ export function MaintenanceScreen({ checking, longWait, onRetry }: MaintenanceSc
         </p>
 
         <Button className="mt-8 cursor-pointer" disabled={checking} onClick={onRetry}>
-          <RefreshCw className={checking ? "mr-2 size-4 animate-spin" : "mr-2 size-4"} />
+          {checking ? <Spinner className="mr-2" /> : <RefreshCw className="mr-2 size-4" />}
           {checking ? t("checking") : t("retry")}
         </Button>
 

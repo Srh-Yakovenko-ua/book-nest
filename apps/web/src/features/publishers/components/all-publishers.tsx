@@ -150,7 +150,7 @@ export function AllPublishers() {
       summary={
         <PublisherSummaryCards
           cards={summaryCards}
-          isError={summary.isError}
+          isError={summary.isLoadingError}
           isLoading={summary.isPending}
           mobileAction={
             <PublisherOverviewPanel

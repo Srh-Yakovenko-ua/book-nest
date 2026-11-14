@@ -2,9 +2,8 @@
 
 import type { ReactNode } from "react";
 
-import { Loader2 } from "lucide-react";
-
 import { UiIcon } from "@/components/icons";
+import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
 
 type RelationshipRevealButtonProps = {
@@ -27,11 +26,7 @@ export function RelationshipRevealButton({
       type="button"
       variant="secondary"
     >
-      {isPending ? (
-        <Loader2 aria-hidden className="size-3.5 animate-spin" />
-      ) : (
-        <UiIcon name="eye" size={14} />
-      )}
+      {isPending ? <Spinner size="sm" /> : <UiIcon name="eye" size={14} />}
       {children}
     </Button>
   );

@@ -10,6 +10,7 @@ import type { ReactNode, RefObject } from "react";
 import { useTranslations } from "next-intl";
 import { useId, useRef } from "react";
 
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Skeleton } from "@/components/ui/skeleton";
 import { YearPicker } from "@/components/ui/year-picker";
@@ -29,7 +30,6 @@ import { StatisticsSection } from "../statistics-section";
 import {
   StatisticsError,
   StatisticsNote,
-  StatisticsRefetchError,
   StatisticsRefreshingNote,
   StatisticsSectionState,
 } from "../statistics-states";
@@ -68,7 +68,11 @@ export function ReadingCalendarPage() {
       ) : scope.isRefreshing ? (
         <StatisticsRefreshingNote />
       ) : null}
-      {scope.isRefetchError ? <StatisticsRefetchError onRetry={scope.retry} /> : null}
+      <RefetchErrorBanner
+        state={
+          scope.isRefetchError ? { isRetrying: scope.isRefreshing, onRetry: scope.retry } : null
+        }
+      />
 
       <ReadingCalendarBody
         booksSectionRef={booksSectionRef}

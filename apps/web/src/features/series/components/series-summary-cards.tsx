@@ -4,9 +4,8 @@ import type { ReactNode } from "react";
 
 import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
+import { SummaryError } from "@/components/summary-error";
 import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
-
-import { SeriesOverviewError } from "./series-overview-error";
 
 type SeriesSummaryCardsProps = {
   cards: LibrarySummaryCard[];
@@ -23,16 +22,14 @@ export function SeriesSummaryCards({
   mobileAction,
   onRetry,
 }: SeriesSummaryCardsProps) {
-  if (isError) {
-    return <SeriesOverviewError onRetry={onRetry} />;
-  }
-
   return (
-    <LibrarySummaryCards
-      cards={cards}
-      isLoading={isLoading}
-      mobileAction={mobileAction}
-      mobileLayout="compact"
-    />
+    <SummaryError state={isError ? { onRetry } : null}>
+      <LibrarySummaryCards
+        cards={cards}
+        isLoading={isLoading}
+        mobileAction={mobileAction}
+        mobileLayout="compact"
+      />
+    </SummaryError>
   );
 }

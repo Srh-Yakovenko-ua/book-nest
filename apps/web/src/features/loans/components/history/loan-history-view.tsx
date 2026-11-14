@@ -128,7 +128,7 @@ export function LoanHistoryView() {
         {showChrome ? (
           <LoanHistorySummaryCards
             cards={summaryCards}
-            isError={overview.isError}
+            isError={overview.isLoadingError}
             isLoading={overview.isPending}
             mobileAction={<LoanHistoryOverviewPanel {...analytics} />}
             onRetry={() => void overview.refetch()}

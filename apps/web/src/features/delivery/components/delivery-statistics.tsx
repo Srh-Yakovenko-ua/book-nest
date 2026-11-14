@@ -8,6 +8,7 @@ import { useLocale, useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -46,7 +47,6 @@ import {
   StatisticsAllTimeEmpty,
   StatisticsError,
   StatisticsPeriodEmpty,
-  StatisticsRefetchError,
   StatisticsRefreshingNote,
   StatisticsSectionState,
   StatisticsSkeleton,
@@ -159,7 +159,11 @@ export function DeliveryStatistics() {
 
       {period.isRefreshing ? <StatisticsRefreshingNote /> : null}
 
-      {period.isRefetchError ? <StatisticsRefetchError onRetry={period.retry} /> : null}
+      <RefetchErrorBanner
+        state={
+          period.isRefetchError ? { isRetrying: period.isRefreshing, onRetry: period.retry } : null
+        }
+      />
 
       {currentSource !== null && currentSource.isTruncated && currentSource.maxOrders !== null ? (
         <StatisticsTruncationNotice

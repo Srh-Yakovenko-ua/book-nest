@@ -1,11 +1,11 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
 import { UiIcon } from "@/components/icons";
+import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
 import { useInfiniteScrollSentinel } from "@/hooks/use-infinite-scroll-sentinel";
 import { assertNever } from "@/lib/assert-never";
@@ -71,7 +71,7 @@ export function InfiniteScrollFooter({
         >
           {state === "loading" ? (
             <>
-              <Loader2 aria-hidden className="size-4 animate-spin text-muted-foreground" />
+              <Spinner className="text-muted-foreground" />
               <span className="sr-only">{t("loadingMore")}</span>
             </>
           ) : null}

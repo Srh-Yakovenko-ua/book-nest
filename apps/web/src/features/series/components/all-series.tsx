@@ -307,7 +307,7 @@ export function AllSeries() {
             almostReadSeries={almostReadSeries}
             attentionCounts={attentionCounts}
             attentionLoading={isPending}
-            isError={overview.isError}
+            isError={overview.isLoadingError}
             isLoading={overview.isPending}
             onAttentionSelect={setAttentionFilter}
             onRetry={() => void overview.refetch()}
@@ -315,7 +315,7 @@ export function AllSeries() {
           />
         }
         summaryCards={summaryCards}
-        summaryError={overview.isError}
+        summaryError={overview.isLoadingError}
         summaryLoading={overview.isPending}
         summaryMobileAction={
           <SeriesOverviewPanel
@@ -323,7 +323,7 @@ export function AllSeries() {
             almostReadSeries={almostReadSeries}
             attentionCounts={attentionCounts}
             attentionLoading={isPending}
-            isError={overview.isError}
+            isError={overview.isLoadingError}
             isLoading={overview.isPending}
             onAttentionSelect={setAttentionFilter}
             onRetry={() => void overview.refetch()}

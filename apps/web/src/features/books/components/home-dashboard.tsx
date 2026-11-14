@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { SummaryError } from "@/components/summary-error";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAuthStore } from "@/features/auth";
@@ -12,7 +13,6 @@ import { Link } from "@/i18n/navigation";
 import { useLibraryOverview } from "../api/use-library-overview";
 import { DeliveryDashboardWidget } from "./delivery-dashboard-widget";
 import { type LibrarySummaryCard, LibrarySummaryCards } from "./library-summary-cards";
-import { LibrarySummaryError } from "./library-summary-error";
 
 export function HomeDashboard() {
   const t = useTranslations("home");
@@ -87,15 +87,13 @@ export function HomeDashboard() {
         />
       ) : (
         <>
-          {overview.isLoadingError ? (
-            <LibrarySummaryError onRetry={retryOverview} />
-          ) : (
+          <SummaryError state={overview.isLoadingError ? { onRetry: retryOverview } : null}>
             <LibrarySummaryCards
               cards={summaryCards}
               isLoading={overview.isPending}
               mobileLayout="compact"
             />
-          )}
+          </SummaryError>
 
           <DeliveryDashboardWidget />
 

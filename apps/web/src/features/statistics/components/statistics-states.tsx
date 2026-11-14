@@ -9,7 +9,7 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
-import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -87,30 +87,6 @@ export function StatisticsPeriodEmpty({ onShowAllTime }: { onShowAllTime: () => 
   return <EmptyState onPrimary={onShowAllTime} state={entry} />;
 }
 
-export function StatisticsRefetchError({ onRetry }: { onRetry: () => void }) {
-  const t = useTranslations("statistics.states");
-
-  return (
-    <div
-      className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground"
-      role="status"
-    >
-      <span className="flex items-start gap-2">
-        <UiIcon
-          aria-hidden
-          className="mt-0.5 shrink-0 text-favorite"
-          name="alert-circle"
-          size={16}
-        />
-        {t("refetchError")}
-      </span>
-      <Button className="h-7 px-2 text-xs" onClick={onRetry} size="sm" variant="secondary">
-        {t("error.retry")}
-      </Button>
-    </div>
-  );
-}
-
 export function StatisticsRefreshingNote({
   reason = "refetch",
 }: {
@@ -120,12 +96,7 @@ export function StatisticsRefreshingNote({
 
   return (
     <p className="flex items-center gap-2 text-xs text-muted-foreground" role="status">
-      <UiIcon
-        aria-hidden
-        className="shrink-0 animate-spin motion-reduce:animate-none"
-        name="refresh"
-        size={13}
-      />
+      <Spinner size="sm" />
       {t(REFRESH_MESSAGE[reason])}
     </p>
   );

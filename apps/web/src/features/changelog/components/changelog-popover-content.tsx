@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { GroupedVirtuoso } from "react-virtuoso";
 
 import { UiIcon } from "@/components/icons";
+import { Spinner } from "@/components/spinner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -93,7 +94,7 @@ function ChangelogListFooter({ context }: { context?: ChangelogListContext }) {
       className="flex items-center justify-center gap-2 border-t border-border/50 px-3.5 py-3 text-xs text-muted-foreground"
       data-slot="changelog-loading-more"
     >
-      <UiIcon className="animate-spin" name="refresh" size={14} />
+      <Spinner size="sm" />
       {context.loadingLabel}
     </div>
   );

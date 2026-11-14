@@ -8,6 +8,7 @@ import { useRef } from "react";
 import type { PageTabsItem } from "@/components/page-tabs";
 
 import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +35,6 @@ import { StatisticsFocusTarget } from "../statistics-focus-target";
 import {
   StatisticsError,
   StatisticsNote,
-  StatisticsRefetchError,
   StatisticsRefreshingNote,
   StatisticsSectionState,
   StatisticsSkeleton,
@@ -91,7 +91,11 @@ export function StatisticsOverview() {
       ) : scope.isRefreshing ? (
         <StatisticsRefreshingNote />
       ) : null}
-      {scope.isRefetchError ? <StatisticsRefetchError onRetry={scope.retry} /> : null}
+      <RefetchErrorBanner
+        state={
+          scope.isRefetchError ? { isRetrying: scope.isRefreshing, onRetry: scope.retry } : null
+        }
+      />
 
       <StatisticsBody onShowAllTime={showAllTime} params={params} scope={scope} />
     </div>

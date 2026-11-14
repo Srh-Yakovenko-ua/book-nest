@@ -81,7 +81,7 @@ export const Loading: Story = {
 export const ErrorState: Story = {
   args: { isError: true },
   play: async ({ args, canvas }) => {
-    await waitFor(() => expect(canvas.getByText("Не вдалося завантажити серії")).toBeVisible());
+    await waitFor(() => expect(canvas.getByText("Не вдалося завантажити зведення")).toBeVisible());
     await userEvent.click(canvas.getByRole("button", { name: "Спробувати ще раз" }));
     await waitFor(() => expect(args.onRetry).toHaveBeenCalled());
   },
