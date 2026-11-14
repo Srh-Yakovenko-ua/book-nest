@@ -8,6 +8,7 @@ import { useState } from "react";
 import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
 import { UiIcon } from "@/components/icons";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { LibraryActiveFilters, useGenres } from "@/features/books";
@@ -30,9 +31,18 @@ type WishlistSummaryKey = "books" | "missingFromSeries" | "nextInSeries" | "wait
 export function BooksToBuyView() {
   const t = useTranslations("booksToBuy");
   const tUnit = useTranslations("books.library.summary");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const wishlist = useWishlistQuery();
-  const { data, isError, isPending, refetch } = useWishlist(wishlist.listParams);
+  const {
+    data,
+    isLoadingError,
+    isPending,
+    isPlaceholderData,
+    isRefetchError,
+    isRefetching,
+    refetch,
+  } = useWishlist(wishlist.listParams);
   const facets = useWishlistFacets();
   const genres = useGenres();
   const selectedTags = useSelectedTags(wishlist.state.tag);
@@ -62,8 +72,9 @@ export function BooksToBuyView() {
   });
 
   const onAddBook = () => router.push("/books/new");
-  const showOverview = !isError && (isPending || allBooks.length > 0);
+  const showOverview = !isLoadingError && (isPending || allBooks.length > 0);
   const hasAnyBooks = allBooks.length > 0 || wishlist.hasActiveFilters || wishlist.hasActiveSearch;
+  const isLoadingResults = isPending || (isPlaceholderData && !hasAnyBooks);
 
   const bestOffers = deriveWishlistBestOffers(allBooks);
   const summary = data?.summary;
@@ -158,8 +169,8 @@ export function BooksToBuyView() {
       ) : null}
 
       <ToolbarSlot
-        hasAnyBooks={hasAnyBooks}
-        isError={isError}
+        hasAnyBooks={hasAnyBooks || isPlaceholderData}
+        isError={isLoadingError}
         isPending={isPending}
         toolbar={
           <BooksToBuyToolbar
@@ -167,10 +178,14 @@ export function BooksToBuyView() {
             activeFilters={
               <LibraryActiveFilters chips={filterChips} onClearAll={wishlist.clearAll} />
             }
-            counterLabel={t("counter", {
-              shown: allBooks.length,
-              total: data?.totalBooksCount ?? allBooks.length,
-            })}
+            counterLabel={
+              isPlaceholderData
+                ? tCommon("updating")
+                : t("counter", {
+                    shown: allBooks.length,
+                    total: data?.totalBooksCount ?? allBooks.length,
+                  })
+            }
             onRememberEntity={rememberEntity}
             onSearchChange={wishlist.setSearch}
             onSortChange={wishlist.setSort}
@@ -187,11 +202,17 @@ export function BooksToBuyView() {
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-6">
+          <RefetchErrorBanner
+            state={
+              isRefetchError ? { isRetrying: isRefetching, onRetry: () => void refetch() } : null
+            }
+          />
           <BooksToBuyContent
             books={allBooks}
             hasAnyBooks={hasAnyBooks}
-            isError={isError}
-            isPending={isPending}
+            isError={isLoadingError}
+            isPending={isLoadingResults}
+            isRefreshing={isPlaceholderData}
             onAddBook={onAddBook}
             onClearFilters={wishlist.clearAll}
             onOpenLibrary={() => router.push("/books")}

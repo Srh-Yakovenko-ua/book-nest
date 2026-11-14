@@ -11,10 +11,10 @@ import { useTranslations } from "next-intl";
 import { useId, useRef } from "react";
 
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Skeleton } from "@/components/ui/skeleton";
 import { YearPicker } from "@/components/ui/year-picker";
-import { cn } from "@/lib/utils";
 
 import type { StatisticsScopeState } from "../../model/statistics-scope-state";
 import type { UseReadingCalendarParamsResult } from "../../model/use-reading-calendar-params";
@@ -112,13 +112,10 @@ function ReadingCalendarBody({
   const isCalendarShown = calendar.availability !== "unavailable" && calendar.days.length > 0;
 
   return (
-    <div
+    <RefreshingRegion
       aria-busy={scope.isRefreshing}
-      className={cn(
-        "flex flex-col gap-6 motion-safe:transition-opacity",
-        scope.isPlaceholderData && "opacity-60",
-      )}
-      inert={scope.isPlaceholderData}
+      className="flex flex-col gap-6"
+      isRefreshing={scope.isPlaceholderData}
     >
       {meta.activityHistory.selectedPeriodQuality === "legacy_lower_bound" ? (
         <StatisticsNote>{tStates("lowerBound")}</StatisticsNote>
@@ -167,7 +164,7 @@ function ReadingCalendarBody({
           </ReadingCalendarContent>
         </StatisticsSection>
       </div>
-    </div>
+    </RefreshingRegion>
   );
 }
 

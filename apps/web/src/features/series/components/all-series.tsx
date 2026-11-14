@@ -42,6 +42,7 @@ const EMPTY_ATTENTION_COUNTS: Record<SeriesAttentionReason, number> = {
 export function AllSeries() {
   const t = useTranslations("series.summary");
   const tSeries = useTranslations("series");
+  const tCommon = useTranslations("common");
   const tStatusFilter = useTranslations("series.statusFilter");
   const tReadingFilter = useTranslations("series.readingFilter");
   const tCompleteness = useTranslations("series.filters.completeness");
@@ -49,7 +50,9 @@ export function AllSeries() {
   const router = useRouter();
 
   const seriesQuery = useSeriesQuery();
-  const { data, isError, isPending, refetch } = useSeriesList(seriesQuery.listParams);
+  const { data, isError, isPending, isPlaceholderData, refetch } = useSeriesList(
+    seriesQuery.listParams,
+  );
   const overview = useSeriesOverview();
   const genres = useGenres();
 
@@ -189,7 +192,9 @@ export function AllSeries() {
     seriesQuery.clearAll();
   }
 
-  const counterLabel = tSeries("counter", { shown: visibleSeries.length, total: totalSeries });
+  const counterLabel = isPlaceholderData
+    ? tCommon("updating")
+    : tSeries("counter", { shown: visibleSeries.length, total: totalSeries });
 
   const filterChips: ActiveFilterChip[] = [];
 
@@ -293,6 +298,7 @@ export function AllSeries() {
         hasAnySeries={hasAnySeries}
         isError={isError}
         isPending={isPending}
+        isRefreshing={isPlaceholderData}
         onAddBook={() => router.push("/books/new")}
         onClearFilters={clearFilters}
         onCreateSeries={() => setDialogOpen(true)}

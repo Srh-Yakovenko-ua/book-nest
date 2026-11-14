@@ -68,6 +68,7 @@ export function BooksArchive({
     isFetchNextPageError,
     isLoadingError,
     isPending,
+    isPlaceholderData,
     isRefetchError,
     isRefetching,
     refetch,
@@ -152,6 +153,7 @@ export function BooksArchive({
       isFetchingNextPage={isFetchingNextPage}
       isLoadMoreError={isFetchNextPageError}
       isPending={isPending}
+      isRefreshing={isPlaceholderData}
       libraryTotal={summary?.total ?? 0}
       libraryTotalLoading={overview.isPending || overview.isLoadingError}
       linkComponent={Link}

@@ -8,6 +8,7 @@ import type { LibraryBookLabels } from "@/features/books";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toLibraryBook } from "@/features/books";
 
@@ -22,6 +23,7 @@ type BooksToBuyContentProps = {
   hasAnyBooks: boolean;
   isError: boolean;
   isPending: boolean;
+  isRefreshing: boolean;
   onAddBook: () => void;
   onClearFilters: () => void;
   onOpenLibrary: () => void;
@@ -34,6 +36,7 @@ export function BooksToBuyContent({
   hasAnyBooks,
   isError,
   isPending,
+  isRefreshing,
   onAddBook,
   onClearFilters,
   onOpenLibrary,
@@ -99,23 +102,29 @@ export function BooksToBuyContent({
       primary: { icon: "x", label: t("noResults.clear") },
       title: t("noResults.title"),
     };
-    return <EmptyState onPrimary={onClearFilters} state={noResultsState} />;
+    return (
+      <RefreshingRegion isRefreshing={isRefreshing}>
+        <EmptyState onPrimary={onClearFilters} state={noResultsState} />
+      </RefreshingRegion>
+    );
   }
 
   return (
-    <ul
-      className={
-        view === "grid"
-          ? "grid grid-cols-2 gap-5 max-sm:gap-3 xl:grid-cols-3"
-          : "flex flex-col gap-2.5"
-      }
-    >
-      {books.map((book) => (
-        <li key={book.id}>
-          <BooksToBuyRow book={book} libraryBook={toLibraryBook(book, labels)} view={view} />
-        </li>
-      ))}
-    </ul>
+    <RefreshingRegion isRefreshing={isRefreshing}>
+      <ul
+        className={
+          view === "grid"
+            ? "grid grid-cols-2 gap-5 max-sm:gap-3 xl:grid-cols-3"
+            : "flex flex-col gap-2.5"
+        }
+      >
+        {books.map((book) => (
+          <li key={book.id}>
+            <BooksToBuyRow book={book} libraryBook={toLibraryBook(book, labels)} view={view} />
+          </li>
+        ))}
+      </ul>
+    </RefreshingRegion>
   );
 }
 

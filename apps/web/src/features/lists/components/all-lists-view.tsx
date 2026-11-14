@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,6 +35,7 @@ type AllListsViewProps = {
   isFetchingNextPage: boolean;
   isLoadMoreError: boolean;
   isPending: boolean;
+  isRefreshing: boolean;
   lists: CustomListCard[];
   loadMoreErrorLabel: string;
   onClearFilters: () => void;
@@ -59,6 +61,7 @@ export function AllListsView({
   isFetchingNextPage,
   isLoadMoreError,
   isPending,
+  isRefreshing,
   lists,
   loadMoreErrorLabel,
   onClearFilters,
@@ -108,6 +111,7 @@ export function AllListsView({
             hasAnyLists={hasAnyLists}
             isError={isError}
             isPending={isPending}
+            isRefreshing={isRefreshing}
             lists={lists}
             onClearFilters={onClearFilters}
             onCreateList={onCreateList}
@@ -156,6 +160,7 @@ function ListsContent({
   hasAnyLists,
   isError,
   isPending,
+  isRefreshing,
   lists,
   onClearFilters,
   onCreateList,
@@ -169,6 +174,7 @@ function ListsContent({
   hasAnyLists: boolean;
   isError: boolean;
   isPending: boolean;
+  isRefreshing: boolean;
   lists: CustomListCard[];
   onClearFilters: () => void;
   onCreateList: () => void;
@@ -216,14 +222,18 @@ function ListsContent({
         primary: { icon: "x", label: t("noResults.clear") },
         title: t("noResults.title"),
       };
-      return <EmptyState onPrimary={onClearFilters} state={noResultsState} />;
+      return (
+        <RefreshingRegion isRefreshing={isRefreshing}>
+          <EmptyState onPrimary={onClearFilters} state={noResultsState} />
+        </RefreshingRegion>
+      );
     }
     return null;
   }
 
   if (view === "list") {
     return (
-      <div className="flex flex-col gap-3">
+      <RefreshingRegion className="flex flex-col gap-3" isRefreshing={isRefreshing}>
         {lists.map((list) => (
           <ListRow
             key={list.id}
@@ -232,12 +242,15 @@ function ListsContent({
             onEdit={() => onEditList(list)}
           />
         ))}
-      </div>
+      </RefreshingRegion>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+    <RefreshingRegion
+      className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"
+      isRefreshing={isRefreshing}
+    >
       {lists.map((list) => (
         <ListCard
           key={list.id}
@@ -246,7 +259,7 @@ function ListsContent({
           onEdit={() => onEditList(list)}
         />
       ))}
-    </div>
+    </RefreshingRegion>
   );
 }
 

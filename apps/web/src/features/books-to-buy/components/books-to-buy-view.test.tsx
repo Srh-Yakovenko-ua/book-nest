@@ -5,11 +5,14 @@ import type { OnUrlUpdateFunction } from "nuqs/adapters/testing";
 import type { ReactNode } from "react";
 
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DETAILS_GENRES_FIXTURE } from "@/features/books/components/book-details.fixtures";
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
+import { wishlistKeys } from "../api/wishlist-keys";
 import {
   makeStoreLink,
   makeWishlistBook,
@@ -30,6 +33,14 @@ vi.mock("sonner", () => ({
 
 const fetchMock = vi.fn();
 
+const COPY = {
+  noResultsTitle: messages.booksToBuy.noResults.title,
+  refetchError: messages.common.refetchError,
+  retry: messages.common.retry,
+  searchLabel: messages.booksToBuy.toolbar.searchLabel,
+  updating: messages.common.updating,
+};
+
 let respondToWishlist: (url: string) => Promise<Response>;
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -41,7 +52,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 function renderWishlist(searchParams = "", onUrlUpdate?: OnUrlUpdateFunction) {
   return renderWithProviders(
-    <NuqsTestingAdapter onUrlUpdate={onUrlUpdate} searchParams={searchParams}>
+    <NuqsTestingAdapter hasMemory onUrlUpdate={onUrlUpdate} searchParams={searchParams}>
       <BooksToBuyView />
     </NuqsTestingAdapter>,
   );
@@ -292,5 +303,82 @@ describe("BooksToBuyView", () => {
         true,
       ),
     );
+  });
+
+  it("keeps the search field and the previous rows marked busy while a new search loads", async () => {
+    let releaseSearch: (response: Response) => void = () => undefined;
+    const searchResponse = new Promise<Response>((resolve) => {
+      releaseSearch = resolve;
+    });
+    const staleWishlist = wishlistOf([makeWishlistBook({ id: "alpha", title: "Альфа" })]);
+    respondToWishlist = (url) =>
+      url.includes("q=dune") ? searchResponse : Promise.resolve(jsonResponse(staleWishlist));
+
+    renderWishlist();
+    await screen.findByRole("heading", { name: "Альфа" });
+
+    await userEvent.type(screen.getByRole("textbox", { name: COPY.searchLabel }), "dune");
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([url]) => String(url).includes("q=dune"))).toBe(true),
+    );
+
+    const refreshing = await screen.findByRole("generic", { busy: true });
+    expect(within(refreshing).getByRole("heading", { name: "Альфа" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: COPY.searchLabel })).toHaveValue("dune");
+
+    releaseSearch(jsonResponse(wishlistOf([makeWishlistBook({ id: "dune", title: "Дюна" })])));
+
+    expect(await screen.findByRole("heading", { name: "Дюна" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Альфа" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("generic", { busy: true })).not.toBeInTheDocument();
+  });
+
+  it("keeps the no-results state busy and swaps the counter for the updating label while another search loads", async () => {
+    respondToWishlist = (url) =>
+      url.includes("q=dune")
+        ? new Promise<Response>(() => undefined)
+        : Promise.resolve(jsonResponse({ ...wishlistOf([]), totalBooksCount: 1 }));
+
+    renderWishlist("?q=zzz");
+    expect(await screen.findByText(COPY.noResultsTitle)).toBeInTheDocument();
+    expect(screen.getByText("Показано 0 з 1 книги")).toBeInTheDocument();
+
+    const search = screen.getByRole("textbox", { name: COPY.searchLabel });
+    await userEvent.clear(search);
+    await userEvent.type(search, "dune");
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([url]) => String(url).includes("q=dune"))).toBe(true),
+    );
+
+    const refreshing = await screen.findByRole("generic", { busy: true });
+    expect(within(refreshing).getByText(COPY.noResultsTitle)).toBeInTheDocument();
+    expect(screen.getByText(COPY.updating)).toHaveAttribute("aria-live", "polite");
+    expect(within(refreshing).queryByText(COPY.updating)).not.toBeInTheDocument();
+    expect(screen.queryByText("Показано 0 з 1 книги")).not.toBeInTheDocument();
+  });
+
+  it("keeps the rows and the search field when a background refresh fails", async () => {
+    const { queryClient } = renderWishlist();
+    await screen.findByRole("heading", { name: "Останнє бажання" });
+    respondToWishlist = () => Promise.resolve(jsonResponse({ message: "boom" }, 500));
+
+    await act(() => queryClient.invalidateQueries({ queryKey: wishlistKeys.root }));
+
+    expect(await screen.findByText(COPY.refetchError)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Останнє бажання" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: COPY.searchLabel })).toBeInTheDocument();
+  });
+
+  it("requests the wishlist again from the refresh error banner", async () => {
+    const { queryClient } = renderWishlist();
+    await screen.findByRole("heading", { name: "Останнє бажання" });
+    respondToWishlist = () => Promise.resolve(jsonResponse({ message: "boom" }, 500));
+    await act(() => queryClient.invalidateQueries({ queryKey: wishlistKeys.root }));
+    await screen.findByText(COPY.refetchError);
+
+    const callsBeforeRetry = wishlistCallCount();
+    await userEvent.click(screen.getByRole("button", { name: COPY.retry }));
+
+    await waitFor(() => expect(wishlistCallCount()).toBeGreaterThan(callsBeforeRetry));
   });
 });

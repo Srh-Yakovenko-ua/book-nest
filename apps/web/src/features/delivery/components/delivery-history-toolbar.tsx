@@ -34,6 +34,7 @@ type DeliveryHistoryToolbarProps = {
   canSortByPrice: boolean;
   counterLabel: string;
   isPending: boolean;
+  isRefreshing: boolean;
   loadingLabel: string;
   onApplyAdvanced: (draft: DeliveryHistoryAdvancedState) => void;
   onClearAdvanced: () => void;
@@ -52,6 +53,7 @@ export function DeliveryHistoryToolbar({
   canSortByPrice,
   counterLabel,
   isPending,
+  isRefreshing,
   loadingLabel,
   onApplyAdvanced,
   onClearAdvanced,
@@ -145,7 +147,7 @@ export function DeliveryHistoryToolbar({
       <LibraryActiveFilters chips={activeFilterChips} onClearAll={onClearAdvanced} />
 
       <p aria-live="polite" className="text-sm text-muted-foreground">
-        {isPending ? loadingLabel : counterLabel}
+        {isPending || isRefreshing ? loadingLabel : counterLabel}
       </p>
     </div>
   );

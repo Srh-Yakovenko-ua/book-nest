@@ -308,12 +308,8 @@ describe("Genres list states", () => {
 
     await userEvent.click(await screen.findByRole("radio", { name: /Є непрочитані/ }));
 
-    await waitFor(() =>
-      expect(screen.getByRole("link", { name: "Фентезі" }).closest("ul")).toHaveAttribute(
-        "aria-busy",
-        "true",
-      ),
-    );
+    const refreshing = await screen.findByRole("generic", { busy: true });
+    expect(within(refreshing).getByRole("link", { name: "Фентезі" })).toBeInTheDocument();
     expect(screen.queryByRole("status", { name: "Завантажуємо жанри" })).not.toBeInTheDocument();
 
     viewport.enterViewport();

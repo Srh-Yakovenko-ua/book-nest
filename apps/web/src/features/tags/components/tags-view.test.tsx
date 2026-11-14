@@ -1167,8 +1167,10 @@ describe("TagsView loading and failure states", () => {
 
     await userEvent.click(await quickFilter("Невикористані"));
 
-    await waitFor(() => expect(catalogList()).toHaveAttribute("aria-busy", "true"));
-    expect(screen.getByRole("heading", { level: 3, name: "slow burn" })).toBeInTheDocument();
+    const refreshing = await within(catalogRegion()).findByRole("generic", { busy: true });
+    expect(
+      within(refreshing).getByRole("heading", { level: 3, name: "slow burn" }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("status", { name: "Завантажуємо теги" })).not.toBeInTheDocument();
 
     unusedPage.resolve(await json(page([COZY])));
@@ -1178,7 +1180,8 @@ describe("TagsView loading and failure states", () => {
         screen.queryByRole("heading", { level: 3, name: "slow burn" }),
       ).not.toBeInTheDocument(),
     );
-    expect(catalogList()).toHaveAttribute("aria-busy", "false");
+    expect(screen.getByRole("heading", { level: 3, name: "cozy" })).toBeInTheDocument();
+    expect(within(catalogRegion()).queryByRole("generic", { busy: true })).not.toBeInTheDocument();
   });
 });
 

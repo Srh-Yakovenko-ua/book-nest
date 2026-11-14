@@ -190,7 +190,9 @@ export function CharactersCatalogView() {
 
         {catalog.isLoadingError ? null : (
           <p aria-live="polite" className="text-sm text-muted-foreground">
-            {catalog.isPending ? t("states.loading") : t("counter", countShownCharacters(pages))}
+            {catalog.isPending || catalog.isPlaceholderData
+              ? t("states.loading")
+              : t("counter", countShownCharacters(pages))}
           </p>
         )}
       </div>
@@ -211,6 +213,7 @@ export function CharactersCatalogView() {
               characters={characters}
               hasActiveFilters={hasActiveFilters}
               isPending={catalog.isPending}
+              isRefreshing={catalog.isPlaceholderData}
               loadMoreState={loadMoreState}
               onClearFilters={clearAll}
               onLoadMore={() => void catalog.fetchNextPage()}

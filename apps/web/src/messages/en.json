@@ -2,6 +2,7 @@
   "common": {
     "loading": "Loading...",
     "loadingMore": "Loading more...",
+    "updating": "Updating…",
     "retry": "Retry",
     "refetchError": "Could not refresh the data. Showing the last loaded version.",
     "summaryError": {

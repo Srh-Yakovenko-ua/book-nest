@@ -10,6 +10,7 @@ import type {
 import type { OnUrlUpdateFunction, UrlUpdateEvent } from "nuqs/adapters/testing";
 import type { ReactNode } from "react";
 
+import { createTranslator } from "next-intl";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -31,10 +32,13 @@ import { QuotesView } from "./quotes-view";
 
 const SORT_LABEL = "Сортування цитат";
 
+const translateQuotes = createTranslator({ locale: "uk", messages, namespace: "quotes" });
+
 const viewport = mockIntersectionObserver();
 
 type QuotesMockOptions = {
   facetsFor?: (url: string) => QuotesFacetsView;
+  listHeldUntil?: (url: string) => Promise<void>;
   listStatus?: number;
   overview?: QuotesOverviewView;
   summaryStatus?: number;
@@ -210,6 +214,24 @@ describe("QuotesView quick filters", () => {
       "Без коментаря10",
     );
     expect(screen.getByText("Показано 10 із 13 цитат")).toBeInTheDocument();
+  });
+
+  it("dims the quotes but not the facet-driven counter while a preset loads", async () => {
+    mockQuotes(quotes(13), {
+      listHeldUntil: (url) =>
+        url.includes("filter=favorites") ? new Promise<void>(() => {}) : Promise.resolve(),
+    });
+    renderQuotes();
+    expect(await screen.findByText("Цитата 1")).toBeInTheDocument();
+    await waitFor(() => expect(filterChipTexts()[0]).toBe("Усі13"));
+
+    const presets = within(screen.getByRole("radiogroup", { name: "Швидкі фільтри цитат" }));
+    await userEvent.click(presets.getByRole("radio", { name: /^Улюблені/ }));
+
+    await waitFor(() => expect(regionBusyState(screen.getByText("Цитата 1"))).toBe("true"));
+    expect(listUrls().at(-1)).toContain("filter=favorites");
+    const counter = screen.getByText(translateQuotes("counter", { shown: 2, total: 13 }));
+    expect(counter.closest('[aria-busy="true"]')).toBeNull();
   });
 });
 
@@ -498,6 +520,7 @@ function listUrls(): string[] {
 function mockQuotes(items: QuoteView[], options: QuotesMockOptions = {}) {
   const {
     facetsFor = () => FACETS,
+    listHeldUntil = () => Promise.resolve(),
     listStatus = 200,
     overview = EMPTY_OVERVIEW,
     summaryStatus = 200,
@@ -514,7 +537,7 @@ function mockQuotes(items: QuoteView[], options: QuotesMockOptions = {}) {
       if (url.includes("/api/quotes/overview")) return Promise.resolve(jsonResponse(overview));
       if (url.includes("/api/quotes/facets")) return Promise.resolve(jsonResponse(facetsFor(url)));
       if (url.includes("/api/quotes")) {
-        return Promise.resolve(
+        return listHeldUntil(url).then(() =>
           listStatus === 200 ? jsonResponse(quotesPage(items, url)) : jsonResponse({}, listStatus),
         );
       }
@@ -573,6 +596,10 @@ function quotesPage(items: QuoteView[], url: string) {
     pageSize,
     totalCount: items.length,
   };
+}
+
+function regionBusyState(element: HTMLElement) {
+  return element.closest("[aria-busy]")?.getAttribute("aria-busy");
 }
 
 function renderQuotes(searchParams = "", onUrlUpdate?: OnUrlUpdateFunction) {

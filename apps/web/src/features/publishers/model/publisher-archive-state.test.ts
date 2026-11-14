@@ -8,6 +8,7 @@ const BASE = {
   hasActiveSearch: false,
   list: { items: [], totalCount: 0 },
   listFailed: false,
+  listIsPlaceholder: false,
   summaryPending: false,
   summaryPublishersCount: 4,
 };
@@ -73,6 +74,48 @@ describe("resolvePublishersArchiveState", () => {
     const items = [makePublisherListItem()];
     expect(
       resolvePublishersArchiveState({ ...BASE, list: { items, totalCount: 30 }, listFailed: true }),
-    ).toEqual({ items, kind: "results", totalCount: 30 });
+    ).toEqual({ isRefreshing: false, items, kind: "results", totalCount: 30 });
+  });
+
+  it("reports settled results as not refreshing", () => {
+    const items = [makePublisherListItem()];
+    expect(resolvePublishersArchiveState({ ...BASE, list: { items, totalCount: 7 } })).toEqual({
+      isRefreshing: false,
+      items,
+      kind: "results",
+      totalCount: 7,
+    });
+  });
+
+  it("keeps the previous results on screen, marked as refreshing, while a new search loads", () => {
+    const items = [
+      makePublisherListItem(),
+      makePublisherListItem({ id: "publisher-2", name: "Ranok" }),
+    ];
+    expect(
+      resolvePublishersArchiveState({
+        ...BASE,
+        hasActiveSearch: true,
+        list: { items, totalCount: 12 },
+        listIsPlaceholder: true,
+      }),
+    ).toEqual({ isRefreshing: true, items, kind: "results", totalCount: 12 });
+  });
+
+  it("reports loading instead of a stale search zero while an empty previous page is replaced", () => {
+    expect(
+      resolvePublishersArchiveState({ ...BASE, hasActiveSearch: true, listIsPlaceholder: true }),
+    ).toEqual({ kind: "loading" });
+  });
+
+  it("reports a true empty library over a placeholder list when the summary confirms zero publishers", () => {
+    expect(
+      resolvePublishersArchiveState({
+        ...BASE,
+        hasActiveSearch: true,
+        listIsPlaceholder: true,
+        summaryPublishersCount: 0,
+      }),
+    ).toEqual({ kind: "empty" });
   });
 });

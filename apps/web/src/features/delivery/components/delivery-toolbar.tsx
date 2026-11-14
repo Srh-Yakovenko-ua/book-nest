@@ -42,6 +42,7 @@ type DeliveryToolbarProps = {
   filterCounts?: DeliveryFilterCounts;
   filterCountsPending?: boolean;
   isPending: boolean;
+  isRefreshing: boolean;
   loadingLabel: string;
   onApplyAdvanced: (draft: DeliveryAdvancedState) => void;
   onClearAll: () => void;
@@ -62,6 +63,7 @@ export function DeliveryToolbar({
   filterCounts,
   filterCountsPending,
   isPending,
+  isRefreshing,
   loadingLabel,
   onApplyAdvanced,
   onClearAll,
@@ -182,7 +184,7 @@ export function DeliveryToolbar({
       <LibraryActiveFilters chips={activeFilterChips} onClearAll={onClearAll} />
 
       <p aria-live="polite" className="text-sm text-muted-foreground">
-        {isPending ? loadingLabel : counterLabel}
+        {isPending || isRefreshing ? loadingLabel : counterLabel}
       </p>
     </div>
   );

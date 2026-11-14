@@ -15,6 +15,7 @@ import type {
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { LibraryActiveFilters } from "@/features/books/components/library-active-filters";
 import { todayIso } from "@/features/books/model/reading-progress";
@@ -49,6 +50,7 @@ type LoansContentProps = {
   hasActiveSearch: boolean;
   isError: boolean;
   isPending: boolean;
+  isRefreshing: boolean;
   items: LoanListItemView[];
   onAddBook: () => void;
   onClearFilters: () => void;
@@ -65,6 +67,7 @@ type LoansContentProps = {
 export function LoansView({ type }: { type: LoanType }) {
   const page = LOAN_PAGES[type];
   const t = useTranslations("loans");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const query = useLoansQuery(type);
   const summary = useLoansSummary();
@@ -136,6 +139,7 @@ export function LoansView({ type }: { type: LoanType }) {
         hasActiveSearch={query.hasActiveSearch}
         isError={list.isLoadingError}
         isPending={list.isPending}
+        isRefreshing={list.isPlaceholderData}
         items={items}
         onAddBook={() => router.push("/books/new")}
         onClearFilters={query.clearFilters}
@@ -212,7 +216,11 @@ export function LoansView({ type }: { type: LoanType }) {
           <LibraryActiveFilters chips={filterChips} onClearAll={query.clearFilters} />
 
           <p className="text-sm text-muted-foreground" role="status">
-            {list.isPending ? "" : t("shownCount", { shown: items.length, total: totalCount })}
+            {list.isPending
+              ? ""
+              : list.isPlaceholderData
+                ? tCommon("updating")
+                : t("shownCount", { shown: items.length, total: totalCount })}
           </p>
 
           <div className="mt-2 flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
@@ -284,6 +292,7 @@ function LoansContent({
   hasActiveSearch,
   isError,
   isPending,
+  isRefreshing,
   items,
   onAddBook,
   onClearFilters,
@@ -332,7 +341,11 @@ function LoansContent({
         primary: { icon: "x", label: t("noResults.clear") },
         title: t("noResults.title"),
       };
-      return <EmptyState onPrimary={onClearFilters} state={noResults} />;
+      return (
+        <RefreshingRegion isRefreshing={isRefreshing}>
+          <EmptyState onPrimary={onClearFilters} state={noResults} />
+        </RefreshingRegion>
+      );
     }
 
     const typeEmpty: EmptyStateEntry = {
@@ -369,19 +382,21 @@ function LoansContent({
   return (
     <>
       <h2 className="sr-only">{tLoans(`pages.${direction}.listHeading`)}</h2>
-      <ul className="flex flex-col gap-3">
-        {items.map((loan) => (
-          <li key={loan.id}>
-            <LoanRow
-              loan={loan}
-              onEdit={() => onEdit(loan)}
-              onOpenContact={() => onOpenContact(loan)}
-              onReturn={() => onReturn(loan)}
-              today={today}
-            />
-          </li>
-        ))}
-      </ul>
+      <RefreshingRegion isRefreshing={isRefreshing}>
+        <ul className="flex flex-col gap-3">
+          {items.map((loan) => (
+            <li key={loan.id}>
+              <LoanRow
+                loan={loan}
+                onEdit={() => onEdit(loan)}
+                onOpenContact={() => onOpenContact(loan)}
+                onReturn={() => onReturn(loan)}
+                today={today}
+              />
+            </li>
+          ))}
+        </ul>
+      </RefreshingRegion>
     </>
   );
 }

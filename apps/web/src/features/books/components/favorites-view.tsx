@@ -70,6 +70,7 @@ export function FavoritesView() {
     isFetchNextPageError,
     isLoadingError,
     isPending,
+    isPlaceholderData,
     isRefetchError,
     isRefetching,
     refetch,
@@ -438,6 +439,7 @@ export function FavoritesView() {
         isFetchingNextPage={isFetchingNextPage}
         isLoadMoreError={isFetchNextPageError}
         isPending={isPending}
+        isRefreshing={isPlaceholderData}
         libraryTotal={total}
         linkComponent={Link}
         loadingLabel={t("loading")}

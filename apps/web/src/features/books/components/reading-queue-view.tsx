@@ -11,6 +11,7 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { SummaryError } from "@/components/summary-error";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
@@ -65,8 +66,15 @@ export function ReadingQueueView() {
   const router = useRouter();
 
   const queue = useReadingQueueQuery();
-  const { data, isLoadingError, isPending, isRefetchError, isRefetching, refetch } =
-    useReadingQueue(queue.listParams);
+  const {
+    data,
+    isLoadingError,
+    isPending,
+    isPlaceholderData,
+    isRefetchError,
+    isRefetching,
+    refetch,
+  } = useReadingQueue(queue.listParams);
   const summary = useReadingQueueSummary();
   const seriesOrderIssues = useSeriesOrderIssues({ limit: SERIES_ORDER_SIDEBAR_LIMIT });
   const genres = useGenres();
@@ -144,8 +152,8 @@ export function ReadingQueueView() {
   const filterCount = queue.activeFilterCount;
   const displayItems = localItems;
   const isFiltered = queue.isFiltered;
-  const draggable = !isFiltered && !reorder.isPending;
-  const canMove = !isFiltered;
+  const draggable = !isFiltered && !reorder.isPending && !isPlaceholderData;
+  const canMove = !isFiltered && !isPlaceholderData;
   const filters: QueueFilterState = toQueueFilterState(queue.state);
 
   function clearQueueFilters() {
@@ -262,22 +270,26 @@ export function ReadingQueueView() {
                 search={queue.state.q}
               />
               {isFiltered && displayItems.length === 0 ? (
-                <EmptyState onPrimary={clearQueueFilters} state={noResultsState} />
+                <RefreshingRegion isRefreshing={isPlaceholderData}>
+                  <EmptyState onPrimary={clearQueueFilters} state={noResultsState} />
+                </RefreshingRegion>
               ) : (
-                <ReadingQueueList
-                  canMove={canMove}
-                  draggable={draggable}
-                  filtered={isFiltered}
-                  items={displayItems}
-                  labels={labels}
-                  onDragCommit={() => commitOrder(localItems)}
-                  onMove={handleMove}
-                  onRemove={(item) => removeFromQueue.remove(item.book.id, item.position)}
-                  onReorderLocal={(items) => setLocalOrder(items.map((item) => item.book.id))}
-                  onStartReading={(item) =>
-                    setStartTarget({ id: item.book.id, title: item.book.title })
-                  }
-                />
+                <RefreshingRegion isRefreshing={isPlaceholderData}>
+                  <ReadingQueueList
+                    canMove={canMove}
+                    draggable={draggable}
+                    filtered={isFiltered}
+                    items={displayItems}
+                    labels={labels}
+                    onDragCommit={() => commitOrder(localItems)}
+                    onMove={handleMove}
+                    onRemove={(item) => removeFromQueue.remove(item.book.id, item.position)}
+                    onReorderLocal={(items) => setLocalOrder(items.map((item) => item.book.id))}
+                    onStartReading={(item) =>
+                      setStartTarget({ id: item.book.id, title: item.book.title })
+                    }
+                  />
+                </RefreshingRegion>
               )}
             </div>
 

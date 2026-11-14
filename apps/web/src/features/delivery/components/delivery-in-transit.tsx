@@ -165,9 +165,9 @@ export function DeliveryInTransit() {
       ? { kind: "loading" }
       : orders.length === 0
         ? params.hasActiveFilters || params.hasActiveSearch
-          ? { kind: "filtered-empty" }
+          ? { isRefreshing: listQuery.isPlaceholderData, kind: "filtered-empty" }
           : { kind: "empty" }
-        : { items: orders, kind: "ready" };
+        : { isRefreshing: listQuery.isPlaceholderData, items: orders, kind: "ready" };
 
   const showToolbar =
     !listQuery.isLoadingError &&
@@ -367,6 +367,7 @@ export function DeliveryInTransit() {
             filterCounts={quickCountsQuery.data}
             filterCountsPending={quickCountsQuery.isPending}
             isPending={listQuery.isPending}
+            isRefreshing={listQuery.isPlaceholderData}
             loadingLabel={t("states.loading")}
             onApplyAdvanced={params.applyAdvanced}
             onClearAll={params.clearFilters}

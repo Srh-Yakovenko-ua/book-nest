@@ -44,6 +44,7 @@ function renderToolbar(overrides: Partial<ComponentProps<typeof DeliveryToolbar>
       counterLabel="12 книжок"
       filter="all"
       isPending={false}
+      isRefreshing={false}
       loadingLabel="Завантаження"
       onApplyAdvanced={onApplyAdvanced}
       onClearAll={onClearAll}

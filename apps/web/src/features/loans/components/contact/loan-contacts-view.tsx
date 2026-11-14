@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -84,6 +85,7 @@ export function LoanContactsView() {
         hasActiveQuery={query.hasActiveQuery}
         isError={list.isLoadingError}
         isPending={list.isPending}
+        isRefreshing={list.isPlaceholderData}
         items={items}
         onClearQuery={query.clearQuery}
         onCreate={() => setIsCreating(true)}
@@ -115,6 +117,7 @@ function LoanContactsContent({
   hasActiveQuery,
   isError,
   isPending,
+  isRefreshing,
   items,
   onClearQuery,
   onCreate,
@@ -124,6 +127,7 @@ function LoanContactsContent({
   hasActiveQuery: boolean;
   isError: boolean;
   isPending: boolean;
+  isRefreshing: boolean;
   items: LoanContactView[];
   onClearQuery: () => void;
   onCreate: () => void;
@@ -169,7 +173,11 @@ function LoanContactsContent({
         primary: { icon: "x", label: t("noResults.clear") },
         title: t("noResults.title"),
       };
-      return <EmptyState onPrimary={onClearQuery} state={noResults} />;
+      return (
+        <RefreshingRegion isRefreshing={isRefreshing}>
+          <EmptyState onPrimary={onClearQuery} state={noResults} />
+        </RefreshingRegion>
+      );
     }
 
     return (
@@ -186,13 +194,15 @@ function LoanContactsContent({
   }
 
   return (
-    <ul className="flex flex-col gap-3">
-      {items.map((contact) => (
-        <li key={contact.id}>
-          <LoanContactListRow contact={contact} onOpen={() => onOpenContact(contact.id)} />
-        </li>
-      ))}
-    </ul>
+    <RefreshingRegion isRefreshing={isRefreshing}>
+      <ul className="flex flex-col gap-3">
+        {items.map((contact) => (
+          <li key={contact.id}>
+            <LoanContactListRow contact={contact} onOpen={() => onOpenContact(contact.id)} />
+          </li>
+        ))}
+      </ul>
+    </RefreshingRegion>
   );
 }
 

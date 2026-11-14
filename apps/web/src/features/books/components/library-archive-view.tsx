@@ -16,6 +16,7 @@ import type { BooksControllerListSort } from "@/shared/api/generated/model";
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { BookCard } from "@/components/ui/book-card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -56,6 +57,7 @@ export type LibraryArchiveViewProps = {
   isFetchingNextPage: boolean;
   isLoadMoreError: boolean;
   isPending: boolean;
+  isRefreshing: boolean;
   libraryTotal: number;
   libraryTotalLoading: boolean;
   linkComponent?: LibraryBookLinkComponent;
@@ -281,6 +283,7 @@ function LibraryContent({
   isFetchingNextPage,
   isLoadMoreError,
   isPending,
+  isRefreshing,
   libraryTotal,
   libraryTotalLoading,
   linkComponent,
@@ -322,15 +325,21 @@ function LibraryContent({
       return <EmptyState onPrimary={onAddBook} onSecondary={onEmptySecondary} state={emptyState} />;
     }
     if (hasActiveSearch && !hasActiveFilters) {
-      return <EmptyState onPrimary={onClearSearch} state={noSearchResultsState} />;
+      return (
+        <RefreshingRegion isRefreshing={isRefreshing}>
+          <EmptyState onPrimary={onClearSearch} state={noSearchResultsState} />
+        </RefreshingRegion>
+      );
     }
     if (hasActiveFilters) {
       return (
-        <EmptyState
-          onPrimary={onClearFilters}
-          onSecondary={onClearAll}
-          state={noFilteredResultsState}
-        />
+        <RefreshingRegion isRefreshing={isRefreshing}>
+          <EmptyState
+            onPrimary={onClearFilters}
+            onSecondary={onClearAll}
+            state={noFilteredResultsState}
+          />
+        </RefreshingRegion>
       );
     }
     return <EmptyState onPrimary={onAddBook} onSecondary={onEmptySecondary} state={emptyState} />;
@@ -338,30 +347,32 @@ function LibraryContent({
 
   return (
     <div className="flex flex-col gap-6">
-      {view === "list" ? (
-        <div className="flex flex-col gap-2.5">
-          {books.map((book) => (
-            <LibraryListRow
-              book={book}
-              key={book.id}
-              linkComponent={linkComponent}
-              renderActions={renderActions}
-              selectBookLabel={selectBookLabel}
-              showPublisher={showPublisher}
-            />
-          ))}
-        </div>
-      ) : (
-        <BooksGrid
-          books={books}
-          coverViewLabel={coverViewLabel}
-          linkComponent={linkComponent}
-          onActivateCover={setActiveCover}
-          renderActions={renderActions}
-          selectBookLabel={selectBookLabel}
-          showPublisher={showPublisher}
-        />
-      )}
+      <RefreshingRegion isRefreshing={isRefreshing}>
+        {view === "list" ? (
+          <div className="flex flex-col gap-2.5">
+            {books.map((book) => (
+              <LibraryListRow
+                book={book}
+                key={book.id}
+                linkComponent={linkComponent}
+                renderActions={renderActions}
+                selectBookLabel={selectBookLabel}
+                showPublisher={showPublisher}
+              />
+            ))}
+          </div>
+        ) : (
+          <BooksGrid
+            books={books}
+            coverViewLabel={coverViewLabel}
+            linkComponent={linkComponent}
+            onActivateCover={setActiveCover}
+            renderActions={renderActions}
+            selectBookLabel={selectBookLabel}
+            showPublisher={showPublisher}
+          />
+        )}
+      </RefreshingRegion>
 
       <div className="flex flex-col items-center gap-2 pt-2">
         <InfiniteScrollFooter
@@ -574,6 +585,7 @@ function LibraryToolbar({
   counterLabel,
   invalidRange,
   isPending,
+  isRefreshing,
   loadingLabel,
   onSortChange,
   onViewChange,
@@ -637,7 +649,7 @@ function LibraryToolbar({
       {activeFilters}
 
       <p aria-live="polite" className="text-sm text-muted-foreground empty:sr-only">
-        {resultsStatusLabel({ counterLabel, invalidRange, isPending, loadingLabel })}
+        {resultsStatusLabel({ counterLabel, invalidRange, isPending, isRefreshing, loadingLabel })}
       </p>
     </div>
   );
@@ -661,13 +673,14 @@ function resultsStatusLabel({
   counterLabel,
   invalidRange,
   isPending,
+  isRefreshing,
   loadingLabel,
 }: Pick<
   LibraryArchiveViewProps,
-  "counterLabel" | "invalidRange" | "isPending" | "loadingLabel"
+  "counterLabel" | "invalidRange" | "isPending" | "isRefreshing" | "loadingLabel"
 >): Nullable<string> {
   if (invalidRange) return null;
-  return isPending ? loadingLabel : counterLabel;
+  return isPending || isRefreshing ? loadingLabel : counterLabel;
 }
 
 function SelectionCheckbox({

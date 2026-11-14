@@ -42,6 +42,7 @@ type LoanHistoryCorrection = {
 export function LoanHistoryView() {
   const t = useTranslations("loans.history");
   const tPage = useTranslations("loans.pages.history");
+  const tCommon = useTranslations("common");
 
   const query = useLoanHistoryQuery();
   const overview = useLoanHistoryOverview(query.overviewParams);
@@ -99,6 +100,7 @@ export function LoanHistoryView() {
         hasQuery={hasQuery}
         isError={list.isLoadingError}
         isPending={list.isPending}
+        isRefreshing={list.isPlaceholderData}
         items={items}
         onClearFilters={query.clearFilters}
         onCorrectDate={(loanId) => setCorrection({ loanId, mode: "date", origin: "row" })}
@@ -161,7 +163,9 @@ export function LoanHistoryView() {
           <p className="text-sm text-muted-foreground" role="status">
             {list.isPending || firstPage === undefined
               ? ""
-              : t("shownCount", { shown: items.length, total: firstPage.totalCount })}
+              : list.isPlaceholderData
+                ? tCommon("updating")
+                : t("shownCount", { shown: items.length, total: firstPage.totalCount })}
           </p>
 
           <div className="mt-2 flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
