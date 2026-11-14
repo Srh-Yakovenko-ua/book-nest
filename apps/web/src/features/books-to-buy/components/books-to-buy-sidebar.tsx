@@ -9,6 +9,7 @@ import { useState } from "react";
 
 import { AttentionBlock } from "@/components/attention-block";
 import { UiIcon } from "@/components/icons";
+import { SummaryError } from "@/components/summary-error";
 import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLibraryBooks } from "@/features/books/api/use-books";
@@ -70,27 +71,34 @@ export function WishlistUnsetOwnershipBlock() {
 
   return (
     <>
-      <AttentionBlock
-        activeId={isDialogOpen ? UNSET_OWNERSHIP_ITEM_ID : null}
-        allClearLabel={t("allClear")}
-        isLoading={unsetOwnership.isPending}
-        items={
-          count === 0
-            ? []
-            : [
-                {
-                  caption: t("unsetOwnership.caption"),
-                  detail: t("unsetOwnership.detail", { count }),
-                  icon: "circle-slash",
-                  id: UNSET_OWNERSHIP_ITEM_ID,
-                  label: t("unsetOwnership.title"),
-                  toneClass: "text-warning",
-                },
-              ]
+      <SummaryError
+        state={
+          unsetOwnership.isLoadingError ? { onRetry: () => void unsetOwnership.refetch() } : null
         }
-        onSelect={() => setDialogOpen(true)}
-        title={t("title")}
-      />
+        title={t("error.title")}
+      >
+        <AttentionBlock
+          activeId={isDialogOpen ? UNSET_OWNERSHIP_ITEM_ID : null}
+          allClearLabel={t("allClear")}
+          isLoading={unsetOwnership.isPending}
+          items={
+            count === 0
+              ? []
+              : [
+                  {
+                    caption: t("unsetOwnership.caption"),
+                    detail: t("unsetOwnership.detail", { count }),
+                    icon: "circle-slash",
+                    id: UNSET_OWNERSHIP_ITEM_ID,
+                    label: t("unsetOwnership.title"),
+                    toneClass: "text-warning",
+                  },
+                ]
+          }
+          onSelect={() => setDialogOpen(true)}
+          title={t("title")}
+        />
+      </SummaryError>
       <UnsetOwnershipDialog onOpenChange={setDialogOpen} open={isDialogOpen} />
     </>
   );

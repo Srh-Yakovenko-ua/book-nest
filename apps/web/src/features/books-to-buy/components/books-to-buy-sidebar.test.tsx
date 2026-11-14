@@ -4,7 +4,8 @@ import type { ReactNode } from "react";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen, userEvent } from "@/test-utils";
+import messages from "@/messages/uk.json";
+import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
 
 import { BooksToBuySidebar } from "./books-to-buy-sidebar";
 
@@ -16,6 +17,9 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 const fetchMock = vi.fn();
+
+const attentionCopy = messages.booksToBuy.sidebar.attention;
+const summaryError = messages.common.summaryError;
 
 let unsetOwnershipCount: number;
 
@@ -123,5 +127,28 @@ describe("BooksToBuySidebar attention", () => {
     await userEvent.click(await screen.findByText("Статус володіння не вказано"));
 
     expect(await screen.findByRole("dialog")).toHaveTextContent("Книги без статусу володіння");
+  });
+
+  it("offers a retry instead of claiming every book is sorted when the count fails", async () => {
+    fetchMock.mockResolvedValueOnce(new Response("{}", { status: 500 }));
+    renderSidebar();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(attentionCopy.error.title);
+    expect(within(alert).getByRole("button", { name: summaryError.retry })).toBeInTheDocument();
+    expect(screen.queryByText(attentionCopy.allClear)).not.toBeInTheDocument();
+  });
+
+  it("asks for the count again from the retry and reports what it returns", async () => {
+    unsetOwnershipCount = 28;
+    fetchMock.mockResolvedValueOnce(new Response("{}", { status: 500 }));
+    renderSidebar();
+
+    const alert = await screen.findByRole("alert");
+    await userEvent.click(within(alert).getByRole("button", { name: summaryError.retry }));
+
+    expect(await screen.findByText(attentionCopy.unsetOwnership.title)).toBeInTheDocument();
+    expect(screen.getByText("28 книг без статусу")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

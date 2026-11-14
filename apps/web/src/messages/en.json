@@ -477,7 +477,11 @@
       "viewAll": "View all",
       "active": "Active",
       "expectedThisWeek": "This week",
-      "delayed": "Delayed"
+      "delayed": "Delayed",
+      "loading": "Loading deliveries…",
+      "error": {
+        "title": "Couldn't load deliveries"
+      }
     }
   },
   "notFound": {
@@ -2201,6 +2205,9 @@
       "attention": {
         "title": "Needs attention",
         "allClear": "Every book is sorted out",
+        "error": {
+          "title": "Couldn't load the books that need attention"
+        },
         "unsetOwnership": {
           "title": "Ownership status not set",
           "detail": "{count, plural, one {# book} other {# books}} with no status",

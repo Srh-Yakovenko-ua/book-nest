@@ -10,6 +10,7 @@ import type { SummaryErrorState } from "./summary-error";
 import { SummaryError } from "./summary-error";
 
 const { summaryError } = messages.common;
+const customTitle = messages.home.delivery.error.title;
 const summaryText = messages.books.library.summary.total;
 const skeletonText = messages.common.loading;
 
@@ -165,6 +166,36 @@ describe("SummaryError", () => {
       rerender(embeddedSummaryArea(state));
 
       expect(retryButton()).not.toHaveFocus();
+    });
+  });
+
+  describe.each<{ variant: "embedded" | "standalone" }>([
+    { variant: "standalone" },
+    { variant: "embedded" },
+  ])("$variant card title", ({ variant }) => {
+    it("shows a passed title in place of the generic one and keeps the generic description", () => {
+      renderWithProviders(
+        <SummaryError state={failedState()} title={customTitle} variant={variant}>
+          <p>{summaryText}</p>
+        </SummaryError>,
+      );
+
+      expect(screen.getByText(customTitle)).toBeInTheDocument();
+      expect(screen.queryByText(summaryError.title)).not.toBeInTheDocument();
+      expect(screen.getByText(summaryError.description)).toBeInTheDocument();
+    });
+
+    it.each([
+      { label: "the generic title", shownTitle: summaryError.title, title: undefined },
+      { label: "a passed title", shownTitle: customTitle, title: customTitle },
+    ])("describes Retry with $label", ({ shownTitle, title }) => {
+      renderWithProviders(
+        <SummaryError state={failedState()} title={title} variant={variant}>
+          <p>{summaryText}</p>
+        </SummaryError>,
+      );
+
+      expect(retryButton()).toHaveAccessibleDescription(shownTitle);
     });
   });
 });

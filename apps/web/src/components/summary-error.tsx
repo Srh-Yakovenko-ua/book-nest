@@ -4,7 +4,7 @@ import type { Nullable } from "@app/shared";
 import type { ReactNode, Ref } from "react";
 
 import { useTranslations } from "next-intl";
-import { useRef } from "react";
+import { useId, useRef } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -20,12 +20,14 @@ type SummaryErrorCardProps = {
   onRetry: () => void;
   retryButtonRef?: Ref<HTMLButtonElement>;
   role?: "alert";
+  title?: string;
 };
 
 type SummaryErrorContentProps = {
   children: ReactNode;
   className?: string;
   state: Nullable<SummaryErrorState>;
+  title?: string;
 };
 
 type SummaryErrorProps = SummaryErrorContentProps & {
@@ -45,15 +47,15 @@ export function SummaryError({ variant = "standalone", ...props }: SummaryErrorP
   }
 }
 
-function EmbeddedSummaryError({ children, className, state }: SummaryErrorContentProps) {
+function EmbeddedSummaryError({ children, className, state, title }: SummaryErrorContentProps) {
   return (
     <div className={className}>
-      {state === null ? children : <SummaryErrorCard onRetry={state.onRetry} />}
+      {state === null ? children : <SummaryErrorCard onRetry={state.onRetry} title={title} />}
     </div>
   );
 }
 
-function StandaloneSummaryError({ children, className, state }: SummaryErrorContentProps) {
+function StandaloneSummaryError({ children, className, state, title }: SummaryErrorContentProps) {
   const regionRef = useRef<HTMLDivElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(regionRef);
 
@@ -73,14 +75,16 @@ function StandaloneSummaryError({ children, className, state }: SummaryErrorCont
           onRetry={withRetryFocus(state.onRetry)}
           retryButtonRef={retryButtonRef}
           role="alert"
+          title={title}
         />
       )}
     </div>
   );
 }
 
-function SummaryErrorCard({ onRetry, retryButtonRef, role }: SummaryErrorCardProps) {
+function SummaryErrorCard({ onRetry, retryButtonRef, role, title }: SummaryErrorCardProps) {
   const t = useTranslations("common.summaryError");
+  const titleId = useId();
 
   return (
     <div
@@ -88,10 +92,18 @@ function SummaryErrorCard({ onRetry, retryButtonRef, role }: SummaryErrorCardPro
       role={role}
     >
       <div className="flex flex-col gap-1">
-        <p className="text-sm font-semibold text-ink">{t("title")}</p>
+        <p className="text-sm font-semibold text-ink" id={titleId}>
+          {title ?? t("title")}
+        </p>
         <p className="text-xs text-muted-foreground">{t("description")}</p>
       </div>
-      <Button onClick={onRetry} ref={retryButtonRef} size="sm" variant="secondary">
+      <Button
+        aria-describedby={titleId}
+        onClick={onRetry}
+        ref={retryButtonRef}
+        size="sm"
+        variant="secondary"
+      >
         <UiIcon name="refresh" size={16} />
         {t("retry")}
       </Button>
