@@ -3,14 +3,15 @@ import "@testing-library/jest-dom/vitest";
 import type { QuotesSummaryView } from "@app/shared";
 import type { ReactNode } from "react";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import messages from "@/messages/uk.json";
-import { renderWithProviders, screen } from "@/test-utils";
+import { renderWithProviders, screen, userEvent } from "@/test-utils";
 
 import { QuotesSummaryCards, useQuotesSummaryCards } from "./quotes-summary-cards";
 
 const copy = messages.quotes.summary;
+const summaryError = messages.common.summaryError;
 
 const LAYOUT = {
   cardCount: 4,
@@ -52,11 +53,13 @@ function Harness({
   isError = false,
   isLoading = false,
   mobileAction,
+  onRetry = () => undefined,
   summary,
 }: {
   isError?: boolean;
   isLoading?: boolean;
   mobileAction?: ReactNode;
+  onRetry?: () => void;
   summary?: QuotesSummaryView;
 }) {
   const cards = useQuotesSummaryCards(summary);
@@ -67,6 +70,7 @@ function Harness({
       isError={isError}
       isLoading={isLoading}
       mobileAction={mobileAction}
+      onRetry={onRetry}
     />
   );
 }
@@ -294,16 +298,27 @@ describe("QuotesSummaryCards", () => {
     expect(mobileTile(copy.mobile.compact.topAuthor)).toHaveTextContent(copy.empty);
   });
 
-  it("renders nothing when the summary request failed", () => {
-    const { container } = renderCards({ isError: true });
+  it("shows the summary error card instead of the cards when the summary request failed", () => {
+    renderCards({ isError: true });
 
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByRole("alert")).toHaveTextContent(summaryError.title);
+    expect(statCards()).toHaveLength(0);
+  });
+
+  it("asks for the summary again when retry is clicked on the error card", async () => {
+    const onRetry = vi.fn();
+    renderCards({ isError: true, onRetry });
+
+    await userEvent.click(screen.getByRole("button", { name: summaryError.retry }));
+
+    expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the mobile action reachable when the summary request failed", () => {
     renderCards({ isError: true, mobileAction: <button type="button">Огляд цитат</button> });
 
     expect(statCards()).toHaveLength(0);
+    expect(screen.getByRole("alert")).toHaveTextContent(summaryError.title);
     expect(screen.getByRole("button", { name: "Огляд цитат" })).toBeInTheDocument();
   });
 });

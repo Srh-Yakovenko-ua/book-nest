@@ -1,17 +1,18 @@
 "use client";
 
 import type { BookOrderStatisticsView, Currency, Nullable } from "@app/shared";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
 import { resolveStatisticsDisplayCurrency } from "@app/shared";
 import { useLocale, useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 
 import type { StatisticsDrilldownContext } from "../model/statistics-drilldown";
 import type { DynamicsMetric } from "../model/statistics-dynamics";
@@ -80,8 +81,10 @@ type StatisticsBodyProps = {
   drilldown: StatisticsDrilldownContext;
   metric: DynamicsMetric;
   onMetricChange: (metric: DynamicsMetric) => void;
+  onRetry: () => void;
   params: UseStatisticsParamsResult;
   period: StatisticsScopeState<BookOrderStatisticsView>;
+  retryButtonRef: Ref<HTMLButtonElement>;
 };
 
 export function DeliveryStatistics() {
@@ -89,6 +92,8 @@ export function DeliveryStatistics() {
   const locale = useLocale();
   const params = useStatisticsParams();
   const [metric, setMetric] = useState<DynamicsMetric>("spend");
+  const statisticsBodyRef = useRef<HTMLDivElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(statisticsBodyRef);
 
   const statistics = useStatistics(params.queryParams);
   const view = statistics.data;
@@ -172,24 +177,28 @@ export function DeliveryStatistics() {
         />
       ) : null}
 
-      <StatisticsBody
-        activeAgeCard={<StatisticsActiveAge drilldown={currentDrilldown} scope={activeAge} />}
-        budgetCard={
-          <StatisticsBudget
-            currency={params.budgetCurrency}
-            onCurrencyChange={params.setBudgetCurrency}
-            scope={budgetScope}
-          />
-        }
-        comparisonLabel={comparisonLabel}
-        currentLabel={currentLabel}
-        displayCurrency={displayCurrency}
-        drilldown={drilldown}
-        metric={metric}
-        onMetricChange={setMetric}
-        params={params}
-        period={period}
-      />
+      <div className="outline-none" ref={statisticsBodyRef} tabIndex={-1}>
+        <StatisticsBody
+          activeAgeCard={<StatisticsActiveAge drilldown={currentDrilldown} scope={activeAge} />}
+          budgetCard={
+            <StatisticsBudget
+              currency={params.budgetCurrency}
+              onCurrencyChange={params.setBudgetCurrency}
+              scope={budgetScope}
+            />
+          }
+          comparisonLabel={comparisonLabel}
+          currentLabel={currentLabel}
+          displayCurrency={displayCurrency}
+          drilldown={drilldown}
+          metric={metric}
+          onMetricChange={setMetric}
+          onRetry={withRetryFocus(period.retry)}
+          params={params}
+          period={period}
+          retryButtonRef={retryButtonRef}
+        />
+      </div>
     </div>
   );
 }
@@ -203,8 +212,10 @@ function StatisticsBody({
   drilldown,
   metric,
   onMetricChange: setMetric,
+  onRetry,
   params,
   period,
+  retryButtonRef,
 }: StatisticsBodyProps) {
   const t = useTranslations("delivery.statistics");
   const [highlightedBucketKey, setHighlightedBucketKey] = useState<Nullable<string>>(null);
@@ -215,7 +226,7 @@ function StatisticsBody({
   if (period.isInitialError) {
     return (
       <div className="flex flex-col gap-6">
-        <StatisticsError onRetry={period.retry} />
+        <StatisticsError onRetry={onRetry} retryButtonRef={retryButtonRef} />
         {budgetCard}
         {activeAgeCard}
       </div>

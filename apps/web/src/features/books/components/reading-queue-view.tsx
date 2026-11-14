@@ -16,6 +16,7 @@ import { SummaryError } from "@/components/summary-error";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
 
 import type { LibraryBookLabels } from "../model/library-book";
@@ -115,6 +116,8 @@ export function ReadingQueueView() {
   }
 
   const listHeadingRef = useRef<HTMLHeadingElement>(null);
+  const resultsRegionRef = useRef<HTMLDivElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsRegionRef);
   const previousServerOrderKey = useRef(serverOrderKey);
   useEffect(() => {
     const previousKey = previousServerOrderKey.current;
@@ -216,90 +219,96 @@ export function ReadingQueueView() {
         state={isRefetchError ? { isRetrying: isRefetching, onRetry: () => void refetch() } : null}
       />
 
-      {isLoadingError ? (
-        <div aria-live="assertive" role="alert">
-          <EmptyState onPrimary={() => void refetch()} state={errorState} />
-        </div>
-      ) : isPending ? (
-        <QueueSkeleton />
-      ) : count === 0 ? (
-        <EmptyState
-          onPrimary={() => setAddOpen(true)}
-          onSecondary={() => router.push("/books")}
-          state={emptyState}
-        />
-      ) : (
-        <>
-          <SummaryError
-            state={summary.isLoadingError ? { onRetry: () => void summary.refetch() } : null}
-          >
-            <QueueSummaryCards
-              isLoading={summary.isPending}
-              mobileAction={
-                <ReadingQueueOverviewPanel
-                  isLoading={summary.isPending}
-                  items={serverItems}
-                  seriesWithIssuesCount={seriesWithIssuesCount}
-                  summaryCards={summaryCards}
-                />
-              }
-              seriesWithIssuesCount={seriesWithIssuesCount}
-              summary={summary.data ?? null}
+      <div className="flex flex-col gap-6 outline-none" ref={resultsRegionRef} tabIndex={-1}>
+        {isLoadingError ? (
+          <div aria-live="assertive" role="alert">
+            <EmptyState
+              onPrimary={withRetryFocus(() => void refetch())}
+              primaryRef={retryButtonRef}
+              state={errorState}
             />
-          </SummaryError>
-
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
-            <div className="flex min-w-0 flex-col gap-4">
-              <h2 className="sr-only" ref={listHeadingRef} tabIndex={-1}>
-                {t("listHeading")}
-              </h2>
-              <QueueVolumeBlock className="max-sm:hidden lg:hidden" items={serverItems} />
-              <ReadingQueueToolbar
-                dragDisabled={isFiltered}
-                filters={
-                  <ReadingQueueFilters
-                    activeCount={filterCount}
-                    onApply={(next) => void queue.setState(toQueueFilterPatch(next))}
-                    onRememberEntity={rememberEntity}
-                    resolveEntityName={resolveEntityName}
-                    state={filters}
+          </div>
+        ) : isPending ? (
+          <QueueSkeleton />
+        ) : count === 0 ? (
+          <EmptyState
+            onPrimary={() => setAddOpen(true)}
+            onSecondary={() => router.push("/books")}
+            state={emptyState}
+          />
+        ) : (
+          <>
+            <SummaryError
+              state={summary.isLoadingError ? { onRetry: () => void summary.refetch() } : null}
+            >
+              <QueueSummaryCards
+                isLoading={summary.isPending}
+                mobileAction={
+                  <ReadingQueueOverviewPanel
+                    isLoading={summary.isPending}
+                    items={serverItems}
+                    seriesWithIssuesCount={seriesWithIssuesCount}
+                    summaryCards={summaryCards}
                   />
                 }
-                onClearSearch={queue.clearSearch}
-                onSearchChange={queue.setSearch}
-                search={queue.state.q}
+                seriesWithIssuesCount={seriesWithIssuesCount}
+                summary={summary.data ?? null}
               />
-              {isFiltered && displayItems.length === 0 ? (
-                <RefreshingRegion isRefreshing={isPlaceholderData}>
-                  <EmptyState onPrimary={clearQueueFilters} state={noResultsState} />
-                </RefreshingRegion>
-              ) : (
-                <RefreshingRegion isRefreshing={isPlaceholderData}>
-                  <ReadingQueueList
-                    canMove={canMove}
-                    draggable={draggable}
-                    filtered={isFiltered}
-                    items={displayItems}
-                    labels={labels}
-                    onDragCommit={() => commitOrder(localItems)}
-                    onMove={handleMove}
-                    onRemove={(item) => removeFromQueue.remove(item.book.id, item.position)}
-                    onReorderLocal={(items) => setLocalOrder(items.map((item) => item.book.id))}
-                    onStartReading={(item) =>
-                      setStartTarget({ id: item.book.id, title: item.book.title })
-                    }
-                  />
-                </RefreshingRegion>
-              )}
-            </div>
+            </SummaryError>
 
-            <aside className="hidden flex-col gap-4 lg:flex">
-              <QueueVolumeBlock items={serverItems} />
-              <SeriesOrderCheckBlock />
-            </aside>
-          </div>
-        </>
-      )}
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+              <div className="flex min-w-0 flex-col gap-4">
+                <h2 className="sr-only" ref={listHeadingRef} tabIndex={-1}>
+                  {t("listHeading")}
+                </h2>
+                <QueueVolumeBlock className="max-sm:hidden lg:hidden" items={serverItems} />
+                <ReadingQueueToolbar
+                  dragDisabled={isFiltered}
+                  filters={
+                    <ReadingQueueFilters
+                      activeCount={filterCount}
+                      onApply={(next) => void queue.setState(toQueueFilterPatch(next))}
+                      onRememberEntity={rememberEntity}
+                      resolveEntityName={resolveEntityName}
+                      state={filters}
+                    />
+                  }
+                  onClearSearch={queue.clearSearch}
+                  onSearchChange={queue.setSearch}
+                  search={queue.state.q}
+                />
+                {isFiltered && displayItems.length === 0 ? (
+                  <RefreshingRegion isRefreshing={isPlaceholderData}>
+                    <EmptyState onPrimary={clearQueueFilters} state={noResultsState} />
+                  </RefreshingRegion>
+                ) : (
+                  <RefreshingRegion isRefreshing={isPlaceholderData}>
+                    <ReadingQueueList
+                      canMove={canMove}
+                      draggable={draggable}
+                      filtered={isFiltered}
+                      items={displayItems}
+                      labels={labels}
+                      onDragCommit={() => commitOrder(localItems)}
+                      onMove={handleMove}
+                      onRemove={(item) => removeFromQueue.remove(item.book.id, item.position)}
+                      onReorderLocal={(items) => setLocalOrder(items.map((item) => item.book.id))}
+                      onStartReading={(item) =>
+                        setStartTarget({ id: item.book.id, title: item.book.title })
+                      }
+                    />
+                  </RefreshingRegion>
+                )}
+              </div>
+
+              <aside className="hidden flex-col gap-4 lg:flex">
+                <QueueVolumeBlock items={serverItems} />
+                <SeriesOrderCheckBlock />
+              </aside>
+            </div>
+          </>
+        )}
+      </div>
 
       <AddBookToQueueDialog
         onOpenChange={setAddOpen}

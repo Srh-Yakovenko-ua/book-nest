@@ -1,5 +1,7 @@
 "use client";
 
+import type { Ref } from "react";
+
 import { useTranslations } from "next-intl";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
@@ -26,6 +28,7 @@ type GenresContentProps = {
   onOpenLibrary: () => void;
   onResetFilters: () => void;
   onRetry: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
   state: GenresListState;
 };
 
@@ -35,6 +38,7 @@ export function GenresContent({
   onOpenLibrary,
   onResetFilters,
   onRetry,
+  retryButtonRef,
   state,
 }: GenresContentProps) {
   switch (state.kind) {
@@ -48,7 +52,7 @@ export function GenresContent({
         />
       );
     case "error":
-      return <GenresError onRetry={onRetry} />;
+      return <GenresError onRetry={onRetry} retryButtonRef={retryButtonRef} />;
     case "loading":
       return <GenresGridSkeleton />;
     case "ready":
@@ -104,7 +108,13 @@ function GenresEmpty({
   }
 }
 
-function GenresError({ onRetry }: { onRetry: () => void }) {
+function GenresError({
+  onRetry,
+  retryButtonRef,
+}: {
+  onRetry: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
+}) {
   const t = useTranslations("genres.states.error");
   const entry: EmptyStateEntry = {
     desc: t("description"),
@@ -115,7 +125,7 @@ function GenresError({ onRetry }: { onRetry: () => void }) {
 
   return (
     <div aria-live="assertive" role="alert">
-      <EmptyState onPrimary={onRetry} state={entry} />
+      <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={entry} />
     </div>
   );
 }

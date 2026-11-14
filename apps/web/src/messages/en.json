@@ -6645,10 +6645,6 @@
         "tieMore": "{count, plural, one {# more tag} other {# more tags}}",
         "noLeader": "No tags in use yet"
       },
-      "error": {
-        "title": "Couldn’t load the tags overview.",
-        "retry": "Try again"
-      },
       "panel": {
         "trigger": "Tags overview",
         "title": "Tags overview",

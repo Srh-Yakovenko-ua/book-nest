@@ -1,22 +1,26 @@
 "use client";
 
-import type { SeriesView } from "@app/shared";
-import type { ReactNode } from "react";
+import type { Nullable, SeriesView } from "@app/shared";
+import type { ReactNode, Ref } from "react";
 
 import { useTranslations } from "next-intl";
+import { useRef } from "react";
 
 import type { PageTabsItem } from "@/components/page-tabs";
+import type { RefetchErrorState } from "@/components/refetch-error-banner";
 import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
 import { PageTabs, pageTabsTriggerId } from "@/components/page-tabs";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 
 import type { SeriesListLayout, SeriesTab } from "../model/series-derive";
 
@@ -42,6 +46,7 @@ type AllSeriesViewProps = {
   onRetry: () => void;
   onShowAll: () => void;
   onTabChange: (tab: SeriesTab) => void;
+  refetchError: Nullable<RefetchErrorState>;
   series: SeriesView[];
   sidebar: ReactNode;
   summaryCards: LibrarySummaryCard[];
@@ -69,6 +74,7 @@ export function AllSeriesView({
   onRetry,
   onShowAll,
   onTabChange,
+  refetchError,
   series,
   sidebar,
   summaryCards,
@@ -82,6 +88,8 @@ export function AllSeriesView({
 }: AllSeriesViewProps) {
   const t = useTranslations("series");
   const showToolbar = !isError && (isPending || hasAnySeries);
+  const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsHeadingRef);
 
   const tabItems: PageTabsItem[] = [
     { label: t("tabs.all"), value: "all" },
@@ -147,7 +155,10 @@ export function AllSeriesView({
               }
             : {})}
         >
-          <h2 className="sr-only">{t("page.resultsTitle")}</h2>
+          <h2 className="sr-only" ref={resultsHeadingRef} tabIndex={-1}>
+            {t("page.resultsTitle")}
+          </h2>
+          <RefetchErrorBanner state={refetchError} />
           <SeriesContent
             hasActiveQuery={hasActiveQuery}
             hasAnySeries={hasAnySeries}
@@ -157,8 +168,9 @@ export function AllSeriesView({
             onAddBook={onAddBook}
             onClearFilters={onClearFilters}
             onCreateSeries={onCreateSeries}
-            onRetry={onRetry}
+            onRetry={withRetryFocus(onRetry)}
             onShowAll={onShowAll}
+            retryButtonRef={retryButtonRef}
             series={series}
             tab={tab}
             view={view}
@@ -207,6 +219,7 @@ function SeriesContent({
   onCreateSeries,
   onRetry,
   onShowAll,
+  retryButtonRef,
   series,
   tab,
   view,
@@ -221,6 +234,7 @@ function SeriesContent({
   onCreateSeries: () => void;
   onRetry: () => void;
   onShowAll: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
   series: SeriesView[];
   tab: SeriesTab;
   view: SeriesListLayout;
@@ -240,6 +254,7 @@ function SeriesContent({
       <div aria-live="assertive" role="alert">
         <EmptyState
           onPrimary={onRetry}
+          primaryRef={retryButtonRef}
           state={{
             desc: t("error.description"),
             illu: "error-generic",

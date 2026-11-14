@@ -11,6 +11,7 @@ import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { LibraryActiveFilters } from "@/features/books/components/library-active-filters";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 
 import type { LoanHistoryCorrectionMode } from "./loan-history-correction-dialog";
 
@@ -59,6 +60,8 @@ export function LoanHistoryView() {
   const detailActionRef = useRef<Nullable<HTMLElement>>(null);
   const openedDetailRef = useRef<Nullable<string>>(null);
   const contactDrawer = useLoanContactDrawer();
+  const resultsRegionRef = useRef<HTMLDivElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsRegionRef);
 
   function openDetails(loanId: string) {
     openedDetailRef.current = loanId;
@@ -107,7 +110,8 @@ export function LoanHistoryView() {
         onEditNote={(loanId) => setCorrection({ loanId, mode: "note", origin: "row" })}
         onOpenContact={contactDrawer.openContact}
         onOpenDetails={openDetails}
-        onRetry={() => void list.refetch()}
+        onRetry={withRetryFocus(() => void list.refetch())}
+        retryButtonRef={retryButtonRef}
       />
     </>
   );
@@ -138,55 +142,57 @@ export function LoanHistoryView() {
         ) : null}
       </header>
 
-      {showChrome ? (
-        <div className="flex flex-col gap-4">
-          <LoanHistoryToolbar
-            advanced={query.advanced}
-            advancedCount={query.advancedCount}
-            onApplyAdvanced={query.applyAdvanced}
-            onSearchChange={query.setSearch}
-            onSearchClear={query.clearSearch}
-            onSortChange={query.setSort}
-            search={query.state.q}
-            sort={query.sort}
-          />
+      <div className="flex flex-col gap-6 outline-none" ref={resultsRegionRef} tabIndex={-1}>
+        {showChrome ? (
+          <div className="flex flex-col gap-4">
+            <LoanHistoryToolbar
+              advanced={query.advanced}
+              advancedCount={query.advancedCount}
+              onApplyAdvanced={query.applyAdvanced}
+              onSearchChange={query.setSearch}
+              onSearchClear={query.clearSearch}
+              onSortChange={query.setSort}
+              search={query.state.q}
+              sort={query.sort}
+            />
 
-          <LoanHistoryQuickFilters
-            counts={firstPage?.resultCounts}
-            countsPending={list.isPending}
-            onSelect={query.setResult}
-            value={query.result}
-          />
+            <LoanHistoryQuickFilters
+              counts={firstPage?.resultCounts}
+              countsPending={list.isPending}
+              onSelect={query.setResult}
+              value={query.result}
+            />
 
-          <LibraryActiveFilters chips={filterChips} onClearAll={query.clearFilters} />
+            <LibraryActiveFilters chips={filterChips} onClearAll={query.clearFilters} />
 
-          <p className="text-sm text-muted-foreground" role="status">
-            {list.isPending || firstPage === undefined
-              ? ""
-              : list.isPlaceholderData
-                ? tCommon("updating")
-                : t("shownCount", { shown: items.length, total: firstPage.totalCount })}
-          </p>
+            <p className="text-sm text-muted-foreground" role="status">
+              {list.isPending || firstPage === undefined
+                ? ""
+                : list.isPlaceholderData
+                  ? tCommon("updating")
+                  : t("shownCount", { shown: items.length, total: firstPage.totalCount })}
+            </p>
 
-          <div className="mt-2 flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-            <div className="flex min-w-0 flex-1 flex-col gap-6">
-              {content}
+            <div className="mt-2 flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
+              <div className="flex min-w-0 flex-1 flex-col gap-6">
+                {content}
 
-              {items.length > 0 ? (
-                <InfiniteScrollFooter
-                  errorLabel={t("loadMoreError")}
-                  onLoadMore={() => void list.fetchNextPage()}
-                  state={nextPageState(list)}
-                />
-              ) : null}
+                {items.length > 0 ? (
+                  <InfiniteScrollFooter
+                    errorLabel={t("loadMoreError")}
+                    onLoadMore={() => void list.fetchNextPage()}
+                    state={nextPageState(list)}
+                  />
+                ) : null}
+              </div>
+
+              <LoanHistorySidebar {...analytics} />
             </div>
-
-            <LoanHistorySidebar {...analytics} />
           </div>
-        </div>
-      ) : (
-        content
-      )}
+        ) : (
+          content
+        )}
+      </div>
 
       <LoanContactDrawer {...contactDrawer.drawerProps} />
 

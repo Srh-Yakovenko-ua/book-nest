@@ -1,6 +1,7 @@
 "use client";
 
 import type { WishlistBookView } from "@app/shared";
+import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
 
@@ -28,6 +29,7 @@ type BooksToBuyContentProps = {
   onClearFilters: () => void;
   onOpenLibrary: () => void;
   onRetry: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
   view?: WishlistViewMode;
 };
 
@@ -41,6 +43,7 @@ export function BooksToBuyContent({
   onClearFilters,
   onOpenLibrary,
   onRetry,
+  retryButtonRef,
   view = "grid",
 }: BooksToBuyContentProps) {
   const t = useTranslations("booksToBuy");
@@ -75,7 +78,7 @@ export function BooksToBuyContent({
     };
     return (
       <div aria-live="assertive" role="alert">
-        <EmptyState onPrimary={onRetry} state={errorState} />
+        <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
       </div>
     );
   }

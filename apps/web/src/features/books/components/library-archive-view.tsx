@@ -1,7 +1,7 @@
 "use client";
 
 import type { MediaView, Nullable } from "@app/shared";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
 import { LayoutGrid, List, SquareCheckBig } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Segmented } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 
 import type { LibraryActions, PendingBookAction } from "../model/book-card-actions";
 import type { LibraryBook, LibraryBookLinkComponent } from "../model/library-book";
@@ -118,12 +119,14 @@ export function LibraryArchiveView(props: LibraryArchiveViewProps) {
     invalidRange,
     isError,
     isPending,
+    onRetry,
     refetchError,
     sidebar,
   } = props;
 
   const t = useTranslations("books.library");
   const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsHeadingRef);
   const [pending, setPending] = useState<null | PendingBookAction>(null);
   const clearSelection = useLibrarySelectionStore((state) => state.clear);
   const selectionMode = useLibrarySelectionStore((state) => state.selectionMode);
@@ -180,7 +183,9 @@ export function LibraryArchiveView(props: LibraryArchiveViewProps) {
           <LibraryContent
             {...props}
             invalidRange={invalidRangeFocusingResults}
+            onRetry={withRetryFocus(onRetry)}
             renderActions={renderActions}
+            retryButtonRef={retryButtonRef}
             selectBookLabel={selectBookLabel}
           />
         </div>
@@ -298,10 +303,11 @@ function LibraryContent({
   onLoadMore,
   onRetry,
   renderActions,
+  retryButtonRef,
   selectBookLabel,
   showPublisher = true,
   view,
-}: CardRenderProps & LibraryArchiveViewProps) {
+}: CardRenderProps & LibraryArchiveViewProps & { retryButtonRef: Ref<HTMLButtonElement> }) {
   const [activeCover, setActiveCover] = useState<ActiveCover | null>(null);
 
   if (invalidRange) {
@@ -311,7 +317,12 @@ function LibraryContent({
   if (isError) {
     return (
       <div aria-live="assertive" role="alert">
-        <EmptyState onPrimary={onRetry} onSecondary={onAddBook} state={errorState} />
+        <EmptyState
+          onPrimary={onRetry}
+          onSecondary={onAddBook}
+          primaryRef={retryButtonRef}
+          state={errorState}
+        />
       </div>
     );
   }

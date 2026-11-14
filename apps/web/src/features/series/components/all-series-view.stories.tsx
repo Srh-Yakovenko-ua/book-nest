@@ -116,6 +116,7 @@ const meta = {
     onRetry: fn(),
     onShowAll: fn(),
     onTabChange: fn(),
+    refetchError: null,
     series,
     sidebar,
     summaryCards,

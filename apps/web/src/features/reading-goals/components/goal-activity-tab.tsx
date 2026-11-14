@@ -1,8 +1,10 @@
 "use client";
 
 import type { Nullable, ReadingGoalActivityView } from "@app/shared";
+import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
+import { useRef } from "react";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
@@ -15,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { assertNever } from "@/lib/assert-never";
 
 import type { GoalCursorContent } from "../model/goal-cursor-content";
@@ -37,6 +40,7 @@ type GoalActivityContentProps = {
   onLoadMore: () => void;
   onResetType: () => void;
   onRetry: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
 };
 
 type GoalActivityTabProps = {
@@ -54,6 +58,8 @@ export function GoalActivityTab({
   const tType = useTranslations("goals.activityType");
   const tCommon = useTranslations("common");
   const activity = useGoalActivity({ activityType, goalId });
+  const listRegionRef = useRef<HTMLElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(listRegionRef);
 
   const content = resolveGoalCursorContent({
     hasNextPage: activity.hasNextPage,
@@ -100,13 +106,19 @@ export function GoalActivityTab({
         </Select>
       </div>
 
-      <section aria-label={t("listLabel")} className="flex min-w-0 flex-col gap-4">
+      <section
+        aria-label={t("listLabel")}
+        className="flex min-w-0 flex-col gap-4 outline-none"
+        ref={listRegionRef}
+        tabIndex={-1}
+      >
         <GoalActivityContent
           content={content}
           isFiltered={activityType !== null}
           onLoadMore={loadNextPage}
           onResetType={() => onActivityTypeChange(null)}
-          onRetry={() => void activity.refetch()}
+          onRetry={withRetryFocus(() => void activity.refetch())}
+          retryButtonRef={retryButtonRef}
         />
       </section>
     </div>
@@ -119,6 +131,7 @@ function GoalActivityContent({
   onLoadMore,
   onResetType,
   onRetry,
+  retryButtonRef,
 }: GoalActivityContentProps) {
   const t = useTranslations("goals.detail.activity");
 
@@ -152,7 +165,7 @@ function GoalActivityContent({
       };
       return (
         <div aria-live="assertive" role="alert">
-          <EmptyState onPrimary={onRetry} state={errorState} />
+          <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
         </div>
       );
     }

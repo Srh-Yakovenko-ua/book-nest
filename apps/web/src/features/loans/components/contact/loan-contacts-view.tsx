@@ -1,9 +1,10 @@
 "use client";
 
 import type { LoanContactCounts, LoanContactView, Nullable } from "@app/shared";
+import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
@@ -17,6 +18,7 @@ import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 
 import type { LoanContactResolution } from "./create-loan-contact-form";
 
@@ -34,6 +36,8 @@ export function LoanContactsView() {
   const list = useLoanContactsList(query.listParams);
   const contactDrawer = useLoanContactDrawer();
   const [isCreating, setIsCreating] = useState(false);
+  const resultsRegionRef = useRef<HTMLDivElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsRegionRef);
 
   const loadedPages = list.data?.pages ?? [];
   const items = loadedPages.flatMap((page) => page.items);
@@ -81,17 +85,20 @@ export function LoanContactsView() {
         }
       />
 
-      <LoanContactsContent
-        hasActiveQuery={query.hasActiveQuery}
-        isError={list.isLoadingError}
-        isPending={list.isPending}
-        isRefreshing={list.isPlaceholderData}
-        items={items}
-        onClearQuery={query.clearQuery}
-        onCreate={() => setIsCreating(true)}
-        onOpenContact={contactDrawer.openContact}
-        onRetry={() => void list.refetch()}
-      />
+      <div className="flex flex-col outline-none" ref={resultsRegionRef} tabIndex={-1}>
+        <LoanContactsContent
+          hasActiveQuery={query.hasActiveQuery}
+          isError={list.isLoadingError}
+          isPending={list.isPending}
+          isRefreshing={list.isPlaceholderData}
+          items={items}
+          onClearQuery={query.clearQuery}
+          onCreate={() => setIsCreating(true)}
+          onOpenContact={contactDrawer.openContact}
+          onRetry={withRetryFocus(() => void list.refetch())}
+          retryButtonRef={retryButtonRef}
+        />
+      </div>
 
       {items.length > 0 ? (
         <InfiniteScrollFooter
@@ -123,6 +130,7 @@ function LoanContactsContent({
   onCreate,
   onOpenContact,
   onRetry,
+  retryButtonRef,
 }: {
   hasActiveQuery: boolean;
   isError: boolean;
@@ -133,6 +141,7 @@ function LoanContactsContent({
   onCreate: () => void;
   onOpenContact: (contactId: string) => void;
   onRetry: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
 }) {
   const t = useTranslations("loans.contactsPage.states");
 
@@ -145,7 +154,7 @@ function LoanContactsContent({
     };
     return (
       <div aria-live="assertive" role="alert">
-        <EmptyState onPrimary={onRetry} state={errorState} />
+        <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
       </div>
     );
   }

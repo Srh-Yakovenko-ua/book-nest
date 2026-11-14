@@ -103,6 +103,23 @@ function mockApi(countsFor: (url: URL) => LibraryQuickCounts = () => quickCounts
   });
 }
 
+function mockFailedFirstLoad(retryReply: () => Promise<Response>) {
+  let listRequestCount = 0;
+  fetchMock.mockImplementation((input: RequestInfo | URL) => {
+    const url = new URL(String(input), "http://localhost");
+    if (url.pathname === "/api/books/overview") return Promise.resolve(jsonResponse(OVERVIEW));
+    if (url.pathname === "/api/books/quick-counts") {
+      return Promise.resolve(jsonResponse(quickCounts()));
+    }
+    if (url.pathname === "/api/books") {
+      listRequestCount += 1;
+      if (listRequestCount === 1) return Promise.resolve(jsonResponse({ message: "boom" }, 500));
+      return retryReply();
+    }
+    return Promise.resolve(jsonResponse([]));
+  });
+}
+
 function mockHeldSearch(): () => void {
   let answerSearch = () => {};
   const searchAnswered = new Promise<void>((resolve) => {
@@ -318,5 +335,37 @@ describe("BooksLibrary refreshing results", () => {
     const found = await screen.findByText(SEARCH_BOOK.title);
     expect(regionBusyState(found)).toBe("false");
     expect(screen.queryByText(makeBookView().title)).not.toBeInTheDocument();
+  });
+});
+
+describe("BooksLibrary first load retry focus", () => {
+  it("moves focus to the new retry button when the retry fails again", async () => {
+    let failRetry = () => {};
+    const retryFailure = new Promise<Response>((resolve) => {
+      failRetry = () => resolve(jsonResponse({ message: "boom" }, 500));
+    });
+    mockFailedFirstLoad(() => retryFailure);
+    renderLibrary("all");
+    (await screen.findByRole("button", { name: library.error.retry })).focus();
+
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: library.error.retry })).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("heading", { name: library.resultsTitle })).toHaveFocus();
+    failRetry();
+
+    expect(await screen.findByRole("button", { name: library.error.retry })).toHaveFocus();
+  });
+
+  it("keeps focus on the results heading when the retry loads the books", async () => {
+    mockFailedFirstLoad(() => Promise.resolve(jsonResponse(booksPage())));
+    renderLibrary("all");
+    (await screen.findByRole("button", { name: library.error.retry })).focus();
+
+    await userEvent.keyboard("{Enter}");
+
+    expect(await screen.findByText(makeBookView().title)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: library.resultsTitle })).toHaveFocus();
   });
 });

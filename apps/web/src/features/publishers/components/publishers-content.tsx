@@ -3,7 +3,7 @@
 import type { LibraryPublisherListItem, Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
-import { type RefObject, useEffect, useRef } from "react";
+import { type Ref, type RefObject, useEffect, useRef } from "react";
 
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
@@ -41,6 +41,7 @@ type PublishersContentProps = {
   onClearSearch: () => void;
   onResetFilters: () => void;
   onRetry: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
   state: PublishersArchiveState;
   view: PublishersViewMode;
 };
@@ -53,6 +54,7 @@ export function PublishersContent({
   onClearSearch,
   onResetFilters,
   onRetry,
+  retryButtonRef,
   state,
   view,
 }: PublishersContentProps) {
@@ -77,6 +79,7 @@ export function PublishersContent({
         <div aria-live="assertive" role="alert">
           <EmptyState
             onPrimary={onRetry}
+            primaryRef={retryButtonRef}
             state={{
               desc: t("error.description"),
               illu: "error-generic",

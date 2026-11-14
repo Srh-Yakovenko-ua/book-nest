@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import type { MobilePageOverviewTab } from "@/components/ui/mobile-page-overview-panel";
 import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
+import { SummaryError } from "@/components/summary-error";
 import {
   MobilePageOverviewPanel,
   MobilePageOverviewTrigger,
@@ -23,7 +24,6 @@ import {
   TagsStructureBlock,
   TagsUsageBlock,
 } from "./tags-overview-blocks";
-import { TagsSummaryError } from "./tags-summary";
 
 type TagsOverviewPanelProps = {
   cards: LibrarySummaryCard[];
@@ -48,7 +48,13 @@ export function TagsOverviewPanel({
       <MobilePageOverviewTrigger label={t("trigger")} onClick={() => panel.setOpen(true)} />
       <MobilePageOverviewPanel
         closeLabel={t("close")}
-        error={status === "error" ? <TagsSummaryError onRetry={onRetry} /> : undefined}
+        error={
+          status === "error" ? (
+            <SummaryError state={{ onRetry }} variant="embedded">
+              {null}
+            </SummaryError>
+          ) : undefined
+        }
         loading={status === "pending"}
         panel={panel}
         subtitle={t("subtitle")}

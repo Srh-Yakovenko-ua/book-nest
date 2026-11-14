@@ -1,9 +1,10 @@
 "use client";
 
 import type { Nullable } from "@app/shared";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
 import { useTranslations } from "next-intl";
+import { useRef } from "react";
 
 import type { RefetchErrorState } from "@/components/refetch-error-banner";
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
@@ -16,6 +17,7 @@ import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 
 import type { DeliveryOrderCardModel } from "../model/order-card-model";
 
@@ -68,6 +70,8 @@ export function DeliveryInTransitView({
   toolbar,
 }: DeliveryInTransitViewProps) {
   const t = useTranslations("delivery");
+  const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsHeadingRef);
 
   return (
     <div className="flex flex-col gap-6">
@@ -92,16 +96,19 @@ export function DeliveryInTransitView({
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-6">
-          <h2 className="sr-only">{t("resultsTitle")}</h2>
+          <h2 className="sr-only" ref={resultsHeadingRef} tabIndex={-1}>
+            {t("resultsTitle")}
+          </h2>
           <RefetchErrorBanner state={refetchError} />
           <DeliveryContentArea
             content={content}
             onGoToBooksToBuy={onGoToBooksToBuy}
             onLoadMore={onLoadMore}
             onResetFilters={onResetFilters}
-            onRetry={onRetry}
+            onRetry={withRetryFocus(onRetry)}
             pagination={pagination}
             renderCard={renderCard}
+            retryButtonRef={retryButtonRef}
             selectAll={selectAll}
           />
         </div>
@@ -121,6 +128,7 @@ function DeliveryContentArea({
   onRetry,
   pagination,
   renderCard,
+  retryButtonRef,
   selectAll,
 }: Pick<
   DeliveryInTransitViewProps,
@@ -132,7 +140,7 @@ function DeliveryContentArea({
   | "pagination"
   | "renderCard"
   | "selectAll"
->) {
+> & { retryButtonRef: Ref<HTMLButtonElement> }) {
   const t = useTranslations("delivery");
 
   if (content.kind === "error") {
@@ -144,7 +152,7 @@ function DeliveryContentArea({
     };
     return (
       <div aria-live="assertive" role="alert">
-        <EmptyState onPrimary={onRetry} state={errorState} />
+        <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
       </div>
     );
   }

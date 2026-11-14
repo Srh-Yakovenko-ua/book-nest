@@ -1,9 +1,10 @@
 "use client";
 
 import type { Nullable } from "@app/shared";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
 import { useTranslations } from "next-intl";
+import { useRef } from "react";
 
 import type { RefetchErrorState } from "@/components/refetch-error-banner";
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
@@ -16,6 +17,7 @@ import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 
 import type { HistoryOrderCardModel } from "../model/history-order-card-model";
 import type { DeliveryHistoryTab } from "../model/history-params";
@@ -67,6 +69,8 @@ export function DeliveryHistoryView({
   toolbar,
 }: DeliveryHistoryViewProps) {
   const t = useTranslations("delivery.history");
+  const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsHeadingRef);
 
   return (
     <div className="flex flex-col gap-6">
@@ -97,16 +101,19 @@ export function DeliveryHistoryView({
               }
             : {})}
         >
-          <h2 className="sr-only">{t("resultsTitle")}</h2>
+          <h2 className="sr-only" ref={resultsHeadingRef} tabIndex={-1}>
+            {t("resultsTitle")}
+          </h2>
           <RefetchErrorBanner state={refetchError} />
           <HistoryContentArea
             content={content}
             onGoToInTransit={onGoToInTransit}
             onLoadMore={onLoadMore}
             onResetFilters={onResetFilters}
-            onRetry={onRetry}
+            onRetry={withRetryFocus(onRetry)}
             pagination={pagination}
             renderCard={renderCard}
+            retryButtonRef={retryButtonRef}
             tab={tab}
           />
         </div>
@@ -124,6 +131,7 @@ function HistoryContentArea({
   onRetry,
   pagination,
   renderCard,
+  retryButtonRef,
   tab,
 }: Pick<
   DeliveryHistoryViewProps,
@@ -135,7 +143,7 @@ function HistoryContentArea({
   | "pagination"
   | "renderCard"
   | "tab"
->) {
+> & { retryButtonRef: Ref<HTMLButtonElement> }) {
   const t = useTranslations("delivery.history");
 
   if (content.kind === "error") {
@@ -147,7 +155,7 @@ function HistoryContentArea({
     };
     return (
       <div aria-live="assertive" role="alert">
-        <EmptyState onPrimary={onRetry} state={errorState} />
+        <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
       </div>
     );
   }

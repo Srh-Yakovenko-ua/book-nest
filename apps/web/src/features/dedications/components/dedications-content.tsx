@@ -1,6 +1,7 @@
 "use client";
 
 import type { BookView } from "@app/shared";
+import type { Ref } from "react";
 
 import { DEDICATIONS_PAGE_SIZE_DEFAULT } from "@app/shared";
 import { useTranslations } from "next-intl";
@@ -28,6 +29,7 @@ type DedicationsContentProps = {
   onClearFilters: () => void;
   onOpenDedication: (book: BookView) => void;
   onRetry: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
   view: DedicationView;
 };
 
@@ -41,6 +43,7 @@ export function DedicationsContent({
   onClearFilters,
   onOpenDedication,
   onRetry,
+  retryButtonRef,
   view,
 }: DedicationsContentProps) {
   const t = useTranslations("dedications");
@@ -54,7 +57,7 @@ export function DedicationsContent({
     };
     return (
       <div aria-live="assertive" role="alert">
-        <EmptyState onPrimary={onRetry} state={errorState} />
+        <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
       </div>
     );
   }

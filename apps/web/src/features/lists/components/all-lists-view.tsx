@@ -1,9 +1,10 @@
 "use client";
 
 import type { CustomListCard, Nullable } from "@app/shared";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
 import { useTranslations } from "next-intl";
+import { useRef } from "react";
 
 import type { RefetchErrorState } from "@/components/refetch-error-banner";
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
@@ -17,6 +18,7 @@ import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 
 import type { ListViewMode } from "../model/lists-query";
 
@@ -79,6 +81,8 @@ export function AllListsView({
 }: AllListsViewProps) {
   const t = useTranslations("lists.catalog");
   const showToolbar = !isError && (isPending || hasAnyLists);
+  const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsHeadingRef);
 
   return (
     <div className="flex flex-col gap-6">
@@ -104,7 +108,9 @@ export function AllListsView({
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-6">
-          <h2 className="sr-only">{t("title")}</h2>
+          <h2 className="sr-only" ref={resultsHeadingRef} tabIndex={-1}>
+            {t("title")}
+          </h2>
           <RefetchErrorBanner state={refetchError} />
           <ListsContent
             hasActiveFilters={hasActiveFilters}
@@ -118,7 +124,8 @@ export function AllListsView({
             onDeleteList={onDeleteList}
             onEditList={onEditList}
             onOpenLibrary={onOpenLibrary}
-            onRetry={onRetry}
+            onRetry={withRetryFocus(onRetry)}
+            retryButtonRef={retryButtonRef}
             view={view}
           />
           {isError || isPending || lists.length === 0 ? null : (
@@ -168,6 +175,7 @@ function ListsContent({
   onEditList,
   onOpenLibrary,
   onRetry,
+  retryButtonRef,
   view,
 }: {
   hasActiveFilters: boolean;
@@ -182,6 +190,7 @@ function ListsContent({
   onEditList: (list: CustomListCard) => void;
   onOpenLibrary: () => void;
   onRetry: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
   view: ListViewMode;
 }) {
   const t = useTranslations("lists.catalog");
@@ -195,7 +204,7 @@ function ListsContent({
     };
     return (
       <div aria-live="assertive" role="alert">
-        <EmptyState onPrimary={onRetry} state={errorState} />
+        <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
       </div>
     );
   }

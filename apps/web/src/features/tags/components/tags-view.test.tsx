@@ -16,6 +16,7 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { toast } from "sonner";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import {
   mockIntersectionObserver,
   renderWithProviders,
@@ -311,10 +312,12 @@ describe("TagsView", () => {
       expect(
         await screen.findByRole("heading", { level: 3, name: "slow burn" }),
       ).toBeInTheDocument();
-      expect(await screen.findByText("Не вдалося завантажити огляд тегів.")).toBeInTheDocument();
+      expect(await screen.findByText(messages.common.summaryError.title)).toBeInTheDocument();
       expect(screen.queryByRole("complementary", { name: "Огляд тегів" })).not.toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole("button", { name: "Спробувати знову" }));
+      await userEvent.click(
+        screen.getByRole("button", { name: messages.common.summaryError.retry }),
+      );
 
       await waitFor(() => expect(requestsTo("GET /api/tags/summary")).toHaveLength(2));
     });
@@ -336,7 +339,7 @@ describe("TagsView", () => {
       expect(queryClient.getQueryState(tagsKeys.summary)?.status).toBe("error");
       expect(screen.getByText("Усього тегів")).toBeInTheDocument();
       expect(screen.getByRole("complementary", { name: "Огляд тегів" })).toBeInTheDocument();
-      expect(screen.queryByText("Не вдалося завантажити огляд тегів.")).not.toBeInTheDocument();
+      expect(screen.queryByText(messages.common.summaryError.title)).not.toBeInTheDocument();
     });
 
     it("sets filter=unused from the attention block while keeping q, type, color and sort", async () => {
@@ -1154,6 +1157,47 @@ describe("TagsView loading and failure states", () => {
     expect(screen.queryByText("Не вдалося завантажити теги")).not.toBeInTheDocument();
   });
 
+  it("moves focus to the new retry button when the catalog retry fails again", async () => {
+    const { catalog, states } = messages.tags;
+    const retryPage = deferred<Response>();
+    let attempts = 0;
+    mockTagsApi({
+      "GET /api/tags/catalog": () => {
+        attempts += 1;
+        return attempts === 1 ? failure(500)() : retryPage.promise;
+      },
+    });
+    renderTags();
+    (await screen.findByRole("button", { name: states.error.retry })).focus();
+
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: states.error.retry })).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("heading", { level: 2, name: catalog.title })).toHaveFocus();
+    retryPage.resolve(await failure(500)());
+
+    expect(await screen.findByRole("button", { name: states.error.retry })).toHaveFocus();
+  });
+
+  it("keeps focus on the catalog heading when the retry loads the tags", async () => {
+    const { catalog, states } = messages.tags;
+    let attempts = 0;
+    mockTagsApi({
+      "GET /api/tags/catalog": () => {
+        attempts += 1;
+        return attempts === 1 ? failure(500)() : json(page([SLOW_BURN, COZY]));
+      },
+    });
+    renderTags();
+    (await screen.findByRole("button", { name: states.error.retry })).focus();
+
+    await userEvent.keyboard("{Enter}");
+
+    expect(await screen.findByRole("heading", { level: 3, name: "slow burn" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: catalog.title })).toHaveFocus();
+  });
+
   it("keeps the current rows visible and marked busy while new criteria load", async () => {
     const unusedPage = deferred<Response>();
     mockTagsApi({
@@ -1238,6 +1282,27 @@ describe("TagsView mobile overview", () => {
       expect(params.get("q")).toBe("cozy");
       expect(params.get("type")).toBe("atmosphere");
     });
+  });
+
+  it("announces a failed summary in the overview panel through a single alert", async () => {
+    const panel = await openOverviewWithFailedSummary();
+
+    const alerts = await within(panel).findAllByRole("alert");
+
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toHaveTextContent(messages.common.summaryError.title);
+  });
+
+  it("requests the summary again from the overview panel Retry", async () => {
+    const panel = await openOverviewWithFailedSummary();
+    const retry = await within(panel).findByRole("button", {
+      name: messages.common.summaryError.retry,
+    });
+    expect(requestsTo("GET /api/tags/summary")).toHaveLength(1);
+
+    await userEvent.click(retry);
+
+    await waitFor(() => expect(requestsTo("GET /api/tags/summary")).toHaveLength(2));
   });
 });
 
@@ -1387,6 +1452,15 @@ function mockTagsApi(overrides: Record<string, Reply> = {}) {
       return handler === undefined ? failure(404)() : handler(request);
     }),
   );
+}
+
+async function openOverviewWithFailedSummary() {
+  const { panel } = messages.tags.summary;
+  stubNarrowViewport();
+  mockTagsApi({ "GET /api/tags/summary": failure(500) });
+  renderTags();
+  await userEvent.click(await screen.findByRole("button", { name: panel.trigger }));
+  return screen.findByRole("dialog", { name: panel.title });
 }
 
 async function openTagAction(name: string, action: "Видалити" | "Редагувати") {
