@@ -24,6 +24,7 @@ import { ListsToolbar } from "./lists-toolbar";
 export function AllLists() {
   const t = useTranslations("lists.manage.toast");
   const tCatalog = useTranslations("lists.catalog");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const lists = useListsQuery();
   const {
@@ -34,6 +35,7 @@ export function AllLists() {
     isFetchNextPageError,
     isLoadingError,
     isPending,
+    isPlaceholderData,
     isRefetchError,
     isRefetching,
     refetch,
@@ -78,6 +80,7 @@ export function AllLists() {
         isFetchingNextPage={isFetchingNextPage}
         isLoadMoreError={isFetchNextPageError}
         isPending={isPending}
+        isRefreshing={isPlaceholderData}
         lists={visibleLists}
         loadMoreErrorLabel={tCatalog("loadMoreError")}
         onClearFilters={lists.clearFilters}
@@ -119,7 +122,9 @@ export function AllLists() {
             counter={
               isPending || isLoadingError || visibleLists.length === 0
                 ? undefined
-                : tCatalog("counter", { shown: visibleLists.length, total: totalCount })
+                : isPlaceholderData
+                  ? tCommon("updating")
+                  : tCatalog("counter", { shown: visibleLists.length, total: totalCount })
             }
             onClearFilters={lists.clearFilters}
             onSearchChange={lists.setSearch}

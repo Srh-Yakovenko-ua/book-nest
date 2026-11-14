@@ -108,6 +108,7 @@ const meta = {
     hasAnySeries: true,
     isError: false,
     isPending: false,
+    isRefreshing: false,
     onAddBook: fn(),
     onClearFilters: fn(),
     onCreateSeries: fn(),

@@ -140,6 +140,7 @@ function renderView(pages: CustomListDetail[], options: RenderViewOptions = {}) 
   const props: ViewProps = {
     id: "list-1",
     isFetching: false,
+    isRefreshing: false,
     loadMoreState: "none",
     onLoadMore: vi.fn(),
     pages,

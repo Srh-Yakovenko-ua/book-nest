@@ -39,6 +39,7 @@ export function ListDetails({ id }: ListDetailsProps) {
     isFetchNextPageError,
     isLoadingError,
     isPending,
+    isPlaceholderData,
     isRefetchError,
     isRefetching,
     refetch,
@@ -117,6 +118,7 @@ export function ListDetails({ id }: ListDetailsProps) {
       <ListDetailsView
         id={id}
         isFetching={isFetching}
+        isRefreshing={isPlaceholderData}
         loadMoreState={loadMoreState({ hasNextPage, isFetchingNextPage, isFetchNextPageError })}
         onLoadMore={() => {
           void fetchNextPage();

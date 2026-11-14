@@ -6,9 +6,9 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { Skeleton } from "@/components/ui/skeleton";
 import { assertNever } from "@/lib/assert-never";
-import { cn } from "@/lib/utils";
 
 import type { GenresEmptyReason, GenresListState } from "../model/genres-list-state";
 
@@ -131,20 +131,15 @@ function GenresGrid({
 
   return (
     <div className="flex flex-col gap-6">
-      <ul
-        aria-busy={state.isRefreshing}
-        className={cn(
-          GENRES_GRID.className,
-          "transition-opacity duration-200 motion-reduce:transition-none",
-          state.isRefreshing && "opacity-60",
-        )}
-      >
-        {state.genres.map((genre) => (
-          <li className="flex min-w-0 flex-col" key={genre.key}>
-            <GenreCard genre={genre} />
-          </li>
-        ))}
-      </ul>
+      <RefreshingRegion isRefreshing={state.isRefreshing}>
+        <ul className={GENRES_GRID.className}>
+          {state.genres.map((genre) => (
+            <li className="flex min-w-0 flex-col" key={genre.key}>
+              <GenreCard genre={genre} />
+            </li>
+          ))}
+        </ul>
+      </RefreshingRegion>
 
       <InfiniteScrollFooter
         errorLabel={t("loadMoreError")}

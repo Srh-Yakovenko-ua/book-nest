@@ -34,6 +34,7 @@ function renderView(overrides: Partial<ViewProps> = {}) {
     isFetchingNextPage: false,
     isLoadMoreError: false,
     isPending: false,
+    isRefreshing: false,
     lists: [makeCustomListCard()],
     loadMoreErrorLabel: "Не вдалося завантажити ще списки",
     onClearFilters: vi.fn(),

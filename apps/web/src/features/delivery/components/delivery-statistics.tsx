@@ -9,9 +9,9 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 
 import type { StatisticsDrilldownContext } from "../model/statistics-drilldown";
 import type { DynamicsMetric } from "../model/statistics-dynamics";
@@ -272,9 +272,10 @@ function StatisticsBody({
   }
 
   return (
-    <div
+    <RefreshingRegion
       aria-busy={period.isRefreshing}
-      className={cn("flex flex-col gap-6 transition-opacity", period.isRefreshing && "opacity-70")}
+      className="flex flex-col gap-6"
+      isRefreshing={period.isPlaceholderData}
     >
       <StatisticsKpi currency={displayCurrency} snapshot={view.snapshot} view={view} />
 
@@ -381,7 +382,7 @@ function StatisticsBody({
           />
         </div>
       </div>
-    </div>
+    </RefreshingRegion>
   );
 }
 

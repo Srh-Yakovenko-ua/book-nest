@@ -12,6 +12,7 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,10 +20,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { DeliveryOrderCardModel } from "../model/order-card-model";
 
 export type DeliveryContent =
-  | { items: DeliveryOrderCardModel[]; kind: "ready" }
+  | { isRefreshing: boolean; items: DeliveryOrderCardModel[]; kind: "ready" }
+  | { isRefreshing: boolean; kind: "filtered-empty" }
   | { kind: "empty" }
   | { kind: "error" }
-  | { kind: "filtered-empty" }
   | { kind: "loading" };
 
 type DeliveryInTransitViewProps = {
@@ -169,7 +170,11 @@ function DeliveryContentArea({
       primary: { icon: "x", label: t("states.filteredEmpty.reset") },
       title: t("states.filteredEmpty.title"),
     };
-    return <EmptyState onPrimary={onResetFilters} state={filteredState} />;
+    return (
+      <RefreshingRegion isRefreshing={content.isRefreshing}>
+        <EmptyState onPrimary={onResetFilters} state={filteredState} />
+      </RefreshingRegion>
+    );
   }
 
   const scrollState: InfiniteScrollState = pagination.isFetchNextPageError
@@ -189,7 +194,9 @@ function DeliveryContentArea({
         </label>
       ) : null}
 
-      <div className="flex flex-col gap-4">{content.items.map((model) => renderCard(model))}</div>
+      <RefreshingRegion className="flex flex-col gap-4" isRefreshing={content.isRefreshing}>
+        {content.items.map((model) => renderCard(model))}
+      </RefreshingRegion>
 
       <InfiniteScrollFooter
         errorLabel={t("loadMoreError")}

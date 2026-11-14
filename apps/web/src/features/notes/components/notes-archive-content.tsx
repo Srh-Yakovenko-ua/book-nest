@@ -9,6 +9,7 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { assertNever } from "@/lib/assert-never";
 import { cn } from "@/lib/utils";
 
@@ -153,25 +154,20 @@ function NotesArchiveList({
 
   return (
     <div className="flex flex-col gap-6">
-      <ul
-        aria-busy={state.isRefreshing}
-        className={cn(
-          notesGridClassName(view),
-          "transition-opacity duration-200",
-          state.isRefreshing && "opacity-60",
-        )}
-      >
-        {state.notes.map((note, index) => (
-          <li
-            className="flex min-w-0 flex-col"
-            data-note-id={note.id}
-            key={note.id}
-            ref={index === firstNewNoteIndex ? focusFirstNewNote : undefined}
-          >
-            <NoteArchiveCard layout={view} note={note} />
-          </li>
-        ))}
-      </ul>
+      <RefreshingRegion isRefreshing={state.isRefreshing}>
+        <ul className={notesGridClassName(view)}>
+          {state.notes.map((note, index) => (
+            <li
+              className="flex min-w-0 flex-col"
+              data-note-id={note.id}
+              key={note.id}
+              ref={index === firstNewNoteIndex ? focusFirstNewNote : undefined}
+            >
+              <NoteArchiveCard layout={view} note={note} />
+            </li>
+          ))}
+        </ul>
+      </RefreshingRegion>
 
       <InfiniteScrollFooter
         errorFocus={loadMoreFocus === "none" ? "none" : "retry"}

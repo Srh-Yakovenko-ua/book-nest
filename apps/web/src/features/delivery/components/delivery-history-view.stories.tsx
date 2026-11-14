@@ -152,7 +152,11 @@ export const EmptyCancelled: Story = {
 };
 
 export const FilteredEmpty: Story = {
-  args: { content: { kind: "filtered-empty" }, showToolbar: true, toolbar: <div /> },
+  args: {
+    content: { isRefreshing: false, kind: "filtered-empty" },
+    showToolbar: true,
+    toolbar: <div />,
+  },
   play: async ({ canvas }) => {
     await waitFor(() =>
       expect(canvas.getByText("Немає замовлень за вибраними фільтрами")).toBeVisible(),
@@ -162,7 +166,7 @@ export const FilteredEmpty: Story = {
 
 export const Ready: Story = {
   args: {
-    content: { items: historyCardModels, kind: "ready" },
+    content: { isRefreshing: false, items: historyCardModels, kind: "ready" },
     showToolbar: true,
     toolbar: <div />,
   },
@@ -178,7 +182,7 @@ export const Ready: Story = {
 
 export const WithSidebar: Story = {
   args: {
-    content: { items: historyCardModels, kind: "ready" },
+    content: { isRefreshing: false, items: historyCardModels, kind: "ready" },
     showToolbar: true,
     sidebar: sidebarNode,
     toolbar: <div />,

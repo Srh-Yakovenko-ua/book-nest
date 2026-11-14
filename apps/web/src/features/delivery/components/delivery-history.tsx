@@ -73,9 +73,9 @@ export function DeliveryHistory() {
       ? { kind: "loading" }
       : items.length === 0
         ? params.hasActiveFilters || params.hasActiveSearch
-          ? { kind: "filtered-empty" }
+          ? { isRefreshing: listQuery.isPlaceholderData, kind: "filtered-empty" }
           : { kind: "empty" }
-        : { items, kind: "ready" };
+        : { isRefreshing: listQuery.isPlaceholderData, items, kind: "ready" };
 
   const showToolbar =
     !listQuery.isLoadingError &&
@@ -261,6 +261,7 @@ export function DeliveryHistory() {
             total: totalCount,
           })}
           isPending={listQuery.isPending}
+          isRefreshing={listQuery.isPlaceholderData}
           loadingLabel={t("states.loading")}
           onApplyAdvanced={params.applyAdvanced}
           onClearAdvanced={params.clearAdvanced}

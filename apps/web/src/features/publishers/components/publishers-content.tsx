@@ -9,6 +9,7 @@ import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -117,6 +118,7 @@ export function PublishersContent({
       return (
         <PublishersResultsSection
           gridColumns={gridColumns}
+          isRefreshing={state.isRefreshing}
           loadMore={loadMore}
           publishers={state.items}
           view={view}
@@ -178,11 +180,13 @@ function PublishersResults({
 
 function PublishersResultsSection({
   gridColumns,
+  isRefreshing,
   loadMore,
   publishers,
   view,
 }: {
   gridColumns: string;
+  isRefreshing: boolean;
   loadMore: PublishersLoadMore;
   publishers: LibraryPublisherListItem[];
   view: PublishersViewMode;
@@ -212,12 +216,14 @@ function PublishersResultsSection({
 
   return (
     <div className="flex flex-col gap-6">
-      <PublishersResults
-        gridColumns={gridColumns}
-        listRef={listRef}
-        publishers={publishers}
-        view={view}
-      />
+      <RefreshingRegion isRefreshing={isRefreshing}>
+        <PublishersResults
+          gridColumns={gridColumns}
+          listRef={listRef}
+          publishers={publishers}
+          view={view}
+        />
+      </RefreshingRegion>
       <InfiniteScrollFooter
         errorLabel={t("loadMoreError")}
         onLoadMore={requestNextPage}

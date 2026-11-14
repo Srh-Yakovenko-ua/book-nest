@@ -12,6 +12,7 @@ import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
 import { UiIcon } from "@/components/icons";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { Button } from "@/components/ui/button";
 import { useGenres } from "@/features/books/api/use-genres";
 import { useAddToReadingQueue } from "@/features/books/api/use-reading-queue";
@@ -67,6 +68,7 @@ import { ListStatsCards, useListSummaryCards } from "./list-stats-cards";
 type ListDetailsViewProps = {
   id: string;
   isFetching: boolean;
+  isRefreshing: boolean;
   loadMoreState: InfiniteScrollState;
   onLoadMore: () => void;
   pages: CustomListDetail[];
@@ -84,6 +86,7 @@ type NoResultsProps = {
 export function ListDetailsView({
   id,
   isFetching,
+  isRefreshing,
   loadMoreState,
   onLoadMore,
   pages,
@@ -91,6 +94,7 @@ export function ListDetailsView({
 }: ListDetailsViewProps) {
   const t = useTranslations("lists.details");
   const tManage = useTranslations("lists.manage.toast");
+  const tCommon = useTranslations("common");
   const tLibrary = useTranslations("books.library");
   const tFormat = useTranslations("books.format.options");
   const tStatus = useTranslations("books.readingStatus.options");
@@ -320,13 +324,15 @@ export function ListDetailsView({
 
     if (books.length === 0) {
       return (
-        <NoResults
-          conditions={chips.map((chip) => chip.label)}
-          onClearFilters={listQuery.clearFilters}
-          onClearSearch={listQuery.clearSearch}
-          reason={listQuery.emptyReason}
-          tab={listQuery.state.tab}
-        />
+        <RefreshingRegion isRefreshing={isRefreshing}>
+          <NoResults
+            conditions={chips.map((chip) => chip.label)}
+            onClearFilters={listQuery.clearFilters}
+            onClearSearch={listQuery.clearSearch}
+            reason={listQuery.emptyReason}
+            tab={listQuery.state.tab}
+          />
+        </RefreshingRegion>
       );
     }
 
@@ -338,13 +344,14 @@ export function ListDetailsView({
           {moveAnnouncement}
         </p>
 
-        <div
+        <RefreshingRegion
           className={cn(
             "grid gap-5 max-sm:gap-3",
             isListView
               ? "grid-cols-1"
               : "grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(16rem,1fr))]",
           )}
+          isRefreshing={isRefreshing}
         >
           {books.map((book) =>
             isListView ? (
@@ -353,7 +360,7 @@ export function ListDetailsView({
               <ListBookCard key={book.id} {...itemProps(book)} />
             ),
           )}
-        </div>
+        </RefreshingRegion>
 
         <InfiniteScrollFooter
           errorLabel={t("loadMoreError")}
@@ -399,10 +406,11 @@ export function ListDetailsView({
 
           <ListDetailsToolbar
             chips={chips}
-            counterLabel={t("toolbar.counter", {
-              shown: books.length,
-              total: firstPage.books.totalCount,
-            })}
+            counterLabel={
+              isRefreshing
+                ? tCommon("updating")
+                : t("toolbar.counter", { shown: books.length, total: firstPage.books.totalCount })
+            }
             id={id}
             isReorderLocked={!isListDetailOrderView(listQuery.state)}
             isSelecting={selectionMode}

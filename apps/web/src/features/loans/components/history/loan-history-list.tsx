@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
+import { RefreshingRegion } from "@/components/refreshing-region";
 
 import { LoansListSkeleton } from "../loans-skeleton";
 import { LoanHistoryRow } from "./loan-history-row";
@@ -15,6 +16,7 @@ type LoanHistoryListProps = {
   hasQuery: boolean;
   isError: boolean;
   isPending: boolean;
+  isRefreshing: boolean;
   items: LoanHistoryListItemView[];
   onClearFilters: () => void;
   onCorrectDate: (loanId: string) => void;
@@ -28,6 +30,7 @@ export function LoanHistoryList({
   hasQuery,
   isError,
   isPending,
+  isRefreshing,
   items,
   onClearFilters,
   onCorrectDate,
@@ -74,7 +77,11 @@ export function LoanHistoryList({
         title: t("noResults.title"),
       };
 
-      return <EmptyState onPrimary={onClearFilters} state={noResults} />;
+      return (
+        <RefreshingRegion isRefreshing={isRefreshing}>
+          <EmptyState onPrimary={onClearFilters} state={noResults} />
+        </RefreshingRegion>
+      );
     }
 
     const empty: EmptyStateEntry = {
@@ -89,19 +96,21 @@ export function LoanHistoryList({
   return (
     <>
       <h2 className="sr-only">{tPage("listHeading")}</h2>
-      <ul className="flex flex-col gap-3">
-        {items.map((loan) => (
-          <li key={loan.id}>
-            <LoanHistoryRow
-              loan={loan}
-              onCorrectDate={() => onCorrectDate(loan.id)}
-              onEditNote={() => onEditNote(loan.id)}
-              onOpenContact={() => onOpenContact(loan.loanContactId)}
-              onOpenDetails={() => onOpenDetails(loan.id)}
-            />
-          </li>
-        ))}
-      </ul>
+      <RefreshingRegion isRefreshing={isRefreshing}>
+        <ul className="flex flex-col gap-3">
+          {items.map((loan) => (
+            <li key={loan.id}>
+              <LoanHistoryRow
+                loan={loan}
+                onCorrectDate={() => onCorrectDate(loan.id)}
+                onEditNote={() => onEditNote(loan.id)}
+                onOpenContact={() => onOpenContact(loan.loanContactId)}
+                onOpenDetails={() => onOpenDetails(loan.id)}
+              />
+            </li>
+          ))}
+        </ul>
+      </RefreshingRegion>
     </>
   );
 }

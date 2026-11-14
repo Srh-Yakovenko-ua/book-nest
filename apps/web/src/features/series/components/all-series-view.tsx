@@ -12,6 +12,7 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
 import { PageTabs, pageTabsTriggerId } from "@/components/page-tabs";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ type AllSeriesViewProps = {
   hasAnySeries: boolean;
   isError: boolean;
   isPending: boolean;
+  isRefreshing: boolean;
   onAddBook: () => void;
   onClearFilters: () => void;
   onCreateSeries: () => void;
@@ -59,6 +61,7 @@ export function AllSeriesView({
   hasAnySeries,
   isError,
   isPending,
+  isRefreshing,
   onAddBook,
   onClearFilters,
   onCreateSeries,
@@ -150,6 +153,7 @@ export function AllSeriesView({
             hasAnySeries={hasAnySeries}
             isError={isError}
             isPending={isPending}
+            isRefreshing={isRefreshing}
             onAddBook={onAddBook}
             onClearFilters={onClearFilters}
             onCreateSeries={onCreateSeries}
@@ -197,6 +201,7 @@ function SeriesContent({
   hasAnySeries,
   isError,
   isPending,
+  isRefreshing,
   onAddBook,
   onClearFilters,
   onCreateSeries,
@@ -210,6 +215,7 @@ function SeriesContent({
   hasAnySeries: boolean;
   isError: boolean;
   isPending: boolean;
+  isRefreshing: boolean;
   onAddBook: () => void;
   onClearFilters: () => void;
   onCreateSeries: () => void;
@@ -267,34 +273,39 @@ function SeriesContent({
       );
     }
     return (
-      <EmptyState
-        onPrimary={onClearFilters}
-        state={{
-          desc: t("noResults.description"),
-          illu: "empty-search",
-          primary: { icon: "x", label: t("noResults.clear") },
-          title: t("noResults.title"),
-        }}
-      />
+      <RefreshingRegion isRefreshing={isRefreshing}>
+        <EmptyState
+          onPrimary={onClearFilters}
+          state={{
+            desc: t("noResults.description"),
+            illu: "empty-search",
+            primary: { icon: "x", label: t("noResults.clear") },
+            title: t("noResults.title"),
+          }}
+        />
+      </RefreshingRegion>
     );
   }
 
   if (view === "list") {
     return (
-      <div className="flex flex-col gap-4">
+      <RefreshingRegion className="flex flex-col gap-4" isRefreshing={isRefreshing}>
         {series.map((item) => (
           <SeriesRow key={item.id} series={item} />
         ))}
-      </div>
+      </RefreshingRegion>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+    <RefreshingRegion
+      className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"
+      isRefreshing={isRefreshing}
+    >
       {series.map((item) => (
         <SeriesCard key={item.id} series={item} />
       ))}
-    </div>
+    </RefreshingRegion>
   );
 }
 

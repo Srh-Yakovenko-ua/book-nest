@@ -97,6 +97,7 @@ function scopeOf(
     hasUsableData: data !== undefined,
     isInitialError: false,
     isInitialLoading: false,
+    isPlaceholderData: false,
     isRefetchError: false,
     isRefreshing: false,
     retry: vi.fn(),

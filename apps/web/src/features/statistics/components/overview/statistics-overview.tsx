@@ -9,8 +9,8 @@ import type { PageTabsItem } from "@/components/page-tabs";
 
 import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
-import { cn } from "@/lib/utils";
 
 import type { DynamicsMetric } from "../../model/statistics-dynamics";
 import type { StatisticsScopeState } from "../../model/statistics-scope-state";
@@ -133,13 +133,10 @@ function StatisticsBody({
   const isLowerBound = overview.meta.activityHistory.selectedPeriodQuality === "legacy_lower_bound";
 
   return (
-    <div
+    <RefreshingRegion
       aria-busy={scope.isRefreshing}
-      className={cn(
-        "flex flex-col gap-6 motion-safe:transition-opacity",
-        scope.isPlaceholderData && "opacity-60",
-      )}
-      inert={scope.isPlaceholderData}
+      className="flex flex-col gap-6"
+      isRefreshing={scope.isPlaceholderData}
     >
       {isLowerBound ? <StatisticsNote>{t("states.lowerBound")}</StatisticsNote> : null}
 
@@ -149,7 +146,7 @@ function StatisticsBody({
         overview={overview}
         params={params}
       />
-    </div>
+    </RefreshingRegion>
   );
 }
 

@@ -28,6 +28,7 @@ import { QuotesToolbar, QuotesToolbarSkeleton } from "./quotes-toolbar";
 export function QuotesView() {
   const t = useTranslations("quotes");
   const tActions = useTranslations("quotes.actions");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
 
@@ -57,7 +58,9 @@ export function QuotesView() {
   const counter =
     filterCounts === undefined
       ? undefined
-      : t("counter", { shown: filterCounts[state.filter], total: filterCounts.all });
+      : facets.isPlaceholderData
+        ? tCommon("updating")
+        : t("counter", { shown: filterCounts[state.filter], total: filterCounts.all });
 
   const filterChips = useQuotesFilterChips({
     facets: facets.data,
@@ -152,6 +155,7 @@ export function QuotesView() {
             isFetchingNextPage={quotes.isFetchingNextPage}
             isLoadMoreError={quotes.isFetchNextPageError}
             isPending={quotes.isPending}
+            isRefreshing={quotes.isPlaceholderData}
             listIdentity={quotesListIdentity(listParams)}
             onAddQuote={() => setAddOpen(true)}
             onClearFilters={clearFilters}

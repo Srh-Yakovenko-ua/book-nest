@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { pageTabsTriggerId } from "@/components/page-tabs";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -22,10 +23,10 @@ import type { DeliveryHistoryTab } from "../model/history-params";
 import { DELIVERY_HISTORY_PANEL_ID } from "../model/history-params";
 
 export type HistoryContent =
-  | { items: HistoryOrderCardModel[]; kind: "ready" }
+  | { isRefreshing: boolean; items: HistoryOrderCardModel[]; kind: "ready" }
+  | { isRefreshing: boolean; kind: "filtered-empty" }
   | { kind: "empty" }
   | { kind: "error" }
-  | { kind: "filtered-empty" }
   | { kind: "loading" };
 
 type DeliveryHistoryViewProps = {
@@ -181,7 +182,11 @@ function HistoryContentArea({
       primary: { icon: "x", label: t("states.filteredEmpty.reset") },
       title: t("states.filteredEmpty.title"),
     };
-    return <EmptyState onPrimary={onResetFilters} state={filteredState} />;
+    return (
+      <RefreshingRegion isRefreshing={content.isRefreshing}>
+        <EmptyState onPrimary={onResetFilters} state={filteredState} />
+      </RefreshingRegion>
+    );
   }
 
   const scrollState: InfiniteScrollState = pagination.isFetchNextPageError
@@ -194,7 +199,9 @@ function HistoryContentArea({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-4">{content.items.map((model) => renderCard(model))}</div>
+      <RefreshingRegion className="flex flex-col gap-4" isRefreshing={content.isRefreshing}>
+        {content.items.map((model) => renderCard(model))}
+      </RefreshingRegion>
 
       <InfiniteScrollFooter
         errorLabel={t("loadMoreError")}

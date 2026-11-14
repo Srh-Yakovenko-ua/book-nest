@@ -9,6 +9,7 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { cn } from "@/lib/utils";
 
 import type { CharactersCatalogState } from "../model/characters-catalog-query";
@@ -21,6 +22,7 @@ type CharactersCatalogContentProps = {
   characters: CharacterCatalogItemView[];
   hasActiveFilters: boolean;
   isPending: boolean;
+  isRefreshing: boolean;
   loadMoreState: InfiniteScrollState;
   onClearFilters: () => void;
   onLoadMore: () => void;
@@ -33,6 +35,7 @@ export function CharactersCatalogContent({
   characters,
   hasActiveFilters,
   isPending,
+  isRefreshing,
   loadMoreState,
   onClearFilters,
   onLoadMore,
@@ -51,18 +54,27 @@ export function CharactersCatalogContent({
   }
 
   if (characters.length === 0) {
-    return hasActiveFilters ? <NoResults onClear={onClearFilters} /> : <EmptyCatalog />;
+    if (!hasActiveFilters) {
+      return <EmptyCatalog />;
+    }
+    return (
+      <RefreshingRegion isRefreshing={isRefreshing}>
+        <NoResults onClear={onClearFilters} />
+      </RefreshingRegion>
+    );
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <ul className={catalogListClassName(view)}>
-        {characters.map((character) => (
-          <li className="min-w-0" key={character.id}>
-            <CatalogCharacterCard character={character} view={view} />
-          </li>
-        ))}
-      </ul>
+      <RefreshingRegion isRefreshing={isRefreshing}>
+        <ul className={catalogListClassName(view)}>
+          {characters.map((character) => (
+            <li className="min-w-0" key={character.id}>
+              <CatalogCharacterCard character={character} view={view} />
+            </li>
+          ))}
+        </ul>
+      </RefreshingRegion>
 
       <InfiniteScrollFooter
         errorLabel={t("loadMoreError")}

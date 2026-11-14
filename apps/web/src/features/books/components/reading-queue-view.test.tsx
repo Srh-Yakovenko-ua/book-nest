@@ -22,7 +22,7 @@ import { ReadingQueueView } from "./reading-queue-view";
 
 function renderQueue(searchParams = "") {
   return renderWithProviders(
-    <NuqsTestingAdapter searchParams={searchParams}>
+    <NuqsTestingAdapter hasMemory searchParams={searchParams}>
       <ReadingQueueView />
     </NuqsTestingAdapter>,
   );
@@ -390,6 +390,49 @@ describe("ReadingQueueView", () => {
       name: copy.item.reorderAria.replace("{title}", "Пріоритетна"),
     });
     expect(handle).toBeDisabled();
+  });
+
+  it("keeps the move controls locked until the full queue replaces the stale search results", async () => {
+    const items = [
+      queueItem(1, "book-1", "Перший том"),
+      queueItem(2, "book-2", "Збірка оповідань"),
+      queueItem(3, "book-3", "Другий том"),
+    ];
+    let releaseFullQueue: (response: Response) => void = () => undefined;
+    const fullQueue = new Promise<Response>((resolve) => {
+      releaseFullQueue = resolve;
+    });
+    mockQueueFetch(
+      (url) =>
+        url.includes("q=") ? Promise.resolve(jsonResponse(serverQueueView(items, url))) : fullQueue,
+      items,
+    );
+    const firstHandleName = copy.item.reorderAria.replace("{title}", "Перший том");
+
+    renderQueue("?q=том");
+    await screen.findByText("Перший том");
+
+    await userEvent.click(screen.getByRole("button", { name: copy.toolbar.clearSearch }));
+
+    expect(screen.getByRole("textbox", { name: copy.toolbar.searchLabel })).toHaveValue("");
+    expect(screen.queryByText("Збірка оповідань")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: firstHandleName })).toBeDisabled();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: copy.item.moreActions.replace("{title}", "Перший том") }),
+    );
+    const moveDown = await screen.findByRole("menuitem", { name: copy.item.moveDown });
+    expect(moveDown).toHaveAttribute("aria-disabled", "true");
+    await userEvent.click(moveDown);
+    await userEvent.keyboard("{Escape}");
+
+    const requestedUrls = vi.mocked(fetch).mock.calls.map(([input]) => String(input));
+    expect(requestedUrls.filter((url) => url.includes("/api/reading-queue/reorder"))).toEqual([]);
+
+    releaseFullQueue(jsonResponse(queueView(items)));
+
+    expect(await screen.findByText("Збірка оповідань")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: firstHandleName })).toBeEnabled();
   });
 
   it("shows the aggregated queue metrics above the list", async () => {

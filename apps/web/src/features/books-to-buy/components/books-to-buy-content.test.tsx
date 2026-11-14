@@ -24,6 +24,7 @@ function renderContent(overrides: Partial<ContentProps> = {}) {
     hasAnyBooks: true,
     isError: false,
     isPending: false,
+    isRefreshing: false,
     onAddBook: vi.fn(),
     onClearFilters: vi.fn(),
     onOpenLibrary: vi.fn(),

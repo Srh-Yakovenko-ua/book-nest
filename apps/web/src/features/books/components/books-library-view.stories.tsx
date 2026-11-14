@@ -194,6 +194,7 @@ const meta = {
     isFetchingNextPage: false,
     isLoadMoreError: false,
     isPending: false,
+    isRefreshing: false,
     libraryTotal: 128,
     loadingLabel: "Завантаження книг…",
     loadMoreErrorLabel: "Не вдалося завантажити ще книги",

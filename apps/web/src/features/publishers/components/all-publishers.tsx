@@ -29,6 +29,7 @@ import { PublishersContent } from "./publishers-content";
 
 export function AllPublishers() {
   const t = useTranslations("publishers");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const query = usePublisherQuery();
   const list = usePublishersList(query.listQuery);
@@ -41,11 +42,15 @@ export function AllPublishers() {
     hasActiveSearch: query.hasActiveSearch,
     list: list.data ?? null,
     listFailed: list.isLoadingError,
+    listIsPlaceholder: list.isPlaceholderData,
     summaryPending: summary.isPending,
     summaryPublishersCount: summary.data?.publishersCount ?? null,
   });
 
-  const resultsAnnouncement = announceResults(state, t);
+  const resultsAnnouncement =
+    state.kind === "results" && state.isRefreshing
+      ? tCommon("updating")
+      : announceResults(state, t);
   const showInsights = state.kind !== "empty" && hasPublisherInsights(summary.data);
   const onAddBook = () => router.push("/books/new");
 
@@ -99,7 +104,7 @@ export function AllPublishers() {
           <PublishersContent
             hasSidebar={showInsights}
             loadMore={{
-              hasNextPage: list.hasNextPage,
+              hasNextPage: list.hasNextPage && !list.isPlaceholderData,
               isError: list.isFetchNextPageError,
               isFetching: list.isFetchingNextPage,
               onLoadMore: () => void list.fetchNextPage(),

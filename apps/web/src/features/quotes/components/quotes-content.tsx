@@ -9,6 +9,7 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,7 @@ type QuotesContentProps = {
   isFetchingNextPage: boolean;
   isLoadMoreError: boolean;
   isPending: boolean;
+  isRefreshing: boolean;
   listIdentity: string;
   onAddQuote: () => void;
   onClearFilters: () => void;
@@ -43,6 +45,7 @@ export function QuotesContent({
   isFetchingNextPage,
   isLoadMoreError,
   isPending,
+  isRefreshing,
   listIdentity,
   onAddQuote,
   onClearFilters,
@@ -90,21 +93,27 @@ export function QuotesContent({
       primary: { icon: "x", label: t("noResults.clear") },
       title: t("noResults.title"),
     };
-    return <EmptyState onPrimary={onClearFilters} state={noResultsState} />;
+    return (
+      <RefreshingRegion isRefreshing={isRefreshing}>
+        <EmptyState onPrimary={onClearFilters} state={noResultsState} />
+      </RefreshingRegion>
+    );
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <ul
-        className={cn("grid grid-cols-1 items-start gap-4", view === "grid" && "md:grid-cols-2")}
-        key={listIdentity}
-      >
-        {quotes.map((quote) => (
-          <li className="flex min-w-0" key={quote.id}>
-            <QuoteArchiveCard quote={quote} />
-          </li>
-        ))}
-      </ul>
+      <RefreshingRegion isRefreshing={isRefreshing}>
+        <ul
+          className={cn("grid grid-cols-1 items-start gap-4", view === "grid" && "md:grid-cols-2")}
+          key={listIdentity}
+        >
+          {quotes.map((quote) => (
+            <li className="flex min-w-0" key={quote.id}>
+              <QuoteArchiveCard quote={quote} />
+            </li>
+          ))}
+        </ul>
+      </RefreshingRegion>
 
       <InfiniteScrollFooter
         allShownLabel={t("allShown")}

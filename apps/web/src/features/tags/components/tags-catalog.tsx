@@ -8,10 +8,10 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { Skeleton } from "@/components/ui/skeleton";
 import { assertNever } from "@/lib/assert-never";
 import { formatNumber } from "@/lib/format";
-import { cn } from "@/lib/utils";
 
 import type { TagsListState } from "../model/tags-list-state";
 import type { TagsViewMode } from "../model/tags-query";
@@ -163,24 +163,23 @@ function TagsList({
 
   return (
     <div className="flex flex-col gap-4">
-      <ul
-        aria-busy={state.isRefreshing}
-        className={cn(
-          CATALOG_LAYOUT[view],
-          "transition-opacity duration-200 motion-reduce:transition-none",
-          state.isRefreshing && "opacity-60",
-        )}
-      >
-        {state.items.map((tag) => (
-          <li className="flex" key={tag.id}>
-            {view === "grid" ? (
-              <TagCard onDelete={() => onDeleteTag(tag)} onEdit={() => onEditTag(tag)} tag={tag} />
-            ) : (
-              <TagRow onDelete={() => onDeleteTag(tag)} onEdit={() => onEditTag(tag)} tag={tag} />
-            )}
-          </li>
-        ))}
-      </ul>
+      <RefreshingRegion isRefreshing={state.isRefreshing}>
+        <ul className={CATALOG_LAYOUT[view]}>
+          {state.items.map((tag) => (
+            <li className="flex" key={tag.id}>
+              {view === "grid" ? (
+                <TagCard
+                  onDelete={() => onDeleteTag(tag)}
+                  onEdit={() => onEditTag(tag)}
+                  tag={tag}
+                />
+              ) : (
+                <TagRow onDelete={() => onDeleteTag(tag)} onEdit={() => onEditTag(tag)} tag={tag} />
+              )}
+            </li>
+          ))}
+        </ul>
+      </RefreshingRegion>
 
       <p aria-atomic className="text-center text-sm text-muted-foreground" role="status">
         {t("counter", {

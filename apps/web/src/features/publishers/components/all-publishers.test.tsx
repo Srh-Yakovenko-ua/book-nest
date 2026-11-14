@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import {
   mockIntersectionObserver,
   renderWithProviders,
@@ -37,11 +38,17 @@ const fetchMock = vi.fn();
 
 const viewport = mockIntersectionObserver();
 
-let respondToList: (params: URLSearchParams) => Response;
+let respondToList: (params: URLSearchParams) => Promise<Response> | Response;
 let respondToQuickCounts: (params: URLSearchParams) => Promise<Response>;
 let respondToSummary: () => Response;
 
 const QUICK_COUNTS_PATH = "/api/publishers/library/quick-counts";
+
+const COPY = {
+  loading: messages.publishers.results.loading,
+  searchLabel: messages.publishers.toolbar.searchLabel,
+  updating: messages.common.updating,
+};
 
 function chip(name: string): HTMLElement {
   const match = screen
@@ -431,6 +438,28 @@ describe("AllPublishers results", () => {
       "2",
       "2",
     ]);
+  });
+
+  it("keeps the previous cards marked busy instead of a skeleton while a search loads", async () => {
+    respondToList = (params) =>
+      params.get("search") === "vi"
+        ? new Promise<Response>(() => undefined)
+        : jsonResponse(makePublishersPage(publishers(2)));
+
+    renderList();
+    await screen.findByRole("link", { name: "publisher 0" });
+    expect(screen.getByText("Показано 2 із 2 видавництв")).toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole("textbox", { name: COPY.searchLabel }), "vi");
+    await waitFor(() => expect(listRequests().at(-1)?.searchParams.get("search")).toBe("vi"));
+
+    const refreshing = await screen.findByRole("generic", { busy: true });
+    expect(within(refreshing).getByRole("link", { name: "publisher 0" })).toBeInTheDocument();
+    expect(within(refreshing).getByRole("link", { name: "publisher 1" })).toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: COPY.loading })).not.toBeInTheDocument();
+    expect(screen.getByText(COPY.updating)).toHaveAttribute("aria-live", "polite");
+    expect(within(refreshing).queryByText(COPY.updating)).not.toBeInTheDocument();
+    expect(screen.queryByText("Показано 2 із 2 видавництв")).not.toBeInTheDocument();
   });
 });
 
