@@ -8,9 +8,7 @@ import { useTranslations } from "next-intl";
 
 import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
-import { UiIcon } from "@/components/icons";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { SummaryError } from "@/components/summary-error";
 import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 import { todayIso } from "@/features/books/model/reading-progress";
 
@@ -46,31 +44,15 @@ export function LoansSummaryCards({
   mobileAction,
   onRetry,
 }: LoansSummaryCardsProps) {
-  const t = useTranslations("loans.summary");
-
-  if (isError) {
-    return (
-      <Card
-        aria-live="assertive"
-        className="flex flex-col items-start gap-2 border border-border bg-card p-4 shadow-card sm:flex-row sm:items-center sm:justify-between"
-        role="alert"
-      >
-        <p className="text-sm text-muted-foreground">{t("error.description")}</p>
-        <Button onClick={onRetry} size="sm" variant="secondary">
-          <UiIcon name="refresh" size={16} />
-          {t("error.retry")}
-        </Button>
-      </Card>
-    );
-  }
-
   return (
-    <LibrarySummaryCards
-      cards={cards}
-      isLoading={isLoading}
-      mobileAction={mobileAction}
-      mobileLayout="compact"
-    />
+    <SummaryError state={isError ? { onRetry } : null}>
+      <LibrarySummaryCards
+        cards={cards}
+        isLoading={isLoading}
+        mobileAction={mobileAction}
+        mobileLayout="compact"
+      />
+    </SummaryError>
   );
 }
 

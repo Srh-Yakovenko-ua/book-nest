@@ -40,7 +40,7 @@ const stats = messages.readingQueue.stats;
 const filters = messages.books.library.filters;
 const readingStatus = messages.books.readingStatus.options;
 const volume = messages.readingQueue.volume;
-const summaryError = messages.books.library.summaryError;
+const summaryError = messages.common.summaryError;
 
 const AVAILABLE_OWNERSHIP: OwnershipStatus[] = ["owned", "borrowed_from_someone"];
 

@@ -4,7 +4,6 @@ import type { CustomListCard, Nullable, ReadingGoalView } from "@app/shared";
 import type { RefObject } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -12,6 +11,7 @@ import { toast } from "sonner";
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
 import { UiIcon } from "@/components/icons";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -129,7 +129,7 @@ function ListOption({
           </span>
         </span>
         {isPending ? (
-          <Loader2 aria-hidden className="size-4 shrink-0 animate-spin text-muted-foreground" />
+          <Spinner className="text-muted-foreground" />
         ) : (
           <UiIcon
             aria-hidden

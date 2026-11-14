@@ -4,6 +4,11 @@
     "loadingMore": "Loading more...",
     "retry": "Retry",
     "refetchError": "Could not refresh the data. Showing the last loaded version.",
+    "summaryError": {
+      "title": "Couldn't load the summary",
+      "description": "The summary data is unavailable right now.",
+      "retry": "Try again"
+    },
     "somethingWentWrong": "Something went wrong",
     "decrement": "Decrease",
     "increment": "Increase",
@@ -822,11 +827,6 @@
       "error": {
         "title": "Couldn't load your library",
         "description": "Try refreshing the page or repeating the request a bit later.",
-        "retry": "Try again"
-      },
-      "summaryError": {
-        "title": "Couldn't load the summary",
-        "description": "The summary data is unavailable right now.",
         "retry": "Try again"
       },
       "invalidRange": {
@@ -3965,7 +3965,6 @@
       "states": {
         "loading": "Loading the statistics…",
         "refreshing": "Updating the statistics…",
-        "refetchError": "Could not update the statistics. Showing the last loaded data.",
         "error": {
           "title": "Could not load the data",
           "description": "Try refreshing the page.",
@@ -5341,11 +5340,6 @@
       }
     },
     "summary": {
-      "error": {
-        "title": "Could not load the summary",
-        "description": "We couldn't load your loan summary.",
-        "retry": "Try again"
-      },
       "mobile": {
         "title": "Detailed stats"
       }
@@ -7554,11 +7548,6 @@
       "mostReadBooks": "{count, plural, one {# book read} other {# books read}}",
       "mostReadEmpty": "No books read yet",
       "noValue": "—",
-      "error": {
-        "title": "Couldn't load the summary",
-        "description": "Try refreshing the page or come back a little later.",
-        "retry": "Try again"
-      },
       "mobile": {
         "title": "Detailed stats",
         "compact": {
@@ -9296,7 +9285,6 @@
       "loading": "Loading statistics",
       "refreshing": "Refreshing data",
       "periodChanging": "Updating the statistics for the selected period. The previous results are temporarily unavailable for interaction.",
-      "refetchError": "Could not refresh the statistics. Showing the previous data.",
       "lowerBound": "Some older reading history may be incomplete. The ≥ mark means the minimum known value.",
       "error": {
         "title": "Could not show the statistics",

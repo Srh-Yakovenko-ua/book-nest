@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent } from "@/test-utils";
 
 import { STATISTICS_QUERY_KEY } from "../api/use-statistics";
@@ -390,9 +391,7 @@ describe("DeliveryStatistics refreshing", () => {
     handlers.statistics = () => Promise.resolve(failingResponse());
     void queryClient.refetchQueries({ queryKey: [STATISTICS_QUERY_KEY] });
 
-    expect(
-      await screen.findByText("Не вдалося оновити статистику. Показуємо останні завантажені дані."),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(messages.common.refetchError)).toBeInTheDocument();
     expect(screen.getByText("Динаміка покупок")).toBeInTheDocument();
     expect(screen.queryByText("Не вдалося завантажити дані")).toBe(null);
   });

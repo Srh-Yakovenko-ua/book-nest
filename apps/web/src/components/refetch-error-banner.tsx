@@ -29,7 +29,7 @@ export function RefetchErrorBanner({ className, state }: RefetchErrorBannerProps
         state === null
           ? "sr-only outline-none"
           : cn(
-              "flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground outline-none",
+              "flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
               className,
             )
       }
@@ -42,7 +42,7 @@ export function RefetchErrorBanner({ className, state }: RefetchErrorBannerProps
           <span className="flex items-start gap-2">
             <UiIcon
               aria-hidden
-              className="mt-0.5 shrink-0 text-favorite"
+              className="mt-0.5 shrink-0 text-warning"
               name="alert-circle"
               size={16}
             />

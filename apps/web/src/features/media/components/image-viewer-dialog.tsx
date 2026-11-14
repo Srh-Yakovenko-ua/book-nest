@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useLayoutEffect, useRef } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -125,7 +126,7 @@ export function ImageViewerDialog({
               className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-card/70 backdrop-blur-sm"
               role="status"
             >
-              <UiIcon className="animate-spin text-muted-foreground" name="refresh" size={24} />
+              <Spinner className="text-muted-foreground" size="lg" />
               {busyLabel === undefined ? null : (
                 <p className="text-sm text-muted-foreground">{busyLabel}</p>
               )}

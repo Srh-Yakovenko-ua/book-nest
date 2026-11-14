@@ -97,9 +97,9 @@ export function LoansView({ type }: { type: LoanType }) {
   const activeOfOtherType = summary.data?.[LOAN_PAGES[page.otherType].direction].totalCount ?? 0;
   const hasAnyLoans = activeOfThisType + activeOfOtherType > 0 || items.length > 0;
   const showChrome = !list.isLoadingError && (list.isPending || hasAnyLoans);
-  const showSummaryCards = summary.isPending || summary.isError || activeOfThisType > 0;
+  const showSummaryCards = summary.isPending || summary.isLoadingError || activeOfThisType > 0;
 
-  const attention: Nullable<LoansAttention> = summary.isError
+  const attention: Nullable<LoansAttention> = summary.isLoadingError
     ? null
     : {
         activeKey: activeAttentionKey(query.filter, query.reminder),
@@ -115,7 +115,7 @@ export function LoansView({ type }: { type: LoanType }) {
 
   const people: LoansPeople = {
     activeContactId: query.contactId,
-    items: summary.isError ? [] : (directionSummary?.topPeople ?? []),
+    items: summary.isLoadingError ? [] : (directionSummary?.topPeople ?? []),
     onPersonOpen: contactDrawer.openContact,
     onPersonSelect: (contactId) =>
       query.setContactId(contactId === query.contactId ? "" : contactId),
@@ -169,7 +169,7 @@ export function LoansView({ type }: { type: LoanType }) {
         {showSummaryCards ? (
           <LoansSummaryCards
             cards={summaryCards}
-            isError={summary.isError}
+            isError={summary.isLoadingError}
             isLoading={summary.isPending}
             mobileAction={
               <LoansOverviewPanel

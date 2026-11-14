@@ -11,6 +11,7 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { SummaryError } from "@/components/summary-error";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,7 +38,6 @@ import { SERIES_ORDER_SIDEBAR_LIMIT } from "../model/series-order-check";
 import { useReadingQueueQuery } from "../model/use-reading-queue-query";
 import { useRemoveFromQueueWithUndo } from "../model/use-remove-from-queue-with-undo";
 import { AddBookToQueueDialog } from "./add-book-to-queue-dialog";
-import { LibrarySummaryError } from "./library-summary-error";
 import { QueueSummaryCards, QueueSummaryCardsSkeleton } from "./queue-summary-cards";
 import { QueueVolumeBlock, QueueVolumeSkeleton } from "./queue-volume-block";
 import { ReadingQueueFilters } from "./reading-queue-filters";
@@ -222,9 +222,9 @@ export function ReadingQueueView() {
         />
       ) : (
         <>
-          {summary.isLoadingError ? (
-            <LibrarySummaryError onRetry={() => void summary.refetch()} />
-          ) : (
+          <SummaryError
+            state={summary.isLoadingError ? { onRetry: () => void summary.refetch() } : null}
+          >
             <QueueSummaryCards
               isLoading={summary.isPending}
               mobileAction={
@@ -238,7 +238,7 @@ export function ReadingQueueView() {
               seriesWithIssuesCount={seriesWithIssuesCount}
               summary={summary.data ?? null}
             />
-          )}
+          </SummaryError>
 
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
             <div className="flex min-w-0 flex-col gap-4">

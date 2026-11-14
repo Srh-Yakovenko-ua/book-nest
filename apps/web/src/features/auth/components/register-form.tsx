@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 
 import { UiIcon } from "@/components/icons";
+import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -326,7 +327,7 @@ function NicknameStatus({ nickname }: { nickname: string }) {
   if (isLoading) {
     return (
       <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-        <UiIcon aria-hidden className="animate-spin" name="refresh" size={13} />
+        <Spinner size="sm" />
         {t("register.nicknameChecking")}
       </p>
     );

@@ -213,7 +213,8 @@ describe("BooksLibrary summary error", () => {
     });
     renderLibrary("all");
 
-    const { summary, summaryError } = library;
+    const { summary } = library;
+    const { summaryError } = messages.common;
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(summaryError.title);
     expect(within(alert).getByRole("button", { name: summaryError.retry })).toBeInTheDocument();

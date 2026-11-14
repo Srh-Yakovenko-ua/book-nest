@@ -2,9 +2,10 @@
 
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
-import { UiIcon, type UiIconName } from "@/components/icons";
+import { UiIcon } from "@/components/icons";
+import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
@@ -56,7 +57,9 @@ export function VerifyEmailScreen({ token }: VerifyEmailScreenProps) {
   if (!hasToken || verify.isError) {
     return (
       <div className="flex flex-col">
-        <BigIcon name="alert-triangle" tone="destructive" />
+        <BigIcon tone="destructive">
+          <UiIcon aria-hidden name="alert-triangle" size={28} />
+        </BigIcon>
         <AuthHeading title={t("verify.title")} />
         <FormBanner className="mt-6" variant="error">
           {t("errors.invalidToken")}
@@ -75,29 +78,18 @@ export function VerifyEmailScreen({ token }: VerifyEmailScreenProps) {
 
   return (
     <div className="flex flex-col items-center text-center" role="status">
-      <BigIcon name="refresh" spinning tone="neutral" />
+      <BigIcon tone="neutral">
+        <Spinner size="lg" />
+      </BigIcon>
       <AuthHeading subtitle={t("verify.subtitle")} title={t("verify.title")} />
     </div>
   );
 }
 
-function BigIcon({
-  name,
-  spinning,
-  tone,
-}: {
-  name: UiIconName;
-  spinning?: boolean;
-  tone: BigIconTone;
-}) {
+function BigIcon({ children, tone }: { children: ReactNode; tone: BigIconTone }) {
   return (
     <div className={cn("mb-5 grid size-16 place-items-center rounded-full", TONE_STYLES[tone])}>
-      <UiIcon
-        aria-hidden
-        className={spinning === true ? "animate-spin" : undefined}
-        name={name}
-        size={28}
-      />
+      {children}
     </div>
   );
 }
@@ -129,7 +121,9 @@ function VerifyEmailSuccess({ destination }: { destination: string }) {
   return (
     <div className="flex flex-col items-center text-center">
       <div className="flex flex-col items-center" role="status">
-        <BigIcon name="check-circle" tone="success" />
+        <BigIcon tone="success">
+          <UiIcon aria-hidden name="check-circle" size={28} />
+        </BigIcon>
         <AuthHeading title={t("verify.success")} />
       </div>
       <p className="mt-2 text-base text-muted-foreground">{t("verify.redirecting", { seconds })}</p>

@@ -19,7 +19,7 @@ vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
-const summaryError = messages.books.library.summaryError;
+const summaryError = messages.common.summaryError;
 const summaryLabels = messages.books.library.summary;
 
 const OVERVIEW: LibraryOverviewView = {

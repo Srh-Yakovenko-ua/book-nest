@@ -7,8 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 
 import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
-import { UiIcon } from "@/components/icons";
-import { Button } from "@/components/ui/button";
+import { SummaryError } from "@/components/summary-error";
 import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 import { formatNumber } from "@/lib/format";
 
@@ -37,34 +36,16 @@ export function PublisherSummaryCards({
   mobileAction,
   onRetry,
 }: PublisherSummaryCardsProps) {
-  const t = useTranslations("publishers.summary");
-
-  if (isError) {
-    return (
-      <div
-        className="flex flex-col items-start gap-3 rounded-xl border border-border bg-card p-4 shadow-card"
-        role="alert"
-      >
-        <div className="flex flex-col gap-1">
-          <p className="text-sm font-semibold text-ink">{t("error.title")}</p>
-          <p className="text-xs text-muted-foreground">{t("error.description")}</p>
-        </div>
-        <Button onClick={onRetry} size="sm" variant="secondary">
-          <UiIcon name="refresh" size={16} />
-          {t("error.retry")}
-        </Button>
-      </div>
-    );
-  }
-
   return (
-    <LibrarySummaryCards
-      cards={cards}
-      isLoading={isLoading}
-      mobileAction={mobileAction}
-      mobileLayout="compact"
-      skeletonCount={SUMMARY_CARDS.count}
-    />
+    <SummaryError state={isError ? { onRetry } : null}>
+      <LibrarySummaryCards
+        cards={cards}
+        isLoading={isLoading}
+        mobileAction={mobileAction}
+        mobileLayout="compact"
+        skeletonCount={SUMMARY_CARDS.count}
+      />
+    </SummaryError>
   );
 }
 
