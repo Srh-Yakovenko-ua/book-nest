@@ -44,6 +44,17 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+describe("AllSeries auto paging", () => {
+  it("loads every page without user action", async () => {
+    renderAllSeries();
+
+    expect(
+      await screen.findByRole("heading", { level: 3, name: seriesName(3) }),
+    ).toBeInTheDocument();
+    expect(requestedPages).toEqual([1, 2, 3]);
+  });
+});
+
 describe("AllSeries next page failure", () => {
   it("keeps the first page and shows the refresh banner instead of the error card", async () => {
     replyToSeriesPage = failSecondPage;

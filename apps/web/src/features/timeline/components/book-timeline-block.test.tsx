@@ -347,7 +347,9 @@ describe("BookTimelineBlock", () => {
         .catch(() => undefined);
     });
 
-    expect(screen.queryByText(messages.common.refetchError)).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByText(messages.common.refetchError)).not.toBeInTheDocument(),
+    );
     expect(screen.getByText(messages.timeline.overview.byType)).toBeInTheDocument();
   });
 
