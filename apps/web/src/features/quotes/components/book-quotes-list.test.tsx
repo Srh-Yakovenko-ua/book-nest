@@ -56,6 +56,7 @@ function renderList(state: BookQuotesListState) {
     onClearSearch: vi.fn(),
     onLoadMore: vi.fn(),
     onRetry: vi.fn(),
+    retryButtonRef: null,
   };
   renderWithProviders(<BookQuotesList state={state} {...actions} />);
   return actions;

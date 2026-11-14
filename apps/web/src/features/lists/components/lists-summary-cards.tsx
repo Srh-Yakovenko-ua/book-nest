@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 
 import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
+import { SummaryError } from "@/components/summary-error";
 import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 
 type ListsSummaryCardsProps = {
@@ -14,6 +15,7 @@ type ListsSummaryCardsProps = {
   isError: boolean;
   isLoading: boolean;
   mobileAction?: ReactNode;
+  onRetry: () => void;
 };
 
 const EMPTY_SUMMARY: ListsSummaryView = {
@@ -35,16 +37,17 @@ export function ListsSummaryCards({
   isError,
   isLoading,
   mobileAction,
+  onRetry,
 }: ListsSummaryCardsProps) {
-  if (isError) return null;
-
   return (
-    <LibrarySummaryCards
-      cards={cards}
-      isLoading={isLoading}
-      mobileAction={mobileAction}
-      mobileLayout="compact"
-    />
+    <SummaryError state={isError ? { onRetry } : null}>
+      <LibrarySummaryCards
+        cards={cards}
+        isLoading={isLoading}
+        mobileAction={mobileAction}
+        mobileLayout="compact"
+      />
+    </SummaryError>
   );
 }
 

@@ -65,6 +65,7 @@ const requests: RecordedRequest[] = [];
 const server = {
   correctionError: null as Nullable<{ body: unknown; status: number }>,
   listPending: false,
+  listReply: null as Nullable<Promise<Response>>,
   listStatus: null as Nullable<number>,
 };
 
@@ -126,6 +127,7 @@ beforeEach(() => {
   vi.setSystemTime(TODAY);
   server.correctionError = null;
   server.listPending = false;
+  server.listReply = null;
   server.listStatus = null;
 });
 
@@ -199,6 +201,42 @@ describe("LoanHistoryView states", () => {
 
     expect(await screen.findByText("Дюна")).toBeInTheDocument();
     expect(screen.queryByText(copy.states.error.title)).not.toBeInTheDocument();
+  });
+
+  it("moves focus to the new retry button when the history retry fails again", async () => {
+    const { error } = copy.states;
+    server.listStatus = 500;
+    mockHistory([historyItem()]);
+    renderHistory();
+    (await screen.findByRole("button", { name: error.retry })).focus();
+
+    let failRetry = () => {};
+    server.listReply = new Promise<Response>((resolve) => {
+      failRetry = () => resolve(jsonResponse({ message: "boom" }, 500));
+    });
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: error.retry })).not.toBeInTheDocument(),
+    );
+    expect(document.body).not.toHaveFocus();
+    failRetry();
+
+    expect(await screen.findByRole("button", { name: error.retry })).toHaveFocus();
+  });
+
+  it("keeps focus off the page body when the history retry loads the loans", async () => {
+    server.listStatus = 500;
+    mockHistory([historyItem()]);
+    renderHistory();
+    const retry = await screen.findByRole("button", { name: copy.states.error.retry });
+    retry.focus();
+
+    server.listStatus = null;
+    await userEvent.keyboard("{Enter}");
+
+    expect(await screen.findByText("Дюна")).toBeInTheDocument();
+    expect(retry).not.toBeInTheDocument();
+    expect(document.body).not.toHaveFocus();
   });
 
   it("hides the toolbar and the sidebar while the history cannot be loaded", async () => {
@@ -1914,6 +1952,7 @@ function mockHistory(items: HistoryFixture[], options: MockOptions = {}) {
       }
 
       if (isListRequest(url)) {
+        if (server.listReply !== null) return server.listReply;
         if (server.listPending) return new Promise<Response>(() => undefined);
         if (server.listStatus !== null) {
           return Promise.resolve(jsonResponse({ message: "boom" }, server.listStatus));

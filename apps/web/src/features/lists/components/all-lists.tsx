@@ -104,7 +104,7 @@ export function AllLists() {
         summary={
           <ListsSummaryCards
             cards={summaryCards}
-            isError={summary.isError}
+            isError={summary.isLoadingError}
             isLoading={summary.isPending}
             mobileAction={
               <ListsOverviewPanel
@@ -115,6 +115,7 @@ export function AllLists() {
                 summaryCards={summaryCards}
               />
             }
+            onRetry={() => void summary.refetch()}
           />
         }
         toolbar={

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
 import { useTranslations } from "next-intl";
 
@@ -36,7 +36,13 @@ const REFRESH_MESSAGE = {
   refetch: "refreshing",
 } as const satisfies Record<StatisticsRefreshReason, string>;
 
-export function StatisticsError({ onRetry }: { onRetry: () => void }) {
+export function StatisticsError({
+  onRetry,
+  retryButtonRef,
+}: {
+  onRetry: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
+}) {
   const t = useTranslations("statistics.states");
 
   const entry: EmptyStateEntry = {
@@ -48,7 +54,7 @@ export function StatisticsError({ onRetry }: { onRetry: () => void }) {
 
   return (
     <div aria-live="assertive" role="alert">
-      <EmptyState onPrimary={onRetry} state={entry} />
+      <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={entry} />
     </div>
   );
 }

@@ -26,13 +26,13 @@ export function useSeriesList(params: SeriesControllerSearchParams = {}) {
     queryKey: seriesKeys.list(listParams),
   });
 
-  const { fetchNextPage, hasNextPage, isFetchingNextPage } = query;
+  const { fetchNextPage, hasNextPage, isFetching, isFetchNextPageError } = query;
 
   useEffect(() => {
-    if (hasNextPage && !isFetchingNextPage) {
+    if (hasNextPage && !isFetching && !isFetchNextPageError) {
       void fetchNextPage();
     }
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+  }, [fetchNextPage, hasNextPage, isFetching, isFetchNextPageError]);
 
   return query;
 }

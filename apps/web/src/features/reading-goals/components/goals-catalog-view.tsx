@@ -1,8 +1,9 @@
 "use client";
 
-import type { ReactNode, RefObject } from "react";
+import type { ReactNode, Ref, RefObject } from "react";
 
 import { useTranslations } from "next-intl";
+import { useRef } from "react";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
@@ -12,6 +13,7 @@ import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { assertNever } from "@/lib/assert-never";
 
 import type { GoalsCatalogContent } from "../model/goals-catalog-content";
@@ -50,6 +52,8 @@ export function GoalsCatalogView({
 }: GoalsCatalogViewProps) {
   const t = useTranslations("goals.catalog");
   const hasNoGoals = content.kind === "empty";
+  const listHeadingRef = useRef<HTMLHeadingElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(listHeadingRef);
 
   return (
     <div className="flex flex-col gap-6">
@@ -74,13 +78,16 @@ export function GoalsCatalogView({
       {hasNoGoals || content.kind === "error" ? null : toolbar}
 
       <section className="flex min-w-0 flex-col gap-6">
-        <h2 className="sr-only">{t("listHeading")}</h2>
+        <h2 className="sr-only" ref={listHeadingRef} tabIndex={-1}>
+          {t("listHeading")}
+        </h2>
         <GoalsContent
           content={content}
           onClearStatus={onClearStatus}
           onCreate={onCreate}
           onLoadMore={onLoadMore}
-          onRetry={onRetry}
+          onRetry={withRetryFocus(onRetry)}
+          retryButtonRef={retryButtonRef}
           view={view}
         />
       </section>
@@ -106,8 +113,11 @@ function GoalsContent({
   onCreate,
   onLoadMore,
   onRetry,
+  retryButtonRef,
   view,
-}: Omit<GoalsCatalogViewProps, "createButtonRef" | "overview" | "toolbar">) {
+}: Omit<GoalsCatalogViewProps, "createButtonRef" | "overview" | "toolbar"> & {
+  retryButtonRef: Ref<HTMLButtonElement>;
+}) {
   const t = useTranslations("goals.catalog");
 
   switch (content.kind) {
@@ -129,7 +139,7 @@ function GoalsContent({
       };
       return (
         <div aria-live="assertive" role="alert">
-          <EmptyState onPrimary={onRetry} state={errorState} />
+          <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
         </div>
       );
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
 import { useTranslations } from "next-intl";
 
@@ -13,6 +13,7 @@ type AllPublishersViewProps = {
   controls: ReactNode;
   insights: ReactNode;
   onAddBook: () => void;
+  resultsHeadingRef: Ref<HTMLHeadingElement>;
   summary: ReactNode;
 };
 
@@ -21,6 +22,7 @@ export function AllPublishersView({
   controls,
   insights,
   onAddBook,
+  resultsHeadingRef,
   summary,
 }: AllPublishersViewProps) {
   const t = useTranslations("publishers.page");
@@ -52,7 +54,9 @@ export function AllPublishersView({
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <section className="flex min-w-0 flex-1 flex-col gap-6">
-          <h2 className="sr-only">{t("resultsTitle")}</h2>
+          <h2 className="sr-only" ref={resultsHeadingRef} tabIndex={-1}>
+            {t("resultsTitle")}
+          </h2>
           {content}
         </section>
 

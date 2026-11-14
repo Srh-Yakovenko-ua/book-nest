@@ -1,9 +1,11 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useRef } from "react";
 
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { type ActiveFilterChip, LibraryActiveFilters } from "@/features/books";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
 
 import { usePublisherQuickCounts } from "../api/use-publisher-quick-counts";
@@ -36,6 +38,8 @@ export function AllPublishers() {
   const quickCounts = usePublisherQuickCounts(toPublishersQuickCountsParams(query.listQuery));
   const summary = usePublisherSummary();
   const summaryCards = usePublisherSummaryCards(summary.data);
+  const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsHeadingRef);
 
   const state = resolvePublishersArchiveState({
     hasActiveFilters: query.hasActiveFilters,
@@ -113,7 +117,8 @@ export function AllPublishers() {
             onClearAll={query.clearAll}
             onClearSearch={query.clearSearch}
             onResetFilters={query.resetFilters}
-            onRetry={() => void list.refetch()}
+            onRetry={withRetryFocus(() => void list.refetch())}
+            retryButtonRef={retryButtonRef}
             state={state}
             view={query.state.view}
           />
@@ -152,6 +157,7 @@ export function AllPublishers() {
         ) : null
       }
       onAddBook={onAddBook}
+      resultsHeadingRef={resultsHeadingRef}
       summary={
         <PublisherSummaryCards
           cards={summaryCards}

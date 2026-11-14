@@ -20,6 +20,7 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import type { NotesArchiveScope } from "../model/notes-archive-config";
@@ -708,14 +709,29 @@ describe("NotesArchiveView summary cards", () => {
     expect(await summaryMicrofact("Найбільше в одній серії")).toContain("2 серії мають максимум");
   });
 
-  it("shows no cards but keeps the archive when the summary fails", async () => {
+  it("shows the summary error card but keeps the archive when the summary fails", async () => {
     mockArchive("books", { summary: failure(500) });
 
     renderArchive("books");
 
     expect(await screen.findByText(ARCHIVE_NOTE_TEXT.books)).toBeInTheDocument();
-    await waitFor(() => expect(requestsTo("/api/notes/books/summary")).toHaveLength(1));
-    await waitFor(() => expect(summaryCards()).toHaveLength(0));
+    expect(await screen.findByText(messages.common.summaryError.title)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: messages.common.summaryError.retry }),
+    ).toBeInTheDocument();
+    expect(requestsTo("/api/notes/books/summary")).toHaveLength(1);
+    expect(summaryCards()).toHaveLength(0);
+  });
+
+  it("requests the summary again when retry is clicked on the summary error card", async () => {
+    mockArchive("books", { summary: failure(500) });
+    renderArchive("books");
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: messages.common.summaryError.retry }),
+    );
+
+    await waitFor(() => expect(requestsTo("/api/notes/books/summary")).toHaveLength(2));
   });
 });
 

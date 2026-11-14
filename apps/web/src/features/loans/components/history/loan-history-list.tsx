@@ -1,6 +1,7 @@
 "use client";
 
 import type { LoanHistoryListItemView } from "@app/shared";
+import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
 
@@ -24,6 +25,7 @@ type LoanHistoryListProps = {
   onOpenContact: (contactId: string) => void;
   onOpenDetails: (loanId: string) => void;
   onRetry: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
 };
 
 export function LoanHistoryList({
@@ -38,6 +40,7 @@ export function LoanHistoryList({
   onOpenContact,
   onOpenDetails,
   onRetry,
+  retryButtonRef,
 }: LoanHistoryListProps) {
   const t = useTranslations("loans.history.states");
   const tPage = useTranslations("loans.pages.history");
@@ -52,7 +55,7 @@ export function LoanHistoryList({
 
     return (
       <div aria-live="assertive" role="alert">
-        <EmptyState onPrimary={onRetry} state={errorState} />
+        <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
       </div>
     );
   }

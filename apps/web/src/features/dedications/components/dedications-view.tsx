@@ -4,7 +4,7 @@ import type { BookView, Nullable } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
@@ -14,6 +14,7 @@ import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { useGenres } from "@/features/books/api/use-genres";
 import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 
 import { useDedications } from "../api/use-dedications";
 import { useDedicationsQuickCounts } from "../api/use-dedications-quick-counts";
@@ -36,6 +37,8 @@ export function DedicationsView() {
   const quickCounts = useDedicationsQuickCounts(toDedicationsQuickCountsParams(query.listParams));
   const summary = useDedicationsSummary();
   const genres = useGenres();
+  const resultsRegionRef = useRef<HTMLDivElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsRegionRef);
 
   const [openedBook, setOpenedBook] = useState<Nullable<BookView>>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -198,7 +201,11 @@ export function DedicationsView() {
       />
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
+        <div
+          className="flex min-w-0 flex-1 flex-col gap-6 outline-none"
+          ref={resultsRegionRef}
+          tabIndex={-1}
+        >
           <RefetchErrorBanner
             state={
               dedications.isRefetchError
@@ -218,7 +225,8 @@ export function DedicationsView() {
             onChooseBook={onChooseBook}
             onClearFilters={query.clearFilters}
             onOpenDedication={setOpenedBook}
-            onRetry={() => void dedications.refetch()}
+            onRetry={withRetryFocus(() => void dedications.refetch())}
+            retryButtonRef={retryButtonRef}
             view={query.state.view}
           />
           {books.length === 0 || dedications.isLoadingError ? null : (

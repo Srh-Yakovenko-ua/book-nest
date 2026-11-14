@@ -1,6 +1,7 @@
 "use client";
 
 import type { QuoteView } from "@app/shared";
+import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
 
@@ -35,6 +36,7 @@ type QuotesContentProps = {
   onOpenBooks: () => void;
   onRetry: () => void;
   quotes: QuoteView[];
+  retryButtonRef: Ref<HTMLButtonElement>;
   view: QuotesViewMode;
 };
 
@@ -53,6 +55,7 @@ export function QuotesContent({
   onOpenBooks,
   onRetry,
   quotes,
+  retryButtonRef,
   view,
 }: QuotesContentProps) {
   const t = useTranslations("quotes");
@@ -66,7 +69,7 @@ export function QuotesContent({
     };
     return (
       <div aria-live="assertive" role="alert">
-        <EmptyState onPrimary={onRetry} state={errorState} />
+        <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
       </div>
     );
   }

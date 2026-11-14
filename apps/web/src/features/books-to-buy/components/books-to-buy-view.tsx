@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { LibraryActiveFilters, useGenres } from "@/features/books";
 import { useSelectedTags } from "@/features/books/api/use-tags-search";
 import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
 
 import { useWishlist } from "../api/use-wishlist";
@@ -47,6 +48,8 @@ export function BooksToBuyView() {
   const genres = useGenres();
   const selectedTags = useSelectedTags(wishlist.state.tag);
   const [entityLabels, setEntityLabels] = useState<Record<string, string>>({});
+  const resultsRegionRef = useRef<HTMLDivElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsRegionRef);
 
   const allBooks = data?.books ?? [];
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
@@ -201,7 +204,11 @@ export function BooksToBuyView() {
       />
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
+        <div
+          className="flex min-w-0 flex-1 flex-col gap-6 outline-none"
+          ref={resultsRegionRef}
+          tabIndex={-1}
+        >
           <RefetchErrorBanner
             state={
               isRefetchError ? { isRetrying: isRefetching, onRetry: () => void refetch() } : null
@@ -216,7 +223,8 @@ export function BooksToBuyView() {
             onAddBook={onAddBook}
             onClearFilters={wishlist.clearAll}
             onOpenLibrary={() => router.push("/books")}
-            onRetry={() => void refetch()}
+            onRetry={withRetryFocus(() => void refetch())}
+            retryButtonRef={retryButtonRef}
             view={wishlist.view}
           />
         </div>

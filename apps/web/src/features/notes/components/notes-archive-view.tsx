@@ -81,13 +81,13 @@ function NotesArchive({ query }: { query: UseNotesArchiveQueryResult }) {
   });
 
   const mobileOverview =
-    summary.isError && contextualOverview === null ? null : (
+    summary.isLoadingError && contextualOverview === null ? null : (
       <NotesOverviewPanel
         isLoading={summary.isPending || overview.isPending}
         overview={contextualOverview}
         postFinishReview={postFinishReview}
         recordImpression={recordImpression}
-        summaryCards={summary.isError ? null : summaryCards}
+        summaryCards={summary.isLoadingError ? null : summaryCards}
       />
     );
 
@@ -119,9 +119,10 @@ function NotesArchive({ query }: { query: UseNotesArchiveQueryResult }) {
       summary={
         <NotesSummaryCards
           cards={summaryCards}
-          isError={summary.isError}
+          isError={summary.isLoadingError}
           isLoading={summary.isPending}
           mobileAction={mobileOverview}
+          onRetry={() => void summary.refetch()}
         />
       }
       title={t(`${config.scope}.title`)}

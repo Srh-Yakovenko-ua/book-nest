@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
 import { useTranslations } from "next-intl";
 
@@ -73,7 +73,13 @@ export function StatisticsDataQualityNote({
   );
 }
 
-export function StatisticsError({ onRetry }: { onRetry: () => void }) {
+export function StatisticsError({
+  onRetry,
+  retryButtonRef,
+}: {
+  onRetry: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
+}) {
   const t = useTranslations("delivery.statistics.states");
 
   const errorState: EmptyStateEntry = {
@@ -85,7 +91,7 @@ export function StatisticsError({ onRetry }: { onRetry: () => void }) {
 
   return (
     <div aria-live="assertive" role="alert">
-      <EmptyState onPrimary={onRetry} state={errorState} />
+      <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
     </div>
   );
 }

@@ -3,12 +3,13 @@
 import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
 
 import { useQuotes } from "../api/use-quotes";
@@ -31,6 +32,8 @@ export function QuotesView() {
   const tCommon = useTranslations("common");
   const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
+  const resultsRegionRef = useRef<HTMLDivElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsRegionRef);
 
   const {
     activeFilterCount,
@@ -78,7 +81,7 @@ export function QuotesView() {
       onShowFavorites={() => setFilter("favorites")}
       onShowRecent={() => setSort("newest")}
       onShowWithComment={() => setFilter("with_comment")}
-      summaryCards={summaryCards}
+      summaryCards={summary.isLoadingError ? null : summaryCards}
     />
   );
 
@@ -107,9 +110,10 @@ export function QuotesView() {
       {showSidebar ? (
         <QuotesSummaryCards
           cards={summaryCards}
-          isError={summary.isError}
+          isError={summary.isLoadingError}
           isLoading={summary.isPending}
           mobileAction={overviewPanel}
+          onRetry={() => void summary.refetch()}
         />
       ) : null}
 
@@ -140,7 +144,11 @@ export function QuotesView() {
       />
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
+        <div
+          className="flex min-w-0 flex-1 flex-col gap-6 outline-none"
+          ref={resultsRegionRef}
+          tabIndex={-1}
+        >
           <RefetchErrorBanner
             state={
               quotes.isRefetchError
@@ -161,8 +169,9 @@ export function QuotesView() {
             onClearFilters={clearFilters}
             onLoadMore={() => void quotes.fetchNextPage()}
             onOpenBooks={() => router.push("/books")}
-            onRetry={() => void quotes.refetch()}
+            onRetry={withRetryFocus(() => void quotes.refetch())}
             quotes={quoteItems}
+            retryButtonRef={retryButtonRef}
             view={state.view}
           />
         </div>

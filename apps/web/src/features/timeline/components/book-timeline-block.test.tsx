@@ -10,7 +10,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
-import { makeBookView } from "../../books/components/book-details.fixtures";
+import { bookKeys } from "../../books/api/book-keys";
+import { makeBookDetailsView, makeBookView } from "../../books/components/book-details.fixtures";
 import { timelineKeys } from "../api/timeline-keys";
 import {
   makeEventsPage,
@@ -316,6 +317,47 @@ describe("BookTimelineBlock", () => {
     expect(await screen.findByText(messages.common.refetchError)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Геральт прибуває до Визими" })).toBeInTheDocument();
     expect(screen.queryByText(messages.timeline.states.errorText)).not.toBeInTheDocument();
+  });
+
+  it("keeps the overview and shows the refresh banner when an overview refetch fails", async () => {
+    const { queryClient } = renderBlock("?view=overview");
+    expect(await screen.findByText(messages.timeline.overview.byType)).toBeInTheDocument();
+
+    overviewResponder = () => jsonResponse({ message: "boom" }, 500);
+    await act(() => queryClient.refetchQueries({ queryKey: timelineKeys.overview("book-1") }));
+
+    expect(await screen.findByText(messages.common.refetchError)).toBeInTheDocument();
+    expect(screen.getByText(messages.timeline.overview.byType)).toBeInTheDocument();
+  });
+
+  it("leaves the refresh banner to the book page while the book refetch has failed", async () => {
+    const { queryClient } = renderBlock("?view=overview");
+    expect(await screen.findByText(messages.timeline.overview.byType)).toBeInTheDocument();
+    overviewResponder = () => jsonResponse({ message: "boom" }, 500);
+    await act(() => queryClient.refetchQueries({ queryKey: timelineKeys.overview("book-1") }));
+    expect(await screen.findByText(messages.common.refetchError)).toBeInTheDocument();
+
+    await act(async () => {
+      queryClient.setQueryData(bookKeys.detail("book-1"), makeBookDetailsView({ id: "book-1" }));
+      await queryClient
+        .fetchQuery({
+          queryFn: () => Promise.reject(new Error("book refetch failed")),
+          queryKey: bookKeys.detail("book-1"),
+        })
+        .catch(() => undefined);
+    });
+
+    expect(screen.queryByText(messages.common.refetchError)).not.toBeInTheDocument();
+    expect(screen.getByText(messages.timeline.overview.byType)).toBeInTheDocument();
+  });
+
+  it("watches the book refetch state without requesting the book itself", async () => {
+    renderBlock("?view=overview");
+
+    expect(await screen.findByText(messages.timeline.overview.byType)).toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.map(([input]) => new URL(String(input), "http://localhost").pathname),
+    ).not.toContain("/api/books/book-1");
   });
 
   it("shows the empty state when a book has no events", async () => {

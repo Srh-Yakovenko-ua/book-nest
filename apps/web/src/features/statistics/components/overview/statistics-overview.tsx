@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReadingStatisticsInsightCode, ReadingStatisticsOverview } from "@app/shared";
+import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
 import { useRef } from "react";
@@ -11,6 +12,7 @@ import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 
 import type { DynamicsMetric } from "../../model/statistics-dynamics";
 import type { StatisticsScopeState } from "../../model/statistics-scope-state";
@@ -61,6 +63,8 @@ export function StatisticsOverview() {
   const scope = toStatisticsScopeState(query);
   const currentOverview = scope.isPlaceholderData ? undefined : scope.data;
   const periodTriggerRef = useRef<HTMLButtonElement>(null);
+  const statisticsBodyRef = useRef<HTMLDivElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(statisticsBodyRef);
 
   const showAllTime = () => {
     periodTriggerRef.current?.focus();
@@ -97,25 +101,37 @@ export function StatisticsOverview() {
         }
       />
 
-      <StatisticsBody onShowAllTime={showAllTime} params={params} scope={scope} />
+      <div className="outline-none" ref={statisticsBodyRef} tabIndex={-1}>
+        <StatisticsBody
+          onRetry={withRetryFocus(scope.retry)}
+          onShowAllTime={showAllTime}
+          params={params}
+          retryButtonRef={retryButtonRef}
+          scope={scope}
+        />
+      </div>
     </div>
   );
 }
 
 function StatisticsBody({
+  onRetry,
   onShowAllTime,
   params,
+  retryButtonRef,
   scope,
 }: {
+  onRetry: () => void;
   onShowAllTime: () => void;
   params: UseStatisticsParamsResult;
+  retryButtonRef: Ref<HTMLButtonElement>;
   scope: StatisticsScopeState<ReadingStatisticsOverview>;
 }) {
   const t = useTranslations("statistics");
   const overview = scope.data;
 
   if (scope.isInitialError) {
-    return <StatisticsError onRetry={scope.retry} />;
+    return <StatisticsError onRetry={onRetry} retryButtonRef={retryButtonRef} />;
   }
 
   if (overview === undefined) {

@@ -13,6 +13,14 @@ const { summaryError } = messages.common;
 const summaryText = messages.books.library.summary.total;
 const skeletonText = messages.common.loading;
 
+function embeddedSummaryArea(state: Nullable<SummaryErrorState>, content = summaryText) {
+  return (
+    <SummaryError state={state} variant="embedded">
+      <p>{content}</p>
+    </SummaryError>
+  );
+}
+
 function failedState(): SummaryErrorState {
   return { onRetry: vi.fn() };
 }
@@ -112,5 +120,51 @@ describe("SummaryError", () => {
     renderWithProviders(summaryArea(failedState()));
 
     expect(document.body).toHaveFocus();
+  });
+
+  describe("embedded variant", () => {
+    it("shows the error title, description and Retry in place of the children", () => {
+      renderWithProviders(embeddedSummaryArea(failedState()));
+
+      expect(screen.getByText(summaryError.title)).toBeInTheDocument();
+      expect(screen.getByText(summaryError.description)).toBeInTheDocument();
+      expect(retryButton()).toBeInTheDocument();
+      expect(screen.queryByText(summaryText)).not.toBeInTheDocument();
+    });
+
+    it("shows the error without an alert role of its own", () => {
+      renderWithProviders(embeddedSummaryArea(failedState()));
+
+      expect(screen.getByText(summaryError.title)).toBeInTheDocument();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
+    it("calls onRetry once when Retry is clicked", async () => {
+      const onRetry = vi.fn();
+      renderWithProviders(embeddedSummaryArea({ onRetry }));
+
+      await userEvent.click(retryButton());
+
+      expect(onRetry).toHaveBeenCalledTimes(1);
+    });
+
+    it("leaves focus on the clicked Retry button instead of moving it to a summary region", async () => {
+      renderWithProviders(embeddedSummaryArea(failedState()));
+
+      await userEvent.click(retryButton());
+
+      expect(retryButton()).toHaveFocus();
+    });
+
+    it("does not focus the new Retry button when a retry fails again", async () => {
+      const state = failedState();
+      const { rerender } = renderWithProviders(embeddedSummaryArea(state));
+
+      await userEvent.click(retryButton());
+      rerender(embeddedSummaryArea(null, skeletonText));
+      rerender(embeddedSummaryArea(state));
+
+      expect(retryButton()).not.toHaveFocus();
+    });
   });
 });

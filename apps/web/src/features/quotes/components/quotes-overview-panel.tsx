@@ -27,7 +27,7 @@ type QuotesOverviewPanelProps = {
   onShowFavorites: () => void;
   onShowRecent: () => void;
   onShowWithComment: () => void;
-  summaryCards: LibrarySummaryCard[];
+  summaryCards: Nullable<LibrarySummaryCard[]>;
 };
 
 export function QuotesOverviewPanel({
@@ -48,7 +48,9 @@ export function QuotesOverviewPanel({
     {
       content: (
         <div className="flex flex-col gap-4">
-          <LibrarySummaryDetails cards={summaryCards} title={tDetails("title")} />
+          {summaryCards === null ? null : (
+            <LibrarySummaryDetails cards={summaryCards} title={tDetails("title")} />
+          )}
           <QuoteRediscoveryBlock
             isVisible
             onOpenFullView={(quote) => panel.closeThen(() => setFullViewQuote(quote))}

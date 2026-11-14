@@ -7,6 +7,7 @@ import { useRef } from "react";
 
 import { TitleLeaf } from "@/components/title-leaf";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
 import { assertNever } from "@/lib/assert-never";
 
@@ -45,6 +46,7 @@ export function Genres() {
   const tGenres = useTranslations("genres");
   const toolbarRef = useRef<HTMLDivElement>(null);
   const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsHeadingRef);
   const router = useRouter();
   const query = useGenresQuery();
   const list = useGenresList(query.listParams);
@@ -111,7 +113,8 @@ export function Genres() {
               query.resetFilters();
               resultsHeadingRef.current?.focus();
             }}
-            onRetry={() => void list.refetch()}
+            onRetry={withRetryFocus(() => void list.refetch())}
+            retryButtonRef={retryButtonRef}
             state={listState}
           />
         </div>

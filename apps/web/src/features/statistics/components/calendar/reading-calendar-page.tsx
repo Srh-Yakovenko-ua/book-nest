@@ -5,7 +5,7 @@ import type {
   ReadingStatisticsCalendarPage,
   ReadingStatisticsCalendarSection,
 } from "@app/shared";
-import type { ReactNode, RefObject } from "react";
+import type { ReactNode, Ref, RefObject } from "react";
 
 import { useTranslations } from "next-intl";
 import { useId, useRef } from "react";
@@ -15,6 +15,7 @@ import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Skeleton } from "@/components/ui/skeleton";
 import { YearPicker } from "@/components/ui/year-picker";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 
 import type { StatisticsScopeState } from "../../model/statistics-scope-state";
 import type { UseReadingCalendarParamsResult } from "../../model/use-reading-calendar-params";
@@ -39,6 +40,8 @@ export function ReadingCalendarPage() {
   const params = useReadingCalendarParams();
   const scope = toStatisticsScopeState(useReadingCalendarPage({ year: params.year }));
   const booksSectionRef = useRef<HTMLDivElement>(null);
+  const calendarBodyRef = useRef<HTMLDivElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(calendarBodyRef);
   const jump = useBooksCalendarJump({
     isCalendarCurrent: scope.data?.year === params.year && !scope.isPlaceholderData,
     month: params.month,
@@ -74,12 +77,16 @@ export function ReadingCalendarPage() {
         }
       />
 
-      <ReadingCalendarBody
-        booksSectionRef={booksSectionRef}
-        jump={jump}
-        params={params}
-        scope={scope}
-      />
+      <div className="outline-none" ref={calendarBodyRef} tabIndex={-1}>
+        <ReadingCalendarBody
+          booksSectionRef={booksSectionRef}
+          jump={jump}
+          onRetry={withRetryFocus(scope.retry)}
+          params={params}
+          retryButtonRef={retryButtonRef}
+          scope={scope}
+        />
+      </div>
     </div>
   );
 }
@@ -87,12 +94,16 @@ export function ReadingCalendarPage() {
 function ReadingCalendarBody({
   booksSectionRef,
   jump,
+  onRetry,
   params,
+  retryButtonRef,
   scope,
 }: {
   booksSectionRef: RefObject<Nullable<HTMLDivElement>>;
   jump: ReturnType<typeof useBooksCalendarJump>;
+  onRetry: () => void;
   params: UseReadingCalendarParamsResult;
+  retryButtonRef: Ref<HTMLButtonElement>;
   scope: StatisticsScopeState<ReadingStatisticsCalendarPage>;
 }) {
   const t = useTranslations("readingCalendar");
@@ -101,7 +112,7 @@ function ReadingCalendarBody({
   const page = scope.data;
 
   if (scope.isInitialError) {
-    return <StatisticsError onRetry={scope.retry} />;
+    return <StatisticsError onRetry={onRetry} retryButtonRef={retryButtonRef} />;
   }
 
   if (page === undefined) {

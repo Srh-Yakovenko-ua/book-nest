@@ -19,6 +19,7 @@ import { UiIcon } from "@/components/icons";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { Button } from "@/components/ui/button";
+import { useBook } from "@/features/books/api/use-book";
 import { assertNever } from "@/lib/assert-never";
 
 import type { TimelineFilteredEmptyKind } from "../model/timeline-empty-state";
@@ -91,6 +92,7 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
   const timelinesQuery = useBookTimelines(book.id);
   const summaryQuery = useTimelineSummary(book.id);
   const overviewQuery = useTimelineOverview(book.id);
+  const bookPageShowsRefetchBanner = useBook(book.id, { enabled: false }).isRefetchError;
 
   const timelines = useMemo(() => timelinesQuery.data?.timelines ?? [], [timelinesQuery.data]);
   const activeTimelineId =
@@ -368,10 +370,16 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
     }
 
     const showFilterControls = viewMode !== "overview";
-    const visibleQueries: readonly RefetchableQuery[] = showFilterControls
-      ? [timelinesQuery, summaryQuery, eventsQuery]
-      : [timelinesQuery, summaryQuery];
-    const failedRefetches = visibleQueries.filter((query) => query.isRefetchError);
+    const showsOverviewData = !showFilterControls || readingPosition !== null;
+    const visibleQueries: readonly RefetchableQuery[] = [
+      timelinesQuery,
+      summaryQuery,
+      ...(showFilterControls ? [eventsQuery] : []),
+      ...(showsOverviewData ? [overviewQuery] : []),
+    ];
+    const failedRefetches = bookPageShowsRefetchBanner
+      ? []
+      : visibleQueries.filter((query) => query.isRefetchError);
 
     return (
       <div className="flex flex-col gap-5">

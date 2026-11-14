@@ -1,6 +1,7 @@
 "use client";
 
 import type { TagCatalogListItem } from "@app/shared";
+import type { Ref } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
 
@@ -34,6 +35,7 @@ type TagsCatalogProps = {
   onLoadMore: () => void;
   onRetry: () => void;
   onShowAll: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
   state: TagsListState;
   view: TagsViewMode;
 };
@@ -47,6 +49,7 @@ export function TagsCatalog({
   onLoadMore,
   onRetry,
   onShowAll,
+  retryButtonRef,
   state,
   view,
 }: TagsCatalogProps) {
@@ -83,7 +86,7 @@ export function TagsCatalog({
       };
       return (
         <div aria-live="assertive" role="alert">
-          <EmptyState onPrimary={onRetry} state={entry} />
+          <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={entry} />
         </div>
       );
     }

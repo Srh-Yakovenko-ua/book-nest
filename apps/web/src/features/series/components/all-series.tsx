@@ -50,9 +50,23 @@ export function AllSeries() {
   const router = useRouter();
 
   const seriesQuery = useSeriesQuery();
-  const { data, isError, isPending, isPlaceholderData, refetch } = useSeriesList(
-    seriesQuery.listParams,
-  );
+  const {
+    data,
+    fetchNextPage,
+    isFetchingNextPage,
+    isFetchNextPageError,
+    isLoadingError,
+    isPending,
+    isPlaceholderData,
+    isRefetchError,
+    isRefetching,
+    refetch,
+  } = useSeriesList(seriesQuery.listParams);
+  const listFetchError = isFetchNextPageError
+    ? { isRetrying: isFetchingNextPage, onRetry: () => void fetchNextPage() }
+    : isRefetchError
+      ? { isRetrying: isRefetching, onRetry: () => void refetch() }
+      : null;
   const overview = useSeriesOverview();
   const genres = useGenres();
 
@@ -296,7 +310,7 @@ export function AllSeries() {
         counterLabel={counterLabel}
         hasActiveQuery={hasActiveQuery}
         hasAnySeries={hasAnySeries}
-        isError={isError}
+        isError={isLoadingError}
         isPending={isPending}
         isRefreshing={isPlaceholderData}
         onAddBook={() => router.push("/books/new")}
@@ -306,6 +320,7 @@ export function AllSeries() {
         onRetry={() => void refetch()}
         onShowAll={() => setTab("all")}
         onTabChange={setTab}
+        refetchError={listFetchError}
         series={visibleSeries}
         sidebar={
           <SeriesSidebar

@@ -29,6 +29,7 @@ function renderContent(overrides: Partial<ContentProps> = {}) {
     onClearFilters: vi.fn(),
     onOpenLibrary: vi.fn(),
     onRetry: vi.fn(),
+    retryButtonRef: null,
     ...overrides,
   };
   return renderWithProviders(<BooksToBuyContent {...props} />);

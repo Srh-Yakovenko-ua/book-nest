@@ -387,18 +387,49 @@ describe("QuotesView overview cards", () => {
   });
 
   it("keeps the mobile overview reachable when the summary request fails", async () => {
-    mockQuotes(quotes(13), { summaryStatus: 500 });
+    stubMobileViewport();
+    mockQuotes(quotes(13), {
+      overview: { memoryQuote: makeQuote(), postFinish: null },
+      summaryStatus: 500,
+    });
 
     renderQuotes();
 
     expect(await screen.findByText("Цитата 1")).toBeInTheDocument();
+    expect(await screen.findByText(messages.common.summaryError.title)).toBeInTheDocument();
     const trigger = await screen.findByRole("button", { name: "Огляд цитат" });
 
     await waitFor(() =>
       expect(trigger.parentElement?.querySelectorAll('[data-slot="card"]')).toHaveLength(0),
     );
     expect(summaryCardTexts()).toHaveLength(0);
-    expect(trigger).toBeInTheDocument();
+
+    await userEvent.click(trigger);
+    const drawer = await screen.findByRole("dialog", { name: "Огляд цитат" });
+
+    expect(
+      await within(drawer).findByRole("heading", {
+        level: 2,
+        name: messages.quotes.sidebar.rediscovery.title,
+      }),
+    ).toBeVisible();
+    expect(
+      within(drawer).queryByRole("heading", { name: messages.quotes.summary.mobile.title }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps the loaded summary numbers when a summary refetch fails", async () => {
+    mockQuotes(quotes(3));
+    const { queryClient } = renderQuotes();
+    await waitFor(() => expect(summaryCardTexts().join(" ")).toContain("Дюна"));
+    const loadedCards = summaryCardTexts();
+
+    mockQuotes(quotes(3), { summaryStatus: 500 });
+    await act(() => queryClient.refetchQueries({ queryKey: quoteKeys.summary }));
+
+    expect(requestedUrls.filter((url) => url.includes("/api/quotes/summary"))).toHaveLength(2);
+    expect(summaryCardTexts()).toEqual(loadedCards);
+    expect(screen.queryByText(messages.common.summaryError.title)).not.toBeInTheDocument();
   });
 });
 

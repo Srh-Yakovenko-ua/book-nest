@@ -1,9 +1,10 @@
 "use client";
 
 import type { LoanListItemView, LoanType, Nullable } from "@app/shared";
+import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import type { EmptyStateEntry } from "@/lib/empty-states";
@@ -19,6 +20,7 @@ import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { LibraryActiveFilters } from "@/features/books/components/library-active-filters";
 import { todayIso } from "@/features/books/model/reading-progress";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
 
 import type { LoanDirection } from "../model/loan-pages";
@@ -61,6 +63,7 @@ type LoansContentProps = {
   onRetry: () => void;
   onReturn: (loan: LoanListItemView) => void;
   otherTypeCount: number;
+  retryButtonRef: Ref<HTMLButtonElement>;
   today: string;
 };
 
@@ -87,6 +90,8 @@ export function LoansView({ type }: { type: LoanType }) {
   const [editTarget, setEditTarget] = useState<LoanListItemView | null>(null);
   const [returnTarget, setReturnTarget] = useState<LoanListItemView | null>(null);
   const contactDrawer = useLoanContactDrawer();
+  const resultsRegionRef = useRef<HTMLDivElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsRegionRef);
 
   const loadedPages = list.data?.pages ?? [];
   const items = loadedPages.flatMap((loadedPage) => loadedPage.items);
@@ -147,9 +152,10 @@ export function LoansView({ type }: { type: LoanType }) {
         onOpenContact={(loan) => contactDrawer.openContact(loan.loanContactId)}
         onOpenLibrary={() => router.push("/books")}
         onOpenOtherPage={() => router.push(LOAN_PAGES[page.otherType].href)}
-        onRetry={() => void list.refetch()}
+        onRetry={withRetryFocus(() => void list.refetch())}
         onReturn={setReturnTarget}
         otherTypeCount={activeOfOtherType}
+        retryButtonRef={retryButtonRef}
         today={today}
       />
     </>
@@ -191,66 +197,68 @@ export function LoansView({ type }: { type: LoanType }) {
         ) : null}
       </header>
 
-      {showChrome ? (
-        <div className="flex flex-col gap-4">
-          <LoansToolbar
-            advanced={query.advanced}
-            advancedCount={query.advancedCount}
-            contactName={contactName}
-            direction={page.direction}
-            onApplyAdvanced={query.applyAdvanced}
-            onSearchChange={query.setSearch}
-            onSearchClear={query.clearSearch}
-            onSortChange={query.setSort}
-            search={query.state.q}
-            sort={query.sort}
-          />
-
-          <LoansQuickFilters
-            counts={quickCounts.data}
-            countsPending={quickCounts.isPending}
-            onSelect={query.setFilter}
-            value={query.filter}
-          />
-
-          <LibraryActiveFilters chips={filterChips} onClearAll={query.clearFilters} />
-
-          <p className="text-sm text-muted-foreground" role="status">
-            {list.isPending
-              ? ""
-              : list.isPlaceholderData
-                ? tCommon("updating")
-                : t("shownCount", { shown: items.length, total: totalCount })}
-          </p>
-
-          <div className="mt-2 flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-            <div className="flex min-w-0 flex-1 flex-col gap-6">
-              {loansContent}
-
-              {items.length > 0 ? (
-                <InfiniteScrollFooter
-                  errorLabel={t("loadMoreError")}
-                  onLoadMore={() => void list.fetchNextPage()}
-                  state={nextPageState(list)}
-                />
-              ) : null}
-            </div>
-
-            <LoansSidebar
-              attention={attention}
+      <div className="flex flex-col outline-none" ref={resultsRegionRef} tabIndex={-1}>
+        {showChrome ? (
+          <div className="flex flex-col gap-4">
+            <LoansToolbar
+              advanced={query.advanced}
+              advancedCount={query.advancedCount}
+              contactName={contactName}
               direction={page.direction}
-              isLoading={summary.isPending}
-              longHeldLoans={directionSummary?.longHeldLoans ?? []}
-              people={people}
-              upcomingReturns={directionSummary?.upcomingReturns ?? []}
+              onApplyAdvanced={query.applyAdvanced}
+              onSearchChange={query.setSearch}
+              onSearchClear={query.clearSearch}
+              onSortChange={query.setSort}
+              search={query.state.q}
+              sort={query.sort}
             />
+
+            <LoansQuickFilters
+              counts={quickCounts.data}
+              countsPending={quickCounts.isPending}
+              onSelect={query.setFilter}
+              value={query.filter}
+            />
+
+            <LibraryActiveFilters chips={filterChips} onClearAll={query.clearFilters} />
+
+            <p className="text-sm text-muted-foreground" role="status">
+              {list.isPending
+                ? ""
+                : list.isPlaceholderData
+                  ? tCommon("updating")
+                  : t("shownCount", { shown: items.length, total: totalCount })}
+            </p>
+
+            <div className="mt-2 flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
+              <div className="flex min-w-0 flex-1 flex-col gap-6">
+                {loansContent}
+
+                {items.length > 0 ? (
+                  <InfiniteScrollFooter
+                    errorLabel={t("loadMoreError")}
+                    onLoadMore={() => void list.fetchNextPage()}
+                    state={nextPageState(list)}
+                  />
+                ) : null}
+              </div>
+
+              <LoansSidebar
+                attention={attention}
+                direction={page.direction}
+                isLoading={summary.isPending}
+                longHeldLoans={directionSummary?.longHeldLoans ?? []}
+                people={people}
+                upcomingReturns={directionSummary?.upcomingReturns ?? []}
+              />
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-          <div className="flex min-w-0 flex-1 flex-col gap-6">{loansContent}</div>
-        </div>
-      )}
+        ) : (
+          <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
+            <div className="flex min-w-0 flex-1 flex-col gap-6">{loansContent}</div>
+          </div>
+        )}
+      </div>
 
       {editTarget ? (
         <EditLoanDialog
@@ -303,6 +311,7 @@ function LoansContent({
   onRetry,
   onReturn,
   otherTypeCount,
+  retryButtonRef,
   today,
 }: LoansContentProps) {
   const t = useTranslations("loans.states");
@@ -317,7 +326,7 @@ function LoansContent({
     };
     return (
       <div aria-live="assertive" role="alert">
-        <EmptyState onPrimary={onRetry} state={errorState} />
+        <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
       </div>
     );
   }
