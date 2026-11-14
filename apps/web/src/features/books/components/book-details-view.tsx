@@ -1,7 +1,7 @@
 "use client";
 
 import type { BookDetailsView as BookDetailsViewData } from "@app/shared";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
 import { useTranslations } from "next-intl";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
@@ -31,6 +31,7 @@ import { ReadingProgressBlock } from "./reading-progress/reading-progress-block"
 
 type BookDetailsViewProps = {
   book: BookDetailsViewData;
+  titleRef?: Ref<HTMLHeadingElement>;
 };
 
 const DETAIL_TABS = ["overview", "notes", "quotes", "history", "characters", "timeline"] as const;
@@ -39,7 +40,7 @@ type DetailTab = (typeof DETAIL_TABS)[number];
 
 const tabParser = parseAsStringLiteral(DETAIL_TABS).withDefault("overview");
 
-export function BookDetailsView({ book }: BookDetailsViewProps) {
+export function BookDetailsView({ book, titleRef }: BookDetailsViewProps) {
   const t = useTranslations("books.details");
   const tCharacters = useTranslations("characters");
   const tNotes = useTranslations("notes");
@@ -72,7 +73,7 @@ export function BookDetailsView({ book }: BookDetailsViewProps) {
   return (
     <div className="grid gap-6 motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-2 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-8">
       <div className="flex min-w-0 flex-col gap-6">
-        <BookDetailsHero book={book} />
+        <BookDetailsHero book={book} titleRef={titleRef} />
         <BookDetailsKeyFacts book={book} className="lg:hidden" />
         <BookDetailsSeriesSequence book={book} />
 

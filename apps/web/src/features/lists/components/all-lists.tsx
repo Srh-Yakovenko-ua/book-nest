@@ -30,10 +30,12 @@ export function AllLists() {
     data,
     fetchNextPage,
     hasNextPage,
-    isError,
     isFetchingNextPage,
     isFetchNextPageError,
+    isLoadingError,
     isPending,
+    isRefetchError,
+    isRefetching,
     refetch,
   } = useLists(lists.listParams);
   const summary = useListsSummary();
@@ -53,7 +55,6 @@ export function AllLists() {
     stale: summary.data?.staleListCount ?? 0,
   };
   const hasAnyLists = totalCount > 0 || lists.hasActiveFilters;
-  const hasListError = isError && !isFetchNextPageError;
   const summaryCards = useListsSummaryCards(summary.data);
 
   function confirmDelete() {
@@ -73,7 +74,7 @@ export function AllLists() {
         hasActiveFilters={lists.hasActiveFilters}
         hasAnyLists={hasAnyLists}
         hasNextPage={hasNextPage}
-        isError={hasListError}
+        isError={isLoadingError}
         isFetchingNextPage={isFetchingNextPage}
         isLoadMoreError={isFetchNextPageError}
         isPending={isPending}
@@ -86,6 +87,9 @@ export function AllLists() {
         onLoadMore={() => void fetchNextPage()}
         onOpenLibrary={() => router.push("/books")}
         onRetry={() => void refetch()}
+        refetchError={
+          isRefetchError ? { isRetrying: isRefetching, onRetry: () => void refetch() } : null
+        }
         sidebar={
           <ListsSidebar
             activeAttention={lists.state.attention}
@@ -113,7 +117,7 @@ export function AllLists() {
         toolbar={
           <ListsToolbar
             counter={
-              isPending || hasListError || visibleLists.length === 0
+              isPending || isLoadingError || visibleLists.length === 0
                 ? undefined
                 : tCatalog("counter", { shown: visibleLists.length, total: totalCount })
             }

@@ -108,7 +108,7 @@ export function MarkBoughtForm({
             setServerError(tErrors("notInWishlist"));
             return;
           }
-          setServerError(error instanceof ApiError ? error.message : tErrors("generic"));
+          setServerError(tErrors("generic"));
         },
         onSuccess: () => {
           onSuccess?.();

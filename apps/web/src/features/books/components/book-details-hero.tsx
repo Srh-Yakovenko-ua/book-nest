@@ -1,6 +1,7 @@
 "use client";
 
 import type { BookView, ReadingStatus } from "@app/shared";
+import type { Ref } from "react";
 
 import { ArrowRight, ChevronDown, Quote } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -27,6 +28,7 @@ import { BookDetailsActionsMenu } from "./book-details-actions-menu";
 
 type BookDetailsHeroProps = {
   book: BookView;
+  titleRef?: Ref<HTMLHeadingElement>;
 };
 
 const PROGRESS_STATUSES: readonly ReadingStatus[] = ["reading", "paused", "rereading"];
@@ -53,7 +55,7 @@ const MOBILE_HERO_LIMITS = {
   tagsShown: 4,
 } as const;
 
-export function BookDetailsHero({ book }: BookDetailsHeroProps) {
+export function BookDetailsHero({ book, titleRef }: BookDetailsHeroProps) {
   const t = useTranslations("books");
   const favorite = useToggleFavorite();
   const [authorsExpanded, setAuthorsExpanded] = useState(false);
@@ -177,7 +179,11 @@ export function BookDetailsHero({ book }: BookDetailsHeroProps) {
 
         <div className="flex min-w-0 flex-col gap-4 [grid-area:headline] sm:hero-content-branch">
           <div className="flex flex-col gap-2">
-            <h1 className="min-w-0 font-heading text-[1.375rem] leading-[1.15] font-semibold tracking-tight text-ink max-sm:line-clamp-3 sm:text-3xl sm:leading-[1.1] md:text-[2.625rem]">
+            <h1
+              className="min-w-0 font-heading text-[1.375rem] leading-[1.15] font-semibold tracking-tight text-ink outline-none max-sm:line-clamp-3 sm:text-3xl sm:leading-[1.1] md:text-[2.625rem]"
+              ref={titleRef}
+              tabIndex={-1}
+            >
               {book.title}
             </h1>
             {book.originalTitle === null ? null : (

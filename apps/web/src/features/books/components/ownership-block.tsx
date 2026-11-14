@@ -25,6 +25,7 @@ import { ApiError } from "@/lib/http-client";
 import { cn } from "@/lib/utils";
 
 import { useMarkOwned, useRemoveFromWishlist, useRemoveOwned } from "../api/use-ownership";
+import { toLoanErrorKey } from "../model/loan-error";
 import { todayIso } from "../model/reading-progress";
 import { DeliveryDialog } from "./delivery-dialog";
 import { LoanDialog } from "./loan-dialog";
@@ -68,6 +69,7 @@ type OwnershipBlockProps = {
 export function OwnershipBlock({ book }: OwnershipBlockProps) {
   const t = useTranslations("books.details.ownership");
   const tOptions = useTranslations("books.ownershipStatus.options");
+  const tLoanErrors = useTranslations("books.details.loan.errors");
 
   const markOwned = useMarkOwned();
   const removeOwned = useRemoveOwned();
@@ -85,7 +87,10 @@ export function OwnershipBlock({ book }: OwnershipBlockProps) {
 
   function runDirect(mutation: DirectMutation) {
     mutation.mutate(book.id, {
-      onError: (error) => toast.error(error instanceof ApiError ? error.message : t("toast.error")),
+      onError: (error) => {
+        const loanErrorKey = toLoanErrorKey(error);
+        toast.error(loanErrorKey === "generic" ? t("toast.error") : tLoanErrors(loanErrorKey));
+      },
       onSuccess: () => toast.success(t("toast.updated")),
     });
   }

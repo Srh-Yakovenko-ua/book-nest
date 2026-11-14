@@ -1,11 +1,14 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useState } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "@/i18n/navigation";
+import { focusOnMount } from "@/lib/focus-on-mount";
 import { ApiError } from "@/lib/http-client";
 import { cn } from "@/lib/utils";
 
@@ -18,8 +21,18 @@ type SeriesDetailsProps = {
 
 export function SeriesDetails({ id }: SeriesDetailsProps) {
   const t = useTranslations("series.details.states");
+  const tCommon = useTranslations("common");
   const router = useRouter();
-  const { data: details, error, isPending } = useSeriesDetails(id);
+  const [retriedFirstLoad, setRetriedFirstLoad] = useState(false);
+  const {
+    data: details,
+    error,
+    isLoadingError,
+    isPending,
+    isRefetchError,
+    isRefetching,
+    refetch,
+  } = useSeriesDetails(id);
 
   if (isPending) {
     return (
@@ -44,8 +57,9 @@ export function SeriesDetails({ id }: SeriesDetailsProps) {
     );
   }
 
-  if (error !== null) {
-    const isNotFound = error instanceof ApiError && error.status === 404;
+  const isNotFound = error instanceof ApiError && error.status === 404;
+
+  if (isLoadingError || (isRefetchError && isNotFound)) {
     return (
       <div
         className="mx-auto flex max-w-md flex-col items-center gap-4 px-6 py-16 text-center motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-2"
@@ -67,13 +81,34 @@ export function SeriesDetails({ id }: SeriesDetailsProps) {
             {isNotFound ? t("notFoundDescription") : t("errorDescription")}
           </p>
         </div>
-        <Button onClick={() => router.push("/series")} variant="secondary">
-          <UiIcon name="arrow-left" size={16} />
-          {t("back")}
-        </Button>
+        <div className="flex flex-wrap justify-center gap-2">
+          {isNotFound ? null : (
+            <Button
+              onClick={() => {
+                setRetriedFirstLoad(true);
+                void refetch();
+              }}
+              ref={retriedFirstLoad ? focusOnMount : undefined}
+            >
+              <UiIcon name="refresh" size={16} />
+              {tCommon("retry")}
+            </Button>
+          )}
+          <Button onClick={() => router.push("/series")} variant="secondary">
+            <UiIcon name="arrow-left" size={16} />
+            {t("back")}
+          </Button>
+        </div>
       </div>
     );
   }
 
-  return <SeriesDetailsView details={details} />;
+  return (
+    <div className="flex flex-col gap-6">
+      <RefetchErrorBanner
+        state={isRefetchError ? { isRetrying: isRefetching, onRetry: () => void refetch() } : null}
+      />
+      <SeriesDetailsView details={details} titleRef={retriedFirstLoad ? focusOnMount : undefined} />
+    </div>
+  );
 }

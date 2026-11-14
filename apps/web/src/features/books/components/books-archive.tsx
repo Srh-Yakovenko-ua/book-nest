@@ -64,10 +64,12 @@ export function BooksArchive({
     data,
     fetchNextPage,
     hasNextPage,
-    isError,
     isFetchingNextPage,
     isFetchNextPageError,
+    isLoadingError,
     isPending,
+    isRefetchError,
+    isRefetching,
     refetch,
   } = useLibraryBooks(library.listParams);
   const quickCounts = useLibraryQuickCounts(toLibraryQuickCountsParams(library.listParams, scope));
@@ -103,7 +105,6 @@ export function BooksArchive({
     .flatMap((page) => page.items)
     .map((book) => toLibraryBook(book, labels));
   const summary = overview.data?.summary;
-  const hasListError = isError && !isFetchNextPageError;
 
   const noSearchResultsState: EmptyStateEntry = {
     desc: t("noSearchResults.description"),
@@ -146,12 +147,13 @@ export function BooksArchive({
       hasActiveSearch={library.hasActiveSearch}
       hasNextPage={hasNextPage}
       header={header}
-      isError={hasListError}
+      invalidRange={library.invalidRange}
+      isError={isLoadingError}
       isFetchingNextPage={isFetchingNextPage}
       isLoadMoreError={isFetchNextPageError}
       isPending={isPending}
       libraryTotal={summary?.total ?? 0}
-      libraryTotalLoading={overview.isPending}
+      libraryTotalLoading={overview.isPending || overview.isLoadingError}
       linkComponent={Link}
       loadingLabel={t("loading")}
       loadMoreErrorLabel={t("loadMoreError")}
@@ -174,6 +176,9 @@ export function BooksArchive({
           scope={scope}
           value={activeQuickFilter(library.state)}
         />
+      }
+      refetchError={
+        isRefetchError ? { isRetrying: isRefetching, onRetry: () => void refetch() } : null
       }
       searchControl={
         <LibrarySearchInput

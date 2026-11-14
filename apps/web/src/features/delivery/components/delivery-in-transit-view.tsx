@@ -1,14 +1,17 @@
 "use client";
 
+import type { Nullable } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
 
+import type { RefetchErrorState } from "@/components/refetch-error-banner";
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,6 +38,7 @@ type DeliveryInTransitViewProps = {
     isFetchingNextPage: boolean;
     isFetchNextPageError: boolean;
   };
+  refetchError: Nullable<RefetchErrorState>;
   renderCard: (model: DeliveryOrderCardModel) => ReactNode;
   selectAll?: { checked: "indeterminate" | boolean; count: number; onToggle: () => void };
   showToolbar: boolean;
@@ -54,6 +58,7 @@ export function DeliveryInTransitView({
   onResetFilters,
   onRetry,
   pagination,
+  refetchError,
   renderCard,
   selectAll,
   showToolbar,
@@ -87,6 +92,7 @@ export function DeliveryInTransitView({
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-6">
           <h2 className="sr-only">{t("resultsTitle")}</h2>
+          <RefetchErrorBanner state={refetchError} />
           <DeliveryContentArea
             content={content}
             onGoToBooksToBuy={onGoToBooksToBuy}

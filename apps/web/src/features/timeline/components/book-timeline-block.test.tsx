@@ -4,11 +4,14 @@ import type { BookView } from "@app/shared";
 import type { OnUrlUpdateFunction, UrlUpdateEvent } from "nuqs/adapters/testing";
 
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { makeBookView } from "../../books/components/book-details.fixtures";
+import { timelineKeys } from "../api/timeline-keys";
 import {
   makeEventsPage,
   makeReadingPosition,
@@ -299,6 +302,20 @@ describe("BookTimelineBlock", () => {
     expect(
       await screen.findByRole("button", { name: "Геральт прибуває до Визими" }),
     ).toBeInTheDocument();
+  });
+
+  it("keeps the loaded events and shows the refresh banner when a refetch fails", async () => {
+    const { queryClient } = renderBlock();
+    expect(
+      await screen.findByRole("button", { name: "Геральт прибуває до Визими" }),
+    ).toBeInTheDocument();
+
+    eventsResponder = () => jsonResponse({ message: "boom" }, 500);
+    await act(() => queryClient.invalidateQueries({ queryKey: timelineKeys.events("book-1") }));
+
+    expect(await screen.findByText(messages.common.refetchError)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Геральт прибуває до Визими" })).toBeInTheDocument();
+    expect(screen.queryByText(messages.timeline.states.errorText)).not.toBeInTheDocument();
   });
 
   it("shows the empty state when a book has no events", async () => {

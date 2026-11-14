@@ -3,9 +3,10 @@ import "@testing-library/jest-dom/vitest";
 import type { LibraryQuickCounts } from "@app/shared";
 import type { ReactNode } from "react";
 
-import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { NuqsTestingAdapter, type OnUrlUpdateFunction } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { makeBookView } from "./book-details.fixtures";
@@ -21,16 +22,19 @@ vi.mock("@/i18n/navigation", () => ({
 
 const QUICK_AXES = ["status", "owner", "bookType", "isFavorite"] as const;
 
+const library = messages.books.library;
+const INVERTED_YEAR_RANGE = "?yearMin=2020&yearMax=2000";
+
 const fetchMock = vi.fn();
 
 function booksPage() {
   return { items: [makeBookView()], page: 1, pagesCount: 1, pageSize: 24, totalCount: 1 };
 }
 
-function jsonResponse(body: unknown): Response {
+function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
-    status: 200,
+    status,
   });
 }
 
@@ -76,6 +80,12 @@ function chip(name: string): HTMLElement {
   return match;
 }
 
+function listRequests(): URL[] {
+  return fetchMock.mock.calls
+    .map(([input]) => new URL(String(input), "http://localhost"))
+    .filter((url) => url.pathname === "/api/books");
+}
+
 function mockApi(countsFor: (url: URL) => LibraryQuickCounts = () => quickCounts()) {
   fetchMock.mockImplementation((input: RequestInfo | URL) => {
     const url = new URL(String(input), "http://localhost");
@@ -96,9 +106,9 @@ function quickCountRequests(): URL[] {
     .filter((url) => url.pathname === "/api/books/quick-counts");
 }
 
-function renderLibrary(scope: "all" | "my", searchParams = "") {
+function renderLibrary(scope: "all" | "my", searchParams = "", onUrlUpdate?: OnUrlUpdateFunction) {
   return renderWithProviders(
-    <NuqsTestingAdapter hasMemory searchParams={searchParams}>
+    <NuqsTestingAdapter hasMemory onUrlUpdate={onUrlUpdate} searchParams={searchParams}>
       <BooksLibrary scope={scope} />
     </NuqsTestingAdapter>,
   );
@@ -185,5 +195,63 @@ describe("BooksLibrary quick filter counts", () => {
     const [request] = quickCountRequests();
     expect(request?.searchParams.get("scope")).toBe("my");
     expect(request?.searchParams.has("owner")).toBe(false);
+  });
+});
+
+describe("BooksLibrary summary error", () => {
+  it("shows the summary error card instead of zero counts when the overview fails to load", async () => {
+    fetchMock.mockImplementation((input: RequestInfo | URL) => {
+      const url = new URL(String(input), "http://localhost");
+      if (url.pathname === "/api/books/overview") {
+        return Promise.resolve(jsonResponse({ message: "boom" }, 500));
+      }
+      if (url.pathname === "/api/books/quick-counts") {
+        return Promise.resolve(jsonResponse(quickCounts()));
+      }
+      if (url.pathname === "/api/books") return Promise.resolve(jsonResponse(booksPage()));
+      return Promise.resolve(jsonResponse([]));
+    });
+    renderLibrary("all");
+
+    const { summary, summaryError } = library;
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(summaryError.title);
+    expect(within(alert).getByRole("button", { name: summaryError.retry })).toBeInTheDocument();
+    expect(screen.queryByText(summary.total)).not.toBeInTheDocument();
+  });
+});
+
+describe("BooksLibrary inverted range", () => {
+  it("asks to fix an inverted year range instead of loading the list", async () => {
+    mockApi();
+    renderLibrary("all", INVERTED_YEAR_RANGE);
+
+    const { invalidRange } = library;
+    expect(await screen.findByRole("heading", { name: invalidRange.title })).toBeInTheDocument();
+    expect(
+      screen.getByText(invalidRange.description.replace("{ranges}", invalidRange.ranges.year)),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Скинути діапазон" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getAllByText("40").length).toBeGreaterThan(0));
+    expect(screen.queryByText(library.loading)).not.toBeInTheDocument();
+    expect(listRequests()).toHaveLength(0);
+  });
+
+  it("drops the inverted year range from the url and loads the list after the reset", async () => {
+    mockApi();
+    const urlUpdates: URLSearchParams[] = [];
+    renderLibrary("all", INVERTED_YEAR_RANGE, (event) => {
+      urlUpdates.push(event.searchParams);
+    });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Скинути діапазон" }));
+
+    expect(await screen.findByText(makeBookView().title)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: library.resultsTitle })).toHaveFocus();
+    expect(urlUpdates.at(-1)?.has("yearMin")).toBe(false);
+    expect(urlUpdates.at(-1)?.has("yearMax")).toBe(false);
+    const [request] = listRequests();
+    expect(request?.searchParams.has("yearMin")).toBe(false);
+    expect(request?.searchParams.has("yearMax")).toBe(false);
   });
 });

@@ -66,10 +66,12 @@ export function FavoritesView() {
     data,
     fetchNextPage,
     hasNextPage,
-    isError,
     isFetchingNextPage,
     isFetchNextPageError,
+    isLoadingError,
     isPending,
+    isRefetchError,
+    isRefetching,
     refetch,
   } = useLibraryBooks(library.listParams);
   const quickCounts = useLibraryQuickCounts(
@@ -130,8 +132,6 @@ export function FavoritesView() {
         statusLabel: (value) => tStatus(value),
       }),
     );
-
-  const hasListError = isError && !isFetchNextPageError;
 
   const visibleBookIdsKey = books.map((book) => book.id).join("\n");
   const previousVisibleBookIdsKey = useRef(visibleBookIdsKey);
@@ -433,7 +433,8 @@ export function FavoritesView() {
         hasActiveFilters={library.hasActiveFilters}
         hasActiveSearch={library.hasActiveSearch}
         hasNextPage={hasNextPage}
-        isError={hasListError}
+        invalidRange={library.invalidRange}
+        isError={isLoadingError}
         isFetchingNextPage={isFetchingNextPage}
         isLoadMoreError={isFetchNextPageError}
         isPending={isPending}
@@ -460,6 +461,9 @@ export function FavoritesView() {
             value={activeQuickFilter(library.state)}
           />
         }
+        refetchError={
+          isRefetchError ? { isRetrying: isRefetching, onRetry: () => void refetch() } : null
+        }
         searchControl={
           <LibrarySearchInput
             onClear={library.clearSearch}
@@ -473,6 +477,7 @@ export function FavoritesView() {
         sortOptions={sortOptions}
         subtitle={tFav("subtitle")}
         summaryCards={summaryCards}
+        summaryError={summary.isLoadingError ? { onRetry: () => void summary.refetch() } : null}
         summaryLoading={summary.isPending}
         summaryMobileAction={
           <FavoritesOverviewPanel

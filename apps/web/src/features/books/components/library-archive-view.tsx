@@ -1,19 +1,21 @@
 "use client";
 
-import type { MediaView } from "@app/shared";
+import type { MediaView, Nullable } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { LayoutGrid, List, SquareCheckBig } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import type { RefetchErrorState } from "@/components/refetch-error-banner";
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 import type { BooksControllerListSort } from "@/shared/api/generated/model";
 
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { BookCard } from "@/components/ui/book-card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -23,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { LibraryActions, PendingBookAction } from "../model/book-card-actions";
 import type { LibraryBook, LibraryBookLinkComponent } from "../model/library-book";
 import type { LibraryViewMode } from "../model/library-query";
+import type { LibraryInvalidRange } from "../model/use-library-query";
 import type { LibrarySortOption } from "./library-sort-select";
 
 import { useLibrarySelectionStore } from "../model/selection-store";
@@ -31,6 +34,7 @@ import { BookCardActions } from "./book-card-actions";
 import { BookRow } from "./book-row";
 import { LibraryBulkBar } from "./library-bulk-bar";
 import { LibraryCoverViewer } from "./library-cover-viewer";
+import { LibraryInvalidRangeState } from "./library-invalid-range-state";
 import { LibrarySortSelect } from "./library-sort-select";
 
 export type LibraryArchiveViewProps = {
@@ -47,6 +51,7 @@ export type LibraryArchiveViewProps = {
   hasActiveSearch: boolean;
   hasNextPage: boolean;
   header?: ReactNode;
+  invalidRange: Nullable<LibraryInvalidRange>;
   isError: boolean;
   isFetchingNextPage: boolean;
   isLoadMoreError: boolean;
@@ -68,6 +73,7 @@ export type LibraryArchiveViewProps = {
   onSortChange: (value: BooksControllerListSort) => void;
   onViewChange: (value: LibraryViewMode) => void;
   quickFilters?: ReactNode;
+  refetchError: Nullable<RefetchErrorState>;
   searchControl?: ReactNode;
   showPublisher?: boolean;
   sidebar?: ReactNode;
@@ -101,10 +107,21 @@ const STAGGER_MAX_MS = 360;
 const GRID_CLASS = "grid grid-cols-2 gap-5 max-sm:gap-3 xl:grid-cols-3";
 
 export function LibraryArchiveView(props: LibraryArchiveViewProps) {
-  const { actions, books, hasActiveFilters, hasActiveSearch, header, isError, isPending, sidebar } =
-    props;
+  const {
+    actions,
+    books,
+    hasActiveFilters,
+    hasActiveSearch,
+    header,
+    invalidRange,
+    isError,
+    isPending,
+    refetchError,
+    sidebar,
+  } = props;
 
   const t = useTranslations("books.library");
+  const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
   const [pending, setPending] = useState<null | PendingBookAction>(null);
   const clearSelection = useLibrarySelectionStore((state) => state.clear);
   const selectionMode = useLibrarySelectionStore((state) => state.selectionMode);
@@ -132,6 +149,16 @@ export function LibraryArchiveView(props: LibraryArchiveViewProps) {
     <BookCardActions actions={actions} book={book} compact={compact} onOpenDialog={setPending} />
   );
   const selectBookLabel = (title: string) => t("bulk.selectBook", { title });
+  const invalidRangeFocusingResults =
+    invalidRange === null
+      ? null
+      : {
+          ...invalidRange,
+          onClear: () => {
+            invalidRange.onClear();
+            resultsHeadingRef.current?.focus();
+          },
+        };
 
   const showToolbar =
     !isError && (isPending || books.length > 0 || hasActiveSearch || hasActiveFilters);
@@ -144,9 +171,13 @@ export function LibraryArchiveView(props: LibraryArchiveViewProps) {
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-6">
-          <h2 className="sr-only">{t("resultsTitle")}</h2>
+          <h2 className="sr-only" ref={resultsHeadingRef} tabIndex={-1}>
+            {t("resultsTitle")}
+          </h2>
+          <RefetchErrorBanner state={refetchError} />
           <LibraryContent
             {...props}
+            invalidRange={invalidRangeFocusingResults}
             renderActions={renderActions}
             selectBookLabel={selectBookLabel}
           />
@@ -245,6 +276,7 @@ function LibraryContent({
   hasActiveFilters,
   hasActiveSearch,
   hasNextPage,
+  invalidRange,
   isError,
   isFetchingNextPage,
   isLoadMoreError,
@@ -268,6 +300,10 @@ function LibraryContent({
   view,
 }: CardRenderProps & LibraryArchiveViewProps) {
   const [activeCover, setActiveCover] = useState<ActiveCover | null>(null);
+
+  if (invalidRange) {
+    return <LibraryInvalidRangeState {...invalidRange} />;
+  }
 
   if (isError) {
     return (
@@ -536,6 +572,7 @@ function LibraryToolbar({
   activeFilters,
   advancedFilters,
   counterLabel,
+  invalidRange,
   isPending,
   loadingLabel,
   onSortChange,
@@ -599,8 +636,8 @@ function LibraryToolbar({
       {quickFilters}
       {activeFilters}
 
-      <p aria-live="polite" className="text-sm text-muted-foreground">
-        {isPending ? loadingLabel : counterLabel}
+      <p aria-live="polite" className="text-sm text-muted-foreground empty:sr-only">
+        {resultsStatusLabel({ counterLabel, invalidRange, isPending, loadingLabel })}
       </p>
     </div>
   );
@@ -618,6 +655,19 @@ function nextPageState({
   if (isFetchingNextPage) return "loading";
   if (isLoadMoreError) return "error";
   return hasNextPage ? "idle" : "none";
+}
+
+function resultsStatusLabel({
+  counterLabel,
+  invalidRange,
+  isPending,
+  loadingLabel,
+}: Pick<
+  LibraryArchiveViewProps,
+  "counterLabel" | "invalidRange" | "isPending" | "loadingLabel"
+>): Nullable<string> {
+  if (invalidRange) return null;
+  return isPending ? loadingLabel : counterLabel;
 }
 
 function SelectionCheckbox({

@@ -1,13 +1,16 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useState } from "react";
 
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
 import { UiIcon } from "@/components/icons";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "@/i18n/navigation";
+import { focusOnMount } from "@/lib/focus-on-mount";
 import { ApiError } from "@/lib/http-client";
 import { cn } from "@/lib/utils";
 
@@ -21,8 +24,10 @@ type ListDetailsProps = {
 
 export function ListDetails({ id }: ListDetailsProps) {
   const t = useTranslations("lists.details.states");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const { params } = useListDetailQuery();
+  const [retriedFirstLoad, setRetriedFirstLoad] = useState(false);
 
   const {
     data,
@@ -32,7 +37,11 @@ export function ListDetails({ id }: ListDetailsProps) {
     isFetching,
     isFetchingNextPage,
     isFetchNextPageError,
+    isLoadingError,
     isPending,
+    isRefetchError,
+    isRefetching,
+    refetch,
   } = useListDetail(id, params);
 
   if (isPending) {
@@ -54,10 +63,9 @@ export function ListDetails({ id }: ListDetailsProps) {
     );
   }
 
-  const hasListError = error !== null && !isFetchNextPageError;
+  const isNotFound = error instanceof ApiError && error.status === 404;
 
-  if (hasListError) {
-    const isNotFound = error instanceof ApiError && error.status === 404;
+  if (isLoadingError || (isRefetchError && isNotFound)) {
     return (
       <div
         className="mx-auto flex max-w-md flex-col items-center gap-4 px-6 py-16 text-center motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-2"
@@ -79,24 +87,44 @@ export function ListDetails({ id }: ListDetailsProps) {
             {isNotFound ? t("notFoundDescription") : t("errorDescription")}
           </p>
         </div>
-        <Button onClick={() => router.push("/lists")} variant="secondary">
-          <UiIcon name="arrow-left" size={16} />
-          {t("back")}
-        </Button>
+        <div className="flex flex-wrap justify-center gap-2">
+          {isNotFound ? null : (
+            <Button
+              onClick={() => {
+                setRetriedFirstLoad(true);
+                void refetch();
+              }}
+              ref={retriedFirstLoad ? focusOnMount : undefined}
+            >
+              <UiIcon name="refresh" size={16} />
+              {tCommon("retry")}
+            </Button>
+          )}
+          <Button onClick={() => router.push("/lists")} variant="secondary">
+            <UiIcon name="arrow-left" size={16} />
+            {t("back")}
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <ListDetailsView
-      id={id}
-      isFetching={isFetching}
-      loadMoreState={loadMoreState({ hasNextPage, isFetchingNextPage, isFetchNextPageError })}
-      onLoadMore={() => {
-        void fetchNextPage();
-      }}
-      pages={data?.pages ?? []}
-    />
+    <div className="flex flex-col gap-6">
+      <RefetchErrorBanner
+        state={isRefetchError ? { isRetrying: isRefetching, onRetry: () => void refetch() } : null}
+      />
+      <ListDetailsView
+        id={id}
+        isFetching={isFetching}
+        loadMoreState={loadMoreState({ hasNextPage, isFetchingNextPage, isFetchNextPageError })}
+        onLoadMore={() => {
+          void fetchNextPage();
+        }}
+        pages={data?.pages ?? []}
+        titleRef={retriedFirstLoad ? focusOnMount : undefined}
+      />
+    </div>
   );
 }
 

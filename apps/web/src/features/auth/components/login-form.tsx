@@ -52,6 +52,7 @@ export function LoginForm() {
   const onSubmit = handleSubmit((values) => {
     setFormMessageKey(null);
     setShowResend(false);
+    resend.reset();
 
     login.mutate(
       { email: values.email, password: values.password, rememberMe: values.rememberMe ?? false },
@@ -74,6 +75,9 @@ export function LoginForm() {
   });
 
   const pending = login.isPending;
+  const resendMessageKey = resend.isError
+    ? (resolveServerError(resend.error).formMessageKey ?? "errors.emailInvalid")
+    : null;
 
   return (
     <div className="flex flex-col">
@@ -93,6 +97,7 @@ export function LoginForm() {
               {resend.isSuccess ? t("resend.success") : t("resend.cta")}
             </Button>
           ) : null}
+          {showResend && resendMessageKey ? <p className="mt-2">{t(resendMessageKey)}</p> : null}
         </FormBanner>
       ) : null}
 

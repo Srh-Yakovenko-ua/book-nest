@@ -159,9 +159,7 @@ export function DeliveryInTransit() {
     else selectAllShipments(selectableShipments.map((shipment) => shipment.id));
   }
 
-  const hasListError = listQuery.isError && !listQuery.isFetchNextPageError;
-
-  const content: DeliveryContent = hasListError
+  const content: DeliveryContent = listQuery.isLoadingError
     ? { kind: "error" }
     : listQuery.isPending
       ? { kind: "loading" }
@@ -172,7 +170,7 @@ export function DeliveryInTransit() {
         : { items: orders, kind: "ready" };
 
   const showToolbar =
-    !hasListError &&
+    !listQuery.isLoadingError &&
     (listQuery.isPending || orders.length > 0 || params.hasActiveSearch || params.hasActiveFilters);
 
   const summaryData = summaryQuery.data;
@@ -310,6 +308,11 @@ export function DeliveryInTransit() {
           isFetchingNextPage: listQuery.isFetchingNextPage,
           isFetchNextPageError: listQuery.isFetchNextPageError,
         }}
+        refetchError={
+          listQuery.isRefetchError
+            ? { isRetrying: listQuery.isRefetching, onRetry: () => void listQuery.refetch() }
+            : null
+        }
         renderCard={renderCard}
         selectAll={
           selectionMode && selectableShipments.length > 0

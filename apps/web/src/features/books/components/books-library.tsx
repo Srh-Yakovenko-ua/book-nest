@@ -195,6 +195,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
           onAddBook={onAddBook}
           subtitle={t(`${scope}.subtitle`)}
           summaryCards={summaryCards}
+          summaryError={overview.isLoadingError ? { onRetry: () => void overview.refetch() } : null}
           summaryLoading={overview.isPending}
           summaryMobileAction={
             <LibraryOverviewPanel
@@ -212,7 +213,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
       onAddBook={onAddBook}
       onEmptySecondary={scope === "my" ? () => router.push("/books") : undefined}
       scope={scope}
-      sidebar={sidebar}
+      sidebar={overview.isLoadingError ? undefined : sidebar}
     />
   );
 }

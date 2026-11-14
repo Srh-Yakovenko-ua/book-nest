@@ -14,6 +14,7 @@ import type { ReactNode } from "react";
 
 import { addDays, format } from "date-fns";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { act } from "react";
 import { toast } from "sonner";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -28,6 +29,7 @@ import {
   within,
 } from "@/test-utils";
 
+import { matchesLoans } from "../api/loan-keys";
 import { LOANS_PAGE_SIZE } from "../model/loans-query";
 import { LoansView } from "./loans-view";
 
@@ -67,6 +69,8 @@ const sort = messages.loans.sort;
 const upcoming = messages.loans.sidebar.upcoming;
 const requestedUrls: string[] = [];
 
+let listStatus = 200;
+
 const EMPTY_DIRECTION_SUMMARY: LoanDirectionSummary = {
   earliestLoanDate: null,
   longHeldCount: 0,
@@ -89,6 +93,7 @@ const viewport = mockIntersectionObserver();
 afterEach(() => {
   vi.unstubAllGlobals();
   requestedUrls.length = 0;
+  listStatus = 200;
   push.mockClear();
 });
 
@@ -116,6 +121,19 @@ describe("LoansView", () => {
     ).toBeInTheDocument();
     expect(await screen.findByText("Дюна")).toBeInTheDocument();
     expect(listUrl()).toContain("type=lent_to_someone");
+  });
+
+  it("keeps the loaded loans and shows the refresh banner when a refetch fails", async () => {
+    mockLoans([loanItem("lent_to_someone", "Дюна")]);
+    const { queryClient } = renderLoans("lent_to_someone");
+    expect(await screen.findByText("Дюна")).toBeInTheDocument();
+
+    listStatus = 500;
+    await act(() => queryClient.invalidateQueries({ predicate: matchesLoans }));
+
+    expect(await screen.findByText(messages.common.refetchError)).toBeInTheDocument();
+    expect(screen.getByText("Дюна")).toBeInTheDocument();
+    expect(screen.queryByText(copy.states.error.title)).not.toBeInTheDocument();
   });
 
   it("opens the person card from the name in a row", async () => {
@@ -1419,10 +1437,10 @@ function isoDaysFromToday(offset: number): string {
   return format(addDays(new Date(), offset), "yyyy-MM-dd");
 }
 
-function jsonResponse(body: unknown): Response {
+function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
-    status: 200,
+    status,
   });
 }
 
@@ -1569,7 +1587,11 @@ function stubLoansApi({
       if (url.includes("/api/loans/history/overview")) {
         return Promise.resolve(jsonResponse(historyOverview()));
       }
-      if (url.includes("/api/loans")) return Promise.resolve(jsonResponse(loansPage(items, url)));
+      if (url.includes("/api/loans")) {
+        return Promise.resolve(
+          listStatus === 200 ? jsonResponse(loansPage(items, url)) : jsonResponse({}, listStatus),
+        );
+      }
       if (url.includes("/loan/extend") || url.includes("/loan/reminder")) {
         return Promise.resolve(jsonResponse(extendedBookView()));
       }

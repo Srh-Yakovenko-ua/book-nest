@@ -23,7 +23,6 @@ import { Label } from "@/components/ui/label";
 import { NumberStepper } from "@/components/ui/number-stepper";
 import { Rating } from "@/components/ui/rating";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiError } from "@/lib/http-client";
 
 import { useChangeReadingStatus, useUpdateReadingProgress } from "../api/use-reading-progress";
 import {
@@ -147,8 +146,7 @@ function UpdateProgressForm({ book, onDone }: { book: BookView; onDone: () => vo
   const onSubmit = handleSubmit((values) => {
     setServerError(null);
     const handlers = {
-      onError: (error: Error) =>
-        setServerError(error instanceof ApiError ? error.message : t("errors.generic")),
+      onError: () => setServerError(t("errors.generic")),
       onSuccess: onDone,
     };
 

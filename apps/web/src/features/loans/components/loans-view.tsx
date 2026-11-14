@@ -14,6 +14,7 @@ import type {
 
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { LibraryActiveFilters } from "@/features/books/components/library-active-filters";
 import { todayIso } from "@/features/books/model/reading-progress";
@@ -95,8 +96,7 @@ export function LoansView({ type }: { type: LoanType }) {
   const activeOfThisType = summary.data?.[page.direction].totalCount ?? 0;
   const activeOfOtherType = summary.data?.[LOAN_PAGES[page.otherType].direction].totalCount ?? 0;
   const hasAnyLoans = activeOfThisType + activeOfOtherType > 0 || items.length > 0;
-  const hasListError = list.isError && !list.isFetchNextPageError;
-  const showChrome = !hasListError && (list.isPending || hasAnyLoans);
+  const showChrome = !list.isLoadingError && (list.isPending || hasAnyLoans);
   const showSummaryCards = summary.isPending || summary.isError || activeOfThisType > 0;
 
   const attention: Nullable<LoansAttention> = summary.isError
@@ -122,24 +122,33 @@ export function LoansView({ type }: { type: LoanType }) {
   };
 
   const loansContent = (
-    <LoansContent
-      direction={page.direction}
-      hasActiveFilters={query.hasActiveFilters}
-      hasActiveSearch={query.hasActiveSearch}
-      isError={hasListError}
-      isPending={list.isPending}
-      items={items}
-      onAddBook={() => router.push("/books/new")}
-      onClearFilters={query.clearFilters}
-      onEdit={setEditTarget}
-      onOpenContact={(loan) => contactDrawer.openContact(loan.loanContactId)}
-      onOpenLibrary={() => router.push("/books")}
-      onOpenOtherPage={() => router.push(LOAN_PAGES[page.otherType].href)}
-      onRetry={() => void list.refetch()}
-      onReturn={setReturnTarget}
-      otherTypeCount={activeOfOtherType}
-      today={today}
-    />
+    <>
+      <RefetchErrorBanner
+        state={
+          list.isRefetchError
+            ? { isRetrying: list.isRefetching, onRetry: () => void list.refetch() }
+            : null
+        }
+      />
+      <LoansContent
+        direction={page.direction}
+        hasActiveFilters={query.hasActiveFilters}
+        hasActiveSearch={query.hasActiveSearch}
+        isError={list.isLoadingError}
+        isPending={list.isPending}
+        items={items}
+        onAddBook={() => router.push("/books/new")}
+        onClearFilters={query.clearFilters}
+        onEdit={setEditTarget}
+        onOpenContact={(loan) => contactDrawer.openContact(loan.loanContactId)}
+        onOpenLibrary={() => router.push("/books")}
+        onOpenOtherPage={() => router.push(LOAN_PAGES[page.otherType].href)}
+        onRetry={() => void list.refetch()}
+        onReturn={setReturnTarget}
+        otherTypeCount={activeOfOtherType}
+        today={today}
+      />
+    </>
   );
 
   return (

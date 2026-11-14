@@ -12,10 +12,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { deliveryStatuses } from "@/lib/book-status";
 import { formatDate } from "@/lib/format";
-import { ApiError } from "@/lib/http-client";
 import { isHttpsUrl } from "@/lib/is-https-url";
 
 import { useDeliveryHistory, useReceiveDelivery } from "../api/use-delivery";
+import { toDeliveryErrorKey } from "../model/delivery-error";
 import { todayIso } from "../model/reading-progress";
 import { CancelDeliveryDialog } from "./cancel-delivery-dialog";
 import { DeliveryDialog } from "./delivery-dialog";
@@ -40,8 +40,10 @@ export function DeliveryBlock({ book }: DeliveryBlockProps) {
     receiveDelivery.mutate(
       { deliveryId, id: book.id },
       {
-        onError: (error) =>
-          toast.error(error instanceof ApiError ? error.message : t("toast.error")),
+        onError: (error) => {
+          const errorKey = toDeliveryErrorKey(error);
+          toast.error(errorKey === "generic" ? t("toast.error") : t(`errors.${errorKey}`));
+        },
         onSuccess: () => toast.success(t("toast.received")),
       },
     );

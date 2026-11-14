@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { makeBookView } from "./book-details.fixtures";
@@ -20,6 +21,8 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 const fetchMock = vi.fn();
+
+const library = messages.books.library;
 
 const QUICK_COUNTS: LibraryQuickCounts = {
   all: 6,
@@ -55,20 +58,20 @@ function chip(name: string): HTMLElement {
   return match;
 }
 
-function jsonResponse(body: unknown): Response {
+function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
-    status: 200,
+    status,
   });
 }
 
-function mockApi() {
+function mockApi(favoritesSummary: () => Response = () => jsonResponse(FAVORITES_SUMMARY)) {
   fetchMock.mockImplementation((input: RequestInfo | URL) => {
     const url = new URL(String(input), "http://localhost");
     if (url.pathname === "/api/books/quick-counts")
       return Promise.resolve(jsonResponse(QUICK_COUNTS));
     if (url.pathname === "/api/books/favorites-summary") {
-      return Promise.resolve(jsonResponse(FAVORITES_SUMMARY));
+      return Promise.resolve(favoritesSummary());
     }
     if (url.pathname === "/api/books") {
       return Promise.resolve(
@@ -91,9 +94,9 @@ function quickCountRequests(): URL[] {
     .filter((url) => url.pathname === "/api/books/quick-counts");
 }
 
-function renderFavorites() {
+function renderFavorites(searchParams = "") {
   return renderWithProviders(
-    <NuqsTestingAdapter hasMemory>
+    <NuqsTestingAdapter hasMemory searchParams={searchParams}>
       <FavoritesView />
     </NuqsTestingAdapter>,
   );
@@ -136,5 +139,33 @@ describe("FavoritesView quick filter counts", () => {
       expect(url.searchParams.has("status")).toBe(false);
       expect(url.searchParams.get("scope")).toBe("favorites");
     }
+  });
+});
+
+describe("FavoritesView summary error", () => {
+  it("shows the summary error card instead of zero counts when the favorites summary fails to load", async () => {
+    mockApi(() => jsonResponse({ message: "boom" }, 500));
+    renderFavorites();
+
+    const { summaryError } = library;
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(summaryError.title);
+    expect(within(alert).getByRole("button", { name: summaryError.retry })).toBeInTheDocument();
+    expect(screen.queryByText(messages.favorites.summary.total)).not.toBeInTheDocument();
+  });
+});
+
+describe("FavoritesView inverted range", () => {
+  it("asks to fix an inverted year range instead of showing the loading state", async () => {
+    mockApi();
+    renderFavorites("?yearMin=2020&yearMax=2000");
+
+    const { invalidRange } = library;
+    expect(await screen.findByRole("heading", { name: invalidRange.title })).toBeInTheDocument();
+    expect(
+      screen.getByText(invalidRange.description.replace("{ranges}", invalidRange.ranges.year)),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Скинути діапазон" })).toBeInTheDocument();
+    expect(screen.queryByText(library.loading)).not.toBeInTheDocument();
   });
 });

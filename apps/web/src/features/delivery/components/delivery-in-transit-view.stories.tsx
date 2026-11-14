@@ -28,6 +28,7 @@ const meta = {
     onResetFilters: () => {},
     onRetry: () => {},
     pagination: { hasNextPage: false, isFetchingNextPage: false, isFetchNextPageError: false },
+    refetchError: null,
     renderCard: (model) => (
       <DeliveryOrderCard
         key={model.id}

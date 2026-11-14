@@ -3,6 +3,7 @@
     "loading": "Loading...",
     "loadingMore": "Loading more...",
     "retry": "Retry",
+    "refetchError": "Could not refresh the data. Showing the last loaded version.",
     "somethingWentWrong": "Something went wrong",
     "decrement": "Decrease",
     "increment": "Increase",
@@ -822,6 +823,21 @@
         "title": "Couldn't load your library",
         "description": "Try refreshing the page or repeating the request a bit later.",
         "retry": "Try again"
+      },
+      "summaryError": {
+        "title": "Couldn't load the summary",
+        "description": "The summary data is unavailable right now.",
+        "retry": "Try again"
+      },
+      "invalidRange": {
+        "title": "Check the filter range",
+        "description": "The “from” value is greater than the “to” value for {ranges}.",
+        "clear": "{count, plural, one {Reset the range} other {Reset the ranges}}",
+        "ranges": {
+          "rating": "rating",
+          "year": "publication year",
+          "pages": "page count"
+        }
       },
       "search": {
         "label": "Search books",
@@ -1828,6 +1844,7 @@
           "purchaseDateFuture": "The date can’t be in the future.",
           "notInWishlist": "This book is no longer in the wishlist.",
           "storeLinksUnavailable": "Could not load the tracked stores",
+          "maxLinks": "This book already has the maximum of {max} store links.",
           "generic": "Couldn’t save. Please try again."
         }
       },
@@ -3914,9 +3931,11 @@
         "remaining": "{value} left",
         "retry": "Try again",
         "scheduled": "From {month} — {value} / month",
+        "scheduledCancelFailed": "Could not cancel the scheduled budget change",
         "scheduledCancelled": "The scheduled budget change was cancelled",
         "scopeBadge": "Current month",
         "scopeHint": "The budget always counts the current calendar month and never follows the statistics period. Cancelled orders are left out.",
+        "stopCancelFailed": "Could not cancel the scheduled budget stop",
         "stopCancelled": "The scheduled budget stop was cancelled",
         "stopping": "The budget stops from {month}",
         "stopTitle": "Scheduled stop",
