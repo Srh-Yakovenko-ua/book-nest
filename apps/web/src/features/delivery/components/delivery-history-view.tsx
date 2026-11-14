@@ -1,15 +1,18 @@
 "use client";
 
+import type { Nullable } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
 
+import type { RefetchErrorState } from "@/components/refetch-error-banner";
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { pageTabsTriggerId } from "@/components/page-tabs";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -36,6 +39,7 @@ type DeliveryHistoryViewProps = {
     isFetchingNextPage: boolean;
     isFetchNextPageError: boolean;
   };
+  refetchError: Nullable<RefetchErrorState>;
   renderCard: (model: HistoryOrderCardModel) => ReactNode;
   showToolbar: boolean;
   sidebar?: ReactNode;
@@ -53,6 +57,7 @@ export function DeliveryHistoryView({
   onResetFilters,
   onRetry,
   pagination,
+  refetchError,
   renderCard,
   showToolbar,
   sidebar,
@@ -92,6 +97,7 @@ export function DeliveryHistoryView({
             : {})}
         >
           <h2 className="sr-only">{t("resultsTitle")}</h2>
+          <RefetchErrorBanner state={refetchError} />
           <HistoryContentArea
             content={content}
             onGoToInTransit={onGoToInTransit}

@@ -1,6 +1,7 @@
 "use client";
 
 import type { MediaView } from "@app/shared";
+import type { Ref } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
@@ -27,6 +28,7 @@ type ListDetailsHeaderProps = {
   onDuplicate: () => void;
   onEdit: () => void;
   previewCovers: MediaView[];
+  titleRef?: Ref<HTMLHeadingElement>;
   updatedAt: string;
 };
 
@@ -39,6 +41,7 @@ export function ListDetailsHeader({
   onDuplicate,
   onEdit,
   previewCovers,
+  titleRef,
   updatedAt,
 }: ListDetailsHeaderProps) {
   const tHeader = useTranslations("lists.details.header");
@@ -70,7 +73,13 @@ export function ListDetailsHeader({
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex min-w-0 flex-col gap-1.5 max-sm:pr-12">
-            <h1 className="font-heading text-2xl font-semibold text-ink">{name}</h1>
+            <h1
+              className="font-heading text-2xl font-semibold text-ink outline-none"
+              ref={titleRef}
+              tabIndex={-1}
+            >
+              {name}
+            </h1>
             <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
               <UiIcon className="shrink-0 text-icon" name="clock" size={15} />
               {tHeader("updated", { date: formatDate(updatedAt, locale) })}

@@ -19,6 +19,7 @@ export function BooksLibraryView(props: BooksLibraryViewProps) {
           onAddBook={props.onAddBook}
           subtitle={props.subtitle}
           summaryCards={props.summaryCards}
+          summaryError={props.summaryError}
           summaryLoading={props.summaryLoading}
           summaryMobileAction={props.summaryMobileAction}
           summaryMobileCards={props.summaryMobileCards}
@@ -26,7 +27,7 @@ export function BooksLibraryView(props: BooksLibraryViewProps) {
           title={props.title}
         />
       }
-      libraryTotalLoading={props.summaryLoading}
+      libraryTotalLoading={props.summaryLoading || props.summaryError !== null}
     />
   );
 }

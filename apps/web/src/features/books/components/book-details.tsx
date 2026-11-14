@@ -1,11 +1,14 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useState } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "@/i18n/navigation";
+import { focusOnMount } from "@/lib/focus-on-mount";
 import { ApiError } from "@/lib/http-client";
 import { cn } from "@/lib/utils";
 
@@ -18,8 +21,18 @@ type BookDetailsProps = {
 
 export function BookDetails({ id }: BookDetailsProps) {
   const t = useTranslations("books.details");
+  const tCommon = useTranslations("common");
   const router = useRouter();
-  const { data: book, error, isPending } = useBook(id);
+  const [retriedFirstLoad, setRetriedFirstLoad] = useState(false);
+  const {
+    data: book,
+    error,
+    isLoadingError,
+    isPending,
+    isRefetchError,
+    isRefetching,
+    refetch,
+  } = useBook(id);
 
   if (isPending) {
     return (
@@ -45,8 +58,9 @@ export function BookDetails({ id }: BookDetailsProps) {
     );
   }
 
-  if (error !== null) {
-    const isNotFound = error instanceof ApiError && error.status === 404;
+  const isNotFound = error instanceof ApiError && error.status === 404;
+
+  if (isLoadingError || (isRefetchError && isNotFound)) {
     return (
       <div
         className="mx-auto flex max-w-md flex-col items-center gap-4 px-6 py-16 text-center motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-2"
@@ -68,13 +82,34 @@ export function BookDetails({ id }: BookDetailsProps) {
             {isNotFound ? t("states.notFoundDescription") : t("states.errorDescription")}
           </p>
         </div>
-        <Button onClick={() => router.push("/books")} variant="secondary">
-          <UiIcon name="arrow-left" size={16} />
-          {t("backToLibrary")}
-        </Button>
+        <div className="flex flex-wrap justify-center gap-2">
+          {isNotFound ? null : (
+            <Button
+              onClick={() => {
+                setRetriedFirstLoad(true);
+                void refetch();
+              }}
+              ref={retriedFirstLoad ? focusOnMount : undefined}
+            >
+              <UiIcon name="refresh" size={16} />
+              {tCommon("retry")}
+            </Button>
+          )}
+          <Button onClick={() => router.push("/books")} variant="secondary">
+            <UiIcon name="arrow-left" size={16} />
+            {t("backToLibrary")}
+          </Button>
+        </div>
       </div>
     );
   }
 
-  return <BookDetailsView book={book} />;
+  return (
+    <div className="flex flex-col gap-6">
+      <RefetchErrorBanner
+        state={isRefetchError ? { isRetrying: isRefetching, onRetry: () => void refetch() } : null}
+      />
+      <BookDetailsView book={book} titleRef={retriedFirstLoad ? focusOnMount : undefined} />
+    </div>
+  );
 }

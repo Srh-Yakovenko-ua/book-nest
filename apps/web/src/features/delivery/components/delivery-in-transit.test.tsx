@@ -9,8 +9,10 @@ import type {
 import type { ReactNode } from "react";
 
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import {
   mockIntersectionObserver,
   renderWithProviders,
@@ -20,6 +22,7 @@ import {
   within,
 } from "@/test-utils";
 
+import { matchesDeliveryImpacted } from "../api/delivery-cache";
 import { useDeliverySelectionStore } from "../model/delivery-selection-store";
 import { DeliveryInTransit } from "./delivery-in-transit";
 import {
@@ -98,8 +101,11 @@ function itemRow(
   });
 }
 
-function jsonResponse(body: unknown): Response {
-  return new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } });
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    headers: { "Content-Type": "application/json" },
+    status,
+  });
 }
 
 function listRequests(): string[] {
@@ -464,5 +470,19 @@ describe("DeliveryInTransit endless scrolling", () => {
 
     expect(await screen.findByText("Дюна")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});
+
+describe("DeliveryInTransit refetch failure", () => {
+  it("keeps the loaded books and shows the refresh banner when a refetch fails", async () => {
+    const { queryClient } = renderPage();
+    expect(await screen.findByText("Таємна історія")).toBeInTheDocument();
+
+    respondToList = () => jsonResponse({}, 500);
+    await act(() => queryClient.invalidateQueries({ predicate: matchesDeliveryImpacted }));
+
+    expect(await screen.findByText(messages.common.refetchError)).toBeInTheDocument();
+    expect(screen.getByText("Таємна історія")).toBeInTheDocument();
+    expect(screen.queryByText(messages.delivery.states.error.title)).not.toBeInTheDocument();
   });
 });

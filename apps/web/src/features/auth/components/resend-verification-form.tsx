@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 
 import { useResendVerification } from "../api/use-resend-verification";
+import { resolveServerError } from "../lib/auth-error-messages";
 import {
   ResendVerificationFormSchema,
   type ResendVerificationFormValues,
@@ -44,11 +45,19 @@ export function ResendVerificationForm({
   });
 
   const pending = resend.isPending;
+  const formMessageKey = resend.isError
+    ? (resolveServerError(resend.error).formMessageKey ?? "errors.emailInvalid")
+    : null;
 
   const body = resend.isSuccess ? (
     <FormBanner variant="success">{t("resend.success")}</FormBanner>
   ) : (
     <form noValidate onSubmit={onSubmit}>
+      {formMessageKey ? (
+        <FormBanner className="mb-4" variant="error">
+          {t(formMessageKey)}
+        </FormBanner>
+      ) : null}
       <div className="mb-4">
         <AuthTextField
           aria-describedby={errors.email ? "resend-email-error" : undefined}

@@ -2,10 +2,11 @@ import "@testing-library/jest-dom/vitest";
 
 import type { ReactNode } from "react";
 
-import { defaultUserProfileSettings } from "@app/shared";
+import { defaultUserProfileSettings, DELIVERY_ERROR_CODES } from "@app/shared";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { makeStoreLink, makeWishlistBook } from "../model/books-to-buy.fixtures";
@@ -47,6 +48,8 @@ const STORE_RADIOS = {
   readeat: "Readeat 449 грн",
   yakaboo: "Yakaboo 20 $",
 } as const;
+
+const deliveryErrors = messages.books.details.delivery.errors;
 
 const fetchMock = vi.fn();
 const onOpenChange = vi.fn();
@@ -298,14 +301,36 @@ describe("WishlistStatusDialog ordered branch", () => {
 
   it("surfaces the conflict message when the book already has an active delivery", async () => {
     respondToCreateDelivery = () =>
-      jsonResponse({ message: "Ця книга вже має активну доставку" }, 409);
+      jsonResponse(
+        {
+          code: DELIVERY_ERROR_CODES.bookAlreadyOrdered,
+          message: "Book already has an active delivery",
+        },
+        409,
+      );
     renderDialog();
 
     await pickOption("ordered");
     await submitDialog();
 
-    expect(await screen.findByText("Ця книга вже має активну доставку")).toBeInTheDocument();
+    expect(await screen.findByText(deliveryErrors.bookAlreadyOrdered)).toBeInTheDocument();
+    expect(screen.queryByText("Book already has an active delivery")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Що сталося з книгою?" })).toBeInTheDocument();
+  });
+
+  it("explains in Ukrainian that the book cannot be ordered instead of echoing the server", async () => {
+    respondToCreateDelivery = () =>
+      jsonResponse(
+        { code: DELIVERY_ERROR_CODES.bookNotOrderable, message: "Book is not orderable" },
+        409,
+      );
+    renderDialog();
+
+    await pickOption("ordered");
+    await submitDialog();
+
+    expect(await screen.findByText(deliveryErrors.bookNotOrderable)).toBeInTheDocument();
+    expect(screen.queryByText("Book is not orderable")).not.toBeInTheDocument();
   });
 });
 

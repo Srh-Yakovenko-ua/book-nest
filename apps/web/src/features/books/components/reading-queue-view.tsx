@@ -10,6 +10,7 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,6 +37,7 @@ import { SERIES_ORDER_SIDEBAR_LIMIT } from "../model/series-order-check";
 import { useReadingQueueQuery } from "../model/use-reading-queue-query";
 import { useRemoveFromQueueWithUndo } from "../model/use-remove-from-queue-with-undo";
 import { AddBookToQueueDialog } from "./add-book-to-queue-dialog";
+import { LibrarySummaryError } from "./library-summary-error";
 import { QueueSummaryCards, QueueSummaryCardsSkeleton } from "./queue-summary-cards";
 import { QueueVolumeBlock, QueueVolumeSkeleton } from "./queue-volume-block";
 import { ReadingQueueFilters } from "./reading-queue-filters";
@@ -63,7 +65,8 @@ export function ReadingQueueView() {
   const router = useRouter();
 
   const queue = useReadingQueueQuery();
-  const { data, isError, isPending, refetch } = useReadingQueue(queue.listParams);
+  const { data, isLoadingError, isPending, isRefetchError, isRefetching, refetch } =
+    useReadingQueue(queue.listParams);
   const summary = useReadingQueueSummary();
   const seriesOrderIssues = useSeriesOrderIssues({ limit: SERIES_ORDER_SIDEBAR_LIMIT });
   const genres = useGenres();
@@ -201,7 +204,11 @@ export function ReadingQueueView() {
         </Button>
       </header>
 
-      {isError ? (
+      <RefetchErrorBanner
+        state={isRefetchError ? { isRetrying: isRefetching, onRetry: () => void refetch() } : null}
+      />
+
+      {isLoadingError ? (
         <div aria-live="assertive" role="alert">
           <EmptyState onPrimary={() => void refetch()} state={errorState} />
         </div>
@@ -215,19 +222,23 @@ export function ReadingQueueView() {
         />
       ) : (
         <>
-          <QueueSummaryCards
-            isLoading={summary.isPending}
-            mobileAction={
-              <ReadingQueueOverviewPanel
-                isLoading={summary.isPending}
-                items={serverItems}
-                seriesWithIssuesCount={seriesWithIssuesCount}
-                summaryCards={summaryCards}
-              />
-            }
-            seriesWithIssuesCount={seriesWithIssuesCount}
-            summary={summary.data ?? null}
-          />
+          {summary.isLoadingError ? (
+            <LibrarySummaryError onRetry={() => void summary.refetch()} />
+          ) : (
+            <QueueSummaryCards
+              isLoading={summary.isPending}
+              mobileAction={
+                <ReadingQueueOverviewPanel
+                  isLoading={summary.isPending}
+                  items={serverItems}
+                  seriesWithIssuesCount={seriesWithIssuesCount}
+                  summaryCards={summaryCards}
+                />
+              }
+              seriesWithIssuesCount={seriesWithIssuesCount}
+              summary={summary.data ?? null}
+            />
+          )}
 
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
             <div className="flex min-w-0 flex-col gap-4">

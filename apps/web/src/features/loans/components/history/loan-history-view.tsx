@@ -8,6 +8,7 @@ import { useRef, useState } from "react";
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { LibraryActiveFilters } from "@/features/books/components/library-active-filters";
 
@@ -76,9 +77,8 @@ export function LoanHistoryView() {
 
   const summaryCards = useLoanHistorySummaryCards(overview.data);
   const hasQuery = query.hasActiveFilters || query.hasActiveSearch;
-  const hasListError = list.isError && !list.isFetchNextPageError;
-  const isHistoryEmpty = !list.isPending && !hasListError && items.length === 0 && !hasQuery;
-  const showChrome = !hasListError && !isHistoryEmpty;
+  const isHistoryEmpty = !list.isPending && !list.isLoadingError && items.length === 0 && !hasQuery;
+  const showChrome = !list.isLoadingError && !isHistoryEmpty;
 
   const analytics = {
     isLoading: overview.isPending,
@@ -87,18 +87,27 @@ export function LoanHistoryView() {
   };
 
   const content = (
-    <LoanHistoryList
-      hasQuery={hasQuery}
-      isError={hasListError}
-      isPending={list.isPending}
-      items={items}
-      onClearFilters={query.clearFilters}
-      onCorrectDate={(loanId) => setCorrection({ loanId, mode: "date", origin: "row" })}
-      onEditNote={(loanId) => setCorrection({ loanId, mode: "note", origin: "row" })}
-      onOpenContact={contactDrawer.openContact}
-      onOpenDetails={openDetails}
-      onRetry={() => void list.refetch()}
-    />
+    <>
+      <RefetchErrorBanner
+        state={
+          list.isRefetchError
+            ? { isRetrying: list.isRefetching, onRetry: () => void list.refetch() }
+            : null
+        }
+      />
+      <LoanHistoryList
+        hasQuery={hasQuery}
+        isError={list.isLoadingError}
+        isPending={list.isPending}
+        items={items}
+        onClearFilters={query.clearFilters}
+        onCorrectDate={(loanId) => setCorrection({ loanId, mode: "date", origin: "row" })}
+        onEditNote={(loanId) => setCorrection({ loanId, mode: "note", origin: "row" })}
+        onOpenContact={contactDrawer.openContact}
+        onOpenDetails={openDetails}
+        onRetry={() => void list.refetch()}
+      />
+    </>
   );
 
   return (

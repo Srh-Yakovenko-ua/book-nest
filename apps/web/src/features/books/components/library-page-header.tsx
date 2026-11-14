@@ -1,5 +1,6 @@
 "use client";
 
+import type { Nullable } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { UiIcon } from "@/components/icons";
@@ -7,14 +8,17 @@ import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 
 import type { LibrarySummaryCard } from "./library-summary-cards";
+import type { LibrarySummaryErrorProps } from "./library-summary-error";
 
 import { LibrarySummaryCards } from "./library-summary-cards";
+import { LibrarySummaryError } from "./library-summary-error";
 
 export type LibraryPageHeaderProps = {
   addBookLabel?: string;
   onAddBook?: () => void;
   subtitle: string;
   summaryCards: LibrarySummaryCard[];
+  summaryError: Nullable<LibrarySummaryErrorProps>;
   summaryLoading: boolean;
   summaryMobileAction?: ReactNode;
   summaryMobileCards?: LibrarySummaryCard[];
@@ -27,6 +31,7 @@ export function LibraryPageHeader({
   onAddBook,
   subtitle,
   summaryCards,
+  summaryError,
   summaryLoading,
   summaryMobileAction,
   summaryMobileCards,
@@ -53,13 +58,17 @@ export function LibraryPageHeader({
         ) : null}
       </div>
 
-      <LibrarySummaryCards
-        cards={summaryCards}
-        isLoading={summaryLoading}
-        mobileAction={summaryMobileAction}
-        mobileCards={summaryMobileCards}
-        mobileLayout={summaryMobileLayout}
-      />
+      {summaryError ? (
+        <LibrarySummaryError {...summaryError} />
+      ) : (
+        <LibrarySummaryCards
+          cards={summaryCards}
+          isLoading={summaryLoading}
+          mobileAction={summaryMobileAction}
+          mobileCards={summaryMobileCards}
+          mobileLayout={summaryMobileLayout}
+        />
+      )}
     </header>
   );
 }

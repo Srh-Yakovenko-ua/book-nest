@@ -28,6 +28,7 @@ export { MarkBoughtForm } from "./components/mark-bought-form";
 export { ReadingQueueView } from "./components/reading-queue-view";
 export { SeriesStatusChips } from "./components/series-status-chips";
 export { StoreSourceFields } from "./components/store-source-fields";
+export { useDeliveryErrorText } from "./hooks/use-delivery-error-text";
 export { BOOK_GENRES_MAX } from "./model/book-classification-fields";
 export { type AuthorSelection, authorSelectionToReference } from "./model/create-book-form";
 export { type LibraryBook, type LibraryBookLabels, toLibraryBook } from "./model/library-book";

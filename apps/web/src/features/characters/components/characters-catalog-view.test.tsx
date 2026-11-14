@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { createTranslator } from "next-intl";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeBookDetailsView } from "@/features/books/components/book-details.fixtures";
@@ -17,6 +18,7 @@ import {
   within,
 } from "@/test-utils";
 
+import { characterKeys } from "../api/character-keys";
 import {
   makeCharacterAppearanceBook,
   makeCharacterCatalogItem,
@@ -335,6 +337,20 @@ describe("CharactersCatalogView catalog", () => {
     viewport.enterViewport();
 
     await waitFor(() => expect(nextPageRequestCount()).toBe(0));
+  });
+});
+
+describe("CharactersCatalogView refetch failure", () => {
+  it("keeps the loaded characters and shows the refresh banner when a refetch fails", async () => {
+    const { queryClient } = renderCatalog();
+    expect(await screen.findByRole("heading", { name: "Ґеральт" })).toBeInTheDocument();
+
+    respondToList = () => jsonResponse({ message: "boom" }, 500);
+    await act(() => queryClient.invalidateQueries({ queryKey: characterKeys.searchScope() }));
+
+    expect(await screen.findByText(messages.common.refetchError)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Ґеральт" })).toBeInTheDocument();
+    expect(screen.queryByText(messages.characters.states.errorTitle)).not.toBeInTheDocument();
   });
 });
 

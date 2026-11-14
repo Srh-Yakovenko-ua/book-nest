@@ -1,7 +1,7 @@
 "use client";
 
 import type { SeriesDetailsView } from "@app/shared";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
 import { useTranslations } from "next-intl";
 import { Fragment } from "react";
@@ -39,6 +39,7 @@ type SeriesDetailsHeroProps = {
   onDelete: () => void;
   onEdit: () => void;
   onReadFullDescription: () => void;
+  titleRef?: Ref<HTMLHeadingElement>;
 };
 
 export function SeriesDetailsHero({
@@ -48,6 +49,7 @@ export function SeriesDetailsHero({
   onDelete,
   onEdit,
   onReadFullDescription,
+  titleRef,
 }: SeriesDetailsHeroProps) {
   const t = useTranslations("series.details");
   const tStatus = useTranslations("series.status");
@@ -151,7 +153,11 @@ export function SeriesDetailsHero({
                 <span className={statusBadgeVariants({ tone: "danger" })}>{tAge("18_plus")}</span>
               ) : null}
             </div>
-            <h1 className="font-heading text-2xl leading-tight font-semibold text-ink md:text-3xl">
+            <h1
+              className="font-heading text-2xl leading-tight font-semibold text-ink outline-none md:text-3xl"
+              ref={titleRef}
+              tabIndex={-1}
+            >
               {details.name}
             </h1>
             <p className="text-base font-medium text-foreground/90">{authorsLine}</p>

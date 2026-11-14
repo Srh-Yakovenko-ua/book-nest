@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { type ActiveFilterChip, LibraryActiveFilters } from "@/features/books";
 import { useRouter } from "@/i18n/navigation";
 
@@ -35,13 +36,11 @@ export function AllPublishers() {
   const summary = usePublisherSummary();
   const summaryCards = usePublisherSummaryCards(summary.data);
 
-  const hasListError = list.isError && !list.isFetchNextPageError;
-
   const state = resolvePublishersArchiveState({
     hasActiveFilters: query.hasActiveFilters,
     hasActiveSearch: query.hasActiveSearch,
     list: list.data ?? null,
-    listFailed: hasListError,
+    listFailed: list.isLoadingError,
     summaryPending: summary.isPending,
     summaryPublishersCount: summary.data?.publishersCount ?? null,
   });
@@ -89,22 +88,31 @@ export function AllPublishers() {
   return (
     <AllPublishersView
       content={
-        <PublishersContent
-          hasSidebar={showInsights}
-          loadMore={{
-            hasNextPage: list.hasNextPage,
-            isError: list.isFetchNextPageError,
-            isFetching: list.isFetchingNextPage,
-            onLoadMore: () => void list.fetchNextPage(),
-          }}
-          onAddBook={onAddBook}
-          onClearAll={query.clearAll}
-          onClearSearch={query.clearSearch}
-          onResetFilters={query.resetFilters}
-          onRetry={() => void list.refetch()}
-          state={state}
-          view={query.state.view}
-        />
+        <>
+          <RefetchErrorBanner
+            state={
+              list.isRefetchError
+                ? { isRetrying: list.isRefetching, onRetry: () => void list.refetch() }
+                : null
+            }
+          />
+          <PublishersContent
+            hasSidebar={showInsights}
+            loadMore={{
+              hasNextPage: list.hasNextPage,
+              isError: list.isFetchNextPageError,
+              isFetching: list.isFetchingNextPage,
+              onLoadMore: () => void list.fetchNextPage(),
+            }}
+            onAddBook={onAddBook}
+            onClearAll={query.clearAll}
+            onClearSearch={query.clearSearch}
+            onResetFilters={query.resetFilters}
+            onRetry={() => void list.refetch()}
+            state={state}
+            view={query.state.view}
+          />
+        </>
       }
       controls={
         state.kind === "empty" ? null : (

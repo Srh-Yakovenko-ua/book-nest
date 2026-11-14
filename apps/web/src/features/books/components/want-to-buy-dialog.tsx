@@ -2,6 +2,7 @@
 
 import type { BookView, Currency, WantToBuyInput } from "@app/shared";
 
+import { MAX_STORE_LINKS_PER_BOOK, STORE_LINK_ERROR_CODES } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -144,6 +145,10 @@ function buildSchema(messages: WantToBuyMessages) {
     });
 }
 
+function isStoreLinkLimitReached(error: unknown): boolean {
+  return error instanceof ApiError && error.code === STORE_LINK_ERROR_CODES.MAX_LINKS_REACHED;
+}
+
 function WantToBuyForm({ book, onDone }: { book: WantToBuyBook; onDone: () => void }) {
   const t = useTranslations("books.details.ownership.buyDialog");
   const tErrors = useTranslations("books.details.ownership.errors");
@@ -179,7 +184,11 @@ function WantToBuyForm({ book, onDone }: { book: WantToBuyBook; onDone: () => vo
       { id: book.id, payload: buildPayload(values) },
       {
         onError: (error) =>
-          setServerError(error instanceof ApiError ? error.message : tErrors("generic")),
+          setServerError(
+            isStoreLinkLimitReached(error)
+              ? tErrors("maxLinks", { max: MAX_STORE_LINKS_PER_BOOK })
+              : tErrors("generic"),
+          ),
         onSuccess: onDone,
       },
     );

@@ -4,6 +4,8 @@ import type { LibraryQueryState } from "./library-query";
 
 import {
   hasActiveLibraryFilters,
+  invertedLibraryRanges,
+  invertedRangesReset,
   isLibraryRangeValid,
   LIBRARY_FILTERS_RESET,
   libraryQueryParsers,
@@ -86,6 +88,68 @@ describe("isLibraryRangeValid", () => {
     };
     expect(isLibraryRangeValid(params)).toBe(true);
     expect(libraryRangeFlags(params)).toEqual({ pages: false, rating: false, year: false });
+  });
+});
+
+describe("invertedLibraryRanges", () => {
+  it("reports nothing when no range is set", () => {
+    expect(invertedLibraryRanges(makeState())).toEqual([]);
+  });
+
+  it("reports nothing when every min is at most its max or only one bound is set", () => {
+    const state = makeState({
+      pagesMax: 300,
+      pagesMin: 300,
+      ratingMin: 4,
+      yearMax: 2020,
+      yearMin: 2000,
+    });
+
+    expect(invertedLibraryRanges(state)).toEqual([]);
+  });
+
+  it("reports the year range when the year min exceeds the year max", () => {
+    const state = makeState({ pagesMax: 500, pagesMin: 100, yearMax: 2000, yearMin: 2020 });
+
+    expect(invertedLibraryRanges(state)).toEqual(["year"]);
+  });
+
+  it("lists several inverted ranges in rating, year, pages order", () => {
+    const state = makeState({ pagesMax: 100, pagesMin: 500, yearMax: 2000, yearMin: 2020 });
+
+    expect(invertedLibraryRanges(state)).toEqual(["year", "pages"]);
+  });
+
+  it("reports the rating range when only the rating is inverted", () => {
+    const state = makeState({ pagesMax: 500, pagesMin: 100, ratingMax: 2, ratingMin: 4.5 });
+
+    expect(invertedLibraryRanges(state)).toEqual(["rating"]);
+  });
+});
+
+describe("invertedRangesReset", () => {
+  it("clears both bounds of each inverted range and leaves a valid range out", () => {
+    const state = makeState({
+      pagesMax: 100,
+      pagesMin: 500,
+      ratingMax: 5,
+      ratingMin: 2,
+      yearMax: 2000,
+      yearMin: 2020,
+    });
+
+    expect(invertedRangesReset(state)).toStrictEqual({
+      pagesMax: null,
+      pagesMin: null,
+      yearMax: null,
+      yearMin: null,
+    });
+  });
+
+  it("changes nothing when no range is inverted", () => {
+    const state = makeState({ yearMax: 2020, yearMin: 2000 });
+
+    expect(invertedRangesReset(state)).toStrictEqual({});
   });
 });
 

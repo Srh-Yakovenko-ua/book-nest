@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "@/i18n/navigation";
@@ -50,9 +51,7 @@ export function QuotesView() {
 
   const quoteItems = (quotes.data?.pages ?? []).flatMap((page) => page.items);
 
-  const hasQuotesError = quotes.isError && !quotes.isFetchNextPageError;
-
-  const showSidebar = !hasQuotesError;
+  const showSidebar = !quotes.isLoadingError;
 
   const filterCounts = facets.data === undefined ? undefined : quoteFilterCounts(facets.data);
   const counter =
@@ -112,7 +111,7 @@ export function QuotesView() {
       ) : null}
 
       <ToolbarSlot
-        isError={hasQuotesError}
+        isError={quotes.isLoadingError}
         isPending={quotes.isPending}
         toolbar={
           <QuotesToolbar
@@ -139,10 +138,17 @@ export function QuotesView() {
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-6">
+          <RefetchErrorBanner
+            state={
+              quotes.isRefetchError
+                ? { isRetrying: quotes.isRefetching, onRetry: () => void quotes.refetch() }
+                : null
+            }
+          />
           <QuotesContent
             hasActiveFilters={hasActiveFilters}
             hasNextPage={quotes.hasNextPage}
-            isError={hasQuotesError}
+            isError={quotes.isLoadingError}
             isFetchingNextPage={quotes.isFetchingNextPage}
             isLoadMoreError={quotes.isFetchNextPageError}
             isPending={quotes.isPending}

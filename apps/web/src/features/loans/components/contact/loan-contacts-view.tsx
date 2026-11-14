@@ -12,6 +12,7 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,7 +37,6 @@ export function LoanContactsView() {
   const loadedPages = list.data?.pages ?? [];
   const items = loadedPages.flatMap((page) => page.items);
   const counts: Nullable<LoanContactCounts> = loadedPages[0]?.counts ?? null;
-  const hasListError = list.isError && !list.isFetchNextPageError;
 
   function handleResolved({ contact, kind }: LoanContactResolution) {
     setIsCreating(false);
@@ -72,9 +72,17 @@ export function LoanContactsView() {
         query={query}
       />
 
+      <RefetchErrorBanner
+        state={
+          list.isRefetchError
+            ? { isRetrying: list.isRefetching, onRetry: () => void list.refetch() }
+            : null
+        }
+      />
+
       <LoanContactsContent
         hasActiveQuery={query.hasActiveQuery}
-        isError={hasListError}
+        isError={list.isLoadingError}
         isPending={list.isPending}
         items={items}
         onClearQuery={query.clearQuery}

@@ -14,6 +14,7 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import {
   mockIntersectionObserver,
   renderWithProviders,
@@ -23,6 +24,7 @@ import {
   within,
 } from "@/test-utils";
 
+import { quoteKeys } from "../api/quote-keys";
 import { QUOTES_PAGE_SIZE } from "../model/quotes-query";
 import { makeQuote } from "../model/quotes.fixtures";
 import { QuotesView } from "./quotes-view";
@@ -33,6 +35,7 @@ const viewport = mockIntersectionObserver();
 
 type QuotesMockOptions = {
   facetsFor?: (url: string) => QuotesFacetsView;
+  listStatus?: number;
   overview?: QuotesOverviewView;
   summaryStatus?: number;
 };
@@ -377,6 +380,21 @@ describe("QuotesView overview cards", () => {
   });
 });
 
+describe("QuotesView refetch failure", () => {
+  it("keeps the loaded quotes and shows the refresh banner when a refetch fails", async () => {
+    mockQuotes(quotes(3));
+    const { queryClient } = renderQuotes();
+    expect(await screen.findByText("Цитата 1")).toBeInTheDocument();
+
+    mockQuotes(quotes(3), { listStatus: 500 });
+    await act(() => queryClient.invalidateQueries({ queryKey: quoteKeys.root }));
+
+    expect(await screen.findByText(messages.common.refetchError)).toBeInTheDocument();
+    expect(screen.getByText("Цитата 1")).toBeInTheDocument();
+    expect(screen.queryByText(messages.quotes.error.load)).not.toBeInTheDocument();
+  });
+});
+
 describe("QuotesView overview blocks", () => {
   it("shows the rediscovery block above the post-finish block", async () => {
     mockQuotes(quotes(3), { overview: { memoryQuote: makeQuote(), postFinish: POST_FINISH } });
@@ -478,7 +496,12 @@ function listUrls(): string[] {
 }
 
 function mockQuotes(items: QuoteView[], options: QuotesMockOptions = {}) {
-  const { facetsFor = () => FACETS, overview = EMPTY_OVERVIEW, summaryStatus = 200 } = options;
+  const {
+    facetsFor = () => FACETS,
+    listStatus = 200,
+    overview = EMPTY_OVERVIEW,
+    summaryStatus = 200,
+  } = options;
 
   vi.stubGlobal(
     "fetch",
@@ -490,7 +513,11 @@ function mockQuotes(items: QuoteView[], options: QuotesMockOptions = {}) {
       }
       if (url.includes("/api/quotes/overview")) return Promise.resolve(jsonResponse(overview));
       if (url.includes("/api/quotes/facets")) return Promise.resolve(jsonResponse(facetsFor(url)));
-      if (url.includes("/api/quotes")) return Promise.resolve(jsonResponse(quotesPage(items, url)));
+      if (url.includes("/api/quotes")) {
+        return Promise.resolve(
+          listStatus === 200 ? jsonResponse(quotesPage(items, url)) : jsonResponse({}, listStatus),
+        );
+      }
       if (url.includes("/api/books")) {
         return Promise.resolve(
           jsonResponse({ items: [], page: 1, pagesCount: 0, pageSize: 20, totalCount: 0 }),

@@ -9,6 +9,7 @@ import type { LibrarySummaryCard } from "@/features/books/components/library-sum
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { ChipGroup } from "@/components/ui/chip-group";
 import { Segmented } from "@/components/ui/segmented";
@@ -66,8 +67,6 @@ export function CharactersCatalogView() {
     state,
   });
   const summaryCards = useCharactersSummaryCards(overview.data);
-
-  const hasCatalogError = catalog.isError && !catalog.isFetchNextPageError;
 
   const loadMoreState: InfiniteScrollState = catalog.isFetchNextPageError
     ? "error"
@@ -189,7 +188,7 @@ export function CharactersCatalogView() {
 
         <LibraryActiveFilters chips={filterChips} onClearAll={clearAll} />
 
-        {hasCatalogError ? null : (
+        {catalog.isLoadingError ? null : (
           <p aria-live="polite" className="text-sm text-muted-foreground">
             {catalog.isPending ? t("states.loading") : t("counter", countShownCharacters(pages))}
           </p>
@@ -198,7 +197,14 @@ export function CharactersCatalogView() {
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-6">
-          {hasCatalogError ? (
+          <RefetchErrorBanner
+            state={
+              catalog.isRefetchError
+                ? { isRetrying: catalog.isRefetching, onRetry: () => void catalog.refetch() }
+                : null
+            }
+          />
+          {catalog.isLoadingError ? (
             <CharactersCatalogError onRetry={() => void catalog.refetch()} />
           ) : (
             <CharactersCatalogContent

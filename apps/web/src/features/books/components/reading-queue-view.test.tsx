@@ -40,6 +40,7 @@ const stats = messages.readingQueue.stats;
 const filters = messages.books.library.filters;
 const readingStatus = messages.books.readingStatus.options;
 const volume = messages.readingQueue.volume;
+const summaryError = messages.books.library.summaryError;
 
 const AVAILABLE_OWNERSHIP: OwnershipStatus[] = ["owned", "borrowed_from_someone"];
 
@@ -437,5 +438,26 @@ describe("ReadingQueueView", () => {
 
     const [sidebarId, mainId] = headings.map((heading) => heading.id);
     expect(sidebarId).not.toBe(mainId);
+  });
+
+  it("keeps the queue and shows the summary error card when the queue summary fails to load", async () => {
+    mockQueue([queueItem(1, "book-1", "Перша книга")]);
+    const queueServer = globalThis.fetch;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+        String(input).includes("/api/reading-queue/summary")
+          ? Promise.resolve(jsonResponse({ message: "boom" }, 500))
+          : queueServer(input, init),
+      ),
+    );
+
+    renderQueue();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(summaryError.title);
+    expect(within(alert).getByRole("button", { name: summaryError.retry })).toBeInTheDocument();
+    expect(await screen.findByText("#1")).toBeInTheDocument();
+    expect(screen.queryByText(stats.total.label)).not.toBeInTheDocument();
   });
 });

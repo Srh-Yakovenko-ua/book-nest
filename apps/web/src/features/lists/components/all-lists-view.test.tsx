@@ -43,6 +43,7 @@ function renderView(overrides: Partial<ViewProps> = {}) {
     onLoadMore: vi.fn(),
     onOpenLibrary: vi.fn(),
     onRetry: vi.fn(),
+    refetchError: null,
     sidebar: <div>SIDEBAR</div>,
     summary: <div>SUMMARY</div>,
     toolbar: <div>TOOLBAR</div>,

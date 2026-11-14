@@ -7,6 +7,7 @@ import { subDays } from "date-fns";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeStoreLink } from "@/features/books-to-buy/model/books-to-buy.fixtures";
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import { makeBookView } from "./book-details.fixtures";
@@ -285,5 +286,23 @@ describe("MarkBoughtDialog validation", () => {
 
     expect(await screen.findByText("Дата не може бути в майбутньому.")).toBeInTheDocument();
     expect(markBoughtCall()).toBeUndefined();
+  });
+});
+
+describe("MarkBoughtDialog server errors", () => {
+  it("shows the translated save error instead of a bare HTTP status for a field-error response", async () => {
+    respondToMarkBought = () =>
+      jsonResponse(
+        { errorsMessages: [{ field: "storeName", message: "storeName must be a string" }] },
+        400,
+      );
+    await renderDialog();
+
+    await submitDialog();
+
+    expect(
+      await screen.findByText(messages.books.details.ownership.errors.generic),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("HTTP 400")).not.toBeInTheDocument();
   });
 });

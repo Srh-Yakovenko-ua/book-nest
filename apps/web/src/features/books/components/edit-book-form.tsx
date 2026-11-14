@@ -1,11 +1,16 @@
 "use client";
 
+import type { Nullable } from "@app/shared";
+
 import { useTranslations } from "next-intl";
+import { useState } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "@/i18n/navigation";
+import { focusOnMount } from "@/lib/focus-on-mount";
 import { ApiError } from "@/lib/http-client";
 
 import { useBook } from "../api/use-book";
@@ -17,8 +22,18 @@ type EditBookFormProps = {
 
 export function EditBookForm({ id }: EditBookFormProps) {
   const t = useTranslations("books");
+  const tCommon = useTranslations("common");
   const router = useRouter();
-  const { data: book, error, isPending } = useBook(id);
+  const [retriedFirstLoad, setRetriedFirstLoad] = useState(false);
+  const {
+    data: book,
+    error,
+    isLoadingError,
+    isPending,
+    isRefetchError,
+    isRefetching,
+    refetch,
+  } = useBook(id);
 
   if (isPending) {
     return (
@@ -37,8 +52,9 @@ export function EditBookForm({ id }: EditBookFormProps) {
     );
   }
 
-  if (error !== null) {
-    const isNotFound = error instanceof ApiError && error.status === 404;
+  const isNotFound = error instanceof ApiError && error.status === 404;
+
+  if (isLoadingError || (isRefetchError && isNotFound)) {
     return (
       <div
         className="mx-auto flex max-w-md flex-col items-center gap-4 px-6 py-16 text-center"
@@ -55,12 +71,38 @@ export function EditBookForm({ id }: EditBookFormProps) {
             {isNotFound ? t("editState.notFoundDescription") : t("editState.errorDescription")}
           </p>
         </div>
-        <Button onClick={() => router.push("/")} variant="secondary">
-          {t("editState.backToLibrary")}
-        </Button>
+        <div className="flex flex-wrap justify-center gap-2">
+          {isNotFound ? null : (
+            <Button
+              onClick={() => {
+                setRetriedFirstLoad(true);
+                void refetch();
+              }}
+              ref={retriedFirstLoad ? focusOnMount : undefined}
+            >
+              <UiIcon name="refresh" size={16} />
+              {tCommon("retry")}
+            </Button>
+          )}
+          <Button onClick={() => router.push("/")} variant="secondary">
+            {t("editState.backToLibrary")}
+          </Button>
+        </div>
       </div>
     );
   }
 
-  return <BookForm book={book} key={book.updatedAt} mode="edit" />;
+  return (
+    <div className="flex flex-col gap-6" ref={retriedFirstLoad ? focusTitleField : undefined}>
+      <RefetchErrorBanner
+        state={isRefetchError ? { isRetrying: isRefetching, onRetry: () => void refetch() } : null}
+      />
+      <BookForm book={book} key={book.updatedAt} mode="edit" />
+    </div>
+  );
+}
+
+function focusTitleField(container: Nullable<HTMLElement>) {
+  const titleField = container?.querySelector("#book-title");
+  if (titleField instanceof HTMLInputElement) titleField.focus();
 }

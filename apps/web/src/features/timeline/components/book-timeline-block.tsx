@@ -17,6 +17,7 @@ import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
 import { UiIcon } from "@/components/icons";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { Button } from "@/components/ui/button";
 import { assertNever } from "@/lib/assert-never";
 
@@ -69,6 +70,12 @@ type BookTimelineBlockProps = {
 
 type EventDialogState =
   { event: TimelineEventView; mode: "edit" } | { mode: "closed" } | { mode: "create" };
+
+type RefetchableQuery = {
+  isRefetchError: boolean;
+  isRefetching: boolean;
+  refetch: () => Promise<unknown>;
+};
 
 type TimelineManagementState =
   | { mode: "closed" }
@@ -132,7 +139,6 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
           ?.eventsCount ?? 0);
   const events = eventsQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const hasActiveFilters = hasActiveEventFilters(eventFilters);
-  const hasEventsError = eventsQuery.isError && !eventsQuery.isFetchNextPageError;
   const loadMoreState: InfiniteScrollState = eventsQuery.isFetchNextPageError
     ? "error"
     : eventsQuery.isFetchingNextPage
@@ -302,7 +308,9 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
     }
 
     if (eventsQuery.isPending) return <TimelineSkeleton shape={skeletonShape} />;
-    if (hasEventsError) return <TimelineError onRetry={() => void eventsQuery.refetch()} />;
+    if (eventsQuery.isLoadingError) {
+      return <TimelineError onRetry={() => void eventsQuery.refetch()} />;
+    }
 
     if (events.length === 0) return renderEmptyState();
 
@@ -344,7 +352,7 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
   }
 
   function renderBody() {
-    if (timelinesQuery.isError || summaryQuery.isError) {
+    if (timelinesQuery.isLoadingError || summaryQuery.isLoadingError) {
       return (
         <TimelineError
           onRetry={() => {
@@ -360,6 +368,10 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
     }
 
     const showFilterControls = viewMode !== "overview";
+    const visibleQueries: readonly RefetchableQuery[] = showFilterControls
+      ? [timelinesQuery, summaryQuery, eventsQuery]
+      : [timelinesQuery, summaryQuery];
+    const failedRefetches = visibleQueries.filter((query) => query.isRefetchError);
 
     return (
       <div className="flex flex-col gap-5">
@@ -429,6 +441,18 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
             </>
           ) : null}
         </div>
+        <RefetchErrorBanner
+          state={
+            failedRefetches.length > 0
+              ? {
+                  isRetrying: failedRefetches.some((query) => query.isRefetching),
+                  onRetry: () => {
+                    for (const query of failedRefetches) void query.refetch();
+                  },
+                }
+              : null
+          }
+        />
         {renderViewContent()}
       </div>
     );

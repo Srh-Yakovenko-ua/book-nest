@@ -26,7 +26,6 @@ import { NumberStepper } from "@/components/ui/number-stepper";
 import { Rating } from "@/components/ui/rating";
 import { Textarea } from "@/components/ui/textarea";
 import { readingStatuses } from "@/lib/book-status";
-import { ApiError } from "@/lib/http-client";
 
 import { useChangeReadingStatus } from "../api/use-reading-progress";
 import {
@@ -183,8 +182,7 @@ function ChangeStatusForm({
     change.mutate(
       { id: book.id, payload: buildPayload({ fields, values }) },
       {
-        onError: (error) =>
-          setServerError(error instanceof ApiError ? error.message : t("errors.generic")),
+        onError: () => setServerError(t("errors.generic")),
         onSuccess: onDone,
       },
     );

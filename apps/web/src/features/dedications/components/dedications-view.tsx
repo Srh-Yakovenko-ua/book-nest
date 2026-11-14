@@ -10,6 +10,7 @@ import type { LibrarySummaryCard } from "@/features/books/components/library-sum
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { useGenres } from "@/features/books/api/use-genres";
 import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
@@ -43,9 +44,9 @@ export function DedicationsView() {
   const resultTotal = dedications.data?.pages[0]?.totalCount ?? 0;
   const activeBook =
     openedBook === null ? null : (books.find((book) => book.id === openedBook.id) ?? openedBook);
-  const hasListError = dedications.isError && !dedications.isFetchNextPageError;
   const showChrome =
-    !hasListError && (dedications.isPending || books.length > 0 || query.hasActiveFilters);
+    !dedications.isLoadingError &&
+    (dedications.isPending || books.length > 0 || query.hasActiveFilters);
 
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
   const total = summary.data?.totalCount ?? 0;
@@ -178,7 +179,7 @@ export function DedicationsView() {
             chipCounts={quickCounts.data}
             chipCountsPending={quickCounts.isPending}
             counter={
-              dedications.isPending || hasListError || books.length === 0
+              dedications.isPending || dedications.isLoadingError || books.length === 0
                 ? undefined
                 : t("counter", { shown: books.length, total: resultTotal })
             }
@@ -198,10 +199,20 @@ export function DedicationsView() {
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-6">
+          <RefetchErrorBanner
+            state={
+              dedications.isRefetchError
+                ? {
+                    isRetrying: dedications.isRefetching,
+                    onRetry: () => void dedications.refetch(),
+                  }
+                : null
+            }
+          />
           <DedicationsContent
             books={books}
             hasActiveFilters={query.hasActiveFilters}
-            isError={hasListError}
+            isError={dedications.isLoadingError}
             isPending={dedications.isPending}
             isPlaceholderData={dedications.isPlaceholderData}
             onChooseBook={onChooseBook}
@@ -210,7 +221,7 @@ export function DedicationsView() {
             onRetry={() => void dedications.refetch()}
             view={query.state.view}
           />
-          {books.length === 0 || hasListError ? null : (
+          {books.length === 0 || dedications.isLoadingError ? null : (
             <InfiniteScrollFooter
               allShownLabel={t("allShown")}
               className="text-center"

@@ -1,8 +1,10 @@
-import type { BookBudgetOverview } from "@app/shared";
+import type { BookBudgetOverview, BookBudgetUpcomingChange } from "@app/shared";
 
-import { describe, expect, it, vi } from "vitest";
+import { toast } from "sonner";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen } from "@/test-utils";
+import messages from "@/messages/uk.json";
+import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import type { StatisticsScopeState } from "../../model/statistics-scope-state";
 
@@ -286,5 +288,106 @@ describe("StatisticsBudget", () => {
 
     expect(screen.getByText("Не вдалося завантажити бюджет.")).toBeInTheDocument();
     expect(screen.queryByText("Бюджет у UAH не задано.")).not.toBeInTheDocument();
+  });
+
+  describe("cancelling a scheduled budget move", () => {
+    const budgetCopy = messages.delivery.statistics.budget;
+    const fetchMock = vi.fn();
+
+    function withUpcomingChanges(upcomingChanges: BookBudgetUpcomingChange[]): BookBudgetOverview {
+      return {
+        budgets: [
+          {
+            currency: "UAH",
+            currentMonth: CURRENT_MONTH,
+            spendCoverage: {
+              ordersCount: 0,
+              ordersWithoutResolvedAmount: 0,
+              ordersWithResolvedAmount: 0,
+            },
+            upcomingChanges,
+          },
+        ],
+        month: "2026-08-01",
+      };
+    }
+
+    function answerCancellation(path: string, status: number, body: object) {
+      fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).endsWith(path) && init?.method === "DELETE") {
+          return Promise.resolve(
+            new Response(JSON.stringify(body), {
+              headers: { "Content-Type": "application/json" },
+              status,
+            }),
+          );
+        }
+        return Promise.reject(new Error(`unexpected fetch: ${String(input)}`));
+      });
+    }
+
+    const SCHEDULED_STOP = withUpcomingChanges([
+      { effectiveFromMonth: "2026-11-01", kind: "stop", monthlyAmount: null },
+    ]);
+
+    beforeEach(() => {
+      vi.stubGlobal("fetch", fetchMock);
+      fetchMock.mockReset();
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      vi.clearAllMocks();
+    });
+
+    it("reports a failed stop cancellation without announcing success", async () => {
+      answerCancellation("/api/delivery/budgets/UAH/scheduled-stop", 500, {
+        message: "Internal server error",
+      });
+      renderBudget(SCHEDULED_STOP);
+
+      await userEvent.click(screen.getByRole("button", { name: budgetCopy.cancelStop }));
+
+      await waitFor(() =>
+        expect(vi.mocked(toast.error)).toHaveBeenCalledWith(budgetCopy.stopCancelFailed),
+      );
+      expect(vi.mocked(toast.success)).not.toHaveBeenCalled();
+    });
+
+    it("confirms the stop is cancelled once the server accepts it", async () => {
+      answerCancellation("/api/delivery/budgets/UAH/scheduled-stop", 200, withUpcomingChanges([]));
+      renderBudget(SCHEDULED_STOP);
+
+      await userEvent.click(screen.getByRole("button", { name: budgetCopy.cancelStop }));
+
+      await waitFor(() =>
+        expect(vi.mocked(toast.success)).toHaveBeenCalledWith(budgetCopy.stopCancelled),
+      );
+    });
+
+    it("reports a failed change cancellation without announcing success", async () => {
+      answerCancellation("/api/delivery/budgets/UAH/scheduled", 500, {
+        message: "Internal server error",
+      });
+      renderBudget(CONFIGURED);
+
+      await userEvent.click(screen.getByRole("button", { name: budgetCopy.cancelScheduled }));
+
+      await waitFor(() =>
+        expect(vi.mocked(toast.error)).toHaveBeenCalledWith(budgetCopy.scheduledCancelFailed),
+      );
+      expect(vi.mocked(toast.success)).not.toHaveBeenCalled();
+    });
+
+    it("confirms the change is cancelled once the server accepts it", async () => {
+      answerCancellation("/api/delivery/budgets/UAH/scheduled", 200, withUpcomingChanges([]));
+      renderBudget(CONFIGURED);
+
+      await userEvent.click(screen.getByRole("button", { name: budgetCopy.cancelScheduled }));
+
+      await waitFor(() =>
+        expect(vi.mocked(toast.success)).toHaveBeenCalledWith(budgetCopy.scheduledCancelled),
+      );
+    });
   });
 });

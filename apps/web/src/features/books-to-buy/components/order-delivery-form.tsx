@@ -32,8 +32,8 @@ import {
   todayIso,
   toStoreSourceDefaults,
   useCreateDelivery,
+  useDeliveryErrorText,
 } from "@/features/books";
-import { ApiError } from "@/lib/http-client";
 
 import { findBestOfferLinkId } from "../model/best-offer-link";
 
@@ -66,6 +66,7 @@ export function OrderDeliveryForm({
   const tOwnershipErrors = useTranslations("books.details.ownership.errors");
   const tActions = useTranslations("books.actions");
   const createDelivery = useCreateDelivery();
+  const deliveryErrorText = useDeliveryErrorText();
   const [serverError, setServerError] = useState<null | string>(null);
   const bestOfferLinkId = findBestOfferLinkId({ bestOffer, storeLinks });
 
@@ -125,8 +126,7 @@ export function OrderDeliveryForm({
     createDelivery.mutate(
       { id: book.id, payload: buildPayload({ storeLinks, values }) },
       {
-        onError: (error) =>
-          setServerError(error instanceof ApiError ? error.message : tErrors("generic")),
+        onError: (error) => setServerError(deliveryErrorText(error)),
         onSuccess: onDone,
       },
     );

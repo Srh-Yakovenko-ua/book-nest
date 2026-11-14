@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAuthStore } from "@/features/auth";
@@ -11,6 +12,7 @@ import { Link } from "@/i18n/navigation";
 import { useLibraryOverview } from "../api/use-library-overview";
 import { DeliveryDashboardWidget } from "./delivery-dashboard-widget";
 import { type LibrarySummaryCard, LibrarySummaryCards } from "./library-summary-cards";
+import { LibrarySummaryError } from "./library-summary-error";
 
 export function HomeDashboard() {
   const t = useTranslations("home");
@@ -21,6 +23,7 @@ export function HomeDashboard() {
   const displayName = user?.nickname ?? user?.name ?? null;
   const summary = overview.data?.summary;
   const isEmpty = summary !== undefined && summary.total === 0;
+  const retryOverview = () => void overview.refetch();
 
   const mobileLabels = (key: "favorites" | "finished" | "reading" | "total") => ({
     compact: tSummary(`summary.mobile.compact.${key}`),
@@ -68,6 +71,14 @@ export function HomeDashboard() {
         </p>
       </header>
 
+      <RefetchErrorBanner
+        state={
+          overview.isRefetchError
+            ? { isRetrying: overview.isRefetching, onRetry: retryOverview }
+            : null
+        }
+      />
+
       {isEmpty ? (
         <EmptyState
           action={t("empty.action")}
@@ -76,24 +87,30 @@ export function HomeDashboard() {
         />
       ) : (
         <>
-          <LibrarySummaryCards
-            cards={summaryCards}
-            isLoading={overview.isPending}
-            mobileLayout="compact"
-          />
+          {overview.isLoadingError ? (
+            <LibrarySummaryError onRetry={retryOverview} />
+          ) : (
+            <LibrarySummaryCards
+              cards={summaryCards}
+              isLoading={overview.isPending}
+              mobileLayout="compact"
+            />
+          )}
 
           <DeliveryDashboardWidget />
 
-          <ReadingProgress
-            finished={summary?.finished ?? 0}
-            isLoading={overview.isPending}
-            label={t("progress.label", {
-              finished: summary?.finished ?? 0,
-              total: summary?.total ?? 0,
-            })}
-            title={t("progress.title")}
-            total={summary?.total ?? 0}
-          />
+          {overview.isLoadingError ? null : (
+            <ReadingProgress
+              finished={summary?.finished ?? 0}
+              isLoading={overview.isPending}
+              label={t("progress.label", {
+                finished: summary?.finished ?? 0,
+                total: summary?.total ?? 0,
+              })}
+              title={t("progress.title")}
+              total={summary?.total ?? 0}
+            />
+          )}
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button asChild>

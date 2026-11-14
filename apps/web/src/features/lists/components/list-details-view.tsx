@@ -1,7 +1,7 @@
 "use client";
 
 import type { CustomListCard, CustomListDetail, ListBookView } from "@app/shared";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
@@ -70,6 +70,7 @@ type ListDetailsViewProps = {
   loadMoreState: InfiniteScrollState;
   onLoadMore: () => void;
   pages: CustomListDetail[];
+  titleRef?: Ref<HTMLHeadingElement>;
 };
 
 type NoResultsProps = {
@@ -86,6 +87,7 @@ export function ListDetailsView({
   loadMoreState,
   onLoadMore,
   pages,
+  titleRef,
 }: ListDetailsViewProps) {
   const t = useTranslations("lists.details");
   const tManage = useTranslations("lists.manage.toast");
@@ -373,6 +375,7 @@ export function ListDetailsView({
         onDuplicate={handleDuplicate}
         onEdit={() => setEditOpen(true)}
         previewCovers={firstPage.previewCovers}
+        titleRef={titleRef}
         updatedAt={firstPage.updatedAt}
       />
 
