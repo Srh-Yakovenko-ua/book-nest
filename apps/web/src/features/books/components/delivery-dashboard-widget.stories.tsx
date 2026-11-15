@@ -107,6 +107,10 @@ export const HiddenWhenEmpty: Story = {
     mockFetch(summaryHandler(makeSummary()));
   },
   play: async ({ canvas }) => {
-    await waitFor(() => expect(canvas.queryByText("Доставки в дорозі")).toBeNull());
+    await waitFor(() =>
+      expect(canvas.queryByRole("status", { name: "Завантажуємо доставки…" })).toBeNull(),
+    );
+    await expect(canvas.queryByRole("alert")).toBeNull();
+    await expect(canvas.queryByText("Доставки в дорозі")).toBeNull();
   },
 };

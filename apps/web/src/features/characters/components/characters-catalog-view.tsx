@@ -10,6 +10,7 @@ import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { SummaryError } from "@/components/summary-error";
 import { TitleLeaf } from "@/components/title-leaf";
 import { ChipGroup } from "@/components/ui/chip-group";
 import { Segmented } from "@/components/ui/segmented";
@@ -92,13 +93,15 @@ export function CharactersCatalogView() {
         </div>
       </header>
 
-      {overview.isError ? null : (
+      <SummaryError
+        state={overview.isLoadingError ? { onRetry: () => void overview.refetch() } : null}
+      >
         <LibrarySummaryCards
           cards={summaryCards}
           isLoading={overview.isPending}
           mobileLayout="compact"
         />
-      )}
+      </SummaryError>
 
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center">

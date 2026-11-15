@@ -7,6 +7,7 @@ import type { ComponentProps } from "react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import {
   mockIntersectionObserver,
   renderWithProviders,
@@ -97,6 +98,9 @@ const SUMMARY_LABELS = [
   "Найбільше в черзі",
   "Найбільше хочете придбати",
 ] as const;
+
+const summaryError = messages.common.summaryError;
+const summaryPanelCopy = messages.genres.summary.panel;
 
 const requests: RecordedRequest[] = [];
 
@@ -506,17 +510,47 @@ describe("Genres summary", () => {
     expect(summaryCardText("Найчастіший жанр")).toContain("Бібліотека ще порожня");
   });
 
-  it("hides the summary rather than showing zeros when it fails", async () => {
+  it("puts a retry in place of the summary cards when it fails, keeping the panel trigger", async () => {
     mockGenresApi({ summary: failure(500) });
 
     renderGenres();
 
-    await screen.findByRole("link", { name: "Фентезі" });
-    await waitFor(() => expect(requestsTo(PATHS.summary)).toHaveLength(1));
-    await waitFor(() =>
-      expect(screen.queryByRole("button", { name: "Огляд жанрів" })).not.toBeInTheDocument(),
-    );
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(summaryError.title);
+    expect(within(alert).getByRole("button", { name: summaryError.retry })).toBeInTheDocument();
     expect(summaryCards()).toHaveLength(0);
+    expect(screen.getByRole("button", { name: summaryPanelCopy.trigger })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "Фентезі" })).toBeInTheDocument();
+  });
+
+  it("asks for the summary again from the retry and shows the cards it returns", async () => {
+    mockGenresApi({
+      summary: () =>
+        requestsTo(PATHS.summary).length === 1 ? failure(500)() : json(makeGenreSummary()),
+    });
+
+    renderGenres();
+
+    const alert = await screen.findByRole("alert");
+    await userEvent.click(within(alert).getByRole("button", { name: summaryError.retry }));
+
+    await waitFor(() => expect(summaryCards()).toHaveLength(6));
+    expect(requestsTo(PATHS.summary)).toHaveLength(2);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("shows the failed summary as a single alert with a retry inside the phone panel", async () => {
+    stubNarrowViewport();
+    mockGenresApi({ summary: failure(500) });
+
+    renderGenres();
+
+    await waitFor(() => expect(requestsTo(PATHS.summary)).toHaveLength(1));
+    await userEvent.click(screen.getByRole("button", { name: summaryPanelCopy.trigger }));
+    const panel = await screen.findByRole("dialog", { name: summaryPanelCopy.title });
+    expect(await within(panel).findAllByRole("alert")).toHaveLength(1);
+    expect(within(panel).getByRole("alert")).toHaveTextContent(summaryError.title);
+    expect(within(panel).getByRole("button", { name: summaryError.retry })).toBeInTheDocument();
   });
 });
 

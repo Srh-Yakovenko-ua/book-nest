@@ -1,7 +1,5 @@
 import type { FieldValues, Path, UseFormReturn } from "react-hook-form";
 
-import { toast } from "sonner";
-
 import { ApiError } from "@/lib/http-client";
 
 export function applyFieldErrors<T extends FieldValues>(
@@ -33,14 +31,4 @@ export function getErrorMessage(err: unknown, fallback: string): string {
   }
   if (err instanceof Error && err.message) return err.message;
   return fallback;
-}
-
-export function hasFieldError(err: unknown, field: string): boolean {
-  if (!(err instanceof ApiError)) return false;
-  return err.fieldErrors?.some((fieldError) => fieldError.field === field) ?? false;
-}
-
-export function toastApiError(err: unknown, fallback: string): void {
-  if (err instanceof ApiError && err.fieldErrors?.length) return;
-  toast.error(getErrorMessage(err, fallback));
 }

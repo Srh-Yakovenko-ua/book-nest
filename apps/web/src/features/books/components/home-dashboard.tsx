@@ -80,7 +80,7 @@ export function HomeDashboard() {
       />
 
       {isEmpty ? (
-        <EmptyState
+        <EmptyLibraryCard
           action={t("empty.action")}
           description={t("empty.description")}
           title={t("empty.title")}
@@ -127,7 +127,7 @@ export function HomeDashboard() {
   );
 }
 
-function EmptyState({
+function EmptyLibraryCard({
   action,
   description,
   title,

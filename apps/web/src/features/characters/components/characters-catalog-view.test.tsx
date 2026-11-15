@@ -40,6 +40,8 @@ const characterChipsCopy = messages.characters.activeFilters;
 const sheetCopy = messages.characters.catalog.filters;
 const booksCopy = messages.characters.catalog.books;
 const cardCopy = messages.characters.card;
+const summaryCopy = messages.characters.catalog.summary;
+const summaryErrorCopy = messages.common.summaryError;
 const translateCatalog = createTranslator({
   locale: "uk",
   messages,
@@ -270,6 +272,33 @@ describe("CharactersCatalogView summary", () => {
     renderCatalog();
 
     expect((await screen.findAllByText("Поки немає")).length).toBeGreaterThan(0);
+  });
+
+  it("puts a retry in place of the cards when the overview fails and keeps the catalog", async () => {
+    respondToOverview = () => jsonResponse({ message: "boom" }, 500);
+
+    renderCatalog();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(summaryErrorCopy.title);
+    expect(within(alert).getByRole("button", { name: summaryErrorCopy.retry })).toBeInTheDocument();
+    expect(screen.queryByText(summaryCopy.total)).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Ґеральт" })).toBeInTheDocument();
+  });
+
+  it("asks for the overview again from the retry and shows the cards it returns", async () => {
+    respondToOverview = () => jsonResponse({ message: "boom" }, 500);
+
+    renderCatalog();
+
+    const alert = await screen.findByRole("alert");
+    expect(requestUrls("/api/characters/overview")).toHaveLength(1);
+    respondToOverview = () => jsonResponse(overview);
+    await userEvent.click(within(alert).getByRole("button", { name: summaryErrorCopy.retry }));
+
+    expect((await screen.findAllByText(summaryCopy.total)).length).toBeGreaterThan(0);
+    expect(requestUrls("/api/characters/overview")).toHaveLength(2);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
 

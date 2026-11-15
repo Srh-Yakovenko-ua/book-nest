@@ -1,15 +1,12 @@
 "use client";
 
-import { AlertCircle, ArrowLeft, RefreshCw } from "lucide-react";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 
-const isDev = process.env.NODE_ENV !== "production";
-
 export default function Error({
-  error,
   reset,
 }: {
   error: Error & { digest?: string };
@@ -31,11 +28,6 @@ export default function Error({
       />
 
       <main className="relative flex min-h-screen flex-col px-8 py-10 md:px-16 md:py-14 lg:px-24 lg:py-16">
-        <header className="flex items-center gap-3 font-mono text-[10px] tracking-[0.22em] text-muted-foreground uppercase">
-          <AlertCircle className="size-3.5 text-error" />
-          <span>book-nest / runtime error</span>
-        </header>
-
         <section className="mt-20 flex-1 md:mt-28 lg:mt-32">
           <p className="font-mono text-[10px] tracking-[0.24em] text-muted-foreground uppercase">
             {t("eyebrow")}
@@ -49,19 +41,8 @@ export default function Error({
           <div className="mt-3 h-[2px] w-12 rounded-full bg-gradient-to-r from-error to-error/40" />
 
           <p className="mt-8 max-w-[720px] text-base leading-relaxed text-foreground md:text-lg">
-            {error.message || t("description")}
+            {t("description")}
           </p>
-
-          {isDev && error.stack && (
-            <details className="mt-8 max-w-[720px]">
-              <summary className="cursor-pointer font-mono text-xs tracking-wide text-muted-foreground select-none">
-                Stack trace
-              </summary>
-              <pre className="mt-3 max-h-96 overflow-auto rounded-md bg-muted p-4 font-mono text-xs text-muted-foreground">
-                {error.stack}
-              </pre>
-            </details>
-          )}
         </section>
 
         <footer className="mt-16 flex flex-col items-start justify-between gap-6 border-t border-border pt-8 md:flex-row md:items-center">

@@ -4,6 +4,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect } from "storybook/test";
 
 import { useAuthStore } from "@/features/auth";
+import { makeDeliveryInTransitSummary } from "@/features/delivery/components/delivery.fixtures";
 import { getQueryClient } from "@/lib/query-client";
 
 import { HomeDashboard } from "./home-dashboard";
@@ -46,6 +47,9 @@ function overviewHandler(summary: OverviewSummary): Handler {
   return (path) => {
     if (path.includes("/api/books/overview")) {
       return jsonResponse(200, { recentlyAdded: [], summary, topGenres: [], topTags: [] });
+    }
+    if (path.includes("/api/delivery/books/in-transit/summary")) {
+      return jsonResponse(200, makeDeliveryInTransitSummary());
     }
     return jsonResponse(200, {});
   };

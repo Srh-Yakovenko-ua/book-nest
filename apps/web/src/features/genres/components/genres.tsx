@@ -54,6 +54,7 @@ export function Genres() {
   const summary = useGenreSummary();
   const overview = useGenresOverview();
   const summaryCards = useGenreSummaryCards(summary.data);
+  const summaryError = summary.isLoadingError ? { onRetry: () => void summary.refetch() } : null;
 
   const listState = genresListState({
     hasActiveFilters: query.hasActiveFilters,
@@ -77,14 +78,14 @@ export function Genres() {
         </p>
       </header>
 
-      {summary.isError ? null : (
-        <GenresSummaryCards cards={summaryCards} isLoading={summary.isPending} />
-      )}
+      <GenresSummaryCards cards={summaryCards} error={summaryError} isLoading={summary.isPending} />
 
       <div className="flex flex-col gap-2.5 empty:hidden sm:hidden">
-        {summary.isError ? null : (
-          <GenresSummaryPanel cards={summaryCards} isLoading={summary.isPending} />
-        )}
+        <GenresSummaryPanel
+          cards={summaryCards}
+          error={summaryError}
+          isLoading={summary.isPending}
+        />
         {overview.isPending ? <Skeleton className="h-11 w-full rounded-xl" /> : null}
         {insights === null ? null : <GenresInsightsPanel overview={insights} />}
       </div>

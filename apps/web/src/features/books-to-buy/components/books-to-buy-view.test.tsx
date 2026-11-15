@@ -89,6 +89,11 @@ beforeEach(() => {
       );
     }
     if (url.includes("/api/books/wishlist")) return respondToWishlist(url);
+    if (url.includes("/api/books?")) {
+      return Promise.resolve(
+        jsonResponse({ items: [], page: 1, pagesCount: 0, pageSize: 24, totalCount: 0 }),
+      );
+    }
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
   });
   vi.stubGlobal("fetch", fetchMock);
