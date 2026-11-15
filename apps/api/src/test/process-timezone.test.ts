@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { switchProcessTimezone } from "./process-timezone.js";
 
-const PINNED_TIMEZONE = "Asia/Kathmandu";
+const PINNED_TIMEZONE = "Asia/Tokyo";
 
 function resolvedTimezone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
