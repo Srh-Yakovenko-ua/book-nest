@@ -21,6 +21,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeBookDetailsView } from "@/features/books/components/book-details.fixtures";
 import { stubTextMetrics } from "@/features/quotes/model/quotes.fixtures";
+import messages from "@/messages/uk.json";
 import { fireEvent, renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import {
@@ -4619,4 +4620,82 @@ describe("CharacterEditPage spoiler switches follow their values", () => {
       expect(bookPatchBody()).toHaveProperty(flag, false);
     },
   );
+});
+
+describe("CharacterEditPage leaving through an in-app link", () => {
+  const APP_LINK = { href: "/uk/books", name: "All books" } as const;
+  const discardChanges = messages.common.discardChanges;
+  const editCopy = messages.characters.edit;
+
+  function renderEditBesideAppLink() {
+    return renderWithProviders(
+      <NuqsTestingAdapter searchParams="bookId=book-1">
+        <CharacterEditPage characterId="char-1" />
+        <a href={APP_LINK.href}>{APP_LINK.name}</a>
+      </NuqsTestingAdapter>,
+    );
+  }
+
+  async function editNameThenFollowAppLink() {
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.type(screen.getByRole("textbox", { name: /Ім’я/ }), " із Рівії");
+    await userEvent.click(screen.getByRole("link", { name: APP_LINK.name }));
+  }
+
+  beforeEach(() => {
+    window.history.replaceState(window.history.state, "", "/uk/characters/char-1/edit");
+  });
+
+  it("asks before following an in-app link while the form is dirty", async () => {
+    renderEditBesideAppLink();
+
+    await editNameThenFollowAppLink();
+
+    expect(
+      await screen.findByRole("alertdialog", { name: editCopy.discardTitle }),
+    ).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("follows the link after the reader discards", async () => {
+    renderEditBesideAppLink();
+
+    await editNameThenFollowAppLink();
+    const prompt = await screen.findByRole("alertdialog", { name: editCopy.discardTitle });
+    await userEvent.click(within(prompt).getByRole("button", { name: discardChanges.confirm }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledExactlyOnceWith("/books", { locale: "uk" }));
+  });
+
+  it("keeps the page and its edits when the reader cancels", async () => {
+    renderEditBesideAppLink();
+
+    await editNameThenFollowAppLink();
+    const linkPrompt = await screen.findByRole("alertdialog", { name: editCopy.discardTitle });
+    await userEvent.click(within(linkPrompt).getByRole("button", { name: discardChanges.cancel }));
+
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    expect(screen.getByRole("textbox", { name: /Ім’я/ })).toHaveValue("Ґеральт із Рівії");
+    expect(push).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: editCopy.cancel }));
+    const cancelPrompt = await screen.findByRole("alertdialog", { name: editCopy.discardTitle });
+    await userEvent.click(
+      within(cancelPrompt).getByRole("button", { name: discardChanges.confirm }),
+    );
+
+    await waitFor(() =>
+      expect(push).toHaveBeenCalledExactlyOnceWith("/characters/char-1?bookId=book-1"),
+    );
+  });
+
+  it("lets a link through on a clean form", async () => {
+    renderEditBesideAppLink();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.click(screen.getByRole("link", { name: APP_LINK.name }));
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+  });
 });

@@ -19,6 +19,7 @@ import { useBookPagesCount } from "@/features/books/api/use-book";
 import { bookPageCeiling } from "@/features/books/model/book-page-ceiling";
 import { type OwnSpeciesChange, useSpeciesLocale } from "@/features/species";
 import { useCloseGuard, useReleaseOrphanedHistorySentinel } from "@/hooks/use-close-guard";
+import { type LinkDestination, useLinkLeaveGuard } from "@/hooks/use-link-leave-guard";
 import { useRouter } from "@/i18n/navigation";
 import { applyFieldErrors } from "@/lib/api-errors";
 
@@ -141,6 +142,7 @@ function CharacterEditForm({
   const [baseline, setBaseline] = useState<CharacterEditValues>(initialValues);
   const [aliasDraftDirty, setAliasDraftDirty] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [linkDestination, setLinkDestination] = useState<Nullable<LinkDestination>>(null);
   const aliasesRef = useRef<Nullable<CharacterAliasesHandle>>(null);
   const [uploadedImageUrls, setUploadedImageUrls] = useState<Record<string, string>>({});
 
@@ -239,7 +241,21 @@ function CharacterEditForm({
     isOpen: !leaving,
     isPending: isSaving,
     onClose: () => setLeaving(true),
-    onLeave: () => router.push(detailsHref),
+    onLeave: () => {
+      if (linkDestination === null) {
+        router.push(detailsHref);
+        return;
+      }
+      router.push(linkDestination.href, { locale: linkDestination.locale });
+    },
+  });
+
+  useLinkLeaveGuard({
+    isGuarding: hasUnsavedChanges && !isSaving && !leaving,
+    onLeaveAttempt: (destination) => {
+      setLinkDestination(destination);
+      guard.requestClose();
+    },
   });
 
   async function save(values: CharacterEditValues) {
@@ -378,6 +394,10 @@ function CharacterEditForm({
         description={t("discardDescription")}
         title={t("discardTitle")}
         {...guard.discardDialog}
+        onOpenChange={(open) => {
+          guard.discardDialog.onOpenChange(open);
+          if (!open) setLinkDestination(null);
+        }}
       />
     </form>
   );
