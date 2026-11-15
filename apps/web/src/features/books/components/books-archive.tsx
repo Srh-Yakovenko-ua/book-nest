@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
+import { ActiveFilters } from "@/components/catalog/active-filters";
 import { Link } from "@/i18n/navigation";
 
 import type { LibraryBook } from "../model/library-book";
@@ -28,7 +29,6 @@ import {
 } from "../model/library-quick-filters";
 import { countAdvancedFilterChips, useLibraryFilterChips } from "../model/use-library-filter-chips";
 import { useLibraryQuery } from "../model/use-library-query";
-import { LibraryActiveFilters } from "./library-active-filters";
 import { LibraryAdvancedFilters } from "./library-advanced-filters";
 import { LibraryArchiveView } from "./library-archive-view";
 import { LibraryQuickFilters } from "./library-quick-filters";
@@ -126,7 +126,7 @@ export function BooksArchive({
   return (
     <LibraryArchiveView
       actions={actions}
-      activeFilters={<LibraryActiveFilters chips={filterChips} onClearAll={library.clearAll} />}
+      activeFilters={<ActiveFilters chips={filterChips} onClearAll={library.clearAll} />}
       advancedFilters={
         <LibraryAdvancedFilters
           activeCount={countAdvancedFilterChips(filterChips)}

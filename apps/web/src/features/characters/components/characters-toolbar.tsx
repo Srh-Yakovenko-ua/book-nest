@@ -6,6 +6,7 @@ import type { RefObject } from "react";
 import { BOOK_CHARACTER_UNSPECIFIED } from "@app/shared";
 import { useTranslations } from "next-intl";
 
+import { ActiveFilters } from "@/components/catalog/active-filters";
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
 import { FacetMultiselect } from "@/components/facet-multiselect";
 import { UiIcon } from "@/components/icons";
@@ -19,7 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LibraryActiveFilters } from "@/features/books";
 
 import type {
   CharactersRosterFilter,
@@ -86,7 +86,7 @@ export function CharactersToolbar({
 
       <CharactersQuickFilters roster={roster} summary={summary} summaryPending={summaryPending} />
 
-      <LibraryActiveFilters chips={filterChips} onClearAll={roster.clearSearchAndFilters} />
+      <ActiveFilters chips={filterChips} onClearAll={roster.clearSearchAndFilters} />
     </div>
   );
 }

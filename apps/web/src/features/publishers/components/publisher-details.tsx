@@ -6,7 +6,7 @@ import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/navigation";
-import { ApiError } from "@/lib/http-client";
+import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 import { cn } from "@/lib/utils";
 
 import { usePublisherDetails } from "../api/use-publisher-details";
@@ -26,7 +26,7 @@ export function PublisherDetails({ id }: PublisherDetailsProps) {
 
   if (error === null) return <PublisherDetailsSkeleton label={t("loading")} />;
 
-  const isNotFound = error instanceof ApiError && error.status === 404;
+  const isNotFound = isApiErrorStatus(error, HTTP_STATUS.notFound);
 
   return (
     <div

@@ -7,6 +7,7 @@ import { isAfter, parseISO } from "date-fns";
 import { useLocale, useTranslations } from "next-intl";
 import { useId } from "react";
 
+import { ActiveFilters } from "@/components/catalog/active-filters";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -20,7 +21,6 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { LibraryActiveFilters } from "@/features/books/components/library-active-filters";
 import { useWeekStartsOn } from "@/features/settings";
 import { dateToIsoDay, isoDayToDate } from "@/lib/iso-day";
 
@@ -233,7 +233,7 @@ export function StatisticsToolbar({
         )}
       </div>
 
-      <LibraryActiveFilters chips={chips} onClearAll={params.clearFilters} />
+      <ActiveFilters chips={chips} onClearAll={params.clearFilters} />
 
       <p className="text-sm text-muted-foreground">
         {currentLabel === null

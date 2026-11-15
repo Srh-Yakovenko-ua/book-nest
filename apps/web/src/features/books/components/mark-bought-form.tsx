@@ -9,7 +9,7 @@ import type {
 } from "@app/shared";
 import type { ReactNode } from "react";
 
-import { PURCHASE_INPUT_LIMITS, STORE_LINK_ERROR_CODES, WISHLIST_INPUT_LIMITS } from "@app/shared";
+import { PURCHASE_INPUT_LIMITS, STORE_LINK_ERROR_CODES } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { isAfter, parseISO } from "date-fns";
@@ -34,18 +34,11 @@ import {
   buildStoreSourceSchema,
   resolveStoreName,
   resolveStorePrice,
-  type StoreSourceLimits,
   type StoreSourceValue,
   toStoreSourceDefaults,
 } from "../model/store-source";
 import { BookDateField } from "./book-date-field";
 import { StoreSourceFields } from "./store-source-fields";
-
-const MARK_BOUGHT_LIMITS = {
-  priceMax: PURCHASE_INPUT_LIMITS.priceMax,
-  priceMin: WISHLIST_INPUT_LIMITS.priceMin,
-  storeNameMax: WISHLIST_INPUT_LIMITS.storeNameMax,
-} as const satisfies StoreSourceLimits;
 
 type MarkBoughtFormProps = {
   bestOffer: Nullable<BestOfferView>;
@@ -104,13 +97,13 @@ export function MarkBoughtForm({
             tErrors("purchaseDateFuture"),
           ),
         store: buildStoreSourceSchema({
-          limits: MARK_BOUGHT_LIMITS,
+          limits: PURCHASE_INPUT_LIMITS,
           messages: {
             price: tErrors("price"),
             priceMax: tErrors("priceMax", {
-              max: formatNumber(MARK_BOUGHT_LIMITS.priceMax, locale),
+              max: formatNumber(PURCHASE_INPUT_LIMITS.priceMax, locale),
             }),
-            storeNameMax: tErrors("storeNameMax", { max: MARK_BOUGHT_LIMITS.storeNameMax }),
+            storeNameMax: tErrors("storeNameMax", { max: PURCHASE_INPUT_LIMITS.storeNameMax }),
           },
         }),
       }),

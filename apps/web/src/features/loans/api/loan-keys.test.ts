@@ -13,14 +13,18 @@ import {
 import { loanKeys, matchesLoans } from "./loan-keys";
 
 describe("matchesLoans", () => {
-  it("matches the active loans keys", () => {
-    expect(matchesLoans({ queryKey: getLoansControllerListQueryKey() })).toBe(true);
-    expect(matchesLoans({ queryKey: getLoansControllerSummaryQueryKey() })).toBe(true);
+  it("matches the active loans keys this feature builds", () => {
     expect(matchesLoans({ queryKey: loanKeys.list({ type: "borrowed_from_someone" }) })).toBe(true);
-    expect(matchesLoans({ queryKey: getLoansControllerQuickCountsQueryKey() })).toBe(true);
+    expect(matchesLoans({ queryKey: loanKeys.summary })).toBe(true);
     expect(matchesLoans({ queryKey: loanKeys.quickCounts({ type: "lent_to_someone" }) })).toBe(
       true,
     );
+  });
+
+  it("matches the active loans keys of the generated client", () => {
+    expect(matchesLoans({ queryKey: getLoansControllerListQueryKey() })).toBe(true);
+    expect(matchesLoans({ queryKey: getLoansControllerSummaryQueryKey() })).toBe(true);
+    expect(matchesLoans({ queryKey: getLoansControllerQuickCountsQueryKey() })).toBe(true);
   });
 
   it("matches the history keys of the generated client", () => {

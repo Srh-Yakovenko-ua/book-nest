@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { infiniteScrollStateOf } from "@/hooks/use-infinite-scroll-sentinel";
 import { useRouter } from "@/i18n/navigation";
+import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 import { focusOnMount } from "@/lib/focus-on-mount";
-import { ApiError } from "@/lib/http-client";
 import { cn } from "@/lib/utils";
 
 import { useListDetail } from "../api/use-list-detail";
@@ -63,7 +63,7 @@ export function ListDetails({ id }: ListDetailsProps) {
     );
   }
 
-  const isNotFound = error instanceof ApiError && error.status === 404;
+  const isNotFound = isApiErrorStatus(error, HTTP_STATUS.notFound);
 
   if (isLoadingError || (isRefetchError && isNotFound)) {
     return (

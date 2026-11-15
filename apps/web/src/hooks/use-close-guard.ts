@@ -6,8 +6,8 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { z } from "zod";
 
 const HISTORY_SENTINEL = {
-  entryKeyStorageKey: "characterFactDraftGuard:entryKey",
-  key: "characterFactDraftGuard",
+  entryKeyStorageKey: "closeGuard:entryKey",
+  key: "closeGuard",
 } as const;
 
 const historyStateSchema = z.record(z.string(), z.unknown()).catch({});

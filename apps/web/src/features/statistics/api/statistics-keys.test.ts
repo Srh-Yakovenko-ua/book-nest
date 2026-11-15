@@ -1,10 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 
-import {
-  getStatisticsControllerGetOverviewQueryKey,
-  getStatisticsControllerGetReadingDayQueryKey,
-} from "@/shared/api/generated/endpoints/statistics/statistics";
+import { getStatisticsControllerGetOverviewQueryKey } from "@/shared/api/generated/endpoints/statistics/statistics";
 
 import {
   invalidateStatisticsQueries,
@@ -13,7 +10,7 @@ import {
 } from "./statistics-keys";
 
 describe("matchesStatisticsKey", () => {
-  it("matches every overview variant", () => {
+  it("matches every overview variant of the generated client", () => {
     const keys = [
       getStatisticsControllerGetOverviewQueryKey(),
       getStatisticsControllerGetOverviewQueryKey({ period: "year", year: 2026 }),
@@ -31,7 +28,7 @@ describe("matchesStatisticsKey", () => {
   });
 
   it("matches a lazy reading-day detail key", () => {
-    const queryKey = getStatisticsControllerGetReadingDayQueryKey("2026-03-02");
+    const queryKey = statisticsKeys.readingDay("2026-03-02");
 
     expect(matchesStatisticsKey({ queryKey })).toBe(true);
   });
@@ -63,7 +60,7 @@ describe("matchesStatisticsKey", () => {
 describe("invalidateStatisticsQueries", () => {
   it("invalidates only the statistics family", async () => {
     const queryClient = new QueryClient();
-    const statisticsKey = getStatisticsControllerGetOverviewQueryKey({ period: "year" });
+    const statisticsKey = statisticsKeys.overview({ period: "year" });
     const booksKey = ["/api/books", "list"];
 
     queryClient.setQueryData(statisticsKey, { marker: "statistics" });

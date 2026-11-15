@@ -78,6 +78,7 @@ const BOOK_CHANGE_EFFECTS = {
   ],
   favorited: ["books", "lists", "series"],
   listed: ["books", "lists", "statistics", "goals"],
+  listEdited: ["books"],
   loanChanged: [
     "books",
     "readingQueue",
@@ -115,6 +116,7 @@ const BOOK_CHANGE_EFFECTS = {
     "publisherCatalog",
     "characters",
   ],
+  seriesCreated: ["series", "statistics"],
   statusChanged: [
     "books",
     "readingQueue",

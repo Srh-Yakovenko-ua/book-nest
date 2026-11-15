@@ -10,11 +10,12 @@ import { makeBookView } from "@/features/books/components/book-details.fixtures"
 import { useCreateGoal } from "@/features/reading-goals/api/use-create-goal";
 import { makeReadingGoalView } from "@/features/reading-goals/model/reading-goals.fixtures";
 import { useUpdateSettings } from "@/features/settings/api/use-update-settings";
-import { getStatisticsControllerGetOverviewQueryKey } from "@/shared/api/generated/endpoints/statistics/statistics";
+
+import { statisticsKeys } from "./statistics-keys";
 
 const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
 
-const STATISTICS_KEY = getStatisticsControllerGetOverviewQueryKey({ period: "year", year: 2026 });
+const STATISTICS_KEY = statisticsKeys.overview({ period: "year", year: 2026 });
 
 const BOOKS_KEY = ["/api/books", "list"];
 

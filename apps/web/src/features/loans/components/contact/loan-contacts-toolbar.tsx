@@ -4,8 +4,8 @@ import type { LoanContactCounts } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 
+import { ActiveFilters } from "@/components/catalog/active-filters";
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
-import { LibraryActiveFilters } from "@/features/books";
 
 import type { UseLoanContactsQueryResult } from "../../model/use-loan-contacts-query";
 
@@ -45,7 +45,7 @@ export function LoanContactsToolbar({ counts, countsPending, query }: LoanContac
         />
       </div>
 
-      <LibraryActiveFilters chips={chips} onClearAll={query.clearQuery} />
+      <ActiveFilters chips={chips} onClearAll={query.clearQuery} />
     </div>
   );
 }

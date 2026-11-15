@@ -47,7 +47,7 @@ const FALLBACK_FOCUS_LABEL = "Кнопка на сторінці";
 
 const HISTORY_STATES = {
   characterPage: { page: "character" },
-  guardedCharacterPage: { characterFactDraftGuard: true, page: "character" },
+  guardedCharacterPage: { closeGuard: true, page: "character" },
   previousPage: { page: "previous" },
 } as const;
 

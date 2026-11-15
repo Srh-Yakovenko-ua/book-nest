@@ -6,11 +6,10 @@ import {
 } from "@app/shared";
 import { z } from "zod";
 
+import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 import { ApiError } from "@/lib/http-client";
 
 import type { RelationshipFormField } from "./relationship-form-schema";
-
-const NOT_FOUND_STATUS = 404;
 
 const INITIAL_BOOK_STATE_PATH = /^initialBookStates\.\d+\./;
 
@@ -59,7 +58,7 @@ export type RelationshipSaveError =
 type ServerField = keyof typeof SERVER_FIELD_TO_FORM_FIELD;
 
 export function isRelationshipGone(error: unknown): boolean {
-  return error instanceof ApiError && error.status === NOT_FOUND_STATUS;
+  return isApiErrorStatus(error, HTTP_STATUS.notFound);
 }
 
 export function toRelationshipSaveError(error: unknown): RelationshipSaveError {
@@ -93,7 +92,7 @@ export function toRelationshipSaveError(error: unknown): RelationshipSaveError {
       kind: "invalid",
     };
   }
-  if (error.status === NOT_FOUND_STATUS) return { kind: "gone" };
+  if (error.status === HTTP_STATUS.notFound) return { kind: "gone" };
   return { kind: "unknown" };
 }
 

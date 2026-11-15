@@ -1,4 +1,4 @@
-import type { QueryClient, QueryKey } from "@tanstack/react-query";
+import type { QueryKey } from "@tanstack/react-query";
 
 import { partialMatchKey } from "@tanstack/react-query";
 
@@ -27,10 +27,6 @@ export const genresKeys = {
   stats: (params: GenresListParams) => [...derivedPart("stats"), params] as const,
   summary: derivedPart("summary"),
 };
-
-export function invalidateGenreDerivedQueries(queryClient: QueryClient): Promise<void> {
-  return queryClient.invalidateQueries({ predicate: matchesGenreDerivedKey });
-}
 
 export function matchesGenreDerivedKey({ queryKey }: { queryKey: QueryKey }): boolean {
   return GENRE_DERIVED_PARTS.some((part) => partialMatchKey(queryKey, derivedPart(part)));

@@ -14,12 +14,12 @@ export type ActiveFilterChip = {
   tagColor?: TagColor;
 };
 
-type LibraryActiveFiltersProps = {
+type ActiveFiltersProps = {
   chips: ActiveFilterChip[];
   onClearAll: () => void;
 };
 
-export function LibraryActiveFilters({ chips, onClearAll }: LibraryActiveFiltersProps) {
+export function ActiveFilters({ chips, onClearAll }: ActiveFiltersProps) {
   const t = useTranslations("books.library.activeFilters");
 
   if (chips.length === 0) return null;

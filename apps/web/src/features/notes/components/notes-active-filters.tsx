@@ -3,9 +3,10 @@
 import { NoteCategorySchema, SeriesReadingStateSchema, SeriesStatusSchema } from "@app/shared";
 import { useTranslations } from "next-intl";
 
-import type { ActiveFilterChip } from "@/features/books";
+import type { ActiveFilterChip } from "@/components/catalog/active-filters";
 
-import { LibraryActiveFilters, useGenres } from "@/features/books";
+import { ActiveFilters } from "@/components/catalog/active-filters";
+import { useGenres } from "@/features/books";
 import { assertNever } from "@/lib/assert-never";
 
 import type { NotesArchiveFacets } from "../api/use-notes-facets";
@@ -111,7 +112,7 @@ function ActiveFilterChips({
     onRemove: () => onRemove(entry),
   }));
 
-  return <LibraryActiveFilters chips={chips} onClearAll={onClearAll} />;
+  return <ActiveFilters chips={chips} onClearAll={onClearAll} />;
 }
 
 function ActiveFiltersWithGenreNames(props: NotesActiveFiltersProps) {

@@ -7,12 +7,13 @@ import { useRef, useState } from "react";
 
 import type { SummaryCard } from "@/components/catalog/summary-cards";
 
+import { ActiveFilters } from "@/components/catalog/active-filters";
 import { SummaryCards } from "@/components/catalog/summary-cards";
 import { UiIcon } from "@/components/icons";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
-import { LibraryActiveFilters, useGenres } from "@/features/books";
+import { useGenres } from "@/features/books";
 import { useSelectedTags } from "@/features/books/api/use-tags-search";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
@@ -180,9 +181,7 @@ export function BooksToBuyView() {
         toolbar={
           <BooksToBuyToolbar
             activeFilterCount={wishlist.activeFilterCount}
-            activeFilters={
-              <LibraryActiveFilters chips={filterChips} onClearAll={wishlist.clearAll} />
-            }
+            activeFilters={<ActiveFilters chips={filterChips} onClearAll={wishlist.clearAll} />}
             counterLabel={
               isPlaceholderData
                 ? tCommon("updating")

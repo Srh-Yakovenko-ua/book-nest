@@ -3,7 +3,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 
 import { bookChangeEffects } from "@/features/books/api/book-change-effects";
-import { invalidateBookQueries } from "@/features/books/api/book-keys";
 
 import { listKeys } from "./list-keys";
 
@@ -36,7 +35,7 @@ export function useListCacheInvalidation(listId: string): ListCacheInvalidation 
     listDuplicated: () => invalidate(listKeys.index, listKeys.summary),
     listEdited: () => {
       invalidate(listKeys.detail(listId), listKeys.index);
-      void invalidateBookQueries(queryClient);
+      void bookChangeEffects.booksChanged(queryClient, { changes: ["listEdited"] });
     },
     positionChanged: () => invalidate(listKeys.detail(listId)),
     queueChanged: () => {

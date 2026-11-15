@@ -1,6 +1,7 @@
 import type { BookView } from "@app/shared";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { BOOK_SERIES_PART_NUMBER_TAKEN_CODE } from "@app/shared";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 
 import { getQueryClient } from "@/lib/query-client";
@@ -38,7 +39,7 @@ function mockFetch(mode: Mode) {
           jsonResponse(400, {
             errorsMessages: [
               {
-                code: "book_series_part_number_taken",
+                code: BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
                 field: "partNumber",
                 message: "taken",
               },
@@ -53,6 +54,12 @@ function mockFetch(mode: Mode) {
     }
     return Promise.resolve(jsonResponse(200, {}));
   }) as typeof fetch;
+}
+
+async function openSearchStep() {
+  const body = within(document.body);
+  await userEvent.click(await body.findByRole("button", { name: /^Знайти серед моїх книг/ }));
+  return body;
 }
 
 function paginated(items: BookView[]) {
@@ -77,7 +84,7 @@ export const Results: Story = {
     mockFetch("results");
   },
   play: async () => {
-    const body = within(document.body);
+    const body = await openSearchStep();
     await waitFor(() => expect(body.getByText("Тінь вітру")).toBeVisible());
     await expect(body.getByText("Колір магії")).toBeVisible();
     await expect(body.getByRole("spinbutton", { name: "Номер частини" })).toBeVisible();
@@ -90,7 +97,7 @@ export const Empty: Story = {
     mockFetch("empty");
   },
   play: async () => {
-    const body = within(document.body);
+    const body = await openSearchStep();
     await waitFor(() => expect(body.getByText("Немає книг для додавання")).toBeVisible());
     await expect(body.getByRole("link", { name: "Створити нову книгу" })).toBeVisible();
   },
@@ -102,7 +109,7 @@ export const PartNumberTakenShowsInlineError: Story = {
     mockFetch("taken");
   },
   play: async () => {
-    const body = within(document.body);
+    const body = await openSearchStep();
     await waitFor(() => expect(body.getByText("Тінь вітру")).toBeVisible());
     await userEvent.click(body.getByText("Тінь вітру"));
     await userEvent.click(body.getByRole("button", { name: "Додати книгу" }));

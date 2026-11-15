@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { LayoutGrid, List, SquareCheckBig } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { type ActiveFilterChip, ActiveFilters } from "@/components/catalog/active-filters";
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -16,10 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  type ActiveFilterChip,
-  LibraryActiveFilters,
-} from "@/features/books/components/library-active-filters";
 
 import type { ListBookSortOption } from "../model/list-book-sort";
 import type { ListDetailQueryState, ListDetailViewMode } from "../model/list-detail-query";
@@ -148,7 +145,7 @@ export function ListDetailsToolbar({
 
       {quickFilters}
 
-      <LibraryActiveFilters chips={chips} onClearAll={onClearAll} />
+      <ActiveFilters chips={chips} onClearAll={onClearAll} />
 
       {isReorderLocked ? (
         <div

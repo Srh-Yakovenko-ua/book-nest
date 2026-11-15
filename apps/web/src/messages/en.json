@@ -523,6 +523,15 @@
   "facetMultiselect": {
     "remove": "Remove {label}"
   },
+  "upload": {
+    "browse": "Upload a file",
+    "dropToUpload": "Release to upload",
+    "or": "or",
+    "remove": "Remove {name}",
+    "sizeKilobytes": "{size} KB",
+    "sizeMegabytes": "{size} MB",
+    "title": "Drag a file here"
+  },
   "auth": {
     "common": {
       "submit": "Continue",

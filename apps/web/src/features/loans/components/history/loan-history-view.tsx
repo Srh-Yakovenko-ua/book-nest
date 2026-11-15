@@ -7,10 +7,10 @@ import { useRef, useState } from "react";
 
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
+import { ActiveFilters } from "@/components/catalog/active-filters";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
-import { LibraryActiveFilters } from "@/features/books/components/library-active-filters";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 import { cn } from "@/lib/utils";
@@ -165,7 +165,7 @@ export function LoanHistoryView() {
               value={query.result}
             />
 
-            <LibraryActiveFilters chips={filterChips} onClearAll={query.clearFilters} />
+            <ActiveFilters chips={filterChips} onClearAll={query.clearFilters} />
 
             <p className="text-sm text-muted-foreground" role="status">
               {list.isPending || firstPage === undefined

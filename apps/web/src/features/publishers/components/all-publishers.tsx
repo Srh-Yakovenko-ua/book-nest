@@ -3,8 +3,8 @@
 import { useTranslations } from "next-intl";
 import { useRef } from "react";
 
+import { type ActiveFilterChip, ActiveFilters } from "@/components/catalog/active-filters";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
-import { type ActiveFilterChip, LibraryActiveFilters } from "@/features/books";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
 
@@ -144,7 +144,7 @@ export function AllPublishers() {
               onChange={query.setQuickFilter}
               value={query.state.filter}
             />
-            <LibraryActiveFilters chips={chips} onClearAll={query.clearAll} />
+            <ActiveFilters chips={chips} onClearAll={query.clearAll} />
             <p aria-live="polite" className="text-sm text-muted-foreground empty:sr-only">
               {resultsAnnouncement}
             </p>

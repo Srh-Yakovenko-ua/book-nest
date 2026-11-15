@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import type { SummaryCard } from "@/components/catalog/summary-cards";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
+import { ActiveFilters } from "@/components/catalog/active-filters";
 import { Link, useRouter } from "@/i18n/navigation";
 
 import type { LibraryActions } from "../model/book-card-actions";
@@ -41,7 +42,6 @@ import { useLibraryQuery } from "../model/use-library-query";
 import { BooksLibraryView } from "./books-library-view";
 import { FavoritesOverviewPanel } from "./favorites-overview-panel";
 import { FavoritesSidebar } from "./favorites-sidebar";
-import { LibraryActiveFilters } from "./library-active-filters";
 import { LibraryAdvancedFilters } from "./library-advanced-filters";
 import { LibraryQuickFilters } from "./library-quick-filters";
 import { LibrarySearchInput } from "./library-search-input";
@@ -428,7 +428,7 @@ export function FavoritesView() {
     <div className="focus:outline-none" ref={resultsRegionRef} tabIndex={-1}>
       <BooksLibraryView
         actions={actions}
-        activeFilters={<LibraryActiveFilters chips={filterChips} onClearAll={library.clearAll} />}
+        activeFilters={<ActiveFilters chips={filterChips} onClearAll={library.clearAll} />}
         advancedFilters={
           <LibraryAdvancedFilters
             activeCount={advancedFiltersCount}

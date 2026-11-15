@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
 import { expect, userEvent, waitFor } from "storybook/test";
 
-import { type ActiveFilterChip, LibraryActiveFilters } from "./library-active-filters";
+import { type ActiveFilterChip, ActiveFilters } from "./active-filters";
 
 const LABELS: Record<string, string> = {
   "genre:fantasy": "Фентезі",
@@ -18,7 +18,7 @@ function Harness() {
     label: LABELS[key] ?? key,
     onRemove: () => setKeys((prev) => prev.filter((item) => item !== key)),
   }));
-  return <LibraryActiveFilters chips={chips} onClearAll={() => setKeys([])} />;
+  return <ActiveFilters chips={chips} onClearAll={() => setKeys([])} />;
 }
 
 const staticChips: ActiveFilterChip[] = Object.entries(LABELS).map(([key, label]) => ({
@@ -29,10 +29,10 @@ const staticChips: ActiveFilterChip[] = Object.entries(LABELS).map(([key, label]
 
 const meta = {
   args: { chips: staticChips, onClearAll: () => {} },
-  component: LibraryActiveFilters,
+  component: ActiveFilters,
   tags: ["ai-generated"],
-  title: "Books/LibraryActiveFilters",
-} satisfies Meta<typeof LibraryActiveFilters>;
+  title: "Patterns/ActiveFilters",
+} satisfies Meta<typeof ActiveFilters>;
 
 export default meta;
 

@@ -9,6 +9,7 @@ import {
 } from "@app/shared";
 import { skipToken, useQuery } from "@tanstack/react-query";
 
+import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 import { ApiError } from "@/lib/http-client";
 import {
   bookCharacterGraphControllerGet,
@@ -54,7 +55,7 @@ type GraphWorkspaceQueryScope = {
 };
 
 export function isGraphWorkspaceNotFound(error: unknown): boolean {
-  return error instanceof ApiError && error.status === 404;
+  return isApiErrorStatus(error, HTTP_STATUS.notFound);
 }
 
 export function useGraphWorkspaceEndpoint({

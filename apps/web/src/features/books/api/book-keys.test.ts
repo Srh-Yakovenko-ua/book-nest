@@ -1,8 +1,8 @@
 import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 
+import { seriesKeys } from "@/features/series/api/series-keys";
 import { getBooksControllerFacetsQueryKey } from "@/shared/api/generated/endpoints/books/books";
-import { getSeriesControllerFavoriteContinuationsQueryKey } from "@/shared/api/generated/endpoints/series/series";
 
 import { bookKeys, invalidateBookQueries, matchesBooksExceptDetail } from "./book-keys";
 
@@ -40,7 +40,7 @@ describe("invalidateBookQueries", () => {
 
   it("leaves queries of other resources fresh", async () => {
     const queryClient = new QueryClient();
-    const seriesKey = getSeriesControllerFavoriteContinuationsQueryKey({ limit: 50 });
+    const seriesKey = seriesKeys.favoriteContinuations({ limit: 50 });
     queryClient.setQueryData(seriesKey, {});
 
     await invalidateBookQueries(queryClient);

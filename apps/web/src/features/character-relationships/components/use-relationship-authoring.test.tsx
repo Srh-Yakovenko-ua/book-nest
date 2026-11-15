@@ -176,7 +176,7 @@ describe("useRelationshipAuthoring orphaned draft guard entry", () => {
   });
 
   it("steps back once when it mounts on an entry carrying the draft guard marker", async () => {
-    window.history.replaceState({ characterFactDraftGuard: true }, "");
+    window.history.replaceState({ closeGuard: true }, "");
     const historyBack = vi.spyOn(window.history, "back").mockImplementation(() => undefined);
 
     renderWithProviders(<RelationshipsPanel />);

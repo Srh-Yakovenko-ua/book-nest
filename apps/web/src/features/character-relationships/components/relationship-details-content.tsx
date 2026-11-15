@@ -13,7 +13,7 @@ import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ApiError } from "@/lib/http-client";
+import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 
 import type { RelationshipActions } from "../model/relationship-adapter";
 import type { RelationshipReveal, RelationshipRevealRequest } from "../model/relationship-reveal";
@@ -36,8 +36,6 @@ import { RelationshipRevealConfirmDialog } from "./relationship-reveal-confirm-d
 import { RelationshipStateBadges } from "./relationship-state-badges";
 import { RelationshipTypeSection } from "./relationship-type-section";
 import { RelationshipsErrorState } from "./relationships-error-state";
-
-const NOT_FOUND_STATUS = 404;
 
 type RelationshipDetailsContentProps = {
   actions: RelationshipActions;
@@ -188,7 +186,7 @@ export function RelationshipDetailsContent({
 }
 
 function isNotFound(error: unknown): boolean {
-  return error instanceof ApiError && error.status === NOT_FOUND_STATUS;
+  return isApiErrorStatus(error, HTTP_STATUS.notFound);
 }
 
 function RelationshipDetailsSkeleton({ label }: { label: string }) {

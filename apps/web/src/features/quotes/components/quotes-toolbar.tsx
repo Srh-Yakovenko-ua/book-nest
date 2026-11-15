@@ -6,8 +6,9 @@ import { QUOTE_INPUT_LIMITS } from "@app/shared";
 import { LayoutGrid, List } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import type { ActiveFilterChip } from "@/features/books";
+import type { ActiveFilterChip } from "@/components/catalog/active-filters";
 
+import { ActiveFilters } from "@/components/catalog/active-filters";
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
 import { ChipGroup } from "@/components/ui/chip-group";
 import { Segmented } from "@/components/ui/segmented";
@@ -19,7 +20,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { LibraryActiveFilters } from "@/features/books/components/library-active-filters";
 
 import type { QuoteFilterCounts } from "../model/quote-options";
 import type { QuotesQueryState, QuotesViewMode } from "../model/quotes-query";
@@ -176,7 +176,7 @@ export function QuotesToolbar({
         />
       </div>
 
-      <LibraryActiveFilters chips={chips} onClearAll={onClearAll} />
+      <ActiveFilters chips={chips} onClearAll={onClearAll} />
 
       {counter === undefined ? null : (
         <p aria-live="polite" className="mt-1 text-sm text-muted-foreground">

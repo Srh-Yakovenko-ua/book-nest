@@ -4,6 +4,7 @@ import type { FieldValues, Path, UseFormReturn } from "react-hook-form";
 import { ApiError } from "@/lib/http-client";
 
 export const HTTP_STATUS = {
+  badRequest: 400,
   conflict: 409,
   forbidden: 403,
   notFound: 404,
