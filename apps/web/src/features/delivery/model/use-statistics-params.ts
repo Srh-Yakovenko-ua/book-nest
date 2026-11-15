@@ -6,6 +6,9 @@ import { useQueryStates } from "nuqs";
 
 import type { BookOrdersControllerStatisticsParams } from "@/shared/api/generated/model";
 
+import { useProfileTimeZone } from "@/features/settings";
+import { todayIsoDay } from "@/lib/iso-day";
+
 import type { DeliveryStatisticsQueryState } from "./statistics-params";
 import type {
   StatisticsCustomRange,
@@ -25,7 +28,6 @@ import {
   canCompareStatisticsPeriod,
   defaultStatisticsCompareMode,
   resolveStatisticsPeriod,
-  todayIsoDay,
 } from "./statistics-period";
 
 export type StatisticsFilterPatch = Partial<
@@ -59,7 +61,7 @@ type StatisticsStatePatch = Partial<{
 
 export function useStatisticsParams(): UseStatisticsParamsResult {
   const [state, setState] = useQueryStates(deliveryStatisticsParsers);
-  const today = todayIsoDay();
+  const today = todayIsoDay(useProfileTimeZone());
   const periodRange = statisticsPeriodRange(state, today);
 
   const commit = (patch: StatisticsStatePatch) => {

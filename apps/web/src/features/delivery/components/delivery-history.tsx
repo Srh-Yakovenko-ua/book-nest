@@ -4,7 +4,9 @@ import type { Nullable } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 
+import { useProfileTimeZone } from "@/features/settings";
 import { useRouter } from "@/i18n/navigation";
+import { todayIsoDay } from "@/lib/iso-day";
 
 import type { DeliveryRevealTarget } from "../hooks/use-reveal-delivery-target";
 import type { HistoryOrderCardModel } from "../model/history-order-card-model";
@@ -39,6 +41,8 @@ export function DeliveryHistory() {
   const tLibraryCard = useTranslations("books.library.card");
   const tBadge = useTranslations("delivery.badge");
   const locale = useLocale();
+  const timeZone = useProfileTimeZone();
+  const today = todayIsoDay(timeZone);
   const router = useRouter();
 
   const params = useHistoryParams();
@@ -143,8 +147,9 @@ export function DeliveryHistory() {
       yesterday: tLatestReceipt("yesterday"),
     },
     locale,
-    now: new Date(),
     summary: summaryQuery.data ?? null,
+    timeZone,
+    today,
   });
 
   const receiptTarget: Nullable<DeliveryRevealTarget> =

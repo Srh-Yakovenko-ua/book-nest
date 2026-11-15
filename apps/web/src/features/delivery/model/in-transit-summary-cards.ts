@@ -1,6 +1,6 @@
 import type { InTransitSummaryView, Nullable } from "@app/shared";
 
-import { isToday, isTomorrow } from "date-fns";
+import { differenceInCalendarDays } from "date-fns";
 
 import type { SummaryCard } from "@/components/catalog/summary-cards";
 
@@ -48,6 +48,7 @@ type SummaryCardOptions = {
   labels: DeliverySummaryLabels;
   locale: string;
   summary: Nullable<InTransitSummaryView>;
+  today: string;
 };
 
 const MICROFACT_SEPARATOR = " · ";
@@ -114,33 +115,42 @@ function toActiveOrdersMicrofact(
   return [shipments, labels.activeOrders.split(summary.splitOrdersCount)].join(MICROFACT_SEPARATOR);
 }
 
-function toExpectedThisWeekCard({ labels, locale, summary }: SummaryCardOptions): SummaryCard {
+function toExpectedThisWeekCard({
+  labels,
+  locale,
+  summary,
+  today,
+}: SummaryCardOptions): SummaryCard {
   const count = summary?.expectedThisWeekCount ?? 0;
 
   return {
     icon: "clock",
     iconTone: "info",
     label: labels.expectedThisWeek.label,
-    microfact: summary === null ? undefined : toExpectedThisWeekMicrofact(summary, labels, locale),
+    microfact:
+      summary === null
+        ? undefined
+        : toExpectedThisWeekMicrofact({ labels, locale, summary, today }),
     mobileLabels: labels.mobile("expectedThisWeek"),
     unit: labels.units.books(count),
     value: formatNumber(count, locale),
   };
 }
 
-function toExpectedThisWeekMicrofact(
-  summary: InTransitSummaryView,
-  labels: DeliverySummaryLabels,
-  locale: string,
-): string {
+function toExpectedThisWeekMicrofact({
+  labels,
+  locale,
+  summary,
+  today,
+}: SummaryCardOptions & { summary: InTransitSummaryView }): string {
   const nextExpected = summary.nextExpectedThisWeek;
   if (summary.expectedThisWeekCount === 0 || nextExpected === null) {
     return labels.expectedThisWeek.empty;
   }
 
-  const day = parseIsoDay(nextExpected);
-  if (isToday(day)) return labels.expectedThisWeek.today;
-  if (isTomorrow(day)) return labels.expectedThisWeek.tomorrow;
+  const daysAhead = differenceInCalendarDays(parseIsoDay(nextExpected), parseIsoDay(today));
+  if (daysAhead === 0) return labels.expectedThisWeek.today;
+  if (daysAhead === 1) return labels.expectedThisWeek.tomorrow;
   return labels.expectedThisWeek.onDate(formatDayMonth(nextExpected, locale));
 }
 

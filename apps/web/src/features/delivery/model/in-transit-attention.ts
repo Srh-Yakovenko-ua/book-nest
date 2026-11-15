@@ -1,6 +1,6 @@
 import type { InTransitAttention, InTransitAttentionReason, Nullable } from "@app/shared";
 
-import { isToday, isTomorrow } from "date-fns";
+import { differenceInCalendarDays } from "date-fns";
 
 import type { AttentionItem } from "@/components/attention-block";
 import type { UiIconName } from "@/components/icons";
@@ -57,13 +57,15 @@ export function buildDeliveryAttentionItems({
   attention,
   labels,
   locale,
+  today,
 }: {
   attention: readonly InTransitAttention[];
   labels: DeliveryAttentionLabels;
   locale: string;
+  today: string;
 }): AttentionItem<InTransitAttentionReason>[] {
   return attention.map((entry) => {
-    const { detail, label } = toAttentionText({ entry, labels, locale });
+    const { detail, label } = toAttentionText({ entry, labels, locale, today });
     const { icon, toneClass } = DELIVERY_ATTENTION_ROW[entry.reason];
 
     return { detail, icon, id: entry.reason, label, toneClass };
@@ -78,10 +80,12 @@ function toAttentionText({
   entry,
   labels,
   locale,
+  today,
 }: {
   entry: InTransitAttention;
   labels: DeliveryAttentionLabels;
   locale: string;
+  today: string;
 }): AttentionText {
   switch (entry.reason) {
     case "awaiting_dispatch":
@@ -95,7 +99,7 @@ function toAttentionText({
         label: labels.delayed.label(entry.count),
       };
     case "pickup_expiring":
-      return toPickupExpiringText({ entry, labels, locale });
+      return toPickupExpiringText({ entry, labels, locale, today });
     case "unassigned_books":
       return {
         detail: labels.unassigned_books.detail(entry.ordersCount),
@@ -114,16 +118,18 @@ function toPickupDeadlineLabel({
   isoDay,
   labels,
   locale,
+  today,
 }: {
   isoDay: Nullable<string>;
   labels: DeliveryAttentionLabels;
   locale: string;
+  today: string;
 }): string {
   if (isoDay === null) return labels.pickup_expiring.expiring;
 
-  const day = parseIsoDay(isoDay);
-  if (isToday(day)) return labels.pickup_expiring.today;
-  if (isTomorrow(day)) return labels.pickup_expiring.tomorrow;
+  const daysLeft = differenceInCalendarDays(parseIsoDay(isoDay), parseIsoDay(today));
+  if (daysLeft === 0) return labels.pickup_expiring.today;
+  if (daysLeft === 1) return labels.pickup_expiring.tomorrow;
   return labels.pickup_expiring.onDate(formatDayMonth(isoDay, locale));
 }
 
@@ -131,10 +137,12 @@ function toPickupExpiringText({
   entry,
   labels,
   locale,
+  today,
 }: {
   entry: PickupExpiringAttention;
   labels: DeliveryAttentionLabels;
   locale: string;
+  today: string;
 }): AttentionText {
   if (entry.expiredCount >= entry.count) {
     return {
@@ -152,6 +160,6 @@ function toPickupExpiringText({
 
   return {
     detail: labels.pickup_expiring.detail(entry.count),
-    label: toPickupDeadlineLabel({ isoDay: entry.nearestPickupUntil, labels, locale }),
+    label: toPickupDeadlineLabel({ isoDay: entry.nearestPickupUntil, labels, locale, today }),
   };
 }

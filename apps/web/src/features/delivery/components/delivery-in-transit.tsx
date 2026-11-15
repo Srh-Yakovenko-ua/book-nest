@@ -12,7 +12,9 @@ import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { CancelDeliveryDialog } from "@/features/books/components/cancel-delivery-dialog";
 import { useDeliveryErrorText } from "@/features/books/hooks/use-delivery-error-text";
+import { useProfileTimeZone } from "@/features/settings";
 import { useRouter } from "@/i18n/navigation";
+import { todayIsoDay } from "@/lib/iso-day";
 
 import type { DeliverySummaryLabels } from "../model/in-transit-summary-cards";
 import type { DeliveryOrderBookModel, DeliveryOrderCardModel } from "../model/order-card-model";
@@ -60,6 +62,7 @@ export function DeliveryInTransit() {
   const tLibraryCard = useTranslations("books.library.card");
   const tNextShipment = useTranslations("delivery.nextShipment");
   const locale = useLocale();
+  const today = todayIsoDay(useProfileTimeZone());
   const router = useRouter();
   const deliveryErrorText = useDeliveryErrorText();
 
@@ -221,6 +224,7 @@ export function DeliveryInTransit() {
     labels: summaryLabels,
     locale,
     summary: summaryData ?? null,
+    today,
   });
 
   const nextShipmentCard = buildDeliveryNextShipmentCard({
@@ -232,8 +236,8 @@ export function DeliveryInTransit() {
       tomorrow: tNextShipment("tomorrow"),
     },
     locale,
-    now: new Date(),
     summary: summaryData ?? null,
+    today,
   });
 
   const nextShipmentNeedsReset =

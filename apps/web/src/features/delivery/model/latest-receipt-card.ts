@@ -1,8 +1,10 @@
 import type { BookOrderHistorySummaryView, DeliveryBookPreview, Nullable } from "@app/shared";
 
-import { differenceInCalendarDays, startOfDay } from "date-fns";
+import { differenceInCalendarDays } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 
 import { formatDate, parseIsoDay } from "@/lib/format";
+import { ISO_DAY } from "@/lib/iso-day";
 
 import type { DeliveryBookPreviewModel } from "./delivery-book-preview";
 
@@ -34,22 +36,26 @@ type DeliveryReceiptBooks =
 export function buildDeliveryLatestReceiptCard({
   labels,
   locale,
-  now,
   summary,
+  timeZone,
+  today,
 }: {
   labels: DeliveryLatestReceiptLabels;
   locale: string;
-  now: Date;
   summary: Nullable<BookOrderHistorySummaryView>;
+  timeZone: string;
+  today: string;
 }): Nullable<DeliveryLatestReceiptCardModel> {
   const receipt = summary?.latestReceipt ?? null;
   if (receipt === null) return null;
 
+  const receivedDay = formatInTimeZone(receipt.receivedAt, timeZone, ISO_DAY.format);
+
   return {
     books: toBooks({ booksCount: receipt.booksCount, labels, previews: receipt.bookPreviews }),
     orderId: receipt.orderId,
-    receivedDateText: formatDate(receipt.receivedAt, locale),
-    relativeDayText: toRelativeDayText({ iso: receipt.receivedAt, labels, now }),
+    receivedDateText: formatDate(receivedDay, locale),
+    relativeDayText: toRelativeDayText({ labels, receivedDay, today }),
     sameDayText: receipt.sameDayCount === 0 ? null : labels.sameDay(receipt.sameDayCount),
     serviceName: receipt.deliveryService?.name ?? null,
     shipmentId: receipt.shipmentId,
@@ -81,15 +87,15 @@ function toBooks({
 }
 
 function toRelativeDayText({
-  iso,
   labels,
-  now,
+  receivedDay,
+  today,
 }: {
-  iso: string;
   labels: DeliveryLatestReceiptLabels;
-  now: Date;
+  receivedDay: string;
+  today: string;
 }): string {
-  const days = differenceInCalendarDays(startOfDay(now), startOfDay(parseIsoDay(iso)));
+  const days = differenceInCalendarDays(parseIsoDay(today), parseIsoDay(receivedDay));
 
   if (days <= 0) return labels.today;
   if (days === 1) return labels.yesterday;

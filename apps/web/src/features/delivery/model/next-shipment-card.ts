@@ -1,6 +1,6 @@
 import type { InTransitSummaryView, NextShipmentView, Nullable } from "@app/shared";
 
-import { differenceInCalendarDays, startOfDay } from "date-fns";
+import { differenceInCalendarDays } from "date-fns";
 
 import { formatDate, parseIsoDay } from "@/lib/format";
 
@@ -40,13 +40,13 @@ export const NEXT_SHIPMENT_CARD = {
 export function buildDeliveryNextShipmentCard({
   labels,
   locale,
-  now,
   summary,
+  today,
 }: {
   labels: DeliveryNextShipmentLabels;
   locale: string;
-  now: Date;
   summary: Nullable<InTransitSummaryView>;
+  today: string;
 }): Nullable<DeliveryNextShipmentCardModel> {
   const shipment = summary?.nextShipment ?? null;
   if (shipment === null) return null;
@@ -55,7 +55,7 @@ export function buildDeliveryNextShipmentCard({
     books: toBooks(shipment, labels),
     expectedDateText: formatDate(shipment.expectedDeliveryDate, locale),
     orderId: shipment.orderId,
-    relativeDayText: toRelativeDayText({ isoDay: shipment.expectedDeliveryDate, labels, now }),
+    relativeDayText: toRelativeDayText({ isoDay: shipment.expectedDeliveryDate, labels, today }),
     sameDayText: shipment.sameDayCount === 0 ? null : labels.sameDay(shipment.sameDayCount),
     serviceName: shipment.deliveryService?.name ?? null,
     shipmentId: shipment.shipmentId,
@@ -85,13 +85,13 @@ function toBooks(
 function toRelativeDayText({
   isoDay,
   labels,
-  now,
+  today,
 }: {
   isoDay: string;
   labels: DeliveryNextShipmentLabels;
-  now: Date;
+  today: string;
 }): string {
-  const days = differenceInCalendarDays(parseIsoDay(isoDay), startOfDay(now));
+  const days = differenceInCalendarDays(parseIsoDay(isoDay), parseIsoDay(today));
 
   if (days <= 0) return labels.today;
   if (days === 1) return labels.tomorrow;

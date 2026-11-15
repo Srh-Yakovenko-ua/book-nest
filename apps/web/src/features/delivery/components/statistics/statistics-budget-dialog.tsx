@@ -21,7 +21,9 @@ import {
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 import { MonthPicker } from "@/components/ui/month-picker";
+import { useProfileTimeZone } from "@/features/settings";
 import { dateFnsLocale, parseIsoDay } from "@/lib/format";
+import { todayIsoDay } from "@/lib/iso-day";
 
 import { useSaveBookBudgets } from "../../api/use-book-budgets";
 
@@ -38,7 +40,7 @@ const BUDGET_MONTH = {
 type BudgetDraft = {
   amounts: Record<Currency, string>;
   edited: Record<Currency, boolean>;
-  month: string;
+  pickedMonth: Nullable<string>;
 };
 
 export function StatisticsBudgetDialog({
@@ -114,27 +116,29 @@ function StatisticsBudgetForm({
 }) {
   const t = useTranslations("delivery.statistics.budget.dialog");
   const locale = useLocale();
-  const now = new Date();
-  const currentMonth = toMonthStartIso(now);
-  const [draft, setDraft] = useState<BudgetDraft>(() => toDraft(overview, currentMonth));
+  const today = parseIsoDay(todayIsoDay(useProfileTimeZone()));
+  const currentMonth = toMonthStartIso(today);
+  const [draft, setDraft] = useState<BudgetDraft>({
+    amounts: { EUR: "", UAH: "", USD: "" },
+    edited: { EUR: false, UAH: false, USD: false },
+    pickedMonth: null,
+  });
+  const month = draft.pickedMonth ?? currentMonth;
+  const amounts = mapCurrencies((currency) =>
+    draft.edited[currency] ? draft.amounts[currency] : amountAt({ currency, month, overview }),
+  );
 
   const isSaving = save.isPending;
 
-  function handleMonthChange(month: string) {
-    setDraft((prev) => ({
-      amounts: mapCurrencies((currency) =>
-        prev.edited[currency] ? prev.amounts[currency] : amountAt({ currency, month, overview }),
-      ),
-      edited: prev.edited,
-      month,
-    }));
+  function handleMonthChange(pickedMonth: string) {
+    setDraft((prev) => ({ ...prev, pickedMonth }));
   }
 
   async function submit() {
     const entries = CURRENCIES.map((currency) => ({
       currency,
-      monthlyAmount: Number(draft.amounts[currency]),
-      raw: draft.amounts[currency].trim(),
+      monthlyAmount: Number(amounts[currency]),
+      raw: amounts[currency].trim(),
     }));
 
     const invalid = entries.find(
@@ -151,9 +155,7 @@ function StatisticsBudgetForm({
 
     const written = entries.filter((entry) => entry.raw !== "");
     const stopped = entries.filter(
-      (entry) =>
-        entry.raw === "" &&
-        amountAt({ currency: entry.currency, month: draft.month, overview }) !== "",
+      (entry) => entry.raw === "" && amountAt({ currency: entry.currency, month, overview }) !== "",
     );
     if (written.length === 0 && stopped.length === 0) {
       onDone();
@@ -170,7 +172,7 @@ function StatisticsBudgetForm({
           })),
           ...stopped.map((entry) => ({ action: "stop" as const, currency: entry.currency })),
         ],
-        effectiveFromMonth: draft.month,
+        effectiveFromMonth: month,
       });
       toast.success(t("saved"));
       onDone();
@@ -199,13 +201,13 @@ function StatisticsBudgetForm({
                 setDraft((prev) => ({
                   amounts: { ...prev.amounts, [currency]: event.target.value },
                   edited: { ...prev.edited, [currency]: true },
-                  month: prev.month,
+                  pickedMonth: prev.pickedMonth,
                 }))
               }
               placeholder={t("notConfigured")}
               step="0.01"
               type="number"
-              value={draft.amounts[currency]}
+              value={amounts[currency]}
             />
           </InputGroup>
         ))}
@@ -218,12 +220,12 @@ function StatisticsBudgetForm({
           ariaLabel={t("effectiveFrom")}
           describedBy={BUDGET_MONTH.hintId}
           id={BUDGET_MONTH.fieldId}
-          max={toMonthStartIso(endOfYear(addYears(now, BUDGET_MONTH.yearsAhead)))}
+          max={toMonthStartIso(endOfYear(addYears(today, BUDGET_MONTH.yearsAhead)))}
           min={currentMonth}
           nextYearLabel={t("nextYear")}
           onChange={handleMonthChange}
           previousYearLabel={t("previousYear")}
-          value={draft.month}
+          value={month}
         />
         <div
           className="flex items-start gap-2 rounded-md border border-info/30 bg-info-soft/60 px-3 py-2 text-xs text-info"
@@ -234,7 +236,7 @@ function StatisticsBudgetForm({
           <div className="flex min-w-0 flex-col gap-0.5">
             <p className="font-medium">
               {t("appliesFrom", {
-                month: format(parseIsoDay(draft.month), BUDGET_MONTH.sentenceFormat, {
+                month: format(parseIsoDay(month), BUDGET_MONTH.sentenceFormat, {
                   locale: dateFnsLocale(locale),
                 }),
               })}
@@ -254,14 +256,6 @@ function StatisticsBudgetForm({
       </DialogFooter>
     </>
   );
-}
-
-function toDraft(overview: BookBudgetOverview | undefined, month: string): BudgetDraft {
-  return {
-    amounts: mapCurrencies((currency) => amountAt({ currency, month, overview })),
-    edited: { EUR: false, UAH: false, USD: false },
-    month,
-  };
 }
 
 function toMonthStartIso(date: Date): string {
