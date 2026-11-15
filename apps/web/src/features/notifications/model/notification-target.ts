@@ -1,5 +1,7 @@
 import type { NotificationEntityState, NotificationPayload, Nullable } from "@app/shared";
 
+import { assertNever } from "@/lib/assert-never";
+
 export type NotificationTarget =
   { href: string; kind: "book" } | { kind: "none" } | { kind: "trashed" };
 
@@ -23,8 +25,4 @@ export function resolveNotificationTarget({
     default:
       return assertNever(entityState);
   }
-}
-
-function assertNever(value: never): never {
-  throw new Error(`unhandled notification entity state: ${JSON.stringify(value)}`);
 }

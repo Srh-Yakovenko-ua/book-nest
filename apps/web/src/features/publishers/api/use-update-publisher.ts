@@ -5,13 +5,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import type { UpdatePublisherDto } from "@/shared/api/generated/model";
 
-import { bookKeys } from "@/features/books/api/book-keys";
-import { seriesKeys } from "@/features/series/api/series-keys";
+import { matchesAnyKeyPrefix } from "@/lib/query-keys";
 import { publishersControllerUpdateCustom } from "@/shared/api/generated/endpoints/publishers/publishers";
 
-import { invalidatePublisherQueries, publisherKeys } from "./publisher-keys";
-
-const RELATED_PICKER_ROOTS = { publishers: ["publishers"], series: ["series"] } as const;
+import { invalidatePublisherIdentityViews } from "./publisher-change-effects";
+import { publisherKeys } from "./publisher-keys";
 
 export function useUpdatePublisher(id: string) {
   const queryClient = useQueryClient();
@@ -23,11 +21,9 @@ export function useUpdatePublisher(id: string) {
     },
     onSuccess: (detail) => {
       queryClient.setQueryData(publisherKeys.detail(id), detail);
-      void invalidatePublisherQueries(queryClient);
-      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
-      void queryClient.invalidateQueries({ queryKey: RELATED_PICKER_ROOTS.publishers });
-      void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
-      void queryClient.invalidateQueries({ queryKey: RELATED_PICKER_ROOTS.series });
+      invalidatePublisherIdentityViews(queryClient, {
+        keep: [matchesAnyKeyPrefix(publisherKeys.detail(id))],
+      });
     },
   });
 }

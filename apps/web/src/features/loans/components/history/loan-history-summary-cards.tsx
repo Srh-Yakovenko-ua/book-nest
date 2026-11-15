@@ -5,17 +5,17 @@ import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
+import { SummaryCards } from "@/components/catalog/summary-cards";
 import { SummaryError } from "@/components/summary-error";
-import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 
 type HistoryCardKey = "duration" | "late" | "onTime" | "total";
 
 const EMPTY_VALUE = "—";
 
 type LoanHistorySummaryCardsProps = {
-  cards: LibrarySummaryCard[];
+  cards: SummaryCard[];
   isError: boolean;
   isLoading: boolean;
   mobileAction?: ReactNode;
@@ -27,7 +27,7 @@ const HISTORY_CARD_LOOK = {
   late: { icon: "clock", iconTone: "tag" },
   onTime: { icon: "check-circle", iconTone: "success" },
   total: { icon: "book-copy", iconTone: "primary" },
-} as const satisfies Record<HistoryCardKey, Pick<LibrarySummaryCard, "icon" | "iconTone">>;
+} as const satisfies Record<HistoryCardKey, Pick<SummaryCard, "icon" | "iconTone">>;
 
 export function LoanHistorySummaryCards({
   cards,
@@ -38,7 +38,7 @@ export function LoanHistorySummaryCards({
 }: LoanHistorySummaryCardsProps) {
   return (
     <SummaryError state={isError ? { onRetry } : null}>
-      <LibrarySummaryCards
+      <SummaryCards
         cards={cards}
         isLoading={isLoading}
         mobileAction={mobileAction}
@@ -50,7 +50,7 @@ export function LoanHistorySummaryCards({
 
 export function useLoanHistorySummaryCards(
   overview: LoanHistoryOverviewView | undefined,
-): LibrarySummaryCard[] {
+): SummaryCard[] {
   const t = useTranslations("loans.history.cards");
 
   const summary = overview?.summary;

@@ -5,7 +5,6 @@ import { expect, fn, userEvent } from "storybook/test";
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 
-import { ActionList } from "./action-list";
 import { ActionRow } from "./action-row";
 
 const meta = {
@@ -99,7 +98,7 @@ export const Danger: Story = {
 export const States: Story = {
   decorators: [(Story) => <Story />],
   render: () => (
-    <ActionList>
+    <div className="flex flex-col rounded-xl border border-border bg-card p-2 shadow-card">
       <ActionRow leadingIcon="list" onClick={() => undefined} title="Додати до списку" />
       <ActionRow
         leadingIcon="refresh"
@@ -114,6 +113,6 @@ export const States: Story = {
         title="Видалити список"
         tone="danger"
       />
-    </ActionList>
+    </div>
   ),
 };

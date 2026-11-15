@@ -3,6 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import type { ReactNode } from "react";
 
 import { defaultUserProfileSettings, DELIVERY_ERROR_CODES } from "@app/shared";
+import { toast } from "sonner";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
@@ -57,7 +58,7 @@ const onOpenChange = vi.fn();
 let respondToMarkBought: () => Response;
 let respondToCreateDelivery: () => Response;
 let respondToMarkOwned: () => Response;
-let respondToRemove: () => Response;
+let respondToRemove: () => Promise<Response> | Response;
 
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
@@ -377,5 +378,31 @@ describe("WishlistStatusDialog direct branches", () => {
     await submitDialog();
 
     expect(await screen.findByText("Ця книга більше не в списку бажань")).toBeInTheDocument();
+  });
+
+  it("locks the status choice and stays open until the pending drop lands", async () => {
+    let releaseRemove: (response: Response) => void = () => undefined;
+    respondToRemove = () =>
+      new Promise<Response>((resolve) => {
+        releaseRemove = resolve;
+      });
+    renderDialog();
+
+    await pickOption("dropped");
+    await submitDialog();
+
+    await waitFor(() => expect(optionRadio("bought")).toBeDisabled());
+    expect(optionRadio("received")).toBeDisabled();
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    releaseRemove(jsonResponse(makeBookView({ id: book.id, ownershipStatus: "none" })));
+
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(messages.booksToBuy.removeFromList.success),
+    );
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

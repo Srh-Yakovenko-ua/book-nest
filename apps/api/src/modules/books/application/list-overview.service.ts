@@ -57,12 +57,13 @@ export class ListOverviewService {
       this.listOverviewRepository.structureCounts(scope),
     ]);
 
-    const [genreRows, readingItem] = await Promise.all([
+    const [genreRows, readingItem, toBookView] = await Promise.all([
       this.listFacetsRepository.genreFacets(scope),
       this.listOverviewRepository.findCurrentlyReading({
         ...scope,
         statuses: LIBRARY_OVERVIEW.readingInProgressStatuses,
       }),
+      this.viewAssembler.forUser(userId),
     ]);
 
     const names = await this.genresService.findNamesByKeys(genreRows.map((row) => row.key));
@@ -73,7 +74,7 @@ export class ListOverviewService {
         book:
           readingItem === null
             ? undefined
-            : { ...this.viewAssembler.viewOf(readingItem.book), position: readingItem.position },
+            : { ...toBookView(readingItem.book), position: readingItem.position },
         readingCount,
       }),
       distinctAuthorsCount,

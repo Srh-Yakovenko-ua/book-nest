@@ -16,6 +16,7 @@ import { formatDateShort } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import { useListGoal } from "../api/use-list-goal";
+import { goalDisplayPercent } from "../model/goal-display-percent";
 import { GoalFormDialog } from "./goal-form-dialog";
 
 const NO_BOOKS_HINT_ID = "list-goal-no-books-hint";
@@ -76,7 +77,10 @@ function ActiveGoalBody({ goal }: { goal: ReadingGoalView }) {
   const t = useTranslations("goals.sidebar");
   const tGoals = useTranslations("goals");
   const locale = useLocale();
-  const percent = progressPercent(goal);
+  const percent = goalDisplayPercent({
+    progressPercent: (goal.completedCount / goal.targetCount) * 100,
+    remainingCount: goal.remainingCount,
+  });
 
   return (
     <>
@@ -232,10 +236,6 @@ function ClosedGoalBody({
       </div>
     </>
   );
-}
-
-function progressPercent(goal: ReadingGoalView): number {
-  return Math.min(100, Math.round((goal.completedCount / goal.targetCount) * 100));
 }
 
 function resolveState({

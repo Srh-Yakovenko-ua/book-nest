@@ -12696,10 +12696,21 @@ export const bookListsControllerSetListsBodyListIdsItemRegExp = new RegExp(
 );
 export const bookListsControllerSetListsBodyListIdsMax = 100;
 
+export const bookListsControllerSetListsBodyNewListsMax = 20;
+
 export const BookListsControllerSetListsBody = zod.object({
   listIds: zod
     .array(zod.uuid().regex(bookListsControllerSetListsBodyListIdsItemRegExp))
     .max(bookListsControllerSetListsBodyListIdsMax),
+  newLists: zod
+    .array(
+      zod.object({
+        description: zod.string().optional(),
+        name: zod.string(),
+      }),
+    )
+    .max(bookListsControllerSetListsBodyNewListsMax)
+    .optional(),
 });
 
 export const bookListsControllerSetListsResponseListsItemBookCountMin = 0;

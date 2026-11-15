@@ -1,6 +1,6 @@
 "use client";
 
-import { BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE, BOOK_SERIES_REQUIRED_MESSAGE } from "@app/shared";
+import { BOOK_SERIES_ERROR_CODES, BOOK_SERIES_REQUIRED_MESSAGE } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import {
@@ -59,6 +59,7 @@ export function BookTypeSection({
   const tCommon = useTranslations("common");
   const bookType = useWatch({ control, name: "bookType" }) ?? "solo";
   const partNumberValue = useWatch({ control, name: "partNumber" });
+  const newSeriesTotalBooks = useWatch({ control, name: "newSeries.totalBooks" });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pendingName, setPendingName] = useState("");
   const complete = useSectionCompletion(control, BOOK_TYPE_FIELDS);
@@ -109,6 +110,14 @@ export function BookTypeSection({
     rawSeriesError !== undefined && !seriesRequired ? rawSeriesError : undefined;
   const showSeriesError = !seriesCleared && (seriesRequired || seriesOtherError !== undefined);
 
+  const partNumberExceedsNewSeriesTotal =
+    typeof partNumberValue === "number" &&
+    typeof newSeriesTotalBooks === "number" &&
+    partNumberValue > newSeriesTotalBooks;
+  const partNumberExceedsTotal =
+    errors.partNumber?.type === BOOK_SERIES_ERROR_CODES.partNumberExceedsTotal ||
+    (errors.partNumber !== undefined && partNumberExceedsNewSeriesTotal);
+
   function renderPartNumberError() {
     if (seriesConflict && seriesConflict.partNumber === partNumberValue) {
       return (
@@ -130,7 +139,7 @@ export function BookTypeSection({
         </p>
       );
     }
-    if (errors.partNumber?.message === BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE) {
+    if (partNumberExceedsTotal) {
       return (
         <p className="text-xs text-destructive" id="book-part-number-error" role="alert">
           {t("bookType.errors.exceedsTotal")}

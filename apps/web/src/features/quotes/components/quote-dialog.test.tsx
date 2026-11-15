@@ -2,6 +2,7 @@ import "@testing-library/jest-dom/vitest";
 
 import type { BookChapterUsageView, BookView } from "@app/shared";
 
+import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { BookSelectOption } from "@/features/books/model/book-select-option";
@@ -53,6 +54,8 @@ const QUOTE_BOOK: BookSelectOption = {
 };
 
 const fetchMock = vi.fn();
+
+let respondToWrite: () => Promise<Response> | Response;
 
 function bodySentWith(method: "PATCH" | "POST"): unknown {
   const write = fetchMock.mock.calls.find(
@@ -110,11 +113,12 @@ function writeRequests(): { method: string; url: string }[] {
 }
 
 beforeEach(() => {
+  respondToWrite = () => jsonResponse(QUOTE);
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
-    if (method === "POST" || method === "PATCH") return Promise.resolve(jsonResponse(QUOTE));
+    if (method === "POST" || method === "PATCH") return Promise.resolve(respondToWrite());
     if (url.startsWith("/api/books?")) return Promise.resolve(booksPage(LIBRARY));
     const chaptersBookId = /^\/api\/books\/([^/?]+)\/chapters$/.exec(url)?.[1];
     if (chaptersBookId !== undefined)
@@ -284,9 +288,9 @@ describe("QuoteDialog create mode with the book picker", () => {
 });
 
 describe("QuoteDialog edit mode", () => {
-  function renderEdit() {
+  function renderEdit(onOpenChange = vi.fn()) {
     return renderWithProviders(
-      <QuoteDialog book={QUOTE_BOOK} mode="edit" onOpenChange={vi.fn()} open quote={QUOTE} />,
+      <QuoteDialog book={QUOTE_BOOK} mode="edit" onOpenChange={onOpenChange} open quote={QUOTE} />,
     );
   }
 
@@ -332,5 +336,30 @@ describe("QuoteDialog edit mode", () => {
 
     await waitFor(() => expect(writeRequests()).toHaveLength(1));
     expect(bodySentWith("PATCH")).toMatchObject({ chapter: "Епілог" });
+  });
+
+  it("cannot be dismissed while the edit is saving and closes once it lands", async () => {
+    let releaseWrite: (response: Response) => void = () => undefined;
+    respondToWrite = () =>
+      new Promise<Response>((resolve) => {
+        releaseWrite = resolve;
+      });
+    const onOpenChange = vi.fn();
+    renderEdit(onOpenChange);
+
+    await userEvent.type(screen.getByLabelText(/Текст цитати/), " Продовження.");
+    await userEvent.click(submitButton("Зберегти зміни"));
+    await waitFor(() => expect(submitButton("Зберегти зміни")).toBeDisabled());
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Скасувати" })).toBeDisabled();
+
+    releaseWrite(jsonResponse(QUOTE));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Цитату оновлено"));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { cva, type VariantProps } from "class-variance-authority";
+import { useTranslations } from "next-intl";
 import * as React from "react";
 
 import { UiIcon } from "@/components/icons";
@@ -75,11 +76,11 @@ function clamp(value: number, min: number, max: number) {
 function NumberStepper({
   ariaLabel,
   className,
-  decrementLabel = "Зменшити",
+  decrementLabel,
   describedBy,
   disabled = false,
   id,
-  incrementLabel = "Збільшити",
+  incrementLabel,
   max = Number.POSITIVE_INFINITY,
   min = Number.NEGATIVE_INFINITY,
   onValueChange,
@@ -88,6 +89,7 @@ function NumberStepper({
   suffix,
   value,
 }: NumberStepperProps) {
+  const tCommon = useTranslations("common");
   const atMin = value <= min;
   const atMax = value >= max;
 
@@ -116,7 +118,7 @@ function NumberStepper({
     <div className={cn("inline-flex items-center gap-2.5", className)} data-slot="number-stepper">
       <div className={cn(stepperVariants({ size }))} data-disabled={disabled || undefined}>
         <button
-          aria-label={decrementLabel}
+          aria-label={decrementLabel ?? tCommon("decrement")}
           className={cn(stepperButtonVariants({ size }))}
           disabled={disabled || atMin}
           onClick={() => commit(value - step)}
@@ -141,7 +143,7 @@ function NumberStepper({
           value={value}
         />
         <button
-          aria-label={incrementLabel}
+          aria-label={incrementLabel ?? tCommon("increment")}
           className={cn(stepperButtonVariants({ size }))}
           disabled={disabled || atMax}
           onClick={() => commit(value + step)}

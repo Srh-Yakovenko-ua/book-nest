@@ -5,6 +5,8 @@ import type { ReactNode } from "react";
 
 import { useState } from "react";
 
+import { useReleaseOrphanedHistorySentinel } from "@/hooks/use-close-guard";
+
 import type {
   RelationshipAuthoringContext,
   RelationshipEditorTarget,
@@ -35,6 +37,7 @@ export function useRelationshipAuthoring(
   context: RelationshipAuthoringContext,
 ): RelationshipAuthoring {
   const [dialog, setDialog] = useState<Nullable<AuthoringDialog>>(null);
+  useReleaseOrphanedHistorySentinel();
 
   function openDialog(request: AuthoringDialogRequest) {
     setDialog((current) => ({ ...request, open: true, session: (current?.session ?? 0) + 1 }));

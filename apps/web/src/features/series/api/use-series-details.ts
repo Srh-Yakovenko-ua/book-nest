@@ -19,6 +19,5 @@ export function useSeriesDetails(id: string, options: UseSeriesDetailsOptions = 
       return SeriesDetailsViewSchema.parse(response);
     },
     queryKey: seriesKeys.detail(id),
-    retry: false,
   });
 }

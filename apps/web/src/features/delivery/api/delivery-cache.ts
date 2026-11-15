@@ -1,21 +1,29 @@
 import type { QueryKey } from "@tanstack/react-query";
 
-import { useQueryClient } from "@tanstack/react-query";
+import { partialMatchKey, useQueryClient } from "@tanstack/react-query";
 
-import { invalidateGenreDerivedQueries } from "@/features/genres/api/genres-keys";
+import { bookChangeEffects } from "@/features/books/api/book-change-effects";
 
-const IMPACTED_PREFIXES = ["/api/delivery", "/api/books", "/api/series"];
-
-export function matchesDeliveryImpacted(query: { queryKey: QueryKey }): boolean {
-  const first = query.queryKey[0];
-  if (typeof first !== "string") return false;
-  return IMPACTED_PREFIXES.some((prefix) => first.startsWith(prefix));
-}
+import { deliveryKeys } from "./delivery-keys";
 
 export function useDeliverySync() {
   const queryClient = useQueryClient();
   return () => {
-    void queryClient.invalidateQueries({ predicate: matchesDeliveryImpacted });
-    void invalidateGenreDerivedQueries(queryClient);
+    void bookChangeEffects.booksChanged(queryClient, { changes: ["statusChanged"] });
   };
+}
+
+export function useDeliverySyncAwaitingInTransitList() {
+  const queryClient = useQueryClient();
+  return () => {
+    void bookChangeEffects.booksChanged(queryClient, {
+      changes: ["statusChanged"],
+      keep: [matchesInTransitLists],
+    });
+    return queryClient.invalidateQueries({ queryKey: deliveryKeys.inTransit.lists });
+  };
+}
+
+function matchesInTransitLists({ queryKey }: { queryKey: QueryKey }): boolean {
+  return partialMatchKey(queryKey, deliveryKeys.inTransit.lists);
 }

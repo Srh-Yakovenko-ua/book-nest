@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
 import { z } from "zod";
 
+import { publisherKeys } from "@/features/publishers/api/publisher-keys";
 import { publishersControllerRecent } from "@/shared/api/generated/endpoints/publishers/publishers";
 
 import { publisherViewSchema } from "../model/publisher-view-schema";
@@ -22,6 +23,6 @@ export function useRecentPublishers() {
       });
       return z.array(publisherViewSchema).parse(response);
     },
-    queryKey: ["publishers", "recent", locale],
+    queryKey: publisherKeys.picker.recent(locale),
   });
 }

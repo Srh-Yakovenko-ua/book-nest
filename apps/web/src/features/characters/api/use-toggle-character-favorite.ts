@@ -8,7 +8,7 @@ import { charactersControllerUpdateGlobal } from "@/shared/api/generated/endpoin
 
 import type { BookCharactersPage } from "./use-book-characters";
 
-import { invalidateCharacterIdentityViews } from "./character-identity-sync";
+import { invalidateCharacterFavoriteViews } from "./character-identity-sync";
 import { characterKeys } from "./character-keys";
 
 type ToggleFavoriteContext = {
@@ -65,8 +65,8 @@ export function useToggleCharacterFavorite(bookId: string) {
 
       return { previousInfinitePages, previousPages };
     },
-    onSettled: () => {
-      invalidateCharacterIdentityViews(queryClient);
+    onSettled: (_data, _error, { characterId }) => {
+      invalidateCharacterFavoriteViews(queryClient, { characterId });
     },
   });
 }

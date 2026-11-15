@@ -2,7 +2,7 @@
 
 import type { CustomListCard, UpdateListInput } from "@app/shared";
 
-import { UpdateListInputSchema } from "@app/shared";
+import { LIST_INPUT_LIMITS, UpdateListInputSchema } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -21,13 +21,9 @@ import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiError } from "@/lib/http-client";
+import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 
 import { useUpdateList } from "../api/use-update-list";
-
-const NAME_MAX = 80;
-const DESCRIPTION_MAX = 300;
-const DUPLICATE_STATUS = 409;
 
 type EditListDialogProps = {
   list: CustomListCard;
@@ -83,7 +79,7 @@ function EditListForm({ list, onDone }: { list: CustomListCard; onDone: () => vo
     };
     updateList.mutate(payload, {
       onError: (error) => {
-        if (error instanceof ApiError && error.status === DUPLICATE_STATUS) {
+        if (isApiErrorStatus(error, HTTP_STATUS.conflict)) {
           setError("name", { message: t("errors.duplicate") });
           return;
         }
@@ -106,7 +102,7 @@ function EditListForm({ list, onDone }: { list: CustomListCard; onDone: () => vo
           autoComplete="off"
           className="h-10"
           id="edit-list-name"
-          maxLength={NAME_MAX}
+          maxLength={LIST_INPUT_LIMITS.nameMax}
           placeholder={t("fields.namePlaceholder")}
           {...register("name")}
         />
@@ -123,7 +119,7 @@ function EditListForm({ list, onDone }: { list: CustomListCard; onDone: () => vo
               <Textarea
                 aria-describedby="edit-list-description-counter"
                 id="edit-list-description"
-                maxLength={DESCRIPTION_MAX}
+                maxLength={LIST_INPUT_LIMITS.descriptionMax}
                 onChange={field.onChange}
                 placeholder={t("fields.descriptionPlaceholder")}
                 value={field.value ?? ""}
@@ -132,7 +128,7 @@ function EditListForm({ list, onDone }: { list: CustomListCard; onDone: () => vo
                 className="ml-auto text-xs text-muted-foreground tabular-nums"
                 id="edit-list-description-counter"
               >
-                {(field.value ?? "").length}/{DESCRIPTION_MAX}
+                {(field.value ?? "").length}/{LIST_INPUT_LIMITS.descriptionMax}
               </span>
             </>
           )}

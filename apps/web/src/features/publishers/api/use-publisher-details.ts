@@ -17,6 +17,5 @@ export function usePublisherDetails(id: string) {
       return LibraryPublisherDetailSchema.parse(response);
     },
     queryKey: publisherKeys.detail(id),
-    retry: false,
   });
 }

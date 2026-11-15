@@ -7,10 +7,9 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import type { StatisticsControllerGetOverviewParams } from "@/shared/api/generated/model";
 
-import {
-  getStatisticsControllerGetOverviewQueryKey,
-  statisticsControllerGetOverview,
-} from "@/shared/api/generated/endpoints/statistics/statistics";
+import { statisticsControllerGetOverview } from "@/shared/api/generated/endpoints/statistics/statistics";
+
+import { statisticsKeys } from "./statistics-keys";
 
 export function useReadingStatisticsOverview(
   params: StatisticsControllerGetOverviewParams,
@@ -23,6 +22,6 @@ export function useReadingStatisticsOverview(
     placeholderData: enabled ? keepPreviousData : undefined,
     queryFn: async (): Promise<ReadingStatisticsOverview> =>
       ReadingStatisticsOverviewSchema.parse(await statisticsControllerGetOverview(params)),
-    queryKey: getStatisticsControllerGetOverviewQueryKey(params),
+    queryKey: statisticsKeys.overview(params),
   });
 }

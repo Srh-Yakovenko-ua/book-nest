@@ -21,6 +21,7 @@ type BookDateFieldProps = {
   onChange: (value: Nullable<string>) => void;
   placeholder?: string;
   required?: boolean;
+  today?: string;
   value: unknown;
 };
 
@@ -35,21 +36,23 @@ export function BookDateField({
   onChange,
   placeholder,
   required,
+  today,
   value,
 }: BookDateFieldProps) {
   const weekStartsOn = useWeekStartsOn();
-  const now = new Date();
-  const startMonth = disablePast ? now : startOfYear(subYears(now, YEAR_SPAN));
-  const endMonth = allowFuture ? endOfYear(addYears(now, YEAR_SPAN)) : now;
+  const todayDate = isoDayToDate(today);
+  const referenceDay = todayDate ?? new Date();
+  const startMonth = disablePast ? referenceDay : startOfYear(subYears(referenceDay, YEAR_SPAN));
+  const endMonth = allowFuture ? endOfYear(addYears(referenceDay, YEAR_SPAN)) : referenceDay;
 
   return (
     <DatePicker
       allowFuture={allowFuture}
       ariaLabel={ariaLabel}
       className={className}
-      defaultMonth={now}
+      defaultMonth={referenceDay}
       describedBy={describedBy}
-      disablePast={disablePast}
+      earliestDay={disablePast ? referenceDay : undefined}
       endMonth={endMonth}
       id={id}
       invalid={invalid}
@@ -57,6 +60,7 @@ export function BookDateField({
       placeholder={placeholder}
       required={required}
       startMonth={startMonth}
+      today={todayDate}
       value={typeof value === "string" ? isoDayToDate(value) : undefined}
       weekStartsOn={weekStartsOn}
     />

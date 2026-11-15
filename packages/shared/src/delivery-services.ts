@@ -3,17 +3,19 @@ import { z } from "zod";
 import { collapseSpaces } from "./common.js";
 import { NoHtmlString, RECENT_USED_LIMIT_DEFAULT, RECENT_USED_LIMIT_MAX } from "./internal.js";
 
-const DELIVERY_SERVICE_MIN = 2;
-const DELIVERY_SERVICE_MAX = 100;
+export const DELIVERY_SERVICE_LIMITS = {
+  nameMax: 100,
+  nameMin: 2,
+} as const;
 
 export const DeliveryServiceSchema = z
   .string()
   .transform(collapseSpaces)
   .pipe(
     NoHtmlString.min(
-      DELIVERY_SERVICE_MIN,
+      DELIVERY_SERVICE_LIMITS.nameMin,
       "Delivery service must be at least 2 characters long",
-    ).max(DELIVERY_SERVICE_MAX, "Delivery service must be at most 100 characters long"),
+    ).max(DELIVERY_SERVICE_LIMITS.nameMax, "Delivery service must be at most 100 characters long"),
   );
 
 export const TRACKING_URL_TEMPLATE_PLACEHOLDER = "{trackingNumber}";

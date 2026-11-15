@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { timelinesControllerDeleteTimeline } from "@/shared/api/generated/endpoints/timelines/timelines";
 
-import { invalidateTimelineQueries } from "./timeline-keys";
+import { invalidateTimelineLineQueries, invalidateTimelineLocations } from "./timeline-keys";
 
 type DeleteTimelineVariables = {
   bookId: string;
@@ -19,6 +19,9 @@ export function useDeleteTimeline() {
     mutationFn: async ({ query, timelineId }: DeleteTimelineVariables): Promise<void> => {
       await timelinesControllerDeleteTimeline(timelineId, query);
     },
-    onSuccess: (_data, { bookId }) => invalidateTimelineQueries(queryClient, { bookId }),
+    onSuccess: (_data, { bookId, query }) => {
+      void invalidateTimelineLineQueries(queryClient, { bookId });
+      if (query?.strategy === "delete") void invalidateTimelineLocations(queryClient, { bookId });
+    },
   });
 }

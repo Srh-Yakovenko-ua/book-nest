@@ -5,13 +5,13 @@ import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
 
-import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { RefreshingRegion } from "@/components/refreshing-region";
 import { Skeleton } from "@/components/ui/skeleton";
+import { infiniteScrollStateOf } from "@/hooks/use-infinite-scroll-sentinel";
 import { cn } from "@/lib/utils";
 
 import type { QuotesViewMode } from "../model/quotes-query";
@@ -123,25 +123,14 @@ export function QuotesContent({
         className="pt-2 text-center"
         errorLabel={t("loadMoreError")}
         onLoadMore={onLoadMore}
-        state={nextPageState({ hasNextPage, isFetchingNextPage, isLoadMoreError })}
+        state={infiniteScrollStateOf({
+          hasNextPage,
+          isFetchingNextPage,
+          isFetchNextPageError: isLoadMoreError,
+        })}
       />
     </div>
   );
-}
-
-function nextPageState({
-  hasNextPage,
-  isFetchingNextPage,
-  isLoadMoreError,
-}: {
-  hasNextPage: boolean;
-  isFetchingNextPage: boolean;
-  isLoadMoreError: boolean;
-}): InfiniteScrollState {
-  if (isFetchingNextPage) return "loading";
-  if (isLoadMoreError) return "error";
-  if (hasNextPage) return "idle";
-  return "none";
 }
 
 function QuotesSkeleton({ view }: { view: QuotesViewMode }) {

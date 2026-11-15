@@ -2350,7 +2350,7 @@ describe("CharacterEditPage aliases", () => {
       const dialog = await screen.findByRole("alertdialog", { name: "Відхилити зміни?" });
       await userEvent.click(within(dialog).getByRole("button", { name: "Так, вийти" }));
 
-      expect(push).toHaveBeenCalledWith("/characters/char-1?bookId=book-1");
+      await waitFor(() => expect(push).toHaveBeenCalledWith("/characters/char-1?bookId=book-1"));
       expect(unloadIsWarned()).toBe(false);
     });
 

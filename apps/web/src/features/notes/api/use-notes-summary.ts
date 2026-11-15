@@ -31,7 +31,6 @@ export function useNotesSummary(scope: NotesArchiveScope) {
         : fromSeriesSummary(SeriesNotesSummaryViewSchema.parse(response));
     },
     queryKey: notesKeys.archiveSummary(scope),
-    retry: false,
   });
 }
 

@@ -11,6 +11,7 @@ import type { OnUrlUpdateFunction, UrlUpdateEvent } from "nuqs/adapters/testing"
 import type { ReactNode } from "react";
 
 import { defaultUserProfileSettings } from "@app/shared";
+import { parseISO } from "date-fns";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { toast } from "sonner";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -927,9 +928,9 @@ describe("LoanHistoryView row", () => {
     renderHistory();
 
     const period = await findPeriod("Дюна");
-    expect(period).toHaveTextContent(`${copy.loanPeriod.lent} 12.06.2026`);
-    expect(period).toHaveTextContent(`${copy.loanPeriod.returned} 04.07.2026`);
-    expect(period).toHaveTextContent(plannedOn("10.07.2026"));
+    expect(period).toHaveTextContent(`${copy.loanPeriod.lent} ${formatUkDate("2026-06-12")}`);
+    expect(period).toHaveTextContent(`${copy.loanPeriod.returned} ${formatUkDate("2026-07-04")}`);
+    expect(period).toHaveTextContent(plannedOn(formatUkDate("2026-07-10")));
   });
 
   it("calls the start of a borrowed loan a borrowing, not a handover", async () => {
@@ -938,7 +939,7 @@ describe("LoanHistoryView row", () => {
     renderHistory();
 
     const period = await findPeriod("Дюна");
-    expect(period).toHaveTextContent(`${copy.loanPeriod.borrowed} 14.02.2026`);
+    expect(period).toHaveTextContent(`${copy.loanPeriod.borrowed} ${formatUkDate("2026-02-14")}`);
     expect(period).not.toHaveTextContent(copy.loanPeriod.lent);
     expect(
       within(await findRow("Дюна")).getByText(copy.direction.borrowed_from_someone),
@@ -951,7 +952,7 @@ describe("LoanHistoryView row", () => {
     renderHistory();
 
     const period = await findPeriod("Дюна");
-    const [start, returned] = ["12.06.2026", "04.07.2026"].map(
+    const [start, returned] = [formatUkDate("2026-06-12"), formatUkDate("2026-07-04")].map(
       (date) => within(period).getByText(date).className,
     );
     expect(start).toBe(returned);
@@ -977,7 +978,7 @@ describe("LoanHistoryView row", () => {
     for (const { returnedDate, title } of returns) {
       const period = await findPeriod(title);
       expect(period).toHaveTextContent(`${copy.loanPeriod.returned} ${formatUkDate(returnedDate)}`);
-      expect(within(period).getByText(plannedOn("10.07.2026"))).toBeInTheDocument();
+      expect(within(period).getByText(plannedOn(formatUkDate("2026-07-10")))).toBeInTheDocument();
     }
   });
 
@@ -994,8 +995,8 @@ describe("LoanHistoryView row", () => {
     renderHistory();
 
     const period = await findPeriod("Дюна");
-    expect(period).toHaveTextContent(`${copy.loanPeriod.lent} 23.08.2026`);
-    expect(period).toHaveTextContent(`${copy.loanPeriod.returned} 23.08.2026`);
+    expect(period).toHaveTextContent(`${copy.loanPeriod.lent} ${formatUkDate("2026-08-23")}`);
+    expect(period).toHaveTextContent(`${copy.loanPeriod.returned} ${formatUkDate("2026-08-23")}`);
   });
 
   it("drops the arrow and says so when the loan never got a start date", async () => {
@@ -1007,7 +1008,7 @@ describe("LoanHistoryView row", () => {
 
     const period = await findPeriod("Дюна");
     expect(period).toHaveTextContent(copy.loanPeriod.startUnknown);
-    expect(period).toHaveTextContent(plannedOn("30.08.2026"));
+    expect(period).toHaveTextContent(plannedOn(formatUkDate("2026-08-30")));
     expect(period).not.toHaveTextContent(copy.loanPeriod.lent);
     expect(period).not.toHaveTextContent("\u2192");
   });
@@ -1027,7 +1028,7 @@ describe("LoanHistoryView row", () => {
     const period = await findPeriod("Дюна");
     expect(period).toHaveTextContent(copy.loanPeriod.startUnknown);
     expect(period).toHaveTextContent(copy.loanPeriod.noTerm);
-    expect(period).toHaveTextContent(`${copy.loanPeriod.returned} 04.07.2026`);
+    expect(period).toHaveTextContent(`${copy.loanPeriod.returned} ${formatUkDate("2026-07-04")}`);
     expect(period).not.toHaveTextContent(plannedOn("").trim());
   });
 
@@ -1837,8 +1838,9 @@ function firstListUrl(): string {
 }
 
 function formatUkDate(isoDate: string): string {
-  const [year, month, day] = isoDate.split("-");
-  return `${day}.${month}.${year}`;
+  return new Intl.DateTimeFormat("uk", { day: "numeric", month: "short", year: "numeric" })
+    .format(parseISO(isoDate))
+    .replace(/\s+/g, " ");
 }
 
 function historyItem(overrides: Partial<HistoryFixture> = {}): HistoryFixture {

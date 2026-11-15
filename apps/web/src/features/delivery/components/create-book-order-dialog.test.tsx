@@ -1,10 +1,17 @@
 import "@testing-library/jest-dom/vitest";
+import type { BookOrderView } from "@app/shared";
+
+import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { CreateBookOrderDialog } from "./create-book-order-dialog";
+
+vi.mock("sonner", () => ({
+  toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
+}));
 
 const availableBook = makeBookView({
   id: "available-book",
@@ -353,5 +360,74 @@ describe("CreateBookOrderDialog book picker view", () => {
     expect(screen.queryByText("Усі книги розподілено")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Видалити посилку/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Розділити доставку" })).toBeVisible();
+  });
+});
+
+describe("CreateBookOrderDialog submit", () => {
+  it("cannot be dismissed while the order is being created and closes once it lands", async () => {
+    const orderedBook = makeBookView({
+      id: "11111111-1111-4111-8111-111111111111",
+      ownershipStatus: "none",
+      title: "Книга із замовлення",
+    });
+    const createdOrder: BookOrderView = {
+      createdAt: "2026-08-14T10:00:00.000Z",
+      currency: "UAH",
+      deliveryPrice: null,
+      derivedStatus: "active",
+      discount: null,
+      id: "22222222-2222-4222-8222-222222222222",
+      isFree: false,
+      items: [],
+      note: null,
+      orderDate: null,
+      orderNumber: null,
+      shipments: [],
+      storeName: "Yakaboo",
+      totalAmount: 480,
+      updatedAt: "2026-08-14T10:00:00.000Z",
+    };
+    let releaseOrder: (response: Response) => void = () => undefined;
+    fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/api/delivery/orders") && init?.method === "POST") {
+        return new Promise<Response>((resolve) => {
+          releaseOrder = resolve;
+        });
+      }
+      const body = url.includes("purchase-stores")
+        ? []
+        : { items: [orderedBook], page: 1, pagesCount: 1, pageSize: 24, totalCount: 1 };
+      return Promise.resolve(
+        new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } }),
+      );
+    });
+    const onOpenChange = vi.fn();
+    renderWithProviders(<CreateBookOrderDialog onOpenChange={onOpenChange} open />);
+
+    await userEvent.type(screen.getByLabelText("Магазин"), "Yakaboo");
+    await userEvent.click(await screen.findByRole("option", { name: "Створити «Yakaboo»" }));
+    await userEvent.click(screen.getByRole("button", { name: "Додати книгу" }));
+    await screen.findByText("Книга із замовлення");
+    await userEvent.click(screen.getByRole("button", { name: "Вибрати всі показані (1)" }));
+    await userEvent.click(screen.getByRole("button", { name: "Застосувати вибір" }));
+    await userEvent.type(screen.getByLabelText("Фінальна сума"), "480");
+    await userEvent.click(screen.getByRole("button", { name: "Створити замовлення" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Створити замовлення" })).toBeDisabled(),
+    );
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    releaseOrder(
+      new Response(JSON.stringify(createdOrder), {
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Замовлення створено"));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

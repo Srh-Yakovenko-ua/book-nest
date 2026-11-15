@@ -71,15 +71,16 @@ export class ReadingQueueService {
   }
 
   async getQueue(userId: string, query?: ReadingQueueQuery): Promise<ReadingQueueView> {
-    const [books, totalCount] = await Promise.all([
+    const [books, totalCount, toBookView] = await Promise.all([
       this.readingQueueRepository.listQueue(userId, query),
       this.readingQueueRepository.count(userId),
+      this.bookViewAssembler.forUser(userId),
     ]);
     const items = books.flatMap<ReadingQueueItemView>((book) => {
       if (book.queuePosition === null) {
         return [];
       }
-      return [{ book: this.bookViewAssembler.viewOf(book), position: book.queuePosition }];
+      return [{ book: toBookView(book), position: book.queuePosition }];
     });
     const totalPagesCount = items.reduce((total, item) => total + (item.book.pagesCount ?? 0), 0);
 

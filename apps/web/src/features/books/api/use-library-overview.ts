@@ -9,6 +9,7 @@ import {
   type LibraryPublisherContext,
   type LibraryScope,
 } from "../model/library-query";
+import { bookKeys } from "./book-keys";
 
 export type LibraryOverview = z.infer<typeof LibraryOverviewViewSchema>;
 
@@ -25,9 +26,6 @@ export function useLibraryOverview(scope: LibraryScope = "all", context?: Librar
       const response = await booksControllerOverview(hasParams ? params : undefined, { signal });
       return LibraryOverviewViewSchema.parse(response);
     },
-    queryKey:
-      context === undefined
-        ? ["/api/books", "overview", scope]
-        : ["/api/books", "overview", scope, context],
+    queryKey: bookKeys.overview(scope, context),
   });
 }

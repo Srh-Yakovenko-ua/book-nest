@@ -5,10 +5,10 @@ import type { ReactNode } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
+import { SummaryCards } from "@/components/catalog/summary-cards";
 import { SummaryError } from "@/components/summary-error";
-import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 import { formatNumber } from "@/lib/format";
 
 import { formatCoveragePercent } from "../model/publisher-format";
@@ -20,7 +20,7 @@ const SUMMARY_CARDS = {
 } as const;
 
 type PublisherSummaryCardsProps = {
-  cards: LibrarySummaryCard[];
+  cards: SummaryCard[];
   isError: boolean;
   isLoading: boolean;
   mobileAction?: ReactNode;
@@ -38,7 +38,7 @@ export function PublisherSummaryCards({
 }: PublisherSummaryCardsProps) {
   return (
     <SummaryError state={isError ? { onRetry } : null}>
-      <LibrarySummaryCards
+      <SummaryCards
         cards={cards}
         isLoading={isLoading}
         mobileAction={mobileAction}
@@ -51,7 +51,7 @@ export function PublisherSummaryCards({
 
 export function usePublisherSummaryCards(
   summary: LibraryPublishersSummary | undefined,
-): LibrarySummaryCard[] {
+): SummaryCard[] {
   const t = useTranslations("publishers.summary");
   const locale = useLocale();
 

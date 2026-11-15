@@ -8,7 +8,7 @@ import type { NewSeriesInputDto } from "@/shared/api/generated/model";
 import { invalidateStatisticsQueries } from "@/features/statistics/api/statistics-keys";
 import { seriesControllerCreate } from "@/shared/api/generated/endpoints/series/series";
 
-import { seriesKeys } from "./series-keys";
+import { invalidateSeriesQueries } from "./series-keys";
 
 export function useCreateSeries() {
   const queryClient = useQueryClient();
@@ -19,7 +19,7 @@ export function useCreateSeries() {
       return SeriesViewSchema.parse(response);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
+      void invalidateSeriesQueries(queryClient);
       void invalidateStatisticsQueries(queryClient);
     },
   });

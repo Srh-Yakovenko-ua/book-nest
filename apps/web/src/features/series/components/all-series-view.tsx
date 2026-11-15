@@ -6,9 +6,9 @@ import type { ReactNode, Ref } from "react";
 import { useTranslations } from "next-intl";
 import { useRef } from "react";
 
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 import type { PageTabsItem } from "@/components/page-tabs";
 import type { RefetchErrorState } from "@/components/refetch-error-banner";
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
@@ -51,7 +51,7 @@ type AllSeriesViewProps = {
   refetchError: Nullable<RefetchErrorState>;
   series: SeriesView[];
   sidebar: ReactNode;
-  summaryCards: LibrarySummaryCard[];
+  summaryCards: SummaryCard[];
   summaryError: boolean;
   summaryLoading: boolean;
   summaryMobileAction?: ReactNode;

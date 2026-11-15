@@ -40,16 +40,16 @@ type ElapsedDaysInput = {
 };
 
 type PaceInput = {
-  archivedAt: Nullable<Date>;
+  archivedDay: Nullable<Date>;
   completedAt: Nullable<Date>;
   completedCount: number;
   daysLeft: Nullable<number>;
   deadline: Date;
   goalStartDate: Date;
-  now: Date;
   remainingCount: number;
   status: ReadingGoalStatus;
   targetCount: number;
+  today: Date;
 };
 
 type TotalDaysInput = {
@@ -58,26 +58,26 @@ type TotalDaysInput = {
 };
 
 export function calculateReadingGoalPace({
-  archivedAt,
+  archivedDay,
   completedAt,
   completedCount,
   daysLeft,
   deadline,
   goalStartDate,
-  now,
   remainingCount,
   status,
   targetCount,
+  today,
 }: PaceInput): ReadingGoalPaceMetrics {
   const totalDays = calculateTotalDays({ deadline, goalStartDate });
   const elapsedDays = calculateElapsedDays({
     goalStartDate,
     observationEndsAt: resolveReadingGoalObservationEnd({
-      archivedAt,
+      archivedDay,
       completedAt,
       deadline,
-      now,
       status,
+      today,
     }),
     totalDays,
   });

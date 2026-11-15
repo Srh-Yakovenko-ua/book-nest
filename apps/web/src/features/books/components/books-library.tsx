@@ -2,12 +2,14 @@
 
 import type { ReactNode } from "react";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
+import { type SummaryCard } from "@/components/catalog/summary-cards";
 import { Progress } from "@/components/ui/progress";
 import { Link, useRouter } from "@/i18n/navigation";
+import { formatNumber } from "@/lib/format";
 
 import type { LibraryScope } from "../model/library-query";
 
@@ -16,11 +18,11 @@ import { useLibraryOverview } from "../api/use-library-overview";
 import { BooksArchive } from "./books-archive";
 import { LibraryOverviewPanel } from "./library-overview-panel";
 import { LibraryPageHeader } from "./library-page-header";
-import { type LibrarySummaryCard } from "./library-summary-cards";
 import { LibrarySummarySidebar } from "./library-summary-sidebar";
 
 export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorites"> }) {
   const t = useTranslations("books.library");
+  const locale = useLocale();
   const router = useRouter();
 
   const overview = useLibraryOverview(scope);
@@ -43,11 +45,11 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
     const seriesCount = summary?.seriesCount;
     const authorsCount = summary?.authorsCount;
     if (authorsCount === undefined || authorsCount === 0) return undefined;
-    const authorsPart = `${authorsCount.toLocaleString()} ${t("summary.unitAuthor", { count: authorsCount })}`;
+    const authorsPart = `${formatNumber(authorsCount, locale)} ${t("summary.unitAuthor", { count: authorsCount })}`;
     if (seriesCount === undefined || seriesCount === 0) {
       return <span className="block truncate max-sm:whitespace-normal">{authorsPart}</span>;
     }
-    const seriesPart = `${seriesCount.toLocaleString()} ${t("summary.unitSeries", { count: seriesCount })}`;
+    const seriesPart = `${formatNumber(seriesCount, locale)} ${t("summary.unitSeries", { count: seriesCount })}`;
     return (
       <span className="block truncate max-sm:whitespace-normal">{`${seriesPart} · ${authorsPart}`}</span>
     );
@@ -71,7 +73,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
         </div>
       );
     }
-    const many = `${reading.toLocaleString()} ${bookUnit(reading)} · ${t("summary.readingPagesAhead", { pagesAhead: activeReading.pagesAhead })}`;
+    const many = `${formatNumber(reading, locale)} ${bookUnit(reading)} · ${t("summary.readingPagesAhead", { pagesAhead: activeReading.pagesAhead })}`;
     return <span className="block truncate max-sm:whitespace-normal">{many}</span>;
   })();
 
@@ -101,7 +103,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
     detailed: t(`summary.mobile.detailed.${key}`),
   });
 
-  const summaryCards: LibrarySummaryCard[] = [
+  const summaryCards: SummaryCard[] = [
     {
       icon: "library",
       iconTone: "primary",

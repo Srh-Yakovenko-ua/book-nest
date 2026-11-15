@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { timelinesControllerSetDefault } from "@/shared/api/generated/endpoints/timelines/timelines";
 
-import { invalidateTimelineQueries } from "./timeline-keys";
+import { timelineKeys } from "./timeline-keys";
 
 type SetDefaultTimelineVariables = {
   bookId: string;
@@ -24,6 +24,8 @@ export function useSetDefaultTimeline() {
       const response = await timelinesControllerSetDefault(timelineId, input);
       return TimelineListViewSchema.parse(response);
     },
-    onSuccess: (_list, { bookId }) => invalidateTimelineQueries(queryClient, { bookId }),
+    onSuccess: (list, { bookId }) => {
+      queryClient.setQueryData(timelineKeys.timelines(bookId), list);
+    },
   });
 }

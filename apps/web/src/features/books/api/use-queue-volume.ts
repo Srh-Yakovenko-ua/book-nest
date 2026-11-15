@@ -1,20 +1,19 @@
-import type { BulkPagesCountInput, BulkPagesCountResult } from "@app/shared";
+import type {
+  BulkPagesCountInput,
+  BulkPagesCountResult,
+  ReadingQueueVolumeSummaryView,
+} from "@app/shared";
 
 import { BulkPagesCountResultSchema, ReadingQueueVolumeSummaryViewSchema } from "@app/shared";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { ApiError } from "@/lib/http-client";
 
 import { bulkBooksControllerPagesCount } from "@/shared/api/generated/endpoints/books/books";
-import {
-  getReadingQueueControllerGetQueueQueryKey,
-  getReadingQueueControllerVolumeSummaryQueryKey,
-  useReadingQueueControllerVolumeSummary,
-} from "@/shared/api/generated/endpoints/reading-queue/reading-queue";
+import { readingQueueControllerVolumeSummary } from "@/shared/api/generated/endpoints/reading-queue/reading-queue";
 
-import { bookKeys } from "./book-keys";
-
-const selectVolumeSummary = (data: unknown) => ReadingQueueVolumeSummaryViewSchema.parse(data);
+import { bookChangeEffects } from "./book-change-effects";
+import { readingQueueKeys } from "./reading-queue-keys";
 
 export function useBulkUpdatePagesCount() {
   const queryClient = useQueryClient();
@@ -23,15 +22,17 @@ export function useBulkUpdatePagesCount() {
     mutationFn: async (input) =>
       BulkPagesCountResultSchema.parse(await bulkBooksControllerPagesCount(input)),
     onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: getReadingQueueControllerVolumeSummaryQueryKey(),
-      });
-      void queryClient.invalidateQueries({ queryKey: getReadingQueueControllerGetQueueQueryKey() });
-      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
+      void bookChangeEffects.booksChanged(queryClient, { changes: ["pagesCounted"] });
     },
   });
 }
 
 export function useQueueVolumeSummary() {
-  return useReadingQueueControllerVolumeSummary({ query: { select: selectVolumeSummary } });
+  return useQuery({
+    queryFn: async ({ signal }): Promise<ReadingQueueVolumeSummaryView> =>
+      ReadingQueueVolumeSummaryViewSchema.parse(
+        await readingQueueControllerVolumeSummary({ signal }),
+      ),
+    queryKey: readingQueueKeys.volumeSummary,
+  });
 }

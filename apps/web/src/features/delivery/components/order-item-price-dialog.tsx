@@ -2,7 +2,8 @@
 
 import type { FormEvent } from "react";
 
-import { useTranslations } from "next-intl";
+import { DELIVERY_INPUT_LIMITS } from "@app/shared";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { UiIcon } from "@/components/icons";
@@ -23,10 +24,10 @@ import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
+import { formatNumber } from "@/lib/format";
 
 import type { DeliveryOrderBookModel } from "../model/order-card-model";
 
-const PRICE_MAX = 99999999.99;
 const PRICE_INPUT_ID = "order-item-price";
 
 type OrderItemPriceDialogProps = {
@@ -73,6 +74,7 @@ function PriceForm({
   price: null | number;
   resetsOrderTotal: boolean;
 }) {
+  const locale = useLocale();
   const t = useTranslations("delivery.priceDialog");
   const tErrors = useTranslations("books.details.delivery.errors");
   const deliveryErrorText = useDeliveryErrorText();
@@ -85,12 +87,15 @@ function PriceForm({
     const trimmed = value.trim();
     const amount = Number(trimmed);
 
-    if (trimmed.length > 0 && (!Number.isFinite(amount) || amount <= 0)) {
+    if (
+      trimmed.length > 0 &&
+      (!Number.isFinite(amount) || amount <= DELIVERY_INPUT_LIMITS.priceMin)
+    ) {
       setError(tErrors("price"));
       return;
     }
-    if (amount > PRICE_MAX) {
-      setError(tErrors("priceMax"));
+    if (amount > DELIVERY_INPUT_LIMITS.priceMax) {
+      setError(tErrors("priceMax", { max: formatNumber(DELIVERY_INPUT_LIMITS.priceMax, locale) }));
       return;
     }
 
@@ -109,7 +114,7 @@ function PriceForm({
           <Input
             id={PRICE_INPUT_ID}
             inputMode="decimal"
-            min="0"
+            min={DELIVERY_INPUT_LIMITS.priceMin}
             onChange={(event) => setValue(event.target.value)}
             onKeyDown={blockNegativeNumberKeys}
             onPaste={blockNegativeNumberPaste}

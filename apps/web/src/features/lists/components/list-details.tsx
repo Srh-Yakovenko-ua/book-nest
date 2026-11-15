@@ -3,12 +3,11 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
-import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
-
 import { UiIcon } from "@/components/icons";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { infiniteScrollStateOf } from "@/hooks/use-infinite-scroll-sentinel";
 import { useRouter } from "@/i18n/navigation";
 import { focusOnMount } from "@/lib/focus-on-mount";
 import { ApiError } from "@/lib/http-client";
@@ -119,7 +118,11 @@ export function ListDetails({ id }: ListDetailsProps) {
         id={id}
         isFetching={isFetching}
         isRefreshing={isPlaceholderData}
-        loadMoreState={loadMoreState({ hasNextPage, isFetchingNextPage, isFetchNextPageError })}
+        loadMoreState={infiniteScrollStateOf({
+          hasNextPage,
+          isFetchingNextPage,
+          isFetchNextPageError,
+        })}
         onLoadMore={() => {
           void fetchNextPage();
         }}
@@ -128,18 +131,4 @@ export function ListDetails({ id }: ListDetailsProps) {
       />
     </div>
   );
-}
-
-function loadMoreState({
-  hasNextPage,
-  isFetchingNextPage,
-  isFetchNextPageError,
-}: {
-  hasNextPage: boolean;
-  isFetchingNextPage: boolean;
-  isFetchNextPageError: boolean;
-}): InfiniteScrollState {
-  if (isFetchingNextPage) return "loading";
-  if (isFetchNextPageError) return "error";
-  return hasNextPage ? "idle" : "none";
 }

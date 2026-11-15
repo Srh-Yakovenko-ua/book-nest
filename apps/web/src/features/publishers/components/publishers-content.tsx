@@ -5,12 +5,11 @@ import type { LibraryPublisherListItem, Nullable } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { type Ref, type RefObject, useEffect, useRef } from "react";
 
-import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
-
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { RefreshingRegion } from "@/components/refreshing-region";
 import { Skeleton } from "@/components/ui/skeleton";
+import { infiniteScrollStateOf } from "@/hooks/use-infinite-scroll-sentinel";
 import { cn } from "@/lib/utils";
 
 import type { PublishersArchiveState } from "../model/publisher-archive-state";
@@ -134,17 +133,6 @@ function focusWasLost(): boolean {
   return document.activeElement === null || document.activeElement === document.body;
 }
 
-function nextPageState({
-  hasNextPage,
-  isError,
-  isFetching,
-}: PublishersLoadMore): InfiniteScrollState {
-  if (isFetching) return "loading";
-  if (isError) return "error";
-  if (hasNextPage) return "idle";
-  return "none";
-}
-
 function PublishersResults({
   gridColumns,
   listRef,
@@ -231,7 +219,11 @@ function PublishersResultsSection({
         errorLabel={t("loadMoreError")}
         onLoadMore={requestNextPage}
         retryLabel={t("loadMoreRetry")}
-        state={nextPageState(loadMore)}
+        state={infiniteScrollStateOf({
+          hasNextPage: loadMore.hasNextPage,
+          isFetchingNextPage: loadMore.isFetching,
+          isFetchNextPageError: loadMore.isError,
+        })}
       />
     </div>
   );

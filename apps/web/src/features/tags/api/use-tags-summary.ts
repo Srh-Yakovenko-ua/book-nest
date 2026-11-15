@@ -12,6 +12,5 @@ export function useTagsSummary() {
     queryFn: async ({ signal }): Promise<TagsSummaryView> =>
       TagsSummaryViewSchema.parse(await tagsControllerSummary({ signal })),
     queryKey: tagsKeys.summary,
-    retry: false,
   });
 }

@@ -1,9 +1,10 @@
 import "@testing-library/jest-dom/vitest";
 
-import type { FavoritesSummaryView, LibraryQuickCounts } from "@app/shared";
+import type { BookView, FavoritesSummaryView, LibraryQuickCounts } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import messages from "@/messages/uk.json";
@@ -20,7 +21,15 @@ vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
+vi.mock("sonner", () => ({
+  toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
+}));
+
 const fetchMock = vi.fn();
+
+let respondToBookUpdate: () => Response;
+let respondToBulkDelete: () => Response;
+let favoriteBooks: BookView[];
 
 const library = messages.books.library;
 
@@ -66,8 +75,15 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 function mockApi(favoritesSummary: () => Response = () => jsonResponse(FAVORITES_SUMMARY)) {
-  fetchMock.mockImplementation((input: RequestInfo | URL) => {
+  fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === "PATCH") return Promise.resolve(respondToBookUpdate());
     const url = new URL(String(input), "http://localhost");
+    if (url.pathname === "/api/books/bulk/delete") return Promise.resolve(respondToBulkDelete());
+    if (init?.method === "DELETE" && url.pathname.startsWith("/api/reading-queue/")) {
+      return Promise.resolve(
+        jsonResponse({ count: 0, items: [], totalCount: 0, totalPagesCount: 0 }),
+      );
+    }
     if (url.pathname === "/api/books/quick-counts")
       return Promise.resolve(jsonResponse(QUICK_COUNTS));
     if (url.pathname === "/api/books/favorites-summary") {
@@ -76,16 +92,24 @@ function mockApi(favoritesSummary: () => Response = () => jsonResponse(FAVORITES
     if (url.pathname === "/api/books") {
       return Promise.resolve(
         jsonResponse({
-          items: [makeBookView({ isFavorite: true })],
+          items: favoriteBooks,
           page: 1,
           pagesCount: 1,
           pageSize: 24,
-          totalCount: 1,
+          totalCount: favoriteBooks.length,
         }),
       );
     }
     return Promise.resolve(jsonResponse([]));
   });
+}
+
+function mutatingRequests(): string[] {
+  return fetchMock.mock.calls
+    .filter(([, init]) => init?.method !== undefined && init.method !== "GET")
+    .map(
+      ([input, init]) => `${init.method} ${new URL(String(input), "http://localhost").pathname}`,
+    );
 }
 
 function quickCountRequests(): URL[] {
@@ -103,6 +127,9 @@ function renderFavorites(searchParams = "") {
 }
 
 beforeEach(() => {
+  respondToBookUpdate = () => jsonResponse(makeBookView({ isFavorite: false }));
+  respondToBulkDelete = () => jsonResponse({ message: "unexpected bulk delete" }, 500);
+  favoriteBooks = [makeBookView({ isFavorite: true })];
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
 });
@@ -167,5 +194,93 @@ describe("FavoritesView inverted range", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Скинути діапазон" })).toBeInTheDocument();
     expect(screen.queryByText(library.loading)).not.toBeInTheDocument();
+  });
+});
+
+describe("FavoritesView unfavorite undo", () => {
+  it("shows only the error toast when unfavoriting fails", async () => {
+    respondToBookUpdate = () => jsonResponse({ message: "boom" }, 500);
+    mockApi();
+    renderFavorites();
+
+    await userEvent.click(await screen.findByRole("button", { name: library.actions.unfavorite }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(library.toast.error));
+    expect(toast).not.toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it("offers the undo toast once unfavoriting succeeds", async () => {
+    mockApi();
+    renderFavorites();
+
+    await userEvent.click(await screen.findByRole("button", { name: library.actions.unfavorite }));
+
+    const { remove } = messages.favorites;
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith(
+        remove.toast,
+        expect.objectContaining({ action: expect.objectContaining({ label: remove.undo }) }),
+      ),
+    );
+  });
+});
+
+describe("FavoritesView bulk delete", () => {
+  it("counts the books the server deleted, not the books selected, in the success toast", async () => {
+    favoriteBooks = [
+      { id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", title: "Останнє бажання" },
+      { id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", title: "Меч призначення" },
+      { id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd", title: "Кров ельфів" },
+    ].map((book) => makeBookView({ ...book, isFavorite: true }));
+    respondToBulkDelete = () => jsonResponse({ affected: 2 });
+    mockApi();
+    renderFavorites();
+
+    const { bulk } = library;
+    await userEvent.click(await screen.findByRole("button", { name: bulk.enterSelection }));
+    for (const book of favoriteBooks) {
+      const name = bulk.selectBook.replace("{title}", book.title);
+      await userEvent.click(await screen.findByRole("checkbox", { name }));
+    }
+    const bulkBar = screen.getByRole("region", { name: bulk.regionLabel });
+    await userEvent.click(within(bulkBar).getByRole("button", { name: bulk.delete }));
+    const confirmation = await screen.findByRole("alertdialog");
+    await userEvent.click(
+      within(confirmation).getByRole("button", { name: messages.books.deleteConfirm.confirm }),
+    );
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("2 книги видалено"));
+    const deleteRequest = fetchMock.mock.calls.find(([input]) =>
+      String(input).includes("/api/books/bulk/delete"),
+    );
+    expect(JSON.parse(String(deleteRequest?.[1]?.body))).toEqual({
+      bookIds: favoriteBooks.map((book) => book.id),
+    });
+  });
+});
+
+describe("FavoritesView remove from queue", () => {
+  it("takes a queued favorite out of the queue through the queue endpoint", async () => {
+    const queuedBookId = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+    favoriteBooks = [
+      makeBookView({
+        id: queuedBookId,
+        isFavorite: true,
+        isInReadingQueue: true,
+        readingStatus: "want_to_read",
+      }),
+    ];
+    mockApi();
+    renderFavorites();
+
+    await userEvent.click(await screen.findByRole("button", { name: library.menu }));
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: library.actions.removeFromQueue }),
+    );
+
+    await waitFor(() =>
+      expect(mutatingRequests()).toEqual([`DELETE /api/reading-queue/${queuedBookId}`]),
+    );
   });
 });

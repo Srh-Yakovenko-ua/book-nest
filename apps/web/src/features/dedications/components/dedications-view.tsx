@@ -6,14 +6,14 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
+import { SummaryCards } from "@/components/catalog/summary-cards";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { useGenres } from "@/features/books/api/use-genres";
-import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 import { cn } from "@/lib/utils";
@@ -70,7 +70,7 @@ export function DedicationsView() {
     detailed: t(`summary.mobile.detailed.${key}`),
   });
 
-  const summaryCards: LibrarySummaryCard[] = [
+  const summaryCards: SummaryCard[] = [
     {
       icon: "quote",
       iconTone: "primary",
@@ -168,7 +168,7 @@ export function DedicationsView() {
       </header>
 
       {showChrome ? (
-        <LibrarySummaryCards
+        <SummaryCards
           cards={summaryCards}
           isLoading={summary.isPending}
           mobileAction={
@@ -252,6 +252,13 @@ export function DedicationsView() {
       {activeBook === null ? null : (
         <DedicationModal
           book={activeBook}
+          onFavoriteChanged={(updated) =>
+            setOpenedBook((previous) =>
+              previous?.id === updated.id
+                ? { ...previous, isFavoriteDedication: updated.isFavoriteDedication }
+                : previous,
+            )
+          }
           onOpenChange={(open) => {
             if (!open) setOpenedBook(null);
           }}

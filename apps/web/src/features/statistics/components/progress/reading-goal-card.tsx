@@ -9,6 +9,7 @@ import { TruncatedText } from "@/components/truncated-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { goalDisplayPercent } from "@/features/reading-goals/model/goal-display-percent";
 import { GOAL_SIGNAL_TONE } from "@/features/reading-goals/model/goal-status";
 import { Link } from "@/i18n/navigation";
 import { formatDateLong, formatDateShort } from "@/lib/format";
@@ -78,7 +79,7 @@ function CompactReadingGoal({ goal }: { goal: ReadingStatisticsGoalSection }) {
     );
   }
 
-  const percent = toDisplayPercent(primary.metrics);
+  const percent = goalDisplayPercent(primary.metrics);
   const links = toContextActionLinks(primary.contextActions);
   const name =
     primary.name ?? primary.listName ?? t("fallbackName", { count: primary.targetCount });
@@ -138,7 +139,7 @@ function FullReadingGoal({ goal }: { goal: ReadingStatisticsGoalSection }) {
     );
   }
 
-  const percent = toDisplayPercent(primary.metrics);
+  const percent = goalDisplayPercent(primary.metrics);
   const forecastDate = toReliableForecastDate(primary.metrics);
   const links = toContextActionLinks(primary.contextActions);
 
@@ -256,11 +257,6 @@ function GoalProgress({
       </div>
     </div>
   );
-}
-
-function toDisplayPercent(metrics: ReadingGoalMetrics): number {
-  const rounded = Math.round(metrics.progressPercent);
-  return metrics.remainingCount > 0 ? Math.min(rounded, 99) : rounded;
 }
 
 function toReliableForecastDate(metrics: ReadingGoalMetrics): Nullable<string> {

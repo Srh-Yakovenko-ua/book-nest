@@ -4,6 +4,8 @@ import { TAG_QUICK_FILTER_DEFAULT } from "@app/shared";
 
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
+import { infiniteScrollStateOf } from "@/hooks/use-infinite-scroll-sentinel";
+
 export type TagsCatalogSnapshot = {
   data: undefined | { pages: { items: TagCatalogListItem[]; totalCount: number }[] };
   hasNextPage: boolean;
@@ -64,7 +66,7 @@ export function tagsListState({
     isRefreshing: catalog.isPlaceholderData,
     items,
     kind: "list",
-    nextPage: catalog.isPlaceholderData ? "none" : nextPageState(catalog),
+    nextPage: catalog.isPlaceholderData ? "none" : infiniteScrollStateOf(catalog),
     total: catalog.data.pages.at(-1)?.totalCount ?? items.length,
   };
 }
@@ -87,11 +89,4 @@ function emptyState(
   }
 
   return { hasSearch: criteria.hasSearch, kind: "contextual-empty" };
-}
-
-function nextPageState(catalog: TagsCatalogSnapshot): InfiniteScrollState {
-  if (catalog.isFetchingNextPage) return "loading";
-  if (catalog.isFetchNextPageError) return "error";
-  if (catalog.hasNextPage) return "idle";
-  return "none";
 }

@@ -10,6 +10,7 @@ import { formatInTimeZone } from "date-fns-tz";
 
 import { daysBetweenIsoDates } from "../../../core/iso-date.js";
 import { createLogger } from "../../../core/logger.js";
+import { UserSettingsContextService } from "../../profile/index.js";
 import {
   buildReadingGoalAttention,
   needsReadingGoalAttention,
@@ -39,16 +40,19 @@ export class ReadingGoalOverviewService {
   constructor(
     private readonly readingGoalsRepository: ReadingGoalsRepository,
     private readonly viewBuilder: ReadingGoalViewBuilder,
+    private readonly userSettingsContextService: UserSettingsContextService,
   ) {}
 
   async overview({ userId }: { userId: string }): Promise<ReadingGoalsOverview> {
-    const now = new Date();
-    const scanned = await this.readingGoalsRepository.findCatalogPage({
-      limit: READING_GOAL_LIMITS.catalogScan + 1,
-      listId: null,
-      sort: "created_desc",
-      userId,
-    });
+    const [scanned, { timeZone, today }] = await Promise.all([
+      this.readingGoalsRepository.findCatalogPage({
+        limit: READING_GOAL_LIMITS.catalogScan + 1,
+        listId: null,
+        sort: "created_desc",
+        userId,
+      }),
+      this.userSettingsContextService.calendar({ now: new Date(), userId }),
+    ]);
     if (scanned.length > READING_GOAL_LIMITS.catalogScan) {
       log.warn(
         { cap: READING_GOAL_LIMITS.catalogScan, userId },
@@ -58,10 +62,11 @@ export class ReadingGoalOverviewService {
 
     const entries = await this.viewBuilder.calculateAll({
       goals: scanned.slice(0, READING_GOAL_LIMITS.catalogScan),
-      now,
+      timeZone,
+      today,
     });
     const items = entries.map((entry) => toReadingGoalListItem(entry));
-    const currentYear = formatInTimeZone(now, UTC_TIME_ZONE, YEAR_FORMAT);
+    const currentYear = formatInTimeZone(today, UTC_TIME_ZONE, YEAR_FORMAT);
     const booksCounted = await this.readingGoalsRepository.countBooksQualifiedBetween({
       from: `${currentYear}-01-01`,
       to: `${Number(currentYear) + 1}-01-01`,

@@ -76,7 +76,9 @@ function setup({
     listWishlistBooks,
   } as unknown as BooksRepository;
   const viewOf = vi.fn((row: WishlistBookRow) => ({ id: row.id }) as unknown as BookView);
-  const bookViewAssembler = { viewOf } as unknown as BookViewAssembler;
+  const bookViewAssembler = {
+    forUser: vi.fn().mockResolvedValue(viewOf),
+  } as unknown as BookViewAssembler;
   const service = new WishlistService(booksRepository, bookViewAssembler);
 
   return {

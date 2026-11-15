@@ -390,6 +390,29 @@ describe("DedicationsView", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(within(screen.getByRole("dialog")).getByText("Останнє бажання")).toBeInTheDocument();
   });
+
+  it("offers to favorite again once the unfavorited book leaves the favorites list", async () => {
+    const favorite = makeDedicationBook({ isFavoriteDedication: true });
+    let listCalls = 0;
+    respondToList = () => {
+      listCalls += 1;
+      return listCalls === 1
+        ? pageResponse({ items: [favorite] })
+        : pageResponse({ items: [], totalCount: 0 });
+    };
+    respondToUpdate = () =>
+      jsonResponse(makeDedicationBook({ id: favorite.id, isFavoriteDedication: false }));
+    renderView("?filter=favorites");
+
+    await userEvent.click(await screen.findByRole("button", { name: /Читати присвяту/ }));
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Прибрати з улюблених" }));
+
+    expect(
+      await within(screen.getByRole("dialog")).findByRole("button", { name: "Додати в улюблені" }),
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(listCalls).toBeGreaterThan(1);
+  });
 });
 
 describe("DedicationsView quick filter counts", () => {

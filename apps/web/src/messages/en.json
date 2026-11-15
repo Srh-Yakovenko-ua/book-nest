@@ -18,7 +18,9 @@
     "clear": "Clear",
     "discardChanges": {
       "cancel": "Keep editing",
-      "confirm": "Yes, leave"
+      "confirm": "Yes, leave",
+      "description": "Unsaved changes will be lost.",
+      "title": "Discard changes?"
     },
     "suggestionCombobox": {
       "usageCount": "used {count, plural, one {# time} other {# times}}"
@@ -509,6 +511,14 @@
   },
   "localePicker": {
     "ariaLabel": "Language"
+  },
+  "themePicker": {
+    "ariaLabel": "Change theme",
+    "options": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    }
   },
   "facetMultiselect": {
     "remove": "Remove {label}"
@@ -1842,7 +1852,7 @@
           "storeUrl": "Enter a valid https link.",
           "storeUrlMax": "No more than {max} characters.",
           "price": "Price must be greater than 0.",
-          "priceMax": "Too large. Maximum 99999999.99.",
+          "priceMax": "Too large. Maximum {max}.",
           "storeNameMax": "No more than {max} characters.",
           "storeNameRequired": "Add the store name — a link without it cannot be saved.",
           "storeUrlRequired": "Add the store link — the name alone is not enough.",
@@ -2041,7 +2051,7 @@
           "serviceMin": "At least {min} characters.",
           "trackingNumberMax": "No more than {max} characters.",
           "price": "Price must be greater than 0.",
-          "priceMax": "Too large. Maximum 99999999.99.",
+          "priceMax": "Too large. Maximum {max}.",
           "noteMax": "No more than {max} characters.",
           "generic": "Couldn’t save. Please try again.",
           "trackingUrl": "Enter a valid https link.",
@@ -2692,6 +2702,11 @@
       },
       "validation": {
         "invalid": "Check the required fields, selected books, and shipment assignments.",
+        "storeRequired": "Enter the store the order was placed with.",
+        "booksRequired": "Add at least one book to the order.",
+        "shipmentBooksRequired": "Every shipment needs at least one book. Add books or remove the empty shipment.",
+        "expectedBeforeOrder": "The expected delivery date cannot be earlier than the order date.",
+        "orderDateInFuture": "The order date cannot be in the future.",
         "itemPricesRequired": "In Per book mode, enter a price for every selected book.",
         "negativeTotal": "The discount is larger than the books plus delivery, so the total comes out negative.",
         "totalRequired": "Enter the final order total, or mark the books as received for free.",
@@ -4773,6 +4788,7 @@
         "favorite": "Add to favorites",
         "favoriteDone": "{count, plural, one {# book added to favorites} other {# books added to favorites}}",
         "favoriteMenu": "Favorites",
+        "limitHint": "Bulk actions handle up to {max, plural, one {# book} other {# books}} at a time",
         "regionLabel": "Bulk actions",
         "remove": "Remove from list",
         "removed": "{count, plural, one {# book removed from the list} other {# books removed from the list}}",
@@ -7319,7 +7335,7 @@
         },
         "relations": {
           "title": "Links to other events",
-          "subtitle": "Cause-and-effect links within the book"
+          "subtitle": "Cause-and-effect links within the book. Link changes apply right away, without saving the form."
         }
       },
       "threadChip": {
@@ -7491,7 +7507,7 @@
       "pageExceedsBook": "No more than {max} pages in the book"
     },
     "actions": {
-      "menu": "Event actions",
+      "menu": "Actions for the event “{title}”",
       "edit": "Edit",
       "moveUp": "Move up",
       "moveDown": "Move down",

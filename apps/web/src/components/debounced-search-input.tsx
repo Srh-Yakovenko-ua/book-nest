@@ -38,6 +38,7 @@ export function DebouncedSearchInput({
   const [previousValue, setPreviousValue] = useState(value);
   const [lastSent, setLastSent] = useState(value);
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const onSearchRef = useRef(onSearch);
   const ownInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = inputRef ?? ownInputRef;
 
@@ -49,6 +50,10 @@ export function DebouncedSearchInput({
     }
   }
 
+  useEffect(() => {
+    onSearchRef.current = onSearch;
+  });
+
   useEffect(() => () => clearTimeout(timerRef.current), [value]);
 
   function commit(next: string) {
@@ -56,7 +61,7 @@ export function DebouncedSearchInput({
     const query = isCommittable(normalized) ? normalized : "";
     if (query === lastSent) return;
     setLastSent(query);
-    onSearch(query);
+    onSearchRef.current(query);
   }
 
   function handleChange(next: string) {

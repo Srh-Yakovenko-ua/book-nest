@@ -1,6 +1,7 @@
 "use client";
 
 import { Monitor, Moon, Sun } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { useSyncExternalStore } from "react";
 
@@ -15,11 +16,17 @@ import { cn } from "@/lib/utils";
 
 type ThemeValue = "dark" | "light" | "system";
 
-const OPTIONS: ReadonlyArray<{ Icon: typeof Sun; label: string; value: ThemeValue }> = [
-  { Icon: Sun, label: "Light", value: "light" },
-  { Icon: Moon, label: "Dark", value: "dark" },
-  { Icon: Monitor, label: "System", value: "system" },
+const OPTIONS: ReadonlyArray<{ Icon: typeof Sun; value: ThemeValue }> = [
+  { Icon: Sun, value: "light" },
+  { Icon: Moon, value: "dark" },
+  { Icon: Monitor, value: "system" },
 ];
+
+const OPTION_LABEL_KEY = {
+  dark: "options.dark",
+  light: "options.light",
+  system: "options.system",
+} as const satisfies Record<ThemeValue, `options.${ThemeValue}`>;
 
 const THEME_VALUES: ReadonlySet<string> = new Set<ThemeValue>(["dark", "light", "system"]);
 
@@ -28,6 +35,7 @@ const getMountedClientSnapshot = () => true;
 const getMountedServerSnapshot = () => false;
 
 export function ThemePicker({ triggerClassName }: { triggerClassName?: string }) {
+  const t = useTranslations("themePicker");
   const { resolvedTheme, setTheme, theme } = useTheme();
   const mounted = useSyncExternalStore(
     subscribeMounted,
@@ -49,7 +57,7 @@ export function ThemePicker({ triggerClassName }: { triggerClassName?: string })
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          aria-label="Change theme"
+          aria-label={t("ariaLabel")}
           className={cn(
             "size-9 rounded-lg text-muted-foreground transition-all duration-150 hover:bg-muted hover:text-foreground",
             triggerClassName,
@@ -62,7 +70,7 @@ export function ThemePicker({ triggerClassName }: { triggerClassName?: string })
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[8rem]">
-        {OPTIONS.map(({ Icon, label, value }) => (
+        {OPTIONS.map(({ Icon, value }) => (
           <DropdownMenuItem
             className="cursor-pointer font-mono text-[11px] tracking-[0.18em] uppercase"
             data-theme={value}
@@ -76,7 +84,7 @@ export function ThemePicker({ triggerClassName }: { triggerClassName?: string })
               )}
             />
             <span className={cn(theme === value ? "text-foreground" : "text-muted-foreground")}>
-              {label}
+              {t(OPTION_LABEL_KEY[value])}
             </span>
           </DropdownMenuItem>
         ))}

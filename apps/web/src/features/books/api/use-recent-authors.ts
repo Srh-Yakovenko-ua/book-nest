@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { authorsControllerRecent } from "@/shared/api/generated/endpoints/authors/authors";
 
+import { authorKeys } from "./author-keys";
 import { authorViewSchema } from "./use-author-search";
 
 const RECENT_AUTHORS_LIMIT = 8;
@@ -20,6 +21,6 @@ export function useRecentAuthors() {
       const response = await authorsControllerRecent({ limit: RECENT_AUTHORS_LIMIT, locale });
       return recentAuthorsSchema.parse(response);
     },
-    queryKey: ["authors", "recent", locale],
+    queryKey: authorKeys.recent(locale),
   });
 }

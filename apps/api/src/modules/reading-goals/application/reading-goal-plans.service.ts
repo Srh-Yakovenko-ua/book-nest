@@ -7,6 +7,7 @@ import type {
 
 import { Injectable } from "@nestjs/common";
 
+import { UserSettingsContextService } from "../../profile/index.js";
 import { ReadingGoalBooksRepository } from "../infrastructure/reading-goal-books.repository.js";
 import { ReadingGoalsRepository } from "../infrastructure/reading-goals.repository.js";
 import { ReadingGoalViewBuilder } from "./reading-goal-view.builder.js";
@@ -35,6 +36,7 @@ export class ReadingGoalPlansService {
     private readonly readingGoalBooksRepository: ReadingGoalBooksRepository,
     private readonly readingGoalsRepository: ReadingGoalsRepository,
     private readonly viewBuilder: ReadingGoalViewBuilder,
+    private readonly userSettingsContextService: UserSettingsContextService,
   ) {}
 
   async listActiveGoals(userId: string): Promise<ActiveReadingGoalSnapshot[]> {
@@ -43,7 +45,11 @@ export class ReadingGoalPlansService {
       return [];
     }
 
-    const calculated = await this.viewBuilder.calculateAll({ goals, now: new Date() });
+    const { timeZone, today } = await this.userSettingsContextService.calendar({
+      now: new Date(),
+      userId,
+    });
+    const calculated = await this.viewBuilder.calculateAll({ goals, timeZone, today });
 
     return calculated.flatMap((entry) =>
       entry.calculation.progress.status === "active"
@@ -74,8 +80,13 @@ export class ReadingGoalPlansService {
       return [];
     }
 
+    const { timeZone, today } = await this.userSettingsContextService.calendar({
+      now: new Date(),
+      userId,
+    });
     const entries = await this.readingGoalBooksRepository.findSnapshotEntriesForBooks({
       bookIds,
+      timeZone,
       userId,
     });
     const uncounted = entries.filter((entry) => entry.qualifiedFinishedAt === null);
@@ -87,7 +98,7 @@ export class ReadingGoalPlansService {
       goalIds: [...new Set(uncounted.map((entry) => entry.goalId))],
       userId,
     });
-    const calculated = await this.viewBuilder.calculateAll({ goals, now: new Date() });
+    const calculated = await this.viewBuilder.calculateAll({ goals, timeZone, today });
     const activeGoals = new Map(
       calculated
         .filter((entry) => entry.calculation.progress.status === "active")

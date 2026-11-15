@@ -4,6 +4,7 @@ import { type ReactNode, useEffect } from "react";
 
 import { registerAuthBridge } from "@/lib/auth-bridge";
 
+import { useClearQueryCacheOnUserChange } from "../hooks/use-clear-query-cache-on-user-change";
 import { singleFlightRefresh } from "../lib/single-flight-refresh";
 import { useAuthStore } from "../model/auth-store";
 
@@ -16,6 +17,8 @@ registerAuthBridge({
 let bootstrapped = false;
 
 export function SessionProvider({ children }: { children: ReactNode }) {
+  useClearQueryCacheOnUserChange();
+
   useEffect(() => {
     if (bootstrapped) return;
     bootstrapped = true;

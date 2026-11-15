@@ -5,9 +5,9 @@ import type { ReactNode } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
-import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
+import { SummaryCards } from "@/components/catalog/summary-cards";
 import { formatNumber } from "@/lib/format";
 
 type ListStatKey = "finished" | "inQueue" | "owned" | "total";
@@ -25,7 +25,7 @@ export function ListStatsCards({ isPending, mobileAction, overview }: ListStatsC
 
   if (isPending) {
     return (
-      <LibrarySummaryCards
+      <SummaryCards
         cards={[]}
         isLoading
         mobileAction={mobileAction}
@@ -38,7 +38,7 @@ export function ListStatsCards({ isPending, mobileAction, overview }: ListStatsC
   if (cards.length === 0) return null;
 
   return (
-    <LibrarySummaryCards
+    <SummaryCards
       cards={cards}
       isLoading={false}
       mobileAction={mobileAction}
@@ -47,7 +47,7 @@ export function ListStatsCards({ isPending, mobileAction, overview }: ListStatsC
   );
 }
 
-export function useListSummaryCards(overview: Nullable<ListOverviewView>): LibrarySummaryCard[] {
+export function useListSummaryCards(overview: Nullable<ListOverviewView>): SummaryCard[] {
   const t = useTranslations("lists.details.stats");
   const locale = useLocale();
 

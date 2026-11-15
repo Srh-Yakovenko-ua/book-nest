@@ -52,6 +52,16 @@ export function toUpdateDate(value: Nullable<string> | undefined): Nullable<Date
   return value === undefined || value === null ? value : parseIsoDate(value);
 }
 
+export function toZonedCalendarDay({
+  instant,
+  timeZone,
+}: {
+  instant: Date;
+  timeZone: string;
+}): Date {
+  return parseIsoDate(toZonedIsoDate({ instant, timeZone }));
+}
+
 export function toZonedDayStart({
   isoDate,
   timeZone,

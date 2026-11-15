@@ -1,3 +1,5 @@
+import { AUTH_ERROR_CODES } from "@app/shared";
+
 import { ApiError } from "@/lib/http-client";
 
 const AUTH_ERROR_KEY_LIST = [
@@ -68,7 +70,11 @@ type ServerFormError = {
 };
 
 export function isEmailNotVerified(error: unknown): boolean {
-  return error instanceof ApiError && error.status === 403 && error.code === "email_not_verified";
+  return (
+    error instanceof ApiError &&
+    error.status === 403 &&
+    error.code === AUTH_ERROR_CODES.emailNotVerified
+  );
 }
 
 export function isInvalidToken(error: unknown): boolean {
@@ -120,7 +126,7 @@ function mapFieldErrors(error: ApiError): ServerFieldError[] {
 
 function mapFormMessageKey(error: ApiError): AuthErrorKey {
   if (error.status === 401) return "errors.invalidCredentials";
-  if (error.status === 403 && error.code === "email_not_verified") {
+  if (error.status === 403 && error.code === AUTH_ERROR_CODES.emailNotVerified) {
     return "errors.emailNotVerified";
   }
   if (error.status === 429) return "errors.tooManyAttempts";

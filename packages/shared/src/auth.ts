@@ -60,6 +60,10 @@ export const RoleSchema = z.enum(["user", "super_admin"]);
 
 export type Role = z.infer<typeof RoleSchema>;
 
+export const AUTH_ERROR_CODES = {
+  emailNotVerified: "email_not_verified",
+} as const;
+
 export const LoginInputSchema = z.object({
   email: z.string().trim().toLowerCase().pipe(z.email()),
   password: z.string().min(1),

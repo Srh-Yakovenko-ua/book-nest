@@ -12,19 +12,16 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 
 import type { StatisticsControllerGetCompletedReadsSubsetParams } from "@/shared/api/generated/model";
 
-import {
-  getStatisticsControllerGetCompletedReadsSubsetQueryKey,
-  statisticsControllerGetCompletedReadsSubset,
-} from "@/shared/api/generated/endpoints/statistics/statistics";
+import { statisticsControllerGetCompletedReadsSubset } from "@/shared/api/generated/endpoints/statistics/statistics";
+
+import { statisticsKeys } from "./statistics-keys";
 
 export type CompletedReadsSubset = {
   filter: ReadingStatisticsSubsetFilter;
   period: Extract<ReadingStatisticsDrilldown, { kind: "completed_reads_subset" }>["period"];
 };
 
-type CompletedReadsSubsetKey = ReturnType<
-  typeof getStatisticsControllerGetCompletedReadsSubsetQueryKey
->;
+type CompletedReadsSubsetKey = ReturnType<typeof statisticsKeys.completedReadsSubset>;
 
 type SubsetFilterParams = Pick<
   StatisticsControllerGetCompletedReadsSubsetParams,
@@ -49,7 +46,7 @@ export function useCompletedReadsSubset(subset: CompletedReadsSubset) {
       ReadingStatisticsCompletedReadsSubsetPageSchema.parse(
         await statisticsControllerGetCompletedReadsSubset({ ...params, cursor: pageParam }),
       ),
-    queryKey: getStatisticsControllerGetCompletedReadsSubsetQueryKey(params),
+    queryKey: statisticsKeys.completedReadsSubset(params),
   });
 }
 

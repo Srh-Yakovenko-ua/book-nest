@@ -16,9 +16,9 @@ import { ReadingGoalBooksRepository } from "../infrastructure/reading-goal-books
 export class ReadingGoalInputValidator {
   constructor(private readonly readingGoalBooksRepository: ReadingGoalBooksRepository) {}
 
-  assertFutureDeadline({ deadline, now }: { deadline: string; now: Date }): Date {
+  assertFutureDeadline({ deadline, today }: { deadline: string; today: Date }): Date {
     const parsed = parseIsoDate(deadline);
-    if (!isAfter(parsed, startOfUtcDay(now))) {
+    if (!isAfter(parsed, startOfUtcDay(today))) {
       throw new BadRequestError(READING_GOAL_MESSAGE.deadlineNotInFuture, {
         fields: [{ field: "deadline", message: READING_GOAL_MESSAGE.deadlineNotInFuture }],
       });
@@ -43,17 +43,17 @@ export class ReadingGoalInputValidator {
   async buildUpdateData({
     goal,
     input,
-    now,
+    today,
     tx,
   }: {
     goal: ReadingGoalWithList;
     input: UpdateReadingGoalInput;
-    now: Date;
+    today: Date;
     tx: Prisma.TransactionClient;
   }): Promise<Prisma.ReadingGoalUpdateManyMutationInput> {
     const data: Prisma.ReadingGoalUpdateManyMutationInput = {};
     if (input.deadline !== undefined) {
-      data.deadline = this.assertFutureDeadline({ deadline: input.deadline, now });
+      data.deadline = this.assertFutureDeadline({ deadline: input.deadline, today });
     }
     if (input.name !== undefined) {
       data.name = input.name;

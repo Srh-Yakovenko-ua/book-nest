@@ -1,5 +1,7 @@
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
+import { infiniteScrollStateOf } from "@/hooks/use-infinite-scroll-sentinel";
+
 export type GoalCursorContent<Item> =
   | { footer: InfiniteScrollState; items: Item[]; kind: "items" }
   | { kind: "empty" }
@@ -21,11 +23,5 @@ export function resolveGoalCursorContent<Item>(
   if (snapshot.isError && snapshot.items.length === 0) return { kind: "error" };
   if (snapshot.isPending) return { kind: "loading" };
   if (snapshot.items.length === 0) return { kind: "empty" };
-  return { footer: nextPageState(snapshot), items: snapshot.items, kind: "items" };
-}
-
-function nextPageState<Item>(snapshot: GoalCursorSnapshot<Item>): InfiniteScrollState {
-  if (snapshot.isFetchingNextPage) return "loading";
-  if (snapshot.isFetchNextPageError) return "error";
-  return snapshot.hasNextPage ? "idle" : "none";
+  return { footer: infiniteScrollStateOf(snapshot), items: snapshot.items, kind: "items" };
 }

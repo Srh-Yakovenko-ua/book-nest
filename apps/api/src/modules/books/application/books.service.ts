@@ -17,7 +17,7 @@ import {
   TransactionRunner,
 } from "../../../core/database/transaction-runner.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
-import { toCreateDate } from "../../../core/iso-date.js";
+import { parseIsoDate, toCreateDate } from "../../../core/iso-date.js";
 import { SingleBookOrderService } from "../../delivery/index.js";
 import { LoanContactResolver } from "../../loans/index.js";
 import { UserSettingsContextService } from "../../profile/index.js";
@@ -210,7 +210,7 @@ export class BooksService {
       });
     }
 
-    return this.viewAssembler.viewOf(book);
+    return this.viewAssembler.viewOf({ book, today: parseIsoDate(today) });
   }
 
   async getById(userId: string, bookId: string): Promise<BookDetailsView> {
@@ -219,11 +219,12 @@ export class BooksService {
       throw new NotFoundError("Book not found");
     }
 
-    const [notesCount, quotesCount] = await Promise.all([
+    const [notesCount, quotesCount, toBookView] = await Promise.all([
       this.booksRepository.countActiveBookNotes({ bookId, userId }),
       this.booksRepository.countActiveBookQuotes({ bookId, userId }),
+      this.viewAssembler.forUser(userId),
     ]);
-    return { ...this.viewAssembler.viewOf(book), notesCount, quotesCount };
+    return { ...toBookView(book), notesCount, quotesCount };
   }
 
   async update(userId: string, bookId: string, input: UpdateBookInput): Promise<BookView> {
@@ -366,7 +367,7 @@ export class BooksService {
       await this.coverCleanup.deleteIfOrphaned({ mediaId: current.coverMediaId, userId });
     }
 
-    return this.viewAssembler.viewOf(book);
+    return this.viewAssembler.viewOf({ book, today: parseIsoDate(today) });
   }
 
   private async lockLifecycle({

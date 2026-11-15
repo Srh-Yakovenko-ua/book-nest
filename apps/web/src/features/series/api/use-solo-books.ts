@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import type { BooksControllerListParams } from "@/shared/api/generated/model";
 
+import { bookKeys } from "@/features/books/api/book-keys";
 import { booksControllerList } from "@/shared/api/generated/endpoints/books/books";
 import { BooksControllerListBookType } from "@/shared/api/generated/model";
 
@@ -41,7 +42,7 @@ export function useSoloBooks(search: string) {
       });
       return PaginatedBooksSchema.parse(response);
     },
-    queryKey: ["/api/books", "solo-search", trimmed],
+    queryKey: bookKeys.soloSearch(trimmed),
     select: (data) => data.pages.flatMap((page) => page.items),
   });
 }

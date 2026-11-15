@@ -8,13 +8,15 @@ import type {
   UpdateDeliveryInput,
 } from "@app/shared";
 
-import { DEFAULT_CURRENCY } from "@app/shared";
+import { DEFAULT_CURRENCY, DELIVERY_INPUT_LIMITS } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useTranslations } from "next-intl";
-import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { isAfter, parseISO } from "date-fns";
+import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useRef, useState } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
+import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -36,29 +38,28 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useProfileTimeZone } from "@/features/settings";
+import {
+  CLEAN_CLOSE_GUARD_DRAFT,
+  type CloseGuardDraft,
+  useCloseGuard,
+} from "@/hooks/use-close-guard";
 import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
+import { emptyToNull } from "@/lib/empty-to-null";
+import { formatNumber } from "@/lib/format";
 import { isHttpsUrl } from "@/lib/is-https-url";
+import { ISO_DAY, todayIsoDay } from "@/lib/iso-day";
 
 import { useCreateDelivery, useUpdateDelivery } from "../api/use-delivery";
 import { useDeliveryErrorText } from "../hooks/use-delivery-error-text";
-import { ISO_DATE_PATTERN, todayIso } from "../model/reading-progress";
 import { BookDateField } from "./book-date-field";
 import { DeliveryServiceAutocomplete } from "./delivery-service-autocomplete";
 import { StoreAutocomplete } from "./store-autocomplete";
 
 const CURRENCY_OPTIONS = ["UAH", "EUR", "USD"] as const satisfies readonly Currency[];
-const STORE_NAME_MAX = 100;
-const ORDER_NUMBER_MAX = 100;
-const SERVICE_MIN = 2;
-const SERVICE_MAX = 100;
-const TRACKING_NUMBER_MAX = 100;
-const TRACKING_URL_MAX = 300;
-const NOTE_MAX = 300;
-const PRICE_MIN = 0;
-const PRICE_MAX = 99999999.99;
 
 type DeliveryDialogProps =
   | {
@@ -112,23 +113,48 @@ type DeliveryValues = {
 
 export function DeliveryDialog(props: DeliveryDialogProps) {
   const { onOpenChange, open } = props;
+  const [draft, setDraft] = useState<CloseGuardDraft>(CLEAN_CLOSE_GUARD_DRAFT);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const guard = useCloseGuard({
+    focusFallback: () => contentRef.current?.focus(),
+    isDirty: draft.isDirty,
+    isOpen: open,
+    isPending: draft.isPending,
+    onClose: () => onOpenChange(false),
+  });
 
   return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-md">
-        {open ? (
-          props.mode === "edit" ? (
-            <DeliveryForm
-              book={props.book}
-              delivery={props.delivery}
-              onDone={() => onOpenChange(false)}
-            />
-          ) : (
-            <DeliveryForm book={props.book} onDone={() => onOpenChange(false)} />
-          )
-        ) : null}
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog
+        onOpenChange={(next) => {
+          if (!next) guard.requestClose();
+        }}
+        open={open}
+      >
+        <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-md" ref={contentRef}>
+          {open ? (
+            props.mode === "edit" ? (
+              <DeliveryForm
+                book={props.book}
+                delivery={props.delivery}
+                onCancel={guard.requestClose}
+                onDone={() => onOpenChange(false)}
+                onDraftChange={setDraft}
+              />
+            ) : (
+              <DeliveryForm
+                book={props.book}
+                onCancel={guard.requestClose}
+                onDone={() => onOpenChange(false)}
+                onDraftChange={setDraft}
+              />
+            )
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <DiscardChangesDialog {...guard.discardDialog} />
+    </>
   );
 }
 
@@ -160,7 +186,7 @@ function buildCreatePayload(values: DeliveryValues): CreateDeliveryInput {
   return payload;
 }
 
-function buildSchema(messages: DeliveryMessages) {
+function buildSchema({ messages, today }: { messages: DeliveryMessages; today: string }) {
   return z
     .object({
       currency: z
@@ -168,44 +194,56 @@ function buildSchema(messages: DeliveryMessages) {
         .refine((value) => value !== "", messages.currencyRequired),
       deliveryService: z
         .string()
-        .max(SERVICE_MAX, messages.serviceMax)
+        .max(DELIVERY_INPUT_LIMITS.serviceMax, messages.serviceMax)
         .refine(
-          (value) => value.trim().length === 0 || value.trim().length >= SERVICE_MIN,
+          (value) =>
+            value.trim().length === 0 || value.trim().length >= DELIVERY_INPUT_LIMITS.serviceMin,
           messages.serviceMin,
         ),
       expectedDeliveryDate: z
         .string()
-        .refine(
-          (value) => value.length === 0 || ISO_DATE_PATTERN.test(value),
-          messages.dateInvalid,
-        ),
+        .refine((value) => value.length === 0 || ISO_DAY.pattern.test(value), messages.dateInvalid),
       isFree: z.boolean(),
-      note: z.string().max(NOTE_MAX, messages.noteMax),
+      note: z.string().max(DELIVERY_INPUT_LIMITS.noteMax, messages.noteMax),
       orderDate: z
         .string()
         .refine((value) => value.length > 0, messages.orderDateRequired)
-        .refine((value) => value.length === 0 || ISO_DATE_PATTERN.test(value), messages.dateInvalid)
-        .refine((value) => value.length === 0 || value <= todayIso(), messages.orderDateFuture),
-      orderNumber: z.string().max(ORDER_NUMBER_MAX, messages.orderNumberMax),
+        .refine((value) => value.length === 0 || ISO_DAY.pattern.test(value), messages.dateInvalid)
+        .refine(
+          (value) => value.length === 0 || !isAfter(parseISO(value), parseISO(today)),
+          messages.orderDateFuture,
+        ),
+      orderNumber: z.string().max(DELIVERY_INPUT_LIMITS.orderNumberMax, messages.orderNumberMax),
       price: z
         .string()
-        .refine((value) => value.trim().length === 0 || Number(value) > PRICE_MIN, messages.price)
         .refine(
-          (value) => value.trim().length === 0 || Number(value) <= PRICE_MAX,
+          (value) => value.trim().length === 0 || Number(value) > DELIVERY_INPUT_LIMITS.priceMin,
+          messages.price,
+        )
+        .refine(
+          (value) => value.trim().length === 0 || Number(value) <= DELIVERY_INPUT_LIMITS.priceMax,
           messages.priceMax,
         ),
       storeName: z
         .string()
         .refine((value) => value.trim().length > 0, messages.storeNameRequired)
-        .refine((value) => value.trim().length <= STORE_NAME_MAX, messages.storeNameMax),
-      trackingNumber: z.string().max(TRACKING_NUMBER_MAX, messages.trackingNumberMax),
+        .refine(
+          (value) => value.trim().length <= DELIVERY_INPUT_LIMITS.storeNameMax,
+          messages.storeNameMax,
+        ),
+      trackingNumber: z
+        .string()
+        .max(DELIVERY_INPUT_LIMITS.trackingNumberMax, messages.trackingNumberMax),
       trackingUrl: z
         .string()
         .refine(
           (value) => value.trim().length === 0 || isHttpsUrl(value.trim()),
           messages.trackingUrl,
         )
-        .refine((value) => value.trim().length <= TRACKING_URL_MAX, messages.trackingUrlMax),
+        .refine(
+          (value) => value.trim().length <= DELIVERY_INPUT_LIMITS.trackingUrlMax,
+          messages.trackingUrlMax,
+        ),
     })
     .refine(
       (value) =>
@@ -230,28 +268,33 @@ function buildUpdatePayload(values: DeliveryValues): UpdateDeliveryInput {
 
   return {
     currency: values.currency === "" ? DEFAULT_CURRENCY : values.currency,
-    deliveryService: emptyToNull(values.deliveryService.trim()),
+    deliveryService: emptyToNull(values.deliveryService),
     expectedDeliveryDate: emptyToNull(values.expectedDeliveryDate),
     isFree: values.isFree,
-    note: emptyToNull(values.note.trim()),
+    note: emptyToNull(values.note),
     orderDate: values.orderDate,
-    orderNumber: emptyToNull(values.orderNumber.trim()),
+    orderNumber: emptyToNull(values.orderNumber),
     price: values.isFree || !hasPrice ? null : price,
     storeName: values.storeName.trim(),
-    trackingNumber: emptyToNull(values.trackingNumber.trim()),
-    trackingUrl: emptyToNull(values.trackingUrl.trim()),
+    trackingNumber: emptyToNull(values.trackingNumber),
+    trackingUrl: emptyToNull(values.trackingUrl),
   };
 }
 
 function DeliveryForm({
   book,
   delivery,
+  onCancel,
   onDone,
+  onDraftChange,
 }: {
   book: BookView;
   delivery?: DeliveryView;
+  onCancel: () => void;
   onDone: () => void;
+  onDraftChange: (draft: CloseGuardDraft) => void;
 }) {
+  const locale = useLocale();
   const t = useTranslations("books.details.delivery");
   const tErrors = useTranslations("books.details.delivery.errors");
   const deliveryErrorText = useDeliveryErrorText();
@@ -259,44 +302,67 @@ function DeliveryForm({
   const createDelivery = useCreateDelivery();
   const updateDelivery = useUpdateDelivery();
   const [serverError, setServerError] = useState<null | string>(null);
+  const today = todayIsoDay(useProfileTimeZone());
 
   const isEdit = delivery !== undefined;
   const pending = isEdit ? updateDelivery.isPending : createDelivery.isPending;
 
   const {
     control,
-    formState: { errors },
+    formState: { errors, isDirty },
+    getFieldState,
+    getValues,
     handleSubmit,
     register,
-    watch,
+    resetField,
   } = useForm<DeliveryValues>({
-    defaultValues: toDefaults(delivery),
+    defaultValues: toDefaults({ delivery, today }),
     mode: "onTouched",
     resolver: zodResolver(
       buildSchema({
-        currencyRequired: tErrors("currencyRequired"),
-        dateInvalid: tErrors("dateInvalid"),
-        expectedBeforeOrder: tErrors("expectedBeforeOrder"),
-        freeWithPrice: tErrors("freeWithPrice"),
-        noteMax: tErrors("noteMax", { max: NOTE_MAX }),
-        orderDateFuture: tErrors("orderDateFuture"),
-        orderDateRequired: tErrors("orderDateRequired"),
-        orderNumberMax: tErrors("orderNumberMax", { max: ORDER_NUMBER_MAX }),
-        price: tErrors("price"),
-        priceMax: tErrors("priceMax"),
-        priceRequired: tErrors("priceRequired"),
-        serviceMax: tErrors("serviceMax", { max: SERVICE_MAX }),
-        serviceMin: tErrors("serviceMin", { min: SERVICE_MIN }),
-        storeNameMax: tErrors("storeNameMax", { max: STORE_NAME_MAX }),
-        storeNameRequired: tErrors("storeNameRequired"),
-        trackingNumberMax: tErrors("trackingNumberMax", { max: TRACKING_NUMBER_MAX }),
-        trackingUrl: tErrors("trackingUrl"),
-        trackingUrlMax: tErrors("trackingUrlMax", { max: TRACKING_URL_MAX }),
+        messages: {
+          currencyRequired: tErrors("currencyRequired"),
+          dateInvalid: tErrors("dateInvalid"),
+          expectedBeforeOrder: tErrors("expectedBeforeOrder"),
+          freeWithPrice: tErrors("freeWithPrice"),
+          noteMax: tErrors("noteMax", { max: DELIVERY_INPUT_LIMITS.noteMax }),
+          orderDateFuture: tErrors("orderDateFuture"),
+          orderDateRequired: tErrors("orderDateRequired"),
+          orderNumberMax: tErrors("orderNumberMax", {
+            max: DELIVERY_INPUT_LIMITS.orderNumberMax,
+          }),
+          price: tErrors("price"),
+          priceMax: tErrors("priceMax", {
+            max: formatNumber(DELIVERY_INPUT_LIMITS.priceMax, locale),
+          }),
+          priceRequired: tErrors("priceRequired"),
+          serviceMax: tErrors("serviceMax", { max: DELIVERY_INPUT_LIMITS.serviceMax }),
+          serviceMin: tErrors("serviceMin", { min: DELIVERY_INPUT_LIMITS.serviceMin }),
+          storeNameMax: tErrors("storeNameMax", { max: DELIVERY_INPUT_LIMITS.storeNameMax }),
+          storeNameRequired: tErrors("storeNameRequired"),
+          trackingNumberMax: tErrors("trackingNumberMax", {
+            max: DELIVERY_INPUT_LIMITS.trackingNumberMax,
+          }),
+          trackingUrl: tErrors("trackingUrl"),
+          trackingUrlMax: tErrors("trackingUrlMax", {
+            max: DELIVERY_INPUT_LIMITS.trackingUrlMax,
+          }),
+        },
+        today,
       }),
     ),
   });
 
-  const isFree = watch("isFree");
+  const isFree = useWatch({ control, name: "isFree" });
+
+  useEffect(() => {
+    onDraftChange({ isDirty, isPending: pending });
+  }, [isDirty, onDraftChange, pending]);
+
+  useEffect(() => {
+    if (isEdit || getFieldState("orderDate").isDirty || getValues("orderDate") === today) return;
+    resetField("orderDate", { defaultValue: today });
+  }, [getFieldState, getValues, isEdit, resetField, today]);
 
   const onSubmit = handleSubmit((values) => {
     setServerError(null);
@@ -360,6 +426,7 @@ function DeliveryForm({
                 onChange={(next) => field.onChange(next ?? "")}
                 placeholder={t("form.datePlaceholder")}
                 required
+                today={today}
                 value={field.value}
               />
             )}
@@ -383,6 +450,7 @@ function DeliveryForm({
                 invalid={errors.expectedDeliveryDate !== undefined}
                 onChange={(next) => field.onChange(next ?? "")}
                 placeholder={t("form.datePlaceholder")}
+                today={today}
                 value={field.value}
               />
             )}
@@ -484,7 +552,7 @@ function DeliveryForm({
             disabled={isFree}
             id="delivery-price"
             inputMode="decimal"
-            min={0}
+            min={DELIVERY_INPUT_LIMITS.priceMin}
             onKeyDown={blockNegativeNumberKeys}
             onPaste={blockNegativeNumberPaste}
             placeholder="0"
@@ -543,7 +611,7 @@ function DeliveryForm({
                 }
                 aria-invalid={errors.note !== undefined}
                 id="delivery-note"
-                maxLength={NOTE_MAX}
+                maxLength={DELIVERY_INPUT_LIMITS.noteMax}
                 onChange={field.onChange}
                 placeholder={t("form.notePlaceholder")}
                 value={field.value}
@@ -554,7 +622,7 @@ function DeliveryForm({
                   className="ml-auto text-xs text-muted-foreground tabular-nums"
                   id="delivery-note-counter"
                 >
-                  {field.value.length}/{NOTE_MAX}
+                  {field.value.length}/{DELIVERY_INPUT_LIMITS.noteMax}
                 </span>
               </div>
             </>
@@ -569,7 +637,7 @@ function DeliveryForm({
       )}
 
       <DialogFooter>
-        <Button onClick={onDone} type="button" variant="secondary">
+        <Button onClick={onCancel} type="button" variant="secondary">
           {tActions("cancel")}
         </Button>
         <Button disabled={pending} loading={pending} type="submit">
@@ -580,18 +648,20 @@ function DeliveryForm({
   );
 }
 
-function emptyToNull(value: string): null | string {
-  return value.length > 0 ? value : null;
-}
-
-function toDefaults(delivery: DeliveryView | undefined): DeliveryValues {
+function toDefaults({
+  delivery,
+  today,
+}: {
+  delivery: DeliveryView | undefined;
+  today: string;
+}): DeliveryValues {
   return {
     currency: delivery === undefined ? "UAH" : (delivery.currency ?? "UAH"),
     deliveryService: delivery?.deliveryService ?? "",
     expectedDeliveryDate: delivery?.expectedDeliveryDate ?? "",
     isFree: delivery?.isFree ?? false,
     note: delivery?.note ?? "",
-    orderDate: delivery?.orderDate ?? todayIso(),
+    orderDate: delivery?.orderDate ?? today,
     orderNumber: delivery?.orderNumber ?? "",
     price: delivery?.price != null ? String(delivery.price) : "",
     storeName: delivery?.storeName ?? "",

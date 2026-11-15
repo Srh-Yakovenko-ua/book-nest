@@ -7,9 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { statisticsControllerGetReadingActivity } from "@/shared/api/generated/endpoints/statistics/statistics";
 
-import { STATISTICS_ROOT } from "./statistics-keys";
-
-const READING_MONTH_SUMMARY_ROOT = `${STATISTICS_ROOT}/reading-month-summary`;
+import { statisticsKeys } from "./statistics-keys";
 
 export function useReadingMonthBooks({
   enabled,
@@ -26,6 +24,6 @@ export function useReadingMonthBooks({
       ReadingStatisticsActivityPageSchema.parse(
         await statisticsControllerGetReadingActivity({ from, limit: 1, to }, { signal }),
       ),
-    queryKey: [READING_MONTH_SUMMARY_ROOT, from, to] as const,
+    queryKey: statisticsKeys.readingMonthSummary({ from, to }),
   });
 }

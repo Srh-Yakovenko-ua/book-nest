@@ -5,15 +5,15 @@ import type { Nullable } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useRef } from "react";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
+import { SummaryDetails } from "@/components/catalog/summary-mobile";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   MobilePageOverviewPanel,
   useMobilePageOverviewPanel,
 } from "@/components/ui/mobile-page-overview-panel";
-import { LibrarySummaryDetails } from "@/features/books/components/library-summary-mobile";
 
 import type { RecordNoteImpression } from "../hooks/use-note-rediscovery-impression";
 import type { PostFinishReview } from "../hooks/use-post-finish-review";
@@ -28,7 +28,7 @@ type NotesOverviewPanelProps = {
   overview: Nullable<NotesOverview>;
   postFinishReview: PostFinishReview;
   recordImpression: RecordNoteImpression;
-  summaryCards: Nullable<LibrarySummaryCard[]>;
+  summaryCards: Nullable<SummaryCard[]>;
 };
 
 export function NotesOverviewPanel({
@@ -90,7 +90,7 @@ export function NotesOverviewPanel({
       >
         <div className="flex flex-col gap-4">
           {summaryCards === null ? null : (
-            <LibrarySummaryDetails cards={summaryCards} title={t("summaryTitle")} />
+            <SummaryDetails cards={summaryCards} title={t("summaryTitle")} />
           )}
           {overview === null ? null : (
             <NotesContextualOverview

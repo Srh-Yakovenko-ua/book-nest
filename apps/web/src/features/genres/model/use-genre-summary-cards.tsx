@@ -5,7 +5,7 @@ import type { GenreSummaryGenreView, GenreSummaryView } from "@app/shared";
 import { GENRE_SUMMARY_RULES } from "@app/shared";
 import { useLocale, useTranslations } from "next-intl";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
 import { topGenreIconSlot } from "@/features/books/components/top-genre-icon-slot";
 import { formatNumber } from "@/lib/format";
@@ -16,8 +16,8 @@ import { genreLeaderFact, usedGenresFact } from "./genre-summary";
 
 type LeaderCardSpec = {
   copy: LeaderCopy;
-  icon: LibrarySummaryCard["icon"];
-  iconTone: LibrarySummaryCard["iconTone"];
+  icon: SummaryCard["icon"];
+  iconTone: SummaryCard["iconTone"];
   key: GenreLeaderCardKey;
 };
 
@@ -35,7 +35,7 @@ const GENRE_SUMMARY_CARDS = {
   tieValueClassName: "line-clamp-2 text-lg leading-snug",
 } as const;
 
-export function useGenreSummaryCards(summary: GenreSummaryView | undefined): LibrarySummaryCard[] {
+export function useGenreSummaryCards(summary: GenreSummaryView | undefined): SummaryCard[] {
   const t = useTranslations("genres.summary");
   const locale = useLocale();
 
@@ -57,7 +57,7 @@ export function useGenreSummaryCards(summary: GenreSummaryView | undefined): Lib
     return fact.leaders.length > 1 ? copy.tie(first) : copy.single(first);
   }
 
-  const leaderCard = ({ copy, icon, iconTone, key }: LeaderCardSpec): LibrarySummaryCard => {
+  const leaderCard = ({ copy, icon, iconTone, key }: LeaderCardSpec): SummaryCard => {
     const fact = genreLeaderFact(summary, key);
     return {
       icon,

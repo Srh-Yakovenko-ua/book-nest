@@ -3,7 +3,7 @@ import type { InTransitSummaryView, Nullable } from "@app/shared";
 import { parseISO } from "date-fns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
 import type { DeliverySummaryLabels } from "./in-transit-summary-cards";
 
@@ -45,11 +45,11 @@ const labels: DeliverySummaryLabels = {
   },
 };
 
-function buildCards(summary: Nullable<InTransitSummaryView>): LibrarySummaryCard[] {
+function buildCards(summary: Nullable<InTransitSummaryView>): SummaryCard[] {
   return buildDeliverySummaryCards({ labels, locale, summary });
 }
 
-function cardAt(summary: Nullable<InTransitSummaryView>, index: number): LibrarySummaryCard {
+function cardAt(summary: Nullable<InTransitSummaryView>, index: number): SummaryCard {
   const card = buildCards(summary)[index];
   if (card === undefined) throw new Error(`expected a summary card at index ${index}`);
   return card;

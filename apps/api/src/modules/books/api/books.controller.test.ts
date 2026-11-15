@@ -22,6 +22,11 @@ import {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const MISSING_UUID = "00000000-0000-4000-8000-000000000000";
+const PART_NUMBER_EXCEEDS_TOTAL_ERROR = {
+  code: "BOOK_PART_NUMBER_EXCEEDS_TOTAL",
+  field: "partNumber",
+  message: "Part number can't be greater than the total books in the series",
+};
 
 let context: AuthTestContext;
 let app: INestApplication;
@@ -1199,6 +1204,24 @@ describe("POST /api/books series handling", () => {
     expect(await prisma.book.count({ where: { seriesId: existing.id } })).toBe(0);
   });
 
+  it("tags the exceeds-total partNumber error with BOOK_PART_NUMBER_EXCEEDS_TOTAL on create", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const existing = await prisma.series.create({
+      data: { name: "Throne of Glass", normalizedName: "throne of glass", totalBooks: 2, userId },
+    });
+
+    const res = await createBook(accessToken, {
+      authors: [{ name: "Sarah J. Maas" }],
+      bookType: "series_part",
+      partNumber: 3,
+      seriesId: existing.id,
+      title: "Heir of Fire",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual([PART_NUMBER_EXCEEDS_TOTAL_ERROR]);
+  });
+
   it("accepts a part number equal to the existing series total books", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const existing = await prisma.series.create({
@@ -1926,6 +1949,26 @@ describe("PATCH /api/books/:id series", () => {
     );
   });
 
+  it("tags the exceeds-total partNumber error with BOOK_PART_NUMBER_EXCEEDS_TOTAL when moving a book into a series", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const existing = await prisma.series.create({
+      data: { name: "Throne of Glass", normalizedName: "throne of glass", totalBooks: 2, userId },
+    });
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Sarah J. Maas" }],
+      title: "Heir of Fire",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, {
+      bookType: "series_part",
+      partNumber: 3,
+      seriesId: existing.id,
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual([PART_NUMBER_EXCEEDS_TOTAL_ERROR]);
+  });
+
   it("accepts a part number equal to the existing series total books", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const existing = await prisma.series.create({
@@ -1966,6 +2009,25 @@ describe("PATCH /api/books/:id series", () => {
     expect(res.body.errorsMessages).toEqual(
       expect.arrayContaining([expect.objectContaining({ field: "partNumber" })]),
     );
+  });
+
+  it("tags the exceeds-total partNumber error with BOOK_PART_NUMBER_EXCEEDS_TOTAL when bumping only the part number", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const existing = await prisma.series.create({
+      data: { name: "Throne of Glass", normalizedName: "throne of glass", totalBooks: 2, userId },
+    });
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Sarah J. Maas" }],
+      bookType: "series_part",
+      partNumber: 1,
+      seriesId: existing.id,
+      title: "Throne of Glass",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, { partNumber: 3 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual([PART_NUMBER_EXCEEDS_TOTAL_ERROR]);
   });
 
   it("accepts bumping only the part number to the current series total books", async () => {

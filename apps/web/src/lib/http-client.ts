@@ -44,8 +44,6 @@ export class ApiError extends Error {
   }
 }
 
-const isServer = typeof window === "undefined";
-
 const NON_REFRESHABLE_PATHS = [
   "/api/auth/login",
   "/api/auth/refresh",
@@ -78,29 +76,9 @@ export async function request<T>(path: string, init?: RequestOptions): Promise<T
   throw await toApiError(res);
 }
 
-async function buildRequest(
-  path: string,
-  init?: RequestOptions,
-): Promise<{ init: RequestInit; url: string }> {
+function buildRequest(path: string, init?: RequestOptions): { init: RequestInit; url: string } {
   const jsonContentType: Record<string, string> =
     init?.body instanceof FormData ? {} : { "Content-Type": "application/json" };
-
-  if (isServer) {
-    const base = process.env.API_BASE_URL ?? "http://localhost:4000";
-    const { cookies } = await import("next/headers");
-    const cookieHeader = (await cookies()).toString();
-    return {
-      init: {
-        ...init,
-        headers: {
-          ...jsonContentType,
-          ...(cookieHeader ? { cookie: cookieHeader } : {}),
-          ...init?.headers,
-        },
-      },
-      url: `${base}${path}`,
-    };
-  }
 
   const accessToken = getAuthBridge()?.getAccessToken() ?? null;
 
@@ -119,14 +97,12 @@ async function buildRequest(
 }
 
 function canAttemptRefresh(status: number, path: string): boolean {
-  if (isServer) return false;
   if (status !== 401) return false;
   if (NON_REFRESHABLE_PATHS.some((p) => path.startsWith(p))) return false;
   return getAuthBridge() !== null;
 }
 
 function isMaintenanceResponse(res: Response): boolean {
-  if (isServer) return false;
   if (res.status !== MAINTENANCE.status) return false;
   return res.headers.get(MAINTENANCE.header) !== null;
 }
@@ -152,7 +128,7 @@ async function refreshAndRetry<T>(
 }
 
 async function send(path: string, init?: RequestOptions): Promise<Response> {
-  const { init: requestInit, url } = await buildRequest(path, init);
+  const { init: requestInit, url } = buildRequest(path, init);
   return fetch(url, requestInit);
 }
 

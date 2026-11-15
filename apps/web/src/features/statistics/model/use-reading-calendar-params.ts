@@ -4,6 +4,7 @@ import { useQueryStates } from "nuqs";
 import { useEffect, useEffectEvent } from "react";
 
 import { useProfileTimeZone } from "@/features/settings";
+import { todayIsoDay } from "@/lib/iso-day";
 
 import {
   defaultReadingCalendarMonth,
@@ -12,7 +13,6 @@ import {
   readingCalendarCurrentYear,
   readingCalendarParsers,
 } from "./reading-calendar-params";
-import { todayIsoDay } from "./statistics-period";
 
 export type UseReadingCalendarParamsResult = {
   currentYear: number;

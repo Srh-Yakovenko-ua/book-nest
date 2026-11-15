@@ -1,6 +1,16 @@
+import type { ValueOf } from "@app/shared";
 import type { FieldValues, Path, UseFormReturn } from "react-hook-form";
 
 import { ApiError } from "@/lib/http-client";
+
+export const HTTP_STATUS = {
+  conflict: 409,
+  forbidden: 403,
+  notFound: 404,
+  unprocessableEntity: 422,
+} as const;
+
+type HttpStatus = ValueOf<typeof HTTP_STATUS>;
 
 export function applyFieldErrors<T extends FieldValues>(
   form: UseFormReturn<T>,
@@ -31,4 +41,12 @@ export function getErrorMessage(err: unknown, fallback: string): string {
   }
   if (err instanceof Error && err.message) return err.message;
   return fallback;
+}
+
+export function isApiErrorCode(error: unknown, code: string): boolean {
+  return error instanceof ApiError && error.code === code;
+}
+
+export function isApiErrorStatus(error: unknown, status: HttpStatus): boolean {
+  return error instanceof ApiError && error.status === status;
 }

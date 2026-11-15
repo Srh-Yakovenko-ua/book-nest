@@ -6,10 +6,10 @@ import { genresKeys, invalidateGenreDerivedQueries } from "./genres-keys";
 const LIST_PARAMS = { filter: "all", sort: "books_count_desc" } as const;
 
 const SEEDED_KEYS = {
-  catalog: ["genres"],
+  catalog: genresKeys.catalog,
   facets: genresKeys.facets({ q: "фе" }),
   overview: genresKeys.overview,
-  recent: ["genres", "recent"],
+  recent: genresKeys.recent,
   stats: genresKeys.stats(LIST_PARAMS),
   summary: genresKeys.summary,
 } as const;

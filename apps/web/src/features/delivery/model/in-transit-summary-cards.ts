@@ -2,7 +2,7 @@ import type { InTransitSummaryView, Nullable } from "@app/shared";
 
 import { isToday, isTomorrow } from "date-fns";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
 import { formatDayMonth, formatNumber, parseIsoDay } from "@/lib/format";
 
@@ -52,7 +52,7 @@ type SummaryCardOptions = {
 
 const MICROFACT_SEPARATOR = " · ";
 
-export function buildDeliverySummaryCards(options: SummaryCardOptions): LibrarySummaryCard[] {
+export function buildDeliverySummaryCards(options: SummaryCardOptions): SummaryCard[] {
   return [
     toActiveCard(options),
     toExpectedThisWeekCard(options),
@@ -61,7 +61,7 @@ export function buildDeliverySummaryCards(options: SummaryCardOptions): LibraryS
   ];
 }
 
-function toActiveCard({ labels, locale, summary }: SummaryCardOptions): LibrarySummaryCard {
+function toActiveCard({ labels, locale, summary }: SummaryCardOptions): SummaryCard {
   const count = summary?.activeBooksCount ?? 0;
 
   return {
@@ -88,7 +88,7 @@ function toActiveMicrofact(summary: InTransitSummaryView, labels: DeliverySummar
   return parts.join(MICROFACT_SEPARATOR);
 }
 
-function toActiveOrdersCard({ labels, locale, summary }: SummaryCardOptions): LibrarySummaryCard {
+function toActiveOrdersCard({ labels, locale, summary }: SummaryCardOptions): SummaryCard {
   const count = summary?.activeOrdersCount ?? 0;
 
   return {
@@ -114,11 +114,7 @@ function toActiveOrdersMicrofact(
   return [shipments, labels.activeOrders.split(summary.splitOrdersCount)].join(MICROFACT_SEPARATOR);
 }
 
-function toExpectedThisWeekCard({
-  labels,
-  locale,
-  summary,
-}: SummaryCardOptions): LibrarySummaryCard {
+function toExpectedThisWeekCard({ labels, locale, summary }: SummaryCardOptions): SummaryCard {
   const count = summary?.expectedThisWeekCount ?? 0;
 
   return {
@@ -148,7 +144,7 @@ function toExpectedThisWeekMicrofact(
   return labels.expectedThisWeek.onDate(formatDayMonth(nextExpected, locale));
 }
 
-function toOrdersTotalCard({ labels, locale, summary }: SummaryCardOptions): LibrarySummaryCard {
+function toOrdersTotalCard({ labels, locale, summary }: SummaryCardOptions): SummaryCard {
   return {
     ...toTotalsStatValue(summary?.activeOrdersTotalByCurrency ?? [], locale),
     icon: "wallet",

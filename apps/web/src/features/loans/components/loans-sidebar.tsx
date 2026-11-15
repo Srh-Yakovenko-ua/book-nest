@@ -20,7 +20,8 @@ import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
 import { Skeleton } from "@/components/ui/skeleton";
-import { todayIso } from "@/features/books/model/reading-progress";
+import { useProfileTimeZone } from "@/features/settings";
+import { todayIsoDay } from "@/lib/iso-day";
 import { cn } from "@/lib/utils";
 
 import type { LoanDirection } from "../model/loan-pages";
@@ -86,18 +87,21 @@ export function LoansSidebarSections({
   upcomingReturns,
 }: LoansSidebarProps) {
   const t = useTranslations("loans.sidebar");
+  const today = todayIsoDay(useProfileTimeZone());
 
   if (direction === "borrowed") {
     return (
       <>
-        {attention === null ? null : <BorrowedAttention {...attention} isLoading={isLoading} />}
+        {attention === null ? null : (
+          <BorrowedAttention {...attention} isLoading={isLoading} today={today} />
+        )}
 
         <SidebarBlock title={t("longHeld.title")}>
           <LoanRows
             emptyText={t("longHeld.empty")}
             isLoading={isLoading}
             loans={longHeldLoans}
-            renderMeta={(loan) => <LongHeldDays loanDate={loan.loanDate} />}
+            renderMeta={(loan) => <LongHeldDays loanDate={loan.loanDate} today={today} />}
           />
         </SidebarBlock>
       </>
@@ -106,7 +110,9 @@ export function LoansSidebarSections({
 
   return (
     <>
-      {attention === null ? null : <LentAttention {...attention} isLoading={isLoading} />}
+      {attention === null ? null : (
+        <LentAttention {...attention} isLoading={isLoading} today={today} />
+      )}
 
       <SidebarBlock title={t("upcoming.title")}>
         <LoanRows
@@ -114,7 +120,7 @@ export function LoansSidebarSections({
           isLoading={isLoading}
           loans={upcomingReturns}
           renderMeta={(loan) => (
-            <UpcomingReturnLabel expectedReturnDate={loan.expectedReturnDate} />
+            <UpcomingReturnLabel expectedReturnDate={loan.expectedReturnDate} today={today} />
           )}
         />
       </SidebarBlock>
@@ -129,9 +135,10 @@ function BorrowedAttention({
   isLoading,
   onSelect,
   stats,
-}: LoansAttention & { isLoading: boolean }) {
+  today,
+}: LoansAttention & { isLoading: boolean; today: string }) {
   const t = useTranslations("loans.sidebar.attention.borrowed");
-  const overdueDetail = useOverdueDetail(stats);
+  const overdueDetail = useOverdueDetail({ stats, today });
 
   const counts = {
     noReturnDate: stats?.noReturnDateCount ?? 0,
@@ -167,9 +174,10 @@ function LentAttention({
   isLoading,
   onSelect,
   stats,
-}: LoansAttention & { isLoading: boolean }) {
+  today,
+}: LoansAttention & { isLoading: boolean; today: string }) {
   const t = useTranslations("loans.sidebar.attention.lent");
-  const overdueDetail = useOverdueDetail(stats);
+  const overdueDetail = useOverdueDetail({ stats, today });
 
   const counts = {
     noReminderWithDate: stats?.noReminderWithDateCount ?? 0,
@@ -331,9 +339,9 @@ function LoansPeopleBlock({
   );
 }
 
-function LongHeldDays({ loanDate }: { loanDate: Nullable<string> }) {
+function LongHeldDays({ loanDate, today }: { loanDate: Nullable<string>; today: string }) {
   const t = useTranslations("loans.sidebar.longHeld");
-  const daysWithUser = daysBetweenLoanDates(loanDate, todayIso());
+  const daysWithUser = daysBetweenLoanDates(loanDate, today);
 
   if (daysWithUser === null) return null;
 
@@ -442,9 +450,15 @@ function toAttentionItems(sources: LoanAttentionSource[]): AttentionItem<LoanAtt
     .map(({ detail, id, label }) => ({ ...LOAN_ATTENTION_LOOK[id], detail, id, label }));
 }
 
-function UpcomingReturnLabel({ expectedReturnDate }: { expectedReturnDate: Nullable<string> }) {
+function UpcomingReturnLabel({
+  expectedReturnDate,
+  today,
+}: {
+  expectedReturnDate: Nullable<string>;
+  today: string;
+}) {
   const t = useTranslations("loans.sidebar.upcoming");
-  const relative = loanRelative(expectedReturnDate, todayIso());
+  const relative = loanRelative(expectedReturnDate, today);
 
   if (relative.kind === "today") return <>{t("today")}</>;
   if (relative.kind !== "soon") return null;
@@ -453,11 +467,17 @@ function UpcomingReturnLabel({ expectedReturnDate }: { expectedReturnDate: Nulla
   return <>{t("inDays", { count: relative.days })}</>;
 }
 
-function useOverdueDetail(stats: Nullable<LoanDirectionSummary>): string | undefined {
+function useOverdueDetail({
+  stats,
+  today,
+}: {
+  stats: Nullable<LoanDirectionSummary>;
+  today: string;
+}): string | undefined {
   const t = useTranslations("loans.stats");
   const daysSinceOldestOverdue = daysBetweenLoanDates(
     stats?.oldestOverdueReturnDate ?? null,
-    todayIso(),
+    today,
   );
 
   if (daysSinceOldestOverdue === null) return undefined;

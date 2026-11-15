@@ -4,17 +4,6 @@ import type { InfiniteData, QueryKey } from "@tanstack/react-query";
 import { BulkActionResultSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { characterKeys } from "@/features/characters/api/character-keys";
-import { invalidateGenreDerivedQueries } from "@/features/genres/api/genres-keys";
-import { listKeys } from "@/features/lists/api/list-keys";
-import { invalidatePublisherQueries } from "@/features/publishers/api/publisher-keys";
-import { invalidateGoalQueries } from "@/features/reading-goals/api/goal-keys";
-import { seriesKeys } from "@/features/series/api/series-keys";
-import { invalidateStatisticsQueries } from "@/features/statistics/api/statistics-keys";
-import {
-  invalidateTagAggregateQueries,
-  invalidateTagCollectionQueries,
-} from "@/features/tags/api/tags-keys";
 import {
   booksControllerDelete,
   booksControllerUpdate,
@@ -26,15 +15,12 @@ import {
   bulkBooksControllerReadingStatus,
   bulkBooksControllerTags,
 } from "@/shared/api/generated/endpoints/books/books";
-import { getReadingQueueControllerGetQueueQueryKey } from "@/shared/api/generated/endpoints/reading-queue/reading-queue";
 
 import type { ListDraft } from "../model/book-organization-fields";
 import type { LibraryBooksPage } from "./use-books";
 
-import { bookKeys, matchesBooksExceptDetail } from "./book-keys";
-import { RECENT_GENRES_KEY } from "./use-recent-genres";
-
-const LIST_KEY = ["/api/books", "list"];
+import { bookChangeEffects } from "./book-change-effects";
+import { bookKeys, matchesBookDetail } from "./book-keys";
 
 type FavoriteContext = {
   snapshot: [QueryKey, InfiniteData<LibraryBooksPage> | undefined][];
@@ -47,8 +33,7 @@ export function useBulkAddTags() {
     mutationFn: async (input: { bookIds: string[]; tags: string[] }) =>
       BulkActionResultSchema.parse(await bulkBooksControllerTags(input)),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
-      void invalidateTagCollectionQueries(queryClient);
+      void bookChangeEffects.booksChanged(queryClient, { changes: ["tagged"] });
     },
   });
 }
@@ -66,9 +51,7 @@ export function useBulkAddToList() {
         }),
       ),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
-      void queryClient.invalidateQueries({ queryKey: listKeys.root });
-      void invalidateStatisticsQueries(queryClient);
+      void bookChangeEffects.booksChanged(queryClient, { changes: ["listed"] });
     },
   });
 }
@@ -80,9 +63,7 @@ export function useBulkAddToReadingQueue() {
     mutationFn: async (bookIds: string[]) =>
       BulkActionResultSchema.parse(await bulkBooksControllerReadingQueue({ bookIds })),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
-      void invalidateGenreDerivedQueries(queryClient);
-      void invalidatePublisherQueries(queryClient);
+      void bookChangeEffects.readingQueueChanged(queryClient, { change: "queueChanged" });
     },
   });
 }
@@ -93,16 +74,8 @@ export function useBulkDeleteBooks() {
   return useMutation({
     mutationFn: async (bookIds: string[]) =>
       BulkActionResultSchema.parse(await bulkBooksControllerDelete({ bookIds })),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
-      void queryClient.invalidateQueries({ queryKey: characterKeys.all });
-      void invalidatePublisherQueries(queryClient);
-      void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
-      void invalidateStatisticsQueries(queryClient);
-      void invalidateGenreDerivedQueries(queryClient);
-      void invalidateTagAggregateQueries(queryClient);
-      void queryClient.invalidateQueries({ queryKey: RECENT_GENRES_KEY });
-      void invalidateGoalQueries(queryClient);
+    onSuccess: (_result, bookIds) => {
+      void bookChangeEffects.booksRemoved(queryClient, bookIds);
     },
   });
 }
@@ -114,10 +87,7 @@ export function useBulkOwnershipStatus() {
     mutationFn: async (input: { bookIds: string[]; ownershipStatus: OwnershipStatus }) =>
       BulkActionResultSchema.parse(await bulkBooksControllerOwnershipStatus(input)),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
-      void invalidatePublisherQueries(queryClient);
-      void invalidateStatisticsQueries(queryClient);
-      void invalidateGenreDerivedQueries(queryClient);
+      void bookChangeEffects.booksChanged(queryClient, { changes: ["statusChanged"] });
     },
   });
 }
@@ -129,12 +99,7 @@ export function useBulkReadingStatus() {
     mutationFn: async (input: { bookIds: string[]; readingStatus: ReadingStatus }) =>
       BulkActionResultSchema.parse(await bulkBooksControllerReadingStatus(input)),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
-      void invalidatePublisherQueries(queryClient);
-      void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
-      void invalidateStatisticsQueries(queryClient);
-      void invalidateGenreDerivedQueries(queryClient);
-      void invalidateGoalQueries(queryClient);
+      void bookChangeEffects.booksChanged(queryClient, { changes: ["statusChanged"] });
     },
   });
 }
@@ -146,7 +111,7 @@ export function useBulkSetFavorite() {
     mutationFn: async (input: { bookIds: string[]; isFavorite: boolean }) =>
       BulkActionResultSchema.parse(await bulkBooksControllerFavorite(input)),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
+      void bookChangeEffects.booksChanged(queryClient, { changes: ["favorited"] });
     },
   });
 }
@@ -156,32 +121,8 @@ export function useDeleteBook() {
 
   return useMutation({
     mutationFn: (id: string) => booksControllerDelete(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
-      void queryClient.invalidateQueries({ queryKey: characterKeys.all });
-      void invalidatePublisherQueries(queryClient);
-      void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
-      void invalidateStatisticsQueries(queryClient);
-      void invalidateGenreDerivedQueries(queryClient);
-      void invalidateTagAggregateQueries(queryClient);
-      void queryClient.invalidateQueries({ queryKey: RECENT_GENRES_KEY });
-      void invalidateGoalQueries(queryClient);
-    },
-  });
-}
-
-export function useRemoveFromReadingQueue() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: string) => booksControllerUpdate(id, { addToReadingQueue: false }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
-      void invalidatePublisherQueries(queryClient);
-      void queryClient.invalidateQueries({
-        queryKey: getReadingQueueControllerGetQueueQueryKey(),
-      });
-      void invalidateGenreDerivedQueries(queryClient);
+    onSuccess: (_result, id) => {
+      void bookChangeEffects.booksRemoved(queryClient, [id]);
     },
   });
 }
@@ -195,9 +136,9 @@ export function useToggleFavorite() {
       context?.snapshot.forEach(([key, data]) => queryClient.setQueryData(key, data));
     },
     onMutate: async ({ id, isFavorite }) => {
-      await queryClient.cancelQueries({ queryKey: LIST_KEY });
+      await queryClient.cancelQueries({ queryKey: bookKeys.lists });
       const snapshot = queryClient.getQueriesData<InfiniteData<LibraryBooksPage>>({
-        queryKey: LIST_KEY,
+        queryKey: bookKeys.lists,
       });
       for (const [key, data] of snapshot) {
         if (data === undefined) continue;
@@ -212,7 +153,10 @@ export function useToggleFavorite() {
       return { snapshot };
     },
     onSettled: (_data, _error, { id }) => {
-      void queryClient.invalidateQueries({ predicate: matchesBooksExceptDetail(id) });
+      void bookChangeEffects.booksChanged(queryClient, {
+        changes: ["favorited"],
+        keep: [matchesBookDetail(id)],
+      });
     },
     onSuccess: (_data, { id, isFavorite }) => {
       const detailKey = bookKeys.detail(id);

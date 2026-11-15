@@ -29,11 +29,21 @@ type DeleteTagDialogProps = {
 };
 
 export function DeleteTagDialog({ onOpenChange, tag }: DeleteTagDialogProps) {
+  const deleteTag = useDeleteTag();
+
   return (
-    <AlertDialog onOpenChange={onOpenChange} open={tag !== null}>
+    <AlertDialog
+      onOpenChange={(next) => {
+        if (deleteTag.isPending) return;
+        if (!next) deleteTag.reset();
+        onOpenChange(next);
+      }}
+      open={tag !== null}
+    >
       <AlertDialogContent size="sm">
         {tag === null ? null : (
           <DeleteTagContent
+            deleteTag={deleteTag}
             key={tag.id}
             onDone={() => onOpenChange(false)}
             tagId={tag.id}
@@ -46,17 +56,18 @@ export function DeleteTagDialog({ onOpenChange, tag }: DeleteTagDialogProps) {
 }
 
 function DeleteTagContent({
+  deleteTag,
   onDone,
   tagId,
   tagName,
 }: {
+  deleteTag: ReturnType<typeof useDeleteTag>;
   onDone: () => void;
   tagId: string;
   tagName: string;
 }) {
   const t = useTranslations("tags.deleteDialog");
   const preview = useTagDeletionPreview(tagId);
-  const deleteTag = useDeleteTag();
   const canConfirm = preview.isSuccess && !preview.isFetching && !deleteTag.isPending;
 
   function confirm() {

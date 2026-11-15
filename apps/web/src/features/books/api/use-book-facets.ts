@@ -3,12 +3,11 @@ import type { BookFacetScope, BookFacetsView } from "@app/shared";
 import { BookFacetsViewSchema } from "@app/shared";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
-import {
-  booksControllerFacets,
-  getBooksControllerFacetsQueryKey,
-} from "@/shared/api/generated/endpoints/books/books";
+import { booksControllerFacets } from "@/shared/api/generated/endpoints/books/books";
 
 import type { LibraryPublisherContext } from "../model/library-query";
+
+import { bookKeys } from "./book-keys";
 
 const FACET_SEARCH_MIN_LENGTH = 2;
 
@@ -28,6 +27,6 @@ export function useBookFacets(
     placeholderData: keepPreviousData,
     queryFn: async ({ signal }): Promise<BookFacetsView> =>
       BookFacetsViewSchema.parse(await booksControllerFacets(params, { signal })),
-    queryKey: getBooksControllerFacetsQueryKey(params),
+    queryKey: bookKeys.facets(params),
   });
 }

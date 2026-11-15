@@ -29,6 +29,5 @@ export function useRelationshipEditable({
         await characterRelationshipsControllerGetForEdit(relationshipId, { signal }),
       ),
     queryKey: relationshipKeys.editable(relationshipId),
-    retry: false,
   });
 }

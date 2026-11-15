@@ -12,6 +12,7 @@ import { compareAsc, parseISO } from "date-fns";
 import { z } from "zod";
 
 import { createLogger } from "../../../core/logger.js";
+import { UserSettingsContextService } from "../../profile/index.js";
 import { READING_GOAL_LIMITS } from "../domain/reading-goal.constants.js";
 import { toReadingGoalListItem } from "../domain/reading-goal.mapper.js";
 import { ReadingGoalsRepository } from "../infrastructure/reading-goals.repository.js";
@@ -41,15 +42,19 @@ export class ReadingGoalCatalogService {
   constructor(
     private readonly readingGoalsRepository: ReadingGoalsRepository,
     private readonly viewBuilder: ReadingGoalViewBuilder,
+    private readonly userSettingsContextService: UserSettingsContextService,
   ) {}
 
   async list({ query, userId }: ListReadingGoalsInput): Promise<ReadingGoalListResponse> {
-    const scanned = await this.readingGoalsRepository.findCatalogPage({
-      limit: READING_GOAL_LIMITS.catalogScan + 1,
-      listId: query.listId ?? null,
-      sort: query.sort,
-      userId,
-    });
+    const [scanned, { timeZone, today }] = await Promise.all([
+      this.readingGoalsRepository.findCatalogPage({
+        limit: READING_GOAL_LIMITS.catalogScan + 1,
+        listId: query.listId ?? null,
+        sort: query.sort,
+        userId,
+      }),
+      this.userSettingsContextService.calendar({ now: new Date(), userId }),
+    ]);
     if (scanned.length > READING_GOAL_LIMITS.catalogScan) {
       log.warn(
         { cap: READING_GOAL_LIMITS.catalogScan, userId },
@@ -59,7 +64,8 @@ export class ReadingGoalCatalogService {
 
     const entries = await this.viewBuilder.calculateAll({
       goals: scanned.slice(0, READING_GOAL_LIMITS.catalogScan),
-      now: new Date(),
+      timeZone,
+      today,
     });
     const ordered = entries
       .map((entry) => toReadingGoalListItem(entry))

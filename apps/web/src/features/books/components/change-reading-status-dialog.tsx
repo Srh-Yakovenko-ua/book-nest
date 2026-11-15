@@ -4,11 +4,13 @@ import type { BookView, ChangeReadingStatusInput, ReadingStatus } from "@app/sha
 
 import { ReadingStatusSchema } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { isAfter, parseISO } from "date-fns";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
+import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,14 +27,18 @@ import { Label } from "@/components/ui/label";
 import { NumberStepper } from "@/components/ui/number-stepper";
 import { Rating } from "@/components/ui/rating";
 import { Textarea } from "@/components/ui/textarea";
+import { useProfileTimeZone } from "@/features/settings";
+import {
+  CLEAN_CLOSE_GUARD_DRAFT,
+  type CloseGuardDraft,
+  useCloseGuard,
+} from "@/hooks/use-close-guard";
 import { readingStatuses } from "@/lib/book-status";
+import { emptyToNull } from "@/lib/empty-to-null";
+import { ISO_DAY, todayIsoDay } from "@/lib/iso-day";
 
 import { useChangeReadingStatus } from "../api/use-reading-progress";
-import {
-  ISO_DATE_PATTERN,
-  READING_CURRENT_PAGE_CEILING,
-  todayIso,
-} from "../model/reading-progress";
+import { READING_CURRENT_PAGE_CEILING } from "../model/reading-progress";
 import { BookDateField } from "./book-date-field";
 import { StatusChipGroup } from "./status-chip-group";
 
@@ -73,18 +79,39 @@ export function ChangeReadingStatusDialog({
   onOpenChange,
   open,
 }: ChangeReadingStatusDialogProps) {
+  const [draft, setDraft] = useState<CloseGuardDraft>(CLEAN_CLOSE_GUARD_DRAFT);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const guard = useCloseGuard({
+    focusFallback: () => contentRef.current?.focus(),
+    isDirty: draft.isDirty,
+    isOpen: open,
+    isPending: draft.isPending,
+    onClose: () => onOpenChange(false),
+  });
+
   return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="sm:max-w-md">
-        {open ? (
-          <ChangeStatusForm
-            book={book}
-            defaultStatus={defaultStatus}
-            onDone={() => onOpenChange(false)}
-          />
-        ) : null}
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog
+        onOpenChange={(next) => {
+          if (!next) guard.requestClose();
+        }}
+        open={open}
+      >
+        <DialogContent className="sm:max-w-md" ref={contentRef}>
+          {open ? (
+            <ChangeStatusForm
+              book={book}
+              defaultStatus={defaultStatus}
+              onCancel={guard.requestClose}
+              onDone={() => onOpenChange(false)}
+              onDraftChange={setDraft}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <DiscardChangesDialog {...guard.discardDialog} />
+    </>
   );
 }
 
@@ -96,32 +123,36 @@ function buildPayload({
   values: ChangeStatusValues;
 }): ChangeReadingStatusInput {
   const payload: ChangeReadingStatusInput = { status: values.status };
+  const note = emptyToNull(values.note);
+  const impression = emptyToNull(values.impression);
   if (fields.date) payload.date = values.date;
   if (fields.currentPage && values.currentPage > 0) payload.currentPage = values.currentPage;
-  if ((fields.note || fields.reason) && values.note.trim().length > 0) {
-    payload.note = values.note.trim();
-  }
-  if (fields.impression && values.impression.trim().length > 0) {
-    payload.impression = values.impression.trim();
-  }
+  if ((fields.note || fields.reason) && note !== null) payload.note = note;
+  if (fields.impression && impression !== null) payload.impression = impression;
   if (fields.rating && values.rating > 0) payload.rating = values.rating;
   if (fields.resetProgress && values.resetProgress) payload.resetProgress = true;
   return payload;
 }
 
-function buildSchema(messages: {
-  dateFuture: string;
-  dateInvalid: string;
-  impressionMax: string;
-  noteMax: string;
-  pageOverTotal: string;
+function buildSchema({
+  messages,
+  today,
+}: {
+  messages: {
+    dateFuture: string;
+    dateInvalid: string;
+    impressionMax: string;
+    noteMax: string;
+    pageOverTotal: string;
+  };
+  today: string;
 }) {
   return z.object({
     currentPage: z.number().int().min(0).max(READING_CURRENT_PAGE_CEILING, messages.pageOverTotal),
     date: z
       .string()
-      .refine((value) => ISO_DATE_PATTERN.test(value), messages.dateInvalid)
-      .refine((value) => value <= todayIso(), messages.dateFuture),
+      .refine((value) => ISO_DAY.pattern.test(value), messages.dateInvalid)
+      .refine((value) => !isAfter(parseISO(value), parseISO(today)), messages.dateFuture),
     impression: z.string().max(IMPRESSION_MAX, messages.impressionMax),
     note: z.string().max(NOTE_MAX, messages.noteMax),
     rating: z.literal(0).or(z.number().min(0.5).max(RATING_MAX).multipleOf(0.5)),
@@ -133,11 +164,15 @@ function buildSchema(messages: {
 function ChangeStatusForm({
   book,
   defaultStatus,
+  onCancel,
   onDone,
+  onDraftChange,
 }: {
   book: BookView;
   defaultStatus?: ReadingStatus;
+  onCancel: () => void;
   onDone: () => void;
+  onDraftChange: (draft: CloseGuardDraft) => void;
 }) {
   const t = useTranslations("books.details.reading");
   const tOptions = useTranslations("books.readingStatus.options");
@@ -146,15 +181,19 @@ function ChangeStatusForm({
   const tCommon = useTranslations("common");
   const change = useChangeReadingStatus();
   const [serverError, setServerError] = useState<null | string>(null);
+  const today = todayIsoDay(useProfileTimeZone());
 
   const {
     control,
     formState: { errors, isDirty },
+    getFieldState,
+    getValues,
     handleSubmit,
+    resetField,
   } = useForm<ChangeStatusValues>({
     defaultValues: {
       currentPage: book.readingProgress?.currentPage ?? 0,
-      date: todayIso(),
+      date: today,
       impression: book.readingProgress?.impression ?? "",
       note: "",
       rating: book.readingProgress?.rating ?? 0,
@@ -164,11 +203,14 @@ function ChangeStatusForm({
     mode: "onTouched",
     resolver: zodResolver(
       buildSchema({
-        dateFuture: t("errors.dateFuture"),
-        dateInvalid: t("errors.dateInvalid"),
-        impressionMax: t("errors.impressionMax", { max: IMPRESSION_MAX }),
-        noteMax: t("errors.noteMax", { max: NOTE_MAX }),
-        pageOverTotal: t("errors.pageOverTotal", { total: book.pagesCount ?? "—" }),
+        messages: {
+          dateFuture: t("errors.dateFuture"),
+          dateInvalid: t("errors.dateInvalid"),
+          impressionMax: t("errors.impressionMax", { max: IMPRESSION_MAX }),
+          noteMax: t("errors.noteMax", { max: NOTE_MAX }),
+          pageOverTotal: t("errors.pageOverTotal", { total: book.pagesCount ?? "—" }),
+        },
+        today,
       }),
     ),
   });
@@ -176,6 +218,15 @@ function ChangeStatusForm({
   const status = useWatch({ control, name: "status" });
   const hasSavedPage = (book.readingProgress?.currentPage ?? 0) > 0;
   const fields = fieldsFor(status, hasSavedPage);
+
+  useEffect(() => {
+    onDraftChange({ isDirty, isPending: change.isPending });
+  }, [change.isPending, isDirty, onDraftChange]);
+
+  useEffect(() => {
+    if (getFieldState("date").isDirty || getValues("date") === today) return;
+    resetField("date", { defaultValue: today });
+  }, [getFieldState, getValues, resetField, today]);
 
   const onSubmit = handleSubmit((values) => {
     setServerError(null);
@@ -309,6 +360,7 @@ function ChangeStatusForm({
                 invalid={errors.date !== undefined}
                 onChange={(next) => field.onChange(next ?? "")}
                 required
+                today={today}
                 value={field.value}
               />
             )}
@@ -382,7 +434,7 @@ function ChangeStatusForm({
       )}
 
       <DialogFooter>
-        <Button onClick={onDone} type="button" variant="secondary">
+        <Button onClick={onCancel} type="button" variant="secondary">
           {tActions("cancel")}
         </Button>
         <Button disabled={!isDirty || change.isPending} loading={change.isPending} type="submit">

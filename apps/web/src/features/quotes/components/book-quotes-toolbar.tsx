@@ -2,6 +2,7 @@
 
 import type { QuotesFacetsView } from "@app/shared";
 
+import { QUOTE_INPUT_LIMITS } from "@app/shared";
 import { useTranslations } from "next-intl";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
@@ -53,6 +54,7 @@ export function BookQuotesToolbar({
         clearLabel={t("toolbar.searchClear")}
         isCommittable={alwaysCommittable}
         label={t("bookTab.searchLabel")}
+        maxLength={QUOTE_INPUT_LIMITS.searchMax}
         onClear={query.clearSearch}
         onSearch={query.setSearch}
         placeholder={t("bookTab.searchPlaceholder")}

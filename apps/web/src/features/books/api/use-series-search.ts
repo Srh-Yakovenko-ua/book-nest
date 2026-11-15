@@ -2,6 +2,7 @@ import { PaginatedSeriesSchema } from "@app/shared";
 import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { z } from "zod";
 
+import { seriesKeys } from "@/features/series/api/series-keys";
 import { seriesControllerSearch } from "@/shared/api/generated/endpoints/series/series";
 
 type SeriesSearchPage = z.infer<typeof PaginatedSeriesSchema>;
@@ -31,7 +32,7 @@ export function useSeriesSearch({ authorIds, search }: UseSeriesSearchOptions) {
       });
       return PaginatedSeriesSchema.parse(response);
     },
-    queryKey: ["series", "search", trimmed, scopedAuthorIds ?? []],
+    queryKey: seriesKeys.search({ authorIds: scopedAuthorIds ?? [], search: trimmed }),
   });
 
   const items = query.data?.pages.flatMap((page) => page.items) ?? [];

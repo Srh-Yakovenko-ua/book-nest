@@ -9,7 +9,7 @@ import type {
 
 import { characterKeys } from "@/features/characters/api/character-keys";
 
-const SPECIES_ROOT = "species";
+const SPECIES_ROOT = "/api/species";
 
 export const speciesKeys = {
   all: [SPECIES_ROOT] as const,

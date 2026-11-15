@@ -11,23 +11,34 @@ export function useDeleteCharacterWithUndo() {
   const softDelete = useSoftDeleteCharacter();
   const restore = useRestoreCharacter();
 
-  function deleteWithUndo(characterId: string, onDeleted?: () => void) {
-    softDelete.mutate(characterId, {
-      onError: () => toast.error(t("deleteError")),
-      onSuccess: () => {
-        onDeleted?.();
-        toast(t("deleted"), {
-          action: {
-            label: t("undo"),
-            onClick: () =>
-              restore.mutate(characterId, {
-                onError: () => toast.error(t("restoreError")),
-                onSuccess: () => toast.success(t("restored")),
-              }),
-          },
-        });
+  async function restoreWithFeedback(characterId: string) {
+    try {
+      await restore.mutateAsync(characterId);
+    } catch {
+      toast.error(t("restoreError"));
+      return;
+    }
+    toast.success(t("restored"));
+  }
+
+  async function softDeleteAndOfferUndo(characterId: string, onDeleted?: () => void) {
+    try {
+      await softDelete.mutateAsync(characterId);
+    } catch {
+      toast.error(t("deleteError"));
+      return;
+    }
+    onDeleted?.();
+    toast(t("deleted"), {
+      action: {
+        label: t("undo"),
+        onClick: () => void restoreWithFeedback(characterId),
       },
     });
+  }
+
+  function deleteWithUndo(characterId: string, onDeleted?: () => void) {
+    void softDeleteAndOfferUndo(characterId, onDeleted);
   }
 
   return { deleteWithUndo, isPending: softDelete.isPending };

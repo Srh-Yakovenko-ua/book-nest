@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 
+import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DiscardConfirmDialog } from "@/features/books";
+import { useCloseGuard } from "@/hooks/use-close-guard";
 
 import type {
   RelationshipAuthoringContext,
@@ -20,7 +21,6 @@ import type {
 
 import { toRelationshipAuthoringSubject } from "../model/relationship-authoring";
 import { focusFirstRelationshipControl } from "../model/relationship-editor-focus";
-import { useRelationshipDraftGuard } from "../model/use-relationship-draft-guard";
 import { RelationshipCreateForm } from "./relationship-create-form";
 import { RelationshipEditContent } from "./relationship-edit-content";
 
@@ -45,8 +45,9 @@ export function RelationshipEditorDialog(props: RelationshipEditorDialogProps) {
     focusFirstRelationshipControl(contentRef.current);
   }
 
-  const guard = useRelationshipDraftGuard({
-    focusDraft,
+  const guard = useCloseGuard({
+    focusFallback: focusDraft,
+    guardHistory: true,
     isDirty: draft.isDirty,
     isOpen: open,
     isPending: draft.isPending,
@@ -94,7 +95,7 @@ export function RelationshipEditorDialog(props: RelationshipEditorDialogProps) {
         </DialogContent>
       </Dialog>
 
-      <DiscardConfirmDialog
+      <DiscardChangesDialog
         cancelLabel={tDiscardChanges("cancel")}
         confirmLabel={tDiscardChanges("confirm")}
         description={t("discard.description")}

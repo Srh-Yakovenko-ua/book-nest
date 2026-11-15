@@ -6,6 +6,7 @@ import {
   parseIsoDate,
   toIsoDate,
   toIsoDateFromIsoString,
+  toZonedCalendarDay,
 } from "./iso-date.js";
 
 describe("iso-date", () => {
@@ -59,6 +60,26 @@ describe("iso-date", () => {
     it("counts calendar days across a spring-forward transition", () => {
       expect(addDaysToIsoDate("2000-04-01", 3)).toBe("2000-04-04");
       expect(daysBetweenIsoDates({ endIsoDate: "2000-04-04", startIsoDate: "2000-04-01" })).toBe(3);
+    });
+  });
+
+  describe("reading the calendar day an instant falls on in a time zone", () => {
+    it("moves to the next day when the zone east of UTC has already passed midnight", () => {
+      const day = toZonedCalendarDay({
+        instant: new Date("2026-11-15T22:30:00.000Z"),
+        timeZone: "Europe/Kyiv",
+      });
+
+      expect(day.toISOString()).toBe("2026-11-16T00:00:00.000Z");
+    });
+
+    it("stays on the previous day when the zone west of UTC has not reached midnight", () => {
+      const day = toZonedCalendarDay({
+        instant: new Date("2026-11-16T02:00:00.000Z"),
+        timeZone: "America/New_York",
+      });
+
+      expect(day.toISOString()).toBe("2026-11-15T00:00:00.000Z");
     });
   });
 

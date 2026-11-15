@@ -1,5 +1,7 @@
 import type { FieldErrors } from "react-hook-form";
 
+import { assertNever } from "@/lib/assert-never";
+
 import type { CreateBookFormValues } from "./create-book-form";
 
 export type SectionFieldConfig = {
@@ -64,10 +66,6 @@ export function computeSectionComplete(
     );
   }
   return fields.some((field) => isFilled(field, valuesByName[field.name]));
-}
-
-function assertNever(value: never): never {
-  throw new Error(`Unhandled section field kind: ${String(value)}`);
 }
 
 function isChangedFromDefault(value: unknown, defaultValue: unknown): boolean {

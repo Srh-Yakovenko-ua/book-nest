@@ -36,15 +36,21 @@ describe("getLoanUiStatus", () => {
 });
 
 describe("loanDateBounds", () => {
-  it("derives a UTC-midnight today from the given instant", () => {
-    const { today } = loanDateBounds(new Date("2026-07-08T15:30:00.000Z"));
+  it("keeps the given calendar day as today", () => {
+    const { today } = loanDateBounds(utc("2026-07-08"));
 
     expect(today.toISOString()).toBe("2026-07-08T00:00:00.000Z");
   });
 
   it("sets the soon window seven days after today", () => {
-    const { soonEnd } = loanDateBounds(new Date("2026-07-08T15:30:00.000Z"));
+    const { soonEnd } = loanDateBounds(utc("2026-07-08"));
 
     expect(soonEnd.toISOString()).toBe("2026-07-15T00:00:00.000Z");
+  });
+
+  it("carries the soon window across a month boundary", () => {
+    const { soonEnd } = loanDateBounds(utc("2026-11-28"));
+
+    expect(soonEnd.toISOString()).toBe("2026-12-05T00:00:00.000Z");
   });
 });

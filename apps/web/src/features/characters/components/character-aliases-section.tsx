@@ -12,8 +12,8 @@ import type {
 import { useTranslations } from "next-intl";
 import { useImperativeHandle } from "react";
 
+import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
 import { Separator } from "@/components/ui/separator";
-import { DiscardConfirmDialog } from "@/features/books";
 
 import type { CharacterEditScope, CharacterEditValues } from "../model/character-edit-form";
 
@@ -112,7 +112,7 @@ export function CharacterAliasesSection({
         {aliasEditor.announcement}
       </span>
 
-      <DiscardConfirmDialog
+      <DiscardChangesDialog
         cancelLabel={tDiscardChanges("cancel")}
         confirmLabel={t("discard.confirm")}
         description={t("discard.description")}

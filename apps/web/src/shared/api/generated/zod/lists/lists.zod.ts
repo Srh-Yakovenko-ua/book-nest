@@ -1889,11 +1889,34 @@ export const listMembershipControllerAddBooksBodyBookIdsItemRegExp = new RegExp(
 );
 export const listMembershipControllerAddBooksBodyBookIdsMax = 100;
 
+export const listMembershipControllerAddBooksBodyPositionsItemBookIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const listMembershipControllerAddBooksBodyPositionsItemPositionExclusiveMin = 0;
+export const listMembershipControllerAddBooksBodyPositionsItemPositionMax = 9007199254740991;
+
+export const listMembershipControllerAddBooksBodyPositionsMax = 100;
+
 export const ListMembershipControllerAddBooksBody = zod.object({
   bookIds: zod
     .array(zod.uuid().regex(listMembershipControllerAddBooksBodyBookIdsItemRegExp))
     .min(1)
     .max(listMembershipControllerAddBooksBodyBookIdsMax),
+  positions: zod
+    .array(
+      zod.object({
+        bookId: zod.uuid().regex(listMembershipControllerAddBooksBodyPositionsItemBookIdRegExp),
+        position: zod
+          .int()
+          .gt(listMembershipControllerAddBooksBodyPositionsItemPositionExclusiveMin)
+          .max(listMembershipControllerAddBooksBodyPositionsItemPositionMax),
+      }),
+    )
+    .max(listMembershipControllerAddBooksBodyPositionsMax)
+    .optional()
+    .describe(
+      "Former 1-based manual-order positions to restore books from bookIds at, clamped to the list size; books without one are appended",
+    ),
 });
 
 export const listMembershipControllerAddBooksResponseAddedMin = 0;

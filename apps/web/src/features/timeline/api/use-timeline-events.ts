@@ -35,6 +35,5 @@ export function useTimelineEvents(
       return PaginatedTimelineEventsSchema.parse(response);
     },
     queryKey: timelineKeys.eventsList(bookId, filters),
-    retry: false,
   });
 }

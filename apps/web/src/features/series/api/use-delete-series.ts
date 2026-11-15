@@ -1,9 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { bookKeys } from "@/features/books/api/book-keys";
-import { characterKeys } from "@/features/characters/api/character-keys";
-import { invalidatePublisherQueries } from "@/features/publishers/api/publisher-keys";
-import { invalidateStatisticsQueries } from "@/features/statistics/api/statistics-keys";
+import { bookChangeEffects } from "@/features/books/api/book-change-effects";
+import { matchesAnyKeyPrefix, retireQueries } from "@/lib/query-keys";
 import { seriesControllerDelete } from "@/shared/api/generated/endpoints/series/series";
 
 import { seriesKeys } from "./series-keys";
@@ -14,11 +12,17 @@ export function useDeleteSeries(id: string) {
   return useMutation({
     mutationFn: () => seriesControllerDelete(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
-      void queryClient.invalidateQueries({ queryKey: characterKeys.all });
-      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
-      void invalidateStatisticsQueries(queryClient);
-      void invalidatePublisherQueries(queryClient);
+      const deletedSeriesViews = matchesAnyKeyPrefix(
+        seriesKeys.detail(id),
+        seriesKeys.charactersScope(id),
+        seriesKeys.defaultReadingContext(id),
+        seriesKeys.orderCheckPreference(id),
+      );
+      retireQueries(queryClient, deletedSeriesViews);
+      void bookChangeEffects.booksChanged(queryClient, {
+        changes: ["seriesChanged"],
+        keep: [deletedSeriesViews],
+      });
     },
   });
 }

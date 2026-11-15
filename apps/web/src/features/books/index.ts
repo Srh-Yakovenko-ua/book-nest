@@ -15,7 +15,6 @@ export { BookRow } from "./components/book-row";
 export { BooksArchive } from "./components/books-archive";
 export { BooksLibrary } from "./components/books-library";
 export { CreateBookForm } from "./components/create-book-form";
-export { DiscardConfirmDialog } from "./components/discard-confirm-dialog";
 export { EditBookForm } from "./components/edit-book-form";
 export { FavoritesView } from "./components/favorites-view";
 export { FormSection } from "./components/form-section";
@@ -33,12 +32,10 @@ export { BOOK_GENRES_MAX } from "./model/book-classification-fields";
 export { type AuthorSelection, authorSelectionToReference } from "./model/create-book-form";
 export { type LibraryBook, type LibraryBookLabels, toLibraryBook } from "./model/library-book";
 export { LIBRARY_PUBLISHER_PRESENCE_MISSING, libraryQueryParsers } from "./model/library-query";
-export { todayIso } from "./model/reading-progress";
 export {
   buildStoreSourceSchema,
   resolveStoreName,
   resolveStorePrice,
-  STORE_SOURCE_LIMITS,
   type StoreSourceValue,
   toStoreSourceDefaults,
 } from "./model/store-source";

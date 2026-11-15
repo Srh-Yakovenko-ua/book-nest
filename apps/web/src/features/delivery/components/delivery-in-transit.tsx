@@ -23,7 +23,10 @@ import { useInTransitImpact } from "../api/use-in-transit-impact";
 import { useInTransitList } from "../api/use-in-transit-list";
 import { useInTransitQuickCounts } from "../api/use-in-transit-quick-counts";
 import { useInTransitSummary } from "../api/use-in-transit-summary";
-import { useSetShipmentStatus } from "../api/use-order-shipment-actions";
+import {
+  usePendingShipmentStatusIds,
+  useSetShipmentStatus,
+} from "../api/use-order-shipment-actions";
 import { useRevealDeliveryTarget } from "../hooks/use-reveal-delivery-target";
 import { useDeliverySelectionStore } from "../model/delivery-selection-store";
 import {
@@ -66,6 +69,7 @@ export function DeliveryInTransit() {
   const summaryQuery = useInTransitSummary();
   const impactQuery = useInTransitImpact();
   const setShipmentStatus = useSetShipmentStatus();
+  const pendingShipmentIds = usePendingShipmentStatusIds();
 
   const clearSelection = useDeliverySelectionStore((state) => state.clear);
   const enterSelection = useDeliverySelectionStore((state) => state.enterSelection);
@@ -91,10 +95,12 @@ export function DeliveryInTransit() {
 
     setPreparingOrderId(action.order.id);
     try {
-      await queryClient.ensureQueryData(bookOrderQueryOptions(action.order.id));
+      await queryClient.fetchQuery(bookOrderQueryOptions(action.order.id));
+      setManageAction(action);
+    } catch {
+      toast.error(t("states.error.title"));
     } finally {
       setPreparingOrderId(null);
-      setManageAction(action);
     }
   }
 
@@ -145,12 +151,9 @@ export function DeliveryInTransit() {
   );
 
   function changeShipmentStatus(shipmentId: string, status: ActiveShipmentStatus) {
-    setShipmentStatus.mutate(
-      { shipmentId, status },
-      {
-        onError: (error) => toast.error(deliveryErrorText(error)),
-        onSuccess: () => toast.success(tToast("statusUpdated")),
-      },
+    void setShipmentStatus.mutateAsync({ shipmentId, status }).then(
+      () => toast.success(tToast("statusUpdated")),
+      (error: unknown) => toast.error(deliveryErrorText(error)),
     );
   }
 
@@ -265,6 +268,7 @@ export function DeliveryInTransit() {
         setReceiveTarget({ bookCount, kind: "shipment", shipmentId })
       }
       onToggleSelectShipment={toggleSelectShipment}
+      pendingShipmentIds={pendingShipmentIds}
       preparingEdit={preparingOrderId === model.id}
       revealedOrderId={revealedTarget?.kind === "order" ? revealedTarget.id : null}
       revealedShipmentId={revealedTarget?.kind === "shipment" ? revealedTarget.id : null}

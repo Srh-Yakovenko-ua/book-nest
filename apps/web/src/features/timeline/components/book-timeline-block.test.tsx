@@ -5,6 +5,7 @@ import type { OnUrlUpdateFunction, UrlUpdateEvent } from "nuqs/adapters/testing"
 
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { act } from "react";
+import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import messages from "@/messages/uk.json";
@@ -695,5 +696,64 @@ describe("BookTimelineBlock timeline management", () => {
 
     await waitFor(() => expect(events.at(-1)?.searchParams.get("timelineId")).toBeNull());
     expect(await screen.findByRole("dialog", { name: "Керування лініями" })).toBeInTheDocument();
+  });
+});
+
+describe("BookTimelineBlock event reorder errors", () => {
+  const FIRST_EVENTS = [
+    makeTimelineEventView({ id: "e1", title: "Пролог" }),
+    makeTimelineEventView({ id: "e2", title: "Зав’язка" }),
+  ];
+
+  beforeEach(() => {
+    vi.spyOn(toast, "error");
+    eventsResponder = () => jsonResponse(makeEventsPage(FIRST_EVENTS));
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  async function moveFirstEventDown() {
+    await screen.findByRole("button", { name: "Пролог" });
+    await userEvent.click(screen.getByRole("button", { name: "Дії події «Пролог»" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Перемістити нижче" }));
+  }
+
+  it("warns about the conflict and reloads the events on a reorder conflict", async () => {
+    mutationResponder = () =>
+      jsonResponse({ code: "timeline_reorder_conflict", message: "conflict" }, 409);
+    eventsResponder = () => {
+      const reorderSent = fetchMock.mock.calls.some(([url]) => String(url).includes("/reorder"));
+      return jsonResponse(
+        makeEventsPage(
+          reorderSent
+            ? [...FIRST_EVENTS, makeTimelineEventView({ id: "e3", title: "Кульмінація" })]
+            : FIRST_EVENTS,
+        ),
+      );
+    };
+
+    renderBlock();
+    await moveFirstEventDown();
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "Порядок уже змінився. Онови сторінку та спробуй ще раз.",
+      ),
+    );
+    expect(await screen.findByRole("button", { name: "Кульмінація" })).toBeInTheDocument();
+  });
+
+  it("toasts the generic reorder error instead of a conflict on a 409 without the conflict code", async () => {
+    mutationResponder = () => jsonResponse({ message: "conflict" }, 409);
+
+    renderBlock();
+    await moveFirstEventDown();
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Не вдалося змінити порядок"));
+    expect(toast.error).not.toHaveBeenCalledWith(
+      "Порядок уже змінився. Онови сторінку та спробуй ще раз.",
+    );
   });
 });

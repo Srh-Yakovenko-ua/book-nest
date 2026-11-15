@@ -6,14 +6,13 @@ import type {
 } from "@app/shared";
 
 import { READING_GOAL_NAME_MAX, READING_GOAL_TARGET_MAX } from "@app/shared";
-import { addMonths, endOfMonth, endOfYear, isAfter, isValid, parse, startOfDay } from "date-fns";
+import { addMonths, endOfMonth, endOfYear, isAfter, parseISO, startOfDay } from "date-fns";
 import { z } from "zod";
 
-import { dateToIsoDay } from "@/lib/iso-day";
+import { dateToIsoDay, isoDayToDate } from "@/lib/iso-day";
 
 export const GOAL_FORM = {
   deadlineShortcutMonths: 3,
-  isoDateFormat: "yyyy-MM-dd",
   maxTargetCount: READING_GOAL_TARGET_MAX,
   minTargetCount: 1,
   nameMax: READING_GOAL_NAME_MAX,
@@ -49,16 +48,18 @@ export function createGoalFormSchema({
   bookCount,
   initialDeadline,
   messages,
+  today,
 }: {
   bookCount: number;
   initialDeadline: string;
   messages: GoalFormMessages;
+  today: string;
 }) {
   return z.object({
     deadline: z
       .string({ error: messages.required })
       .min(1, { error: messages.required })
-      .refine((value) => value === initialDeadline || isFutureIsoDate(value), {
+      .refine((value) => value === initialDeadline || isAfterToday({ today, value }), {
         error: messages.deadlinePast,
       }),
     name: z.string().max(GOAL_FORM.nameMax, { error: messages.nameMax }),
@@ -143,10 +144,10 @@ export function toUpdateGoalInput({
   };
 }
 
-function isFutureIsoDate(value: string): boolean {
-  const parsed = parse(value, GOAL_FORM.isoDateFormat, new Date());
-  if (!isValid(parsed)) return false;
-  return isAfter(startOfDay(parsed), startOfDay(new Date()));
+function isAfterToday({ today, value }: { today: string; value: string }): boolean {
+  const deadline = isoDayToDate(value);
+  if (deadline === undefined) return false;
+  return isAfter(deadline, parseISO(today));
 }
 
 function suggestedTargetCount(bookCount: number): number {

@@ -47,11 +47,12 @@ export function DeleteTimelineDialog({
   timelines,
 }: DeleteTimelineDialogProps) {
   const t = useTranslations("timeline.manage");
+  const deleteTimeline = useDeleteTimeline();
 
   return (
     <Dialog
       onOpenChange={(open) => {
-        if (!open) onClose();
+        if (!open && !deleteTimeline.isPending) onClose();
       }}
       open
     >
@@ -66,6 +67,7 @@ export function DeleteTimelineDialog({
         </DialogHeader>
         <DeleteTimelineForm
           bookId={bookId}
+          deleteTimeline={deleteTimeline}
           onCancel={onClose}
           onDeleted={onDeleted}
           timeline={timeline}
@@ -78,12 +80,14 @@ export function DeleteTimelineDialog({
 
 function DeleteTimelineForm({
   bookId,
+  deleteTimeline,
   onCancel,
   onDeleted,
   timeline,
   timelines,
 }: {
   bookId: string;
+  deleteTimeline: ReturnType<typeof useDeleteTimeline>;
   onCancel: () => void;
   onDeleted: (deletedTimelineId: string) => void;
   timeline: TimelineView;
@@ -93,7 +97,6 @@ function DeleteTimelineForm({
   const tStates = useTranslations("timeline.states");
   const tToast = useTranslations("timeline.toast");
 
-  const deleteTimeline = useDeleteTimeline();
   const otherLines = timelines
     .filter((line) => line.id !== timeline.id)
     .sort((first, second) => first.position - second.position);

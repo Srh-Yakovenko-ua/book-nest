@@ -22,6 +22,7 @@ type ListBulkBarProps = {
   onRemoveFromList: () => void;
   onSelectAll: () => void;
   selectedCount: number;
+  selectionLimit: number;
 };
 
 export function ListBulkBar({
@@ -35,8 +36,12 @@ export function ListBulkBar({
   onRemoveFromList,
   onSelectAll,
   selectedCount,
+  selectionLimit,
 }: ListBulkBarProps) {
   const t = useTranslations("lists.details.selection");
+  const selectableCount = Math.min(loadedCount, selectionLimit);
+  const isLimitReached = loadedCount > selectionLimit && selectedCount >= selectionLimit;
+  const actionsDisabled = isPending || selectedCount > selectionLimit;
 
   return (
     <div className="sticky inset-x-0 bottom-3 z-30 safe-bottom motion-safe:animate-in motion-safe:duration-300 motion-safe:fade-in motion-safe:slide-in-from-bottom-3 sm:pb-0">
@@ -46,9 +51,16 @@ export function ListBulkBar({
         role="region"
       >
         <div className="flex min-w-0 items-center justify-between gap-2 sm:justify-start">
-          <span className="text-sm font-medium text-ink">
-            {t("selected", { loaded: loadedCount, selected: selectedCount })}
-          </span>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="text-sm font-medium text-ink">
+              {t("selected", { loaded: loadedCount, selected: selectedCount })}
+            </span>
+            {isLimitReached ? (
+              <p aria-live="polite" className="text-xs text-muted-foreground">
+                {t("limitHint", { max: selectionLimit })}
+              </p>
+            ) : null}
+          </div>
           <Button
             className="text-muted-foreground hover:text-foreground sm:hidden"
             onClick={onClear}
@@ -62,7 +74,7 @@ export function ListBulkBar({
 
         <div className="-mx-1 flex flex-wrap items-center gap-1.5 px-1">
           <Button
-            disabled={selectedCount === loadedCount}
+            disabled={selectedCount === selectableCount}
             onClick={onSelectAll}
             size="sm"
             variant="ghost"
@@ -71,19 +83,19 @@ export function ListBulkBar({
             {t("selectAll")}
           </Button>
 
-          <Button disabled={isPending} onClick={onAddToList} size="sm" variant="secondary">
+          <Button disabled={actionsDisabled} onClick={onAddToList} size="sm" variant="secondary">
             <UiIcon name="list" size={16} />
             {t("addToList")}
           </Button>
 
-          <Button disabled={isPending} onClick={onAddToQueue} size="sm" variant="secondary">
+          <Button disabled={actionsDisabled} onClick={onAddToQueue} size="sm" variant="secondary">
             <UiIcon name="bookmark" size={16} />
             {t("addToQueue")}
           </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button disabled={isPending} size="sm" variant="secondary">
+              <Button disabled={actionsDisabled} size="sm" variant="secondary">
                 <UiIcon name="heart" size={16} />
                 {t("favoriteMenu")}
               </Button>
@@ -101,7 +113,7 @@ export function ListBulkBar({
           </DropdownMenu>
 
           <Button
-            disabled={isPending}
+            disabled={actionsDisabled}
             loading={isPending}
             onClick={onRemoveFromList}
             size="sm"

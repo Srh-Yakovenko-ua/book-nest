@@ -22,6 +22,18 @@ let bestOffer: Nullable<BestOfferView>;
 let storeLinks: BookStoreLinkView[];
 let failStoreLinks: boolean;
 
+function deferred() {
+  let resolve: (response: Response) => void = () => undefined;
+  const promise = new Promise<Response>((settle) => {
+    resolve = settle;
+  });
+  return { promise, resolve };
+}
+
+function deleteRequestCount(): number {
+  return fetchMock.mock.calls.filter(([, init]) => init?.method === "DELETE").length;
+}
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
@@ -342,6 +354,46 @@ describe("StoreLinkManageDialog", () => {
     );
 
     expect(screen.getByRole("button", { name: "Редагувати посилання «Книгарня Є»" })).toHaveFocus();
+  });
+
+  it("deletes a link once and offers a single undo when its delete is clicked twice", async () => {
+    const deletion = deferred();
+    const refetch = deferred();
+    let respondToLinks = () => Promise.resolve(jsonResponse({ bestOffer, storeLinks }));
+    fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      if (!String(input).includes("/store-links")) {
+        return Promise.reject(new Error(`unexpected ${String(input)}`));
+      }
+      if (init?.method !== "DELETE") return respondToLinks();
+      respondToLinks = () => refetch.promise;
+      return deletion.promise;
+    });
+    renderDialog();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Видалити посилання «Наш Формат»" }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Видалити посилання «Наш Формат»" }),
+      ).toBeDisabled(),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Видалити посилання «Наш Формат»" }));
+    expect(deleteRequestCount()).toBe(1);
+
+    deletion.resolve(new Response(null, { status: 204 }));
+    refetch.resolve(
+      jsonResponse({ bestOffer, storeLinks: storeLinks.filter((link) => link.id !== "nf") }),
+    );
+
+    await waitFor(() =>
+      expect(screen.queryByRole("link", { name: /Наш Формат/ })).not.toBeInTheDocument(),
+    );
+    await waitFor(() => expect(toast.success).toHaveBeenCalledOnce());
+    expect(toast.success).toHaveBeenCalledWith(
+      "Посилання видалено",
+      expect.objectContaining({ action: expect.objectContaining({ label: "Скасувати" }) }),
+    );
   });
 
   it("falls back to the add button when the last link is deleted", async () => {

@@ -3,6 +3,7 @@ import type { BookListView } from "@app/shared";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 
+import { listKeys } from "@/features/lists/api/list-keys";
 import { listsControllerSearch } from "@/shared/api/generated/endpoints/lists/lists";
 
 const listViewSchema = z.object({
@@ -34,6 +35,6 @@ export function useListsSearch(search: string) {
       const parsed = listsSearchResultSchema.parse(response);
       return parsed.items;
     },
-    queryKey: ["lists", "search", trimmed],
+    queryKey: listKeys.search(trimmed),
   });
 }

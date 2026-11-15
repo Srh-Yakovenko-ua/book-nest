@@ -9,6 +9,8 @@ import type {
 
 import {
   normalizeName,
+  PUBLISHER_LIMITS,
+  PUBLISHER_NAME_ERROR_CODES,
   PublisherCountryCodeSchema,
   PublisherFoundedYearSchema,
   PublisherWebsiteUrlSchema,
@@ -22,6 +24,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { CountrySelect } from "@/components/country-select";
+import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,7 +38,6 @@ import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { YearPicker } from "@/components/ui/year-picker";
-import { DiscardConfirmDialog } from "@/features/books";
 import {
   distinctMatchedName,
   isReliableMatch,
@@ -43,16 +45,9 @@ import {
   usePublisherDuplicateCandidates,
 } from "@/features/books/api/use-publisher-duplicate-candidates";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { ApiError } from "@/lib/http-client";
+import { isApiErrorCode } from "@/lib/api-errors";
 
 import { useUpdatePublisher } from "../api/use-update-publisher";
-
-const EDIT_PUBLISHER_FORM = {
-  duplicateStatus: 409,
-  foundedYearMax: 2100,
-  foundedYearMin: 1400,
-  websiteMaxLength: 300,
-} as const;
 
 type EditPublisherDialogProps = {
   details: LibraryPublisherDetail;
@@ -81,10 +76,12 @@ export function EditPublisherDialog({
 }: EditPublisherDialogProps) {
   const t = useTranslations("publishers.details.editDialog");
   const tDiscardChanges = useTranslations("common.discardChanges");
+  const updatePublisher = useUpdatePublisher(details.id);
   const [dirty, setDirty] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
 
   function requestClose() {
+    if (updatePublisher.isPending) return;
     if (dirty) {
       setDiscardOpen(true);
       return;
@@ -121,11 +118,12 @@ export function EditPublisherDialog({
                 setDirty(false);
                 onOpenChange(false);
               }}
+              updatePublisher={updatePublisher}
             />
           ) : null}
         </DialogContent>
       </Dialog>
-      <DiscardConfirmDialog
+      <DiscardChangesDialog
         cancelLabel={tDiscardChanges("cancel")}
         confirmLabel={tDiscardChanges("confirm")}
         description={t("discardDescription")}
@@ -179,16 +177,17 @@ function EditPublisherForm({
   onCancel,
   onDirtyChange,
   onDone,
+  updatePublisher,
 }: {
   details: LibraryPublisherDetail;
   onCancel: () => void;
   onDirtyChange: (dirty: boolean) => void;
   onDone: () => void;
+  updatePublisher: ReturnType<typeof useUpdatePublisher>;
 }) {
   const t = useTranslations("publishers.details.editDialog");
   const tYearPicker = useTranslations("books.library.filters.yearPicker");
   const tToast = useTranslations("publishers.details.toast");
-  const updatePublisher = useUpdatePublisher(details.id);
   const [serverError, setServerError] = useState<Nullable<string>>(null);
 
   const formSchema = z.object({
@@ -260,7 +259,7 @@ function EditPublisherForm({
 
     updatePublisher.mutate(payload, {
       onError: (error) => {
-        if (error instanceof ApiError && error.status === EDIT_PUBLISHER_FORM.duplicateStatus) {
+        if (isApiErrorCode(error, PUBLISHER_NAME_ERROR_CODES.duplicateName)) {
           setError("name", { message: t("duplicate") });
           return;
         }
@@ -338,7 +337,7 @@ function EditPublisherForm({
           className="h-10"
           id="edit-publisher-website"
           inputMode="url"
-          maxLength={EDIT_PUBLISHER_FORM.websiteMaxLength}
+          maxLength={PUBLISHER_LIMITS.websiteUrlMax}
           placeholder={t("websitePlaceholder")}
           {...register("websiteUrl")}
         />
@@ -359,8 +358,8 @@ function EditPublisherForm({
               clearLabel={tYearPicker("clear")}
               id="edit-publisher-founded"
               invalid={errors.foundedYear !== undefined}
-              max={EDIT_PUBLISHER_FORM.foundedYearMax}
-              min={EDIT_PUBLISHER_FORM.foundedYearMin}
+              max={PUBLISHER_LIMITS.foundedYearMax}
+              min={PUBLISHER_LIMITS.foundedYearMin}
               nextLabel={tYearPicker("next")}
               onChange={field.onChange}
               placeholder={t("foundedYearPlaceholder")}
@@ -379,7 +378,12 @@ function EditPublisherForm({
       )}
 
       <DialogFooter>
-        <Button onClick={onCancel} type="button" variant="secondary">
+        <Button
+          disabled={updatePublisher.isPending}
+          onClick={onCancel}
+          type="button"
+          variant="secondary"
+        >
           {t("cancel")}
         </Button>
         <Button

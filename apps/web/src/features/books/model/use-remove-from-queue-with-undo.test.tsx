@@ -100,4 +100,23 @@ describe("useRemoveFromQueueWithUndo", () => {
     await waitFor(() => expect(toast).toHaveBeenCalledWith(copy.remove.toast, undefined));
     expect(lastUndoAction()).toBeUndefined();
   });
+
+  it("reports a failed re-add when the undo is used after the hook unmounted", async () => {
+    fetchMock.mockImplementation((_input: RequestInfo | URL, init?: RequestInit) =>
+      Promise.resolve(
+        init?.method === "POST"
+          ? jsonResponse({ message: "Internal server error" }, 500)
+          : jsonResponse(emptyQueue()),
+      ),
+    );
+    const { result, unmount } = setup();
+
+    act(() => result.current.remove("book-1", 3));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(copy.remove.toast, expect.anything()));
+    unmount();
+
+    act(() => lastUndoAction()?.onClick());
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(copy.add.errorToast));
+  });
 });

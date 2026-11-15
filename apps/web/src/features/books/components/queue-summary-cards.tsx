@@ -3,8 +3,9 @@
 import type { Nullable, ReadingQueueSummaryView } from "@app/shared";
 import type { ReactNode } from "react";
 
+import { SummaryCards } from "@/components/catalog/summary-cards";
+
 import { QUEUE_SUMMARY_CARD_COUNT, useQueueSummaryCards } from "../hooks/use-queue-summary-cards";
-import { LibrarySummaryCards } from "./library-summary-cards";
 
 type QueueSummaryCardsProps = {
   isLoading: boolean;
@@ -25,7 +26,7 @@ export function QueueSummaryCards({
   if (summary === null) return null;
 
   return (
-    <LibrarySummaryCards
+    <SummaryCards
       cards={cards}
       isLoading={false}
       mobileAction={mobileAction}
@@ -36,7 +37,7 @@ export function QueueSummaryCards({
 
 export function QueueSummaryCardsSkeleton() {
   return (
-    <LibrarySummaryCards
+    <SummaryCards
       cards={[]}
       isLoading
       mobileLayout="compact"

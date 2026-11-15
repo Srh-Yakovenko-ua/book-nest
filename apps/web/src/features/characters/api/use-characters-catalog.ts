@@ -11,14 +11,11 @@ import { characterKeys } from "./character-keys";
 
 export type CharactersCatalogPage = z.infer<typeof PaginatedCharacterCatalogSchema>;
 
-const MAX_PAGES = 10;
-
 export function useCharactersCatalog(params: CharactersControllerListParams) {
   return useInfiniteQuery({
     getNextPageParam: (lastPage: CharactersCatalogPage) =>
       lastPage.page < lastPage.pagesCount ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
-    maxPages: MAX_PAGES,
     placeholderData: keepPreviousData,
     queryFn: async ({ pageParam, signal }): Promise<CharactersCatalogPage> =>
       PaginatedCharacterCatalogSchema.parse(

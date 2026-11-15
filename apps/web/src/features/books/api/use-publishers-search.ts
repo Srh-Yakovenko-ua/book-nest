@@ -5,6 +5,7 @@ import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
 import { z } from "zod";
 
+import { publisherKeys } from "@/features/publishers/api/publisher-keys";
 import { publishersControllerSearch } from "@/shared/api/generated/endpoints/publishers/publishers";
 
 import { publisherViewSchema } from "../model/publisher-view-schema";
@@ -47,7 +48,7 @@ export function usePublishersSearch(search: string): PublisherSearchOptions {
       });
       return publisherSearchResultSchema.parse(response);
     },
-    queryKey: ["publishers", "search", trimmed, locale],
+    queryKey: publisherKeys.picker.search(trimmed, locale),
   });
 
   return {
