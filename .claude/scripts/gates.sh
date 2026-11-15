@@ -34,6 +34,12 @@ tests_for() {
   done | sort -u
 }
 
+in_batches() {
+  local files="$1" dir="$2"
+  shift 2
+  printf '%s\n' "$files" | grep . | tr '\n' '\0' | (cd "$dir" && xargs -0 -s 7000 "$@")
+}
+
 run_step() {
   local name="$1"
   shift
@@ -79,19 +85,19 @@ TREE_BEFORE="$(checked_tree)"
 echo "base $BASE, $(printf '%s' "$CHANGED" | grep -c . ) changed files under apps/ and packages/"
 run_step typecheck pnpm typecheck
 if [ -n "$WEB_LINTABLE" ]; then
-  run_step lint-web sh -c "cd apps/web && pnpm exec eslint --max-warnings=0 $(printf '%s ' $WEB_LINTABLE)"
+  run_step lint-web in_batches "$WEB_LINTABLE" apps/web pnpm exec eslint --max-warnings=0
 fi
 if [ -n "$OTHER_LINTABLE" ]; then
-  run_step lint pnpm exec eslint --max-warnings=0 $OTHER_LINTABLE
+  run_step lint in_batches "$OTHER_LINTABLE" . pnpm exec eslint --max-warnings=0
 fi
 if [ -n "$CHANGED" ]; then
-  run_step format pnpm exec prettier --check --ignore-unknown $CHANGED
+  run_step format in_batches "$CHANGED" . pnpm exec prettier --check --ignore-unknown
 fi
 if [ "$WITH_TESTS" = 1 ] && [ -n "$API_TESTS" ]; then
-  run_step "api-tests[$(printf '%s\n' "$API_TESTS" | grep -c .)]" sh -c "cd apps/api && pnpm exec vitest run $(printf '%s ' $API_TESTS)"
+  run_step "api-tests[$(printf '%s\n' "$API_TESTS" | grep -c .)]" in_batches "$API_TESTS" apps/api pnpm exec vitest run
 fi
 if [ "$WITH_TESTS" = 1 ] && [ -n "$WEB_TESTS" ]; then
-  run_step "web-tests[$(printf '%s\n' "$WEB_TESTS" | grep -c .)]" sh -c "cd apps/web && pnpm exec vitest --project unit run $(printf '%s ' $WEB_TESTS)"
+  run_step "web-tests[$(printf '%s\n' "$WEB_TESTS" | grep -c .)]" in_batches "$WEB_TESTS" apps/web pnpm exec vitest --project unit run
 fi
 if [ "$WITH_TESTS" = 0 ] && [ -n "$API_TESTS$WEB_TESTS" ]; then
   echo "skip tests: $(printf '%s\n' $API_TESTS $WEB_TESTS | grep -c .) related test files run in CI (pass --with-tests to run them here)"

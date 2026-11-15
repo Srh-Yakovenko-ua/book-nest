@@ -9,7 +9,7 @@ Self-hosted book-library product: personal catalog, reading tracking, series, lo
 ## 1. Stack
 
 - **Workspace**: pnpm workspaces (Node 24, pnpm 10) + Turborepo, shared TS config in `tsconfig.base.json`.
-- **`apps/web`**: Next.js 16 (App Router, RSC/SSR) + React 19 + TS strict. next-intl locale routing (`/[locale]/`, `uk` default + `en`). TanStack Query v5 for client data (via Orval-generated hooks), Zustand for client UI state, RHF + Zod, shadcn/ui, Tailwind v4, next-themes. Vitest + RTL + happy-dom. Locale middleware in `src/proxy.ts`.
+- **`apps/web`**: Next.js 16 (App Router, RSC/SSR) + React 19 + TS strict. next-intl locale routing (`/[locale]/`, `uk` default + `en`). TanStack Query v5 for client data (feature hooks over Orval-generated fetchers), Zustand for client UI state, RHF + Zod, shadcn/ui, Tailwind v4, next-themes. Vitest + RTL + happy-dom. Locale middleware in `src/proxy.ts`.
 - **`apps/api`**: NestJS 11 + Prisma 7 (engineless, `@prisma/adapter-pg`) + PostgreSQL, TS strict (ESM). Feature-sliced layered modules (`api / application / domain / infrastructure`). nestjs-zod validation pipes, `@nestjs/swagger`, pino (JSON prod / pretty dev), helmet, compression, `@nestjs/throttler`, jose (JWT), bcryptjs, BullMQ + Redis (background jobs — `core/queue`, first use is async media thumbnails), OpenTelemetry + prom-client, graceful shutdown, request-id correlation, global `HttpErrorFilter`, Zod-validated env. Hot reload via `@swc-node/register --watch` (**not** `tsx` — it strips the decorator metadata Nest DI needs). Schema in `prisma/schema.prisma`, client generated to `src/generated/prisma`.
 - **`packages/shared`**: Zod DTOs + API contracts, imported as `@app/shared`. Single source of truth for FE/BE types.
 
@@ -18,7 +18,12 @@ Self-hosted book-library product: personal catalog, reading tracking, series, lo
 ## 2. Frontend ↔ backend contract
 
 - BE serves REST under `/api/*`. FE reaches it through Next.js `rewrites()` (`apps/web/next.config.ts`, proxy to `API_BASE_URL`, default `localhost:4000`).
-- **Types are generated, not hand-written.** BE controllers wrap `@app/shared` Zod schemas with `createZodDto` → `@nestjs/swagger` emits OpenAPI (`pnpm --filter @app/api generate:openapi` → `openapi.json`) → Orval generates a typed TanStack-Query client + Zod into `apps/web/src/shared/api/generated/**` (`pnpm gen:api`). Consume the generated hooks; never hand-roll `fetch`/Zod against `@app/shared`.
+- **Types are generated, not hand-written.** BE controllers wrap `@app/shared` Zod schemas with `createZodDto` → `@nestjs/swagger` emits OpenAPI (`pnpm --filter @app/api generate:openapi` → `openapi.json`) → Orval generates typed fetchers, models and Zod into `apps/web/src/shared/api/generated/**` (`pnpm gen:api`).
+- **The standard query hook lives in `features/<x>/api/`.** It calls the generated fetcher (`xxxController…`), parses the response with the `@app/shared` Zod schema, and keys the query from the feature's `api/*-keys.ts` factory.
+- **Every key's first element is an `/api/<resource>` root**, so `matchesApiRoot` in `src/lib/query-keys.ts` also reaches Orval's generated keys (`[`/api/books/facets`, params]`).
+- **Cross-feature cache effects of a mutation go through that domain's effects module**, e.g. `features/books/api/book-change-effects.ts` or `features/notes/api/note-mutation-effects.ts`. Never hand-list another feature's keys in a mutation hook.
+- **Do not use the generated `useXxxController…` hooks.** Their keys bypass the factories and their inline `select` re-parses on every render.
+- **Never hand-roll `fetch` or `request()` when a generated fetcher exists.** The one exception is the multipart upload in `features/media`.
 - **Data fetching is client-side** (TanStack Query inside `"use client"` feature components). SSR/RSC renders only the shell, per-locale routing, and `generateMetadata` (SEO) — no server-side data prefetch/hydration. Auth is a client-held in-memory access token + client route guards; the refresh token is an httpOnly cookie.
 
 ---
@@ -107,7 +112,7 @@ Business logic stays independent of HTTP **and** of the data layer, so each laye
 7. Controller — `@Get/@Post`, Zod pipes, `@UseGuards` if auth, full `@Api*` Swagger.
 8. Module (`<feature>.module.ts`) + wire into `app.module.ts`.
 9. Tests (service unit + controller integration via `createTestApp`).
-10. `pnpm gen:api`, then FE consumes the generated hooks.
+10. `pnpm gen:api`, then FE wraps the generated fetchers in feature hooks (see §2).
 
 ---
 
@@ -115,11 +120,16 @@ Business logic stays independent of HTTP **and** of the data layer, so each laye
 
 - **Feature-sliced** `src/features/<name>/`: `api/` (wrappers around the generated client + hooks), `components/`, `hooks/`, `model/`, barrel `index.ts`.
 - **Routing** is the App Router — server components under `src/app/[locale]/`, `generateMetadata` for SEO. Feature components that fetch data are `"use client"`.
-- **Data**: TanStack Query via the Orval-generated client. Mock at the `fetch` boundary in tests, never mock RQ hooks.
+- **Data**: TanStack Query through the feature hooks described in §2: generated fetcher, Zod parse, factory key, effects module for cross-feature invalidation. Mock at the `fetch` boundary in tests, never mock RQ hooks.
 - **Forms**: react-hook-form + zod + shadcn primitives **directly** — no wrapper `<Form>`/`<FormField>` abstractions.
 - **State**: Zustand for client-only UI state; server state lives in TanStack Query.
 - **Styling**: Tailwind v4, semantic tokens (`bg-background`, `text-foreground`, `text-primary`, `text-muted-foreground`) in `src/styles/globals.css` — not raw colors. Theme via `next-themes` (light/dark/system, OKLCH palette). Mobile-first responsive.
-- **Shadcn primitives** in `src/components/ui/` are vendored — do not edit. `Button` and `DropdownMenuItem` already carry `cursor-pointer`; add it to custom click handlers.
+- **`src/components/ui/` is project code, in two kinds.**
+  - **shadcn-origin primitives.** The list: `alert`, `alert-dialog`, `avatar`, `badge`, `breadcrumb`, `button`, `calendar`, `card`, `chart`, `checkbox`, `collapsible`, `command`, `context-menu`, `dialog`, `drawer`, `dropdown-menu`, `hover-card`, `input`, `input-group`, `input-otp`, `label`, `pagination`, `popover`, `progress`, `radio-group`, `scroll-area`, `select`, `separator`, `sheet`, `sidebar`, `skeleton`, `slider`, `sonner`, `switch`, `table`, `tabs`, `textarea`, `toggle`, `toggle-group`, `tooltip`.
+    - They are restyled for the design system and locally extended: `button` has `loading`, `select` is clearable, `dialog` fits narrow screens. Change one only when the task needs it, and keep its shadcn structure and `data-slot` attributes.
+    - Never run `shadcn add` over an existing file, because it overwrites the local changes. A new primitive comes in through `pnpm dlx shadcn@latest add <name>` and is then restyled to the tokens.
+  - **The project's own components.** Every other file there: `filter-panel`, `mobile-sort-sheet`, `mobile-page-overview-panel`, `stat-card`, `book-card`, `date-picker`, `multiselect`, `charts/*` and the rest. Edit these like any shared component. Fix a bug where it lives instead of copying the component into a feature.
+  - `Button` and `DropdownMenuItem` already carry `cursor-pointer`; add it to custom click handlers.
 - **Env**: read once in `src/lib/env.ts` via Zod, exported typed. Never read env vars directly elsewhere.
 
 ---

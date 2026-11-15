@@ -165,7 +165,7 @@ The response body must match the real backend shape: many feature hooks parse it
 
 # What NOT to test
 
-- **Shadcn vendored** components in `components/ui/**` — they're third-party code, already tested by shadcn
+- **shadcn-origin primitives** in `components/ui/` (listed in CLAUDE.md §7). Their upstream behaviour is already tested; test only a local extension (e.g. `button` `loading`, clearable `select`). The project's own components in that folder (`filter-panel`, `date-picker`, `multiselect` and the rest) are tested like any shared component.
 - **Internal React behavior** — don't test that `useState` works
 - **Implementation details** — don't assert on which specific Radix primitive was rendered, only on what the user sees
 - **Private functions** — test via their public caller

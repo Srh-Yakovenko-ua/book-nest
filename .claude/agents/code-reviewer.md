@@ -44,7 +44,7 @@ Every finding names its basis, so the caller can tell a rule from a taste:
 - Layers (CLAUDE.md §8.8): no Prisma outside repositories, no `req`/`res` in services, repositories never return a ViewModel, cross-module imports in `apps/api` go through the module's `index.ts`. In `apps/web`, no `fetch` in components; data goes through the feature's `api/` and the generated Orval hooks, never a hand-rolled fetch or Zod schema.
 - Every date operation goes through `date-fns`: no `getTime()` math, millisecond literals or in-place mutators (CLAUDE.md §8.11).
 - No wrapper libraries: flag a new `<Form>`, `<FormField>` or `<DataFetcher>` over RHF, Zod or shadcn.
-- No edits in `components/ui/**` unless the task was about them; `src/shared/api/generated/**` and `src/generated/prisma` are never hand-edited.
+- An edit to a shadcn-origin primitive in `components/ui/` (listed in CLAUDE.md §7) needs a reason in the task and must keep its shadcn structure. A `shadcn add` that overwrites an existing primitive is a defect. The project's own components in that folder are ordinary shared code. `src/shared/api/generated/**` and `src/generated/prisma` are never hand-edited.
 - Logging through `createLogger(scope)` (`apps/web/src/lib/logger.ts`, `apps/api/src/core/logger.ts`), never `console`.
 - Semantic Tailwind tokens and scale classes (`bg-primary`, `text-error`, `mb-4`), never raw colors or arbitrary values like `[18px]`.
 - User-facing text goes through next-intl keys present in both `uk.json` and `en.json`, never a hardcoded string.
