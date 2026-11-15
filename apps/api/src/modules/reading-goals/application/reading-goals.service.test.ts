@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import type { ListsService } from "../../lists/index.js";
+import type { UserSettingsContextService } from "../../profile/index.js";
 import type { ReadingGoalBooksRepository } from "../infrastructure/reading-goal-books.repository.js";
 import type {
   ReadingGoalListCandidate,
@@ -33,6 +34,7 @@ const BOOK_ID = "55555555-5555-4555-8555-555555555555";
 
 const TX = fakeOf<Prisma.TransactionClient>({});
 
+const TIME_ZONE = "Europe/Kyiv";
 const TODAY = toIsoDate(new Date());
 const TOMORROW = addDaysToIsoDate(TODAY, 1);
 const YESTERDAY = addDaysToIsoDate(TODAY, -1);
@@ -60,6 +62,7 @@ function buildAssembler() {
     viewBuilder as unknown as ReadingGoalViewBuilder,
     goalBooksService as unknown as ReadingGoalBooksService,
     goalActivityService as unknown as ReadingGoalActivityService,
+    readerOnToday(),
   );
 
   return { assembler, repository };
@@ -120,6 +123,7 @@ function buildService(overrides: { listBookCount?: number; snapshotBookCount?: n
     inputValidator,
     snapshotService as unknown as ReadingGoalSnapshotService,
     activityRecorder as unknown as ReadingGoalActivityRecorder,
+    readerOnToday(),
   );
 
   return {
@@ -156,6 +160,12 @@ function listCandidates(count: number): ReadingGoalListCandidate[] {
     finishedAt: null,
     position: index,
   }));
+}
+
+function readerOnToday(): UserSettingsContextService {
+  return fakeOf<UserSettingsContextService>({
+    calendar: vi.fn().mockResolvedValue({ timeZone: TIME_ZONE, today: parseIsoDate(TODAY) }),
+  });
 }
 
 async function rejectionOf(operation: () => Promise<unknown>): Promise<unknown> {
@@ -302,7 +312,12 @@ describe("ReadingGoalsService.create", () => {
 
     await service.create({ input: createInput, listId: LIST_ID, userId: USER_ID });
 
-    expect(snapshotService.seed).toHaveBeenCalledWith({ candidates, goal: goal(), tx: TX });
+    expect(snapshotService.seed).toHaveBeenCalledWith({
+      candidates,
+      goal: goal(),
+      timeZone: TIME_ZONE,
+      tx: TX,
+    });
     const createOrder = repository.create.mock.invocationCallOrder.at(0) ?? 0;
     const seedOrder = snapshotService.seed.mock.invocationCallOrder.at(0) ?? 0;
     expect(createOrder).toBeLessThan(seedOrder);
@@ -315,7 +330,8 @@ describe("ReadingGoalsService.create", () => {
 
     expect(activityRecorder.recordCreation).toHaveBeenCalledWith({
       goal: goal(),
-      now: expect.any(Date),
+      timeZone: TIME_ZONE,
+      today: expect.any(Date),
       tx: TX,
     });
     const seedOrder = snapshotService.seed.mock.invocationCallOrder.at(0) ?? 0;
@@ -333,7 +349,8 @@ describe("ReadingGoalsService.create", () => {
     expect(activityRecorder.recordArchive).toHaveBeenCalledWith({
       changes: [],
       goal: expect.objectContaining({ archivedAt: expect.any(Date), id: OLD_GOAL_ID }),
-      now: expect.any(Date),
+      timeZone: TIME_ZONE,
+      today: expect.any(Date),
       tx: TX,
     });
   });
@@ -499,7 +516,11 @@ describe("ReadingGoalsService.update", () => {
 
     await service.update({ goalId: GOAL_ID, input: { deadline: TOMORROW }, userId: USER_ID });
 
-    expect(snapshotService.resync).toHaveBeenCalledWith({ goal: moved, tx: TX });
+    expect(snapshotService.resync).toHaveBeenCalledWith({
+      goal: moved,
+      timeZone: TIME_ZONE,
+      tx: TX,
+    });
   });
 
   it("leaves the snapshot untouched when only the name changes", async () => {
@@ -525,8 +546,9 @@ describe("ReadingGoalsService.update", () => {
     expect(activityRecorder.recordUpdate).toHaveBeenCalledWith({
       changes,
       goal: moved,
-      now: expect.any(Date),
       previous,
+      timeZone: TIME_ZONE,
+      today: expect.any(Date),
       tx: TX,
     });
   });
@@ -583,7 +605,8 @@ describe("ReadingGoalsService.archive", () => {
     expect(activityRecorder.recordArchive).toHaveBeenCalledWith({
       changes: [],
       goal: goal(),
-      now: expect.any(Date),
+      timeZone: TIME_ZONE,
+      today: expect.any(Date),
       tx: TX,
     });
   });

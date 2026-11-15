@@ -4,13 +4,14 @@ import type { INestApplication } from "@nestjs/common";
 import { addDays } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import request from "supertest";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
+import { registerReaderInTimezone } from "../../../test/user-timezone.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { BooksModule } from "../../books/books.module.js";
 import { ListsModule } from "../../lists/lists.module.js";
@@ -36,6 +37,11 @@ const EMPTY_DIRECTION_SUMMARY = {
 };
 const isoDay = (offsetDays: number): string =>
   formatInTimeZone(addDays(new Date(), offsetDays), "UTC", "yyyy-MM-dd");
+const KYIV_PAST_MIDNIGHT = Object.freeze({
+  dueDate: "2026-11-15",
+  instant: new Date("2026-11-15T22:30:00Z"),
+  loanDate: "2026-11-01",
+});
 
 let context: AuthTestContext;
 let app: INestApplication;
@@ -212,7 +218,7 @@ describe("GET /api/loans authorization", () => {
 
 describe("GET /api/loans", () => {
   it("returns an empty page when the user has no loans", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
 
     const res = await listLoans(accessToken);
 
@@ -222,7 +228,7 @@ describe("GET /api/loans", () => {
   });
 
   it("lists active loans with a book preview and computed ui status", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(3), personName: "Olha" });
 
     const res = await listLoans(accessToken);
@@ -241,7 +247,7 @@ describe("GET /api/loans", () => {
   });
 
   it("does not list a loan that has been returned", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     const bookId = await createBorrowedLoan(accessToken, { personName: "Olha" });
     await request(app.getHttpServer())
       .post(`/api/books/${bookId}/loan/return`)
@@ -254,11 +260,12 @@ describe("GET /api/loans", () => {
   });
 
   it("does not expose another user's loans", async () => {
-    const owner = await context.registerVerifyAndLogin();
+    const owner = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(owner.accessToken, { personName: "Olha" });
-    const stranger = await context.registerVerifyAndLogin({
-      email: "stranger@example.com",
-      nickname: "stranger",
+    const stranger = await registerReaderInTimezone({
+      context,
+      overrides: { email: "stranger@example.com", nickname: "stranger" },
+      timezone: "UTC",
     });
 
     const res = await listLoans(stranger.accessToken);
@@ -268,7 +275,7 @@ describe("GET /api/loans", () => {
   });
 
   it("filters by loan type through the type tab", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { personName: "Olha" });
     await createLentLoan(accessToken, { personName: "Ivan" });
 
@@ -282,7 +289,7 @@ describe("GET /api/loans", () => {
   });
 
   it("filters overdue loans", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(
       accessToken,
       { expectedReturnDate: isoDay(-5), loanDate: isoDay(-20), personName: "Olha" },
@@ -298,7 +305,7 @@ describe("GET /api/loans", () => {
   });
 
   it("filters loans without a return date", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { personName: "Olha" }, "No Date Book");
     await createLentLoan(accessToken, { expectedReturnDate: isoDay(30), personName: "Ivan" });
 
@@ -310,7 +317,7 @@ describe("GET /api/loans", () => {
   });
 
   it("filters loans with a reminder", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, {
       expectedReturnDate: isoDay(3),
       personName: "Olha",
@@ -325,7 +332,7 @@ describe("GET /api/loans", () => {
   });
 
   it("searches by person name", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { personName: "Olha Melnyk" });
     await createLentLoan(accessToken, { personName: "Ivan Petrenko" });
 
@@ -336,7 +343,7 @@ describe("GET /api/loans", () => {
   });
 
   it("searches by book title", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { personName: "Olha" }, "The Left Hand of Darkness");
     await createLentLoan(accessToken, { personName: "Ivan" }, "Hyperion");
 
@@ -349,7 +356,7 @@ describe("GET /api/loans", () => {
 
 describe("GET /api/loans/summary", () => {
   it("returns empty stats for both directions when there are no loans", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
 
     const res = await loanSummary(accessToken);
 
@@ -361,7 +368,7 @@ describe("GET /api/loans/summary", () => {
   });
 
   it("counts active loans under the direction they belong to", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(
       accessToken,
       { expectedReturnDate: isoDay(-3), loanDate: isoDay(-20), personName: "Olha" },
@@ -381,7 +388,7 @@ describe("GET /api/loans/summary", () => {
   });
 
   it("keeps the two directions from bleeding into each other", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(
       accessToken,
       { expectedReturnDate: isoDay(-4), loanDate: isoDay(-20), personName: "Olha" },
@@ -403,7 +410,7 @@ describe("GET /api/loans/summary", () => {
   });
 
   it("excludes a returned loan from every count", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     const bookId = await createBorrowedLoan(accessToken, {
       expectedReturnDate: isoDay(3),
       personName: "Olha",
@@ -424,7 +431,7 @@ describe("GET /api/loans/summary", () => {
 
 describe("GET /api/loans/summary borrowed stats", () => {
   it("counts unique people across active borrowed loans", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { personName: "Olha" }, "First");
     await createBorrowedLoan(accessToken, { personName: "Olha" }, "Second");
     await createBorrowedLoan(accessToken, { personName: "Maria" }, "Third");
@@ -436,7 +443,7 @@ describe("GET /api/loans/summary borrowed stats", () => {
   });
 
   it("counts returns due within the next seven days and reports the nearest one", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(2) }, "Soon");
     await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(6) }, "Later this week");
     await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(20) }, "Next month");
@@ -448,7 +455,7 @@ describe("GET /api/loans/summary borrowed stats", () => {
   });
 
   it("keeps overdue loans out of the returning soon count", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(
       accessToken,
       { expectedReturnDate: isoDay(-4), loanDate: isoDay(-20) },
@@ -462,7 +469,7 @@ describe("GET /api/loans/summary borrowed stats", () => {
   });
 
   it("counts overdue borrowed loans and reports the oldest return date", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(
       accessToken,
       { expectedReturnDate: isoDay(-11), loanDate: isoDay(-20) },
@@ -481,7 +488,7 @@ describe("GET /api/loans/summary borrowed stats", () => {
   });
 
   it("counts loans held for thirty days or longer and reports the earliest loan date", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { loanDate: isoDay(-47) }, "Ancient");
     await createBorrowedLoan(accessToken, { loanDate: isoDay(-30) }, "Exactly thirty days");
     await createBorrowedLoan(accessToken, { loanDate: isoDay(-3) }, "Recent");
@@ -493,7 +500,7 @@ describe("GET /api/loans/summary borrowed stats", () => {
   });
 
   it("leaves borrowed stats empty when the user only lent books out", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createLentLoan(accessToken, {
       expectedReturnDate: isoDay(-5),
       loanDate: isoDay(-60),
@@ -507,7 +514,7 @@ describe("GET /api/loans/summary borrowed stats", () => {
   });
 
   it("excludes a returned borrowed loan from the borrowed stats", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     const bookId = await createBorrowedLoan(accessToken, {
       expectedReturnDate: isoDay(-6),
       loanDate: isoDay(-40),
@@ -525,7 +532,7 @@ describe("GET /api/loans/summary borrowed stats", () => {
 
 describe("GET /api/loans/summary lent stats", () => {
   it("counts unique people holding the books the user lent out", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createLentLoan(accessToken, { personName: "Ivan" }, "First");
     await createLentLoan(accessToken, { personName: "Ivan" }, "Second");
     await createLentLoan(accessToken, { personName: "Petro" }, "Third");
@@ -537,7 +544,7 @@ describe("GET /api/loans/summary lent stats", () => {
   });
 
   it("counts lent returns due within the next seven days and reports the nearest one", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createLentLoan(accessToken, { expectedReturnDate: isoDay(2) }, "Soon");
     await createLentLoan(accessToken, { expectedReturnDate: isoDay(6) }, "Later this week");
     await createLentLoan(accessToken, { expectedReturnDate: isoDay(20) }, "Next month");
@@ -549,7 +556,7 @@ describe("GET /api/loans/summary lent stats", () => {
   });
 
   it("counts overdue lent loans and reports the oldest return date", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createLentLoan(
       accessToken,
       { expectedReturnDate: isoDay(-11), loanDate: isoDay(-20) },
@@ -568,7 +575,7 @@ describe("GET /api/loans/summary lent stats", () => {
   });
 
   it("counts lent loans without a return date and the people holding them", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createLentLoan(accessToken, { personName: "Ivan" }, "No date one");
     await createLentLoan(accessToken, { personName: "Ivan" }, "No date two");
     await createLentLoan(accessToken, { personName: "Petro" }, "No date three");
@@ -585,7 +592,7 @@ describe("GET /api/loans/summary lent stats", () => {
   });
 
   it("counts lent loans that have a return date but no reminder", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createLentLoan(accessToken, { expectedReturnDate: isoDay(5) }, "Silent one");
     await createLentLoan(
       accessToken,
@@ -606,7 +613,7 @@ describe("GET /api/loans/summary lent stats", () => {
   });
 
   it("keeps the loans without a reminder on their own side of the summary", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createLentLoan(accessToken, { expectedReturnDate: isoDay(4) }, "Lent silently");
     await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(4) }, "Borrowed silently");
 
@@ -617,7 +624,7 @@ describe("GET /api/loans/summary lent stats", () => {
   });
 
   it("leaves lent stats empty when the user only borrowed books", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, {
       expectedReturnDate: isoDay(-5),
       loanDate: isoDay(-60),
@@ -631,7 +638,7 @@ describe("GET /api/loans/summary lent stats", () => {
   });
 
   it("excludes a returned lent loan from the lent stats", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     const bookId = await createLentLoan(accessToken, {
       expectedReturnDate: isoDay(-6),
       loanDate: isoDay(-40),
@@ -649,7 +656,7 @@ describe("GET /api/loans/summary lent stats", () => {
 
 describe("GET /api/loans/summary upcoming returns", () => {
   it("keeps only dated future returns, soonest first", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(9) }, "Later");
     await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(0) }, "Today");
     await createBorrowedLoan(
@@ -665,7 +672,7 @@ describe("GET /api/loans/summary upcoming returns", () => {
   });
 
   it("takes the five nearest returns even when the list paginates", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     for (const offset of [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]) {
       await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(offset) }, `In ${offset}`);
     }
@@ -682,7 +689,7 @@ describe("GET /api/loans/summary upcoming returns", () => {
   });
 
   it("carries the person and the book preview of each upcoming return", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(
       accessToken,
       { expectedReturnDate: isoDay(4), personName: "Maria" },
@@ -701,7 +708,7 @@ describe("GET /api/loans/summary upcoming returns", () => {
   });
 
   it("keeps the upcoming returns of the two directions apart", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(2) }, "Borrowed soon");
     await createLentLoan(accessToken, { expectedReturnDate: isoDay(5) }, "Lent soon");
 
@@ -712,7 +719,7 @@ describe("GET /api/loans/summary upcoming returns", () => {
   });
 
   it("builds the lent upcoming returns the same way, without the overdue ones", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     for (const offset of [6, 4, 2, 1, 3, 5]) {
       await createLentLoan(accessToken, { expectedReturnDate: isoDay(offset) }, `In ${offset}`);
     }
@@ -735,7 +742,7 @@ describe("GET /api/loans/summary upcoming returns", () => {
   });
 
   it("drops a returned loan from the upcoming returns", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     const bookId = await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(2) });
     await request(app.getHttpServer())
       .post(`/api/books/${bookId}/loan/return`)
@@ -749,7 +756,7 @@ describe("GET /api/loans/summary upcoming returns", () => {
 
 describe("GET /api/loans/summary top people", () => {
   it("groups the lent loans by person and ranks the five biggest holders", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     const holdings: [string, number][] = [
       ["Olha", 4],
       ["Ivan", 3],
@@ -775,7 +782,7 @@ describe("GET /api/loans/summary top people", () => {
   });
 
   it("keeps the top people of the two directions apart and ignores returned loans", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createLentLoan(accessToken, { personName: "Ivan" }, "Lent one");
     await createBorrowedLoan(accessToken, { personName: "Olha" }, "Borrowed one");
     const returnedBookId = await createLentLoan(accessToken, { personName: "Petro" }, "Returned");
@@ -796,7 +803,7 @@ describe("GET /api/loans/summary top people", () => {
 
 describe("GET /api/loans by contact", () => {
   it("returns only the loans of the requested contact", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createLentLoan(accessToken, { personName: "Olha" }, "Hers");
     await createLentLoan(accessToken, { personName: "Ivan" }, "His");
 
@@ -808,7 +815,7 @@ describe("GET /api/loans by contact", () => {
   });
 
   it("returns 400 for a person name in place of the contact id", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createLentLoan(accessToken, { personName: "Olha" }, "Hers");
 
     const res = await listLoans(accessToken, `?contactId=${encodeURIComponent("Olha")}`);
@@ -817,7 +824,7 @@ describe("GET /api/loans by contact", () => {
   });
 
   it("combines the contact with the other list filters", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createLentLoan(
       accessToken,
       { expectedReturnDate: isoDay(-3), loanDate: isoDay(-10), personName: "Olha" },
@@ -843,7 +850,7 @@ describe("GET /api/loans by contact", () => {
   });
 
   it("returns an empty page for a contact id that matches no loan", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createLentLoan(accessToken, { personName: "Olha" }, "Hers");
 
     const res = await listLoans(accessToken, `?contactId=${MISSING_CONTACT_ID}`);
@@ -861,7 +868,7 @@ describe("GET /api/loans after a contact rename", () => {
   }
 
   it("shows the current name of the contact rather than the name stored on the loan", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await lendToRenamedPerson(accessToken);
 
     const res = await listLoans(accessToken, "?type=borrowed_from_someone");
@@ -870,7 +877,7 @@ describe("GET /api/loans after a contact rename", () => {
   });
 
   it("finds the loan by the new name of the contact", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await lendToRenamedPerson(accessToken);
 
     const res = await listLoans(accessToken, "?search=sydorenko");
@@ -879,7 +886,7 @@ describe("GET /api/loans after a contact rename", () => {
   });
 
   it("still finds the loan by the name stored on it when the loan started", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await lendToRenamedPerson(accessToken);
 
     const res = await listLoans(accessToken, "?search=melnyk");
@@ -890,7 +897,7 @@ describe("GET /api/loans after a contact rename", () => {
 
 describe("GET /api/loans after a contact detail change", () => {
   it("shows the current detail of the contact rather than the one stored on the loan", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createLentLoan(accessToken, { personName: "Ivan" });
     const contactId = await contactIdFor("Ivan");
     await changeContactDetail(accessToken, contactId, "ivan@example.com");
@@ -901,7 +908,7 @@ describe("GET /api/loans after a contact detail change", () => {
   });
 
   it("keeps showing the current detail after the loan stored a different one", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     const contact = await request(app.getHttpServer())
       .post("/api/loans/contacts")
       .set("Authorization", `Bearer ${accessToken}`)
@@ -922,7 +929,7 @@ describe("GET /api/loans after a contact detail change", () => {
 
 describe("GET /api/loans after a contact is archived", () => {
   it("keeps the active loan of an archived contact in the list", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createLentLoan(accessToken, { personName: "Ivan" });
     await archiveContact(accessToken, await contactIdFor("Ivan"));
 
@@ -932,7 +939,7 @@ describe("GET /api/loans after a contact is archived", () => {
   });
 
   it("still names the person on the loan of an archived contact", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createLentLoan(accessToken, { personName: "Ivan" });
     const contactId = await contactIdFor("Ivan");
     await changeContactDetail(accessToken, contactId, "ivan@example.com");
@@ -944,7 +951,7 @@ describe("GET /api/loans after a contact is archived", () => {
   });
 
   it("keeps counting the loan of an archived contact in the summary", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createLentLoan(accessToken, { personName: "Ivan" });
     await archiveContact(accessToken, await contactIdFor("Ivan"));
 
@@ -962,7 +969,7 @@ describe("GET /api/loans/summary people grouped by contact", () => {
   }
 
   it("counts two loans that share a contact as one person", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await lendTwiceUnderTwoSpellings(accessToken);
 
     const res = await loanSummary(accessToken);
@@ -972,7 +979,7 @@ describe("GET /api/loans/summary people grouped by contact", () => {
   });
 
   it("groups the top people by contact rather than by the name stored on the loan", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await lendTwiceUnderTwoSpellings(accessToken);
 
     const res = await loanSummary(accessToken);
@@ -985,7 +992,7 @@ describe("GET /api/loans/summary people grouped by contact", () => {
 
 describe("GET /api/loans/summary long-held loans", () => {
   it("keeps only loans held for thirty days or more, oldest first", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { loanDate: isoDay(-31) }, "Held 31");
     await createBorrowedLoan(accessToken, { loanDate: isoDay(-47) }, "Held 47");
     await createBorrowedLoan(accessToken, { loanDate: isoDay(-30) }, "Held 30");
@@ -997,7 +1004,7 @@ describe("GET /api/loans/summary long-held loans", () => {
   });
 
   it("takes the five oldest loans and carries the person and the book preview", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     for (const age of [40, 45, 50, 55, 60, 65, 70]) {
       await createBorrowedLoan(
         accessToken,
@@ -1023,7 +1030,7 @@ describe("GET /api/loans/summary long-held loans", () => {
   });
 
   it("ignores the return date when picking long-held loans", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(
       accessToken,
       { expectedReturnDate: isoDay(-5), loanDate: isoDay(-40) },
@@ -1046,7 +1053,7 @@ describe("GET /api/loans/summary long-held loans", () => {
   });
 
   it("keeps the long-held loans of the two directions apart", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { loanDate: isoDay(-40) }, "Borrowed long ago");
     await createLentLoan(accessToken, { loanDate: isoDay(-60) }, "Lent long ago");
 
@@ -1057,7 +1064,7 @@ describe("GET /api/loans/summary long-held loans", () => {
   });
 
   it("drops a returned loan from the long-held loans", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     const bookId = await createBorrowedLoan(accessToken, { loanDate: isoDay(-40) });
     await request(app.getHttpServer())
       .post(`/api/books/${bookId}/loan/return`)
@@ -1071,7 +1078,7 @@ describe("GET /api/loans/summary long-held loans", () => {
 
 describe("GET /api/loans sorting", () => {
   it("sorts by person name ascending", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { personName: "Carol" }, "Book C");
     await createBorrowedLoan(accessToken, { personName: "Alice" }, "Book A");
     await createBorrowedLoan(accessToken, { personName: "Bob" }, "Book B");
@@ -1086,7 +1093,7 @@ describe("GET /api/loans sorting", () => {
   });
 
   it("sorts by book title ascending", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { personName: "Olha" }, "Zebra Tales");
     await createBorrowedLoan(accessToken, { personName: "Ivan" }, "Apple Tales");
     await createBorrowedLoan(accessToken, { personName: "Maria" }, "Mango Tales");
@@ -1101,7 +1108,7 @@ describe("GET /api/loans sorting", () => {
   });
 
   it("sorts by first author name ascending", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await borrowCustomBook(
       accessToken,
       { authors: [{ name: "Zed Author" }], ownershipStatus: "none", title: "One" },
@@ -1128,7 +1135,7 @@ describe("GET /api/loans sorting", () => {
   });
 
   it("sorts by loan date descending", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { loanDate: isoDay(-10), personName: "Olha" }, "Old");
     await createBorrowedLoan(accessToken, { loanDate: isoDay(-1), personName: "Ivan" }, "Recent");
     await createBorrowedLoan(accessToken, { loanDate: isoDay(-5), personName: "Maria" }, "Middle");
@@ -1143,7 +1150,7 @@ describe("GET /api/loans sorting", () => {
   });
 
   it("orders loans without a return date last when sorting by return date", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { personName: "NoDate" }, "No Date");
     await createBorrowedLoan(
       accessToken,
@@ -1166,7 +1173,7 @@ describe("GET /api/loans sorting", () => {
   });
 
   it("puts the most overdue first and the dateless loans last when sorting by urgency", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { personName: "NoDate" }, "No Date");
     await createBorrowedLoan(
       accessToken,
@@ -1207,7 +1214,7 @@ describe("GET /api/loans sorting", () => {
   });
 
   it("breaks a tie on the return date with the older loan first", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(
       accessToken,
       { expectedReturnDate: isoDay(3), loanDate: isoDay(-2), personName: "Recent" },
@@ -1234,7 +1241,7 @@ describe("GET /api/loans sorting", () => {
   });
 
   it("sorts by urgency when no sort is asked for", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { personName: "NoDate" }, "No Date");
     await createBorrowedLoan(
       accessToken,
@@ -1257,7 +1264,7 @@ describe("GET /api/loans sorting", () => {
   });
 
   it("rejects the retired return_soonest sort", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
 
     const res = await listLoans(accessToken, "?sort=return_soonest");
 
@@ -1267,7 +1274,7 @@ describe("GET /api/loans sorting", () => {
 
 describe("GET /api/loans pagination", () => {
   it("returns the requested page and reports the total counts", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(
       accessToken,
       { expectedReturnDate: isoDay(3), personName: "Third" },
@@ -1298,7 +1305,7 @@ describe("GET /api/loans pagination", () => {
 
 describe("GET /api/loans combined filters", () => {
   it("narrows by type, filter and search together without widening past the active type", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(
       accessToken,
       { expectedReturnDate: isoDay(-3), loanDate: isoDay(-10), personName: "Olha" },
@@ -1328,7 +1335,7 @@ describe("GET /api/loans combined filters", () => {
 
 describe("GET /api/loans additional filters", () => {
   it("filters loans due within the return-soon window", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(
       accessToken,
       { expectedReturnDate: isoDay(3), personName: "Olha" },
@@ -1353,7 +1360,7 @@ describe("GET /api/loans additional filters", () => {
   });
 
   it("filters loans that have a return date but no reminder", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createLentLoan(accessToken, {
       expectedReturnDate: isoDay(10),
       personName: "Ivan",
@@ -1376,7 +1383,7 @@ describe("GET /api/loans additional filters", () => {
 
 describe("GET /api/loans advanced filters", () => {
   it("filters by the loan date range", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { loanDate: isoDay(-20), personName: "Olha" }, "Old");
     await createBorrowedLoan(accessToken, { loanDate: isoDay(-5), personName: "Olha" }, "Recent");
 
@@ -1390,7 +1397,7 @@ describe("GET /api/loans advanced filters", () => {
   });
 
   it("keeps a loan date range open at one end", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { loanDate: isoDay(-20), personName: "Olha" }, "Old");
     await createBorrowedLoan(accessToken, { loanDate: isoDay(-5), personName: "Olha" }, "Recent");
 
@@ -1401,7 +1408,7 @@ describe("GET /api/loans advanced filters", () => {
   });
 
   it("filters by the expected return date range", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(
       accessToken,
       { expectedReturnDate: isoDay(-9), loanDate: isoDay(-20), personName: "Olha" },
@@ -1424,7 +1431,7 @@ describe("GET /api/loans advanced filters", () => {
   });
 
   it("reaches into the past with the expected return date range", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(
       accessToken,
       { expectedReturnDate: isoDay(-9), loanDate: isoDay(-20), personName: "Olha" },
@@ -1446,7 +1453,7 @@ describe("GET /api/loans advanced filters", () => {
   });
 
   it("rejects an inverted date range", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
 
     const res = await listLoans(
       accessToken,
@@ -1457,7 +1464,7 @@ describe("GET /api/loans advanced filters", () => {
   });
 
   it("filters loans that carry a note", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { note: "handed over in person" }, "With Note");
     await createBorrowedLoan(accessToken, { personName: "Olha" }, "Without Note");
 
@@ -1468,7 +1475,7 @@ describe("GET /api/loans advanced filters", () => {
   });
 
   it("filters loans that carry no note", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { note: "handed over in person" }, "With Note");
     await createBorrowedLoan(accessToken, { personName: "Olha" }, "Without Note");
 
@@ -1479,7 +1486,7 @@ describe("GET /api/loans advanced filters", () => {
   });
 
   it("combines the quick status, the person, the reminder, the note and a date range", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createLentLoan(
       accessToken,
       {
@@ -1532,7 +1539,7 @@ describe("GET /api/loans advanced filters", () => {
   });
 
   it("returns nothing when a date range contradicts the no-return-date filter", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { personName: "Olha" }, "No Due Date");
     await createBorrowedLoan(
       accessToken,
@@ -1552,7 +1559,7 @@ describe("GET /api/loans advanced filters", () => {
 
 describe("GET /api/loans search", () => {
   it("searches by contact", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { personName: "Olha" }, "A");
     await createBorrowedLoan(accessToken, { personName: "Ivan" }, "B");
     await changeContactDetail(accessToken, await contactIdFor("Olha"), "olha@example.com");
@@ -1565,7 +1572,7 @@ describe("GET /api/loans search", () => {
   });
 
   it("still searches by the contact detail a loan stored when it started", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     const contact = await request(app.getHttpServer())
       .post("/api/loans/contacts")
       .set("Authorization", `Bearer ${accessToken}`)
@@ -1581,7 +1588,7 @@ describe("GET /api/loans search", () => {
   });
 
   it("searches by note", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { note: "hardcover copy", personName: "Olha" }, "A");
     await createBorrowedLoan(accessToken, { note: "paperback edition", personName: "Ivan" }, "B");
 
@@ -1592,7 +1599,7 @@ describe("GET /api/loans search", () => {
   });
 
   it("searches by original title", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await borrowCustomBook(
       accessToken,
       {
@@ -1621,7 +1628,7 @@ describe("GET /api/loans search", () => {
   });
 
   it("searches by an alternate-locale author name", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     const created = await createBook(accessToken, {
       authors: [{ name: "Andrzej Sapkowski" }],
       ownershipStatus: "none",
@@ -1646,7 +1653,7 @@ describe("GET /api/loans search", () => {
   });
 
   it("matches the search term case-insensitively", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { personName: "Olha Melnyk" });
 
     const res = await listLoans(accessToken, "?search=MELNYK");
@@ -1658,7 +1665,7 @@ describe("GET /api/loans search", () => {
 
 describe("GET /api/loans ui status", () => {
   it("reports on_time when the return date is more than a week away", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(30), personName: "Olha" });
 
     const res = await listLoans(accessToken);
@@ -1667,9 +1674,61 @@ describe("GET /api/loans ui status", () => {
   });
 });
 
+describe("GET /api/loans on the reader's own calendar day", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ now: KYIV_PAST_MIDNIGHT.instant, toFake: ["Date"] });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  async function borrowDueOnUtcDay(timezone: string): Promise<string> {
+    const { accessToken } = await registerReaderInTimezone({ context, timezone });
+    await createBorrowedLoan(accessToken, {
+      expectedReturnDate: KYIV_PAST_MIDNIGHT.dueDate,
+      loanDate: KYIV_PAST_MIDNIGHT.loanDate,
+      personName: "Olha",
+    });
+    return accessToken;
+  }
+
+  it("reports a loan due 2026-11-15 as overdue to a Kyiv reader on 2026-11-16", async () => {
+    const accessToken = await borrowDueOnUtcDay("Europe/Kyiv");
+
+    const res = await listLoans(accessToken);
+
+    expect(res.body.items[0].loanUiStatus).toBe("overdue");
+  });
+
+  it("includes a loan due 2026-11-15 in the overdue filter of a Kyiv reader", async () => {
+    const accessToken = await borrowDueOnUtcDay("Europe/Kyiv");
+
+    const res = await listLoans(accessToken, "?filter=overdue");
+
+    expect(loanTitles(res.body.items)).toEqual(["Dune"]);
+  });
+
+  it("reports a loan due 2026-11-15 as return soon to a UTC reader still on that day", async () => {
+    const accessToken = await borrowDueOnUtcDay("UTC");
+
+    const res = await listLoans(accessToken);
+
+    expect(res.body.items[0].loanUiStatus).toBe("return_soon");
+  });
+
+  it("keeps a loan due 2026-11-15 out of the overdue filter of a UTC reader", async () => {
+    const accessToken = await borrowDueOnUtcDay("UTC");
+
+    const res = await listLoans(accessToken, "?filter=overdue");
+
+    expect(res.body.items).toEqual([]);
+  });
+});
+
 describe("GET /api/loans book preview", () => {
   it("returns null cover, publisher and original title when the book has none", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { personName: "Olha" });
 
     const res = await listLoans(accessToken);
@@ -1682,7 +1741,7 @@ describe("GET /api/loans book preview", () => {
   });
 
   it("returns the publisher and original title when the book has them", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await borrowCustomBook(
       accessToken,
       {
@@ -1706,7 +1765,7 @@ describe("GET /api/loans book preview", () => {
 
 describe("GET /api/loans validation", () => {
   it("returns 400 for an invalid sort value", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
 
     const res = await listLoans(accessToken, "?sort=bogus");
 
@@ -1714,7 +1773,7 @@ describe("GET /api/loans validation", () => {
   });
 
   it("returns 400 for an invalid filter value", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
 
     const res = await listLoans(accessToken, "?filter=bogus");
 
@@ -1722,7 +1781,7 @@ describe("GET /api/loans validation", () => {
   });
 
   it("returns 400 for an invalid type value", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
 
     const res = await listLoans(accessToken, "?type=bogus");
 
@@ -1730,7 +1789,7 @@ describe("GET /api/loans validation", () => {
   });
 
   it("returns 400 when the page size exceeds the maximum", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
 
     const res = await listLoans(accessToken, "?pageSize=101");
 
@@ -1738,7 +1797,7 @@ describe("GET /api/loans validation", () => {
   });
 
   it("applies default pagination when no query params are provided", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+    const { accessToken } = await registerReaderInTimezone({ context, timezone: "UTC" });
     await createBorrowedLoan(accessToken, { personName: "Olha" });
 
     const res = await listLoans(accessToken);

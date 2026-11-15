@@ -3,8 +3,6 @@ import type { LoanUiStatus, Nullable } from "@app/shared";
 import { LOAN_STATS_WINDOWS } from "@app/shared";
 import { addDays, differenceInCalendarDays } from "date-fns";
 
-import { startOfUtcDay } from "../../../core/iso-date.js";
-
 const RETURN_SOON_DAYS = LOAN_STATS_WINDOWS.returnSoonDays;
 
 export type LoanDateBounds = {
@@ -33,8 +31,6 @@ export function getLoanUiStatus({
   return "on_time";
 }
 
-export function loanDateBounds(now: Date): LoanDateBounds {
-  const today = startOfUtcDay(now);
-
+export function loanDateBounds(today: Date): LoanDateBounds {
   return { soonEnd: addDays(today, RETURN_SOON_DAYS), today };
 }

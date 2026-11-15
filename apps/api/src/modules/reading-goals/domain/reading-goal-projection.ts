@@ -20,9 +20,9 @@ type ProjectionInput = {
   completedCount: number;
   deadline: Date;
   elapsedDays: number;
-  now: Date;
   remainingCount: number;
   status: ReadingGoalStatus;
+  today: Date;
 };
 
 type RemainingDaysInput = {
@@ -36,9 +36,9 @@ export function calculateReadingGoalProjection({
   completedCount,
   deadline,
   elapsedDays,
-  now,
   remainingCount,
   status,
+  today,
 }: ProjectionInput): ReadingGoalProjection {
   const observedDays = Math.max(1, elapsedDays);
   const actualBooksPerDay = completedCount / observedDays;
@@ -67,7 +67,7 @@ export function calculateReadingGoalProjection({
   }
 
   const projectedIsoDate = addDaysToIsoDate(
-    toIsoDate(now),
+    toIsoDate(today),
     estimateRemainingDays({ completedCount, observedDays, remainingCount }),
   );
   return {

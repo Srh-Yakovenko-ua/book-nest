@@ -55,7 +55,7 @@ function buildService(): {
   const genresService = { searchKeys: vi.fn().mockResolvedValue([]) };
 
   const viewAssembler = {
-    viewOf: vi.fn(({ id }: { id: string }) => ({ id, title: "Dune" })),
+    forUser: vi.fn().mockResolvedValue(vi.fn(({ id }: { id: string }) => ({ id, title: "Dune" }))),
   };
 
   const service = new ListDetailsService(

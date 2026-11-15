@@ -19,6 +19,7 @@ import type {
 
 import {
   normalizeName,
+  PUBLISHER_ERROR_CODES,
   PUBLISHER_MERGE_ERROR_CODES,
   PUBLISHER_NAME_ERROR_CODES,
 } from "@app/shared";
@@ -504,7 +505,9 @@ function publisherDuplicateNameError(): ConflictError {
 }
 
 function publisherHasBooksError(): ConflictError {
-  return new ConflictError("Publisher still has linked books", { code: "PUBLISHER_HAS_BOOKS" });
+  return new ConflictError("Publisher still has linked books", {
+    code: PUBLISHER_ERROR_CODES.hasBooks,
+  });
 }
 
 function toCandidateNames(publisher: PublisherWithNames): string[] {

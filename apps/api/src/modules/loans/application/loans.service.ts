@@ -15,9 +15,12 @@ import { LOAN_STATS_WINDOWS, LoanTypeSchema, OwnershipStatusSchema } from "@app/
 import { Injectable } from "@nestjs/common";
 import { subDays } from "date-fns";
 
+import type { LoanDateBounds } from "../domain/loan-ui-status.js";
+
 import { toNullableIsoDate } from "../../../core/iso-date.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { MediaService } from "../../media/index.js";
+import { UserSettingsContextService } from "../../profile/index.js";
 import { resolveActiveLoanPerson } from "../domain/loan-person.js";
 import { getLoanUiStatus, loanDateBounds } from "../domain/loan-ui-status.js";
 import { buildLoansFilter } from "../domain/loans-filter.js";
@@ -56,6 +59,7 @@ export class LoansService {
   constructor(
     private readonly loansRepository: LoansRepository,
     private readonly mediaService: MediaService,
+    private readonly userSettingsContextService: UserSettingsContextService,
   ) {}
 
   async list({
@@ -65,7 +69,7 @@ export class LoansService {
     query: LoansQuery;
     userId: string;
   }): Promise<Paginator<LoanListItemView>> {
-    const bounds = loanDateBounds(new Date());
+    const bounds = await this.dateBounds({ now: new Date(), userId });
     const filter = buildLoansFilter({ bounds, query, userId });
 
     const [items, totalCount] = await Promise.all([
@@ -85,21 +89,22 @@ export class LoansService {
     });
   }
 
-  quickCounts({
+  async quickCounts({
     query,
     userId,
   }: {
     query: LoansQuickCountsQuery;
     userId: string;
   }): Promise<LoansQuickCounts> {
-    const filter = buildLoansFilter({ bounds: loanDateBounds(new Date()), query, userId });
+    const bounds = await this.dateBounds({ now: new Date(), userId });
+    const filter = buildLoansFilter({ bounds, query, userId });
     return this.loansRepository.countQuickFilters({
       filters: buildLoansQuickCountFilters(filter),
     });
   }
 
   async summary({ userId }: { userId: string }): Promise<LoansSummaryView> {
-    const { soonEnd, today } = loanDateBounds(new Date());
+    const { soonEnd, today } = await this.dateBounds({ now: new Date(), userId });
     const longHeldBefore = subDays(today, LOAN_STATS_WINDOWS.longHeldDays);
 
     const [counts, people, borrowedLoans, lentLoans] = await Promise.all([
@@ -119,6 +124,17 @@ export class LoansService {
         topPeople: toPersonSummaries(people, "lent_to_someone"),
       }),
     };
+  }
+
+  private async dateBounds({
+    now,
+    userId,
+  }: {
+    now: Date;
+    userId: string;
+  }): Promise<LoanDateBounds> {
+    const today = await this.userSettingsContextService.calendarDay({ now, userId });
+    return loanDateBounds(today);
   }
 
   private async sidebarLoans({

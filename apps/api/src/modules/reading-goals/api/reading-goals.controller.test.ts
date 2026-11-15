@@ -5,7 +5,7 @@ import { ReadingGoalDetailSchema, ReadingGoalsOverviewSchema } from "@app/shared
 import { subDays } from "date-fns";
 import { Client } from "pg";
 import request from "supertest";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
 import type { AuthenticatedUser, AuthTestContext } from "../../../test/auth-test-context.js";
@@ -21,6 +21,7 @@ import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { insertFinishedReadingCycle } from "../../../test/reading-cycles.js";
 import { truncateAllTables } from "../../../test/truncate.js";
+import { registerReaderInTimezone } from "../../../test/user-timezone.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { ListLifecycleService } from "../../lists/application/list-lifecycle.service.js";
 import { ListsModule } from "../../lists/lists.module.js";
@@ -30,20 +31,60 @@ import { ReadingGoalsModule } from "../reading-goals.module.js";
 const MISSING_UUID = "00000000-0000-4000-8000-000000000000";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
-const TODAY = toIsoDate(new Date());
-const YESTERDAY = addDaysToIsoDate(TODAY, -1);
-const TOMORROW = addDaysToIsoDate(TODAY, 1);
-const NEXT_WEEK = addDaysToIsoDate(TODAY, 7);
-const NEXT_MONTH = addDaysToIsoDate(TODAY, 30);
+type DeadlineFixtures = Readonly<
+  Record<
+    | "inFifteenDays"
+    | "inFiveDays"
+    | "inFourDays"
+    | "inNineDays"
+    | "inThreeDays"
+    | "inTwentyFiveDays"
+    | "inTwoDays",
+    string
+  >
+>;
 
-const DEADLINE = Object.freeze({
-  inFifteenDays: addDaysToIsoDate(TODAY, 15),
-  inFiveDays: addDaysToIsoDate(TODAY, 5),
-  inFourDays: addDaysToIsoDate(TODAY, 4),
-  inNineDays: addDaysToIsoDate(TODAY, 9),
-  inThreeDays: addDaysToIsoDate(TODAY, 3),
-  inTwentyFiveDays: addDaysToIsoDate(TODAY, 25),
-  inTwoDays: addDaysToIsoDate(TODAY, 2),
+let TODAY: string;
+let YESTERDAY: string;
+let TOMORROW: string;
+let NEXT_WEEK: string;
+let NEXT_MONTH: string;
+let DEADLINE: DeadlineFixtures;
+
+function captureTestCalendar(): void {
+  TODAY = toIsoDate(new Date());
+  YESTERDAY = addDaysToIsoDate(TODAY, -1);
+  TOMORROW = addDaysToIsoDate(TODAY, 1);
+  NEXT_WEEK = addDaysToIsoDate(TODAY, 7);
+  NEXT_MONTH = addDaysToIsoDate(TODAY, 30);
+  DEADLINE = Object.freeze({
+    inFifteenDays: addDaysToIsoDate(TODAY, 15),
+    inFiveDays: addDaysToIsoDate(TODAY, 5),
+    inFourDays: addDaysToIsoDate(TODAY, 4),
+    inNineDays: addDaysToIsoDate(TODAY, 9),
+    inThreeDays: addDaysToIsoDate(TODAY, 3),
+    inTwentyFiveDays: addDaysToIsoDate(TODAY, 25),
+    inTwoDays: addDaysToIsoDate(TODAY, 2),
+  });
+}
+
+const NEW_YORK_EVENING = Object.freeze({
+  instant: new Date("2026-11-16T02:00:00.000Z"),
+  localToday: "2026-11-15",
+  localTomorrow: "2026-11-16",
+  timezone: "America/New_York",
+});
+
+const KYIV_NIGHT = Object.freeze({
+  archivedAt: new Date("2026-11-15T23:30:00.000Z"),
+  createdAt: new Date("2026-11-10T12:00:00.000Z"),
+  credentials: { email: "kyiv-reader@example.com", password: "Supersecret123!" },
+  lateCreatedAt: new Date("2026-11-15T22:30:00.000Z"),
+  lateGoalDeadline: "2026-11-30",
+  localDay: "2026-11-16",
+  openDeadline: "2026-11-20",
+  timezone: "Europe/Kyiv",
+  utcDay: "2026-11-15",
 });
 
 const CURSOR_PAGE_SCHEMA = Object.freeze({
@@ -126,8 +167,9 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
+  captureTestCalendar();
   context.reset();
-  owner = await context.registerVerifyAndLogin();
+  owner = await registerReaderInTimezone({ context, timezone: "UTC" });
 });
 
 afterEach(async () => {
@@ -172,6 +214,14 @@ async function addBookToList({
   const bookId = await createBook({ deletedAt, finishedIsoDate, title, userId });
   await prisma.bookListItem.create({ data: { bookId, listId, position } });
   return bookId;
+}
+
+async function advanceToKyivNight(): Promise<string> {
+  vi.setSystemTime(KYIV_NIGHT.archivedAt);
+  const response = await request(app.getHttpServer())
+    .post("/api/auth/login")
+    .send(KYIV_NIGHT.credentials);
+  return z.object({ accessToken: z.string() }).parse(response.body).accessToken;
 }
 
 async function collectPages(sendPage: CursorPageRequest): Promise<{
@@ -396,6 +446,15 @@ function readBookTitles(body: unknown): string[] {
 
 function readItemIds(body: unknown): string[] {
   return CURSOR_PAGE_SCHEMA.ids.parse(body).items.map((item) => item.id);
+}
+
+function registerKyivReaderAt(instant: Date): Promise<AuthenticatedUser> {
+  vi.useFakeTimers({ now: instant, toFake: ["Date"] });
+  return registerReaderInTimezone({
+    context,
+    overrides: KYIV_NIGHT.credentials,
+    timezone: KYIV_NIGHT.timezone,
+  });
 }
 
 async function seedDetailFixture(user: AuthenticatedUser): Promise<{
@@ -700,6 +759,174 @@ describe("POST /api/lists/:listId/goal", () => {
     });
 
     expect(response.status).toBe(404);
+  });
+});
+
+describe("POST /api/lists/:listId/goal on the reader's own calendar day", () => {
+  let reader: AuthenticatedUser;
+
+  beforeEach(async () => {
+    vi.useFakeTimers({ now: NEW_YORK_EVENING.instant, toFake: ["Date"] });
+    reader = await registerReaderInTimezone({ context, timezone: NEW_YORK_EVENING.timezone });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("accepts a deadline on the reader's tomorrow while UTC has already reached that day", async () => {
+    const listId = await seedList({ bookCount: 1, user: reader });
+
+    const response = await postGoal({
+      accessToken: reader.accessToken,
+      body: { deadline: NEW_YORK_EVENING.localTomorrow, targetCount: 1 },
+      listId,
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body.deadline).toBe(NEW_YORK_EVENING.localTomorrow);
+  });
+
+  it("rejects a deadline on the reader's today with the deadline-not-in-future error", async () => {
+    const listId = await seedList({ bookCount: 1, user: reader });
+
+    const response = await postGoal({
+      accessToken: reader.accessToken,
+      body: { deadline: NEW_YORK_EVENING.localToday, targetCount: 1 },
+      listId,
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errorsMessages).toEqual([
+      { field: "deadline", message: "Deadline must be later than today" },
+    ]);
+  });
+});
+
+describe("reading goal days for a reader in Kyiv past UTC midnight", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  describe("archived at 01:30 local on the day after its deadline", () => {
+    let goalId: string;
+
+    beforeEach(async () => {
+      const reader = await registerKyivReaderAt(KYIV_NIGHT.createdAt);
+      const listId = await seedList({ bookCount: 2, user: reader });
+      goalId = await createGoalOrThrow({
+        accessToken: reader.accessToken,
+        deadline: KYIV_NIGHT.utcDay,
+        listId,
+        targetCount: 2,
+      });
+    });
+
+    it("returns the expired result while UTC is still on the deadline day", async () => {
+      const accessToken = await advanceToKyivNight();
+
+      const response = await postArchive({ accessToken, goalId });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({ result: "expired", status: "archived" });
+    });
+
+    it("records goal_archived with the expired result", async () => {
+      const accessToken = await advanceToKyivNight();
+
+      await postArchive({ accessToken, goalId });
+
+      expect(await activityMetadata({ goalId, type: "goal_archived" })).toEqual({
+        result: "expired",
+      });
+    });
+  });
+
+  describe("archived at 01:30 local before its deadline", () => {
+    it("keeps counting a book finished on the reader's archive day", async () => {
+      const reader = await registerKyivReaderAt(KYIV_NIGHT.createdAt);
+      const listId = await createList(reader.userId);
+      const bookId = await addBookToList({
+        listId,
+        position: 0,
+        title: "Finished past midnight",
+        userId: reader.userId,
+      });
+      await addBookToList({ listId, position: 1, title: "Unread", userId: reader.userId });
+      const goalId = await createGoalOrThrow({
+        accessToken: reader.accessToken,
+        deadline: KYIV_NIGHT.openDeadline,
+        listId,
+        targetCount: 2,
+      });
+      const accessToken = await advanceToKyivNight();
+      await prisma.bookReadingProgress.create({
+        data: { bookId, finishedAt: parseIsoDate(KYIV_NIGHT.localDay) },
+      });
+      await insertFinishedReadingCycle(prisma, {
+        bookId,
+        finishedIsoDate: KYIV_NIGHT.localDay,
+        userId: reader.userId,
+      });
+      await syncService.syncBooks({ bookIds: [bookId], userId: reader.userId });
+
+      await postArchive({ accessToken, goalId });
+      const archived = await getGoal({ accessToken, goalId });
+
+      expect(archived.status).toBe(200);
+      expect(archived.body).toMatchObject({ completedCount: 1, status: "archived" });
+    });
+  });
+
+  describe("created at 00:30 local while UTC is still on the day before", () => {
+    let createdCompletedCount: unknown;
+    let eveBookId: string;
+    let goalId: string;
+    let startDayBookId: string;
+
+    beforeEach(async () => {
+      const reader = await registerKyivReaderAt(KYIV_NIGHT.lateCreatedAt);
+      const listId = await createList(reader.userId);
+      eveBookId = await addBookToList({
+        finishedIsoDate: KYIV_NIGHT.utcDay,
+        listId,
+        position: 0,
+        title: "Finished on the UTC eve",
+        userId: reader.userId,
+      });
+      startDayBookId = await addBookToList({
+        finishedIsoDate: KYIV_NIGHT.localDay,
+        listId,
+        position: 1,
+        title: "Finished on the start day",
+        userId: reader.userId,
+      });
+      const created = await postGoal({
+        accessToken: reader.accessToken,
+        body: { deadline: KYIV_NIGHT.lateGoalDeadline, name: "Late goal", targetCount: 2 },
+        listId,
+      });
+      goalId = z.object({ id: z.string() }).parse(created.body).id;
+      createdCompletedCount = created.body.completedCount;
+    });
+
+    it("qualifies only the book finished on the reader's start day", async () => {
+      const rows = await snapshotRows(goalId);
+
+      expect(
+        rows.map((row) => ({
+          bookId: row.bookId,
+          qualifiedFinishedAt: toNullableIsoDate(row.qualifiedFinishedAt),
+        })),
+      ).toEqual([
+        { bookId: eveBookId, qualifiedFinishedAt: null },
+        { bookId: startDayBookId, qualifiedFinishedAt: KYIV_NIGHT.localDay },
+      ]);
+    });
+
+    it("leaves the book finished on the UTC eve out of the completed count", () => {
+      expect(createdCompletedCount).toBe(1);
+    });
   });
 });
 

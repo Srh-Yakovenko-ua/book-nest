@@ -1,13 +1,13 @@
-import type { Nullable, ReadingGoalSort } from "@app/shared";
+import type { Nullable, ReadingGoalActivityType, ReadingGoalSort } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
-import type { Prisma } from "../../../generated/prisma/client.js";
-
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
+import { toIsoDate } from "../../../core/iso-date.js";
+import { Prisma } from "../../../generated/prisma/client.js";
 
 const goalWithListArgs = {
   include: { list: { select: { id: true, name: true } } },
@@ -21,6 +21,23 @@ export type ReadingGoalListCandidate = {
 export type ReadingGoalWithList = Prisma.ReadingGoalGetPayload<typeof goalWithListArgs>;
 
 const CountedBooksRowSchema = z.object({ count: z.number().int().nonnegative() });
+
+const ExpirationCandidateRowSchema = z.object({
+  archivedAt: z.date().nullable(),
+  createdAt: z.date(),
+  deadline: z.date(),
+  id: z.uuid(),
+  targetCount: z.number().int(),
+  timezone: z.string().nullable(),
+  userId: z.uuid(),
+});
+
+const SETTLED_GOAL_ACTIVITY_TYPES: readonly ReadingGoalActivityType[] = [
+  "goal_completed",
+  "goal_expired",
+];
+
+export type ReadingGoalExpirationCandidate = z.infer<typeof ExpirationCandidateRowSchema>;
 
 type CatalogQuery = {
   limit: number;
@@ -131,22 +148,35 @@ export class ReadingGoalsRepository {
     });
   }
 
-  findExpirationCandidates({
+  async findExpirationCandidates({
     afterId,
     deadlineBefore,
     limit,
-  }: ExpirationCandidatesQuery): Promise<ReadingGoalWithList[]> {
-    return this.prisma.readingGoal.findMany({
-      orderBy: { id: "asc" },
-      take: limit,
-      where: {
-        activities: { none: { type: { in: ["goal_expired", "goal_completed"] } } },
-        archivedAt: null,
-        deadline: { lt: deadlineBefore },
-        ...(afterId === null ? {} : { id: { gt: afterId } }),
-      },
-      ...goalWithListArgs,
-    });
+  }: ExpirationCandidatesQuery): Promise<ReadingGoalExpirationCandidate[]> {
+    const rows = await this.prisma.$queryRaw`
+      SELECT
+        goal.id AS "id",
+        goal.user_id AS "userId",
+        goal.target_count AS "targetCount",
+        goal.deadline AS "deadline",
+        goal.archived_at AS "archivedAt",
+        goal.created_at AS "createdAt",
+        settings.timezone AS "timezone"
+      FROM reading_goals goal
+      LEFT JOIN user_profile_settings settings ON settings.user_id = goal.user_id
+      WHERE goal.archived_at IS NULL
+        AND goal.deadline < ${toIsoDate(deadlineBefore)}::date
+        ${afterId === null ? Prisma.empty : Prisma.sql`AND goal.id > ${afterId}::uuid`}
+        AND NOT EXISTS (
+          SELECT 1
+          FROM reading_goal_activities activity
+          WHERE activity.goal_id = goal.id
+            AND activity.type IN (${Prisma.join(SETTLED_GOAL_ACTIVITY_TYPES)})
+        )
+      ORDER BY goal.id ASC
+      LIMIT ${limit}
+    `;
+    return z.array(ExpirationCandidateRowSchema).parse(rows);
   }
 
   findOpenGoals({ userId }: { userId: string }): Promise<ReadingGoalWithList[]> {

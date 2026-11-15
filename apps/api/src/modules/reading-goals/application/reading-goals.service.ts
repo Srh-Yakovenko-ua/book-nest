@@ -10,6 +10,7 @@ import { TransactionRunner } from "../../../core/database/transaction-runner.js"
 import { BadRequestError, ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { isUniqueConstraintErrorOn } from "../../../core/prisma-errors.js";
 import { ListsService } from "../../lists/index.js";
+import { UserSettingsContextService } from "../../profile/index.js";
 import { ACTIVE_LIST_GOAL_INDEX, READING_GOAL_MESSAGE } from "../domain/reading-goal.constants.js";
 import { ReadingGoalsRepository } from "../infrastructure/reading-goals.repository.js";
 import { ReadingGoalActivityRecorder } from "./reading-goal-activity.recorder.js";
@@ -42,13 +43,15 @@ export class ReadingGoalsService {
     private readonly inputValidator: ReadingGoalInputValidator,
     private readonly snapshotService: ReadingGoalSnapshotService,
     private readonly activityRecorder: ReadingGoalActivityRecorder,
+    private readonly userSettingsContextService: UserSettingsContextService,
   ) {}
 
   async archive({ goalId, userId }: GoalCommand): Promise<ReadingGoalView> {
     const now = new Date();
     const goal = await this.findOwnedOrThrow({ goalId, userId });
+    const { timeZone, today } = await this.userSettingsContextService.calendar({ now, userId });
     if (goal.archivedAt !== null) {
-      return this.viewBuilder.build({ goal, now });
+      return this.viewBuilder.build({ goal, timeZone, today });
     }
 
     const archived = await this.transactionRunner.run(async (tx) => {
@@ -58,25 +61,26 @@ export class ReadingGoalsService {
       );
       const current = await this.findOwnedOrThrow({ goalId, userId }, tx);
       if (stamped === 1) {
-        const changes = await this.snapshotService.resync({ goal: current, tx });
-        await this.activityRecorder.recordArchive({ changes, goal: current, now, tx });
+        const changes = await this.snapshotService.resync({ goal: current, timeZone, tx });
+        await this.activityRecorder.recordArchive({ changes, goal: current, timeZone, today, tx });
       }
       return current;
     });
 
-    return this.viewBuilder.build({ goal: archived, now });
+    return this.viewBuilder.build({ goal: archived, timeZone, today });
   }
 
   async create({ input, listId, userId }: CreateInput): Promise<ReadingGoalView> {
     const now = new Date();
     await this.listsService.assertOwned({ listId, userId });
-    const deadline = this.inputValidator.assertFutureDeadline({ deadline: input.deadline, now });
+    const { timeZone, today } = await this.userSettingsContextService.calendar({ now, userId });
+    const deadline = this.inputValidator.assertFutureDeadline({ deadline: input.deadline, today });
 
     const created = await this.transactionRunner.run(async (tx) => {
       await this.readingGoalsRepository.acquireCreateLock(listId, tx);
       const existing = await this.readingGoalsRepository.findActiveByListId({ listId, userId }, tx);
       if (existing !== null) {
-        await this.archiveSuperseded({ existing, now, tx, userId });
+        await this.archiveSuperseded({ existing, now, timeZone, today, tx, userId });
       }
       const candidates = await this.readingGoalsRepository.findActiveListBooks(
         { listId, userId },
@@ -92,12 +96,12 @@ export class ReadingGoalsService {
         tx,
         userId,
       });
-      await this.snapshotService.seed({ candidates, goal, tx });
-      await this.activityRecorder.recordCreation({ goal, now, tx });
+      await this.snapshotService.seed({ candidates, goal, timeZone, tx });
+      await this.activityRecorder.recordCreation({ goal, timeZone, today, tx });
       return goal;
     });
 
-    return this.viewBuilder.build({ goal: created, now });
+    return this.viewBuilder.build({ goal: created, timeZone, today });
   }
 
   async delete({ goalId, userId }: GoalCommand): Promise<void> {
@@ -113,34 +117,39 @@ export class ReadingGoalsService {
     if (previous.archivedAt !== null) {
       throw new BadRequestError(READING_GOAL_MESSAGE.archivedIsReadOnly);
     }
+    const { timeZone, today } = await this.userSettingsContextService.calendar({ now, userId });
     const updated = await this.transactionRunner.run(async (tx) => {
-      const data = await this.inputValidator.buildUpdateData({ goal: previous, input, now, tx });
+      const data = await this.inputValidator.buildUpdateData({ goal: previous, input, today, tx });
       const goal = await this.readingGoalsRepository.update({ data, goalId, userId }, tx);
       if (goal === null) {
         throw new NotFoundError(READING_GOAL_MESSAGE.notFound);
       }
       const changes = deadlineChanged({ goal, previous })
-        ? await this.snapshotService.resync({ goal, tx })
+        ? await this.snapshotService.resync({ goal, timeZone, tx })
         : [];
-      await this.activityRecorder.recordUpdate({ changes, goal, now, previous, tx });
+      await this.activityRecorder.recordUpdate({ changes, goal, previous, timeZone, today, tx });
       return goal;
     });
 
-    return this.viewBuilder.build({ goal: updated, now });
+    return this.viewBuilder.build({ goal: updated, timeZone, today });
   }
 
   private async archiveSuperseded({
     existing,
     now,
+    timeZone,
+    today,
     tx,
     userId,
   }: {
     existing: ReadingGoalWithList;
     now: Date;
+    timeZone: string;
+    today: Date;
     tx: Prisma.TransactionClient;
     userId: string;
   }): Promise<void> {
-    const view = await this.viewBuilder.build({ client: tx, goal: existing, now });
+    const view = await this.viewBuilder.build({ client: tx, goal: existing, timeZone, today });
     if (view.status === "active") {
       throw new ConflictError(READING_GOAL_MESSAGE.activeGoalExists);
     }
@@ -152,8 +161,8 @@ export class ReadingGoalsService {
       throw new ConflictError(READING_GOAL_MESSAGE.activeGoalExists);
     }
     const archivedGoal = { ...existing, archivedAt: now };
-    const changes = await this.snapshotService.resync({ goal: archivedGoal, tx });
-    await this.activityRecorder.recordArchive({ changes, goal: archivedGoal, now, tx });
+    const changes = await this.snapshotService.resync({ goal: archivedGoal, timeZone, tx });
+    await this.activityRecorder.recordArchive({ changes, goal: archivedGoal, timeZone, today, tx });
   }
 
   private async createGoal({

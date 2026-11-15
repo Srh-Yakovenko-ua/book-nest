@@ -6,6 +6,7 @@ import type {
   RegistrationResultView,
 } from "@app/shared";
 
+import { AUTH_ERROR_CODES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { UserModel } from "../../../generated/prisma/models.js";
@@ -60,7 +61,7 @@ export class AuthService {
     }
 
     if (user.emailVerifiedAt === null) {
-      throw new ForbiddenError("Email not verified", { code: "email_not_verified" });
+      throw new ForbiddenError("Email not verified", { code: AUTH_ERROR_CODES.emailNotVerified });
     }
 
     const session = await this.sessionService.issue(user, { rememberMe: input.rememberMe });

@@ -144,7 +144,7 @@ export class ReadingGoalBooksRepository {
   }
 
   async findSnapshotEntriesForBooks(
-    { bookIds, userId }: { bookIds: string[]; userId: string },
+    { bookIds, timeZone, userId }: { bookIds: string[]; timeZone: string; userId: string },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<ReadingGoalSnapshotEntryWithProgressRow[]> {
     const rows = await client.$queryRaw`
@@ -171,7 +171,7 @@ export class ReadingGoalBooksRepository {
           AND cycle.state = 'finished'
           AND cycle.finished_at IS NOT NULL
           AND book.deleted_at IS NULL
-          AND cycle.finished_at >= (goal.created_at AT TIME ZONE 'UTC')::date
+          AND cycle.finished_at >= (goal.created_at AT TIME ZONE ${timeZone}::text)::date
           AND cycle.finished_at <= goal.deadline
         ORDER BY cycle.finished_at ASC, cycle.id ASC
         LIMIT 1
@@ -196,7 +196,7 @@ export class ReadingGoalBooksRepository {
   }
 
   async findSnapshotProgress(
-    { goalId }: { goalId: string },
+    { goalId, timeZone }: { goalId: string; timeZone: string },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<ReadingGoalSnapshotProgressRow[]> {
     const rows = await client.$queryRaw`
@@ -217,7 +217,7 @@ export class ReadingGoalBooksRepository {
           AND cycle.state = 'finished'
           AND cycle.finished_at IS NOT NULL
           AND book.deleted_at IS NULL
-          AND cycle.finished_at >= (goal.created_at AT TIME ZONE 'UTC')::date
+          AND cycle.finished_at >= (goal.created_at AT TIME ZONE ${timeZone}::text)::date
           AND cycle.finished_at <= goal.deadline
         ORDER BY cycle.finished_at ASC, cycle.id ASC
         LIMIT 1

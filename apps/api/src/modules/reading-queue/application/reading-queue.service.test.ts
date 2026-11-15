@@ -35,7 +35,7 @@ function buildService(
     fakeOf<BookView>({ id: book.id, pagesCount: book.pagesCount }),
   );
   const repository = fakeOf<ReadingQueueRepository>({ count, listQueue });
-  const assembler = fakeOf<BookViewAssembler>({ viewOf });
+  const assembler = fakeOf<BookViewAssembler>({ forUser: vi.fn().mockResolvedValue(viewOf) });
   const bookAccess = fakeOf<BookAccessService>();
   const transactionRunner = fakeOf<TransactionRunner>();
   const service = new ReadingQueueService(
@@ -149,7 +149,7 @@ function buildAddToQueueService(): {
   const run = <T>(fn: (client: Prisma.TransactionClient) => Promise<T>): Promise<T> => fn(tx);
 
   const bookAccess = fakeOf<BookAccessService>({ findOwnedByIdOrThrow, maxQueuePosition });
-  const assembler = fakeOf<BookViewAssembler>({ viewOf });
+  const assembler = fakeOf<BookViewAssembler>({ forUser: vi.fn().mockResolvedValue(viewOf) });
   const repository = fakeOf<ReadingQueueRepository>({
     acquireUserQueueLock,
     count,
@@ -325,7 +325,7 @@ function buildRemoveFromQueueService(): {
   const run = <T>(fn: (client: Prisma.TransactionClient) => Promise<T>): Promise<T> => fn(tx);
 
   const bookAccess = fakeOf<BookAccessService>({ findOwnedByIdOrThrow });
-  const assembler = fakeOf<BookViewAssembler>({ viewOf });
+  const assembler = fakeOf<BookViewAssembler>({ forUser: vi.fn().mockResolvedValue(viewOf) });
   const repository = fakeOf<ReadingQueueRepository>({
     acquireUserQueueLock,
     clearPosition,
@@ -461,7 +461,7 @@ function buildReorderService(): {
   const run = <T>(fn: (client: Prisma.TransactionClient) => Promise<T>): Promise<T> => fn(tx);
 
   const bookAccess = fakeOf<BookAccessService>();
-  const assembler = fakeOf<BookViewAssembler>({ viewOf });
+  const assembler = fakeOf<BookViewAssembler>({ forUser: vi.fn().mockResolvedValue(viewOf) });
   const repository = fakeOf<ReadingQueueRepository>({
     acquireUserQueueLock,
     count,
@@ -509,7 +509,7 @@ function buildStartReadingService(): {
 
   const bookAccess = fakeOf<BookAccessService>({ findOwnedByIdOrThrow });
   const bookReadingService = fakeOf<BookReadingService>({ startReading });
-  const assembler = fakeOf<BookViewAssembler>({ viewOf });
+  const assembler = fakeOf<BookViewAssembler>({ forUser: vi.fn().mockResolvedValue(viewOf) });
   const repository = fakeOf<ReadingQueueRepository>({
     acquireUserQueueLock,
     clearPosition,

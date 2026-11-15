@@ -178,9 +178,14 @@ function buildService(
   };
 
   const mediaService = { buildViewOrNull: vi.fn().mockReturnValue(null) };
+  const userSettingsContext = fakeOf<UserSettingsContextService>({
+    calendarDay: vi.fn().mockResolvedValue(new Date("2026-07-07T00:00:00.000Z")),
+    today: vi.fn().mockResolvedValue("2026-07-07"),
+  });
   const viewAssembler = new BookViewAssembler(
     fakeOf<BooksRepository>(repository),
     fakeOf<MediaService>(mediaService),
+    userSettingsContext,
   );
   const coverCleanup = { deleteIfOrphaned: vi.fn().mockResolvedValue(undefined) };
   const singleBookOrder = {
@@ -214,7 +219,7 @@ function buildService(
     fakeOf<ReadingGoalSyncService>({ syncBooks: vi.fn().mockResolvedValue(undefined) }),
     fakeOf<LoanContactResolver>(loanContactResolver),
     fakeOf<ReadingLifecycleCoordinator>({ apply: vi.fn().mockResolvedValue(undefined) }),
-    fakeOf<UserSettingsContextService>({ today: vi.fn().mockResolvedValue("2026-07-07") }),
+    userSettingsContext,
   );
 
   return { coverCleanup, relationsResolver, repository, service, singleBookOrder };

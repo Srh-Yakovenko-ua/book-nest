@@ -13,11 +13,13 @@ import type { ReadingGoalActivityInput } from "../infrastructure/reading-goal-ac
 import type { ReadingGoalSnapshotEntryWithProgressRow } from "../infrastructure/reading-goal-books.repository.js";
 
 import { startOfUtcDay, toIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
+import { UserSettingsContextService } from "../../profile/index.js";
 import { calculateReadingGoalMetrics } from "../domain/reading-goal-metrics.js";
 import { selectQualifyingReadingGoalBooks } from "../domain/reading-goal-progress.js";
-import { resolveReadingGoalCountingEnd } from "../domain/reading-goal-window.js";
+import { resolveReadingGoalQualificationWindow } from "../domain/reading-goal-window.js";
 import { ReadingGoalActivityRepository } from "../infrastructure/reading-goal-activity.repository.js";
 import { ReadingGoalBooksRepository } from "../infrastructure/reading-goal-books.repository.js";
+import { toReadingGoalCalculationGoal } from "./reading-goal-calendar.js";
 
 export type ReadingGoalSyncInput = {
   bookIds: string[];
@@ -41,7 +43,7 @@ type GoalSyncInput = {
   client: Prisma.TransactionClient | undefined;
   entries: ReadingGoalSnapshotEntryWithProgressRow[];
   goal: SyncGoal;
-  now: Date;
+  today: Date;
   userId: string;
 };
 
@@ -53,15 +55,10 @@ type QualificationTransition = {
   qualifiedReadingCycleId: Nullable<string>;
 };
 
-type QualificationWindow = {
-  countingEndsAt: Date;
-  goalStartDate: Date;
-};
-
 type RecordTransitionsInput = {
   client: Prisma.TransactionClient | undefined;
   goal: SyncGoal;
-  now: Date;
+  today: Date;
   transitions: QualificationTransition[];
   userId: string;
 };
@@ -73,6 +70,7 @@ export class ReadingGoalSyncService {
   constructor(
     private readonly readingGoalActivityRepository: ReadingGoalActivityRepository,
     private readonly readingGoalBooksRepository: ReadingGoalBooksRepository,
+    private readonly userSettingsContextService: UserSettingsContextService,
   ) {}
 
   async syncBooks({ bookIds, client, userId }: ReadingGoalSyncInput): Promise<void> {
@@ -80,13 +78,17 @@ export class ReadingGoalSyncService {
     if (uniqueBookIds.length === 0) {
       return;
     }
+    const { timeZone, today } = await this.userSettingsContextService.calendar({
+      client,
+      now: new Date(),
+      userId,
+    });
     const entries = await this.readingGoalBooksRepository.findSnapshotEntriesForBooks(
-      { bookIds: uniqueBookIds, userId },
+      { bookIds: uniqueBookIds, timeZone, userId },
       client,
     );
-    const now = new Date();
-    for (const group of groupEntriesByGoal(entries)) {
-      await this.syncGoal({ client, entries: group.entries, goal: group.goal, now, userId });
+    for (const group of groupEntriesByGoal({ entries, timeZone })) {
+      await this.syncGoal({ client, entries: group.entries, goal: group.goal, today, userId });
     }
   }
 
@@ -109,7 +111,7 @@ export class ReadingGoalSyncService {
   private async recordTransitions({
     client,
     goal,
-    now,
+    today,
     transitions,
     userId,
   }: RecordTransitionsInput): Promise<void> {
@@ -117,13 +119,13 @@ export class ReadingGoalSyncService {
       { goalId: goal.id },
       client,
     );
-    const { progress } = calculateReadingGoalMetrics({ goal, now, snapshotBooks });
+    const { progress } = calculateReadingGoalMetrics({ goal, snapshotBooks, today });
     const qualifying = selectQualifyingReadingGoalBooks({
       books: snapshotBooks.map((book) => ({
         bookId: book.bookId,
         finishedAt: book.qualifiedFinishedAt,
       })),
-      ...qualificationWindow(goal),
+      ...resolveReadingGoalQualificationWindow(goal),
     });
     const rows = [
       ...countedRows({ goal, qualifying, transitions, userId }),
@@ -136,7 +138,7 @@ export class ReadingGoalSyncService {
     await this.readingGoalActivityRepository.createMany({ rows }, client);
   }
 
-  private async syncGoal({ client, entries, goal, now, userId }: GoalSyncInput): Promise<void> {
+  private async syncGoal({ client, entries, goal, today, userId }: GoalSyncInput): Promise<void> {
     const transitions: QualificationTransition[] = [];
 
     for (const entry of entries) {
@@ -172,7 +174,7 @@ export class ReadingGoalSyncService {
     if (transitions.length === 0) {
       return;
     }
-    await this.recordTransitions({ client, goal, now, transitions, userId });
+    await this.recordTransitions({ client, goal, today, transitions, userId });
   }
 }
 
@@ -265,12 +267,18 @@ function daysBeforeDeadline({
   return Math.max(0, differenceInCalendarDays(startOfUtcDay(deadline), startOfUtcDay(completedAt)));
 }
 
-function groupEntriesByGoal(entries: ReadingGoalSnapshotEntryWithProgressRow[]): GoalSyncGroup[] {
+function groupEntriesByGoal({
+  entries,
+  timeZone,
+}: {
+  entries: ReadingGoalSnapshotEntryWithProgressRow[];
+  timeZone: string;
+}): GoalSyncGroup[] {
   const groups = new Map<string, GoalSyncGroup>();
   for (const entry of entries) {
     const group = groups.get(entry.goalId);
     if (group === undefined) {
-      groups.set(entry.goalId, { entries: [entry], goal: toSyncGoal(entry) });
+      groups.set(entry.goalId, { entries: [entry], goal: toSyncGoal({ entry, timeZone }) });
       continue;
     }
     group.entries.push(entry);
@@ -278,25 +286,18 @@ function groupEntriesByGoal(entries: ReadingGoalSnapshotEntryWithProgressRow[]):
   return [...groups.values()];
 }
 
-function qualificationWindow({ archivedAt, createdAt, deadline }: SyncGoal): QualificationWindow {
-  return {
-    countingEndsAt: resolveReadingGoalCountingEnd({ archivedAt, deadline }),
-    goalStartDate: startOfUtcDay(createdAt),
-  };
-}
-
 function resolveUncountedReason(latestFinishedAt: Nullable<Date>): ReadingGoalUncountedReason {
   return latestFinishedAt === null ? "finished_date_removed" : "finished_date_changed";
 }
 
 function toSyncGoal({
-  archivedAt,
-  createdAt,
-  deadline,
-  goalId,
-  targetCount,
-}: ReadingGoalSnapshotEntryWithProgressRow): SyncGoal {
-  return { archivedAt, createdAt, deadline, id: goalId, targetCount };
+  entry,
+  timeZone,
+}: {
+  entry: ReadingGoalSnapshotEntryWithProgressRow;
+  timeZone: string;
+}): SyncGoal {
+  return { ...toReadingGoalCalculationGoal({ goal: entry, timeZone }), id: entry.goalId };
 }
 
 function uncountedRows({

@@ -3,6 +3,7 @@ import type { LoansQuickCounts } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MediaService } from "../../media/index.js";
+import type { UserSettingsContextService } from "../../profile/index.js";
 import type { LoansRepository } from "../infrastructure/loans.repository.js";
 
 import { fakeOf } from "../../../test/fake.js";
@@ -28,6 +29,7 @@ function buildService(counts: LoansQuickCounts = ZERO_QUICK_COUNTS) {
   const service = new LoansService(
     fakeOf<LoansRepository>(repository),
     fakeOf<MediaService>({ buildViewOrNull: vi.fn().mockReturnValue(null) }),
+    fakeOf<UserSettingsContextService>({ calendarDay: vi.fn().mockResolvedValue(TODAY) }),
   );
   return { repository, service };
 }

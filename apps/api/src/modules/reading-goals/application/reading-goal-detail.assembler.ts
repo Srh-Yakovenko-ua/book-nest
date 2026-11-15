@@ -5,13 +5,14 @@ import { Injectable } from "@nestjs/common";
 import type { ReadingGoalWithList } from "../infrastructure/reading-goals.repository.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
-import { startOfUtcDay } from "../../../core/iso-date.js";
 import { ListsService } from "../../lists/index.js";
+import { UserSettingsContextService } from "../../profile/index.js";
 import { buildReadingGoalCheckpoints } from "../domain/reading-goal-checkpoints.js";
 import { READING_GOAL_LIMITS, READING_GOAL_MESSAGE } from "../domain/reading-goal.constants.js";
 import { ReadingGoalsRepository } from "../infrastructure/reading-goals.repository.js";
 import { ReadingGoalActivityService } from "./reading-goal-activity.service.js";
 import { ReadingGoalBooksService } from "./reading-goal-books.service.js";
+import { toReadingGoalCalculationGoal } from "./reading-goal-calendar.js";
 import { ReadingGoalViewBuilder } from "./reading-goal-view.builder.js";
 
 @Injectable()
@@ -22,6 +23,7 @@ export class ReadingGoalDetailAssembler {
     private readonly viewBuilder: ReadingGoalViewBuilder,
     private readonly goalBooksService: ReadingGoalBooksService,
     private readonly goalActivityService: ReadingGoalActivityService,
+    private readonly userSettingsContextService: UserSettingsContextService,
   ) {}
 
   async findActiveByList({
@@ -36,7 +38,11 @@ export class ReadingGoalDetailAssembler {
     if (goal === null) {
       return null;
     }
-    return this.viewBuilder.build({ goal, now: new Date() });
+    const { timeZone, today } = await this.userSettingsContextService.calendar({
+      now: new Date(),
+      userId,
+    });
+    return this.viewBuilder.build({ goal, timeZone, today });
   }
 
   async findDetail({
@@ -51,26 +57,32 @@ export class ReadingGoalDetailAssembler {
       throw new NotFoundError(READING_GOAL_MESSAGE.notFound);
     }
 
-    const now = new Date();
-    const [preview, activityPreview, listBookCount] = await Promise.all([
+    const [preview, activityPreview, listBookCount, { timeZone, today }] = await Promise.all([
       this.goalBooksService.preview({ goalId, limit: READING_GOAL_LIMITS.detailBooksPreview }),
       this.goalActivityService.preview({ goalId, limit: READING_GOAL_LIMITS.activityPreview }),
       this.countListBooks(goal),
+      this.userSettingsContextService.calendar({ now: new Date(), userId }),
     ]);
+    const { archivedDay, createdDay } = toReadingGoalCalculationGoal({ goal, timeZone });
 
     return {
-      ...this.viewBuilder.buildListItemFrom({ goal, now, snapshotBooks: preview.snapshotBooks }),
+      ...this.viewBuilder.buildListItemFrom({
+        goal,
+        snapshotBooks: preview.snapshotBooks,
+        timeZone,
+        today,
+      }),
       activityPreview,
       checkpoints: buildReadingGoalCheckpoints({
-        archivedAt: goal.archivedAt,
+        archivedDay,
         books: preview.snapshotBooks.map((book) => ({
           bookId: book.bookId,
           finishedAt: book.qualifiedFinishedAt,
         })),
         deadline: goal.deadline,
-        goalStartDate: startOfUtcDay(goal.createdAt),
-        now,
+        goalStartDate: createdDay,
         targetCount: goal.targetCount,
+        today,
       }),
       countedBooks: preview.countedBooks,
       listBookCount,

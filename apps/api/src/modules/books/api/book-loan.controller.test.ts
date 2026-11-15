@@ -2,15 +2,17 @@ import type { INestApplication } from "@nestjs/common";
 
 import { LOAN_ERROR_CODES } from "@app/shared";
 import request from "supertest";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
+import { registerReaderInTimezone } from "../../../test/user-timezone.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { ListsModule } from "../../lists/lists.module.js";
+import { LoansModule } from "../../loans/index.js";
 import { BooksModule } from "../books.module.js";
 
 const MISSING_UUID = "00000000-0000-4000-8000-000000000000";
@@ -22,7 +24,7 @@ let app: INestApplication;
 let prisma: PrismaService;
 
 beforeAll(async () => {
-  context = await createAuthTestContext([AuthModule, BooksModule, ListsModule]);
+  context = await createAuthTestContext([AuthModule, BooksModule, ListsModule, LoansModule]);
   app = context.app;
   prisma = app.get(PrismaService);
 });
@@ -701,5 +703,82 @@ describe("PATCH /api/books/:id/loan", () => {
       personName: "Olha K.",
       remindToReturn: false,
     });
+  });
+});
+
+describe("GET /api/books/:id loan badge on the reader's calendar day", () => {
+  const KYIV_PAST_MIDNIGHT = Object.freeze({
+    dueDate: "2026-11-14",
+    instant: new Date("2026-11-14T22:30:00.000Z"),
+    loanDate: "2026-11-01",
+  });
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(KYIV_PAST_MIDNIGHT.instant);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  async function borrowDueOnNovember14(
+    timezone: string,
+  ): Promise<{ accessToken: string; bookId: string }> {
+    const { accessToken } = await registerReaderInTimezone({ context, timezone });
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
+    const loan = await createLoan(accessToken, created.body.id, {
+      direction: "borrowed",
+      expectedReturnDate: KYIV_PAST_MIDNIGHT.dueDate,
+      loanDate: KYIV_PAST_MIDNIGHT.loanDate,
+      personName: "Olha",
+    });
+    expect(loan.status).toBe(200);
+    return { accessToken, bookId: created.body.id };
+  }
+
+  function getBook(accessToken: string, id: string): request.Test {
+    return request(app.getHttpServer())
+      .get(`/api/books/${id}`)
+      .set("Authorization", `Bearer ${accessToken}`);
+  }
+
+  function listLoans(accessToken: string): request.Test {
+    return request(app.getHttpServer())
+      .get("/api/loans")
+      .set("Authorization", `Bearer ${accessToken}`);
+  }
+
+  it("reports a loan due 2026-11-14 as overdue to a Kyiv reader already on 2026-11-15", async () => {
+    const { accessToken, bookId } = await borrowDueOnNovember14("Europe/Kyiv");
+
+    const res = await getBook(accessToken, bookId);
+
+    expect(res.status).toBe(200);
+    expect(res.body.loanInfo.loanUiStatus).toBe("overdue");
+  });
+
+  it("reports a loan due 2026-11-14 as return soon to a UTC reader still on that day", async () => {
+    const { accessToken, bookId } = await borrowDueOnNovember14("UTC");
+
+    const res = await getBook(accessToken, bookId);
+
+    expect(res.status).toBe(200);
+    expect(res.body.loanInfo.loanUiStatus).toBe("return_soon");
+  });
+
+  it("shows a Kyiv reader the same overdue badge on the book as on the loans list", async () => {
+    const { accessToken, bookId } = await borrowDueOnNovember14("Europe/Kyiv");
+
+    const book = await getBook(accessToken, bookId);
+    const loans = await listLoans(accessToken);
+
+    expect([book.body.loanInfo.loanUiStatus, loans.body.items[0].loanUiStatus]).toEqual([
+      "overdue",
+      "overdue",
+    ]);
   });
 });

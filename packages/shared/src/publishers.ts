@@ -53,9 +53,11 @@ export const RecentPublishersQuerySchema = z.object({
 
 export type RecentPublishersQuery = z.infer<typeof RecentPublishersQuerySchema>;
 
-const PUBLISHER_WEBSITE_URL_MAX = 300;
-const PUBLISHER_FOUNDED_YEAR_MIN = 1400;
-const PUBLISHER_FOUNDED_YEAR_MAX = 2100;
+export const PUBLISHER_LIMITS = {
+  foundedYearMax: 2100,
+  foundedYearMin: 1400,
+  websiteUrlMax: 300,
+} as const;
 
 export const LibraryPublisherStatsSchema = z.object({
   averageRating: z.number().nullable(),
@@ -268,7 +270,7 @@ export const PublisherCountryCodeSchema = z
   .pipe(IsoCountryCodeSchema);
 
 export const PublisherWebsiteUrlSchema = boundedUrlSchema({
-  maxLength: PUBLISHER_WEBSITE_URL_MAX,
+  maxLength: PUBLISHER_LIMITS.websiteUrlMax,
   protocol: HTTP_OR_HTTPS_PROTOCOL,
   urlError: "Enter a valid link",
 });
@@ -276,8 +278,8 @@ export const PublisherWebsiteUrlSchema = boundedUrlSchema({
 export const PublisherFoundedYearSchema = z
   .number()
   .int()
-  .min(PUBLISHER_FOUNDED_YEAR_MIN)
-  .max(PUBLISHER_FOUNDED_YEAR_MAX);
+  .min(PUBLISHER_LIMITS.foundedYearMin)
+  .max(PUBLISHER_LIMITS.foundedYearMax);
 
 export const UpdatePublisherInputSchema = z.object({
   countryCode: PublisherCountryCodeSchema.nullable().optional(),
@@ -291,6 +293,10 @@ export type UpdatePublisherInput = z.infer<typeof UpdatePublisherInputSchema>;
 export const PUBLISHER_NAME_ERROR_CODES = {
   ambiguousName: "PUBLISHER_AMBIGUOUS_NAME",
   duplicateName: "PUBLISHER_DUPLICATE_NAME",
+} as const;
+
+export const PUBLISHER_ERROR_CODES = {
+  hasBooks: "PUBLISHER_HAS_BOOKS",
 } as const;
 
 export const PublisherMatchKindSchema = z.enum(["exact", "alias", "strong"]);
