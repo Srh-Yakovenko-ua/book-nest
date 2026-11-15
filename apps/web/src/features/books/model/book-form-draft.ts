@@ -196,12 +196,39 @@ const draftValueFieldSchemas: Record<string, undefined | z.ZodType> = draftValue
 
 type DraftValueField = keyof typeof draftValuesSchema.shape;
 
-export function clearBookFormDraft(storageKey: string) {
+const DRAFT_STORAGE = {
+  prefix: "book-form-draft:",
+  userScopePrefix: "book-form-draft:user:",
+} as const;
+
+export function bookFormDraftKey({
+  bookId,
+  userId,
+}: {
+  bookId: Nullable<string>;
+  userId: Nullable<string>;
+}): Nullable<string> {
+  if (userId === null) return null;
+  const formScope = bookId === null ? "create" : `edit:${bookId}`;
+  return `${ownedDraftPrefix(userId)}${formScope}`;
+}
+
+export function clearBookFormDraft(storageKey: Nullable<string>) {
+  if (storageKey === null) return;
   try {
     window.sessionStorage.removeItem(storageKey);
   } catch {
     return;
   }
+}
+
+export function clearBookFormDraftsNotOwnedBy(userId: string) {
+  const ownPrefix = ownedDraftPrefix(userId);
+  removeStoredDrafts((draftKey) => !draftKey.startsWith(ownPrefix));
+}
+
+export function clearLegacyBookFormDrafts() {
+  removeStoredDrafts((draftKey) => !draftKey.startsWith(DRAFT_STORAGE.userScopePrefix));
 }
 
 export function readBookFormDraft({
@@ -211,7 +238,7 @@ export function readBookFormDraft({
 }: {
   bookUpdatedAt: Nullable<string>;
   locale: string;
-  storageKey: string;
+  storageKey: Nullable<string>;
 }): BookFormDraft | null {
   const raw = readStoredDraft(storageKey);
   if (raw === null) return null;
@@ -230,8 +257,9 @@ export function writeBookFormDraft({
   storageKey,
 }: {
   draft: BookFormDraft;
-  storageKey: string;
+  storageKey: Nullable<string>;
 }) {
+  if (storageKey === null) return;
   try {
     window.sessionStorage.setItem(storageKey, JSON.stringify(draft));
   } catch {
@@ -241,6 +269,10 @@ export function writeBookFormDraft({
 
 function isDraftValueField(field: string): field is DraftValueField {
   return Object.hasOwn(draftValuesSchema.shape, field);
+}
+
+function ownedDraftPrefix(userId: string) {
+  return `${DRAFT_STORAGE.userScopePrefix}${userId}:`;
 }
 
 function parseBookFormDraft(raw: string): BookFormDraft | null {
@@ -278,11 +310,24 @@ function parseDraftValues(values: Record<string, unknown>): Partial<CreateBookFo
   return parsed.success ? parsed.data : {};
 }
 
-function readStoredDraft(storageKey: string): null | string {
-  if (typeof window === "undefined") return null;
+function readStoredDraft(storageKey: Nullable<string>): null | string {
+  if (storageKey === null || typeof window === "undefined") return null;
   try {
     return window.sessionStorage.getItem(storageKey);
   } catch {
     return null;
+  }
+}
+
+function removeStoredDrafts(shouldRemove: (draftKey: string) => boolean) {
+  try {
+    const storage = window.sessionStorage;
+    const storedKeys = Array.from({ length: storage.length }, (_, index) => storage.key(index));
+    for (const key of storedKeys) {
+      if (key === null || !key.startsWith(DRAFT_STORAGE.prefix)) continue;
+      if (shouldRemove(key)) storage.removeItem(key);
+    }
+  } catch {
+    return;
   }
 }

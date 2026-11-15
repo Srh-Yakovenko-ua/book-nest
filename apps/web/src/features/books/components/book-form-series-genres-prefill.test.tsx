@@ -1,9 +1,11 @@
 import "@testing-library/jest-dom/vitest";
 
-import type { GenreView } from "@app/shared";
+import type { GenreView, UserView } from "@app/shared";
 
+import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { useAuthStore } from "@/features/auth";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import type { BookFormInitialSeries } from "../model/create-book-form";
@@ -20,7 +22,18 @@ vi.mock("next/navigation", () => ({
 
 const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
 
-const DRAFT_KEY = "book-form-draft:create";
+const READER: UserView = {
+  createdAt: "2026-01-01T00:00:00.000Z",
+  dateOfBirth: null,
+  email: "reader@book-nest.net",
+  emailVerified: true,
+  id: "user-reader",
+  name: "Reader",
+  nickname: "reader",
+  role: "user",
+};
+
+const DRAFT_KEY = "book-form-draft:user:user-reader:create";
 
 const GENRE_NAMES = {
   detective: "Детектив",
@@ -117,11 +130,16 @@ vi.stubGlobal("fetch", fetchMock);
 
 beforeEach(() => {
   sessionStorage.clear();
+  useAuthStore.getState().setSession("access-token", READER);
   fetchMock.mockReset();
   mockApi();
 });
 
 afterEach(() => {
+  act(() => {
+    useAuthStore.getState().clearSession();
+  });
+  sessionStorage.clear();
   vi.clearAllMocks();
 });
 

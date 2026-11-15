@@ -43,6 +43,7 @@ import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuthStore } from "@/features/auth";
 import { useUploadMedia } from "@/features/media";
 import { useRouter } from "@/i18n/navigation";
 import { emptyToNull } from "@/lib/empty-to-null";
@@ -60,6 +61,7 @@ import {
 import { useSearchedTagColors } from "../api/use-tags-search";
 import { useUpdateBook } from "../api/use-update-book";
 import {
+  bookFormDraftKey,
   clearBookFormDraft,
   readBookFormDraft,
   writeBookFormDraft,
@@ -162,7 +164,8 @@ export function BookForm(props: BookFormProps) {
   const initialPublisher = props.mode === "create" ? (props.initialPublisher ?? null) : null;
 
   const locale = useLocale();
-  const draftKey = bookId === null ? "book-form-draft:create" : `book-form-draft:edit:${bookId}`;
+  const userId = useAuthStore((state) => state.user?.id ?? null);
+  const draftKey = bookFormDraftKey({ bookId, userId });
   const [restoredDraft] = useState(() =>
     readBookFormDraft({ bookUpdatedAt, locale, storageKey: draftKey }),
   );
