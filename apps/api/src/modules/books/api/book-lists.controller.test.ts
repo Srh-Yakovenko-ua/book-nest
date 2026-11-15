@@ -8,6 +8,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
@@ -402,7 +403,7 @@ describe("PUT /api/books/:bookId/lists with newLists", () => {
     const book = await createBook(userId);
     const trashed = await prisma.bookList.create({
       data: {
-        deletedAt: new Date("2026-01-01T00:00:00.000Z"),
+        ...TRASH_RETENTION.stamp(new Date("2026-01-01T00:00:00.000Z")),
         name: "Favorites",
         normalizedName: "favorites",
         userId,
