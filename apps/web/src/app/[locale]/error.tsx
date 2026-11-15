@@ -5,6 +5,8 @@ import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
+import { buildDocumentTitle } from "@/lib/document-title";
+import { focusOnMount } from "@/lib/focus-on-mount";
 
 export default function Error({
   reset,
@@ -13,9 +15,11 @@ export default function Error({
   reset: () => void;
 }) {
   const t = useTranslations("error");
+  const tHome = useTranslations("home");
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
+      <title>{buildDocumentTitle({ appName: tHome("title"), page: t("headline") })}</title>
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
@@ -33,7 +37,11 @@ export default function Error({
             {t("eyebrow")}
           </p>
 
-          <h1 className="mt-6 font-display text-[clamp(2rem,4vw,3.5rem)] leading-[0.86] font-semibold tracking-[-0.035em]">
+          <h1
+            className="mt-6 font-display text-[clamp(2rem,4vw,3.5rem)] leading-[0.86] font-semibold tracking-[-0.035em] outline-none"
+            ref={focusOnMount}
+            tabIndex={-1}
+          >
             {t("headline")}
             <span className="text-error">.</span>
           </h1>

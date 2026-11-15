@@ -3,6 +3,7 @@
 import type { InTransitSummaryView } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
+import { useState } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { SummaryError } from "@/components/summary-error";
@@ -25,17 +26,35 @@ const DELIVERY_WIDGET = {
 export function DeliveryDashboardWidget() {
   const t = useTranslations("home.delivery");
   const summary = useDeliveryInTransitSummary();
+  const [hasRetried, setHasRetried] = useState(false);
+  if (hasRetried && summary.data !== undefined && summary.data.activeBooksCount > 0) {
+    setHasRetried(false);
+  }
   const hasNoActiveDeliveries = summary.data?.activeBooksCount === 0;
+  const showsEmptyNote = hasNoActiveDeliveries && hasRetried;
+
+  function retrySummary() {
+    setHasRetried(true);
+    void summary.refetch();
+  }
 
   return (
     <SummaryError
-      className={hasNoActiveDeliveries ? "sr-only" : undefined}
-      state={summary.isLoadingError ? { onRetry: () => void summary.refetch() } : null}
+      className={hasNoActiveDeliveries ? "sr-only focus:not-sr-only" : undefined}
+      regionLabel={showsEmptyNote ? t("title") : undefined}
+      retryLabel={t("error.retry")}
+      state={summary.isLoadingError ? { onRetry: retrySummary } : null}
       title={t("error.title")}
     >
       {summary.data === undefined ? (
         <DeliveryWidgetSkeleton />
-      ) : hasNoActiveDeliveries ? null : (
+      ) : hasNoActiveDeliveries ? (
+        showsEmptyNote && (
+          <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground shadow-card">
+            {t("empty")}
+          </p>
+        )
+      ) : (
         <DeliveryWidgetCard summary={summary.data} />
       )}
     </SummaryError>

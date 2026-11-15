@@ -300,6 +300,21 @@ describe("StatisticsOverview tabs", () => {
     expect(screen.queryByRole("tablist")).toBeNull();
   });
 
+  it("moves keyboard focus to the statistics results while the first-load retry is pending", async () => {
+    const retryName = text.states.error.retry;
+    overviewResponse = () => jsonResponse({ message: "boom" }, 500);
+    renderStatistics();
+    (await screen.findByRole("button", { name: retryName })).focus();
+
+    overviewResponse = () => new Promise<Response>(() => undefined);
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: retryName })).not.toBeInTheDocument(),
+    );
+
+    expect(screen.getByRole("region", { name: text.resultsLabel })).toHaveFocus();
+  });
+
   it("shows the invalid-range state instead of tabs and never requests the overview", async () => {
     renderStatistics("?period=custom&from=2026-05-31&to=2026-03-01&tab=activity");
 

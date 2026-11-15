@@ -40,6 +40,7 @@ vi.mock("sonner", () => ({
 
 type ArchiveReplies = {
   impression?: Reply;
+  list?: (url: string) => Promise<Response>;
   overview?: Reply;
   review?: Reply;
   summary?: Reply;
@@ -735,6 +736,26 @@ describe("NotesArchiveView summary cards", () => {
   });
 });
 
+describe("NotesArchiveView counter", () => {
+  it("swaps the counter for the updating label while another quick filter loads", async () => {
+    const loadedList = json(notesPage([archiveBookNote()]));
+    mockArchive("books", {
+      list: (url) =>
+        url.includes("filter=pinned") ? new Promise<Response>(() => undefined) : loadedList(),
+    });
+    renderArchive("books");
+    expect(await screen.findByText("Показано 1 із 1")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("radio", { name: /^Закріплені/ }));
+    await waitFor(() =>
+      expect(requestsTo("/api/notes/books").at(-1)?.url).toContain("filter=pinned"),
+    );
+
+    expect(await screen.findByText("Оновлюємо…")).toHaveAttribute("aria-live", "polite");
+    expect(screen.queryByText("Показано 1 із 1")).not.toBeInTheDocument();
+  });
+});
+
 function archiveBookNote(): NoteView {
   return makeBookNote({ id: "note-list", text: ARCHIVE_NOTE_TEXT.books });
 }
@@ -786,6 +807,7 @@ function mockArchive(scope: NotesArchiveScope, replies: ArchiveReplies = {}) {
   };
   const {
     impression = noContent,
+    list = json(notesPage([defaults.note])),
     overview = json(defaults.overview),
     review = noContent,
     summary = json(defaults.summary),
@@ -804,7 +826,7 @@ function mockArchive(scope: NotesArchiveScope, replies: ArchiveReplies = {}) {
       if (path === `/api/notes/${scope}/summary`) return summary();
       if (path === `/api/notes/${scope}/overview`) return overview();
       if (path === `/api/notes/${scope}/facets`) return json(defaults.facets)();
-      if (path === `/api/notes/${scope}`) return json(notesPage([defaults.note]))();
+      if (path === `/api/notes/${scope}`) return list(url);
       if (path === "/api/books" || path === "/api/series") return json(notesPage([]))();
       return Promise.reject(new Error(`unexpected ${method} ${url}`));
     }),

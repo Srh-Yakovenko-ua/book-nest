@@ -11,6 +11,8 @@ import { SummaryError } from "./summary-error";
 
 const { summaryError } = messages.common;
 const customTitle = messages.home.delivery.error.title;
+const customRetryLabel = messages.home.delivery.error.retry;
+const customRegionLabel = messages.home.delivery.title;
 const summaryText = messages.books.library.summary.total;
 const skeletonText = messages.common.loading;
 
@@ -196,6 +198,71 @@ describe("SummaryError", () => {
       );
 
       expect(retryButton()).toHaveAccessibleDescription(shownTitle);
+    });
+  });
+
+  describe.each<{ variant: "embedded" | "standalone" }>([
+    { variant: "standalone" },
+    { variant: "embedded" },
+  ])("$variant retry label", ({ variant }) => {
+    it("names Retry with a passed label in place of the generic one", () => {
+      renderWithProviders(
+        <SummaryError
+          retryLabel={customRetryLabel}
+          state={failedState()}
+          title={customTitle}
+          variant={variant}
+        >
+          <p>{summaryText}</p>
+        </SummaryError>,
+      );
+
+      expect(screen.getByRole("button", { name: customRetryLabel })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: summaryError.retry })).not.toBeInTheDocument();
+    });
+
+    it("keeps describing a relabelled Retry with the card title", () => {
+      renderWithProviders(
+        <SummaryError
+          retryLabel={customRetryLabel}
+          state={failedState()}
+          title={customTitle}
+          variant={variant}
+        >
+          <p>{summaryText}</p>
+        </SummaryError>,
+      );
+
+      expect(screen.getByRole("button", { name: customRetryLabel })).toHaveAccessibleDescription(
+        customTitle,
+      );
+    });
+  });
+
+  describe.each<{ variant: "embedded" | "standalone" }>([
+    { variant: "standalone" },
+    { variant: "embedded" },
+  ])("$variant region label", ({ variant }) => {
+    it("wraps the children in a region named by a passed label", () => {
+      renderWithProviders(
+        <SummaryError regionLabel={customRegionLabel} state={null} variant={variant}>
+          <p>{summaryText}</p>
+        </SummaryError>,
+      );
+
+      const region = screen.getByRole("region", { name: customRegionLabel });
+      expect(within(region).getByText(summaryText)).toBeInTheDocument();
+    });
+
+    it("exposes no region without a passed label", () => {
+      renderWithProviders(
+        <SummaryError state={null} variant={variant}>
+          <p>{summaryText}</p>
+        </SummaryError>,
+      );
+
+      expect(screen.getByText(summaryText)).toBeInTheDocument();
+      expect(screen.queryByRole("region")).not.toBeInTheDocument();
     });
   });
 });

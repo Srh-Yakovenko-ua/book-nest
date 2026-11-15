@@ -2,9 +2,11 @@ import "@testing-library/jest-dom/vitest";
 
 import type { ReactNode } from "react";
 
+import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeDeliveryInTransitSummary } from "@/features/delivery/components/delivery.fixtures";
+import enMessages from "@/messages/en.json";
 import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
@@ -85,7 +87,9 @@ describe("DeliveryDashboardWidget", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(deliveryCopy.error.title);
-    expect(within(alert).getByRole("button", { name: summaryError.retry })).toBeInTheDocument();
+    expect(
+      within(alert).getByRole("button", { name: deliveryCopy.error.retry }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("status", { name: deliveryCopy.loading })).not.toBeInTheDocument();
   });
 
@@ -96,8 +100,26 @@ describe("DeliveryDashboardWidget", () => {
 
     const alert = await screen.findByRole("alert");
     expect(
-      within(alert).getByRole("button", { name: summaryError.retry }),
+      within(alert).getByRole("button", { name: deliveryCopy.error.retry }),
     ).toHaveAccessibleDescription(deliveryCopy.error.title);
+  });
+
+  it("names the retry after the deliveries, starting with its visible label", async () => {
+    respondToSummary = () => Promise.resolve(jsonResponse({ message: "boom" }, 500));
+
+    renderWithProviders(<DeliveryDashboardWidget />);
+
+    const retry = within(await screen.findByRole("alert")).getByRole("button", {
+      name: deliveryCopy.error.retry,
+    });
+    expect(retry).toHaveTextContent(summaryError.retry);
+    expect(deliveryCopy.error.retry.startsWith(summaryError.retry)).toBe(true);
+  });
+
+  it("starts the English retry name with the English visible label", () => {
+    expect(
+      enMessages.home.delivery.error.retry.startsWith(enMessages.common.summaryError.retry),
+    ).toBe(true);
   });
 
   it("asks for the summary again from the retry and shows the widget it returns", async () => {
@@ -108,22 +130,45 @@ describe("DeliveryDashboardWidget", () => {
     const alert = await screen.findByRole("alert");
     respondToSummary = () =>
       Promise.resolve(jsonResponse(makeDeliveryInTransitSummary({ activeBooksCount: 5 })));
-    await userEvent.click(within(alert).getByRole("button", { name: summaryError.retry }));
+    await userEvent.click(within(alert).getByRole("button", { name: deliveryCopy.error.retry }));
 
     expect(await screen.findByRole("heading", { name: deliveryCopy.title })).toBeInTheDocument();
     expect(summaryRequestCount()).toBe(2);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("renders nothing once the summary says no book is on its way", async () => {
+  it("renders no empty note and no region when the first load finds no book on its way", async () => {
     respondToSummary = () => Promise.resolve(jsonResponse(makeDeliveryInTransitSummary()));
 
     renderWithProviders(<DeliveryDashboardWidget />);
 
     await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
+    expect(screen.queryByText(deliveryCopy.empty)).not.toBeInTheDocument();
+    expect(screen.queryByRole("region")).not.toBeInTheDocument();
     expect(screen.queryByRole("heading")).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(summaryRequestCount()).toBe(1);
+  });
+
+  it("renders no empty note and no region when a background refetch after a successful retry finds no book on its way", async () => {
+    respondToSummary = () => Promise.resolve(jsonResponse({ message: "boom" }, 500));
+
+    const { queryClient } = renderWithProviders(<DeliveryDashboardWidget />);
+
+    const alert = await screen.findByRole("alert");
+    respondToSummary = () =>
+      Promise.resolve(jsonResponse(makeDeliveryInTransitSummary({ activeBooksCount: 5 })));
+    await userEvent.click(within(alert).getByRole("button", { name: deliveryCopy.error.retry }));
+    expect(await screen.findByRole("heading", { name: deliveryCopy.title })).toBeInTheDocument();
+
+    respondToSummary = () => Promise.resolve(jsonResponse(makeDeliveryInTransitSummary()));
+    await act(() => queryClient.invalidateQueries());
+
+    await waitFor(() =>
+      expect(screen.queryByRole("heading", { name: deliveryCopy.title })).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByText(deliveryCopy.empty)).not.toBeInTheDocument();
+    expect(screen.queryByRole("region")).not.toBeInTheDocument();
   });
 
   it("keeps focus in the widget when a keyboard retry finds no book on its way", async () => {
@@ -132,7 +177,7 @@ describe("DeliveryDashboardWidget", () => {
     renderWithProviders(<DeliveryDashboardWidget />);
 
     const retry = within(await screen.findByRole("alert")).getByRole("button", {
-      name: summaryError.retry,
+      name: deliveryCopy.error.retry,
     });
     respondToSummary = () => Promise.resolve(jsonResponse(makeDeliveryInTransitSummary()));
     await userEvent.tab();
@@ -144,5 +189,8 @@ describe("DeliveryDashboardWidget", () => {
     expect(summaryRequestCount()).toBe(2);
     expect(document.body).not.toHaveFocus();
     expect(document.activeElement).toBeInTheDocument();
+    expect(document.activeElement).toHaveTextContent(deliveryCopy.empty);
+    expect(document.activeElement).toHaveClass("focus:not-sr-only");
+    expect(screen.getByRole("region", { name: deliveryCopy.title })).toHaveFocus();
   });
 });

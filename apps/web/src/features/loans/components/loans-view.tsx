@@ -90,7 +90,7 @@ export function LoansView({ type }: { type: LoanType }) {
   const [editTarget, setEditTarget] = useState<LoanListItemView | null>(null);
   const [returnTarget, setReturnTarget] = useState<LoanListItemView | null>(null);
   const contactDrawer = useLoanContactDrawer();
-  const resultsRegionRef = useRef<HTMLDivElement>(null);
+  const resultsRegionRef = useRef<HTMLElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsRegionRef);
 
   const loadedPages = list.data?.pages ?? [];
@@ -197,7 +197,7 @@ export function LoansView({ type }: { type: LoanType }) {
         ) : null}
       </header>
 
-      <div className="flex flex-col outline-none" ref={resultsRegionRef} tabIndex={-1}>
+      <div className="flex flex-col gap-6">
         {showChrome ? (
           <div className="flex flex-col gap-4">
             <LoansToolbar
@@ -229,35 +229,38 @@ export function LoansView({ type }: { type: LoanType }) {
                   ? tCommon("updating")
                   : t("shownCount", { shown: items.length, total: totalCount })}
             </p>
+          </div>
+        ) : null}
 
-            <div className="mt-2 flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-              <div className="flex min-w-0 flex-1 flex-col gap-6">
-                {loansContent}
+        <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
+          <section
+            aria-label={t(`pages.${page.direction}.listHeading`)}
+            className="flex min-w-0 flex-1 flex-col gap-6 outline-none"
+            ref={resultsRegionRef}
+            tabIndex={-1}
+          >
+            {loansContent}
 
-                {items.length > 0 ? (
-                  <InfiniteScrollFooter
-                    errorLabel={t("loadMoreError")}
-                    onLoadMore={() => void list.fetchNextPage()}
-                    state={nextPageState(list)}
-                  />
-                ) : null}
-              </div>
-
-              <LoansSidebar
-                attention={attention}
-                direction={page.direction}
-                isLoading={summary.isPending}
-                longHeldLoans={directionSummary?.longHeldLoans ?? []}
-                people={people}
-                upcomingReturns={directionSummary?.upcomingReturns ?? []}
+            {items.length > 0 ? (
+              <InfiniteScrollFooter
+                errorLabel={t("loadMoreError")}
+                onLoadMore={() => void list.fetchNextPage()}
+                state={nextPageState(list)}
               />
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-            <div className="flex min-w-0 flex-1 flex-col gap-6">{loansContent}</div>
-          </div>
-        )}
+            ) : null}
+          </section>
+
+          {showChrome ? (
+            <LoansSidebar
+              attention={attention}
+              direction={page.direction}
+              isLoading={summary.isPending}
+              longHeldLoans={directionSummary?.longHeldLoans ?? []}
+              people={people}
+              upcomingReturns={directionSummary?.upcomingReturns ?? []}
+            />
+          ) : null}
+        </div>
       </div>
 
       {editTarget ? (

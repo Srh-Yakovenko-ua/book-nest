@@ -38,7 +38,7 @@ type PageBody = {
   totalCount?: number;
 };
 
-let respondToList: (url: string) => Response;
+let respondToList: (url: string) => Promise<Response> | Response;
 let respondToQuickCounts: (url: URL) => Promise<Response>;
 let respondToSummary: () => Response;
 let respondToUpdate: () => Response;
@@ -260,6 +260,21 @@ describe("DedicationsView", () => {
 
     await screen.findByText("Останнє бажання");
     expect(screen.queryByText("Усі присвяти показано")).not.toBeInTheDocument();
+  });
+
+  it("swaps the counter for the updating label while another quick filter loads", async () => {
+    respondToList = (url) =>
+      url.includes("filter=favorites")
+        ? new Promise<Response>(() => undefined)
+        : pageResponse({ items: [makeDedicationBook()], pagesCount: 3, totalCount: 30 });
+    renderView();
+    expect(await screen.findByText("Показано 1 з 30 присвят")).toBeInTheDocument();
+
+    await userEvent.click(chip("Улюблені"));
+    await waitFor(() => expect(listUrls().at(-1)).toContain("filter=favorites"));
+
+    expect(await screen.findByText("Оновлюємо…")).toHaveAttribute("aria-live", "polite");
+    expect(screen.queryByText("Показано 1 з 30 присвят")).not.toBeInTheDocument();
   });
 
   it("requests the next page when the sentinel reaches the viewport", async () => {

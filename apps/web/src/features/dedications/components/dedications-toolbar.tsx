@@ -201,11 +201,9 @@ export function DedicationsToolbar({
         />
       </div>
 
-      {counter === undefined ? null : (
-        <p aria-live="polite" className="mt-1 text-sm text-muted-foreground">
-          {counter}
-        </p>
-      )}
+      <p aria-live="polite" className="mt-1 text-sm text-muted-foreground empty:-mt-3">
+        {counter}
+      </p>
     </div>
   );
 }

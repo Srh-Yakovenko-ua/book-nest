@@ -10,6 +10,7 @@ import { Providers } from "@/components/providers";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SessionProvider } from "@/features/auth";
 import { routing } from "@/i18n/routing";
+import { buildDocumentTitle } from "@/lib/document-title";
 import { env } from "@/lib/env";
 import { buildAlternates, buildOpenGraph, buildTwitter, buildWebsiteJsonLd } from "@/lib/seo";
 
@@ -33,7 +34,7 @@ export async function generateMetadata({ params }: Omit<Props, "children">): Pro
     openGraph: buildOpenGraph({ description, locale: resolvedLocale, pathname: "", title }),
     title: {
       default: title,
-      template: `%s · ${title}`,
+      template: buildDocumentTitle({ appName: title, page: "%s" }),
     },
     twitter: buildTwitter({ description, title }),
   };

@@ -92,7 +92,7 @@ export function DeliveryStatistics() {
   const locale = useLocale();
   const params = useStatisticsParams();
   const [metric, setMetric] = useState<DynamicsMetric>("spend");
-  const statisticsBodyRef = useRef<HTMLDivElement>(null);
+  const statisticsBodyRef = useRef<HTMLElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(statisticsBodyRef);
 
   const statistics = useStatistics(params.queryParams);
@@ -177,7 +177,12 @@ export function DeliveryStatistics() {
         />
       ) : null}
 
-      <div className="outline-none" ref={statisticsBodyRef} tabIndex={-1}>
+      <section
+        aria-label={t("resultsLabel")}
+        className="outline-none"
+        ref={statisticsBodyRef}
+        tabIndex={-1}
+      >
         <StatisticsBody
           activeAgeCard={<StatisticsActiveAge drilldown={currentDrilldown} scope={activeAge} />}
           budgetCard={
@@ -198,7 +203,7 @@ export function DeliveryStatistics() {
           period={period}
           retryButtonRef={retryButtonRef}
         />
-      </div>
+      </section>
     </div>
   );
 }

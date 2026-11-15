@@ -60,7 +60,7 @@ export function LoanHistoryView() {
   const detailActionRef = useRef<Nullable<HTMLElement>>(null);
   const openedDetailRef = useRef<Nullable<string>>(null);
   const contactDrawer = useLoanContactDrawer();
-  const resultsRegionRef = useRef<HTMLDivElement>(null);
+  const resultsRegionRef = useRef<HTMLElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsRegionRef);
 
   function openDetails(loanId: string) {
@@ -142,7 +142,7 @@ export function LoanHistoryView() {
         ) : null}
       </header>
 
-      <div className="flex flex-col gap-6 outline-none" ref={resultsRegionRef} tabIndex={-1}>
+      <div className="flex flex-col gap-6">
         {showChrome ? (
           <div className="flex flex-col gap-4">
             <LoanHistoryToolbar
@@ -172,26 +172,29 @@ export function LoanHistoryView() {
                   ? tCommon("updating")
                   : t("shownCount", { shown: items.length, total: firstPage.totalCount })}
             </p>
-
-            <div className="mt-2 flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-              <div className="flex min-w-0 flex-1 flex-col gap-6">
-                {content}
-
-                {items.length > 0 ? (
-                  <InfiniteScrollFooter
-                    errorLabel={t("loadMoreError")}
-                    onLoadMore={() => void list.fetchNextPage()}
-                    state={nextPageState(list)}
-                  />
-                ) : null}
-              </div>
-
-              <LoanHistorySidebar {...analytics} />
-            </div>
           </div>
-        ) : (
-          content
-        )}
+        ) : null}
+
+        <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
+          <section
+            aria-label={tPage("listHeading")}
+            className="flex min-w-0 flex-1 flex-col gap-6 outline-none"
+            ref={resultsRegionRef}
+            tabIndex={-1}
+          >
+            {content}
+
+            {items.length > 0 ? (
+              <InfiniteScrollFooter
+                errorLabel={t("loadMoreError")}
+                onLoadMore={() => void list.fetchNextPage()}
+                state={nextPageState(list)}
+              />
+            ) : null}
+          </section>
+
+          {showChrome ? <LoanHistorySidebar {...analytics} /> : null}
+        </div>
       </div>
 
       <LoanContactDrawer {...contactDrawer.drawerProps} />

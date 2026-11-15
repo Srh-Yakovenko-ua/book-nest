@@ -19,6 +19,7 @@ export type SummaryErrorState = {
 type SummaryErrorCardProps = {
   onRetry: () => void;
   retryButtonRef?: Ref<HTMLButtonElement>;
+  retryLabel?: string;
   role?: "alert";
   title?: string;
 };
@@ -26,6 +27,8 @@ type SummaryErrorCardProps = {
 type SummaryErrorContentProps = {
   children: ReactNode;
   className?: string;
+  regionLabel?: string;
+  retryLabel?: string;
   state: Nullable<SummaryErrorState>;
   title?: string;
 };
@@ -47,25 +50,49 @@ export function SummaryError({ variant = "standalone", ...props }: SummaryErrorP
   }
 }
 
-function EmbeddedSummaryError({ children, className, state, title }: SummaryErrorContentProps) {
+function EmbeddedSummaryError({
+  children,
+  className,
+  regionLabel,
+  retryLabel,
+  state,
+  title,
+}: SummaryErrorContentProps) {
   return (
-    <div className={className}>
-      {state === null ? children : <SummaryErrorCard onRetry={state.onRetry} title={title} />}
+    <div
+      aria-label={regionLabel}
+      className={className}
+      role={regionLabel === undefined ? undefined : "region"}
+    >
+      {state === null ? (
+        children
+      ) : (
+        <SummaryErrorCard onRetry={state.onRetry} retryLabel={retryLabel} title={title} />
+      )}
     </div>
   );
 }
 
-function StandaloneSummaryError({ children, className, state, title }: SummaryErrorContentProps) {
+function StandaloneSummaryError({
+  children,
+  className,
+  regionLabel,
+  retryLabel,
+  state,
+  title,
+}: SummaryErrorContentProps) {
   const regionRef = useRef<HTMLDivElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(regionRef);
 
   return (
     <div
+      aria-label={regionLabel}
       className={cn(
         "rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
         className,
       )}
       ref={regionRef}
+      role={regionLabel === undefined ? undefined : "region"}
       tabIndex={-1}
     >
       {state === null ? (
@@ -74,6 +101,7 @@ function StandaloneSummaryError({ children, className, state, title }: SummaryEr
         <SummaryErrorCard
           onRetry={withRetryFocus(state.onRetry)}
           retryButtonRef={retryButtonRef}
+          retryLabel={retryLabel}
           role="alert"
           title={title}
         />
@@ -82,7 +110,13 @@ function StandaloneSummaryError({ children, className, state, title }: SummaryEr
   );
 }
 
-function SummaryErrorCard({ onRetry, retryButtonRef, role, title }: SummaryErrorCardProps) {
+function SummaryErrorCard({
+  onRetry,
+  retryButtonRef,
+  retryLabel,
+  role,
+  title,
+}: SummaryErrorCardProps) {
   const t = useTranslations("common.summaryError");
   const titleId = useId();
 
@@ -99,6 +133,7 @@ function SummaryErrorCard({ onRetry, retryButtonRef, role, title }: SummaryError
       </div>
       <Button
         aria-describedby={titleId}
+        aria-label={retryLabel}
         onClick={onRetry}
         ref={retryButtonRef}
         size="sm"
