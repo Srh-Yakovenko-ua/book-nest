@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ShipmentUiStatusSource } from "./delivery-ui-status.js";
 
+import { pinProcessTimezone } from "../../../test/process-timezone.js";
 import {
   deliveryDateBounds,
   getDeliveryUiStatus,
@@ -45,6 +46,28 @@ describe("getDeliveryUiStatus", () => {
     expect(
       getDeliveryUiStatus({ expectedDeliveryDate: utc("2026-07-16"), today: TODAY }),
     ).toBeNull();
+  });
+
+  describe("Atlantic/Azores", () => {
+    pinProcessTimezone("Atlantic/Azores");
+
+    it("returns arriving_soon for a delivery seven days ahead across the spring clock change", () => {
+      const status = getDeliveryUiStatus({
+        expectedDeliveryDate: utc("2026-04-01"),
+        today: utc("2026-03-25"),
+      });
+
+      expect(status).toBe("arriving_soon");
+    });
+
+    it("returns null for a delivery eight days ahead across the autumn clock change", () => {
+      const status = getDeliveryUiStatus({
+        expectedDeliveryDate: utc("2026-10-28"),
+        today: utc("2026-10-20"),
+      });
+
+      expect(status).toBeNull();
+    });
   });
 });
 
@@ -94,6 +117,54 @@ describe("deliveryDateBounds", () => {
 
     expect(weekEnd.toISOString()).toBe("2026-07-12T00:00:00.000Z");
     expect(today.toISOString()).toBe("2026-07-12T00:00:00.000Z");
+  });
+
+  describe("Europe/Kyiv", () => {
+    pinProcessTimezone("Europe/Kyiv");
+
+    it("keeps the arriving-soon window on 00:00 UTC across the spring clock change", () => {
+      const { soonEnd } = deliveryDateBounds(new Date("2026-03-25T15:30:00.000Z"));
+
+      expect(soonEnd.toISOString()).toBe("2026-04-01T00:00:00.000Z");
+    });
+
+    it("keeps the dispatch cutoff on 00:00 UTC across the autumn clock change", () => {
+      const { dispatchCutoff } = deliveryDateBounds(new Date("2026-10-28T15:30:00.000Z"));
+
+      expect(dispatchCutoff.toISOString()).toBe("2026-10-21T00:00:00.000Z");
+    });
+
+    it("keeps the pickup deadline on 00:00 UTC across the spring clock change", () => {
+      const { pickupDeadline } = deliveryDateBounds(new Date("2026-03-28T15:30:00.000Z"));
+
+      expect(pickupDeadline.toISOString()).toBe("2026-03-30T00:00:00.000Z");
+    });
+  });
+
+  describe("America/New_York", () => {
+    pinProcessTimezone("America/New_York");
+
+    it("keeps the arriving-soon window on the seventh calendar day west of UTC", () => {
+      const { soonEnd } = deliveryDateBounds(new Date("2026-03-05T15:30:00.000Z"));
+
+      expect(soonEnd.toISOString()).toBe("2026-03-12T00:00:00.000Z");
+    });
+
+    it("keeps the dispatch cutoff on 00:00 UTC across the autumn clock change west of UTC", () => {
+      const { dispatchCutoff } = deliveryDateBounds(new Date("2026-11-05T15:30:00.000Z"));
+
+      expect(dispatchCutoff.toISOString()).toBe("2026-10-29T00:00:00.000Z");
+    });
+  });
+
+  describe("Asia/Jerusalem", () => {
+    pinProcessTimezone("Asia/Jerusalem");
+
+    it("closes the week on Sunday 00:00 UTC when the clock changes on Friday", () => {
+      const { weekEnd } = deliveryDateBounds(new Date("2026-03-23T15:30:00.000Z"));
+
+      expect(weekEnd.toISOString()).toBe("2026-03-29T00:00:00.000Z");
+    });
   });
 });
 

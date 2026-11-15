@@ -1,7 +1,6 @@
 import type { Nullable, ReadingGoalUncountedReason } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
-import { differenceInCalendarDays } from "date-fns";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type {
@@ -16,7 +15,7 @@ import type { ReadingGoalActivityInput } from "../infrastructure/reading-goal-ac
 import type { ReadingGoalWithList } from "../infrastructure/reading-goals.repository.js";
 import type { ReadingGoalQualificationChange } from "./reading-goal-snapshot.service.js";
 
-import { startOfUtcDay, toIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
+import { daysBetweenUtcDays, toIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
 import { calculateReadingGoalMetrics } from "../domain/reading-goal-metrics.js";
 import { selectQualifyingReadingGoalBooks } from "../domain/reading-goal-progress.js";
 import { resolveReadingGoalQualificationWindow } from "../domain/reading-goal-window.js";
@@ -244,7 +243,7 @@ function countedRows({
 }
 
 function daysBetween(deadline: Date, completedAt: Date): number {
-  return Math.max(0, differenceInCalendarDays(startOfUtcDay(deadline), startOfUtcDay(completedAt)));
+  return Math.max(0, daysBetweenUtcDays({ end: deadline, start: completedAt }));
 }
 
 function expiredRow({

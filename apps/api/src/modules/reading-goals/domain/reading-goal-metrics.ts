@@ -1,10 +1,8 @@
 import type { Nullable, ReadingGoalMetrics, ReadingGoalStatus } from "@app/shared";
 
-import { differenceInCalendarDays } from "date-fns";
-
 import type { ReadingGoalCandidateBook, ReadingGoalProgress } from "./reading-goal-progress.js";
 
-import { startOfUtcDay, toNullableIsoDate } from "../../../core/iso-date.js";
+import { daysBetweenUtcDays, toNullableIsoDate } from "../../../core/iso-date.js";
 import { calculateReadingGoalPace } from "./reading-goal-pace.js";
 import {
   calculateReadingGoalProgress,
@@ -168,10 +166,7 @@ function calculateDaysSinceLastCounted({
   if (!tracksIdleDays(status)) {
     return null;
   }
-  return Math.max(
-    0,
-    differenceInCalendarDays(startOfUtcDay(today), lastCountedAt ?? goalStartDate),
-  );
+  return Math.max(0, daysBetweenUtcDays({ end: today, start: lastCountedAt ?? goalStartDate }));
 }
 
 function calculateRequiredBooksPerDay({

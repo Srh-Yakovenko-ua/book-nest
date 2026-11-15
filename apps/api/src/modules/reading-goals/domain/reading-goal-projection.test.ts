@@ -1,5 +1,6 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
+import { pinProcessTimezone } from "../../../test/process-timezone.js";
 import { calculateReadingGoalProjection } from "./reading-goal-projection.js";
 
 type ProjectionInput = Parameters<typeof calculateReadingGoalProjection>[0];
@@ -114,15 +115,7 @@ describe("calculateReadingGoalProjection active goal", () => {
 });
 
 describe("calculateReadingGoalProjection across a daylight saving change", () => {
-  const originalTimeZone = process.env.TZ;
-
-  beforeAll(() => {
-    process.env.TZ = "Europe/Kyiv";
-  });
-
-  afterAll(() => {
-    process.env.TZ = originalTimeZone;
-  });
+  pinProcessTimezone("Europe/Kyiv");
 
   it.each([
     {

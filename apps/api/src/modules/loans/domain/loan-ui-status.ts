@@ -1,7 +1,8 @@
 import type { LoanUiStatus, Nullable } from "@app/shared";
 
 import { LOAN_STATS_WINDOWS } from "@app/shared";
-import { addDays, differenceInCalendarDays } from "date-fns";
+
+import { addDaysToUtcDay, daysBetweenUtcDays } from "../../../core/iso-date.js";
 
 const RETURN_SOON_DAYS = LOAN_STATS_WINDOWS.returnSoonDays;
 
@@ -21,7 +22,7 @@ export function getLoanUiStatus({
     return "no_return_date";
   }
 
-  const daysUntilReturn = differenceInCalendarDays(expectedReturnDate, today);
+  const daysUntilReturn = daysBetweenUtcDays({ end: expectedReturnDate, start: today });
   if (daysUntilReturn < 0) {
     return "overdue";
   }
@@ -32,5 +33,5 @@ export function getLoanUiStatus({
 }
 
 export function loanDateBounds(today: Date): LoanDateBounds {
-  return { soonEnd: addDays(today, RETURN_SOON_DAYS), today };
+  return { soonEnd: addDaysToUtcDay({ day: today, days: RETURN_SOON_DAYS }), today };
 }

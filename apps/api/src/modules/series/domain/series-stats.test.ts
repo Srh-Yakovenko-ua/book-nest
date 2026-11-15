@@ -2,6 +2,7 @@ import type { Nullable, ReadingStatus } from "@app/shared";
 
 import { describe, expect, it } from "vitest";
 
+import { pinProcessTimezone } from "../../../test/process-timezone.js";
 import { computeSeriesStats } from "./series-stats.js";
 
 type StatsBook = {
@@ -284,6 +285,22 @@ describe("computeSeriesStats reading window", () => {
     expect(stats.startedAt).toBe("2026-01-10T00:00:00.000Z");
     expect(stats.lastFinishedAt).toBe("2026-01-05T00:00:00.000Z");
     expect(stats.readingDurationDays).toBeNull();
+  });
+
+  describe("Atlantic/Azores", () => {
+    pinProcessTimezone("Atlantic/Azores");
+
+    it("counts reading duration in UTC days across the spring clock change", () => {
+      const stats = computeSeriesStats([
+        makeBook({
+          finishedAt: new Date("2026-04-01T00:00:00.000Z"),
+          readingStatus: "finished",
+          startedAt: new Date("2026-03-25T00:00:00.000Z"),
+        }),
+      ]);
+
+      expect(stats.readingDurationDays).toBe(7);
+    });
   });
 });
 

@@ -1,7 +1,6 @@
 import { defaultUserProfileSettings } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
-import { addDays } from "date-fns";
 
 import type { ExclusiveTask } from "../../../core/exclusive-task.js";
 import type { ReadingGoalProgress } from "../domain/reading-goal-progress.js";
@@ -9,7 +8,7 @@ import type { ReadingGoalActivityInput } from "../infrastructure/reading-goal-ac
 import type { ReadingGoalExpirationCandidate } from "../infrastructure/reading-goals.repository.js";
 
 import { createExclusiveTask } from "../../../core/exclusive-task.js";
-import { startOfUtcDay, toIsoDate, toZonedCalendarDay } from "../../../core/iso-date.js";
+import { addDaysToUtcDay, toIsoDate, toZonedCalendarDay } from "../../../core/iso-date.js";
 import { scanByKeyset } from "../../../core/keyset-scan.js";
 import { createLogger } from "../../../core/logger.js";
 import { calculateReadingGoalMetrics } from "../domain/reading-goal-metrics.js";
@@ -44,10 +43,10 @@ export class ReadingGoalExpirationReconciler {
 
   async run({ now }: { now: Date }): Promise<void> {
     let expiredCount = 0;
-    const deadlineBefore = addDays(
-      startOfUtcDay(now),
-      READING_GOAL_EXPIRATION_SWEEP.maxLocalDaysAheadOfUtc,
-    );
+    const deadlineBefore = addDaysToUtcDay({
+      day: now,
+      days: READING_GOAL_EXPIRATION_SWEEP.maxLocalDaysAheadOfUtc,
+    });
 
     const summary = await scanByKeyset<ReadingGoalExpirationCandidate>({
       loadPage: (afterId) =>

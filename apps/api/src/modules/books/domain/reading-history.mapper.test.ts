@@ -7,10 +7,11 @@ import type {
   ReadingStatus,
 } from "@app/shared";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import type { ReadingEventRow, ReadingProgressSnapshot } from "./reading-history.mapper.js";
 
+import { pinProcessTimezone } from "../../../test/process-timezone.js";
 import { READING_ACTIVITY_ALL_MAX_DAYS, toReadingHistoryView } from "./reading-history.mapper.js";
 
 const TODAY = utc("2026-03-12T00:00:00.000Z");
@@ -833,15 +834,7 @@ describe("toReadingHistoryView history grouping", () => {
 });
 
 describe("toReadingHistoryView activity graph across a DST transition", () => {
-  const originalTimezone = process.env.TZ;
-
-  beforeEach(() => {
-    process.env.TZ = "Europe/Kyiv";
-  });
-
-  afterEach(() => {
-    process.env.TZ = originalTimezone;
-  });
+  pinProcessTimezone("Europe/Kyiv");
 
   it("emits seven consecutive UTC days when the 7d window straddles the spring-forward boundary", () => {
     const view = buildView({
