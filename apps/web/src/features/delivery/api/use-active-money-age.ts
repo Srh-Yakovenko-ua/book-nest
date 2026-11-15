@@ -7,12 +7,12 @@ import type { BookOrdersControllerActiveMoneyAgeParams } from "@/shared/api/gene
 
 import { bookOrdersControllerActiveMoneyAge } from "@/shared/api/generated/endpoints/book-orders/book-orders";
 
-export const ACTIVE_MONEY_AGE_QUERY_KEY = "/api/delivery/orders/statistics/active-age";
+import { deliveryKeys } from "./delivery-keys";
 
 export function useActiveMoneyAge(params: BookOrdersControllerActiveMoneyAgeParams) {
   return useQuery({
     queryFn: async (): Promise<ActiveMoneyAgeResponse> =>
       ActiveMoneyAgeResponseSchema.parse(await bookOrdersControllerActiveMoneyAge(params)),
-    queryKey: [ACTIVE_MONEY_AGE_QUERY_KEY, params],
+    queryKey: deliveryKeys.statistics.activeMoneyAge(params),
   });
 }

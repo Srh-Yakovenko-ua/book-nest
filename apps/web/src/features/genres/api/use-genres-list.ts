@@ -25,6 +25,5 @@ export function useGenresList(params: GenresListParams) {
         ),
       ),
     queryKey: genresKeys.stats(params),
-    retry: false,
   });
 }

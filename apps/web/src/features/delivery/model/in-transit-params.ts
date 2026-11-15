@@ -20,11 +20,7 @@ import type {
   DeliveryReadControllerInTransitQuickCountsParams,
 } from "@/shared/api/generated/model";
 
-import {
-  isInvertedDayRange,
-  isStorableDay,
-  isStorableOrderId,
-} from "@/features/books/model/filter-chips";
+import { isInvertedDayRange, isStorableDay, isStorableOrderId } from "@/lib/filter-chips";
 import {
   DeliveryReadControllerInTransitListCurrencyItem,
   DeliveryReadControllerInTransitListFilter,

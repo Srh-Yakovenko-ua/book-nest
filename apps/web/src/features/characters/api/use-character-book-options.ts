@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import type { BooksControllerListParams } from "@/shared/api/generated/model";
 
+import { bookKeys } from "@/features/books/api/book-keys";
 import { booksControllerList } from "@/shared/api/generated/endpoints/books/books";
 import { BooksControllerListSort } from "@/shared/api/generated/model";
 
@@ -34,6 +35,6 @@ export function useCharacterBookOptions(
       PaginatedBooksSchema.parse(
         await booksControllerList({ ...params, pageNumber: pageParam }, { signal }),
       ),
-    queryKey: ["/api/books", "character-filter-options", params],
+    queryKey: bookKeys.characterFilterOptions(params),
   });
 }

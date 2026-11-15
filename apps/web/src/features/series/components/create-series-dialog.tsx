@@ -32,19 +32,17 @@ import {
   SeriesStatusChips,
   useAuthorsFieldFocus,
 } from "@/features/books";
+import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
-import { ApiError } from "@/lib/http-client";
 
 import { useCreateSeries } from "../api/use-create-series";
 
 const NAME_MAX = 120;
 const TOTAL_BOOKS_MIN = 1;
 const TOTAL_BOOKS_MAX = 999;
-const DUPLICATE_STATUS = 409;
-
 type CreateSeriesDialogProps = {
   onOpenChange: (open: boolean) => void;
   open: boolean;
@@ -108,9 +106,7 @@ function CreateSeriesForm({ onDone }: { onDone: () => void }) {
     createSeries.mutate(payload, {
       onError: (error) =>
         setServerError(
-          error instanceof ApiError && error.status === DUPLICATE_STATUS
-            ? t("duplicate")
-            : t("genericError"),
+          isApiErrorStatus(error, HTTP_STATUS.conflict) ? t("duplicate") : t("genericError"),
         ),
       onSuccess: () => {
         toast.success(tToast("created"));

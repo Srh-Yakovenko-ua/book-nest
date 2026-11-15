@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import type { ActiveFilterChip } from "@/features/books";
 import type { DeliveryReadControllerInTransitListFilter } from "@/shared/api/generated/model";
 
-import { isStorableOrderId, rangeLabel, storableDay } from "@/features/books/model/filter-chips";
+import { isStorableOrderId, rangeLabel, storableDay } from "@/lib/filter-chips";
 import { formatDate } from "@/lib/format";
 
 import type { DeliveryAdvancedState } from "./in-transit-params";

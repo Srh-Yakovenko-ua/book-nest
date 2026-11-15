@@ -15,6 +15,5 @@ export function useTagsFacets(params: TagsFacetsParams) {
     queryFn: async ({ signal }): Promise<TagsCatalogFacetsView> =>
       TagsCatalogFacetsViewSchema.parse(await tagsControllerCatalogFacets(params, { signal })),
     queryKey: tagsKeys.facets(params),
-    retry: false,
   });
 }

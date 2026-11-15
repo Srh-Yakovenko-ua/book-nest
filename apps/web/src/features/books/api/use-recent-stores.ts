@@ -3,6 +3,8 @@ import { z } from "zod";
 
 import { booksControllerPurchaseStores } from "@/shared/api/generated/endpoints/books/books";
 
+import { bookKeys } from "./book-keys";
+
 const RECENT_STORES_LIMIT = 8;
 
 export function useRecentStores() {
@@ -11,6 +13,6 @@ export function useRecentStores() {
       const response = await booksControllerPurchaseStores({ limit: RECENT_STORES_LIMIT });
       return z.array(z.string()).parse(response);
     },
-    queryKey: ["books", "purchase-stores"],
+    queryKey: bookKeys.purchaseStores,
   });
 }

@@ -11,16 +11,11 @@ import { dedicationKeys } from "./dedication-keys";
 
 export type DedicationsPage = z.infer<typeof PaginatedBooksSchema>;
 
-const MAX_PAGES = 10;
-
 export function useDedications(params: DedicationsListParams) {
   return useInfiniteQuery({
     getNextPageParam: (lastPage: DedicationsPage) =>
       lastPage.page < lastPage.pagesCount ? lastPage.page + 1 : undefined,
-    getPreviousPageParam: (firstPage: DedicationsPage) =>
-      firstPage.page > 1 ? firstPage.page - 1 : undefined,
     initialPageParam: 1,
-    maxPages: MAX_PAGES,
     placeholderData: keepPreviousData,
     queryFn: async ({ pageParam, signal }): Promise<DedicationsPage> =>
       PaginatedBooksSchema.parse(

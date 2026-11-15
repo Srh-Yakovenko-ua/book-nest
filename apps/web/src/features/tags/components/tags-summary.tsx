@@ -1,14 +1,14 @@
 "use client";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
+import { SummaryCards } from "@/components/catalog/summary-cards";
 import { SummaryError } from "@/components/summary-error";
-import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 
 export type TagsSummaryStatus = "error" | "pending" | "success";
 
 type TagsSummaryCardsProps = {
-  cards: LibrarySummaryCard[];
+  cards: SummaryCard[];
   onRetry: () => void;
   status: TagsSummaryStatus;
 };
@@ -20,7 +20,7 @@ const TAGS_SUMMARY = {
 export function TagsSummaryCards({ cards, onRetry, status }: TagsSummaryCardsProps) {
   return (
     <SummaryError className="max-sm:hidden" state={status === "error" ? { onRetry } : null}>
-      <LibrarySummaryCards
+      <SummaryCards
         cards={cards}
         isLoading={status === "pending"}
         skeletonCount={TAGS_SUMMARY.cardsCount}

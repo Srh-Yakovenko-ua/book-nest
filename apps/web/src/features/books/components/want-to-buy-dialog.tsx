@@ -2,9 +2,13 @@
 
 import type { BookView, Currency, WantToBuyInput } from "@app/shared";
 
-import { MAX_STORE_LINKS_PER_BOOK, STORE_LINK_ERROR_CODES } from "@app/shared";
+import {
+  MAX_STORE_LINKS_PER_BOOK,
+  STORE_LINK_ERROR_CODES,
+  WISHLIST_INPUT_LIMITS,
+} from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -32,16 +36,13 @@ import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
+import { formatNumber } from "@/lib/format";
 import { ApiError } from "@/lib/http-client";
 import { isHttpsUrl } from "@/lib/is-https-url";
 
 import { useWantToBuy } from "../api/use-ownership";
 
 const CURRENCY_OPTIONS = ["UAH", "EUR", "USD"] as const satisfies readonly Currency[];
-const STORE_NAME_MAX = 100;
-const STORE_URL_MAX = 300;
-const PRICE_MIN = 0;
-const PRICE_MAX = 99999999.99;
 
 type WantToBuyBook = Pick<BookView, "id">;
 
@@ -105,16 +106,22 @@ function buildSchema(messages: WantToBuyMessages) {
       currency: z.enum(["", "UAH", "EUR", "USD"]),
       expectedPrice: z
         .string()
-        .refine((value) => value.trim().length === 0 || Number(value) > PRICE_MIN, messages.price)
         .refine(
-          (value) => value.trim().length === 0 || Number(value) <= PRICE_MAX,
+          (value) => value.trim().length === 0 || Number(value) > WISHLIST_INPUT_LIMITS.priceMin,
+          messages.price,
+        )
+        .refine(
+          (value) => value.trim().length === 0 || Number(value) <= WISHLIST_INPUT_LIMITS.priceMax,
           messages.priceMax,
         ),
-      storeName: z.string().max(STORE_NAME_MAX, messages.storeNameMax),
+      storeName: z.string().max(WISHLIST_INPUT_LIMITS.storeNameMax, messages.storeNameMax),
       storeUrl: z
         .string()
         .refine((value) => value.trim().length === 0 || isHttpsUrl(value.trim()), messages.storeUrl)
-        .refine((value) => value.trim().length <= STORE_URL_MAX, messages.storeUrlMax),
+        .refine(
+          (value) => value.trim().length <= WISHLIST_INPUT_LIMITS.storeUrlMax,
+          messages.storeUrlMax,
+        ),
     })
     .superRefine((values, context) => {
       const storeName = values.storeName.trim();
@@ -150,6 +157,7 @@ function isStoreLinkLimitReached(error: unknown): boolean {
 }
 
 function WantToBuyForm({ book, onDone }: { book: WantToBuyBook; onDone: () => void }) {
+  const locale = useLocale();
   const t = useTranslations("books.details.ownership.buyDialog");
   const tErrors = useTranslations("books.details.ownership.errors");
   const tActions = useTranslations("books.actions");
@@ -167,12 +175,14 @@ function WantToBuyForm({ book, onDone }: { book: WantToBuyBook; onDone: () => vo
     resolver: zodResolver(
       buildSchema({
         price: tErrors("price"),
-        priceMax: tErrors("priceMax"),
-        storeNameMax: tErrors("storeNameMax", { max: STORE_NAME_MAX }),
+        priceMax: tErrors("priceMax", {
+          max: formatNumber(WISHLIST_INPUT_LIMITS.priceMax, locale),
+        }),
+        storeNameMax: tErrors("storeNameMax", { max: WISHLIST_INPUT_LIMITS.storeNameMax }),
         storeNameRequired: tErrors("storeNameRequired"),
         storeRequiredForPrice: tErrors("storeRequiredForPrice"),
         storeUrl: tErrors("storeUrl"),
-        storeUrlMax: tErrors("storeUrlMax", { max: STORE_URL_MAX }),
+        storeUrlMax: tErrors("storeUrlMax", { max: WISHLIST_INPUT_LIMITS.storeUrlMax }),
         storeUrlRequired: tErrors("storeUrlRequired"),
       }),
     ),
@@ -239,7 +249,7 @@ function WantToBuyForm({ book, onDone }: { book: WantToBuyBook; onDone: () => vo
             className="h-10"
             id="buy-expected-price"
             inputMode="decimal"
-            min={0}
+            min={WISHLIST_INPUT_LIMITS.priceMin}
             onKeyDown={blockNegativeNumberKeys}
             onPaste={blockNegativeNumberPaste}
             placeholder="0"

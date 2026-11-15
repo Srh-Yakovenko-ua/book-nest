@@ -1,13 +1,14 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { type ReactNode, useState } from "react";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
 import { type ActiveFilterChip, LibraryActiveFilters, useGenres } from "@/features/books";
 import { useRouter } from "@/i18n/navigation";
+import { formatNumber } from "@/lib/format";
 
 import { useSeriesList } from "../api/use-series-list";
 import { useSeriesOverview } from "../api/use-series-overview";
@@ -47,6 +48,7 @@ export function AllSeries() {
   const tReadingFilter = useTranslations("series.readingFilter");
   const tCompleteness = useTranslations("series.filters.completeness");
   const tAttention = useTranslations("series.attention");
+  const locale = useLocale();
   const router = useRouter();
 
   const seriesQuery = useSeriesQuery();
@@ -155,8 +157,8 @@ export function AllSeries() {
     return (
       <span className="block truncate">
         {t("booksReadOfTotal", {
-          finished: finished.toLocaleString(),
-          total: overviewData.booksInSeries.toLocaleString(),
+          finished: formatNumber(finished, locale),
+          total: formatNumber(overviewData.booksInSeries, locale),
         })}
       </span>
     );
@@ -167,7 +169,7 @@ export function AllSeries() {
     detailed: t(`mobile.detailed.${key}`),
   });
 
-  const summaryCards: LibrarySummaryCard[] = [
+  const summaryCards: SummaryCard[] = [
     {
       icon: "layers",
       iconTone: "primary",

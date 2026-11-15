@@ -4,11 +4,13 @@ import type { Nullable, ReadingGoalResult, ReadingGoalView } from "@app/shared";
 import type { RefObject } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { addYears, endOfYear } from "date-fns";
+import { addDays, addYears, endOfYear, parseISO } from "date-fns";
 import { useTranslations } from "next-intl";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
+import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -23,14 +25,14 @@ import {
 import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useWeekStartsOn } from "@/features/settings";
-import { applyFieldErrors } from "@/lib/api-errors";
+import { useProfileTimeZone, useWeekStartsOn } from "@/features/settings";
+import { useCloseGuard } from "@/hooks/use-close-guard";
+import { applyFieldErrors, HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
-import { ApiError } from "@/lib/http-client";
-import { dateToIsoDay, isoDayToDate } from "@/lib/iso-day";
+import { dateToIsoDay, isoDayToDate, todayIsoDay } from "@/lib/iso-day";
 
 import type { GoalFormValues } from "../model/goal-form";
 
@@ -49,7 +51,6 @@ import { GoalDeadlineShortcuts, GoalTargetPresets } from "./goal-form-quick-pick
 
 const GOAL_FORM_DIALOG = {
   calendarYearSpan: 10,
-  conflictStatus: 409,
   quickPickUpdate: { shouldDirty: true, shouldTouch: true, shouldValidate: true },
 } as const;
 
@@ -100,40 +101,66 @@ export function GoalFormDialog({
   openerRef,
 }: GoalFormDialogProps) {
   const t = useTranslations("goals.form");
+  const createGoal = useCreateGoal();
+  const updateGoal = useUpdateGoal();
+  const isPending = createGoal.isPending || updateGoal.isPending;
+  const [isDraftDirty, setDraftDirty] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const guard = useCloseGuard({
+    focusFallback: () => contentRef.current?.focus(),
+    isDirty: isDraftDirty,
+    isOpen: open,
+    isPending,
+    onClose: () => onOpenChange(false),
+  });
 
   return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent
-        className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain sm:max-w-md"
-        onCloseAutoFocus={(event) => {
-          event.preventDefault();
-          openerRef.current?.focus();
+    <>
+      <Dialog
+        onOpenChange={(next) => {
+          if (!next) guard.requestClose();
         }}
-        onOpenAutoFocus={focusDialogSurface}
+        open={open}
       >
-        <DialogHeader>
-          <DialogTitle className="pr-8 break-words">
-            {mode.kind === "edit" ? t("editTitle") : t("title")}
-          </DialogTitle>
-          <DialogDescription className="break-words">
-            {listName === null ? null : `${t("source", { name: listName })} · `}
-            {t(BOOK_COUNT_COPY[mode.kind].description, { count: bookCount })}
-          </DialogDescription>
-        </DialogHeader>
-        {mode.kind === "create" && mode.previousOutcome !== null ? (
-          <AutoArchiveHint previousOutcome={mode.previousOutcome} />
-        ) : null}
-        {open ? (
-          <GoalForm
-            bookCount={bookCount}
-            listName={listName}
-            mode={mode}
-            onCreated={onCreated}
-            onDone={() => onOpenChange(false)}
-          />
-        ) : null}
-      </DialogContent>
-    </Dialog>
+        <DialogContent
+          className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain sm:max-w-md"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            openerRef.current?.focus();
+          }}
+          onOpenAutoFocus={focusDialogSurface}
+          ref={contentRef}
+        >
+          <DialogHeader>
+            <DialogTitle className="pr-8 break-words">
+              {mode.kind === "edit" ? t("editTitle") : t("title")}
+            </DialogTitle>
+            <DialogDescription className="break-words">
+              {listName === null ? null : `${t("source", { name: listName })} · `}
+              {t(BOOK_COUNT_COPY[mode.kind].description, { count: bookCount })}
+            </DialogDescription>
+          </DialogHeader>
+          {mode.kind === "create" && mode.previousOutcome !== null ? (
+            <AutoArchiveHint previousOutcome={mode.previousOutcome} />
+          ) : null}
+          {open ? (
+            <GoalForm
+              bookCount={bookCount}
+              createGoal={createGoal}
+              listName={listName}
+              mode={mode}
+              onCancel={guard.requestClose}
+              onCreated={onCreated}
+              onDirtyChange={setDraftDirty}
+              onDone={() => onOpenChange(false)}
+              updateGoal={updateGoal}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <DiscardChangesDialog {...guard.discardDialog} />
+    </>
   );
 }
 
@@ -156,23 +183,30 @@ function focusDialogSurface(event: Event) {
 
 function GoalForm({
   bookCount,
+  createGoal,
   listName,
   mode,
+  onCancel,
   onCreated,
+  onDirtyChange,
   onDone,
+  updateGoal,
 }: {
   bookCount: number;
+  createGoal: ReturnType<typeof useCreateGoal>;
   listName: Nullable<string>;
   mode: GoalFormMode;
+  onCancel: () => void;
   onCreated?: (goal: ReadingGoalView) => void;
+  onDirtyChange: (isDirty: boolean) => void;
   onDone: () => void;
+  updateGoal: ReturnType<typeof useUpdateGoal>;
 }) {
   const t = useTranslations("goals.form");
   const tErrors = useTranslations("goals.form.errors");
   const tToast = useTranslations("goals.toast");
   const weekStartsOn = useWeekStartsOn();
-  const createGoal = useCreateGoal();
-  const updateGoal = useUpdateGoal();
+  const today = todayIsoDay(useProfileTimeZone());
   const copy = BOOK_COUNT_COPY[mode.kind];
   const defaults = goalFormDefaults({
     bookCount,
@@ -196,17 +230,22 @@ function GoalForm({
               : t(copy.targetMax, { count: bookCount }),
           targetMin: tErrors("targetMin"),
         },
+        today,
       }),
     ),
   });
 
   const {
     control,
-    formState: { errors },
+    formState: { errors, isDirty },
     handleSubmit,
     register,
     setValue,
   } = form;
+
+  useEffect(() => {
+    onDirtyChange(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   const [deadline, name, targetCount] = useWatch({
     control,
@@ -219,11 +258,11 @@ function GoalForm({
     !hasGoalChanges(
       toUpdateGoalInput({ initial: defaults, values: { deadline, name, targetCount } }),
     );
-  const now = new Date();
+  const todayDate = parseISO(today);
 
   function reportFailure(error: unknown) {
     if (applyFieldErrors(form, error)) return;
-    if (error instanceof ApiError && error.status === GOAL_FORM_DIALOG.conflictStatus) {
+    if (isApiErrorStatus(error, HTTP_STATUS.conflict)) {
       toast.error(tToast("conflict"));
       return;
     }
@@ -340,16 +379,17 @@ function GoalForm({
               allowFuture
               ariaLabel={t("deadline")}
               className="h-10"
-              defaultMonth={now}
+              defaultMonth={todayDate}
               describedBy={errors.deadline ? FIELD_ID.deadlineError : undefined}
-              disablePast
-              endMonth={endOfYear(addYears(now, GOAL_FORM_DIALOG.calendarYearSpan))}
+              earliestDay={addDays(todayDate, 1)}
+              endMonth={endOfYear(addYears(todayDate, GOAL_FORM_DIALOG.calendarYearSpan))}
               id={FIELD_ID.deadline}
               invalid={errors.deadline !== undefined}
               onChange={(date) => field.onChange(date ? dateToIsoDay(date) : "")}
               placeholder={t("deadlinePlaceholder")}
               required
-              startMonth={now}
+              startMonth={todayDate}
+              today={todayDate}
               value={isoDayToDate(field.value)}
               weekStartsOn={weekStartsOn}
             />
@@ -357,7 +397,7 @@ function GoalForm({
         />
         <GoalDeadlineShortcuts
           onSelect={(value) => setValue("deadline", value, GOAL_FORM_DIALOG.quickPickUpdate)}
-          today={now}
+          today={todayDate}
           value={deadline}
         />
         <FieldError error={errors.deadline} id={FIELD_ID.deadlineError} />
@@ -366,7 +406,7 @@ function GoalForm({
       <p className="text-xs leading-relaxed text-muted-foreground">{t("explanation")}</p>
 
       <DialogFooter>
-        <Button disabled={isPending} onClick={onDone} type="button" variant="secondary">
+        <Button disabled={isPending} onClick={onCancel} type="button" variant="secondary">
           {t("cancel")}
         </Button>
         <Button

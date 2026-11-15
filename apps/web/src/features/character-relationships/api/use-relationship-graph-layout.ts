@@ -49,7 +49,6 @@ export function useRelationshipGraphLayout(
       }
     },
     queryKey,
-    retry: false,
   });
 
   const save = useMutation({

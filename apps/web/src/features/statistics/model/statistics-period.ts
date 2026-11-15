@@ -11,7 +11,6 @@ import {
   ReadingStatisticsPeriodKindSchema,
 } from "@app/shared";
 import { differenceInCalendarDays, isAfter, isBefore, parseISO } from "date-fns";
-import { formatInTimeZone } from "date-fns-tz";
 import {
   type inferParserType,
   parseAsInteger,
@@ -25,11 +24,9 @@ import { isoDayToDate } from "@/lib/iso-day";
 
 export const STATISTICS_PERIOD = {
   defaultKind: "year",
-  isoDayFormat: "yyyy-MM-dd",
   selectableYearsBack: 30,
 } as const satisfies Record<string, number | string> & {
   defaultKind: ReadingStatisticsPeriodKind;
-  isoDayFormat: string;
 };
 
 export const STATISTICS_PERIOD_KINDS = ReadingStatisticsPeriodKindSchema.options;
@@ -114,10 +111,6 @@ export function statisticsCompareMode(
   state: StatisticsQueryState,
 ): Nullable<ReadingStatisticsCompareMode> {
   return canCompareStatisticsPeriod(state.period) ? state.compare : null;
-}
-
-export function todayIsoDay(timeZone: string): string {
-  return formatInTimeZone(new Date(), timeZone, STATISTICS_PERIOD.isoDayFormat);
 }
 
 export function toOverviewParams(

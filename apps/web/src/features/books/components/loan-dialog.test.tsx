@@ -2,7 +2,12 @@ import "@testing-library/jest-dom/vitest";
 import type { BookView, LoanContactListItemView } from "@app/shared";
 import type { ReactNode } from "react";
 
-import { LOAN_BATCH_CONFLICT_CODE, LOAN_CONTACT_ERROR_CODES, LOAN_ERROR_CODES } from "@app/shared";
+import {
+  defaultUserProfileSettings,
+  LOAN_BATCH_CONFLICT_CODE,
+  LOAN_CONTACT_ERROR_CODES,
+  LOAN_ERROR_CODES,
+} from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import messages from "@/messages/uk.json";
@@ -24,6 +29,10 @@ const BOOK_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 
 const CANDIDATE_BOOK_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const SECOND_BOOK_ID = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+const KYIV_PAST_MIDNIGHT = {
+  instant: "2026-11-15T22:30:00.000Z",
+  timeZone: "Europe/Kyiv",
+} as const;
 
 const bookStep = messages.books.details.loan.bookStep;
 const contactCreate = messages.loans.contactCreate;
@@ -188,6 +197,11 @@ beforeEach(() => {
     }
     if (url.startsWith("/api/books?")) {
       return Promise.resolve(jsonResponse(booksPage(candidateBooks)));
+    }
+    if (url.includes("/api/profile/settings")) {
+      return Promise.resolve(
+        jsonResponse({ ...defaultUserProfileSettings, timezone: KYIV_PAST_MIDNIGHT.timeZone }),
+      );
     }
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
   });
@@ -547,5 +561,24 @@ describe("LoanDialog", () => {
 
     expect(await screen.findByText(bookStep.notFound)).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: bookStep.createBook })).not.toBeInTheDocument();
+  });
+});
+
+describe("LoanDialog in the profile time zone", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(KYIV_PAST_MIDNIGHT.instant);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("dates a new loan by the Kyiv day that has already begun while UTC is a day behind", () => {
+    renderDialog();
+
+    expect(
+      screen.getByRole("button", { name: `${loanCopy.borrowed.loanDate}, 16 листопада 2026` }),
+    ).toBeInTheDocument();
   });
 });

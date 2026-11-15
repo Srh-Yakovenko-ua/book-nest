@@ -1,12 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { todayIsoDay } from "@/lib/iso-day";
+
 import {
   canCompareStatisticsPeriod,
   customRangeIssue,
   defaultStatisticsCompareMode,
   isPeriodIncludingDay,
   selectableYearBounds,
-  todayIsoDay,
   toOverviewParams,
 } from "./statistics-period";
 

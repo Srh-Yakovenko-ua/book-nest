@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
+import { type SummaryCard, SummaryCards } from "@/components/catalog/summary-cards";
 import { UiIcon } from "@/components/icons";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { SummaryError } from "@/components/summary-error";
@@ -12,7 +13,6 @@ import { Link } from "@/i18n/navigation";
 
 import { useLibraryOverview } from "../api/use-library-overview";
 import { DeliveryDashboardWidget } from "./delivery-dashboard-widget";
-import { type LibrarySummaryCard, LibrarySummaryCards } from "./library-summary-cards";
 
 export function HomeDashboard() {
   const t = useTranslations("home");
@@ -30,7 +30,7 @@ export function HomeDashboard() {
     detailed: tSummary(`summary.mobile.detailed.${key}`),
   });
 
-  const summaryCards: LibrarySummaryCard[] = [
+  const summaryCards: SummaryCard[] = [
     {
       icon: "library",
       label: tSummary("summary.total"),
@@ -88,7 +88,7 @@ export function HomeDashboard() {
       ) : (
         <>
           <SummaryError state={overview.isLoadingError ? { onRetry: retryOverview } : null}>
-            <LibrarySummaryCards
+            <SummaryCards
               cards={summaryCards}
               isLoading={overview.isPending}
               mobileLayout="compact"

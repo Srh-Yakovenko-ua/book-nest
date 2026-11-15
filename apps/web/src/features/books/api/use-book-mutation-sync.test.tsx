@@ -46,10 +46,25 @@ describe("useBookMutationSync", () => {
     expect(client.getQueryState(detailKey)?.isInvalidated).toBe(true);
     expect(client.getQueryData(detailKey)).toBeUndefined();
   });
+
+  it("refreshes the active loans and the loan history when a loan changes the book", () => {
+    const client = new QueryClient();
+    const loanKeys = [
+      ["/api/loans", "list", { type: "lent_to_someone" }],
+      ["/api/loans/history", "overview"],
+    ];
+    for (const key of loanKeys) client.setQueryData(key, {});
+
+    syncWith(client, "loanChanged")(makeBookView({ id: BOOK_ID }));
+
+    expect(loanKeys.map((key) => client.getQueryState(key)?.isInvalidated)).toEqual([true, true]);
+  });
 });
 
-function syncWith(client: QueryClient) {
-  const { result } = renderHook(() => useBookMutationSync(), { wrapper: wrapperFor(client) });
+function syncWith(client: QueryClient, change?: Parameters<typeof useBookMutationSync>[0]) {
+  const { result } = renderHook(() => useBookMutationSync(change), {
+    wrapper: wrapperFor(client),
+  });
   return result.current;
 }
 

@@ -9,7 +9,6 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
 import type { RefetchErrorState } from "@/components/refetch-error-banner";
-import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 import type { BooksControllerListSort } from "@/shared/api/generated/model";
 
@@ -22,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Segmented } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
+import { infiniteScrollStateOf } from "@/hooks/use-infinite-scroll-sentinel";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 import { cn } from "@/lib/utils";
@@ -394,7 +394,11 @@ function LibraryContent({
           allShownLabel={allShownLabel}
           errorLabel={loadMoreErrorLabel}
           onLoadMore={onLoadMore}
-          state={nextPageState({ hasNextPage, isFetchingNextPage, isLoadMoreError })}
+          state={infiniteScrollStateOf({
+            hasNextPage,
+            isFetchingNextPage,
+            isFetchNextPageError: isLoadMoreError,
+          })}
         />
       </div>
 
@@ -668,20 +672,6 @@ function LibraryToolbar({
       </p>
     </div>
   );
-}
-
-function nextPageState({
-  hasNextPage,
-  isFetchingNextPage,
-  isLoadMoreError,
-}: {
-  hasNextPage: boolean;
-  isFetchingNextPage: boolean;
-  isLoadMoreError: boolean;
-}): InfiniteScrollState {
-  if (isFetchingNextPage) return "loading";
-  if (isLoadMoreError) return "error";
-  return hasNextPage ? "idle" : "none";
 }
 
 function resultsStatusLabel({

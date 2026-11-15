@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { STORE_LINK_ERROR_CODES } from "@app/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { MarkBoughtForm, useMarkOwned, useRemoveFromWishlist } from "@/features/books";
+import { assertNever } from "@/lib/assert-never";
 import { ApiError } from "@/lib/http-client";
 
 import { wishlistKeys } from "../api/wishlist-keys";
@@ -38,37 +39,55 @@ type WishlistStatusDialogProps = {
 };
 
 export function WishlistStatusDialog({ book, onOpenChange, open }: WishlistStatusDialogProps) {
+  const [isSaving, setIsSaving] = useState(false);
+
   return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
+    <Dialog
+      onOpenChange={(next) => {
+        if (isSaving) return;
+        onOpenChange(next);
+      }}
+      open={open}
+    >
       <DialogContent
         className="max-h-[88vh] overflow-y-auto sm:max-w-md"
         onOpenAutoFocus={focusFirstOption}
       >
-        {open ? <WishlistStatusContent book={book} onDone={() => onOpenChange(false)} /> : null}
+        {open ? (
+          <WishlistStatusContent
+            book={book}
+            isSaving={isSaving}
+            onDone={() => onOpenChange(false)}
+            onPendingChange={setIsSaving}
+          />
+        ) : null}
       </DialogContent>
     </Dialog>
   );
-}
-
-function assertNever(value: never): never {
-  throw new Error(`Unhandled wishlist status option: ${String(value)}`);
 }
 
 function DirectStatusForm({
   fields,
   isPending,
   onCancel,
+  onPendingChange,
   onSubmit,
   serverError,
 }: {
   fields: ReactNode;
   isPending: boolean;
   onCancel: () => void;
+  onPendingChange: (pending: boolean) => void;
   onSubmit: () => void;
   serverError: null | string;
 }) {
   const t = useTranslations("books.details.ownership.buyConfirm");
   const tActions = useTranslations("books.actions");
+
+  useEffect(() => {
+    onPendingChange(isPending);
+    return () => onPendingChange(false);
+  }, [isPending, onPendingChange]);
 
   return (
     <form
@@ -88,7 +107,7 @@ function DirectStatusForm({
       )}
 
       <DialogFooter>
-        <Button onClick={onCancel} type="button" variant="secondary">
+        <Button disabled={isPending} onClick={onCancel} type="button" variant="secondary">
           {tActions("cancel")}
         </Button>
         <Button disabled={isPending} loading={isPending} type="submit">
@@ -102,10 +121,12 @@ function DirectStatusForm({
 function DropFromWishlistForm({
   bookId,
   onDone,
+  onPendingChange,
   renderFields,
 }: {
   bookId: string;
   onDone: () => void;
+  onPendingChange: (pending: boolean) => void;
   renderFields: RenderFields;
 }) {
   const t = useTranslations("booksToBuy");
@@ -136,6 +157,7 @@ function DropFromWishlistForm({
       fields={renderFields(null)}
       isPending={removeFromWishlist.isPending}
       onCancel={onDone}
+      onPendingChange={onPendingChange}
       onSubmit={submit}
       serverError={serverError}
     />
@@ -151,10 +173,12 @@ function focusFirstOption(event: Event) {
 function MarkOwnedForm({
   bookId,
   onDone,
+  onPendingChange,
   renderFields,
 }: {
   bookId: string;
   onDone: () => void;
+  onPendingChange: (pending: boolean) => void;
   renderFields: RenderFields;
 }) {
   const t = useTranslations("booksToBuy");
@@ -177,6 +201,7 @@ function MarkOwnedForm({
       fields={renderFields(null)}
       isPending={markOwned.isPending}
       onCancel={onDone}
+      onPendingChange={onPendingChange}
       onSubmit={submit}
       serverError={serverError}
     />
@@ -186,11 +211,13 @@ function MarkOwnedForm({
 function StatusBranch({
   book,
   onDone,
+  onPendingChange,
   option,
   renderFields,
 }: {
   book: WishlistBookView;
   onDone: () => void;
+  onPendingChange: (pending: boolean) => void;
   option: StatusOption;
   renderFields: RenderFields;
 }) {
@@ -203,25 +230,41 @@ function StatusBranch({
           bestOffer={book.bestOffer}
           book={book}
           onDone={onDone}
+          onPendingChange={onPendingChange}
           onSuccess={() => toast.success(t("markBoughtSuccess"))}
           renderFields={renderFields}
           storeLinks={book.storeLinks}
         />
       );
     case "dropped":
-      return <DropFromWishlistForm bookId={book.id} onDone={onDone} renderFields={renderFields} />;
+      return (
+        <DropFromWishlistForm
+          bookId={book.id}
+          onDone={onDone}
+          onPendingChange={onPendingChange}
+          renderFields={renderFields}
+        />
+      );
     case "ordered":
       return (
         <OrderDeliveryForm
           bestOffer={book.bestOffer}
           book={book}
           onDone={onDone}
+          onPendingChange={onPendingChange}
           renderFields={renderFields}
           storeLinks={book.storeLinks}
         />
       );
     case "received":
-      return <MarkOwnedForm bookId={book.id} onDone={onDone} renderFields={renderFields} />;
+      return (
+        <MarkOwnedForm
+          bookId={book.id}
+          onDone={onDone}
+          onPendingChange={onPendingChange}
+          renderFields={renderFields}
+        />
+      );
     default:
       return assertNever(option);
   }
@@ -231,7 +274,17 @@ function toStatusOption(value: string, fallback: StatusOption): StatusOption {
   return STATUS_OPTIONS.find((option) => option === value) ?? fallback;
 }
 
-function WishlistStatusContent({ book, onDone }: { book: WishlistBookView; onDone: () => void }) {
+function WishlistStatusContent({
+  book,
+  isSaving,
+  onDone,
+  onPendingChange,
+}: {
+  book: WishlistBookView;
+  isSaving: boolean;
+  onDone: () => void;
+  onPendingChange: (pending: boolean) => void;
+}) {
   const t = useTranslations("booksToBuy.statusDialog");
   const [option, setOption] = useState<StatusOption>("bought");
 
@@ -239,6 +292,7 @@ function WishlistStatusContent({ book, onDone }: { book: WishlistBookView; onDon
     <RadioGroup
       aria-label={t("title")}
       className="gap-3"
+      disabled={isSaving}
       onValueChange={(next) => setOption(toStatusOption(next, option))}
       value={option}
     >
@@ -276,7 +330,13 @@ function WishlistStatusContent({ book, onDone }: { book: WishlistBookView; onDon
         <DialogDescription>{t("description")}</DialogDescription>
       </DialogHeader>
 
-      <StatusBranch book={book} onDone={onDone} option={option} renderFields={renderFields} />
+      <StatusBranch
+        book={book}
+        onDone={onDone}
+        onPendingChange={onPendingChange}
+        option={option}
+        renderFields={renderFields}
+      />
     </>
   );
 }

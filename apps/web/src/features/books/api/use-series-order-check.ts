@@ -12,31 +12,26 @@ import {
   SeriesOrderIssuesViewSchema,
   SeriesOrderPreferenceViewSchema,
 } from "@app/shared";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { ApiError } from "@/lib/http-client";
 
 import { seriesKeys } from "@/features/series/api/series-keys";
 import {
-  getReadingQueueControllerGetQueueQueryKey,
-  getReadingQueueControllerSummaryQueryKey,
-  getSeriesOrderCheckControllerListIssuesQueryKey,
   seriesOrderCheckControllerApplyFix,
   seriesOrderCheckControllerIgnoreIssue,
-  useSeriesOrderCheckControllerListIssues,
-  useSeriesOrderCheckControllerPreviewFix,
+  seriesOrderCheckControllerListIssues,
+  seriesOrderCheckControllerPreviewFix,
 } from "@/shared/api/generated/endpoints/reading-queue/reading-queue";
 import {
-  getSeriesOrderPreferenceControllerGetPreferenceQueryKey,
+  seriesOrderPreferenceControllerGetPreference,
   seriesOrderPreferenceControllerSetPreference,
-  useSeriesOrderPreferenceControllerGetPreference,
 } from "@/shared/api/generated/endpoints/series/series";
 
 import type { SeriesOrderFixTarget } from "../model/series-order-check";
 
-import { bookKeys } from "./book-keys";
-
-const seriesOrderIssuesRootKey = getSeriesOrderCheckControllerListIssuesQueryKey();
+import { bookChangeEffects } from "./book-change-effects";
+import { readingQueueKeys } from "./reading-queue-keys";
 
 export function useApplySeriesOrderFix() {
   const queryClient = useQueryClient();
@@ -51,11 +46,7 @@ export function useApplySeriesOrderFix() {
         await seriesOrderCheckControllerApplyFix(fingerprint, input),
       ),
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: seriesOrderIssuesRootKey });
-      void queryClient.invalidateQueries({ queryKey: getReadingQueueControllerGetQueueQueryKey() });
-      void queryClient.invalidateQueries({ queryKey: getReadingQueueControllerSummaryQueryKey() });
-      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
-      void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
+      void bookChangeEffects.booksChanged(queryClient, { changes: ["queueChanged"] });
     },
   });
 }
@@ -66,36 +57,43 @@ export function useIgnoreSeriesOrderIssue() {
   return useMutation<SeriesOrderIssuesView, ApiError, string>({
     mutationFn: async (fingerprint) =>
       SeriesOrderIssuesViewSchema.parse(await seriesOrderCheckControllerIgnoreIssue(fingerprint)),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: seriesOrderIssuesRootKey }),
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: readingQueueKeys.seriesOrderIssues.all }),
   });
 }
 
 export function useInvalidateSeriesOrderIssues() {
   const queryClient = useQueryClient();
 
-  return () => queryClient.invalidateQueries({ queryKey: seriesOrderIssuesRootKey });
+  return () => queryClient.invalidateQueries({ queryKey: readingQueueKeys.seriesOrderIssues.all });
 }
 
 export function useSeriesOrderCheckPreference(seriesId: string) {
-  return useSeriesOrderPreferenceControllerGetPreference<SeriesOrderPreferenceView, ApiError>(
-    seriesId,
-    { query: { select: (data: unknown) => SeriesOrderPreferenceViewSchema.parse(data) } },
-  );
+  return useQuery({
+    queryFn: async ({ signal }): Promise<SeriesOrderPreferenceView> =>
+      SeriesOrderPreferenceViewSchema.parse(
+        await seriesOrderPreferenceControllerGetPreference(seriesId, { signal }),
+      ),
+    queryKey: seriesKeys.orderCheckPreference(seriesId),
+  });
 }
 
 export function useSeriesOrderFixPreview(target: SeriesOrderFixTarget) {
-  return useSeriesOrderCheckControllerPreviewFix<SeriesOrderFixPreviewView, ApiError>(
-    target.fingerprint,
-    { expectedQueueVersion: target.queueVersion, strategy: target.strategy },
-    {
-      query: {
-        gcTime: 0,
-        retry: false,
-        select: (data: unknown) => SeriesOrderFixPreviewViewSchema.parse(data),
-        staleTime: 0,
-      },
-    },
-  );
+  const input: SeriesOrderFixInput = {
+    expectedQueueVersion: target.queueVersion,
+    strategy: target.strategy,
+  };
+
+  return useQuery({
+    gcTime: 0,
+    queryFn: async ({ signal }): Promise<SeriesOrderFixPreviewView> =>
+      SeriesOrderFixPreviewViewSchema.parse(
+        await seriesOrderCheckControllerPreviewFix(target.fingerprint, input, { signal }),
+      ),
+    queryKey: readingQueueKeys.seriesOrderFixPreview(target.fingerprint, input),
+    retry: false,
+    staleTime: 0,
+  });
 }
 
 export function useSeriesOrderIssues({
@@ -105,10 +103,14 @@ export function useSeriesOrderIssues({
   enabled?: boolean;
   limit: number;
 }) {
-  return useSeriesOrderCheckControllerListIssues(
-    { limit },
-    { query: { enabled, select: (data: unknown) => SeriesOrderIssuesViewSchema.parse(data) } },
-  );
+  return useQuery({
+    enabled,
+    queryFn: async ({ signal }): Promise<SeriesOrderIssuesView> =>
+      SeriesOrderIssuesViewSchema.parse(
+        await seriesOrderCheckControllerListIssues({ limit }, { signal }),
+      ),
+    queryKey: readingQueueKeys.seriesOrderIssues.list({ limit }),
+  });
 }
 
 export function useSetSeriesOrderCheckPreference() {
@@ -120,9 +122,9 @@ export function useSetSeriesOrderCheckPreference() {
         await seriesOrderPreferenceControllerSetPreference(seriesId, { enabled }),
       ),
     onSuccess: (_data, { seriesId }) => {
-      void queryClient.invalidateQueries({ queryKey: seriesOrderIssuesRootKey });
+      void queryClient.invalidateQueries({ queryKey: readingQueueKeys.seriesOrderIssues.all });
       void queryClient.invalidateQueries({
-        queryKey: getSeriesOrderPreferenceControllerGetPreferenceQueryKey(seriesId),
+        queryKey: seriesKeys.orderCheckPreference(seriesId),
       });
     },
   });

@@ -2,7 +2,7 @@ import type { BookOrderHistorySummaryView, Nullable } from "@app/shared";
 
 import { describe, expect, it } from "vitest";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
 import type { HistorySummaryLabels } from "./history-summary-cards";
 
@@ -58,11 +58,11 @@ const EMPTY: BookOrderHistorySummaryView = {
   receivedStandaloneBooksCount: 0,
 };
 
-function buildCards(summary: Nullable<BookOrderHistorySummaryView>): LibrarySummaryCard[] {
+function buildCards(summary: Nullable<BookOrderHistorySummaryView>): SummaryCard[] {
   return buildHistorySummaryCards({ labels, locale, summary });
 }
 
-function cardAt(summary: Nullable<BookOrderHistorySummaryView>, index: number): LibrarySummaryCard {
+function cardAt(summary: Nullable<BookOrderHistorySummaryView>, index: number): SummaryCard {
   const card = buildCards(summary)[index];
   if (card === undefined) throw new Error(`no summary card at index ${index}`);
   return card;

@@ -4,11 +4,11 @@ import type { CharacterRelationshipListItemView, Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 
-import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import type { EmptyStateAction } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { infiniteScrollStateOf } from "@/hooks/use-infinite-scroll-sentinel";
 import { assertNever } from "@/lib/assert-never";
 import { cn } from "@/lib/utils";
 
@@ -124,7 +124,7 @@ export function RelationshipListContent({
               allShownLabel={t("allShown")}
               errorLabel={t("loadMoreError")}
               onLoadMore={() => void list.fetchNextPage()}
-              state={toLoadMoreState(list)}
+              state={infiniteScrollStateOf(list)}
             />
           </div>
         );
@@ -162,10 +162,4 @@ export function toRelationshipListView({
   if (list.isPending) return "loading";
   if (items.length > 0) return "results";
   return hasActiveCriteria ? "noResults" : "emptyScope";
-}
-
-function toLoadMoreState(list: RelationshipListQuery): InfiniteScrollState {
-  if (list.isFetchingNextPage) return "loading";
-  if (list.isFetchNextPageError) return "error";
-  return list.hasNextPage ? "idle" : "none";
 }

@@ -7,7 +7,7 @@ import type {
   TimelineReorderScope,
 } from "@app/shared";
 
-import { useQueryClient } from "@tanstack/react-query";
+import { TIMELINE_ERROR_CODES } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
@@ -21,9 +21,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ApiError } from "@/lib/http-client";
+import { isApiErrorCode } from "@/lib/api-errors";
 
-import { timelineKeys } from "../api/timeline-keys";
 import { useReorderTimelineEvent } from "../api/use-reorder-timeline-event";
 
 type EventActionsMenuProps = {
@@ -63,7 +62,6 @@ export function EventActionsMenu({
 }: EventActionsMenuProps) {
   const t = useTranslations("timeline.actions");
   const tToast = useTranslations("timeline.toast");
-  const queryClient = useQueryClient();
   const reorderEvent = useReorderTimelineEvent();
 
   function reorder(neighbor: ReorderNeighbor) {
@@ -75,9 +73,8 @@ export function EventActionsMenu({
       },
       {
         onError: (error) => {
-          if (error instanceof ApiError && error.status === 409) {
+          if (isApiErrorCode(error, TIMELINE_ERROR_CODES.reorderConflict)) {
             toast.error(tToast("reorderConflict"));
-            void queryClient.invalidateQueries({ queryKey: timelineKeys.events(bookId) });
             return;
           }
           toast.error(tToast("reorderError"));
@@ -93,7 +90,7 @@ export function EventActionsMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          aria-label={t("menu")}
+          aria-label={t("menu", { title: event.title })}
           className="size-8 rounded-lg border border-border bg-card text-muted-foreground hover:border-brand hover:text-brand"
           size="icon-sm"
           variant="ghost"

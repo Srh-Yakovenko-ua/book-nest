@@ -3,26 +3,24 @@
 import type { Nullable } from "@app/shared";
 import type { ReactNode } from "react";
 
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 import type { SummaryErrorState } from "@/components/summary-error";
 
+import { SummaryCards } from "@/components/catalog/summary-cards";
 import { UiIcon } from "@/components/icons";
 import { SummaryError } from "@/components/summary-error";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 
-import type { LibrarySummaryCard } from "./library-summary-cards";
-
-import { LibrarySummaryCards } from "./library-summary-cards";
-
 export type LibraryPageHeaderProps = {
   addBookLabel?: string;
   onAddBook?: () => void;
   subtitle: string;
-  summaryCards: LibrarySummaryCard[];
+  summaryCards: SummaryCard[];
   summaryError: Nullable<SummaryErrorState>;
   summaryLoading: boolean;
   summaryMobileAction?: ReactNode;
-  summaryMobileCards?: LibrarySummaryCard[];
+  summaryMobileCards?: SummaryCard[];
   summaryMobileLayout?: "compact" | "grid";
   title: string;
 };
@@ -60,7 +58,7 @@ export function LibraryPageHeader({
       </div>
 
       <SummaryError state={summaryError}>
-        <LibrarySummaryCards
+        <SummaryCards
           cards={summaryCards}
           isLoading={summaryLoading}
           mobileAction={summaryMobileAction}

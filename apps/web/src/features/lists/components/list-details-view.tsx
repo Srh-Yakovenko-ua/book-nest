@@ -18,6 +18,7 @@ import { useGenres } from "@/features/books/api/use-genres";
 import { useAddToReadingQueue } from "@/features/books/api/use-reading-queue";
 import { ListGoalCard } from "@/features/reading-goals";
 import { Link, useRouter } from "@/i18n/navigation";
+import { assertNever } from "@/lib/assert-never";
 import { cn } from "@/lib/utils";
 
 import type { ListBookItemProps } from "../model/list-book-item";
@@ -29,7 +30,6 @@ import {
   useSetListBookReadingStatus,
   useToggleListBookFavorite,
 } from "../api/use-list-book-actions";
-import { useListCacheInvalidation } from "../api/use-list-cache";
 import { useListFacets } from "../api/use-list-facets";
 import {
   useAddBooksToList,
@@ -136,7 +136,6 @@ export function ListDetailsView({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [moveAnnouncement, setMoveAnnouncement] = useState("");
 
-  const cache = useListCacheInvalidation(id);
   const enterSelection = useListSelectionStore((state) => state.enterSelection);
   const exitSelection = useListSelectionStore((state) => state.exitSelection);
   const selectedIds = useListSelectionStore((state) => state.selectedIds);
@@ -232,7 +231,10 @@ export function ListDetailsView({
             label: t("remove.undo"),
             onClick: () =>
               addBooks.mutate(
-                { bookIds: [book.id] },
+                {
+                  bookIds: [book.id],
+                  positions: [{ bookId: book.id, position: book.position }],
+                },
                 { onError: () => toast.error(t("toast.error")) },
               ),
           },
@@ -257,10 +259,7 @@ export function ListDetailsView({
       { bookId: book.id, placement: "end" },
       {
         onError: () => toast.error(t("toast.error")),
-        onSuccess: () => {
-          toast.success(t("toast.addedToQueue"));
-          cache.queueChanged();
-        },
+        onSuccess: () => toast.success(t("toast.addedToQueue")),
       },
     );
   }
@@ -469,10 +468,6 @@ export function ListDetailsView({
       />
     </div>
   );
-}
-
-function assertNever(value: never): never {
-  throw new Error(`Unhandled empty state: ${String(value)}`);
 }
 
 function EmptyList({ onAddBooks }: { onAddBooks: () => void }) {

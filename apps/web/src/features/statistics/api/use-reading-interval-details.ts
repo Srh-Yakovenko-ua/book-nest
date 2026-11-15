@@ -14,15 +14,15 @@ import {
 import { useInfiniteQuery } from "@tanstack/react-query";
 
 import {
-  getStatisticsControllerGetCompletedReadsQueryKey,
-  getStatisticsControllerGetReadingActivityQueryKey,
   statisticsControllerGetCompletedReads,
   statisticsControllerGetReadingActivity,
 } from "@/shared/api/generated/endpoints/statistics/statistics";
 
-type CompletedReadsKey = ReturnType<typeof getStatisticsControllerGetCompletedReadsQueryKey>;
+import { statisticsKeys } from "./statistics-keys";
 
-type ReadingActivityKey = ReturnType<typeof getStatisticsControllerGetReadingActivityQueryKey>;
+type CompletedReadsKey = ReturnType<typeof statisticsKeys.completedReads>;
+
+type ReadingActivityKey = ReturnType<typeof statisticsKeys.readingActivity>;
 
 export function useCompletedReadsInterval(range: ReadingStatisticsDateRange) {
   return useInfiniteQuery<
@@ -38,7 +38,7 @@ export function useCompletedReadsInterval(range: ReadingStatisticsDateRange) {
       ReadingStatisticsCompletedReadsPageSchema.parse(
         await statisticsControllerGetCompletedReads({ ...range, cursor: pageParam }),
       ),
-    queryKey: getStatisticsControllerGetCompletedReadsQueryKey(range),
+    queryKey: statisticsKeys.completedReads(range),
   });
 }
 
@@ -56,6 +56,6 @@ export function useReadingActivityInterval(range: ReadingStatisticsDateRange) {
       ReadingStatisticsActivityPageSchema.parse(
         await statisticsControllerGetReadingActivity({ ...range, cursor: pageParam }),
       ),
-    queryKey: getStatisticsControllerGetReadingActivityQueryKey(range),
+    queryKey: statisticsKeys.readingActivity(range),
   });
 }

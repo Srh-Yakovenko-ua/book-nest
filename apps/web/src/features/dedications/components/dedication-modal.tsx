@@ -27,16 +27,22 @@ import { DedicationCover } from "./dedication-cover";
 
 type DedicationModalProps = {
   book: BookView;
+  onFavoriteChanged: (updated: BookView) => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 };
 
 const visibleTagCount = 3;
 
-export function DedicationModal({ book, onOpenChange, open }: DedicationModalProps) {
+export function DedicationModal({
+  book,
+  onFavoriteChanged,
+  onOpenChange,
+  open,
+}: DedicationModalProps) {
   const t = useTranslations("dedications");
   const genres = useGenres();
-  const { copy, isTogglingFavorite, toggleFavorite } = useDedicationActions();
+  const { copy, isTogglingFavorite, toggleFavorite } = useDedicationActions({ onFavoriteChanged });
   const contentRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
   const copyResetRef = useRef<ReturnType<typeof setTimeout>>(undefined);

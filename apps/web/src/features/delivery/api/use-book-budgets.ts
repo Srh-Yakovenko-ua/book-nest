@@ -10,13 +10,13 @@ import {
   bookBudgetsControllerSave,
 } from "@/shared/api/generated/endpoints/book-budgets/book-budgets";
 
-export const BOOK_BUDGETS_QUERY_KEY = "/api/delivery/budgets";
+import { deliveryKeys } from "./delivery-keys";
 
 export function useBookBudgets() {
   return useQuery({
     queryFn: async (): Promise<BookBudgetOverview> =>
       BookBudgetOverviewSchema.parse(await bookBudgetsControllerOverview()),
-    queryKey: [BOOK_BUDGETS_QUERY_KEY],
+    queryKey: deliveryKeys.budgets,
   });
 }
 
@@ -53,6 +53,6 @@ export function useSaveBookBudgets() {
 function useBudgetSync() {
   const queryClient = useQueryClient();
   return (overview: BookBudgetOverview) => {
-    queryClient.setQueryData([BOOK_BUDGETS_QUERY_KEY], overview);
+    queryClient.setQueryData(deliveryKeys.budgets, overview);
   };
 }

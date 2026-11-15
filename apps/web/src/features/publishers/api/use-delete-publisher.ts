@@ -1,11 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { bookKeys } from "@/features/books/api/book-keys";
+import {
+  invalidateBookQueries,
+  matchesPublisherScopedBookKey,
+} from "@/features/books/api/book-keys";
+import { matchesAnyKeyPrefix, retireQueries } from "@/lib/query-keys";
 import { publishersControllerDeleteCustom } from "@/shared/api/generated/endpoints/publishers/publishers";
 
-import { invalidatePublisherQueries } from "./publisher-keys";
-
-const PUBLISHER_PICKER_ROOT = "publishers";
+import { matchesPublisherCatalogKey, publisherKeys } from "./publisher-keys";
 
 export function useDeletePublisher(id: string) {
   const queryClient = useQueryClient();
@@ -13,9 +15,18 @@ export function useDeletePublisher(id: string) {
   return useMutation({
     mutationFn: () => publishersControllerDeleteCustom(id),
     onSuccess: () => {
-      void invalidatePublisherQueries(queryClient);
-      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
-      void queryClient.invalidateQueries({ queryKey: [PUBLISHER_PICKER_ROOT] });
+      const deletedPublisherViews = matchesAnyKeyPrefix(
+        publisherKeys.detail(id),
+        publisherKeys.overview(id),
+      );
+      const deletedPublisherBooks = matchesPublisherScopedBookKey(id);
+      retireQueries(queryClient, deletedPublisherViews);
+      retireQueries(queryClient, deletedPublisherBooks);
+      void queryClient.invalidateQueries({
+        predicate: (query) => matchesPublisherCatalogKey(query) && !deletedPublisherViews(query),
+      });
+      void invalidateBookQueries(queryClient, { keep: [deletedPublisherBooks] });
+      void queryClient.invalidateQueries({ queryKey: publisherKeys.picker.all });
     },
   });
 }

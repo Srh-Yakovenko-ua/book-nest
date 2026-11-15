@@ -6,16 +6,15 @@ import { deliveryReadControllerInTransitList } from "@/shared/api/generated/endp
 
 import type { DeliveryListParams } from "../model/in-transit-params";
 
-export type DeliveriesPage = z.infer<typeof PaginatedBookOrderItemRowsSchema>;
+import { deliveryKeys } from "./delivery-keys";
 
-const MAX_PAGES = 10;
+export type DeliveriesPage = z.infer<typeof PaginatedBookOrderItemRowsSchema>;
 
 export function useInTransitList(params: DeliveryListParams) {
   return useInfiniteQuery({
     getNextPageParam: (lastPage: DeliveriesPage) =>
       lastPage.page < lastPage.pagesCount ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
-    maxPages: MAX_PAGES,
     placeholderData: keepPreviousData,
     queryFn: async ({ pageParam }): Promise<DeliveriesPage> => {
       const response = await deliveryReadControllerInTransitList({
@@ -24,6 +23,6 @@ export function useInTransitList(params: DeliveryListParams) {
       });
       return PaginatedBookOrderItemRowsSchema.parse(response);
     },
-    queryKey: ["/api/delivery/books/in-transit", "list", params],
+    queryKey: deliveryKeys.inTransit.list(params),
   });
 }

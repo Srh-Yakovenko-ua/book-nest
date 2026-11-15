@@ -96,6 +96,7 @@ type EventFormDialogProps = {
 
 type EventFormProps = {
   bookId: string;
+  createEvent: ReturnType<typeof useCreateTimelineEvent>;
   createTimelineId: Nullable<string>;
   dirtyRef: RefObject<boolean>;
   event?: TimelineEventView;
@@ -104,6 +105,7 @@ type EventFormProps = {
   pagesCount: Nullable<number>;
   readingPosition: Nullable<TimelineReadingPosition>;
   timelines: TimelineView[];
+  updateEvent: ReturnType<typeof useUpdateTimelineEvent>;
 };
 
 type SectionKey = "details" | "place" | "relations" | "thread";
@@ -123,8 +125,12 @@ export function EventFormDialog({
   const isEdit = event !== undefined;
   const dirtyRef = useRef(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const createEvent = useCreateTimelineEvent();
+  const updateEvent = useUpdateTimelineEvent();
+  const isPending = createEvent.isPending || updateEvent.isPending;
 
   function requestClose() {
+    if (isPending) return;
     if (dirtyRef.current) {
       setConfirmOpen(true);
       return;
@@ -150,6 +156,7 @@ export function EventFormDialog({
           {open ? (
             <EventForm
               bookId={bookId}
+              createEvent={createEvent}
               createTimelineId={createTimelineId}
               dirtyRef={dirtyRef}
               event={event}
@@ -158,6 +165,7 @@ export function EventFormDialog({
               pagesCount={pagesCount}
               readingPosition={readingPosition}
               timelines={timelines}
+              updateEvent={updateEvent}
             />
           ) : null}
         </DialogContent>
@@ -190,6 +198,7 @@ export function EventFormDialog({
 
 function EventForm({
   bookId,
+  createEvent,
   createTimelineId,
   dirtyRef,
   event,
@@ -198,6 +207,7 @@ function EventForm({
   pagesCount,
   readingPosition,
   timelines,
+  updateEvent,
 }: EventFormProps) {
   const t = useTranslations("timeline.form");
   const tRoot = useTranslations("timeline");
@@ -206,8 +216,6 @@ function EventForm({
   const tType = useTranslations("timeline.eventType");
 
   const isEdit = event !== undefined;
-  const createEvent = useCreateTimelineEvent();
-  const updateEvent = useUpdateTimelineEvent();
   const detailQuery = useTimelineEvent(isEdit ? event.id : null);
 
   const messages: EventFormMessages = {

@@ -6,12 +6,17 @@ import { useLocale, useTranslations } from "next-intl";
 
 import type { ActiveFilterChip } from "@/features/books";
 
-import { rangeLabel } from "@/features/books/model/filter-chips";
+import { rangeLabel } from "@/lib/filter-chips";
 import { formatDate } from "@/lib/format";
 
 import type { QuotesAdvancedPatch } from "./use-quotes-query";
 
-import { quoteBookIds, quoteCreatedRange, type QuotesQueryState } from "./quotes-query";
+import {
+  quoteBookIds,
+  quoteCreatedRange,
+  type QuotesQueryState,
+  toQuotesSearch,
+} from "./quotes-query";
 
 type UseQuotesFilterChipsOptions = {
   facets: QuotesFacetsView | undefined;
@@ -45,7 +50,7 @@ export function useQuotesFilterChips({
     });
   }
 
-  const search = state.q.trim();
+  const search = toQuotesSearch(state.q);
   if (search !== "") {
     chips.push({
       key: "q",

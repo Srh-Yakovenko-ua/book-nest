@@ -4,20 +4,20 @@ import type { Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 import type { SummaryErrorState } from "@/components/summary-error";
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
+import { SummaryCards } from "@/components/catalog/summary-cards";
+import { SummaryDetails } from "@/components/catalog/summary-mobile";
 import { SummaryError } from "@/components/summary-error";
 import {
   MobilePageOverviewPanel,
   MobilePageOverviewTrigger,
   useMobilePageOverviewPanel,
 } from "@/components/ui/mobile-page-overview-panel";
-import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
-import { LibrarySummaryDetails } from "@/features/books/components/library-summary-mobile";
 
 type GenresSummaryProps = {
-  cards: LibrarySummaryCard[];
+  cards: SummaryCard[];
   error: Nullable<SummaryErrorState>;
   isLoading: boolean;
 };
@@ -29,11 +29,7 @@ const GENRES_SUMMARY = {
 export function GenresSummaryCards({ cards, error, isLoading }: GenresSummaryProps) {
   return (
     <SummaryError className="max-sm:hidden" state={error}>
-      <LibrarySummaryCards
-        cards={cards}
-        isLoading={isLoading}
-        skeletonCount={GENRES_SUMMARY.cardsCount}
-      />
+      <SummaryCards cards={cards} isLoading={isLoading} skeletonCount={GENRES_SUMMARY.cardsCount} />
     </SummaryError>
   );
 }
@@ -59,7 +55,7 @@ export function GenresSummaryPanel({ cards, error, isLoading }: GenresSummaryPro
         subtitle={t("subtitle")}
         title={t("title")}
       >
-        <LibrarySummaryDetails cards={cards} title={t("detailsTitle")} />
+        <SummaryDetails cards={cards} title={t("detailsTitle")} />
       </MobilePageOverviewPanel>
     </>
   );

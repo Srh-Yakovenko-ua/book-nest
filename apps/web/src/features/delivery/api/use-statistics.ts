@@ -7,7 +7,7 @@ import type { BookOrdersControllerStatisticsParams } from "@/shared/api/generate
 
 import { bookOrdersControllerStatistics } from "@/shared/api/generated/endpoints/book-orders/book-orders";
 
-export const STATISTICS_QUERY_KEY = "/api/delivery/orders/statistics";
+import { deliveryKeys } from "./delivery-keys";
 
 export function useStatistics(
   params: BookOrdersControllerStatisticsParams,
@@ -18,6 +18,6 @@ export function useStatistics(
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<BookOrderStatisticsView> =>
       BookOrderStatisticsViewSchema.parse(await bookOrdersControllerStatistics(params)),
-    queryKey: [STATISTICS_QUERY_KEY, params],
+    queryKey: deliveryKeys.statistics.overview(params),
   });
 }

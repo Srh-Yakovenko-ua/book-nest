@@ -5,15 +5,15 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
+import { SummaryCards } from "@/components/catalog/summary-cards";
 import { UiIcon } from "@/components/icons";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { LibraryActiveFilters, useGenres } from "@/features/books";
 import { useSelectedTags } from "@/features/books/api/use-tags-search";
-import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
@@ -99,7 +99,7 @@ export function BooksToBuyView() {
   const nextCount = counts?.nextInSeries.booksCount ?? 0;
   const waitingCount = counts?.waitingOverSixMonths ?? 0;
 
-  const countCards: LibrarySummaryCard[] = [
+  const countCards: SummaryCard[] = [
     {
       ...summaryLabels("books"),
       icon: "cart",
@@ -159,7 +159,7 @@ export function BooksToBuyView() {
       </header>
 
       {showOverview ? (
-        <LibrarySummaryCards
+        <SummaryCards
           cards={countCards}
           isLoading={isPending}
           mobileAction={

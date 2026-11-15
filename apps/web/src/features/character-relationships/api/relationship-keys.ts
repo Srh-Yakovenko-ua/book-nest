@@ -2,6 +2,8 @@ import type { Nullable, RelationshipDirectionality } from "@app/shared";
 
 import type { BookCharactersControllerListSort } from "@/shared/api/generated/model";
 
+import { characterKeys } from "@/features/characters/api/character-keys";
+
 import type { RelationshipGraphCriteria } from "../model/relationship-graph-criteria";
 import type { RelationshipGraphPathQuery } from "../model/relationship-graph-path";
 import type { RelationshipGraphLayoutKey } from "../model/relationship-graph-scope";
@@ -15,10 +17,9 @@ import type {
 } from "../model/workspace/graph-workspace-request";
 
 const RELATIONSHIP_KEY_ROOTS = {
-  customTypes: "character-relationship-custom-types",
-  relationships: "character-relationships",
-  roleSuggestions: "character-relationship-role-suggestions",
-  roster: "character-relationship-roster",
+  customTypes: "/api/character-relationship-custom-types",
+  relationships: "/api/character-relationships",
+  roleSuggestions: "/api/character-relationship-role-suggestions",
 } as const;
 
 const RELATIONSHIPS_ROOT = RELATIONSHIP_KEY_ROOTS.relationships;
@@ -30,6 +31,7 @@ const RELATIONSHIP_KEY_SEGMENTS = {
   graphLayout: "graph-layout",
   list: "list",
   path: "path",
+  roster: "relationship-roster",
   workspace: "workspace",
 } as const;
 
@@ -78,6 +80,7 @@ export const relationshipKeys = {
   }) => [RELATIONSHIPS_ROOT, RELATIONSHIP_KEY_SEGMENTS.graph, scopeKey, criteria] as const,
   graphLayout: (layoutKey: RelationshipGraphLayoutKey) =>
     [RELATIONSHIPS_ROOT, RELATIONSHIP_KEY_SEGMENTS.graphLayout, layoutKey] as const,
+  graphScope: [RELATIONSHIPS_ROOT, RELATIONSHIP_KEY_SEGMENTS.graph] as const,
   list: ({
     criteria,
     scopeKey,
@@ -96,7 +99,14 @@ export const relationshipKeys = {
     bookId: Nullable<string>;
     sort: BookCharactersControllerListSort;
     term: string;
-  }) => [RELATIONSHIP_KEY_ROOTS.roster, bookId, sort, term] as const,
+  }) =>
+    [
+      ...characterKeys.allBookRostersScope(),
+      bookId,
+      RELATIONSHIP_KEY_SEGMENTS.roster,
+      sort,
+      term,
+    ] as const,
   workspace: ({
     bookId,
     reader,
@@ -106,4 +116,5 @@ export const relationshipKeys = {
     reader: GraphReaderKey;
     request: GraphWorkspaceQueryRequest;
   }) => [RELATIONSHIPS_ROOT, RELATIONSHIP_KEY_SEGMENTS.workspace, bookId, reader, request] as const,
+  workspaceScope: [RELATIONSHIPS_ROOT, RELATIONSHIP_KEY_SEGMENTS.workspace] as const,
 };

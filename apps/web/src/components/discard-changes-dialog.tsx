@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { UiIcon } from "@/components/icons";
 import {
   AlertDialog,
@@ -13,18 +15,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type DiscardConfirmDialogProps = {
-  cancelLabel: string;
-  confirmLabel: string;
-  description: string;
+type DiscardChangesDialogProps = {
+  cancelLabel?: string;
+  confirmLabel?: string;
+  description?: string;
   onCloseAutoFocus?: (event: Event) => void;
   onConfirm: () => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
-  title: string;
+  title?: string;
 };
 
-export function DiscardConfirmDialog({
+export function DiscardChangesDialog({
   cancelLabel,
   confirmLabel,
   description,
@@ -33,7 +35,9 @@ export function DiscardConfirmDialog({
   onOpenChange,
   open,
   title,
-}: DiscardConfirmDialogProps) {
+}: DiscardChangesDialogProps) {
+  const t = useTranslations("common.discardChanges");
+
   return (
     <AlertDialog onOpenChange={onOpenChange} open={open}>
       <AlertDialogContent
@@ -45,13 +49,13 @@ export function DiscardConfirmDialog({
           <AlertDialogMedia>
             <UiIcon name="alert-triangle" size={24} />
           </AlertDialogMedia>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
+          <AlertDialogTitle>{title ?? t("title")}</AlertDialogTitle>
+          <AlertDialogDescription>{description ?? t("description")}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex-col group-data-[size=sm]/alert-dialog-content:flex">
-          <AlertDialogCancel>{cancelLabel}</AlertDialogCancel>
+          <AlertDialogCancel>{cancelLabel ?? t("cancel")}</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm} variant="destructive">
-            {confirmLabel}
+            {confirmLabel ?? t("confirm")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

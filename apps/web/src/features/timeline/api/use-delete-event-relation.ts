@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { timelineEventsControllerDeleteRelation } from "@/shared/api/generated/endpoints/timeline-events/timeline-events";
 
-import { invalidateTimelineQueries, timelineKeys } from "./timeline-keys";
+import { invalidateTimelineEventDetails } from "./timeline-keys";
 
 type DeleteEventRelationVariables = {
   bookId: string;
@@ -20,11 +20,8 @@ export function useDeleteEventRelation() {
     mutationFn: async ({ relationId }: DeleteEventRelationVariables): Promise<void> => {
       await timelineEventsControllerDeleteRelation(relationId);
     },
-    onSuccess: (_data, { bookId, eventId, targetEventId }) => {
-      invalidateTimelineQueries(queryClient, { bookId, eventId });
-      if (targetEventId !== undefined && targetEventId !== null) {
-        void queryClient.invalidateQueries({ queryKey: timelineKeys.event(targetEventId) });
-      }
+    onSuccess: (_data, { eventId, targetEventId }) => {
+      void invalidateTimelineEventDetails(queryClient, { eventIds: [eventId, targetEventId] });
     },
   });
 }

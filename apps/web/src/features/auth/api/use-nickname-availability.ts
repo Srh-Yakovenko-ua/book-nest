@@ -6,6 +6,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { request } from "@/lib/http-client";
 
+import { authKeys } from "./auth-keys";
 import { NicknameAvailabilitySchema } from "./schemas";
 
 const DEBOUNCE_MS = 400;
@@ -26,7 +27,7 @@ export function useNicknameAvailability(nickname: string) {
       });
       return NicknameAvailabilitySchema.parse(body);
     },
-    queryKey: ["auth", "nickname-available", validNickname],
+    queryKey: authKeys.nicknameAvailability(validNickname),
   });
 
   return {

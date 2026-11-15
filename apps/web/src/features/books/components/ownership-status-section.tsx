@@ -39,6 +39,7 @@ import {
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
 import { ownershipStatuses } from "@/lib/book-status";
+import { emptyToNull } from "@/lib/empty-to-null";
 
 import type { BookFormMode } from "../model/book-form-mode";
 import type { CreateBookFormValues } from "../model/create-book-form";
@@ -50,7 +51,6 @@ import {
   ownershipUsesDelivery,
   ownershipUsesLoan,
 } from "../model/book-status-fields";
-import { emptyToNull } from "../model/empty-to-null";
 import { OWNERSHIP_FIELDS } from "../model/section-completeness";
 import { BookDateField } from "./book-date-field";
 import { DeliveryServiceAutocomplete } from "./delivery-service-autocomplete";

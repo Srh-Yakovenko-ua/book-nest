@@ -5,13 +5,13 @@ import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
+import { SummaryCards } from "@/components/catalog/summary-cards";
 import { SummaryError } from "@/components/summary-error";
-import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 
 type ListsSummaryCardsProps = {
-  cards: LibrarySummaryCard[];
+  cards: SummaryCard[];
   isError: boolean;
   isLoading: boolean;
   mobileAction?: ReactNode;
@@ -41,7 +41,7 @@ export function ListsSummaryCards({
 }: ListsSummaryCardsProps) {
   return (
     <SummaryError state={isError ? { onRetry } : null}>
-      <LibrarySummaryCards
+      <SummaryCards
         cards={cards}
         isLoading={isLoading}
         mobileAction={mobileAction}
@@ -51,7 +51,7 @@ export function ListsSummaryCards({
   );
 }
 
-export function useListsSummaryCards(summary?: ListsSummaryView): LibrarySummaryCard[] {
+export function useListsSummaryCards(summary?: ListsSummaryView): SummaryCard[] {
   const t = useTranslations("lists.catalog.summary");
   const stats = summary ?? EMPTY_SUMMARY;
 

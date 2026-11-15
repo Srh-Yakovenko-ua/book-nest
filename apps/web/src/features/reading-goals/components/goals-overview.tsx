@@ -4,11 +4,11 @@ import type { ReadingGoalsOverview } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
+import { SummaryCards } from "@/components/catalog/summary-cards";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 
 import { useGoalsOverview } from "../api/use-goals-overview";
 import { GoalsOverviewHighlights } from "./goals-overview-highlights";
@@ -39,7 +39,7 @@ export function GoalsOverview() {
   return (
     <section className="flex flex-col gap-6">
       <h2 className="sr-only">{t("label")}</h2>
-      <LibrarySummaryCards cards={cards} isLoading={isPending} skeletonCount={GOALS_KPI_COUNT} />
+      <SummaryCards cards={cards} isLoading={isPending} skeletonCount={GOALS_KPI_COUNT} />
       {data === undefined ? null : (
         <GoalsOverviewHighlights attention={data.attention} bestResult={data.bestResult} />
       )}
@@ -47,7 +47,7 @@ export function GoalsOverview() {
   );
 }
 
-function useGoalsKpiCards(overview: ReadingGoalsOverview | undefined): LibrarySummaryCard[] {
+function useGoalsKpiCards(overview: ReadingGoalsOverview | undefined): SummaryCard[] {
   const t = useTranslations("goals.catalog.kpi");
 
   if (overview === undefined) return [];

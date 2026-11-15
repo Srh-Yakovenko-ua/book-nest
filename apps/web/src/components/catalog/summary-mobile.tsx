@@ -2,18 +2,21 @@
 
 import type { ReactNode } from "react";
 
+import { useLocale } from "next-intl";
+
 import { UiIcon } from "@/components/icons";
 import { TruncatedText } from "@/components/truncated-text";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { statCardIconBadge } from "@/components/ui/stat-card";
+import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-import type { LibrarySummaryCard } from "./library-summary-cards";
+import type { SummaryCard } from "./summary-cards";
 
-type LibrarySummaryMobileProps = {
+type SummaryMobileProps = {
   action?: ReactNode;
-  cards: LibrarySummaryCard[];
+  cards: SummaryCard[];
   className?: string;
   isLoading: boolean;
   skeletonCount?: number;
@@ -33,13 +36,9 @@ const TILE = {
   fallbackColumns: "grid-cols-4",
 } as const;
 
-export function LibrarySummaryDetails({
-  cards,
-  title,
-}: {
-  cards: LibrarySummaryCard[];
-  title: string;
-}) {
+export function SummaryDetails({ cards, title }: { cards: SummaryCard[]; title: string }) {
+  const locale = useLocale();
+
   return (
     <section className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
       <h2 className="flex items-center gap-2 px-3.5 py-3">
@@ -66,7 +65,7 @@ export function LibrarySummaryDetails({
             <dd className="flex min-w-0 flex-col gap-1 pl-9">
               <span className="flex min-w-0 items-baseline gap-1">
                 <span className="line-clamp-2 min-w-0 font-heading text-lg leading-tight font-bold break-words text-ink tabular-nums">
-                  {formatValue(card.value)}
+                  {formatValue({ locale, value: card.value })}
                 </span>
                 {card.unit === undefined ? null : (
                   <span className="shrink-0 text-xs font-medium whitespace-nowrap text-muted-foreground">
@@ -88,13 +87,14 @@ export function LibrarySummaryDetails({
   );
 }
 
-export function LibrarySummaryMobile({
+export function SummaryMobile({
   action,
   cards,
   className,
   isLoading,
   skeletonCount,
-}: LibrarySummaryMobileProps) {
+}: SummaryMobileProps) {
+  const locale = useLocale();
   const columnCount = skeletonCount ?? cards.length;
 
   return (
@@ -118,14 +118,14 @@ export function LibrarySummaryMobile({
                     <TruncatedText
                       className="w-full text-center font-heading text-sm leading-tight font-bold break-words text-ink"
                       lines={2}
-                      text={formatValue(card.value)}
+                      text={formatValue({ locale, value: card.value })}
                     />
                   </>
                 ) : (
                   <span className="flex max-w-full items-center gap-1.5">
                     <SummaryBadge card={card} size="tile" />
                     <span className="truncate font-heading text-lg leading-none font-bold text-ink tabular-nums">
-                      {formatValue(card.value)}
+                      {formatValue({ locale, value: card.value })}
                     </span>
                   </span>
                 )}
@@ -141,17 +141,11 @@ export function LibrarySummaryMobile({
   );
 }
 
-function formatValue(value: LibrarySummaryCard["value"]) {
-  return typeof value === "number" ? value.toLocaleString() : value;
+function formatValue({ locale, value }: { locale: string; value: SummaryCard["value"] }) {
+  return typeof value === "number" ? formatNumber(value, locale) : value;
 }
 
-function SummaryBadge({
-  card,
-  size,
-}: {
-  card: LibrarySummaryCard;
-  size: keyof typeof TILE.badgeSize;
-}) {
+function SummaryBadge({ card, size }: { card: SummaryCard; size: keyof typeof TILE.badgeSize }) {
   return (
     <span className={cn(statCardIconBadge({ tone: card.iconTone }), TILE.badgeSize[size])}>
       {card.iconSlot ?? <UiIcon aria-hidden name={card.icon} />}

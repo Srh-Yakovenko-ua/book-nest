@@ -2,6 +2,7 @@
 
 import type { ListBookView } from "@app/shared";
 
+import { BOOK_BULK_LIMITS, LIST_INPUT_LIMITS } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -17,6 +18,8 @@ import {
 import { useAddBooksToList } from "../api/use-list-membership";
 import { useListSelectionStore } from "../model/list-selection-store";
 import { ListBulkBar } from "./list-bulk-bar";
+
+const BULK_SELECTION_MAX = Math.min(BOOK_BULK_LIMITS.bookIdsMax, LIST_INPUT_LIMITS.bulkBookIdsMax);
 
 type ListBulkActionsProps = {
   books: ListBookView[];
@@ -78,14 +81,21 @@ export function ListBulkActions({ books, listId }: ListBulkActionsProps) {
   }
 
   function handleRemove() {
-    const removedIds = [...selectedBookIds];
+    const removedPositions = books
+      .filter((book) => selectedIds.has(book.id))
+      .map((book) => ({ bookId: book.id, position: book.position }));
+    const removedIds = removedPositions.map(({ bookId }) => bookId);
     removeBooks.mutate(removedIds, {
       onError: reportError,
       onSuccess: (result) => {
         toast(tSelection("removed", { count: result.removed }), {
           action: {
             label: tRemove("undo"),
-            onClick: () => addBooks.mutate({ bookIds: removedIds }, { onError: reportError }),
+            onClick: () => {
+              addBooks
+                .mutateAsync({ bookIds: removedIds, positions: removedPositions })
+                .catch(reportError);
+            },
           },
         });
         exitSelection();
@@ -104,8 +114,9 @@ export function ListBulkActions({ books, listId }: ListBulkActionsProps) {
         onClear={clearSelection}
         onRemoveFavorite={() => handleFavorite(false)}
         onRemoveFromList={handleRemove}
-        onSelectAll={() => selectAll(loadedIds)}
+        onSelectAll={() => selectAll(loadedIds.slice(0, BULK_SELECTION_MAX))}
         selectedCount={selectedBookIds.length}
+        selectionLimit={BULK_SELECTION_MAX}
       />
 
       <BookListDialog

@@ -2,8 +2,8 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 
-import { bookKeys } from "@/features/books/api/book-keys";
-import { invalidateGenreDerivedQueries } from "@/features/genres/api/genres-keys";
+import { bookChangeEffects } from "@/features/books/api/book-change-effects";
+import { invalidateBookQueries } from "@/features/books/api/book-keys";
 
 import { listKeys } from "./list-keys";
 
@@ -27,27 +27,23 @@ export function useListCacheInvalidation(listId: string): ListCacheInvalidation 
   }
 
   return {
-    booksChanged: () =>
-      invalidate(
-        listKeys.detail(listId),
-        listKeys.overview(listId),
-        listKeys.facets(listId),
-        listKeys.related(listId),
-        listKeys.summary,
-        listKeys.index,
-        bookKeys.root,
-      ),
-    favoriteChanged: () => invalidate(listKeys.detail(listId), bookKeys.root),
+    booksChanged: () => {
+      void bookChangeEffects.booksChanged(queryClient, { changes: ["listed"] });
+    },
+    favoriteChanged: () => {
+      void bookChangeEffects.booksChanged(queryClient, { changes: ["favorited"] });
+    },
     listDuplicated: () => invalidate(listKeys.index, listKeys.summary),
-    listEdited: () => invalidate(listKeys.detail(listId), listKeys.index, bookKeys.root),
+    listEdited: () => {
+      invalidate(listKeys.detail(listId), listKeys.index);
+      void invalidateBookQueries(queryClient);
+    },
     positionChanged: () => invalidate(listKeys.detail(listId)),
     queueChanged: () => {
-      invalidate(listKeys.detail(listId), listKeys.overview(listId));
-      void invalidateGenreDerivedQueries(queryClient);
+      void bookChangeEffects.booksChanged(queryClient, { changes: ["queueChanged"] });
     },
     readingStatusChanged: () => {
-      invalidate(listKeys.detail(listId), listKeys.overview(listId), bookKeys.root);
-      void invalidateGenreDerivedQueries(queryClient);
+      void bookChangeEffects.booksChanged(queryClient, { changes: ["statusChanged"] });
     },
   };
 }

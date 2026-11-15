@@ -6,6 +6,7 @@ import { z } from "zod";
 import { deliveryServicesControllerSearch } from "@/shared/api/generated/endpoints/delivery-services/delivery-services";
 
 import { deliveryServiceViewSchema } from "../model/delivery-service-view-schema";
+import { deliveryServiceKeys } from "./delivery-service-keys";
 
 const deliveryServiceSearchResultSchema = z.object({
   items: z.array(deliveryServiceViewSchema),
@@ -30,6 +31,6 @@ export function useDeliveryServicesSearch(search: string) {
       const parsed = deliveryServiceSearchResultSchema.parse(response);
       return parsed.items;
     },
-    queryKey: ["delivery-services", "search", trimmed],
+    queryKey: deliveryServiceKeys.search(trimmed),
   });
 }

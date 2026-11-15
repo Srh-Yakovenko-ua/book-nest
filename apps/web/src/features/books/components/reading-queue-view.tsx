@@ -158,7 +158,7 @@ export function ReadingQueueView() {
   const displayItems = localItems;
   const isFiltered = queue.isFiltered;
   const draggable = !isFiltered && !reorder.isPending && !isPlaceholderData;
-  const canMove = !isFiltered && !isPlaceholderData;
+  const canMove = !isFiltered && !reorder.isPending && !isPlaceholderData;
   const filters: QueueFilterState = toQueueFilterState(queue.state);
 
   function clearQueueFilters() {

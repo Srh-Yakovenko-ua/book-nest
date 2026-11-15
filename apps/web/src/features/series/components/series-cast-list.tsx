@@ -5,7 +5,6 @@ import type { CharacterSummaryView } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useQueryState } from "nuqs";
 
-import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
@@ -16,6 +15,7 @@ import {
   CharactersErrorState,
   CharacterSummaryCard,
 } from "@/features/characters";
+import { infiniteScrollStateOf } from "@/hooks/use-infinite-scroll-sentinel";
 
 import { useSeriesCharactersInfinite } from "../api/use-series-characters-infinite";
 import { SERIES_CHARACTERS_QUERY, toSeriesCastParams } from "../model/series-characters-query";
@@ -130,14 +130,8 @@ function SeriesCastContent({
       <InfiniteScrollFooter
         errorLabel={tStates("loadMoreError")}
         onLoadMore={() => void cast.fetchNextPage()}
-        state={toLoadMoreState(cast)}
+        state={infiniteScrollStateOf(cast)}
       />
     </div>
   );
-}
-
-function toLoadMoreState(cast: SeriesCastQuery): InfiniteScrollState {
-  if (cast.isFetchingNextPage) return "loading";
-  if (cast.isFetchNextPageError) return "error";
-  return cast.hasNextPage ? "idle" : "none";
 }

@@ -11,6 +11,7 @@ import {
   RelationshipTypeSchema,
 } from "@app/shared";
 import {
+  createLoader,
   createParser,
   createSerializer,
   type inferParserType,
@@ -77,6 +78,8 @@ export const graphWorkspaceParsers = {
 };
 
 const serializeGraphWorkspaceParams = createSerializer(graphWorkspaceParsers);
+
+export const loadGraphWorkspaceParams = createLoader(graphWorkspaceParsers);
 
 export const GRAPH_WORKSPACE_FILTERS_RESET = {
   categories: [],

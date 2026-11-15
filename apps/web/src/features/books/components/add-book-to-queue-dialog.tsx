@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ApiError } from "@/lib/http-client";
+import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 import { cn } from "@/lib/utils";
 import { BooksControllerListSort } from "@/shared/api/generated/model";
 
@@ -91,7 +91,7 @@ function AddBookToQueueForm({
     if (input === null) return;
     add.mutate(input, {
       onError: (error) => {
-        if (error instanceof ApiError && error.status === 409) {
+        if (isApiErrorStatus(error, HTTP_STATUS.conflict)) {
           toast.error(t("duplicateToast"));
           return;
         }

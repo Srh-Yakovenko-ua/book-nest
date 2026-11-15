@@ -16,6 +16,7 @@ import {
   canonicalizeGraphWorkspaceParams,
   GRAPH_WORKSPACE_FILTERS_RESET,
   graphWorkspaceParsers,
+  loadGraphWorkspaceParams,
   needsGraphWorkspaceCanonicalReplace,
   normalizeGraphWorkspaceFilters,
 } from "./graph-workspace-params";
@@ -54,16 +55,16 @@ export function useGraphWorkspaceState(): GraphWorkspaceState {
   const replacedSearch = useRef<Nullable<string>>(null);
 
   useEffect(() => {
-    const canonical = canonicalizeGraphWorkspaceParams(rawParams);
-    const currentSearch = new URLSearchParams(searchString);
-    if (!needsGraphWorkspaceCanonicalReplace({ canonical, search: currentSearch })) {
+    const urlSearch = new URLSearchParams(searchString);
+    const urlCanonical = canonicalizeGraphWorkspaceParams(loadGraphWorkspaceParams(urlSearch));
+    if (!needsGraphWorkspaceCanonicalReplace({ canonical: urlCanonical, search: urlSearch })) {
       replacedSearch.current = null;
       return;
     }
     if (replacedSearch.current === searchString) return;
     replacedSearch.current = searchString;
-    void setParams(canonical, HISTORY.replace);
-  }, [rawParams, searchString, setParams]);
+    void setParams(urlCanonical, HISTORY.replace);
+  }, [searchString, setParams]);
 
   const actions: GraphWorkspaceActions = {
     chooseCharacter: (characterId) => void setParams({ characterId }, HISTORY.push),

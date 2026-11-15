@@ -4,7 +4,6 @@ import type { InfiniteData, QueryKey } from "@tanstack/react-query";
 import { BookViewSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { invalidateGoalQueries } from "@/features/reading-goals/api/goal-keys";
 import {
   bookReadingControllerChangeReadingStatus,
   booksControllerUpdate,
@@ -19,7 +18,6 @@ type FavoriteContext = {
 
 export function useSetListBookReadingStatus(listId: string) {
   const cache = useListCacheInvalidation(listId);
-  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (input: {
@@ -31,10 +29,7 @@ export function useSetListBookReadingStatus(listId: string) {
           status: input.readingStatus,
         }),
       ),
-    onSuccess: () => {
-      cache.readingStatusChanged();
-      void invalidateGoalQueries(queryClient);
-    },
+    onSuccess: cache.readingStatusChanged,
   });
 }
 

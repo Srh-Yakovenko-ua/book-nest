@@ -51,6 +51,7 @@ type DeliveryOrderCardProps = {
   onManage: (action: OrderShipmentAction) => void;
   onReceiveShipment: (shipmentId: string, bookCount: number) => void;
   onToggleSelectShipment: (shipmentId: string) => void;
+  pendingShipmentIds?: readonly string[];
   preparingEdit: boolean;
   revealedOrderId?: Nullable<string>;
   revealedShipmentId?: Nullable<string>;
@@ -102,6 +103,7 @@ type ShipmentSectionProps = {
   selected: boolean;
   selectionMode: boolean;
   shipmentCount: number;
+  statusPending: boolean;
 };
 
 export function DeliveryOrderCard({
@@ -112,6 +114,7 @@ export function DeliveryOrderCard({
   onManage,
   onReceiveShipment,
   onToggleSelectShipment,
+  pendingShipmentIds = [],
   preparingEdit,
   revealedOrderId = null,
   revealedShipmentId = null,
@@ -198,6 +201,7 @@ export function DeliveryOrderCard({
             selected={group.id !== null && selectedShipmentIds.has(group.id)}
             selectionMode={selectionMode}
             shipmentCount={model.shipments.length}
+            statusPending={group.id !== null && pendingShipmentIds.includes(group.id)}
           />
         ))}
       </OrderCardBooksRegion>
@@ -277,6 +281,7 @@ function ShipmentSection({
   selected,
   selectionMode,
   shipmentCount,
+  statusPending,
 }: ShipmentSectionProps) {
   const t = useTranslations("delivery.card");
   const tStatus = useTranslations("books.deliveryStatus.labels");
@@ -309,6 +314,7 @@ function ShipmentSection({
           <>
             <Button
               className={SHIPMENT_HEADER_SLOTS.action}
+              loading={statusPending}
               onClick={() =>
                 activeShipment.nextStep.kind === "receive"
                   ? onReceiveShipment(activeShipment.id, group.books.length)
@@ -317,7 +323,7 @@ function ShipmentSection({
               size="sm"
               variant={activeShipment.nextStep.kind === "receive" ? "default" : "secondary"}
             >
-              <UiIcon name={activeShipment.nextStep.icon} size={16} />
+              {statusPending ? null : <UiIcon name={activeShipment.nextStep.icon} size={16} />}
               {t(activeShipment.nextStep.labelKey)}
             </Button>
             <DropdownMenu>
@@ -348,6 +354,7 @@ function ShipmentSection({
                     <DropdownMenuRadioGroup value={activeShipment.status}>
                       {SHIPMENT_ACTIVE_STATUSES.map((option) => (
                         <DropdownMenuRadioItem
+                          disabled={statusPending}
                           key={option}
                           onSelect={() => {
                             if (option === activeShipment.status) return;

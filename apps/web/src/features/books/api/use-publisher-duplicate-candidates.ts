@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import type { PublishersControllerDuplicateCandidatesParams } from "@/shared/api/generated/model";
 
+import { publisherKeys } from "@/features/publishers/api/publisher-keys";
 import { publishersControllerDuplicateCandidates } from "@/shared/api/generated/endpoints/publishers/publishers";
 
 export const PUBLISHER_LOOKUP = {
@@ -50,7 +51,7 @@ export function publisherDuplicateCandidatesQueryOptions({
       z
         .array(PublisherDuplicateCandidateSchema)
         .parse(await publishersControllerDuplicateCandidates(params)),
-    queryKey: ["publishers", "duplicates", params],
+    queryKey: publisherKeys.picker.duplicates(params),
   });
 }
 

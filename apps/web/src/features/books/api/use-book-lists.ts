@@ -1,16 +1,14 @@
 import type { BookListsView, NewListInput } from "@app/shared";
 
-import { BookListsViewSchema, CustomListCardSchema } from "@app/shared";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { BookListsViewSchema } from "@app/shared";
+import { partialMatchKey, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { listKeys } from "@/features/lists/api/list-keys";
-import { invalidateStatisticsQueries } from "@/features/statistics/api/statistics-keys";
 import {
   bookListsControllerGetLists,
   bookListsControllerSetLists,
 } from "@/shared/api/generated/endpoints/books/books";
-import { listsControllerCreate } from "@/shared/api/generated/endpoints/lists/lists";
 
+import { bookChangeEffects } from "./book-change-effects";
 import { bookKeys } from "./book-keys";
 
 export function useBookLists(bookId: string, { enabled }: { enabled: boolean }) {
@@ -24,30 +22,20 @@ export function useBookLists(bookId: string, { enabled }: { enabled: boolean }) 
 
 export function useSetBookLists(bookId: string) {
   const queryClient = useQueryClient();
+  const listsKey = bookListsKey(bookId);
 
   return useMutation({
-    mutationFn: async ({
-      listIds,
-      newLists,
-    }: {
+    mutationFn: async (input: {
       listIds: string[];
       newLists: NewListInput[];
-    }): Promise<BookListsView> => {
-      const createdIds = await Promise.all(
-        newLists.map(
-          async (draft) => CustomListCardSchema.parse(await listsControllerCreate(draft)).id,
-        ),
-      );
-      return BookListsViewSchema.parse(
-        await bookListsControllerSetLists(bookId, { listIds: [...listIds, ...createdIds] }),
-      );
-    },
+    }): Promise<BookListsView> =>
+      BookListsViewSchema.parse(await bookListsControllerSetLists(bookId, input)),
     onSuccess: (result) => {
-      queryClient.setQueryData(bookListsKey(bookId), result);
-      void queryClient.invalidateQueries({ queryKey: bookKeys.detail(bookId) });
-      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
-      void queryClient.invalidateQueries({ queryKey: listKeys.root });
-      void invalidateStatisticsQueries(queryClient);
+      queryClient.setQueryData(listsKey, result);
+      void bookChangeEffects.booksChanged(queryClient, {
+        changes: ["listed"],
+        keep: [({ queryKey }) => partialMatchKey(queryKey, listsKey)],
+      });
     },
   });
 }

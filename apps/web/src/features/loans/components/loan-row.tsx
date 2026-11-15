@@ -3,7 +3,7 @@
 import type { LoanListItemView, LoanUiStatus } from "@app/shared";
 import type { ReactNode } from "react";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import type { UiIconName } from "@/components/icons";
 
@@ -96,7 +96,8 @@ function LoanPeopleZone({
   onOpenContact: () => void;
 }) {
   const tRow = useTranslations("loans.row");
-  const loanDate = formatLoanDate(loan.loanDate);
+  const locale = useLocale();
+  const loanDate = formatLoanDate({ iso: loan.loanDate, locale });
 
   return (
     <div className="flex shrink-0 flex-col gap-2 @xl/book-row:w-40">
@@ -121,10 +122,11 @@ function LoanPeopleZone({
 
 function LoanTermZone({ loan, today }: { loan: LoanListItemView; today: string }) {
   const tTerm = useTranslations("loans.row.term");
+  const locale = useLocale();
 
   const term = loanTerm(loan.expectedReturnDate, today);
   const look = LOAN_TERM_LOOK[term.kind];
-  const returnDate = formatLoanDate(loan.expectedReturnDate);
+  const returnDate = formatLoanDate({ iso: loan.expectedReturnDate, locale });
 
   return (
     <div className="flex shrink-0 flex-col gap-0.5 @xl/book-row:w-48">

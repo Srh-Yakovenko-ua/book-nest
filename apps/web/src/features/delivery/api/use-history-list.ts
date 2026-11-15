@@ -6,16 +6,15 @@ import { deliveryReadControllerHistoryList } from "@/shared/api/generated/endpoi
 
 import type { DeliveryHistoryListParams } from "../model/history-params";
 
-export type HistoryPage = z.infer<typeof PaginatedOrderHistoryGroupsSchema>;
+import { deliveryKeys } from "./delivery-keys";
 
-const MAX_PAGES = 10;
+export type HistoryPage = z.infer<typeof PaginatedOrderHistoryGroupsSchema>;
 
 export function useHistoryList(params: DeliveryHistoryListParams) {
   return useInfiniteQuery({
     getNextPageParam: (lastPage: HistoryPage) =>
       lastPage.page < lastPage.pagesCount ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
-    maxPages: MAX_PAGES,
     placeholderData: keepPreviousData,
     queryFn: async ({ pageParam }): Promise<HistoryPage> => {
       const response = await deliveryReadControllerHistoryList({
@@ -24,6 +23,6 @@ export function useHistoryList(params: DeliveryHistoryListParams) {
       });
       return PaginatedOrderHistoryGroupsSchema.parse(response);
     },
-    queryKey: ["/api/delivery/books/history", "list", params],
+    queryKey: deliveryKeys.history.list(params),
   });
 }

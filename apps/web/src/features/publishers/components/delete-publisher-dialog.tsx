@@ -1,5 +1,6 @@
 "use client";
 
+import { PUBLISHER_ERROR_CODES } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -17,11 +18,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useRouter } from "@/i18n/navigation";
-import { ApiError } from "@/lib/http-client";
+import { isApiErrorCode } from "@/lib/api-errors";
 
 import { useDeletePublisher } from "../api/use-delete-publisher";
-
-const LINKED_BOOKS_STATUS = 409;
 
 type DeleteOutcome = "failed" | "idle" | "linkedBooks";
 
@@ -80,8 +79,7 @@ export function DeletePublisherDialog({
               setOutcome("idle");
               deletePublisher.mutate(undefined, {
                 onError: (error) => {
-                  const linkedBooks =
-                    error instanceof ApiError && error.status === LINKED_BOOKS_STATUS;
+                  const linkedBooks = isApiErrorCode(error, PUBLISHER_ERROR_CODES.hasBooks);
                   setOutcome(linkedBooks ? "linkedBooks" : "failed");
                 },
                 onSuccess: () => {

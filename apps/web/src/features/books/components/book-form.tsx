@@ -14,6 +14,7 @@ import {
   BOOK_DEDICATION_MAX,
   BOOK_DESCRIPTION_MAX,
   BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
+  BOOK_SERIES_ERROR_CODES,
   BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
   PUBLISHER_NAME_ERROR_CODES,
   TAG_COLOR_DEFAULT,
@@ -35,6 +36,7 @@ import { toast } from "sonner";
 
 import type { LoanContactSelection } from "@/features/loans/model/loan-contact-selection";
 
+import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field-error";
@@ -43,6 +45,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useUploadMedia } from "@/features/media";
 import { useRouter } from "@/i18n/navigation";
+import { emptyToNull } from "@/lib/empty-to-null";
 import { ApiError, type FieldError as ApiFieldError } from "@/lib/http-client";
 
 import type { BookFormMode } from "../model/book-form-mode";
@@ -56,7 +59,11 @@ import {
 } from "../api/use-publisher-duplicate-candidates";
 import { useSearchedTagColors } from "../api/use-tags-search";
 import { useUpdateBook } from "../api/use-update-book";
-import { readBookFormDraft } from "../model/book-form-draft";
+import {
+  clearBookFormDraft,
+  readBookFormDraft,
+  writeBookFormDraft,
+} from "../model/book-form-draft";
 import {
   FORMAT_OPTIONS,
   ownershipBlockHasData,
@@ -79,7 +86,6 @@ import {
   type SeriesSelection,
   UpdateBookFormSchema,
 } from "../model/create-book-form";
-import { emptyToNull } from "../model/empty-to-null";
 import { buildQueuePriorityPayload } from "../model/queue-priority";
 import { BASIC_INFO_FIELDS } from "../model/section-completeness";
 import {
@@ -96,7 +102,6 @@ import { BookPreview } from "./book-preview";
 import { BookTypeSection } from "./book-type-section";
 import { ClassificationSection } from "./classification-section";
 import { CoverField } from "./cover-field";
-import { DiscardConfirmDialog } from "./discard-confirm-dialog";
 import { EditionDetailsSection } from "./edition-details-section";
 import { FormSection } from "./form-section";
 import { FormatSection } from "./format-section";
@@ -151,13 +156,16 @@ export function BookForm(props: BookFormProps) {
   const mode: BookFormMode = props.mode;
 
   const bookId = props.mode === "edit" ? props.book.id : null;
+  const bookUpdatedAt = props.mode === "edit" ? props.book.updatedAt : null;
   const initial = props.mode === "edit" ? bookViewToFormState(props.book) : null;
   const initialSeries = props.mode === "create" ? (props.initialSeries ?? null) : null;
   const initialPublisher = props.mode === "create" ? (props.initialPublisher ?? null) : null;
 
   const locale = useLocale();
   const draftKey = bookId === null ? "book-form-draft:create" : `book-form-draft:edit:${bookId}`;
-  const [restoredDraft] = useState(() => readBookFormDraft(draftKey, locale));
+  const [restoredDraft] = useState(() =>
+    readBookFormDraft({ bookUpdatedAt, locale, storageKey: draftKey }),
+  );
 
   const publisherOwnedByUser = restoredDraft?.publisherEdited ?? initialPublisher !== null;
   const initialPublisherSuggestion = resolveSeriesPublisherSuggestion({
@@ -223,9 +231,10 @@ export function BookForm(props: BookFormProps) {
   const [publisherSelection, setPublisherSelection] = useState<null | PublisherSelection>(
     initialPublisherSelection,
   );
-  const [publisherQuery, setPublisherQuery] = useState(
+  const [initialPublisherQuery] = useState(
     initialPublisherSelection?.name ?? restoredDraft?.publisherQuery ?? "",
   );
+  const [publisherQuery, setPublisherQuery] = useState(initialPublisherQuery);
   const [publisherSuggestion, setPublisherSuggestion] = useState<SeriesPublisherSuggestion>(
     initialPublisherSuggestion,
   );
@@ -308,41 +317,39 @@ export function BookForm(props: BookFormProps) {
     reValidateMode: "onChange",
   });
 
-  function clearDraft() {
-    try {
-      sessionStorage.removeItem(draftKey);
-    } catch {
-      return;
-    }
-  }
+  const hasDraftChanges =
+    isDirty || restoredDraft !== null || publisherQuery !== initialPublisherQuery;
 
   useEffect(() => {
+    if (!hasDraftChanges) {
+      clearBookFormDraft(draftKey);
+      return;
+    }
     function persist() {
-      try {
-        sessionStorage.setItem(
-          draftKey,
-          JSON.stringify({
-            authorSelections,
-            loanContactSelection,
-            locale,
-            publisherEdited,
-            publisherQuery,
-            publisherSelection,
-            seriesSelection,
-            values: getValues(),
-          }),
-        );
-      } catch {
-        return;
-      }
+      writeBookFormDraft({
+        draft: {
+          authorSelections,
+          bookUpdatedAt,
+          loanContactSelection,
+          locale,
+          publisherEdited,
+          publisherQuery,
+          publisherSelection,
+          seriesSelection,
+          values: getValues(),
+        },
+        storageKey: draftKey,
+      });
     }
     persist();
     const unsubscribe = subscribe({ callback: persist, formState: { values: true } });
     return unsubscribe;
   }, [
     authorSelections,
+    bookUpdatedAt,
     draftKey,
     getValues,
+    hasDraftChanges,
     loanContactSelection,
     locale,
     publisherEdited,
@@ -549,7 +556,10 @@ export function BookForm(props: BookFormProps) {
     if (seriesSelection?.kind !== "existing" || seriesSelection.totalBooks === undefined) return;
     if (typeof partNumberValue !== "number") return;
     if (partNumberValue > seriesSelection.totalBooks) {
-      setError("partNumber", { message: BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE });
+      setError("partNumber", {
+        message: BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
+        type: BOOK_SERIES_ERROR_CODES.partNumberExceedsTotal,
+      });
     } else {
       clearErrors("partNumber");
     }
@@ -650,7 +660,10 @@ export function BookForm(props: BookFormProps) {
       typeof values.partNumber === "number" &&
       values.partNumber > seriesSelection.totalBooks
     ) {
-      setError("partNumber", { message: BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE });
+      setError("partNumber", {
+        message: BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
+        type: BOOK_SERIES_ERROR_CODES.partNumberExceedsTotal,
+      });
       return;
     }
 
@@ -688,7 +701,7 @@ export function BookForm(props: BookFormProps) {
       updateBook.mutate(payload, {
         onError: (error) => handleMutationError(error),
         onSuccess: () => {
-          clearDraft();
+          clearBookFormDraft(draftKey);
           if (fromDedications) {
             const dedicationEntered =
               typeof values.dedication === "string" && values.dedication.trim() !== "";
@@ -705,7 +718,7 @@ export function BookForm(props: BookFormProps) {
     createBook.mutate(payload, {
       onError: (error) => handleMutationError(error),
       onSuccess: (book) => {
-        sessionStorage.removeItem(draftKey);
+        clearBookFormDraft(draftKey);
         if (values.ownershipStatus === "want_to_buy") {
           toast.success(t("submit.success"), {
             action: {
@@ -735,7 +748,7 @@ export function BookForm(props: BookFormProps) {
           continue;
         }
         const path = resolveFieldPath(fieldError.field);
-        if (path) setError(path, { message: fieldError.message });
+        if (path) setError(path, { message: fieldError.message, type: fieldError.code });
       }
     }
     toast.error(mode === "edit" ? t("submit.editError") : t("submit.error"));
@@ -743,7 +756,7 @@ export function BookForm(props: BookFormProps) {
 
   const descriptionRemaining = BOOK_DESCRIPTION_MAX - descriptionValue.length;
   const cancelHref = bookId === null ? "/" : "/books";
-  const formDirty = isDirty || coverDirty;
+  const formDirty = isDirty || coverDirty || restoredDraft !== null;
   const guardActive = formDirty && !isPending;
 
   useEffect(() => {
@@ -769,6 +782,7 @@ export function BookForm(props: BookFormProps) {
   }, []);
 
   function navigateAway() {
+    clearBookFormDraft(draftKey);
     router.push(cancelHref);
   }
 
@@ -1076,7 +1090,7 @@ export function BookForm(props: BookFormProps) {
         />
       </div>
 
-      <DiscardConfirmDialog
+      <DiscardChangesDialog
         cancelLabel={t("editConfirm.cancel")}
         confirmLabel={t("editConfirm.confirm")}
         description={pendingDiscard?.description ?? ""}
@@ -1091,7 +1105,7 @@ export function BookForm(props: BookFormProps) {
         title={pendingDiscard?.title ?? ""}
       />
 
-      <DiscardConfirmDialog
+      <DiscardChangesDialog
         cancelLabel={tDiscardChanges("cancel")}
         confirmLabel={tDiscardChanges("confirm")}
         description={t("cancelConfirm.description")}

@@ -11,16 +11,15 @@ import { genresKeys } from "@/features/genres/api/genres-keys";
 import { makeBookView } from "../components/book-details.fixtures";
 import { useBulkReadingStatus, useDeleteBook, useToggleFavorite } from "./use-book-actions";
 import { useChangeReadingStatus } from "./use-reading-progress";
-import { RECENT_GENRES_KEY } from "./use-recent-genres";
 import { useUpdateBook } from "./use-update-book";
 
 const BOOK_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 
 const GENRE_KEYS = {
-  catalog: ["genres"],
+  catalog: genresKeys.catalog,
   facets: genresKeys.facets({}),
   overview: genresKeys.overview,
-  recent: RECENT_GENRES_KEY,
+  recent: genresKeys.recent,
   stats: genresKeys.stats({ filter: "all", sort: "books_count_desc" }),
   summary: genresKeys.summary,
 } as const;

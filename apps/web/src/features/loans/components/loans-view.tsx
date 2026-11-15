@@ -19,9 +19,10 @@ import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { LibraryActiveFilters } from "@/features/books/components/library-active-filters";
-import { todayIso } from "@/features/books/model/reading-progress";
+import { useProfileTimeZone } from "@/features/settings";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
+import { todayIsoDay } from "@/lib/iso-day";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 import { cn } from "@/lib/utils";
 
@@ -98,7 +99,7 @@ export function LoansView({ type }: { type: LoanType }) {
   const loadedPages = list.data?.pages ?? [];
   const items = loadedPages.flatMap((loadedPage) => loadedPage.items);
   const totalCount = loadedPages[0]?.totalCount ?? items.length;
-  const today = todayIso();
+  const today = todayIsoDay(useProfileTimeZone());
 
   const summaryCards = useLoansSummaryCards(summary.data, type);
   const directionSummary = summary.data?.[page.direction];

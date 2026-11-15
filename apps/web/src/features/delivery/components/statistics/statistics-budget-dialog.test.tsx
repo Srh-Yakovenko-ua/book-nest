@@ -68,6 +68,16 @@ function amountInput(currency: string) {
   return screen.getByLabelText(`Бюджет, ${currency}`);
 }
 
+function budgetDialog({
+  open,
+  overview,
+}: {
+  open: boolean;
+  overview: BookBudgetOverview | undefined;
+}) {
+  return <StatisticsBudgetDialog onOpenChange={vi.fn()} open={open} overview={overview} />;
+}
+
 function jsonResponse(body: unknown): Response {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
@@ -273,5 +283,38 @@ describe("StatisticsBudgetDialog stopping a currency", () => {
     expect(amountInput("UAH")).toHaveValue(9000);
     expect(amountInput("EUR")).toHaveValue(null);
     expect(screen.getByText("Не вказуйте суму для валют без бюджету.")).toBeInTheDocument();
+  });
+});
+
+describe("StatisticsBudgetDialog opening", () => {
+  it("fills the amounts that loaded while it was still closed", () => {
+    const { rerender } = renderWithProviders(budgetDialog({ open: false, overview: undefined }));
+
+    rerender(budgetDialog({ open: true, overview: OVERVIEW }));
+
+    expect(amountInput("UAH")).toHaveValue(9000);
+    expect(amountInput("USD")).toHaveValue(80);
+  });
+
+  it("shows the amounts current at the moment it opens again", () => {
+    const raised: BookBudgetOverview = {
+      budgets: [
+        {
+          currency: "UAH",
+          currentMonth: { ...PROGRESS, budget: 12500, remaining: 12500, remainingSigned: 12500 },
+          spendCoverage: EMPTY_COVERAGE,
+          upcomingChanges: [],
+        },
+      ],
+      month: "2026-08-01",
+    };
+    const { rerender } = renderWithProviders(budgetDialog({ open: true, overview: OVERVIEW }));
+    expect(amountInput("UAH")).toHaveValue(9000);
+
+    rerender(budgetDialog({ open: false, overview: OVERVIEW }));
+    rerender(budgetDialog({ open: false, overview: raised }));
+    rerender(budgetDialog({ open: true, overview: raised }));
+
+    expect(amountInput("UAH")).toHaveValue(12500);
   });
 });

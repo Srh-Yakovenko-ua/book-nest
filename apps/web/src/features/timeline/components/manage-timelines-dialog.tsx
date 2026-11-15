@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ApiError } from "@/lib/http-client";
+import { isApiErrorCode } from "@/lib/api-errors";
 
 import { useBookTimelines } from "../api/use-book-timelines";
 import { useReorderTimelines } from "../api/use-reorder-timelines";
@@ -69,10 +69,7 @@ export function ManageTimelinesDialog({
   }
 
   function handleMutationError(error: unknown) {
-    if (
-      error instanceof ApiError &&
-      (error.status === 409 || error.code === TIMELINE_ERROR_CODES.reorderConflict)
-    ) {
+    if (isApiErrorCode(error, TIMELINE_ERROR_CODES.reorderConflict)) {
       toast.error(tToast("reorderConflict"));
       void timelinesQuery.refetch();
       return;

@@ -11,5 +11,6 @@ export const listKeys = {
   overview: (id: string) => [LISTS_ROOT, "overview", id] as const,
   related: (id: string) => [LISTS_ROOT, "related", id] as const,
   root: [LISTS_ROOT] as const,
+  search: (search: string) => [LISTS_ROOT, "search", search] as const,
   summary: [LISTS_ROOT, "summary"] as const,
 };

@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { z } from "zod";
 
+import { emptyToNull } from "@/lib/empty-to-null";
+
 import { QUEUE_PRIORITY_DEFAULT } from "./book-organization-fields";
 
 export type PriorityTone = "high" | "low" | "normal";
@@ -102,7 +104,7 @@ export function buildQueuePriorityPayload<T extends QueuePriorityFields>(values:
 
   const reason = values.queuePriorityReason ?? null;
   const queuePriorityReasonCustomText =
-    reason === "other" ? trimToNull(values.queuePriorityReasonCustomText) : null;
+    reason === "other" ? emptyToNull(values.queuePriorityReasonCustomText) : null;
   const queuePriorityTargetDate =
     reason !== null && reasonSupportsDate(reason) ? (values.queuePriorityTargetDate ?? null) : null;
 
@@ -138,10 +140,4 @@ export function validateQueuePriority(
     message: QUEUE_PRIORITY_CUSTOM_REASON_REQUIRED_MESSAGE,
     path: ["queuePriorityReasonCustomText"],
   });
-}
-
-function trimToNull(value: Nullable<string> | undefined): Nullable<string> {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
 }

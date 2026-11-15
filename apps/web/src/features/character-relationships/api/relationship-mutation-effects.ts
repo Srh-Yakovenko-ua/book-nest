@@ -3,6 +3,13 @@ import type { QueryClient } from "@tanstack/react-query";
 import { isRelationshipGone } from "../model/relationship-save-error";
 import { relationshipKeys } from "./relationship-keys";
 
+export async function refreshRelationshipGraphs(queryClient: QueryClient): Promise<void> {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: relationshipKeys.graphScope }),
+    queryClient.invalidateQueries({ queryKey: relationshipKeys.workspaceScope }),
+  ]);
+}
+
 export function refreshRelationships(queryClient: QueryClient): Promise<void> {
   return queryClient.invalidateQueries({ queryKey: relationshipKeys.all });
 }

@@ -9,6 +9,7 @@ import type {
 } from "@app/shared";
 
 import { STORE_LINK_ERROR_CODES } from "@app/shared";
+import { isBefore, parseISO } from "date-fns";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -19,14 +20,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { BookStoreLinksBlock, RemoveFromWishlistDialog } from "@/features/books-to-buy";
 import { useReturnLoan } from "@/features/loans/api/use-loan-actions";
+import { useProfileTimeZone } from "@/features/settings";
+import { assertNever } from "@/lib/assert-never";
 import { ownershipStatuses } from "@/lib/book-status";
 import { formatDate } from "@/lib/format";
 import { ApiError } from "@/lib/http-client";
+import { todayIsoDay } from "@/lib/iso-day";
 import { cn } from "@/lib/utils";
 
 import { useMarkOwned, useRemoveFromWishlist, useRemoveOwned } from "../api/use-ownership";
 import { toLoanErrorKey } from "../model/loan-error";
-import { todayIso } from "../model/reading-progress";
 import { DeliveryDialog } from "./delivery-dialog";
 import { LoanDialog } from "./loan-dialog";
 import { MarkBoughtDialog } from "./mark-bought-dialog";
@@ -225,10 +228,6 @@ function AcquisitionBlock({ info }: { info: PurchaseInfoView }) {
   );
 }
 
-function assertNever(value: never): never {
-  throw new Error(`Unhandled ownership status: ${String(value)}`);
-}
-
 function buildActions({
   labels,
   markOwned,
@@ -389,9 +388,12 @@ function isNotInWishlist(error: unknown): boolean {
 function LoanInfoBlock({ book, info }: { book: BookView; info: LoanInfoView }) {
   const t = useTranslations("books.details.loan.info");
   const locale = useLocale();
+  const today = todayIsoDay(useProfileTimeZone());
 
   const lent = book.ownershipStatus === "lent_to_someone";
-  const overdue = info.expectedReturnDate !== null && info.expectedReturnDate < todayIso();
+  const overdue =
+    info.expectedReturnDate !== null &&
+    isBefore(parseISO(info.expectedReturnDate), parseISO(today));
 
   return (
     <div className="flex flex-col gap-3 rounded-md border border-border bg-secondary/40 p-3.5">

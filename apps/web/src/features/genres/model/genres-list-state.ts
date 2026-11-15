@@ -2,6 +2,8 @@ import type { GenreStatsView } from "@app/shared";
 
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
+import { infiniteScrollStateOf } from "@/hooks/use-infinite-scroll-sentinel";
+
 export type GenresEmptyReason = "filters" | "library" | "search";
 
 export type GenresListSnapshot = {
@@ -48,7 +50,7 @@ export function genresListState({
     genres,
     isRefreshing: list.isPlaceholderData,
     kind: "ready",
-    nextPage: list.isPlaceholderData ? "none" : nextPageState(list),
+    nextPage: list.isPlaceholderData ? "none" : infiniteScrollStateOf(list),
   };
 }
 
@@ -59,11 +61,4 @@ function emptyReason({
   if (hasActiveSearch) return "search";
   if (hasActiveFilters) return "filters";
   return "library";
-}
-
-function nextPageState(list: GenresListSnapshot): InfiniteScrollState {
-  if (list.isFetchingNextPage) return "loading";
-  if (list.isFetchNextPageError) return "error";
-  if (list.hasNextPage) return "idle";
-  return "none";
 }

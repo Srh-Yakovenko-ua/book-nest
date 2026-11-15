@@ -44,7 +44,7 @@ function keysReachedBy(queryKey: readonly unknown[]): unknown[] {
   const client = new QueryClient();
   client.setQueryData(listKey(SCOPES.book), { pageParams: [1], pages: [] });
   for (const key of Object.values(SUGGESTION_KEYS)) client.setQueryData(key, {});
-  client.setQueryData(["characters", "detail", CHARACTER_ID], {});
+  client.setQueryData(["/api/characters", "detail", CHARACTER_ID], {});
   return client.getQueriesData({ queryKey }).map(([key]) => key);
 }
 
@@ -105,7 +105,7 @@ describe("relationshipKeys.all", () => {
     const client = new QueryClient();
     client.setQueryData(listKey(SCOPES.book), { pageParams: [1], pages: [] });
     client.setQueryData(detailsKey(SCOPES.series), {});
-    client.setQueryData(["characters", "detail", CHARACTER_ID], {});
+    client.setQueryData(["/api/characters", "detail", CHARACTER_ID], {});
 
     expect(client.getQueriesData({ queryKey: relationshipKeys.all }).map(([key]) => key)).toEqual([
       listKey(SCOPES.book),

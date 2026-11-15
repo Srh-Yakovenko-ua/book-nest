@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { bookKeys } from "@/features/books/api/book-keys";
+import { bookChangeEffects } from "@/features/books/api/book-change-effects";
+import { goalKeys } from "@/features/reading-goals/api/goal-keys";
+import { matchesAnyKeyPrefix, retireQueries } from "@/lib/query-keys";
 import { listsControllerDelete } from "@/shared/api/generated/endpoints/lists/lists";
 
 import { listKeys } from "./list-keys";
@@ -11,8 +13,18 @@ export function useDeleteList(id: string) {
   return useMutation({
     mutationFn: () => listsControllerDelete(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: listKeys.root });
-      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
+      const deletedListViews = matchesAnyKeyPrefix(
+        listKeys.detail(id),
+        listKeys.overview(id),
+        listKeys.facets(id),
+        listKeys.related(id),
+        goalKeys.forList(id),
+      );
+      retireQueries(queryClient, deletedListViews);
+      void bookChangeEffects.booksChanged(queryClient, {
+        changes: ["listed"],
+        keep: [deletedListViews],
+      });
     },
   });
 }

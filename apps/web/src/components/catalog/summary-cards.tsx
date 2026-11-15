@@ -1,16 +1,19 @@
 import type { ReactNode } from "react";
 
+import { useLocale } from "next-intl";
+
 import type { UiIconName } from "@/components/icons";
 import type { StatCardIconTone } from "@/components/ui/stat-card";
 
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatCard } from "@/components/ui/stat-card";
+import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-import { LibrarySummaryMobile } from "./library-summary-mobile";
+import { SummaryMobile } from "./summary-mobile";
 
-export type LibrarySummaryCard = {
+export type SummaryCard = {
   caption?: ReactNode;
   icon: UiIconName;
   iconSlot?: ReactNode;
@@ -24,29 +27,29 @@ export type LibrarySummaryCard = {
   valueKind?: "name";
 };
 
-type LibrarySummaryCardsProps = {
-  cards: LibrarySummaryCard[];
+type SummaryCardsProps = {
+  cards: SummaryCard[];
   isLoading: boolean;
   mobileAction?: ReactNode;
-  mobileCards?: LibrarySummaryCard[];
+  mobileCards?: SummaryCard[];
   mobileLayout?: "compact" | "grid";
   skeletonCount?: number;
 };
 
-export function LibrarySummaryCards({
+export function SummaryCards({
   cards,
   isLoading,
   mobileAction,
   mobileCards,
   mobileLayout = "grid",
   skeletonCount,
-}: LibrarySummaryCardsProps) {
+}: SummaryCardsProps) {
   const compactOnMobile = mobileLayout === "compact";
 
   return (
     <>
       {compactOnMobile ? (
-        <LibrarySummaryMobile
+        <SummaryMobile
           action={mobileAction}
           cards={mobileCards ?? cards}
           className="sm:hidden"
@@ -82,7 +85,8 @@ function SummaryGrid({
   className,
   isLoading,
   skeletonCount,
-}: LibrarySummaryCardsProps & { className?: string }) {
+}: SummaryCardsProps & { className?: string }) {
+  const locale = useLocale();
   const columnCount = skeletonCount ?? cards.length;
 
   return (
@@ -103,7 +107,7 @@ function SummaryGrid({
               microfact={card.microfact}
               size="compact"
               unit={card.unit}
-              value={typeof card.value === "number" ? card.value.toLocaleString() : card.value}
+              value={typeof card.value === "number" ? formatNumber(card.value, locale) : card.value}
               valueClassName={cn("text-3xl break-words", card.valueClassName)}
             />
           ))}

@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
 
-import { STATISTICS_QUERY_KEY } from "../api/use-statistics";
+import { deliveryKeys } from "../api/delivery-keys";
 import {
   makeActiveMoneyAge,
   makeBookBudgetOverview,
@@ -58,6 +58,8 @@ const EMPTY_VIEW = makeStatisticsView({
 });
 
 const copy = messages.delivery.statistics;
+
+const OVERVIEW_QUERY_PREFIX = deliveryKeys.statistics.overview({}).slice(0, 2);
 
 const fetchMock = vi.fn();
 
@@ -392,7 +394,7 @@ describe("DeliveryStatistics refreshing", () => {
     await settle();
 
     handlers.statistics = () => Promise.resolve(failingResponse());
-    void queryClient.refetchQueries({ queryKey: [STATISTICS_QUERY_KEY] });
+    void queryClient.refetchQueries({ queryKey: OVERVIEW_QUERY_PREFIX });
 
     expect(await screen.findByText(messages.common.refetchError)).toBeInTheDocument();
     expect(screen.getByText("Динаміка покупок")).toBeInTheDocument();
@@ -404,7 +406,7 @@ describe("DeliveryStatistics refreshing", () => {
     await settle();
 
     handlers.statistics = hangs;
-    void queryClient.invalidateQueries({ queryKey: [STATISTICS_QUERY_KEY] });
+    void queryClient.invalidateQueries({ queryKey: OVERVIEW_QUERY_PREFIX });
 
     const region = await screen.findByRole("generic", { busy: true });
     expect(within(region).getByText(copy.kpi.spend.label)).toBeInTheDocument();

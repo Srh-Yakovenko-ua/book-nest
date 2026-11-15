@@ -7,7 +7,6 @@ import { useTranslations } from "next-intl";
 import { useRef } from "react";
 
 import type { RefetchErrorState } from "@/components/refetch-error-banner";
-import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
@@ -18,6 +17,7 @@ import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { infiniteScrollStateOf } from "@/hooks/use-infinite-scroll-sentinel";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 import { cn } from "@/lib/utils";
@@ -138,7 +138,11 @@ export function AllListsView({
                 allShownLabel={allShownLabel}
                 errorLabel={loadMoreErrorLabel}
                 onLoadMore={onLoadMore}
-                state={nextPageState({ hasNextPage, isFetchingNextPage, isLoadMoreError })}
+                state={infiniteScrollStateOf({
+                  hasNextPage,
+                  isFetchingNextPage,
+                  isFetchNextPageError: isLoadMoreError,
+                })}
               />
             </div>
           )}
@@ -284,18 +288,4 @@ function ListsGridSkeleton() {
       ))}
     </div>
   );
-}
-
-function nextPageState({
-  hasNextPage,
-  isFetchingNextPage,
-  isLoadMoreError,
-}: {
-  hasNextPage: boolean;
-  isFetchingNextPage: boolean;
-  isLoadMoreError: boolean;
-}): InfiniteScrollState {
-  if (isFetchingNextPage) return "loading";
-  if (isLoadMoreError) return "error";
-  return hasNextPage ? "idle" : "none";
 }

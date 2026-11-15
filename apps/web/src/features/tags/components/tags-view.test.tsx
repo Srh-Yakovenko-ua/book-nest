@@ -539,6 +539,29 @@ describe("TagsView", () => {
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
       expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     });
+
+    it("stays open on Escape while the edit is saving and closes once it is saved", async () => {
+      const saving = deferred<Response>();
+      mockTagsApi({ "PATCH /api/tags/tag-slow-burn": () => saving.promise });
+      renderTags();
+
+      await openTagAction("slow burn", "Редагувати");
+      const dialog = await screen.findByRole("dialog", { name: "Редагувати тег" });
+      const save = within(dialog).getByRole("button", { name: "Зберегти" });
+      await userEvent.clear(within(dialog).getByLabelText(/Опис/));
+      await userEvent.type(within(dialog).getByLabelText(/Опис/), "Новий опис");
+      await userEvent.click(save);
+      await waitFor(() => expect(save).toBeDisabled());
+
+      await userEvent.keyboard("{Escape}");
+
+      expect(screen.getByRole("dialog", { name: "Редагувати тег" })).toBeInTheDocument();
+
+      saving.resolve(await json(createdTag()));
+
+      await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Зміни збережено"));
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    });
   });
 
   describe("Delete dialog", () => {

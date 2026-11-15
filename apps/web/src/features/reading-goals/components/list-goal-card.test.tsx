@@ -121,6 +121,18 @@ describe("ListGoalCard states", () => {
     expect(screen.queryByRole("button", { name: "Створити ціль" })).not.toBeInTheDocument();
   });
 
+  it("holds the progress at 99% while one book of the goal is still unread", async () => {
+    respondToGoal = () =>
+      jsonResponse(
+        makeReadingGoalView({ completedCount: 199, remainingCount: 1, targetCount: 200 }),
+      );
+
+    renderCard();
+
+    expect(await screen.findByRole("progressbar")).toHaveAttribute("aria-valuenow", "99");
+    expect(screen.getByText("99%")).toBeInTheDocument();
+  });
+
   it("celebrates a completed goal and offers the next one", async () => {
     respondToGoal = () =>
       jsonResponse(

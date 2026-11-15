@@ -22,6 +22,5 @@ export function useBookQuotesList(params: QuotesListParams) {
         await quotesControllerList({ ...params, pageNumber: pageParam }, { signal }),
       ),
     queryKey: quoteKeys.list(params),
-    retry: false,
   });
 }

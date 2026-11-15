@@ -14,6 +14,7 @@ import {
 import { z } from "zod";
 
 import { bookPageCeiling } from "@/features/books/model/book-page-ceiling";
+import { emptyToNull } from "@/lib/empty-to-null";
 
 export const EVENT_TITLE_MAX = 150;
 export const EVENT_SUMMARY_MAX = 300;
@@ -159,9 +160,4 @@ export function eventFormValuesToInput(values: EventFormValues): CreateTimelineE
     timelineId: values.timelineId ?? undefined,
     title: values.title.trim(),
   };
-}
-
-function emptyToNull(value: string): Nullable<string> {
-  const trimmed = value.trim();
-  return trimmed.length === 0 ? null : trimmed;
 }

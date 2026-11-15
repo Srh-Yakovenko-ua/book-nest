@@ -3,11 +3,11 @@ import { describe, expect, it } from "vitest";
 
 import { renderWithProviders, screen } from "@/test-utils";
 
-import type { LibrarySummaryCard } from "./library-summary-cards";
+import type { SummaryCard } from "./summary-cards";
 
-import { LibrarySummaryDetails } from "./library-summary-mobile";
+import { SummaryDetails } from "./summary-mobile";
 
-const MONEY_CARD: LibrarySummaryCard = {
+const MONEY_CARD: SummaryCard = {
   caption: "30,5 EUR · 59,99 USD",
   icon: "wallet",
   label: "Вартість замовлень",
@@ -15,9 +15,9 @@ const MONEY_CARD: LibrarySummaryCard = {
   value: "27 128 UAH",
 };
 
-describe("LibrarySummaryDetails", () => {
+describe("SummaryDetails", () => {
   it("keeps the secondary currencies next to the headline amount", () => {
-    renderWithProviders(<LibrarySummaryDetails cards={[MONEY_CARD]} title="Огляд" />);
+    renderWithProviders(<SummaryDetails cards={[MONEY_CARD]} title="Огляд" />);
 
     expect(screen.getByText("27 128 UAH")).toBeInTheDocument();
     expect(screen.getByText("30,5 EUR · 59,99 USD")).toBeInTheDocument();
@@ -26,7 +26,7 @@ describe("LibrarySummaryDetails", () => {
 
   it("renders nothing extra when a card carries a single amount", () => {
     renderWithProviders(
-      <LibrarySummaryDetails cards={[{ ...MONEY_CARD, caption: undefined }]} title="Огляд" />,
+      <SummaryDetails cards={[{ ...MONEY_CARD, caption: undefined }]} title="Огляд" />,
     );
 
     expect(screen.queryByText("30,5 EUR · 59,99 USD")).not.toBeInTheDocument();

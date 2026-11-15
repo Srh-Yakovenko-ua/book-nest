@@ -31,6 +31,5 @@ function bookQueryOptions(id: string) {
       return BookDetailsViewSchema.parse(response);
     },
     queryKey: bookKeys.detail(id),
-    retry: false,
   });
 }

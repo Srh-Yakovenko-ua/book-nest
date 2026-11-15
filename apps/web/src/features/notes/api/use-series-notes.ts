@@ -14,6 +14,5 @@ export function useSeriesNotes(seriesId: string) {
       return EntityNotesViewSchema.parse(response);
     },
     queryKey: notesKeys.bySeries(seriesId),
-    retry: false,
   });
 }

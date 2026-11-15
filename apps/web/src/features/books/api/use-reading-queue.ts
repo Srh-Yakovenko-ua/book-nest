@@ -2,34 +2,34 @@ import type {
   AddToReadingQueueInput,
   BookView,
   ReadingQueueItemView,
+  ReadingQueueSummaryView,
   ReadingQueueView,
 } from "@app/shared";
 import type { QueryClient } from "@tanstack/react-query";
 
 import { ReadingQueueSummaryViewSchema, ReadingQueueViewSchema } from "@app/shared";
-import { keepPreviousData, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import type { ReadingQueueControllerGetQueueParams } from "@/shared/api/generated/model";
 
-import { invalidateGenreDerivedQueries } from "@/features/genres/api/genres-keys";
-import { invalidatePublisherQueries } from "@/features/publishers/api/publisher-keys";
-import { seriesKeys } from "@/features/series/api/series-keys";
+import { resetRelationshipReaderViews } from "@/features/character-relationships/api/relationship-mutation-effects";
 import {
-  getReadingQueueControllerGetQueueQueryKey,
-  getReadingQueueControllerSummaryQueryKey,
-  getSeriesOrderCheckControllerListIssuesQueryKey,
   readingQueueControllerAddToQueue,
+  readingQueueControllerGetQueue,
   readingQueueControllerRemoveFromQueue,
   readingQueueControllerReorder,
   readingQueueControllerStartReading,
-  useReadingQueueControllerGetQueue,
-  useReadingQueueControllerSummary,
+  readingQueueControllerSummary,
 } from "@/shared/api/generated/endpoints/reading-queue/reading-queue";
 
-import { bookKeys } from "./book-keys";
-import { matchesReadingQueueKey } from "./reading-queue-keys";
-
-const selectReadingQueueView = (data: unknown) => ReadingQueueViewSchema.parse(data);
+import { bookChangeEffects } from "./book-change-effects";
+import { matchesReadingQueueKey, readingQueueKeys } from "./reading-queue-keys";
 
 export function useAddToReadingQueue() {
   const queryClient = useQueryClient();
@@ -42,30 +42,20 @@ export function useAddToReadingQueue() {
 }
 
 export function useReadingQueue(params?: ReadingQueueControllerGetQueueParams) {
-  return useReadingQueueControllerGetQueue(params, {
-    query: {
-      placeholderData: keepPreviousData,
-      select: selectReadingQueueView,
-    },
-  });
+  return useQuery({ ...readingQueueQueryOptions(params), placeholderData: keepPreviousData });
 }
 
 export function useReadingQueuePosition(book: Pick<BookView, "id" | "isInReadingQueue">) {
-  const query = useReadingQueueControllerGetQueue(undefined, {
-    query: {
-      enabled: book.isInReadingQueue,
-      select: selectReadingQueueView,
-    },
-  });
+  const query = useQuery({ ...readingQueueQueryOptions(), enabled: book.isInReadingQueue });
 
   return query.data?.items.find((item) => item.book.id === book.id)?.position ?? null;
 }
 
 export function useReadingQueueSummary() {
-  return useReadingQueueControllerSummary({
-    query: {
-      select: (data: unknown) => ReadingQueueSummaryViewSchema.parse(data),
-    },
+  return useQuery({
+    queryFn: async ({ signal }): Promise<ReadingQueueSummaryView> =>
+      ReadingQueueSummaryViewSchema.parse(await readingQueueControllerSummary({ signal })),
+    queryKey: readingQueueKeys.summary,
   });
 }
 
@@ -81,7 +71,7 @@ export function useRemoveFromQueue() {
 
 export function useReorderReadingQueue(params?: ReadingQueueControllerGetQueueParams) {
   const queryClient = useQueryClient();
-  const queueKey = getReadingQueueControllerGetQueueQueryKey(params);
+  const queueKey = readingQueueKeys.queue(params);
 
   return useMutation<ReadingQueueView, Error, string[], { previous: ReadingQueueView | undefined }>(
     {
@@ -91,6 +81,7 @@ export function useReorderReadingQueue(params?: ReadingQueueControllerGetQueuePa
         if (context?.previous !== undefined) {
           queryClient.setQueryData(queueKey, context.previous);
         }
+        void queryClient.invalidateQueries({ predicate: matchesReadingQueueKey });
       },
       onMutate: async (order) => {
         await queryClient.cancelQueries({ queryKey: queueKey });
@@ -100,17 +91,11 @@ export function useReorderReadingQueue(params?: ReadingQueueControllerGetQueuePa
         }
         return { previous };
       },
-      onSettled: () => {
-        void queryClient.invalidateQueries({ queryKey: bookKeys.root });
-        void queryClient.invalidateQueries({
-          queryKey: getSeriesOrderCheckControllerListIssuesQueryKey(),
-        });
-        void queryClient.invalidateQueries({
-          queryKey: getReadingQueueControllerSummaryQueryKey(),
-        });
-      },
       onSuccess: (view) => {
-        queryClient.setQueryData(queueKey, view);
+        void bookChangeEffects.readingQueueChanged(queryClient, {
+          change: "queueReordered",
+          view,
+        });
       },
     },
   );
@@ -124,23 +109,23 @@ export function useStartReadingFromQueue() {
       ReadingQueueViewSchema.parse(
         await readingQueueControllerStartReading(bookId, { removeFromQueue }),
       ),
-    onSuccess: (view) => applyReadingQueueView(queryClient, view),
+    onSuccess: (view) => {
+      void bookChangeEffects.readingQueueChanged(queryClient, { change: "statusChanged", view });
+      void resetRelationshipReaderViews(queryClient);
+    },
   });
 }
 
 function applyReadingQueueView(queryClient: QueryClient, view: ReadingQueueView) {
-  queryClient.setQueryData(getReadingQueueControllerGetQueueQueryKey(), view);
-  void invalidateGenreDerivedQueries(queryClient);
-  void queryClient.invalidateQueries({ predicate: matchesReadingQueueKey });
-  void queryClient.invalidateQueries({ queryKey: bookKeys.root });
-  void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
-  void queryClient.invalidateQueries({
-    queryKey: getSeriesOrderCheckControllerListIssuesQueryKey(),
+  void bookChangeEffects.readingQueueChanged(queryClient, { change: "queueChanged", view });
+}
+
+function readingQueueQueryOptions(params?: ReadingQueueControllerGetQueueParams) {
+  return queryOptions({
+    queryFn: async ({ signal }): Promise<ReadingQueueView> =>
+      ReadingQueueViewSchema.parse(await readingQueueControllerGetQueue(params, { signal })),
+    queryKey: readingQueueKeys.queue(params),
   });
-  void queryClient.invalidateQueries({
-    queryKey: getReadingQueueControllerSummaryQueryKey(),
-  });
-  void invalidatePublisherQueries(queryClient);
 }
 
 function reorderQueueView(view: ReadingQueueView, order: string[]): ReadingQueueView {

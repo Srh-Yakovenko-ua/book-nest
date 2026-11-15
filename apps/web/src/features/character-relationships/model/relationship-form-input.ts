@@ -15,6 +15,8 @@ import {
   UpsertRelationshipBookStateSchema,
 } from "@app/shared";
 
+import { emptyToNull } from "@/lib/empty-to-null";
+
 import type {
   RelationshipBookStateFormInput,
   RelationshipFormInput,
@@ -140,14 +142,14 @@ export function toRelationshipBookStateInput(
   state: RelationshipBookStateFormInput,
 ): UpsertRelationshipBookState {
   return UpsertRelationshipBookStateSchema.parse({
-    description: toOptionalText(state.description),
+    description: emptyToNull(state.description),
     endedAudioSeconds: parseAudioPosition(state.endedAudio),
-    endedChapter: toOptionalText(state.endedChapter),
+    endedChapter: emptyToNull(state.endedChapter),
     endedPage: state.endedPage,
     hideRelationshipAsSpoiler: state.hideRelationshipAsSpoiler,
     intensity: state.intensity,
     introducedAudioSeconds: parseAudioPosition(state.introducedAudio),
-    introducedChapter: toOptionalText(state.introducedChapter),
+    introducedChapter: emptyToNull(state.introducedChapter),
     introducedPage: state.introducedPage,
     isDescriptionSpoiler: state.isDescriptionSpoiler,
     isTypeSpoiler: state.isTypeSpoiler,
@@ -181,8 +183,8 @@ export function toUpdateRelationshipInput({
   values: RelationshipFormValues;
 }): Nullable<UpdateCharacterRelationship> {
   const customType = values.type === "custom" ? values.customType : null;
-  const sourceLabel = toOptionalText(values.sourceLabel);
-  const targetLabel = toOptionalText(values.targetLabel);
+  const sourceLabel = emptyToNull(values.sourceLabel);
+  const targetLabel = emptyToNull(values.targetLabel);
   const isTypeChanged =
     values.category !== relationship.category ||
     values.type !== relationship.type ||
@@ -199,9 +201,4 @@ export function toUpdateRelationshipInput({
 
 function toAudioText(seconds: Nullable<number>): string {
   return seconds === null ? "" : formatAudioPosition(seconds);
-}
-
-function toOptionalText(value: string): Nullable<string> {
-  const trimmed = value.trim();
-  return trimmed === "" ? null : trimmed;
 }

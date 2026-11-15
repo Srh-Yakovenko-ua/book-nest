@@ -8,7 +8,7 @@ import { charactersControllerUpdateGlobal } from "@/shared/api/generated/endpoin
 
 import type { CharactersCatalogPage } from "./use-characters-catalog";
 
-import { invalidateCharacterIdentityViews } from "./character-identity-sync";
+import { invalidateCharacterFavoriteViews } from "./character-identity-sync";
 import { characterKeys } from "./character-keys";
 
 type CatalogPages = InfiniteData<CharactersCatalogPage>;
@@ -56,8 +56,8 @@ export function useToggleCatalogCharacterFavorite() {
 
       return { previousCatalogs };
     },
-    onSettled: () => {
-      invalidateCharacterIdentityViews(queryClient);
+    onSettled: (_data, _error, { characterId }) => {
+      invalidateCharacterFavoriteViews(queryClient, { characterId });
     },
   });
 }

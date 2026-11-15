@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { authorsControllerSearch } from "@/shared/api/generated/endpoints/authors/authors";
 
+import { authorKeys } from "./author-keys";
 import { authorSearchResultSchema } from "./use-author-search";
 
 const AUTHOR_OPTIONS_PAGE_SIZE = 20;
@@ -39,7 +40,7 @@ export function useAuthorOptions(search: string): AuthorOptions {
       });
       return authorSearchResultSchema.parse(response);
     },
-    queryKey: ["authors", "options", trimmed, locale],
+    queryKey: authorKeys.options({ locale, search: trimmed }),
   });
 
   return {

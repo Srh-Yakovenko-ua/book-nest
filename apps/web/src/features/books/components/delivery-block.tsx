@@ -2,6 +2,7 @@
 
 import type { BookView, Currency, DeliveryView, ShipmentStatus } from "@app/shared";
 
+import { isBefore, parseISO } from "date-fns";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -10,13 +11,14 @@ import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useProfileTimeZone } from "@/features/settings";
 import { deliveryStatuses } from "@/lib/book-status";
 import { formatDate } from "@/lib/format";
 import { isHttpsUrl } from "@/lib/is-https-url";
+import { todayIsoDay } from "@/lib/iso-day";
 
 import { useDeliveryHistory, useReceiveDelivery } from "../api/use-delivery";
 import { toDeliveryErrorKey } from "../model/delivery-error";
-import { todayIso } from "../model/reading-progress";
 import { CancelDeliveryDialog } from "./cancel-delivery-dialog";
 import { DeliveryDialog } from "./delivery-dialog";
 
@@ -111,9 +113,11 @@ function ActiveDelivery({
   receivePending: boolean;
 }) {
   const t = useTranslations("books.details.delivery");
+  const today = todayIsoDay(useProfileTimeZone());
 
   const delayed =
-    delivery.expectedDeliveryDate !== null && delivery.expectedDeliveryDate < todayIso();
+    delivery.expectedDeliveryDate !== null &&
+    isBefore(parseISO(delivery.expectedDeliveryDate), parseISO(today));
   const noExpectedDate = delivery.expectedDeliveryDate === null;
 
   return (

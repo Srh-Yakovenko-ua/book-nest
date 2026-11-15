@@ -23,6 +23,5 @@ export function useTagsCatalog(params: TagsCatalogParams) {
         ),
       ),
     queryKey: tagsKeys.catalog(params),
-    retry: false,
   });
 }

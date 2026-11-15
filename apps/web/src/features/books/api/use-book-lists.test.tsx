@@ -58,4 +58,32 @@ describe("useSetBookLists", () => {
 
     await waitFor(() => expect(client.getQueryState(detailKey)?.isInvalidated).toBe(true));
   });
+
+  it("sends the new lists inside one PUT instead of creating each list first", async () => {
+    const client = createTestQueryClient();
+    const { result } = renderHook(() => useSetBookLists(BOOK_ID), {
+      wrapper: makeWrapper(client),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        listIds: [LIST_ID],
+        newLists: [{ name: "Літо 2026" }],
+      });
+    });
+
+    expect(
+      fetchMock.mock.calls.map(([input, init]) => ({
+        body: JSON.parse(String(init?.body)),
+        method: init?.method,
+        path: new URL(String(input), "http://localhost").pathname,
+      })),
+    ).toEqual([
+      {
+        body: { listIds: [LIST_ID], newLists: [{ name: "Літо 2026" }] },
+        method: "PUT",
+        path: `/api/books/${BOOK_ID}/lists`,
+      },
+    ]);
+  });
 });

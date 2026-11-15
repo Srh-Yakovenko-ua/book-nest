@@ -9,12 +9,12 @@ import { useRef, useState } from "react";
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { useReleaseOrphanedHistorySentinel } from "@/hooks/use-close-guard";
 
 import type { CharacterFactsScope } from "../api/character-keys";
 import type { CharacterFactFormTarget } from "../model/character-fact-form-schema";
 
 import { useCharacterFactsInfinite } from "../api/use-character-facts-infinite";
-import { useReleaseOrphanedDraftSentinel } from "../hooks/use-character-fact-draft-guard";
 import { toCharacterFactsSearch } from "../model/character-details-query";
 import { useCharacterFactsSearch } from "../model/use-character-details-query";
 import { CharacterFactFormDialog } from "./character-fact-form-dialog";
@@ -41,7 +41,7 @@ export function CharacterFactsList({ bookId, characterId }: CharacterFactsScope)
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const scope = { bookId, characterId };
-  useReleaseOrphanedDraftSentinel();
+  useReleaseOrphanedHistorySentinel();
 
   const items = (facts.data?.pages ?? []).flatMap((page) => page.items);
   const hasSearch = toCharacterFactsSearch(q) !== "";

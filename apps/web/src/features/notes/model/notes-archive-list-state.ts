@@ -3,6 +3,8 @@ import type { NoteView } from "@app/shared";
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
+import { infiniteScrollStateOf } from "@/hooks/use-infinite-scroll-sentinel";
+
 export type NotesArchiveEmptyCopy = Partial<Record<NotesArchiveEmptyReason, EmptyStateEntry>>;
 
 export type NotesArchiveEmptyReason = "filters" | "library" | "search";
@@ -45,7 +47,7 @@ export function notesArchiveListState({
   return {
     isRefreshing: list.isPlaceholderData,
     kind: "ready",
-    nextPage: nextPageState(list),
+    nextPage: infiniteScrollStateOf(list),
     notes,
   };
 }
@@ -57,11 +59,4 @@ function emptyReason({
   if (hasActiveSearch) return "search";
   if (hasActiveFilters) return "filters";
   return "library";
-}
-
-function nextPageState(list: NotesArchiveListSnapshot): InfiniteScrollState {
-  if (list.isFetchingNextPage) return "loading";
-  if (list.isFetchNextPageError) return "error";
-  if (list.hasNextPage) return "idle";
-  return "none";
 }

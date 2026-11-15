@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { timelinesControllerUpdateTimeline } from "@/shared/api/generated/endpoints/timelines/timelines";
 
-import { invalidateTimelineQueries } from "./timeline-keys";
+import { invalidateTimelineLineQueries } from "./timeline-keys";
 
 type UpdateTimelineVariables = {
   bookId: string;
@@ -21,6 +21,8 @@ export function useUpdateTimeline() {
       const response = await timelinesControllerUpdateTimeline(timelineId, input);
       return TimelineViewSchema.parse(response);
     },
-    onSuccess: (_timeline, { bookId }) => invalidateTimelineQueries(queryClient, { bookId }),
+    onSuccess: (_timeline, { bookId }) => {
+      void invalidateTimelineLineQueries(queryClient, { bookId });
+    },
   });
 }

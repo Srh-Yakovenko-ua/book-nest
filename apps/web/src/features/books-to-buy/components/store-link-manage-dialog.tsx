@@ -88,7 +88,7 @@ function StoreLinkManageContent({
   const tDialog = useTranslations("booksToBuy.storeLinks.manageDialog");
   const tErrors = useTranslations("books.details.ownership.errors");
   const storeLinksQuery = useBookStoreLinks(book.id);
-  const deleteWithUndo = useDeleteStoreLinkWithUndo(book.id);
+  const { deleteWithUndo, pendingLinkIds } = useDeleteStoreLinkWithUndo(book.id);
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const previousViewRef = useRef(view);
@@ -189,6 +189,7 @@ function StoreLinkManageContent({
         <ul aria-label={tDialog("title")} className="flex min-w-0 flex-col gap-2" ref={listRef}>
           {sortedLinks.map((link, index) => (
             <StoreLinkRow
+              deleting={pendingLinkIds.includes(link.id)}
               isCheapest={link.id === bestOfferLinkId}
               key={link.id}
               link={link}
@@ -221,11 +222,13 @@ function StoreLinkManageContent({
 }
 
 function StoreLinkRow({
+  deleting,
   isCheapest,
   link,
   onDelete,
   onEdit,
 }: {
+  deleting: boolean;
   isCheapest: boolean;
   link: BookStoreLinkView;
   onDelete: () => void;
@@ -279,6 +282,7 @@ function StoreLinkRow({
         <Button
           aria-label={t("delete", { store: link.storeName })}
           className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+          disabled={deleting}
           onClick={onDelete}
           size="icon-sm"
           type="button"

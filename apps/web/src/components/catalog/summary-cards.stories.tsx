@@ -2,11 +2,11 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { expect, waitFor } from "storybook/test";
 
-import type { LibrarySummaryCard } from "./library-summary-cards";
+import type { SummaryCard } from "./summary-cards";
 
-import { LibrarySummaryCards } from "./library-summary-cards";
+import { SummaryCards } from "./summary-cards";
 
-const cards: LibrarySummaryCard[] = [
+const cards: SummaryCard[] = [
   { icon: "library", iconTone: "primary", label: "Усього книг", unit: "книг", value: 128 },
   { icon: "book", iconTone: "info", label: "Читаю", unit: "книги", value: 4 },
   { icon: "check-circle", iconTone: "success", label: "Прочитано", unit: "книг", value: 86 },
@@ -20,7 +20,7 @@ const cards: LibrarySummaryCard[] = [
   },
 ];
 
-const favoritesCards: LibrarySummaryCard[] = [
+const favoritesCards: SummaryCard[] = [
   {
     icon: "heart",
     iconTone: "favorite",
@@ -68,7 +68,7 @@ const favoritesCards: LibrarySummaryCard[] = [
   },
 ];
 
-const favoritesEmptyTopStats: LibrarySummaryCard[] = [
+const favoritesEmptyTopStats: SummaryCard[] = [
   ...favoritesCards.slice(0, 4),
   {
     icon: "layers",
@@ -88,10 +88,10 @@ const favoritesEmptyTopStats: LibrarySummaryCard[] = [
 
 const meta = {
   args: { cards, isLoading: false },
-  component: LibrarySummaryCards,
+  component: SummaryCards,
   tags: ["ai-generated"],
-  title: "Books/LibrarySummaryCards",
-} satisfies Meta<typeof LibrarySummaryCards>;
+  title: "Patterns/SummaryCards",
+} satisfies Meta<typeof SummaryCards>;
 
 export default meta;
 

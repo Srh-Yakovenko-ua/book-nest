@@ -2,18 +2,9 @@ import type { UpdateBookInput } from "@app/shared";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { characterKeys } from "@/features/characters/api/character-keys";
-import { invalidateGenreDerivedQueries } from "@/features/genres/api/genres-keys";
-import { listKeys } from "@/features/lists/api/list-keys";
-import { invalidatePublisherQueries } from "@/features/publishers/api/publisher-keys";
-import { invalidateGoalQueries } from "@/features/reading-goals/api/goal-keys";
-import { seriesKeys } from "@/features/series/api/series-keys";
-import { invalidateStatisticsQueries } from "@/features/statistics/api/statistics-keys";
-import { invalidateTagCollectionQueries } from "@/features/tags/api/tags-keys";
 import { booksControllerUpdate } from "@/shared/api/generated/endpoints/books/books";
 
-import { matchesReadingQueueKey } from "./reading-queue-keys";
-import { RECENT_GENRES_KEY } from "./use-recent-genres";
+import { bookChangeEffects } from "./book-change-effects";
 
 export function useUpdateBook(id: string) {
   const queryClient = useQueryClient();
@@ -21,19 +12,9 @@ export function useUpdateBook(id: string) {
   return useMutation({
     mutationFn: (input: UpdateBookInput) => booksControllerUpdate(id, input),
     onSuccess: (_book, input) => {
-      void queryClient.invalidateQueries({ queryKey: ["/api/books"] });
-      void queryClient.invalidateQueries({ queryKey: characterKeys.all });
-      void queryClient.invalidateQueries({ queryKey: listKeys.root });
-      void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
-      void queryClient.invalidateQueries({ predicate: matchesReadingQueueKey });
-      void invalidateStatisticsQueries(queryClient);
-      void invalidateGenreDerivedQueries(queryClient);
-      if (input.tags !== undefined) void invalidateTagCollectionQueries(queryClient);
-      void queryClient.invalidateQueries({ queryKey: RECENT_GENRES_KEY });
-      void invalidatePublisherQueries(queryClient);
-      if (input.readingStatus !== undefined || input.readingProgress !== undefined) {
-        void invalidateGoalQueries(queryClient);
-      }
+      void bookChangeEffects.booksChanged(queryClient, {
+        changes: input.tags === undefined ? ["edited"] : ["edited", "tagged"],
+      });
     },
   });
 }

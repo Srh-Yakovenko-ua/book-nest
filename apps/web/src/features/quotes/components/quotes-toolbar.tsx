@@ -2,6 +2,7 @@
 
 import type { QuoteFilter, QuotesFacetsView, QuoteSort } from "@app/shared";
 
+import { QUOTE_INPUT_LIMITS } from "@app/shared";
 import { LayoutGrid, List } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -84,6 +85,7 @@ export function QuotesToolbar({
           <DebouncedSearchInput
             clearLabel={t("searchClear")}
             label={t("searchLabel")}
+            maxLength={QUOTE_INPUT_LIMITS.searchMax}
             onClear={() => onSearch("")}
             onSearch={onSearch}
             placeholder={t("searchPlaceholder")}

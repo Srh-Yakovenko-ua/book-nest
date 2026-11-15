@@ -3,11 +3,12 @@
 import { TAG_COLOR_DEFAULT, type TagView } from "@app/shared";
 import { useTranslations } from "next-intl";
 
+import { rangeLabel } from "@/lib/filter-chips";
+
 import type { ActiveFilterChip } from "../components/library-active-filters";
 import type { LibraryQueryState } from "./library-query";
 import type { UseLibraryQueryResult } from "./use-library-query";
 
-import { rangeLabel } from "./filter-chips";
 import { LIBRARY_PUBLISHER_PRESENCE_DEFAULT } from "./library-query";
 
 const ADVANCED_BADGE_EXCLUDED_CHIP_KEYS: ReadonlySet<string> = new Set(["publisherPresence", "q"]);

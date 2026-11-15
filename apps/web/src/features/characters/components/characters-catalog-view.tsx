@@ -5,9 +5,10 @@ import type { CharacterOverviewView } from "@app/shared";
 import { LayoutGrid, List } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
+import { SummaryCards } from "@/components/catalog/summary-cards";
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { SummaryError } from "@/components/summary-error";
@@ -22,7 +23,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LibraryActiveFilters } from "@/features/books";
-import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 import { formatNumber } from "@/lib/format";
 
 import { useCharactersCatalog } from "../api/use-characters-catalog";
@@ -96,11 +96,7 @@ export function CharactersCatalogView() {
       <SummaryError
         state={overview.isLoadingError ? { onRetry: () => void overview.refetch() } : null}
       >
-        <LibrarySummaryCards
-          cards={summaryCards}
-          isLoading={overview.isPending}
-          mobileLayout="compact"
-        />
+        <SummaryCards cards={summaryCards} isLoading={overview.isPending} mobileLayout="compact" />
       </SummaryError>
 
       <div className="flex flex-col gap-4">
@@ -246,7 +242,7 @@ function toView(value: string): (typeof CHARACTERS_CATALOG_VIEWS)[number] {
   return CHARACTERS_CATALOG_VIEWS.find((option) => option === value) ?? "grid";
 }
 
-function useCharactersSummaryCards(overview?: CharacterOverviewView): LibrarySummaryCard[] {
+function useCharactersSummaryCards(overview?: CharacterOverviewView): SummaryCard[] {
   const t = useTranslations("characters.catalog.summary");
   const locale = useLocale();
 

@@ -2,6 +2,7 @@ import type { CancelledFollowUpView, CancelledFollowUpWishlistResult } from "@ap
 
 import { CancelledFollowUpViewSchema, CancelledFollowUpWishlistResultSchema } from "@app/shared";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { milliseconds } from "date-fns";
 
 import {
   cancelledFollowUpControllerRead,
@@ -9,20 +10,16 @@ import {
 } from "@/shared/api/generated/endpoints/delivery-read/delivery-read";
 
 import { useDeliverySync } from "./delivery-cache";
+import { deliveryKeys } from "./delivery-keys";
 
-const CANCELLED_FOLLOW_UP_QUERY_KEY = [
-  "/api/delivery/books/history",
-  "cancelled-follow-up",
-] as const;
-const CANCELLED_FOLLOW_UP_STALE_TIME = 60_000;
+const CANCELLED_FOLLOW_UP_STALE_TIME = milliseconds({ minutes: 1 });
 
 export function useCancelledFollowUp({ enabled }: { enabled: boolean }) {
   return useQuery({
     enabled,
     queryFn: async (): Promise<CancelledFollowUpView> =>
       CancelledFollowUpViewSchema.parse(await cancelledFollowUpControllerRead()),
-    queryKey: CANCELLED_FOLLOW_UP_QUERY_KEY,
-    retry: false,
+    queryKey: deliveryKeys.history.cancelledFollowUp,
     staleTime: CANCELLED_FOLLOW_UP_STALE_TIME,
   });
 }

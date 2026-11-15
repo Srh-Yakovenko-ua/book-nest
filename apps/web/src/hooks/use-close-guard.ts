@@ -5,13 +5,22 @@ import type { Nullable } from "@app/shared";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { z } from "zod";
 
-const DRAFT_GUARD = {
-  historyKey: "characterFactDraftGuard",
+const HISTORY_SENTINEL = {
+  entryKeyStorageKey: "characterFactDraftGuard:entryKey",
+  key: "characterFactDraftGuard",
 } as const;
 
 const historyStateSchema = z.record(z.string(), z.unknown()).catch({});
 
-type CharacterFactDraftGuard = {
+export type CloseGuardDraft = {
+  isDirty: boolean;
+  isPending: boolean;
+};
+
+export const CLEAN_CLOSE_GUARD_DRAFT: CloseGuardDraft = { isDirty: false, isPending: false };
+
+type CloseGuard = {
+  close: () => void;
   discardDialog: {
     onCloseAutoFocus: (event: Event) => void;
     onConfirm: () => void;
@@ -21,28 +30,33 @@ type CharacterFactDraftGuard = {
   requestClose: () => void;
 };
 
-type CharacterFactDraftGuardOptions = {
-  focusFirstField: () => void;
-  isDirty: boolean;
+type CloseGuardOptions = CloseGuardDraft & {
+  focusFallback: () => void;
+  guardHistory?: boolean;
   isOpen: boolean;
-  isPending: boolean;
   onClose: () => void;
+  onLeave?: () => void;
 };
 
 type DiscardReason = "close" | "history";
 
-export function useCharacterFactDraftGuard({
-  focusFirstField,
+type Exit = Nullable<() => void>;
+
+export function useCloseGuard({
+  focusFallback,
+  guardHistory = false,
   isDirty,
   isOpen,
   isPending,
   onClose,
-}: CharacterFactDraftGuardOptions): CharacterFactDraftGuard {
+  onLeave,
+}: CloseGuardOptions): CloseGuard {
   const [discardReason, setDiscardReason] = useState<Nullable<DiscardReason>>(null);
-  const isSentinelCurrentRef = useRef(false);
-  const leavesAfterCloseRef = useRef(false);
   const focusBeforePromptRef = useRef<Nullable<HTMLElement>>(null);
   const isDraftDiscardedRef = useRef(false);
+  const isSentinelCurrentRef = useRef(false);
+  const isHistoryArmedRef = useRef(false);
+  const exitAfterReleaseRef = useRef<Exit>(null);
   const isGuarding = isOpen && isDirty;
 
   function openPrompt(reason: DiscardReason) {
@@ -56,14 +70,21 @@ export function useCharacterFactDraftGuard({
 
   function returnFocusToDraft(event: Event) {
     event.preventDefault();
-    if (isDraftDiscardedRef.current) return;
     const previous = focusBeforePromptRef.current;
     focusBeforePromptRef.current = null;
+    if (isDraftDiscardedRef.current) return;
     if (previous?.isConnected) {
       previous.focus();
       return;
     }
-    focusFirstField();
+    focusFallback();
+  }
+
+  function finishClose(exit: Exit) {
+    const waitsForHistoryRelease = isHistoryArmedRef.current;
+    exitAfterReleaseRef.current = waitsForHistoryRelease ? exit : null;
+    onClose();
+    if (!waitsForHistoryRelease) exit?.();
   }
 
   const confirmHistoryLeave = useEffectEvent(() => {
@@ -80,6 +101,13 @@ export function useCharacterFactDraftGuard({
       event.returnValue = "";
     }
 
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [isGuarding]);
+
+  useEffect(() => {
+    if (!guardHistory || !isGuarding) return;
+
     function interceptHistoryLeave() {
       isSentinelCurrentRef.current = hasHistorySentinel();
       if (isSentinelCurrentRef.current) return;
@@ -88,36 +116,37 @@ export function useCharacterFactDraftGuard({
 
     pushHistorySentinel();
     isSentinelCurrentRef.current = true;
-    window.addEventListener("beforeunload", warnBeforeUnload);
+    isHistoryArmedRef.current = true;
     window.addEventListener("popstate", interceptHistoryLeave);
 
     return () => {
-      window.removeEventListener("beforeunload", warnBeforeUnload);
       window.removeEventListener("popstate", interceptHistoryLeave);
-      const leavesAfterClose = leavesAfterCloseRef.current;
-      leavesAfterCloseRef.current = false;
+      isHistoryArmedRef.current = false;
+      const exit = exitAfterReleaseRef.current;
+      exitAfterReleaseRef.current = null;
+      const isSentinelCurrent = isSentinelCurrentRef.current && hasHistorySentinel();
+      isSentinelCurrentRef.current = false;
 
-      if (!isSentinelCurrentRef.current) {
-        if (leavesAfterClose) window.history.back();
+      if (!isSentinelCurrent) {
+        exit?.();
         return;
       }
 
-      isSentinelCurrentRef.current = false;
-      if (leavesAfterClose) {
-        window.addEventListener("popstate", () => window.history.back(), { once: true });
-      }
+      if (exit !== null) window.addEventListener("popstate", () => exit(), { once: true });
       window.history.back();
     };
-  }, [isGuarding]);
+  }, [guardHistory, isGuarding]);
 
   return {
+    close: () => finishClose(onLeave ?? null),
     discardDialog: {
       onCloseAutoFocus: returnFocusToDraft,
       onConfirm: () => {
-        leavesAfterCloseRef.current = discardReason === "history";
+        const exit: Exit =
+          discardReason === "history" ? () => window.history.back() : (onLeave ?? null);
         isDraftDiscardedRef.current = true;
         setDiscardReason(null);
-        onClose();
+        finishClose(exit);
       },
       onOpenChange: (open) => {
         if (!open) setDiscardReason(null);
@@ -130,12 +159,12 @@ export function useCharacterFactDraftGuard({
         openPrompt("close");
         return;
       }
-      onClose();
+      finishClose(onLeave ?? null);
     },
   };
 }
 
-export function useReleaseOrphanedDraftSentinel() {
+export function useReleaseOrphanedHistorySentinel() {
   const isReleasedRef = useRef(false);
 
   useEffect(() => {
@@ -145,13 +174,39 @@ export function useReleaseOrphanedDraftSentinel() {
   }, []);
 }
 
+function currentHistoryEntryKey(): Nullable<string> {
+  if (!("navigation" in window)) return null;
+  return window.navigation.currentEntry?.key ?? null;
+}
+
 function hasHistorySentinel(): boolean {
-  return historyStateSchema.parse(window.history.state)[DRAFT_GUARD.historyKey] === true;
+  if (historyStateSchema.parse(window.history.state)[HISTORY_SENTINEL.key] === true) return true;
+  const entryKey = currentHistoryEntryKey();
+  return entryKey !== null && entryKey === readSentinelEntryKey();
 }
 
 function pushHistorySentinel() {
   window.history.pushState(
-    { ...historyStateSchema.parse(window.history.state), [DRAFT_GUARD.historyKey]: true },
+    { ...historyStateSchema.parse(window.history.state), [HISTORY_SENTINEL.key]: true },
     "",
   );
+  rememberSentinelEntryKey();
+}
+
+function readSentinelEntryKey(): Nullable<string> {
+  try {
+    return window.sessionStorage.getItem(HISTORY_SENTINEL.entryKeyStorageKey);
+  } catch {
+    return null;
+  }
+}
+
+function rememberSentinelEntryKey() {
+  const entryKey = currentHistoryEntryKey();
+  if (entryKey === null) return;
+  try {
+    window.sessionStorage.setItem(HISTORY_SENTINEL.entryKeyStorageKey, entryKey);
+  } catch {
+    return;
+  }
 }
