@@ -55,6 +55,7 @@ function BookNotesArchive() {
 
 function NotesArchive({ query }: { query: UseNotesArchiveQueryResult }) {
   const t = useTranslations("notes.archive");
+  const tCommon = useTranslations("common");
   const { config } = query;
   const notes = useNotesArchiveList(query.listParams);
   const facets = useNotesFacets(config.scope, query.datasetParams);
@@ -143,6 +144,7 @@ function NotesArchive({ query }: { query: UseNotesArchiveQueryResult }) {
 
   function archiveCounter(): Nullable<string> {
     if (listState.kind !== "ready") return null;
+    if (listState.isRefreshing) return tCommon("updating");
     const total = notes.data?.pages[0]?.totalCount ?? listState.notes.length;
     return t("counter", { shown: listState.notes.length, total });
   }

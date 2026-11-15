@@ -448,6 +448,23 @@ describe("QuotesView refetch failure", () => {
   });
 });
 
+describe("QuotesView first-load retry", () => {
+  it("moves keyboard focus to the quotes list while the retry request is pending", async () => {
+    const retryName = messages.quotes.actions.retry;
+    mockQuotes(quotes(3), { listStatus: 500 });
+    renderQuotes();
+    (await screen.findByRole("button", { name: retryName })).focus();
+
+    mockQuotes(quotes(3), { listHeldUntil: () => new Promise<void>(() => undefined) });
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: retryName })).not.toBeInTheDocument(),
+    );
+
+    expect(screen.getByRole("region", { name: messages.quotes.listLabel })).toHaveFocus();
+  });
+});
+
 describe("QuotesView overview blocks", () => {
   it("shows the rediscovery block above the post-finish block", async () => {
     mockQuotes(quotes(3), { overview: { memoryQuote: makeQuote(), postFinish: POST_FINISH } });

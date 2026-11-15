@@ -32,7 +32,7 @@ export function QuotesView() {
   const tCommon = useTranslations("common");
   const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
-  const resultsRegionRef = useRef<HTMLDivElement>(null);
+  const resultsRegionRef = useRef<HTMLElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsRegionRef);
 
   const {
@@ -144,7 +144,8 @@ export function QuotesView() {
       />
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-        <div
+        <section
+          aria-label={t("listLabel")}
           className="flex min-w-0 flex-1 flex-col gap-6 outline-none"
           ref={resultsRegionRef}
           tabIndex={-1}
@@ -174,7 +175,7 @@ export function QuotesView() {
             retryButtonRef={retryButtonRef}
             view={state.view}
           />
-        </div>
+        </section>
 
         {showSidebar ? <QuotesSidebar /> : null}
       </div>

@@ -40,7 +40,7 @@ export function ReadingCalendarPage() {
   const params = useReadingCalendarParams();
   const scope = toStatisticsScopeState(useReadingCalendarPage({ year: params.year }));
   const booksSectionRef = useRef<HTMLDivElement>(null);
-  const calendarBodyRef = useRef<HTMLDivElement>(null);
+  const calendarBodyRef = useRef<HTMLElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(calendarBodyRef);
   const jump = useBooksCalendarJump({
     isCalendarCurrent: scope.data?.year === params.year && !scope.isPlaceholderData,
@@ -77,7 +77,12 @@ export function ReadingCalendarPage() {
         }
       />
 
-      <div className="outline-none" ref={calendarBodyRef} tabIndex={-1}>
+      <section
+        aria-label={t("resultsLabel")}
+        className="outline-none"
+        ref={calendarBodyRef}
+        tabIndex={-1}
+      >
         <ReadingCalendarBody
           booksSectionRef={booksSectionRef}
           jump={jump}
@@ -86,7 +91,7 @@ export function ReadingCalendarPage() {
           retryButtonRef={retryButtonRef}
           scope={scope}
         />
-      </div>
+      </section>
     </div>
   );
 }

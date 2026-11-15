@@ -479,15 +479,18 @@
       "expectedThisWeek": "This week",
       "delayed": "Delayed",
       "loading": "Loading deliveries…",
+      "empty": "No deliveries in transit",
       "error": {
-        "title": "Couldn't load deliveries"
+        "title": "Couldn't load deliveries",
+        "retry": "Try again to load deliveries"
       }
     }
   },
   "notFound": {
     "title": "Page not found",
     "description": "It looks like this page got lost between the library shelves. But the way back is easy to find.",
-    "quickLinks": "Quick links:"
+    "quickLinks": "Quick links:",
+    "backHome": "Back home"
   },
   "error": {
     "eyebrow": "Error · Client",
@@ -2067,6 +2070,7 @@
     "metaTitle": "Wishlist",
     "title": "Wishlist",
     "subtitle": "Books you don't own yet but want on your shelf",
+    "listLabel": "Books on the wishlist",
     "addBook": "Add book",
     "counter": "Showing {shown} of {total, plural, one {# book} other {# books}}",
     "filters": {
@@ -2392,6 +2396,7 @@
     "metaTitle": "Dedications",
     "title": "Dedications",
     "subtitle": "Author dedications from the books you added to your library. The small words that begin a big story.",
+    "listLabel": "Dedication list",
     "added": "Dedication added",
     "loadMoreError": "Couldn't load more dedications",
     "allShown": "All dedications shown",
@@ -3451,6 +3456,7 @@
       "metaTitle": "Spending statistics",
       "title": "Spending statistics",
       "subtitle": "What you spend on books, where you get the better deal, and how much money is on its way right now.",
+      "resultsLabel": "Spending figures",
       "controls": {
         "toolbarLabel": "Period and filters",
         "includeCancelled": "Include cancelled orders",
@@ -5191,6 +5197,7 @@
       "metaTitle": "Contacts",
       "title": "Contacts",
       "subtitle": "The people you lend books to and borrow them from.",
+      "listLabel": "Contact list",
       "loadMoreError": "Could not load the next page.",
       "create": {
         "cta": "Add contact",
@@ -6998,6 +7005,7 @@
     "metaTitle": "Quotes",
     "title": "Quotes",
     "subtitle": "Your personal archive of favorite lines from books",
+    "listLabel": "Quote list",
     "noResults": {
       "title": "Nothing found",
       "description": "Try changing your search query or clearing the filters.",
@@ -9278,6 +9286,7 @@
     "metaTitle": "Reading statistics",
     "title": "Statistics",
     "subtitle": "How you read in the selected period: dynamics, tastes, progress and records.",
+    "resultsLabel": "Statistics for the selected period",
     "tabs": {
       "label": "Statistics sections",
       "overview": "Overview",
@@ -9804,6 +9813,7 @@
     "metaTitle": "Reading calendar",
     "title": "Reading calendar",
     "subtitle": "Your reading year day by day: activity and books.",
+    "resultsLabel": "Calendar for the selected year",
     "activity": {
       "title": "Activity calendar",
       "description": "How many pages you read on each day of the year."

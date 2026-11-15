@@ -63,7 +63,7 @@ export function StatisticsOverview() {
   const scope = toStatisticsScopeState(query);
   const currentOverview = scope.isPlaceholderData ? undefined : scope.data;
   const periodTriggerRef = useRef<HTMLButtonElement>(null);
-  const statisticsBodyRef = useRef<HTMLDivElement>(null);
+  const statisticsBodyRef = useRef<HTMLElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(statisticsBodyRef);
 
   const showAllTime = () => {
@@ -101,7 +101,12 @@ export function StatisticsOverview() {
         }
       />
 
-      <div className="outline-none" ref={statisticsBodyRef} tabIndex={-1}>
+      <section
+        aria-label={t("resultsLabel")}
+        className="outline-none"
+        ref={statisticsBodyRef}
+        tabIndex={-1}
+      >
         <StatisticsBody
           onRetry={withRetryFocus(scope.retry)}
           onShowAllTime={showAllTime}
@@ -109,7 +114,7 @@ export function StatisticsOverview() {
           retryButtonRef={retryButtonRef}
           scope={scope}
         />
-      </div>
+      </section>
     </div>
   );
 }

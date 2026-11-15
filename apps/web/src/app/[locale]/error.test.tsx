@@ -9,7 +9,7 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 import messages from "@/messages/uk.json";
-import { renderWithProviders, screen, userEvent } from "@/test-utils";
+import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import RouteError from "./error";
 
@@ -52,5 +52,17 @@ describe("route error boundary", () => {
     await userEvent.click(screen.getByRole("button", { name: copy.reload }));
 
     expect(reset).toHaveBeenCalledTimes(1);
+  });
+
+  it("titles the document with the headline and the app name", async () => {
+    showRouteError();
+
+    await waitFor(() => expect(document.title).toBe(`${copy.headline} · ${messages.home.title}`));
+  });
+
+  it("moves focus to the headline", () => {
+    showRouteError();
+
+    expect(screen.getByRole("heading", { level: 1 })).toHaveFocus();
   });
 });

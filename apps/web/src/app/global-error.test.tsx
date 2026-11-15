@@ -8,7 +8,7 @@ vi.mock("next/navigation", () => ({
 
 import en from "@/messages/global-error/en.json";
 import uk from "@/messages/global-error/uk.json";
-import { render, screen, userEvent } from "@/test-utils";
+import { render, screen, userEvent, waitFor } from "@/test-utils";
 
 import GlobalError from "./global-error";
 
@@ -49,5 +49,20 @@ describe("global error boundary", () => {
     await userEvent.click(screen.getByRole("button", { name: en.reload }));
 
     expect(reset).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    { copy: en, locale: "en" },
+    { copy: uk, locale: "uk" },
+  ])("titles the document in the $locale locale", async ({ copy, locale }) => {
+    showGlobalError({ locale });
+
+    await waitFor(() => expect(document.title).toBe(copy.documentTitle));
+  });
+
+  it.each(["en", "uk"])("moves focus to the headline in the %s locale", (locale) => {
+    showGlobalError({ locale });
+
+    expect(screen.getByRole("heading", { level: 1 })).toHaveFocus();
   });
 });

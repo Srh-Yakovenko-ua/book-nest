@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { type Locale, routing } from "@/i18n/routing";
+import { focusOnMount } from "@/lib/focus-on-mount";
 import en from "@/messages/global-error/en.json";
 import uk from "@/messages/global-error/uk.json";
 import "@/styles/globals.css";
@@ -25,12 +26,17 @@ export default function GlobalError({
   return (
     <html lang={resolvedLocale}>
       <body className="bg-background text-foreground antialiased">
+        <title>{messages.documentTitle}</title>
         <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center">
           <div className="space-y-2">
             <p className="font-mono text-[10px] tracking-[0.26em] text-muted-foreground uppercase">
               {messages.eyebrow}
             </p>
-            <h1 className="font-display text-4xl font-semibold">
+            <h1
+              className="font-display text-4xl font-semibold outline-none"
+              ref={focusOnMount}
+              tabIndex={-1}
+            >
               {messages.headline}
               <span className="text-error">.</span>
             </h1>

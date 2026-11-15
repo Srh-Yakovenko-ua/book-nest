@@ -36,7 +36,7 @@ export function LoanContactsView() {
   const list = useLoanContactsList(query.listParams);
   const contactDrawer = useLoanContactDrawer();
   const [isCreating, setIsCreating] = useState(false);
-  const resultsRegionRef = useRef<HTMLDivElement>(null);
+  const resultsRegionRef = useRef<HTMLElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsRegionRef);
 
   const loadedPages = list.data?.pages ?? [];
@@ -85,7 +85,12 @@ export function LoanContactsView() {
         }
       />
 
-      <div className="flex flex-col outline-none" ref={resultsRegionRef} tabIndex={-1}>
+      <section
+        aria-label={t("listLabel")}
+        className="flex flex-col outline-none"
+        ref={resultsRegionRef}
+        tabIndex={-1}
+      >
         <LoanContactsContent
           hasActiveQuery={query.hasActiveQuery}
           isError={list.isLoadingError}
@@ -98,7 +103,7 @@ export function LoanContactsView() {
           onRetry={withRetryFocus(() => void list.refetch())}
           retryButtonRef={retryButtonRef}
         />
-      </div>
+      </section>
 
       {items.length > 0 ? (
         <InfiniteScrollFooter

@@ -116,7 +116,7 @@ export function ReadingQueueView() {
   }
 
   const listHeadingRef = useRef<HTMLHeadingElement>(null);
-  const resultsRegionRef = useRef<HTMLDivElement>(null);
+  const resultsRegionRef = useRef<HTMLElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsRegionRef);
   const previousServerOrderKey = useRef(serverOrderKey);
   useEffect(() => {
@@ -219,7 +219,12 @@ export function ReadingQueueView() {
         state={isRefetchError ? { isRetrying: isRefetching, onRetry: () => void refetch() } : null}
       />
 
-      <div className="flex flex-col gap-6 outline-none" ref={resultsRegionRef} tabIndex={-1}>
+      <section
+        aria-label={t("title")}
+        className="flex flex-col gap-6 outline-none"
+        ref={resultsRegionRef}
+        tabIndex={-1}
+      >
         {isLoadingError ? (
           <div aria-live="assertive" role="alert">
             <EmptyState
@@ -308,7 +313,7 @@ export function ReadingQueueView() {
             </div>
           </>
         )}
-      </div>
+      </section>
 
       <AddBookToQueueDialog
         onOpenChange={setAddOpen}

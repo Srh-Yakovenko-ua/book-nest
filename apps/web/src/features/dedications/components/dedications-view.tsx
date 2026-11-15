@@ -32,12 +32,13 @@ const DEDICATIONS_MOBILE_TILE_COUNT = 3;
 
 export function DedicationsView() {
   const t = useTranslations("dedications");
+  const tCommon = useTranslations("common");
   const query = useDedicationsQuery();
   const dedications = useDedications(query.listParams);
   const quickCounts = useDedicationsQuickCounts(toDedicationsQuickCountsParams(query.listParams));
   const summary = useDedicationsSummary();
   const genres = useGenres();
-  const resultsRegionRef = useRef<HTMLDivElement>(null);
+  const resultsRegionRef = useRef<HTMLElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsRegionRef);
 
   const [openedBook, setOpenedBook] = useState<Nullable<BookView>>(null);
@@ -143,6 +144,13 @@ export function DedicationsView() {
 
   const onChooseBook = () => setPickerOpen(true);
 
+  function toolbarCounter(): string | undefined {
+    if (dedications.isPending || dedications.isLoadingError) return undefined;
+    if (dedications.isPlaceholderData) return tCommon("updating");
+    if (books.length === 0) return undefined;
+    return t("counter", { shown: books.length, total: resultTotal });
+  }
+
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-2 motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-1">
@@ -181,11 +189,7 @@ export function DedicationsView() {
             availableGenres={summary.data?.availableGenres ?? []}
             chipCounts={quickCounts.data}
             chipCountsPending={quickCounts.isPending}
-            counter={
-              dedications.isPending || dedications.isLoadingError || books.length === 0
-                ? undefined
-                : t("counter", { shown: books.length, total: resultTotal })
-            }
+            counter={toolbarCounter()}
             filter={query.state.filter}
             genre={query.state.genre}
             onFilterChange={query.setFilter}
@@ -201,7 +205,8 @@ export function DedicationsView() {
       />
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-        <div
+        <section
+          aria-label={t("listLabel")}
           className="flex min-w-0 flex-1 flex-col gap-6 outline-none"
           ref={resultsRegionRef}
           tabIndex={-1}
@@ -238,7 +243,7 @@ export function DedicationsView() {
               state={loadMoreState}
             />
           )}
-        </div>
+        </section>
         {showChrome ? <DedicationsSidebar onChooseBook={onChooseBook} /> : null}
       </div>
 

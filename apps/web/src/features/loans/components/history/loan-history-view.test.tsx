@@ -219,6 +219,9 @@ describe("LoanHistoryView states", () => {
       expect(screen.queryByRole("button", { name: error.retry })).not.toBeInTheDocument(),
     );
     expect(document.body).not.toHaveFocus();
+    expect(
+      screen.getByRole("region", { name: messages.loans.pages.history.listHeading }),
+    ).toHaveFocus();
     failRetry();
 
     expect(await screen.findByRole("button", { name: error.retry })).toHaveFocus();

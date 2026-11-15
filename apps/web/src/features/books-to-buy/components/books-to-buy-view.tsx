@@ -48,7 +48,7 @@ export function BooksToBuyView() {
   const genres = useGenres();
   const selectedTags = useSelectedTags(wishlist.state.tag);
   const [entityLabels, setEntityLabels] = useState<Record<string, string>>({});
-  const resultsRegionRef = useRef<HTMLDivElement>(null);
+  const resultsRegionRef = useRef<HTMLElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsRegionRef);
 
   const allBooks = data?.books ?? [];
@@ -204,7 +204,8 @@ export function BooksToBuyView() {
       />
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-        <div
+        <section
+          aria-label={t("listLabel")}
           className="flex min-w-0 flex-1 flex-col gap-6 outline-none"
           ref={resultsRegionRef}
           tabIndex={-1}
@@ -227,7 +228,7 @@ export function BooksToBuyView() {
             retryButtonRef={retryButtonRef}
             view={wishlist.view}
           />
-        </div>
+        </section>
         {showOverview ? <BooksToBuySidebar bestOffers={bestOffers} isLoading={isPending} /> : null}
       </div>
     </div>
