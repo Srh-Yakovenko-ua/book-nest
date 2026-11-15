@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/select";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { assertNever } from "@/lib/assert-never";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import type { GoalCursorContent } from "../model/goal-cursor-content";
 import type { GoalActivityType } from "../model/goal-detail-query";
@@ -108,7 +110,7 @@ export function GoalActivityTab({
 
       <section
         aria-label={t("listLabel")}
-        className="flex min-w-0 flex-col gap-4 outline-none"
+        className={cn("flex min-w-0 flex-col gap-4", RETRY_FOCUS_RING.onTarget)}
         ref={listRegionRef}
         tabIndex={-1}
       >

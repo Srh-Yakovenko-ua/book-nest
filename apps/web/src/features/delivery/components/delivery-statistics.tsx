@@ -13,6 +13,7 @@ import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 
 import type { StatisticsDrilldownContext } from "../model/statistics-drilldown";
 import type { DynamicsMetric } from "../model/statistics-dynamics";
@@ -179,7 +180,7 @@ export function DeliveryStatistics() {
 
       <section
         aria-label={t("resultsLabel")}
-        className="outline-none"
+        className={RETRY_FOCUS_RING.onTarget}
         ref={statisticsBodyRef}
         tabIndex={-1}
       >

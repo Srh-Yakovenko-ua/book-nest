@@ -13,6 +13,7 @@ import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 
 import type { DynamicsMetric } from "../../model/statistics-dynamics";
 import type { StatisticsScopeState } from "../../model/statistics-scope-state";
@@ -103,7 +104,7 @@ export function StatisticsOverview() {
 
       <section
         aria-label={t("resultsLabel")}
-        className="outline-none"
+        className={RETRY_FOCUS_RING.onTarget}
         ref={statisticsBodyRef}
         tabIndex={-1}
       >

@@ -11,6 +11,8 @@ import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import { useQuotes } from "../api/use-quotes";
 import { useQuotesFacets } from "../api/use-quotes-facets";
@@ -146,7 +148,7 @@ export function QuotesView() {
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <section
           aria-label={t("listLabel")}
-          className="flex min-w-0 flex-1 flex-col gap-6 outline-none"
+          className={cn("flex min-w-0 flex-1 flex-col gap-6", RETRY_FOCUS_RING.onTarget)}
           ref={resultsRegionRef}
           tabIndex={-1}
         >

@@ -57,7 +57,7 @@ const CALENDAR_UI = {
   disabledClass: "cursor-not-allowed",
   gapPx: 3,
   interactiveClass:
-    "outline-none ring-ring ring-offset-1 ring-offset-card transition-[box-shadow,filter] hover:ring-2 hover:brightness-90 focus-visible:ring-2 focus-visible:brightness-90",
+    "outline-none ring-primary ring-offset-1 ring-offset-card transition-[box-shadow,filter] hover:ring-2 hover:brightness-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:brightness-90",
   minMonthLabelPx: 34,
   monthLabelGapPx: 4,
   monthLabelRowPx: 16,

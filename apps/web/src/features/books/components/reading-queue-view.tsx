@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import type { LibraryBookLabels } from "../model/library-book";
 
@@ -221,7 +223,7 @@ export function ReadingQueueView() {
 
       <section
         aria-label={t("title")}
-        className="flex flex-col gap-6 outline-none"
+        className={cn("flex flex-col gap-6", RETRY_FOCUS_RING.onTarget)}
         ref={resultsRegionRef}
         tabIndex={-1}
       >

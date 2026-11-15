@@ -16,6 +16,7 @@ import { TitleLeaf } from "@/components/title-leaf";
 import { Skeleton } from "@/components/ui/skeleton";
 import { YearPicker } from "@/components/ui/year-picker";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 
 import type { StatisticsScopeState } from "../../model/statistics-scope-state";
 import type { UseReadingCalendarParamsResult } from "../../model/use-reading-calendar-params";
@@ -79,7 +80,7 @@ export function ReadingCalendarPage() {
 
       <section
         aria-label={t("resultsLabel")}
-        className="outline-none"
+        className={RETRY_FOCUS_RING.onTarget}
         ref={calendarBodyRef}
         tabIndex={-1}
       >

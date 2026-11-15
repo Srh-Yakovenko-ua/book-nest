@@ -21,6 +21,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import type { SeriesListLayout, SeriesTab } from "../model/series-derive";
 
@@ -146,7 +148,7 @@ export function AllSeriesView({
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <div
-          className="flex min-w-0 flex-1 flex-col gap-6"
+          className={cn("flex min-w-0 flex-1 flex-col gap-6", RETRY_FOCUS_RING.aroundHiddenHeading)}
           {...(showToolbar
             ? {
                 "aria-labelledby": pageTabsTriggerId(SERIES_RESULTS_PANEL_ID, tab),

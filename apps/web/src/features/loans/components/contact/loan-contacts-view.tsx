@@ -19,6 +19,8 @@ import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import type { LoanContactResolution } from "./create-loan-contact-form";
 
@@ -87,7 +89,7 @@ export function LoanContactsView() {
 
       <section
         aria-label={t("listLabel")}
-        className="flex flex-col outline-none"
+        className={cn("flex flex-col", RETRY_FOCUS_RING.onTarget)}
         ref={resultsRegionRef}
         tabIndex={-1}
       >

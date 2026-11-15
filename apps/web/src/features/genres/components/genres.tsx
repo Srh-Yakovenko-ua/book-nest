@@ -10,6 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
 import { assertNever } from "@/lib/assert-never";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import type { GenresEmptyReason, GenresListState } from "../model/genres-list-state";
 
@@ -99,7 +101,9 @@ export function Genres() {
       </p>
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
+        <div
+          className={cn("flex min-w-0 flex-1 flex-col gap-6", RETRY_FOCUS_RING.aroundHiddenHeading)}
+        >
           <h2 className="sr-only" ref={resultsHeadingRef} tabIndex={-1}>
             {t("resultsTitle")}
           </h2>

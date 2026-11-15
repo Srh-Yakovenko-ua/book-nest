@@ -149,7 +149,7 @@ export function BookTagsDialog({ bookCount, onConfirm, onOpenChange, open }: Boo
                     <span className="overflow-hidden text-ellipsis">{tag}</span>
                     <button
                       aria-label={t("removeTag", { name: tag })}
-                      className="relative grid size-4.5 shrink-0 cursor-pointer place-items-center rounded-full text-accent-foreground opacity-65 transition-[opacity,background-color] after:absolute after:-inset-[3px] hover:bg-accent-foreground/15 hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                      className="relative grid size-4.5 shrink-0 cursor-pointer place-items-center rounded-full text-accent-foreground opacity-65 transition-[opacity,background-color] after:absolute after:-inset-[3px] hover:bg-accent-foreground/15 hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:outline-none"
                       onClick={() => removeTag(tag)}
                       type="button"
                     >

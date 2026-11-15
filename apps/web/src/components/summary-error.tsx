@@ -10,6 +10,7 @@ import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { assertNever } from "@/lib/assert-never";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 import { cn } from "@/lib/utils";
 
 export type SummaryErrorState = {
@@ -87,10 +88,7 @@ function StandaloneSummaryError({
   return (
     <div
       aria-label={regionLabel}
-      className={cn(
-        "rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-        className,
-      )}
+      className={cn(RETRY_FOCUS_RING.onTarget, className)}
       ref={regionRef}
       role={regionLabel === undefined ? undefined : "region"}
       tabIndex={-1}

@@ -10,6 +10,8 @@ import type { BookTabScrollMemory } from "@/hooks/use-book-tab-scroll-anchor";
 import { toBookSelectOption } from "@/features/books/model/book-select-option";
 import { useBookTabScrollAnchor } from "@/hooks/use-book-tab-scroll-anchor";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import { useBookQuotesList } from "../api/use-book-quotes-list";
 import { useQuotesFacets } from "../api/use-quotes-facets";
@@ -55,7 +57,10 @@ export function BookQuotesTab({ book, scrollMemory }: BookQuotesTabProps) {
 
   return (
     <div
-      className="flex scroll-mt-[calc(var(--shell-header-height)+1rem)] flex-col gap-5"
+      className={cn(
+        "flex scroll-mt-[calc(var(--shell-header-height)+1rem)] flex-col gap-5",
+        RETRY_FOCUS_RING.aroundHiddenHeading,
+      )}
       ref={resultsStartRef}
     >
       <h2 className="sr-only" ref={tabHeadingRef} tabIndex={-1}>
