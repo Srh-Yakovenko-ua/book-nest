@@ -10,6 +10,8 @@ import { UiIcon } from "@/components/icons";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import type { TagsListState } from "../model/tags-list-state";
 
@@ -112,7 +114,7 @@ export function TagsView() {
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <section
           aria-labelledby="tags-catalog-title"
-          className="flex min-w-0 flex-1 flex-col gap-4"
+          className={cn("flex min-w-0 flex-1 flex-col gap-4", RETRY_FOCUS_RING.aroundHiddenHeading)}
         >
           <h2 className="sr-only" id="tags-catalog-title" ref={catalogHeadingRef} tabIndex={-1}>
             {t("catalog.title")}

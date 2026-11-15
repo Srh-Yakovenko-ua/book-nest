@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { assertNever } from "@/lib/assert-never";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import type { GoalsCatalogContent } from "../model/goals-catalog-content";
 import type { GoalsViewMode } from "../model/goals-query";
@@ -77,7 +79,7 @@ export function GoalsCatalogView({
 
       {hasNoGoals || content.kind === "error" ? null : toolbar}
 
-      <section className="flex min-w-0 flex-col gap-6">
+      <section className={cn("flex min-w-0 flex-col gap-6", RETRY_FOCUS_RING.aroundHiddenHeading)}>
         <h2 className="sr-only" ref={listHeadingRef} tabIndex={-1}>
           {t("listHeading")}
         </h2>

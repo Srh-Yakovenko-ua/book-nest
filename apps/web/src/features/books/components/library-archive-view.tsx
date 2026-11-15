@@ -23,6 +23,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Segmented } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import type { LibraryActions, PendingBookAction } from "../model/book-card-actions";
 import type { LibraryBook, LibraryBookLinkComponent } from "../model/library-book";
@@ -175,7 +177,9 @@ export function LibraryArchiveView(props: LibraryArchiveViewProps) {
       {showToolbar ? <LibraryToolbar {...props} /> : null}
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
+        <div
+          className={cn("flex min-w-0 flex-1 flex-col gap-6", RETRY_FOCUS_RING.aroundHiddenHeading)}
+        >
           <h2 className="sr-only" ref={resultsHeadingRef} tabIndex={-1}>
             {t("resultsTitle")}
           </h2>
