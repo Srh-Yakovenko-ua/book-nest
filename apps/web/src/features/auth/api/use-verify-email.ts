@@ -2,7 +2,7 @@ import type { AuthResultView, VerifyEmailInput } from "@app/shared";
 
 import { useMutation } from "@tanstack/react-query";
 
-import { request } from "@/lib/http-client";
+import { authControllerVerifyEmail } from "@/shared/api/generated/endpoints/auth/auth";
 
 import { useAuthStore } from "../model/auth-store";
 import { AuthResultSchema } from "./schemas";
@@ -12,10 +12,7 @@ export function useVerifyEmail() {
 
   return useMutation({
     mutationFn: async (input: VerifyEmailInput): Promise<AuthResultView> => {
-      const body = await request<unknown>("/api/auth/verify-email", {
-        body: JSON.stringify(input),
-        method: "POST",
-      });
+      const body = await authControllerVerifyEmail(input);
       return AuthResultSchema.parse(body);
     },
     onSuccess: (result) => {
