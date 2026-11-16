@@ -9,6 +9,7 @@ import { deliveryKeys } from "@/features/delivery/api/delivery-keys";
 import { loanKeys } from "@/features/loans/api/loan-keys";
 import { goalKeys } from "@/features/reading-goals/api/goal-keys";
 import { statisticsKeys } from "@/features/statistics/api/statistics-keys";
+import { staleFlags } from "@/test-query-cache";
 
 import { settingsChangeEffects } from "./settings-change-effects";
 import { settingsKeys } from "./settings-keys";
@@ -41,10 +42,6 @@ function seededClient(): QueryClient {
   client.setQueryData(settingsKeys.root, defaultUserProfileSettings);
   for (const key of DEPENDENT_KEYS) client.setQueryData(key, {});
   return client;
-}
-
-function staleFlags(client: QueryClient, keys: readonly QueryKey[]): boolean[] {
-  return keys.map((key) => client.getQueryState(key)?.isInvalidated ?? false);
 }
 
 describe("settingsChangeEffects", () => {

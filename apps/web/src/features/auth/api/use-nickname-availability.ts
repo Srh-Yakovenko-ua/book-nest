@@ -1,13 +1,12 @@
 import type { NicknameAvailabilityView } from "@app/shared";
 
-import { NicknameSchema } from "@app/shared";
+import { NicknameAvailabilityViewSchema, NicknameSchema } from "@app/shared";
 import { keepPreviousData, skipToken, useQuery } from "@tanstack/react-query";
 
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { authControllerCheckNicknameAvailability } from "@/shared/api/generated/endpoints/auth/auth";
 
 import { authKeys } from "./auth-keys";
-import { NicknameAvailabilitySchema } from "./schemas";
 
 const DEBOUNCE_MS = 400;
 
@@ -22,7 +21,7 @@ export function useNicknameAvailability(nickname: string) {
       validNickname === null
         ? skipToken
         : async ({ signal }): Promise<NicknameAvailabilityView> =>
-            NicknameAvailabilitySchema.parse(
+            NicknameAvailabilityViewSchema.parse(
               await authControllerCheckNicknameAvailability(
                 { nickname: validNickname },
                 { signal },

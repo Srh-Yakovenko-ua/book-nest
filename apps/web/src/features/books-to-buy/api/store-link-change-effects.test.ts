@@ -1,9 +1,9 @@
 import type { QueryKey } from "@tanstack/react-query";
 
-import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 
 import { publisherKeys } from "@/features/publishers/api/publisher-keys";
+import { seededClient, staleFlags } from "@/test-query-cache";
 
 import { storeLinkChangeEffects } from "./store-link-change-effects";
 import { storeLinkKeys } from "./store-link-keys";
@@ -16,16 +16,6 @@ const KEYS = {
   storeLinks: storeLinkKeys.forBook("book-1"),
   wishlist: wishlistKeys.root,
 } as const satisfies Record<string, QueryKey>;
-
-function seededClient(keys: readonly QueryKey[]): QueryClient {
-  const client = new QueryClient();
-  for (const key of keys) client.setQueryData(key, {});
-  return client;
-}
-
-function staleFlags(client: QueryClient, keys: readonly QueryKey[]): boolean[] {
-  return keys.map((key) => client.getQueryState(key)?.isInvalidated ?? false);
-}
 
 describe("storeLinkChangeEffects", () => {
   it("refreshes the book's store links, the wishlist and the publisher catalog", async () => {

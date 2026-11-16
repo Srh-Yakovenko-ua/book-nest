@@ -1,10 +1,10 @@
 import type { QueryKey } from "@tanstack/react-query";
 
-import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 
 import { bookKeys } from "@/features/books/api/book-keys";
 import { tagsKeys } from "@/features/tags/api/tags-keys";
+import { seededClient, staleFlags } from "@/test-query-cache";
 
 import { characterChangeEffects } from "./character-change-effects";
 import { characterKeys } from "./character-keys";
@@ -16,16 +16,6 @@ const KEYS = {
   overview: characterKeys.overview(),
   tagSummary: tagsKeys.summary,
 } as const satisfies Record<string, QueryKey>;
-
-function seededClient(keys: readonly QueryKey[]): QueryClient {
-  const client = new QueryClient();
-  for (const key of keys) client.setQueryData(key, {});
-  return client;
-}
-
-function staleFlags(client: QueryClient, keys: readonly QueryKey[]): boolean[] {
-  return keys.map((key) => client.getQueryState(key)?.isInvalidated ?? false);
-}
 
 describe("characterChangeEffects", () => {
   it("refreshes the character overview, the book's chapters and the tag summary after an edit in a book", async () => {

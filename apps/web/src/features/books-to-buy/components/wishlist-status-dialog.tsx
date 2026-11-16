@@ -4,7 +4,6 @@ import type { WishlistBookView } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { STORE_LINK_ERROR_CODES } from "@app/shared";
-import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -23,7 +22,6 @@ import { MarkBoughtForm, useMarkOwned, useRemoveFromWishlist } from "@/features/
 import { assertNever } from "@/lib/assert-never";
 import { ApiError } from "@/lib/http-client";
 
-import { wishlistKeys } from "../api/wishlist-keys";
 import { OrderDeliveryForm } from "./order-delivery-form";
 
 const STATUS_OPTIONS = ["bought", "ordered", "received", "dropped"] as const;
@@ -130,7 +128,6 @@ function DropFromWishlistForm({
   renderFields: RenderFields;
 }) {
   const t = useTranslations("booksToBuy");
-  const queryClient = useQueryClient();
   const removeFromWishlist = useRemoveFromWishlist();
   const [serverError, setServerError] = useState<null | string>(null);
 
@@ -139,7 +136,6 @@ function DropFromWishlistForm({
     removeFromWishlist.mutate(bookId, {
       onError: (error) => {
         if (error instanceof ApiError && error.code === STORE_LINK_ERROR_CODES.NOT_IN_WISHLIST) {
-          void queryClient.invalidateQueries({ queryKey: wishlistKeys.root });
           setServerError(t("removeFromList.notInWishlist"));
           return;
         }

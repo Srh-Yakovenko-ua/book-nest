@@ -11,6 +11,7 @@ import { deliveryKeys } from "@/features/delivery/api/delivery-keys";
 import { loanKeys } from "@/features/loans/api/loan-keys";
 import { seriesKeys } from "@/features/series/api/series-keys";
 import { statisticsKeys } from "@/features/statistics/api/statistics-keys";
+import { seededClient, staleFlags, watchedQuery } from "@/test-query-cache";
 
 import { makeBookDetailsView, makeBookView } from "../components/book-details.fixtures";
 import { bookChangeEffects } from "./book-change-effects";
@@ -43,23 +44,6 @@ const DEDICATION_SAVE = {
 const STALE_QUEUE: ReadingQueueView = { count: 3, items: [], totalCount: 3, totalPagesCount: 1 };
 
 const FRESH_QUEUE: ReadingQueueView = { count: 2, items: [], totalCount: 2, totalPagesCount: 1 };
-
-function seededClient(keys: readonly QueryKey[]): QueryClient {
-  const client = new QueryClient();
-  for (const key of keys) client.setQueryData(key, {});
-  return client;
-}
-
-function staleFlags(client: QueryClient, keys: readonly QueryKey[]): boolean[] {
-  return keys.map((key) => client.getQueryState(key)?.isInvalidated ?? false);
-}
-
-async function watchedQuery(client: QueryClient, queryKey: QueryKey) {
-  const queryFn = vi.fn(() => Promise.resolve({}));
-  await client.prefetchQuery({ queryFn, queryKey });
-  const observer = new QueryObserver(client, { queryFn, queryKey, staleTime: Infinity });
-  return { queryFn, unsubscribe: observer.subscribe(() => undefined) };
-}
 
 describe("bookChangeEffects", () => {
   it("refreshes the queue summary and the custom lists after books join the queue", async () => {
@@ -238,12 +222,18 @@ describe("bookChangeEffects", () => {
     expect(staleFlags(client, [KEYS.bookList])).toEqual([true]);
   });
 
-  it("refreshes the wishlist but not book lists when the wishlist is outdated", async () => {
-    const keys = [KEYS.wishlist, KEYS.bookList];
+  it("refreshes the wishlist and the books but leaves series and statistics fresh when the wishlist is outdated", async () => {
+    const keys = [
+      KEYS.wishlist,
+      KEYS.bookList,
+      bookKeys.detail("book-1"),
+      KEYS.seriesSearch,
+      KEYS.statisticsOverview,
+    ];
     const client = seededClient(keys);
 
     await bookChangeEffects.booksChanged(client, { changes: ["wishlistOutdated"] });
 
-    expect(staleFlags(client, keys)).toEqual([true, false]);
+    expect(staleFlags(client, keys)).toEqual([true, true, true, false, false]);
   });
 });

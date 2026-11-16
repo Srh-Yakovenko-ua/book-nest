@@ -1,4 +1,5 @@
 import type { BookView, MarkBoughtInput, WantToBuyInput } from "@app/shared";
+import type { QueryClient } from "@tanstack/react-query";
 
 import { BookViewSchema, STORE_LINK_ERROR_CODES } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -22,10 +23,7 @@ export function useMarkBought() {
   return useMutation({
     mutationFn: async (input: { id: string; payload: MarkBoughtInput }): Promise<BookView> =>
       BookViewSchema.parse(await bookOwnershipControllerMarkBought(input.id, input.payload)),
-    onError: (error) => {
-      if (!isApiErrorCode(error, STORE_LINK_ERROR_CODES.NOT_IN_WISHLIST)) return;
-      void bookChangeEffects.booksChanged(queryClient, { changes: ["wishlistOutdated"] });
-    },
+    onError: (error) => refreshWishlistIfOutdated({ error, queryClient }),
     onSuccess: sync,
   });
 }
@@ -41,11 +39,13 @@ export function useMarkOwned() {
 }
 
 export function useRemoveFromWishlist() {
+  const queryClient = useQueryClient();
   const sync = useBookMutationSync();
 
   return useMutation({
     mutationFn: async (id: string): Promise<BookView> =>
       BookViewSchema.parse(await bookOwnershipControllerRemoveFromWishlist(id)),
+    onError: (error) => refreshWishlistIfOutdated({ error, queryClient }),
     onSuccess: sync,
   });
 }
@@ -68,4 +68,15 @@ export function useWantToBuy() {
       BookViewSchema.parse(await bookOwnershipControllerWantToBuy(input.id, input.payload)),
     onSuccess: sync,
   });
+}
+
+function refreshWishlistIfOutdated({
+  error,
+  queryClient,
+}: {
+  error: unknown;
+  queryClient: QueryClient;
+}) {
+  if (!isApiErrorCode(error, STORE_LINK_ERROR_CODES.NOT_IN_WISHLIST)) return;
+  void bookChangeEffects.booksChanged(queryClient, { changes: ["wishlistOutdated"] });
 }

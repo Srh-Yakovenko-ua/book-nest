@@ -7,7 +7,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { wishlistKeys } from "@/features/books-to-buy/api/wishlist-keys";
 
-import { useMarkBought } from "./use-ownership";
+import { bookKeys } from "./book-keys";
+import { useMarkBought, useRemoveFromWishlist } from "./use-ownership";
+
+type Failure = { body: object; status: number };
 
 const BOOK_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 
@@ -31,10 +34,11 @@ afterEach(() => {
 });
 
 describe("useMarkBought", () => {
-  it("refreshes the wishlist when the book already left it", async () => {
+  it("refreshes the wishlist and the book when the book already left the wishlist", async () => {
     const client = await wishlistAfterFailedMarkBought(FAILURES.notInWishlist);
 
     expect(client.getQueryState(wishlistKeys.root)?.isInvalidated).toBe(true);
+    expect(client.getQueryState(bookKeys.detail(BOOK_ID))?.isInvalidated).toBe(true);
   });
 
   it("leaves the wishlist fresh after a generic failure", async () => {
@@ -44,25 +48,49 @@ describe("useMarkBought", () => {
   });
 });
 
-async function wishlistAfterFailedMarkBought({
-  body,
-  status,
-}: {
-  body: object;
-  status: number;
-}): Promise<QueryClient> {
+describe("useRemoveFromWishlist", () => {
+  it("refreshes the wishlist and the book when the book already left the wishlist", async () => {
+    const client = await wishlistAfterFailedRemoval(FAILURES.notInWishlist);
+
+    expect(client.getQueryState(wishlistKeys.root)?.isInvalidated).toBe(true);
+    expect(client.getQueryState(bookKeys.detail(BOOK_ID))?.isInvalidated).toBe(true);
+  });
+
+  it("leaves the wishlist fresh after a generic failure", async () => {
+    const client = await wishlistAfterFailedRemoval(FAILURES.generic);
+
+    expect(client.getQueryState(wishlistKeys.root)?.isInvalidated).toBe(false);
+  });
+});
+
+async function wishlistAfterFailedMarkBought(failure: Failure): Promise<QueryClient> {
+  const client = wishlistClientFailingWith(failure);
+  const { result } = renderHook(() => useMarkBought(), { wrapper: wrapperFor(client) });
+
+  await act(() => result.current.mutateAsync({ id: BOOK_ID, payload: {} }).catch(() => undefined));
+
+  return client;
+}
+
+async function wishlistAfterFailedRemoval(failure: Failure): Promise<QueryClient> {
+  const client = wishlistClientFailingWith(failure);
+  const { result } = renderHook(() => useRemoveFromWishlist(), { wrapper: wrapperFor(client) });
+
+  await act(() => result.current.mutateAsync(BOOK_ID).catch(() => undefined));
+
+  return client;
+}
+
+function wishlistClientFailingWith({ body, status }: Failure): QueryClient {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
   client.setQueryData(wishlistKeys.root, {});
+  client.setQueryData(bookKeys.detail(BOOK_ID), {});
   fetchMock.mockResolvedValue(
     new Response(JSON.stringify(body), {
       headers: { "Content-Type": "application/json" },
       status,
     }),
   );
-  const { result } = renderHook(() => useMarkBought(), { wrapper: wrapperFor(client) });
-
-  await act(() => result.current.mutateAsync({ id: BOOK_ID, payload: {} }).catch(() => undefined));
-
   return client;
 }
 
