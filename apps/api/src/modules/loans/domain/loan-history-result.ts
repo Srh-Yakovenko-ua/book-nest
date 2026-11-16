@@ -1,11 +1,12 @@
 import type { LoanHistoryResult, Nullable } from "@app/shared";
 
-import { daysBetweenIsoDates, toIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
+import { daysBetweenIsoDates, toNullableIsoDate, toZonedIsoDate } from "../../../core/iso-date.js";
 
 export type CompletedLoanDates = {
   expectedReturnDate: Nullable<Date>;
   loanDate: Nullable<Date>;
   returnedAt: Date;
+  timeZone: string;
 };
 
 export type LoanHistoryOutcome = {
@@ -19,8 +20,9 @@ export function deriveLoanHistoryOutcome({
   expectedReturnDate,
   loanDate,
   returnedAt,
+  timeZone,
 }: CompletedLoanDates): LoanHistoryOutcome {
-  const returnedDate = toIsoDate(returnedAt);
+  const returnedDate = toZonedIsoDate({ instant: returnedAt, timeZone });
   const daysAfterExpectedReturn = daysAfterExpectedReturnDate({ expectedReturnDate, returnedDate });
 
   return {

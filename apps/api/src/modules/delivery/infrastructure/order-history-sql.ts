@@ -9,10 +9,10 @@ import { DEFAULT_CURRENCY } from "@app/shared";
 
 import { assertNever } from "../../../core/assert-never.js";
 import { ilikeContains } from "../../../core/database/like-pattern.js";
+import { readerDaySql } from "../../../core/database/reader-day-sql.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { ORDER_EFFECTIVE_TOTAL_SQL, orderPlacedOnSql } from "./in-transit-sql.js";
 import { orderStateSql } from "./order-state-sql.js";
-import { readerDaySql } from "./reader-day-sql.js";
 
 export const HISTORY_ITEM_SOURCE = Prisma.sql`
   FROM book_order_items item

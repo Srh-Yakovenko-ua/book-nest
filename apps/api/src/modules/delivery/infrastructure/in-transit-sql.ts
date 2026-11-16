@@ -21,10 +21,10 @@ import type { DeliveryDateBounds } from "../domain/delivery-ui-status.js";
 
 import { assertNever } from "../../../core/assert-never.js";
 import { ilikeContains } from "../../../core/database/like-pattern.js";
+import { readerDaySql } from "../../../core/database/reader-day-sql.js";
 import { addDaysToIsoDate, toIsoDate } from "../../../core/iso-date.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { orderStateSql } from "./order-state-sql.js";
-import { readerDaySql } from "./reader-day-sql.js";
 
 const SHIPMENT_STATUS = ShipmentStatusSchema.enum;
 

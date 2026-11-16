@@ -15,16 +15,17 @@ import {
   LoanHistoryPeopleViewSchema,
   PaginatedLoanHistorySchema,
 } from "@app/shared";
-import { addDays } from "date-fns";
-import { formatInTimeZone } from "date-fns-tz";
 import request, { type Response } from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { addDaysToIsoDate } from "../../../core/iso-date.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
+import { registerReaderInTimezone } from "../../../test/user-timezone.js";
+import { defaultUserToday } from "../../../test/user-today.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { BooksModule } from "../../books/books.module.js";
 import { ListsModule } from "../../lists/lists.module.js";
@@ -258,7 +259,7 @@ async function seedOverviewHistory(accessToken: string): Promise<void> {
     expectedReturnDate: "2026-01-10",
     loanDate: "2026-01-01",
     personName: "Olha",
-    returnedAt: "2026-01-10T23:59:59.000Z",
+    returnedAt: "2026-01-10T21:59:59.000Z",
     title: "On time borrowed",
   });
   await completeLoan(accessToken, {
@@ -363,10 +364,6 @@ async function startLoan(accessToken: string, spec: LoanSpec): Promise<Completed
 
   const loan = await prisma.bookLoan.findFirstOrThrow({ select: { id: true }, where: { bookId } });
   return { bookId, loanId: loan.id };
-}
-
-function utcToday(): string {
-  return formatInTimeZone(new Date(), "UTC", "yyyy-MM-dd");
 }
 
 describe("loan history authorization", () => {
@@ -651,7 +648,7 @@ describe("GET /api/loans/history result filter", () => {
       expectedReturnDate: "2026-02-10",
       loanDate: "2026-02-01",
       personName: "Olha",
-      returnedAt: "2026-02-10T23:59:59.000Z",
+      returnedAt: "2026-02-10T21:59:59.000Z",
       title: "Returned on the due day",
     });
     await completeLoan(accessToken, {
@@ -719,7 +716,7 @@ describe("GET /api/loans/history result filter", () => {
     expect(res.body).toMatchObject({ pagesCount: 2, totalCount: 2 });
   });
 
-  it("treats a return one second before UTC midnight of the due day as on time", async () => {
+  it("treats a return one second before the reader's midnight of the due day as on time", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await seedEveryResult(accessToken);
 
@@ -728,14 +725,14 @@ describe("GET /api/loans/history result filter", () => {
     expect(historyTitles(res)).toContain("Returned on the due day");
   });
 
-  it("treats a return on the UTC day after the due day as one day late", async () => {
+  it("treats a return on the reader's day after the due day as one day late", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await completeLoan(accessToken, {
       direction: "borrowed",
       expectedReturnDate: "2026-02-10",
       loanDate: "2026-02-01",
       personName: "Olha",
-      returnedAt: "2026-02-11T00:00:01.000Z",
+      returnedAt: "2026-02-10T22:00:01.000Z",
       title: "Returned just after midnight",
     });
 
@@ -916,14 +913,14 @@ describe("GET /api/loans/history period filter", () => {
       direction: "borrowed",
       loanDate: "2026-02-01",
       personName: "Olha",
-      returnedAt: "2026-03-05T23:30:00.000Z",
+      returnedAt: "2026-03-05T21:30:00.000Z",
       title: "March 5",
     });
     await completeLoan(accessToken, {
       direction: "borrowed",
       loanDate: "2026-02-01",
       personName: "Olha",
-      returnedAt: "2026-03-09T00:00:00.000Z",
+      returnedAt: "2026-03-08T22:00:00.000Z",
       title: "March 9",
     });
     await completeLoan(accessToken, {
@@ -2568,7 +2565,7 @@ describe("PATCH /api/loans/history/:loanId", () => {
     const { loanId } = await correctableLoan(accessToken);
 
     const res = await correctHistory(accessToken, loanId, {
-      returnedDate: formatInTimeZone(addDays(new Date(), 3), "UTC", "yyyy-MM-dd"),
+      returnedDate: addDaysToIsoDate(defaultUserToday(), 3),
     });
 
     expect(res.status).toBe(400);
@@ -2696,9 +2693,9 @@ describe("POST /api/books/:id/loan/return lands in the history", () => {
       title: "Hyperion",
     });
 
-    const dayBeforeReturn = utcToday();
+    const dayBeforeReturn = defaultUserToday();
     await returnLoan(accessToken, bookId);
-    const dayAfterReturn = utcToday();
+    const dayAfterReturn = defaultUserToday();
 
     const res = await listHistory(accessToken);
     const [item] = historyItems(res);
@@ -2782,5 +2779,79 @@ describe("POST /api/books/:id/loan/return lands in the history", () => {
     const row = await loanColumns(loanId);
     expect(row.status).toBe("returned");
     expect(row.returnedAt).not.toBeNull();
+  });
+});
+
+describe("GET /api/loans/history returned day of a Kyiv reader", () => {
+  const RETURNED_AFTER_KYIV_MIDNIGHT = {
+    direction: "borrowed",
+    expectedReturnDate: "2026-11-16",
+    loanDate: "2026-11-10",
+    personName: "Olha",
+    returnedAt: "2026-11-16T23:00:00.000Z",
+    title: "Returned after Kyiv midnight",
+  } as const satisfies CompletedLoanSpec;
+
+  async function kyivReaderWithLoanReturnedAfterMidnight(): Promise<string> {
+    const { accessToken } = await registerReaderInTimezone({
+      context,
+      timezone: "Europe/Kyiv",
+    });
+    await completeLoan(accessToken, RETURNED_AFTER_KYIV_MIDNIGHT);
+    return accessToken;
+  }
+
+  it("lists the loan under the reader's day that follows the UTC day of the return", async () => {
+    const accessToken = await kyivReaderWithLoanReturnedAfterMidnight();
+
+    const res = await listHistory(accessToken, "?returnedFrom=2026-11-17&returnedTo=2026-11-17");
+
+    expect(res.status).toBe(200);
+    expect(historyTitles(res)).toEqual([RETURNED_AFTER_KYIV_MIDNIGHT.title]);
+  });
+
+  it("leaves the loan out of the UTC day of the return", async () => {
+    const accessToken = await kyivReaderWithLoanReturnedAfterMidnight();
+
+    const res = await listHistory(accessToken, "?returnedFrom=2026-11-16&returnedTo=2026-11-16");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ items: [], totalCount: 0 });
+  });
+
+  it("reports the returned day, the delay, the duration and the result of the reader's day", async () => {
+    const accessToken = await kyivReaderWithLoanReturnedAfterMidnight();
+
+    const res = await listHistory(accessToken);
+
+    expect(historyItems(res)).toEqual([
+      expect.objectContaining({
+        delayDays: 1,
+        durationDays: 7,
+        historyResult: "late",
+        returnedDate: "2026-11-17",
+      }),
+    ]);
+  });
+
+  it("finds the loan under the late result filter", async () => {
+    const accessToken = await kyivReaderWithLoanReturnedAfterMidnight();
+
+    const res = await listHistory(accessToken, "?result=late");
+
+    expect(historyTitles(res)).toEqual([RETURNED_AFTER_KYIV_MIDNIGHT.title]);
+  });
+
+  it("counts the loan as one day late with a seven day duration in the overview", async () => {
+    const accessToken = await kyivReaderWithLoanReturnedAfterMidnight();
+
+    const res = await historyOverview(accessToken);
+
+    expect(LoanHistoryOverviewViewSchema.parse(res.body).summary).toMatchObject({
+      averageDelayDays: 1,
+      averageDurationDays: 7,
+      lateCount: 1,
+      onTimeCount: 0,
+    });
   });
 });

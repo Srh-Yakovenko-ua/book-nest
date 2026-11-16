@@ -13,6 +13,7 @@ import { z } from "zod";
 
 import { toLikePattern } from "../../../core/database/like-pattern.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { readerDaySql } from "../../../core/database/reader-day-sql.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 
@@ -35,29 +36,13 @@ const historyBookInclude = {
   },
 } satisfies Prisma.BookLoanDefaultArgs;
 
-const RETURNED_CALENDAR_DATE = Prisma.sql`(loan.returned_at AT TIME ZONE 'UTC')::date`;
-
-const DELAY_DAYS = Prisma.sql`(${RETURNED_CALENDAR_DATE} - loan.expected_return_date)`;
-
-const DURATION_DAYS = Prisma.sql`(${RETURNED_CALENDAR_DATE} - loan.loan_date)`;
+const LOAN_RETURNED_AT_SQL = Prisma.sql`loan.returned_at`;
 
 const HISTORY_SOURCE = Prisma.sql`
   FROM book_loans loan
   JOIN books book ON book.id = loan.book_id
   JOIN loan_contacts contact ON contact.id = loan.loan_contact_id
 `;
-
-const HISTORY_RESULT_CONDITION: Record<LoanHistoryResult, Prisma.Sql> = {
-  late: Prisma.sql`(loan.expected_return_date IS NOT NULL AND ${RETURNED_CALENDAR_DATE} > loan.expected_return_date)`,
-  no_due_date: Prisma.sql`(loan.expected_return_date IS NULL)`,
-  on_time: Prisma.sql`(loan.expected_return_date IS NOT NULL AND ${RETURNED_CALENDAR_DATE} <= loan.expected_return_date)`,
-};
-
-const HISTORY_RESULT_EXPRESSION = Prisma.sql`(CASE
-  WHEN ${HISTORY_RESULT_CONDITION.no_due_date} THEN ${HISTORY_RESULT.no_due_date}::text
-  WHEN ${HISTORY_RESULT_CONDITION.late} THEN ${HISTORY_RESULT.late}::text
-  ELSE ${HISTORY_RESULT.on_time}::text
-END)`;
 
 const HISTORY_ORDER_BY: Record<LoanHistorySort, Prisma.Sql> = {
   duration_desc: Prisma.sql`duration_days DESC NULLS LAST, returned_at DESC, id ASC`,
@@ -137,6 +122,7 @@ export type LoanHistoryScope = {
   loanDateTo: string | undefined;
   returnedFrom: string | undefined;
   returnedTo: string | undefined;
+  timeZone: string;
   type: LoanType | undefined;
   userId: string;
 };
@@ -153,6 +139,13 @@ type LoanHistoryPageRow = z.infer<typeof LoanHistoryPageRowSchema>;
 type LoanHistoryRow = Prisma.BookLoanGetPayload<typeof historyBookInclude>;
 
 type LoanHistoryScopedFilter = LoanHistoryScope & { search: string | undefined };
+
+type ReturnedDaySql = {
+  delayDays: Prisma.Sql;
+  durationDays: Prisma.Sql;
+  resultCondition: Record<LoanHistoryResult, Prisma.Sql>;
+  resultExpression: Prisma.Sql;
+};
 
 type TopHistoryPeopleInput = Omit<LoanHistoryScope, "contactId"> & { take: number };
 
@@ -195,6 +188,7 @@ export class LoanHistoryRepository {
     take,
     ...filter
   }: ListLoanHistoryInput): Promise<LoanHistoryPage> {
+    const returnedDay = buildReturnedDaySql(filter.timeZone);
     const rows = await this.prisma.$queryRaw(Prisma.sql`
       WITH scoped AS (
         SELECT
@@ -203,8 +197,8 @@ export class LoanHistoryRepository {
           loan.loan_date AS loan_date,
           contact.name AS person_name,
           book.title AS title,
-          ${DURATION_DAYS} AS duration_days,
-          ${HISTORY_RESULT_EXPRESSION} AS history_result
+          ${returnedDay.durationDays} AS duration_days,
+          ${returnedDay.resultExpression} AS history_result
         ${HISTORY_SOURCE}
         WHERE ${buildHistoryScopedWhere(filter)}
       ),
@@ -251,19 +245,20 @@ export class LoanHistoryRepository {
   }
 
   async overview(scope: LoanHistoryScope): Promise<LoanHistoryOverviewRow> {
+    const returnedDay = buildReturnedDaySql(scope.timeZone);
     const rows = await this.prisma.$queryRaw(Prisma.sql`
       SELECT
         (count(*))::int AS "totalCompleted",
         (count(*) FILTER (WHERE loan.type = ${LOAN_TYPE_BORROWED}))::int AS "borrowedCount",
         (count(*) FILTER (WHERE loan.type = ${LOAN_TYPE_LENT}))::int AS "lentCount",
-        (count(*) FILTER (WHERE ${HISTORY_RESULT_CONDITION.on_time}))::int AS "onTimeCount",
-        (count(*) FILTER (WHERE ${HISTORY_RESULT_CONDITION.late}))::int AS "lateCount",
-        (count(*) FILTER (WHERE ${HISTORY_RESULT_CONDITION.no_due_date}))::int AS "noDueDateCount",
-        (sum(${DELAY_DAYS}) FILTER (WHERE ${HISTORY_RESULT_CONDITION.late}))::int AS "totalDelayDays",
+        (count(*) FILTER (WHERE ${returnedDay.resultCondition.on_time}))::int AS "onTimeCount",
+        (count(*) FILTER (WHERE ${returnedDay.resultCondition.late}))::int AS "lateCount",
+        (count(*) FILTER (WHERE ${returnedDay.resultCondition.no_due_date}))::int AS "noDueDateCount",
+        (sum(${returnedDay.delayDays}) FILTER (WHERE ${returnedDay.resultCondition.late}))::int AS "totalDelayDays",
         (count(*) FILTER (WHERE loan.loan_date IS NOT NULL))::int AS "durationCount",
-        (sum(${DURATION_DAYS}))::int AS "totalDurationDays",
-        (max(${DURATION_DAYS}))::int AS "longestDurationDays",
-        (min(${DURATION_DAYS}))::int AS "shortestDurationDays"
+        (sum(${returnedDay.durationDays}))::int AS "totalDurationDays",
+        (max(${returnedDay.durationDays}))::int AS "longestDurationDays",
+        (min(${returnedDay.durationDays}))::int AS "shortestDurationDays"
       ${HISTORY_SOURCE}
       WHERE ${buildHistoryScopeWhere(scope)}
     `);
@@ -331,6 +326,7 @@ function buildHistoryScopeConditions({
   loanDateTo,
   returnedFrom,
   returnedTo,
+  timeZone,
   type,
   userId,
 }: LoanHistoryScope): Prisma.Sql[] {
@@ -341,11 +337,12 @@ function buildHistoryScopeConditions({
   if (contactId !== undefined) {
     conditions.push(Prisma.sql`loan.loan_contact_id = ${contactId}::uuid`);
   }
+  const returnedDay = readerDaySql({ instant: LOAN_RETURNED_AT_SQL, timeZone });
   if (returnedFrom !== undefined) {
-    conditions.push(Prisma.sql`${RETURNED_CALENDAR_DATE} >= ${returnedFrom}::date`);
+    conditions.push(Prisma.sql`${returnedDay} >= ${returnedFrom}::date`);
   }
   if (returnedTo !== undefined) {
-    conditions.push(Prisma.sql`${RETURNED_CALENDAR_DATE} <= ${returnedTo}::date`);
+    conditions.push(Prisma.sql`${returnedDay} <= ${returnedTo}::date`);
   }
   if (loanDateFrom !== undefined) {
     conditions.push(Prisma.sql`loan.loan_date >= ${loanDateFrom}::date`);
@@ -391,6 +388,26 @@ function buildHistorySearchCondition(search: string): Prisma.Sql {
 
 function buildMatchedResultWhere(result: LoanHistoryResultFilter): Prisma.Sql {
   return result === "all" ? Prisma.empty : Prisma.sql`WHERE history_result = ${result}`;
+}
+
+function buildReturnedDaySql(timeZone: string): ReturnedDaySql {
+  const returnedDay = readerDaySql({ instant: LOAN_RETURNED_AT_SQL, timeZone });
+  const resultCondition: Record<LoanHistoryResult, Prisma.Sql> = {
+    late: Prisma.sql`(loan.expected_return_date IS NOT NULL AND ${returnedDay} > loan.expected_return_date)`,
+    no_due_date: Prisma.sql`(loan.expected_return_date IS NULL)`,
+    on_time: Prisma.sql`(loan.expected_return_date IS NOT NULL AND ${returnedDay} <= loan.expected_return_date)`,
+  };
+
+  return {
+    delayDays: Prisma.sql`(${returnedDay} - loan.expected_return_date)`,
+    durationDays: Prisma.sql`(${returnedDay} - loan.loan_date)`,
+    resultCondition,
+    resultExpression: Prisma.sql`(CASE
+      WHEN ${resultCondition.no_due_date} THEN ${HISTORY_RESULT.no_due_date}::text
+      WHEN ${resultCondition.late} THEN ${HISTORY_RESULT.late}::text
+      ELSE ${HISTORY_RESULT.on_time}::text
+    END)`,
+  };
 }
 
 function isCompletedLoan(loan: LoanHistoryRow): loan is CompletedLoanWithBook {
