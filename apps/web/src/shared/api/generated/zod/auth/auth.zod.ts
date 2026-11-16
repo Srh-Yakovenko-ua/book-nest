@@ -10,7 +10,16 @@ import * as zod from "zod";
 /**
  * @summary Return the currently authenticated user
  */
-export const AuthControllerMeResponse = zod.unknown();
+export const AuthControllerMeResponse = zod.object({
+  createdAt: zod.string(),
+  dateOfBirth: zod.string().nullable(),
+  email: zod.string(),
+  emailVerified: zod.boolean(),
+  id: zod.string(),
+  name: zod.string(),
+  nickname: zod.string().nullable(),
+  role: zod.enum(["user", "super_admin"]),
+});
 
 /**
  * @summary Check whether a nickname is available
@@ -25,7 +34,9 @@ export const AuthControllerCheckNicknameAvailabilityQueryParams = zod.object({
     .max(authControllerCheckNicknameAvailabilityQueryNicknameMax),
 });
 
-export const AuthControllerCheckNicknameAvailabilityResponse = zod.unknown();
+export const AuthControllerCheckNicknameAvailabilityResponse = zod.object({
+  available: zod.boolean(),
+});
 
 /**
  * @summary Register a new user and send an email verification link
@@ -42,7 +53,11 @@ export const AuthControllerRegisterBody = zod.object({
   password: zod.unknown().and(zod.unknown()).and(zod.unknown()).and(zod.unknown()),
 });
 
-export const AuthControllerRegisterResponse = zod.void();
+export const AuthControllerRegisterResponse = zod.object({
+  cooldownSeconds: zod.number().optional(),
+  email: zod.string(),
+  status: zod.enum(["verification_sent"]),
+});
 
 /**
  * @summary Verify an email and open a session
@@ -52,7 +67,19 @@ export const AuthControllerVerifyEmailBody = zod.object({
   token: zod.string().min(1),
 });
 
-export const AuthControllerVerifyEmailResponse = zod.unknown();
+export const AuthControllerVerifyEmailResponse = zod.object({
+  accessToken: zod.string(),
+  user: zod.object({
+    createdAt: zod.string(),
+    dateOfBirth: zod.string().nullable(),
+    email: zod.string(),
+    emailVerified: zod.boolean(),
+    id: zod.string(),
+    name: zod.string(),
+    nickname: zod.string().nullable(),
+    role: zod.enum(["user", "super_admin"]),
+  }),
+});
 
 /**
  * @summary Authenticate with email and password and open a session
@@ -66,17 +93,43 @@ export const AuthControllerLoginBody = zod.object({
   rememberMe: zod.boolean().default(authControllerLoginBodyRememberMeDefault),
 });
 
-export const AuthControllerLoginResponse = zod.unknown();
+export const AuthControllerLoginResponse = zod.object({
+  accessToken: zod.string(),
+  user: zod.object({
+    createdAt: zod.string(),
+    dateOfBirth: zod.string().nullable(),
+    email: zod.string(),
+    emailVerified: zod.boolean(),
+    id: zod.string(),
+    name: zod.string(),
+    nickname: zod.string().nullable(),
+    role: zod.enum(["user", "super_admin"]),
+  }),
+});
 
 /**
  * @summary Rotate the refresh token and issue a new access token
  */
-export const AuthControllerRefreshResponse = zod.unknown();
+export const AuthControllerRefreshResponse = zod.object({
+  accessToken: zod.string(),
+  user: zod.object({
+    createdAt: zod.string(),
+    dateOfBirth: zod.string().nullable(),
+    email: zod.string(),
+    emailVerified: zod.boolean(),
+    id: zod.string(),
+    name: zod.string(),
+    nickname: zod.string().nullable(),
+    role: zod.enum(["user", "super_admin"]),
+  }),
+});
 
 /**
  * @summary Revoke the current session and clear the refresh cookie
  */
-export const AuthControllerLogoutResponse = zod.unknown();
+export const AuthControllerLogoutResponse = zod.object({
+  status: zod.enum(["logged_out"]),
+});
 
 /**
  * @summary Resend the email verification link
@@ -85,7 +138,10 @@ export const AuthControllerResendVerificationBody = zod.object({
   email: zod.string(),
 });
 
-export const AuthControllerResendVerificationResponse = zod.unknown();
+export const AuthControllerResendVerificationResponse = zod.object({
+  cooldownSeconds: zod.number().optional(),
+  status: zod.enum(["verification_sent"]),
+});
 
 /**
  * @summary Send a password reset link if the account exists and is verified
@@ -94,7 +150,10 @@ export const AuthControllerForgotPasswordBody = zod.object({
   email: zod.string(),
 });
 
-export const AuthControllerForgotPasswordResponse = zod.unknown();
+export const AuthControllerForgotPasswordResponse = zod.object({
+  cooldownSeconds: zod.number().optional(),
+  status: zod.enum(["reset_email_sent"]),
+});
 
 /**
  * @summary Set a new password using a reset token and invalidate all sessions
@@ -105,4 +164,6 @@ export const AuthControllerResetPasswordBody = zod.object({
   token: zod.string().min(1),
 });
 
-export const AuthControllerResetPasswordResponse = zod.unknown();
+export const AuthControllerResetPasswordResponse = zod.object({
+  status: zod.enum(["password_reset"]),
+});

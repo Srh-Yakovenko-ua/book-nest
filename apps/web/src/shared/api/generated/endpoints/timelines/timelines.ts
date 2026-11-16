@@ -51,34 +51,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type timelinesControllerListTimelinesResponse200 = {
-  data: TimelineListViewDto;
-  status: 200;
-};
-
-export type timelinesControllerListTimelinesResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type timelinesControllerListTimelinesResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type timelinesControllerListTimelinesResponseSuccess =
-  timelinesControllerListTimelinesResponse200 & {
-    headers: Headers;
-  };
-export type timelinesControllerListTimelinesResponseError = (
-  timelinesControllerListTimelinesResponse401 | timelinesControllerListTimelinesResponse404
-) & {
-  headers: Headers;
-};
-
-export type timelinesControllerListTimelinesResponse =
-  timelinesControllerListTimelinesResponseSuccess | timelinesControllerListTimelinesResponseError;
-
 export const getTimelinesControllerListTimelinesUrl = (bookId: string) => {
   return `/api/books/${bookId}/timelines`;
 };
@@ -89,14 +61,11 @@ export const getTimelinesControllerListTimelinesUrl = (bookId: string) => {
 export const timelinesControllerListTimelines = async (
   bookId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<timelinesControllerListTimelinesResponse> => {
-  return customInstance<timelinesControllerListTimelinesResponse>(
-    getTimelinesControllerListTimelinesUrl(bookId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<TimelineListViewDto> => {
+  return customInstance<TimelineListViewDto>(getTimelinesControllerListTimelinesUrl(bookId), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getTimelinesControllerListTimelinesQueryKey = (bookId: string) => {
@@ -221,47 +190,6 @@ export function useTimelinesControllerListTimelines<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type timelinesControllerCreateTimelineResponse201 = {
-  data: TimelineViewDto;
-  status: 201;
-};
-
-export type timelinesControllerCreateTimelineResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type timelinesControllerCreateTimelineResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type timelinesControllerCreateTimelineResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type timelinesControllerCreateTimelineResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type timelinesControllerCreateTimelineResponseSuccess =
-  timelinesControllerCreateTimelineResponse201 & {
-    headers: Headers;
-  };
-export type timelinesControllerCreateTimelineResponseError = (
-  | timelinesControllerCreateTimelineResponse400
-  | timelinesControllerCreateTimelineResponse401
-  | timelinesControllerCreateTimelineResponse404
-  | timelinesControllerCreateTimelineResponse409
-) & {
-  headers: Headers;
-};
-
-export type timelinesControllerCreateTimelineResponse =
-  timelinesControllerCreateTimelineResponseSuccess | timelinesControllerCreateTimelineResponseError;
-
 export const getTimelinesControllerCreateTimelineUrl = (bookId: string) => {
   return `/api/books/${bookId}/timelines`;
 };
@@ -273,16 +201,13 @@ export const timelinesControllerCreateTimeline = async (
   bookId: string,
   createTimelineInputDto: CreateTimelineInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<timelinesControllerCreateTimelineResponse> => {
-  return customInstance<timelinesControllerCreateTimelineResponse>(
-    getTimelinesControllerCreateTimelineUrl(bookId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(createTimelineInputDto),
-    },
-  );
+): Promise<TimelineViewDto> => {
+  return customInstance<TimelineViewDto>(getTimelinesControllerCreateTimelineUrl(bookId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createTimelineInputDto),
+  });
 };
 
 export const getTimelinesControllerCreateTimelineQueryKey = (
@@ -425,33 +350,6 @@ export function useTimelinesControllerCreateTimeline<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type timelinesControllerSummaryResponse200 = {
-  data: TimelineSummaryViewDto;
-  status: 200;
-};
-
-export type timelinesControllerSummaryResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type timelinesControllerSummaryResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type timelinesControllerSummaryResponseSuccess = timelinesControllerSummaryResponse200 & {
-  headers: Headers;
-};
-export type timelinesControllerSummaryResponseError = (
-  timelinesControllerSummaryResponse401 | timelinesControllerSummaryResponse404
-) & {
-  headers: Headers;
-};
-
-export type timelinesControllerSummaryResponse =
-  timelinesControllerSummaryResponseSuccess | timelinesControllerSummaryResponseError;
-
 export const getTimelinesControllerSummaryUrl = (bookId: string) => {
   return `/api/books/${bookId}/timeline/summary`;
 };
@@ -462,14 +360,11 @@ export const getTimelinesControllerSummaryUrl = (bookId: string) => {
 export const timelinesControllerSummary = async (
   bookId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<timelinesControllerSummaryResponse> => {
-  return customInstance<timelinesControllerSummaryResponse>(
-    getTimelinesControllerSummaryUrl(bookId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<TimelineSummaryViewDto> => {
+  return customInstance<TimelineSummaryViewDto>(getTimelinesControllerSummaryUrl(bookId), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getTimelinesControllerSummaryQueryKey = (bookId: string) => {
@@ -592,48 +487,6 @@ export function useTimelinesControllerSummary<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type timelinesControllerReorderTimelinesResponse200 = {
-  data: TimelineListViewDto;
-  status: 200;
-};
-
-export type timelinesControllerReorderTimelinesResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type timelinesControllerReorderTimelinesResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type timelinesControllerReorderTimelinesResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type timelinesControllerReorderTimelinesResponse422 = {
-  data: void;
-  status: 422;
-};
-
-export type timelinesControllerReorderTimelinesResponseSuccess =
-  timelinesControllerReorderTimelinesResponse200 & {
-    headers: Headers;
-  };
-export type timelinesControllerReorderTimelinesResponseError = (
-  | timelinesControllerReorderTimelinesResponse401
-  | timelinesControllerReorderTimelinesResponse404
-  | timelinesControllerReorderTimelinesResponse409
-  | timelinesControllerReorderTimelinesResponse422
-) & {
-  headers: Headers;
-};
-
-export type timelinesControllerReorderTimelinesResponse =
-  | timelinesControllerReorderTimelinesResponseSuccess
-  | timelinesControllerReorderTimelinesResponseError;
-
 export const getTimelinesControllerReorderTimelinesUrl = (bookId: string) => {
   return `/api/books/${bookId}/timelines/reorder`;
 };
@@ -645,16 +498,13 @@ export const timelinesControllerReorderTimelines = async (
   bookId: string,
   reorderTimelinesInputDto: ReorderTimelinesInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<timelinesControllerReorderTimelinesResponse> => {
-  return customInstance<timelinesControllerReorderTimelinesResponse>(
-    getTimelinesControllerReorderTimelinesUrl(bookId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(reorderTimelinesInputDto),
-    },
-  );
+): Promise<TimelineListViewDto> => {
+  return customInstance<TimelineListViewDto>(getTimelinesControllerReorderTimelinesUrl(bookId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(reorderTimelinesInputDto),
+  });
 };
 
 export const getTimelinesControllerReorderTimelinesQueryKey = (
@@ -817,47 +667,6 @@ export function useTimelinesControllerReorderTimelines<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type timelinesControllerUpdateTimelineResponse200 = {
-  data: TimelineViewDto;
-  status: 200;
-};
-
-export type timelinesControllerUpdateTimelineResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type timelinesControllerUpdateTimelineResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type timelinesControllerUpdateTimelineResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type timelinesControllerUpdateTimelineResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type timelinesControllerUpdateTimelineResponseSuccess =
-  timelinesControllerUpdateTimelineResponse200 & {
-    headers: Headers;
-  };
-export type timelinesControllerUpdateTimelineResponseError = (
-  | timelinesControllerUpdateTimelineResponse400
-  | timelinesControllerUpdateTimelineResponse401
-  | timelinesControllerUpdateTimelineResponse404
-  | timelinesControllerUpdateTimelineResponse409
-) & {
-  headers: Headers;
-};
-
-export type timelinesControllerUpdateTimelineResponse =
-  timelinesControllerUpdateTimelineResponseSuccess | timelinesControllerUpdateTimelineResponseError;
-
 export const getTimelinesControllerUpdateTimelineUrl = (timelineId: string) => {
   return `/api/timelines/${timelineId}`;
 };
@@ -869,16 +678,13 @@ export const timelinesControllerUpdateTimeline = async (
   timelineId: string,
   updateTimelineInputDto: UpdateTimelineInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<timelinesControllerUpdateTimelineResponse> => {
-  return customInstance<timelinesControllerUpdateTimelineResponse>(
-    getTimelinesControllerUpdateTimelineUrl(timelineId),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(updateTimelineInputDto),
-    },
-  );
+): Promise<TimelineViewDto> => {
+  return customInstance<TimelineViewDto>(getTimelinesControllerUpdateTimelineUrl(timelineId), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateTimelineInputDto),
+  });
 };
 
 export const getTimelinesControllerUpdateTimelineQueryKey = (
@@ -1021,47 +827,6 @@ export function useTimelinesControllerUpdateTimeline<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type timelinesControllerDeleteTimelineResponse200 = {
-  data: TimelineDeletionResultDto;
-  status: 200;
-};
-
-export type timelinesControllerDeleteTimelineResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type timelinesControllerDeleteTimelineResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type timelinesControllerDeleteTimelineResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type timelinesControllerDeleteTimelineResponse422 = {
-  data: void;
-  status: 422;
-};
-
-export type timelinesControllerDeleteTimelineResponseSuccess =
-  timelinesControllerDeleteTimelineResponse200 & {
-    headers: Headers;
-  };
-export type timelinesControllerDeleteTimelineResponseError = (
-  | timelinesControllerDeleteTimelineResponse401
-  | timelinesControllerDeleteTimelineResponse404
-  | timelinesControllerDeleteTimelineResponse409
-  | timelinesControllerDeleteTimelineResponse422
-) & {
-  headers: Headers;
-};
-
-export type timelinesControllerDeleteTimelineResponse =
-  timelinesControllerDeleteTimelineResponseSuccess | timelinesControllerDeleteTimelineResponseError;
-
 export const getTimelinesControllerDeleteTimelineUrl = (
   timelineId: string,
   params?: TimelinesControllerDeleteTimelineParams,
@@ -1088,8 +853,8 @@ export const timelinesControllerDeleteTimeline = async (
   timelineId: string,
   params?: TimelinesControllerDeleteTimelineParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<timelinesControllerDeleteTimelineResponse> => {
-  return customInstance<timelinesControllerDeleteTimelineResponse>(
+): Promise<TimelineDeletionResultDto> => {
+  return customInstance<TimelineDeletionResultDto>(
     getTimelinesControllerDeleteTimelineUrl(timelineId, params),
     {
       ...options,
@@ -1233,41 +998,6 @@ export function useTimelinesControllerDeleteTimeline<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type timelinesControllerSetDefaultResponse200 = {
-  data: TimelineListViewDto;
-  status: 200;
-};
-
-export type timelinesControllerSetDefaultResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type timelinesControllerSetDefaultResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type timelinesControllerSetDefaultResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type timelinesControllerSetDefaultResponseSuccess =
-  timelinesControllerSetDefaultResponse200 & {
-    headers: Headers;
-  };
-export type timelinesControllerSetDefaultResponseError = (
-  | timelinesControllerSetDefaultResponse401
-  | timelinesControllerSetDefaultResponse404
-  | timelinesControllerSetDefaultResponse409
-) & {
-  headers: Headers;
-};
-
-export type timelinesControllerSetDefaultResponse =
-  timelinesControllerSetDefaultResponseSuccess | timelinesControllerSetDefaultResponseError;
-
 export const getTimelinesControllerSetDefaultUrl = (timelineId: string) => {
   return `/api/timelines/${timelineId}/set-default`;
 };
@@ -1279,16 +1009,13 @@ export const timelinesControllerSetDefault = async (
   timelineId: string,
   setDefaultTimelineInputDto?: SetDefaultTimelineInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<timelinesControllerSetDefaultResponse> => {
-  return customInstance<timelinesControllerSetDefaultResponse>(
-    getTimelinesControllerSetDefaultUrl(timelineId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(setDefaultTimelineInputDto),
-    },
-  );
+): Promise<TimelineListViewDto> => {
+  return customInstance<TimelineListViewDto>(getTimelinesControllerSetDefaultUrl(timelineId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(setDefaultTimelineInputDto),
+  });
 };
 
 export const getTimelinesControllerSetDefaultQueryKey = (
@@ -1429,27 +1156,6 @@ export function useTimelinesControllerSetDefault<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type timelinesControllerListTrashResponse200 = {
-  data: PaginatedTrashedTimelinesDto;
-  status: 200;
-};
-
-export type timelinesControllerListTrashResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type timelinesControllerListTrashResponseSuccess =
-  timelinesControllerListTrashResponse200 & {
-    headers: Headers;
-  };
-export type timelinesControllerListTrashResponseError = timelinesControllerListTrashResponse401 & {
-  headers: Headers;
-};
-
-export type timelinesControllerListTrashResponse =
-  timelinesControllerListTrashResponseSuccess | timelinesControllerListTrashResponseError;
-
 export const getTimelinesControllerListTrashUrl = (params?: TimelinesControllerListTrashParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -1472,14 +1178,11 @@ export const getTimelinesControllerListTrashUrl = (params?: TimelinesControllerL
 export const timelinesControllerListTrash = async (
   params?: TimelinesControllerListTrashParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<timelinesControllerListTrashResponse> => {
-  return customInstance<timelinesControllerListTrashResponse>(
-    getTimelinesControllerListTrashUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<PaginatedTrashedTimelinesDto> => {
+  return customInstance<PaginatedTrashedTimelinesDto>(getTimelinesControllerListTrashUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getTimelinesControllerListTrashQueryKey = (
@@ -1601,35 +1304,6 @@ export function useTimelinesControllerListTrash<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type timelinesControllerRestoreTimelineResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type timelinesControllerRestoreTimelineResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type timelinesControllerRestoreTimelineResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type timelinesControllerRestoreTimelineResponseSuccess =
-  timelinesControllerRestoreTimelineResponse204 & {
-    headers: Headers;
-  };
-export type timelinesControllerRestoreTimelineResponseError = (
-  timelinesControllerRestoreTimelineResponse401 | timelinesControllerRestoreTimelineResponse404
-) & {
-  headers: Headers;
-};
-
-export type timelinesControllerRestoreTimelineResponse =
-  | timelinesControllerRestoreTimelineResponseSuccess
-  | timelinesControllerRestoreTimelineResponseError;
-
 export const getTimelinesControllerRestoreTimelineUrl = (timelineId: string) => {
   return `/api/timelines/${timelineId}/restore`;
 };
@@ -1640,14 +1314,11 @@ export const getTimelinesControllerRestoreTimelineUrl = (timelineId: string) => 
 export const timelinesControllerRestoreTimeline = async (
   timelineId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<timelinesControllerRestoreTimelineResponse> => {
-  return customInstance<timelinesControllerRestoreTimelineResponse>(
-    getTimelinesControllerRestoreTimelineUrl(timelineId),
-    {
-      ...options,
-      method: "POST",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getTimelinesControllerRestoreTimelineUrl(timelineId), {
+    ...options,
+    method: "POST",
+  });
 };
 
 export const getTimelinesControllerRestoreTimelineQueryKey = (timelineId: string) => {

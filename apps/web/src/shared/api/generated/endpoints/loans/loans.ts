@@ -59,26 +59,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type loansControllerSummaryResponse200 = {
-  data: LoansSummaryViewDto;
-  status: 200;
-};
-
-export type loansControllerSummaryResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type loansControllerSummaryResponseSuccess = loansControllerSummaryResponse200 & {
-  headers: Headers;
-};
-export type loansControllerSummaryResponseError = loansControllerSummaryResponse401 & {
-  headers: Headers;
-};
-
-export type loansControllerSummaryResponse =
-  loansControllerSummaryResponseSuccess | loansControllerSummaryResponseError;
-
 export const getLoansControllerSummaryUrl = () => {
   return `/api/loans/summary`;
 };
@@ -88,8 +68,8 @@ export const getLoansControllerSummaryUrl = () => {
  */
 export const loansControllerSummary = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<loansControllerSummaryResponse> => {
-  return customInstance<loansControllerSummaryResponse>(getLoansControllerSummaryUrl(), {
+): Promise<LoansSummaryViewDto> => {
+  return customInstance<LoansSummaryViewDto>(getLoansControllerSummaryUrl(), {
     ...options,
     method: "GET",
   });
@@ -204,33 +184,6 @@ export function useLoansControllerSummary<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type loansControllerQuickCountsResponse200 = {
-  data: LoansQuickCountsViewDto;
-  status: 200;
-};
-
-export type loansControllerQuickCountsResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type loansControllerQuickCountsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type loansControllerQuickCountsResponseSuccess = loansControllerQuickCountsResponse200 & {
-  headers: Headers;
-};
-export type loansControllerQuickCountsResponseError = (
-  loansControllerQuickCountsResponse400 | loansControllerQuickCountsResponse401
-) & {
-  headers: Headers;
-};
-
-export type loansControllerQuickCountsResponse =
-  loansControllerQuickCountsResponseSuccess | loansControllerQuickCountsResponseError;
-
 export const getLoansControllerQuickCountsUrl = (params?: LoansControllerQuickCountsParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -253,14 +206,11 @@ export const getLoansControllerQuickCountsUrl = (params?: LoansControllerQuickCo
 export const loansControllerQuickCounts = async (
   params?: LoansControllerQuickCountsParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<loansControllerQuickCountsResponse> => {
-  return customInstance<loansControllerQuickCountsResponse>(
-    getLoansControllerQuickCountsUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<LoansQuickCountsViewDto> => {
+  return customInstance<LoansQuickCountsViewDto>(getLoansControllerQuickCountsUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getLoansControllerQuickCountsQueryKey = (
@@ -382,26 +332,6 @@ export function useLoansControllerQuickCounts<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type loansControllerListResponse200 = {
-  data: PaginatedLoansDto;
-  status: 200;
-};
-
-export type loansControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type loansControllerListResponseSuccess = loansControllerListResponse200 & {
-  headers: Headers;
-};
-export type loansControllerListResponseError = loansControllerListResponse401 & {
-  headers: Headers;
-};
-
-export type loansControllerListResponse =
-  loansControllerListResponseSuccess | loansControllerListResponseError;
-
 export const getLoansControllerListUrl = (params?: LoansControllerListParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -422,8 +352,8 @@ export const getLoansControllerListUrl = (params?: LoansControllerListParams) =>
 export const loansControllerList = async (
   params?: LoansControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<loansControllerListResponse> => {
-  return customInstance<loansControllerListResponse>(getLoansControllerListUrl(params), {
+): Promise<PaginatedLoansDto> => {
+  return customInstance<PaginatedLoansDto>(getLoansControllerListUrl(params), {
     ...options,
     method: "GET",
   });
@@ -545,26 +475,6 @@ export function useLoansControllerList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type loanHistoryControllerListResponse200 = {
-  data: PaginatedLoanHistoryDto;
-  status: 200;
-};
-
-export type loanHistoryControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type loanHistoryControllerListResponseSuccess = loanHistoryControllerListResponse200 & {
-  headers: Headers;
-};
-export type loanHistoryControllerListResponseError = loanHistoryControllerListResponse401 & {
-  headers: Headers;
-};
-
-export type loanHistoryControllerListResponse =
-  loanHistoryControllerListResponseSuccess | loanHistoryControllerListResponseError;
-
 export const getLoanHistoryControllerListUrl = (params?: LoanHistoryControllerListParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -587,14 +497,11 @@ export const getLoanHistoryControllerListUrl = (params?: LoanHistoryControllerLi
 export const loanHistoryControllerList = async (
   params?: LoanHistoryControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<loanHistoryControllerListResponse> => {
-  return customInstance<loanHistoryControllerListResponse>(
-    getLoanHistoryControllerListUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<PaginatedLoanHistoryDto> => {
+  return customInstance<PaginatedLoanHistoryDto>(getLoanHistoryControllerListUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getLoanHistoryControllerListQueryKey = (params?: LoanHistoryControllerListParams) => {
@@ -714,28 +621,6 @@ export function useLoanHistoryControllerList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type loanHistoryControllerOverviewResponse200 = {
-  data: LoanHistoryOverviewViewDto;
-  status: 200;
-};
-
-export type loanHistoryControllerOverviewResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type loanHistoryControllerOverviewResponseSuccess =
-  loanHistoryControllerOverviewResponse200 & {
-    headers: Headers;
-  };
-export type loanHistoryControllerOverviewResponseError =
-  loanHistoryControllerOverviewResponse401 & {
-    headers: Headers;
-  };
-
-export type loanHistoryControllerOverviewResponse =
-  loanHistoryControllerOverviewResponseSuccess | loanHistoryControllerOverviewResponseError;
-
 export const getLoanHistoryControllerOverviewUrl = (
   params?: LoanHistoryControllerOverviewParams,
 ) => {
@@ -760,14 +645,11 @@ export const getLoanHistoryControllerOverviewUrl = (
 export const loanHistoryControllerOverview = async (
   params?: LoanHistoryControllerOverviewParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<loanHistoryControllerOverviewResponse> => {
-  return customInstance<loanHistoryControllerOverviewResponse>(
-    getLoanHistoryControllerOverviewUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<LoanHistoryOverviewViewDto> => {
+  return customInstance<LoanHistoryOverviewViewDto>(getLoanHistoryControllerOverviewUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getLoanHistoryControllerOverviewQueryKey = (
@@ -889,26 +771,6 @@ export function useLoanHistoryControllerOverview<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type loanHistoryControllerPeopleResponse200 = {
-  data: LoanHistoryPeopleViewDto;
-  status: 200;
-};
-
-export type loanHistoryControllerPeopleResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type loanHistoryControllerPeopleResponseSuccess = loanHistoryControllerPeopleResponse200 & {
-  headers: Headers;
-};
-export type loanHistoryControllerPeopleResponseError = loanHistoryControllerPeopleResponse401 & {
-  headers: Headers;
-};
-
-export type loanHistoryControllerPeopleResponse =
-  loanHistoryControllerPeopleResponseSuccess | loanHistoryControllerPeopleResponseError;
-
 export const getLoanHistoryControllerPeopleUrl = (params?: LoanHistoryControllerPeopleParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -931,14 +793,11 @@ export const getLoanHistoryControllerPeopleUrl = (params?: LoanHistoryController
 export const loanHistoryControllerPeople = async (
   params?: LoanHistoryControllerPeopleParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<loanHistoryControllerPeopleResponse> => {
-  return customInstance<loanHistoryControllerPeopleResponse>(
-    getLoanHistoryControllerPeopleUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<LoanHistoryPeopleViewDto> => {
+  return customInstance<LoanHistoryPeopleViewDto>(getLoanHistoryControllerPeopleUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getLoanHistoryControllerPeopleQueryKey = (
@@ -1060,33 +919,6 @@ export function useLoanHistoryControllerPeople<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type loanHistoryControllerDetailResponse200 = {
-  data: LoanHistoryDetailViewDto;
-  status: 200;
-};
-
-export type loanHistoryControllerDetailResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type loanHistoryControllerDetailResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type loanHistoryControllerDetailResponseSuccess = loanHistoryControllerDetailResponse200 & {
-  headers: Headers;
-};
-export type loanHistoryControllerDetailResponseError = (
-  loanHistoryControllerDetailResponse401 | loanHistoryControllerDetailResponse404
-) & {
-  headers: Headers;
-};
-
-export type loanHistoryControllerDetailResponse =
-  loanHistoryControllerDetailResponseSuccess | loanHistoryControllerDetailResponseError;
-
 export const getLoanHistoryControllerDetailUrl = (loanId: string) => {
   return `/api/loans/history/${loanId}`;
 };
@@ -1097,14 +929,11 @@ export const getLoanHistoryControllerDetailUrl = (loanId: string) => {
 export const loanHistoryControllerDetail = async (
   loanId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<loanHistoryControllerDetailResponse> => {
-  return customInstance<loanHistoryControllerDetailResponse>(
-    getLoanHistoryControllerDetailUrl(loanId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<LoanHistoryDetailViewDto> => {
+  return customInstance<LoanHistoryDetailViewDto>(getLoanHistoryControllerDetailUrl(loanId), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getLoanHistoryControllerDetailQueryKey = (loanId: string) => {
@@ -1227,41 +1056,6 @@ export function useLoanHistoryControllerDetail<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type loanHistoryControllerCorrectResponse200 = {
-  data: LoanHistoryDetailViewDto;
-  status: 200;
-};
-
-export type loanHistoryControllerCorrectResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type loanHistoryControllerCorrectResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type loanHistoryControllerCorrectResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type loanHistoryControllerCorrectResponseSuccess =
-  loanHistoryControllerCorrectResponse200 & {
-    headers: Headers;
-  };
-export type loanHistoryControllerCorrectResponseError = (
-  | loanHistoryControllerCorrectResponse400
-  | loanHistoryControllerCorrectResponse401
-  | loanHistoryControllerCorrectResponse404
-) & {
-  headers: Headers;
-};
-
-export type loanHistoryControllerCorrectResponse =
-  loanHistoryControllerCorrectResponseSuccess | loanHistoryControllerCorrectResponseError;
-
 export const getLoanHistoryControllerCorrectUrl = (loanId: string) => {
   return `/api/loans/history/${loanId}`;
 };
@@ -1273,16 +1067,13 @@ export const loanHistoryControllerCorrect = async (
   loanId: string,
   updateLoanHistoryInputDto: UpdateLoanHistoryInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<loanHistoryControllerCorrectResponse> => {
-  return customInstance<loanHistoryControllerCorrectResponse>(
-    getLoanHistoryControllerCorrectUrl(loanId),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(updateLoanHistoryInputDto),
-    },
-  );
+): Promise<LoanHistoryDetailViewDto> => {
+  return customInstance<LoanHistoryDetailViewDto>(getLoanHistoryControllerCorrectUrl(loanId), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateLoanHistoryInputDto),
+  });
 };
 
 export const getLoanHistoryControllerCorrectQueryKey = (
@@ -1420,26 +1211,6 @@ export function useLoanHistoryControllerCorrect<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type loanContactsControllerListResponse200 = {
-  data: LoanContactsViewDto;
-  status: 200;
-};
-
-export type loanContactsControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type loanContactsControllerListResponseSuccess = loanContactsControllerListResponse200 & {
-  headers: Headers;
-};
-export type loanContactsControllerListResponseError = loanContactsControllerListResponse401 & {
-  headers: Headers;
-};
-
-export type loanContactsControllerListResponse =
-  loanContactsControllerListResponseSuccess | loanContactsControllerListResponseError;
-
 export const getLoanContactsControllerListUrl = (params?: LoanContactsControllerListParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -1462,14 +1233,11 @@ export const getLoanContactsControllerListUrl = (params?: LoanContactsController
 export const loanContactsControllerList = async (
   params?: LoanContactsControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<loanContactsControllerListResponse> => {
-  return customInstance<loanContactsControllerListResponse>(
-    getLoanContactsControllerListUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<LoanContactsViewDto> => {
+  return customInstance<LoanContactsViewDto>(getLoanContactsControllerListUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getLoanContactsControllerListQueryKey = (
@@ -1591,41 +1359,6 @@ export function useLoanContactsControllerList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type loanContactsControllerCreateResponse201 = {
-  data: LoanContactViewDto;
-  status: 201;
-};
-
-export type loanContactsControllerCreateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type loanContactsControllerCreateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type loanContactsControllerCreateResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type loanContactsControllerCreateResponseSuccess =
-  loanContactsControllerCreateResponse201 & {
-    headers: Headers;
-  };
-export type loanContactsControllerCreateResponseError = (
-  | loanContactsControllerCreateResponse400
-  | loanContactsControllerCreateResponse401
-  | loanContactsControllerCreateResponse409
-) & {
-  headers: Headers;
-};
-
-export type loanContactsControllerCreateResponse =
-  loanContactsControllerCreateResponseSuccess | loanContactsControllerCreateResponseError;
-
 export const getLoanContactsControllerCreateUrl = () => {
   return `/api/loans/contacts`;
 };
@@ -1636,16 +1369,13 @@ export const getLoanContactsControllerCreateUrl = () => {
 export const loanContactsControllerCreate = async (
   createLoanContactInputDto: CreateLoanContactInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<loanContactsControllerCreateResponse> => {
-  return customInstance<loanContactsControllerCreateResponse>(
-    getLoanContactsControllerCreateUrl(),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(createLoanContactInputDto),
-    },
-  );
+): Promise<LoanContactViewDto> => {
+  return customInstance<LoanContactViewDto>(getLoanContactsControllerCreateUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createLoanContactInputDto),
+  });
 };
 
 export const getLoanContactsControllerCreateQueryKey = (
@@ -1771,35 +1501,6 @@ export function useLoanContactsControllerCreate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type loanContactsControllerDetailByNameResponse200 = {
-  data: LoanContactViewDto;
-  status: 200;
-};
-
-export type loanContactsControllerDetailByNameResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type loanContactsControllerDetailByNameResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type loanContactsControllerDetailByNameResponseSuccess =
-  loanContactsControllerDetailByNameResponse200 & {
-    headers: Headers;
-  };
-export type loanContactsControllerDetailByNameResponseError = (
-  loanContactsControllerDetailByNameResponse401 | loanContactsControllerDetailByNameResponse404
-) & {
-  headers: Headers;
-};
-
-export type loanContactsControllerDetailByNameResponse =
-  | loanContactsControllerDetailByNameResponseSuccess
-  | loanContactsControllerDetailByNameResponseError;
-
 export const getLoanContactsControllerDetailByNameUrl = (
   params: LoanContactsControllerDetailByNameParams,
 ) => {
@@ -1824,14 +1525,11 @@ export const getLoanContactsControllerDetailByNameUrl = (
 export const loanContactsControllerDetailByName = async (
   params: LoanContactsControllerDetailByNameParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<loanContactsControllerDetailByNameResponse> => {
-  return customInstance<loanContactsControllerDetailByNameResponse>(
-    getLoanContactsControllerDetailByNameUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<LoanContactViewDto> => {
+  return customInstance<LoanContactViewDto>(getLoanContactsControllerDetailByNameUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getLoanContactsControllerDetailByNameQueryKey = (
@@ -1953,34 +1651,6 @@ export function useLoanContactsControllerDetailByName<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type loanContactsControllerDetailResponse200 = {
-  data: LoanContactViewDto;
-  status: 200;
-};
-
-export type loanContactsControllerDetailResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type loanContactsControllerDetailResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type loanContactsControllerDetailResponseSuccess =
-  loanContactsControllerDetailResponse200 & {
-    headers: Headers;
-  };
-export type loanContactsControllerDetailResponseError = (
-  loanContactsControllerDetailResponse401 | loanContactsControllerDetailResponse404
-) & {
-  headers: Headers;
-};
-
-export type loanContactsControllerDetailResponse =
-  loanContactsControllerDetailResponseSuccess | loanContactsControllerDetailResponseError;
-
 export const getLoanContactsControllerDetailUrl = (contactId: string) => {
   return `/api/loans/contacts/${contactId}`;
 };
@@ -1991,14 +1661,11 @@ export const getLoanContactsControllerDetailUrl = (contactId: string) => {
 export const loanContactsControllerDetail = async (
   contactId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<loanContactsControllerDetailResponse> => {
-  return customInstance<loanContactsControllerDetailResponse>(
-    getLoanContactsControllerDetailUrl(contactId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<LoanContactViewDto> => {
+  return customInstance<LoanContactViewDto>(getLoanContactsControllerDetailUrl(contactId), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getLoanContactsControllerDetailQueryKey = (contactId: string) => {
@@ -2121,47 +1788,6 @@ export function useLoanContactsControllerDetail<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type loanContactsControllerUpdateResponse200 = {
-  data: LoanContactViewDto;
-  status: 200;
-};
-
-export type loanContactsControllerUpdateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type loanContactsControllerUpdateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type loanContactsControllerUpdateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type loanContactsControllerUpdateResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type loanContactsControllerUpdateResponseSuccess =
-  loanContactsControllerUpdateResponse200 & {
-    headers: Headers;
-  };
-export type loanContactsControllerUpdateResponseError = (
-  | loanContactsControllerUpdateResponse400
-  | loanContactsControllerUpdateResponse401
-  | loanContactsControllerUpdateResponse404
-  | loanContactsControllerUpdateResponse409
-) & {
-  headers: Headers;
-};
-
-export type loanContactsControllerUpdateResponse =
-  loanContactsControllerUpdateResponseSuccess | loanContactsControllerUpdateResponseError;
-
 export const getLoanContactsControllerUpdateUrl = (contactId: string) => {
   return `/api/loans/contacts/${contactId}`;
 };
@@ -2173,16 +1799,13 @@ export const loanContactsControllerUpdate = async (
   contactId: string,
   updateLoanContactInputDto: UpdateLoanContactInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<loanContactsControllerUpdateResponse> => {
-  return customInstance<loanContactsControllerUpdateResponse>(
-    getLoanContactsControllerUpdateUrl(contactId),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(updateLoanContactInputDto),
-    },
-  );
+): Promise<LoanContactViewDto> => {
+  return customInstance<LoanContactViewDto>(getLoanContactsControllerUpdateUrl(contactId), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateLoanContactInputDto),
+  });
 };
 
 export const getLoanContactsControllerUpdateQueryKey = (
@@ -2323,34 +1946,6 @@ export function useLoanContactsControllerUpdate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type loanContactsControllerArchiveResponse200 = {
-  data: LoanContactViewDto;
-  status: 200;
-};
-
-export type loanContactsControllerArchiveResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type loanContactsControllerArchiveResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type loanContactsControllerArchiveResponseSuccess =
-  loanContactsControllerArchiveResponse200 & {
-    headers: Headers;
-  };
-export type loanContactsControllerArchiveResponseError = (
-  loanContactsControllerArchiveResponse401 | loanContactsControllerArchiveResponse404
-) & {
-  headers: Headers;
-};
-
-export type loanContactsControllerArchiveResponse =
-  loanContactsControllerArchiveResponseSuccess | loanContactsControllerArchiveResponseError;
-
 export const getLoanContactsControllerArchiveUrl = (contactId: string) => {
   return `/api/loans/contacts/${contactId}/archive`;
 };
@@ -2361,14 +1956,11 @@ export const getLoanContactsControllerArchiveUrl = (contactId: string) => {
 export const loanContactsControllerArchive = async (
   contactId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<loanContactsControllerArchiveResponse> => {
-  return customInstance<loanContactsControllerArchiveResponse>(
-    getLoanContactsControllerArchiveUrl(contactId),
-    {
-      ...options,
-      method: "POST",
-    },
-  );
+): Promise<LoanContactViewDto> => {
+  return customInstance<LoanContactViewDto>(getLoanContactsControllerArchiveUrl(contactId), {
+    ...options,
+    method: "POST",
+  });
 };
 
 export const getLoanContactsControllerArchiveQueryKey = (contactId: string) => {
@@ -2491,34 +2083,6 @@ export function useLoanContactsControllerArchive<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type loanContactsControllerRestoreResponse200 = {
-  data: LoanContactViewDto;
-  status: 200;
-};
-
-export type loanContactsControllerRestoreResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type loanContactsControllerRestoreResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type loanContactsControllerRestoreResponseSuccess =
-  loanContactsControllerRestoreResponse200 & {
-    headers: Headers;
-  };
-export type loanContactsControllerRestoreResponseError = (
-  loanContactsControllerRestoreResponse401 | loanContactsControllerRestoreResponse404
-) & {
-  headers: Headers;
-};
-
-export type loanContactsControllerRestoreResponse =
-  loanContactsControllerRestoreResponseSuccess | loanContactsControllerRestoreResponseError;
-
 export const getLoanContactsControllerRestoreUrl = (contactId: string) => {
   return `/api/loans/contacts/${contactId}/restore`;
 };
@@ -2529,14 +2093,11 @@ export const getLoanContactsControllerRestoreUrl = (contactId: string) => {
 export const loanContactsControllerRestore = async (
   contactId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<loanContactsControllerRestoreResponse> => {
-  return customInstance<loanContactsControllerRestoreResponse>(
-    getLoanContactsControllerRestoreUrl(contactId),
-    {
-      ...options,
-      method: "POST",
-    },
-  );
+): Promise<LoanContactViewDto> => {
+  return customInstance<LoanContactViewDto>(getLoanContactsControllerRestoreUrl(contactId), {
+    ...options,
+    method: "POST",
+  });
 };
 
 export const getLoanContactsControllerRestoreQueryKey = (contactId: string) => {

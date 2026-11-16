@@ -54,40 +54,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type seriesControllerCreateResponse201 = {
-  data: SeriesViewDto;
-  status: 201;
-};
-
-export type seriesControllerCreateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type seriesControllerCreateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type seriesControllerCreateResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type seriesControllerCreateResponseSuccess = seriesControllerCreateResponse201 & {
-  headers: Headers;
-};
-export type seriesControllerCreateResponseError = (
-  | seriesControllerCreateResponse400
-  | seriesControllerCreateResponse401
-  | seriesControllerCreateResponse409
-) & {
-  headers: Headers;
-};
-
-export type seriesControllerCreateResponse =
-  seriesControllerCreateResponseSuccess | seriesControllerCreateResponseError;
-
 export const getSeriesControllerCreateUrl = () => {
   return `/api/series`;
 };
@@ -98,8 +64,8 @@ export const getSeriesControllerCreateUrl = () => {
 export const seriesControllerCreate = async (
   newSeriesInputDto: NewSeriesInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<seriesControllerCreateResponse> => {
-  return customInstance<seriesControllerCreateResponse>(getSeriesControllerCreateUrl(), {
+): Promise<SeriesViewDto> => {
+  return customInstance<SeriesViewDto>(getSeriesControllerCreateUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -223,26 +189,6 @@ export function useSeriesControllerCreate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type seriesControllerSearchResponse200 = {
-  data: PaginatedSeriesDto;
-  status: 200;
-};
-
-export type seriesControllerSearchResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type seriesControllerSearchResponseSuccess = seriesControllerSearchResponse200 & {
-  headers: Headers;
-};
-export type seriesControllerSearchResponseError = seriesControllerSearchResponse401 & {
-  headers: Headers;
-};
-
-export type seriesControllerSearchResponse =
-  seriesControllerSearchResponseSuccess | seriesControllerSearchResponseError;
-
 export const getSeriesControllerSearchUrl = (params?: SeriesControllerSearchParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -272,8 +218,8 @@ export const getSeriesControllerSearchUrl = (params?: SeriesControllerSearchPara
 export const seriesControllerSearch = async (
   params?: SeriesControllerSearchParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<seriesControllerSearchResponse> => {
-  return customInstance<seriesControllerSearchResponse>(getSeriesControllerSearchUrl(params), {
+): Promise<PaginatedSeriesDto> => {
+  return customInstance<PaginatedSeriesDto>(getSeriesControllerSearchUrl(params), {
     ...options,
     method: "GET",
   });
@@ -395,26 +341,6 @@ export function useSeriesControllerSearch<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type seriesControllerOverviewResponse200 = {
-  data: SeriesOverviewViewDto;
-  status: 200;
-};
-
-export type seriesControllerOverviewResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type seriesControllerOverviewResponseSuccess = seriesControllerOverviewResponse200 & {
-  headers: Headers;
-};
-export type seriesControllerOverviewResponseError = seriesControllerOverviewResponse401 & {
-  headers: Headers;
-};
-
-export type seriesControllerOverviewResponse =
-  seriesControllerOverviewResponseSuccess | seriesControllerOverviewResponseError;
-
 export const getSeriesControllerOverviewUrl = () => {
   return `/api/series/overview`;
 };
@@ -424,8 +350,8 @@ export const getSeriesControllerOverviewUrl = () => {
  */
 export const seriesControllerOverview = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<seriesControllerOverviewResponse> => {
-  return customInstance<seriesControllerOverviewResponse>(getSeriesControllerOverviewUrl(), {
+): Promise<SeriesOverviewViewDto> => {
+  return customInstance<SeriesOverviewViewDto>(getSeriesControllerOverviewUrl(), {
     ...options,
     method: "GET",
   });
@@ -541,29 +467,6 @@ export function useSeriesControllerOverview<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type seriesControllerFavoriteContinuationsResponse200 = {
-  data: FavoriteSeriesContinuationsViewDto;
-  status: 200;
-};
-
-export type seriesControllerFavoriteContinuationsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type seriesControllerFavoriteContinuationsResponseSuccess =
-  seriesControllerFavoriteContinuationsResponse200 & {
-    headers: Headers;
-  };
-export type seriesControllerFavoriteContinuationsResponseError =
-  seriesControllerFavoriteContinuationsResponse401 & {
-    headers: Headers;
-  };
-
-export type seriesControllerFavoriteContinuationsResponse =
-  | seriesControllerFavoriteContinuationsResponseSuccess
-  | seriesControllerFavoriteContinuationsResponseError;
-
 export const getSeriesControllerFavoriteContinuationsUrl = (
   params?: SeriesControllerFavoriteContinuationsParams,
 ) => {
@@ -588,8 +491,8 @@ export const getSeriesControllerFavoriteContinuationsUrl = (
 export const seriesControllerFavoriteContinuations = async (
   params?: SeriesControllerFavoriteContinuationsParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<seriesControllerFavoriteContinuationsResponse> => {
-  return customInstance<seriesControllerFavoriteContinuationsResponse>(
+): Promise<FavoriteSeriesContinuationsViewDto> => {
+  return customInstance<FavoriteSeriesContinuationsViewDto>(
     getSeriesControllerFavoriteContinuationsUrl(params),
     {
       ...options,
@@ -738,26 +641,6 @@ export function useSeriesControllerFavoriteContinuations<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type seriesControllerListTrashResponse200 = {
-  data: PaginatedTrashedSeriesDto;
-  status: 200;
-};
-
-export type seriesControllerListTrashResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type seriesControllerListTrashResponseSuccess = seriesControllerListTrashResponse200 & {
-  headers: Headers;
-};
-export type seriesControllerListTrashResponseError = seriesControllerListTrashResponse401 & {
-  headers: Headers;
-};
-
-export type seriesControllerListTrashResponse =
-  seriesControllerListTrashResponseSuccess | seriesControllerListTrashResponseError;
-
 export const getSeriesControllerListTrashUrl = (params?: SeriesControllerListTrashParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -780,14 +663,11 @@ export const getSeriesControllerListTrashUrl = (params?: SeriesControllerListTra
 export const seriesControllerListTrash = async (
   params?: SeriesControllerListTrashParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<seriesControllerListTrashResponse> => {
-  return customInstance<seriesControllerListTrashResponse>(
-    getSeriesControllerListTrashUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<PaginatedTrashedSeriesDto> => {
+  return customInstance<PaginatedTrashedSeriesDto>(getSeriesControllerListTrashUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getSeriesControllerListTrashQueryKey = (params?: SeriesControllerListTrashParams) => {
@@ -907,33 +787,6 @@ export function useSeriesControllerListTrash<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type seriesControllerGetByIdResponse200 = {
-  data: SeriesDetailsViewDto;
-  status: 200;
-};
-
-export type seriesControllerGetByIdResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type seriesControllerGetByIdResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type seriesControllerGetByIdResponseSuccess = seriesControllerGetByIdResponse200 & {
-  headers: Headers;
-};
-export type seriesControllerGetByIdResponseError = (
-  seriesControllerGetByIdResponse401 | seriesControllerGetByIdResponse404
-) & {
-  headers: Headers;
-};
-
-export type seriesControllerGetByIdResponse =
-  seriesControllerGetByIdResponseSuccess | seriesControllerGetByIdResponseError;
-
 export const getSeriesControllerGetByIdUrl = (id: string) => {
   return `/api/series/${id}`;
 };
@@ -944,8 +797,8 @@ export const getSeriesControllerGetByIdUrl = (id: string) => {
 export const seriesControllerGetById = async (
   id: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<seriesControllerGetByIdResponse> => {
-  return customInstance<seriesControllerGetByIdResponse>(getSeriesControllerGetByIdUrl(id), {
+): Promise<SeriesDetailsViewDto> => {
+  return customInstance<SeriesDetailsViewDto>(getSeriesControllerGetByIdUrl(id), {
     ...options,
     method: "GET",
   });
@@ -1071,52 +924,6 @@ export function useSeriesControllerGetById<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type seriesControllerUpdateResponse200 = {
-  data: SeriesViewDto;
-  status: 200;
-};
-
-export type seriesControllerUpdateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type seriesControllerUpdateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type seriesControllerUpdateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type seriesControllerUpdateResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type seriesControllerUpdateResponse422 = {
-  data: void;
-  status: 422;
-};
-
-export type seriesControllerUpdateResponseSuccess = seriesControllerUpdateResponse200 & {
-  headers: Headers;
-};
-export type seriesControllerUpdateResponseError = (
-  | seriesControllerUpdateResponse400
-  | seriesControllerUpdateResponse401
-  | seriesControllerUpdateResponse404
-  | seriesControllerUpdateResponse409
-  | seriesControllerUpdateResponse422
-) & {
-  headers: Headers;
-};
-
-export type seriesControllerUpdateResponse =
-  seriesControllerUpdateResponseSuccess | seriesControllerUpdateResponseError;
-
 export const getSeriesControllerUpdateUrl = (id: string) => {
   return `/api/series/${id}`;
 };
@@ -1128,8 +935,8 @@ export const seriesControllerUpdate = async (
   id: string,
   updateSeriesInputDto: UpdateSeriesInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<seriesControllerUpdateResponse> => {
-  return customInstance<seriesControllerUpdateResponse>(getSeriesControllerUpdateUrl(id), {
+): Promise<SeriesViewDto> => {
+  return customInstance<SeriesViewDto>(getSeriesControllerUpdateUrl(id), {
     ...options,
     method: "PATCH",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -1265,33 +1072,6 @@ export function useSeriesControllerUpdate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type seriesControllerDeleteResponse200 = {
-  data: SeriesDeletionResultDto;
-  status: 200;
-};
-
-export type seriesControllerDeleteResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type seriesControllerDeleteResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type seriesControllerDeleteResponseSuccess = seriesControllerDeleteResponse200 & {
-  headers: Headers;
-};
-export type seriesControllerDeleteResponseError = (
-  seriesControllerDeleteResponse401 | seriesControllerDeleteResponse404
-) & {
-  headers: Headers;
-};
-
-export type seriesControllerDeleteResponse =
-  seriesControllerDeleteResponseSuccess | seriesControllerDeleteResponseError;
-
 export const getSeriesControllerDeleteUrl = (id: string) => {
   return `/api/series/${id}`;
 };
@@ -1302,8 +1082,8 @@ export const getSeriesControllerDeleteUrl = (id: string) => {
 export const seriesControllerDelete = async (
   id: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<seriesControllerDeleteResponse> => {
-  return customInstance<seriesControllerDeleteResponse>(getSeriesControllerDeleteUrl(id), {
+): Promise<SeriesDeletionResultDto> => {
+  return customInstance<SeriesDeletionResultDto>(getSeriesControllerDeleteUrl(id), {
     ...options,
     method: "DELETE",
   });
@@ -1428,33 +1208,6 @@ export function useSeriesControllerDelete<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type seriesControllerRestoreResponse200 = {
-  data: SeriesDetailsViewDto;
-  status: 200;
-};
-
-export type seriesControllerRestoreResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type seriesControllerRestoreResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type seriesControllerRestoreResponseSuccess = seriesControllerRestoreResponse200 & {
-  headers: Headers;
-};
-export type seriesControllerRestoreResponseError = (
-  seriesControllerRestoreResponse401 | seriesControllerRestoreResponse404
-) & {
-  headers: Headers;
-};
-
-export type seriesControllerRestoreResponse =
-  seriesControllerRestoreResponseSuccess | seriesControllerRestoreResponseError;
-
 export const getSeriesControllerRestoreUrl = (id: string) => {
   return `/api/series/${id}/restore`;
 };
@@ -1465,8 +1218,8 @@ export const getSeriesControllerRestoreUrl = (id: string) => {
 export const seriesControllerRestore = async (
   id: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<seriesControllerRestoreResponse> => {
-  return customInstance<seriesControllerRestoreResponse>(getSeriesControllerRestoreUrl(id), {
+): Promise<SeriesDetailsViewDto> => {
+  return customInstance<SeriesDetailsViewDto>(getSeriesControllerRestoreUrl(id), {
     ...options,
     method: "POST",
   });
@@ -1592,42 +1345,6 @@ export function useSeriesControllerRestore<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type seriesOrderPreferenceControllerGetPreferenceResponse200 = {
-  data: SeriesOrderPreferenceViewDto;
-  status: 200;
-};
-
-export type seriesOrderPreferenceControllerGetPreferenceResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type seriesOrderPreferenceControllerGetPreferenceResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type seriesOrderPreferenceControllerGetPreferenceResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type seriesOrderPreferenceControllerGetPreferenceResponseSuccess =
-  seriesOrderPreferenceControllerGetPreferenceResponse200 & {
-    headers: Headers;
-  };
-export type seriesOrderPreferenceControllerGetPreferenceResponseError = (
-  | seriesOrderPreferenceControllerGetPreferenceResponse400
-  | seriesOrderPreferenceControllerGetPreferenceResponse401
-  | seriesOrderPreferenceControllerGetPreferenceResponse404
-) & {
-  headers: Headers;
-};
-
-export type seriesOrderPreferenceControllerGetPreferenceResponse =
-  | seriesOrderPreferenceControllerGetPreferenceResponseSuccess
-  | seriesOrderPreferenceControllerGetPreferenceResponseError;
-
 export const getSeriesOrderPreferenceControllerGetPreferenceUrl = (seriesId: string) => {
   return `/api/series/${seriesId}/order-check-preference`;
 };
@@ -1638,8 +1355,8 @@ export const getSeriesOrderPreferenceControllerGetPreferenceUrl = (seriesId: str
 export const seriesOrderPreferenceControllerGetPreference = async (
   seriesId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<seriesOrderPreferenceControllerGetPreferenceResponse> => {
-  return customInstance<seriesOrderPreferenceControllerGetPreferenceResponse>(
+): Promise<SeriesOrderPreferenceViewDto> => {
+  return customInstance<SeriesOrderPreferenceViewDto>(
     getSeriesOrderPreferenceControllerGetPreferenceUrl(seriesId),
     {
       ...options,
@@ -1795,42 +1512,6 @@ export function useSeriesOrderPreferenceControllerGetPreference<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type seriesOrderPreferenceControllerSetPreferenceResponse200 = {
-  data: SeriesOrderPreferenceViewDto;
-  status: 200;
-};
-
-export type seriesOrderPreferenceControllerSetPreferenceResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type seriesOrderPreferenceControllerSetPreferenceResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type seriesOrderPreferenceControllerSetPreferenceResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type seriesOrderPreferenceControllerSetPreferenceResponseSuccess =
-  seriesOrderPreferenceControllerSetPreferenceResponse200 & {
-    headers: Headers;
-  };
-export type seriesOrderPreferenceControllerSetPreferenceResponseError = (
-  | seriesOrderPreferenceControllerSetPreferenceResponse400
-  | seriesOrderPreferenceControllerSetPreferenceResponse401
-  | seriesOrderPreferenceControllerSetPreferenceResponse404
-) & {
-  headers: Headers;
-};
-
-export type seriesOrderPreferenceControllerSetPreferenceResponse =
-  | seriesOrderPreferenceControllerSetPreferenceResponseSuccess
-  | seriesOrderPreferenceControllerSetPreferenceResponseError;
-
 export const getSeriesOrderPreferenceControllerSetPreferenceUrl = (seriesId: string) => {
   return `/api/series/${seriesId}/order-check-preference`;
 };
@@ -1842,8 +1523,8 @@ export const seriesOrderPreferenceControllerSetPreference = async (
   seriesId: string,
   seriesOrderCheckPreferenceInputDto: SeriesOrderCheckPreferenceInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<seriesOrderPreferenceControllerSetPreferenceResponse> => {
-  return customInstance<seriesOrderPreferenceControllerSetPreferenceResponse>(
+): Promise<SeriesOrderPreferenceViewDto> => {
+  return customInstance<SeriesOrderPreferenceViewDto>(
     getSeriesOrderPreferenceControllerSetPreferenceUrl(seriesId),
     {
       ...options,

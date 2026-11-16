@@ -50,41 +50,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type shipmentsControllerCreateShipmentResponse201 = {
-  data: BookOrderViewDto;
-  status: 201;
-};
-
-export type shipmentsControllerCreateShipmentResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type shipmentsControllerCreateShipmentResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type shipmentsControllerCreateShipmentResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type shipmentsControllerCreateShipmentResponseSuccess =
-  shipmentsControllerCreateShipmentResponse201 & {
-    headers: Headers;
-  };
-export type shipmentsControllerCreateShipmentResponseError = (
-  | shipmentsControllerCreateShipmentResponse400
-  | shipmentsControllerCreateShipmentResponse401
-  | shipmentsControllerCreateShipmentResponse404
-) & {
-  headers: Headers;
-};
-
-export type shipmentsControllerCreateShipmentResponse =
-  shipmentsControllerCreateShipmentResponseSuccess | shipmentsControllerCreateShipmentResponseError;
-
 export const getShipmentsControllerCreateShipmentUrl = (orderId: string) => {
   return `/api/delivery/orders/${orderId}/shipments`;
 };
@@ -96,16 +61,13 @@ export const shipmentsControllerCreateShipment = async (
   orderId: string,
   createShipmentInputDto: CreateShipmentInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<shipmentsControllerCreateShipmentResponse> => {
-  return customInstance<shipmentsControllerCreateShipmentResponse>(
-    getShipmentsControllerCreateShipmentUrl(orderId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(createShipmentInputDto),
-    },
-  );
+): Promise<BookOrderViewDto> => {
+  return customInstance<BookOrderViewDto>(getShipmentsControllerCreateShipmentUrl(orderId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createShipmentInputDto),
+  });
 };
 
 export const getShipmentsControllerCreateShipmentQueryKey = (
@@ -248,47 +210,6 @@ export function useShipmentsControllerCreateShipment<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type shipmentsControllerMoveItemsResponse200 = {
-  data: BookOrderViewDto;
-  status: 200;
-};
-
-export type shipmentsControllerMoveItemsResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type shipmentsControllerMoveItemsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type shipmentsControllerMoveItemsResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type shipmentsControllerMoveItemsResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type shipmentsControllerMoveItemsResponseSuccess =
-  shipmentsControllerMoveItemsResponse200 & {
-    headers: Headers;
-  };
-export type shipmentsControllerMoveItemsResponseError = (
-  | shipmentsControllerMoveItemsResponse400
-  | shipmentsControllerMoveItemsResponse401
-  | shipmentsControllerMoveItemsResponse404
-  | shipmentsControllerMoveItemsResponse409
-) & {
-  headers: Headers;
-};
-
-export type shipmentsControllerMoveItemsResponse =
-  shipmentsControllerMoveItemsResponseSuccess | shipmentsControllerMoveItemsResponseError;
-
 export const getShipmentsControllerMoveItemsUrl = (orderId: string) => {
   return `/api/delivery/orders/${orderId}/items/move`;
 };
@@ -300,16 +221,13 @@ export const shipmentsControllerMoveItems = async (
   orderId: string,
   moveBookOrderItemsInputDto: MoveBookOrderItemsInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<shipmentsControllerMoveItemsResponse> => {
-  return customInstance<shipmentsControllerMoveItemsResponse>(
-    getShipmentsControllerMoveItemsUrl(orderId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(moveBookOrderItemsInputDto),
-    },
-  );
+): Promise<BookOrderViewDto> => {
+  return customInstance<BookOrderViewDto>(getShipmentsControllerMoveItemsUrl(orderId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(moveBookOrderItemsInputDto),
+  });
 };
 
 export const getShipmentsControllerMoveItemsQueryKey = (
@@ -454,35 +372,6 @@ export function useShipmentsControllerMoveItems<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type shipmentsControllerReceiveShipmentsResponse200 = {
-  data: ReceiveShipmentsResultViewDto;
-  status: 200;
-};
-
-export type shipmentsControllerReceiveShipmentsResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type shipmentsControllerReceiveShipmentsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type shipmentsControllerReceiveShipmentsResponseSuccess =
-  shipmentsControllerReceiveShipmentsResponse200 & {
-    headers: Headers;
-  };
-export type shipmentsControllerReceiveShipmentsResponseError = (
-  shipmentsControllerReceiveShipmentsResponse400 | shipmentsControllerReceiveShipmentsResponse401
-) & {
-  headers: Headers;
-};
-
-export type shipmentsControllerReceiveShipmentsResponse =
-  | shipmentsControllerReceiveShipmentsResponseSuccess
-  | shipmentsControllerReceiveShipmentsResponseError;
-
 export const getShipmentsControllerReceiveShipmentsUrl = () => {
   return `/api/delivery/shipments/receive`;
 };
@@ -493,8 +382,8 @@ export const getShipmentsControllerReceiveShipmentsUrl = () => {
 export const shipmentsControllerReceiveShipments = async (
   receiveShipmentsInputDto: ReceiveShipmentsInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<shipmentsControllerReceiveShipmentsResponse> => {
-  return customInstance<shipmentsControllerReceiveShipmentsResponse>(
+): Promise<ReceiveShipmentsResultViewDto> => {
+  return customInstance<ReceiveShipmentsResultViewDto>(
     getShipmentsControllerReceiveShipmentsUrl(),
     {
       ...options,
@@ -650,47 +539,6 @@ export function useShipmentsControllerReceiveShipments<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type shipmentsControllerUpdateShipmentResponse200 = {
-  data: BookOrderViewDto;
-  status: 200;
-};
-
-export type shipmentsControllerUpdateShipmentResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type shipmentsControllerUpdateShipmentResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type shipmentsControllerUpdateShipmentResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type shipmentsControllerUpdateShipmentResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type shipmentsControllerUpdateShipmentResponseSuccess =
-  shipmentsControllerUpdateShipmentResponse200 & {
-    headers: Headers;
-  };
-export type shipmentsControllerUpdateShipmentResponseError = (
-  | shipmentsControllerUpdateShipmentResponse400
-  | shipmentsControllerUpdateShipmentResponse401
-  | shipmentsControllerUpdateShipmentResponse404
-  | shipmentsControllerUpdateShipmentResponse409
-) & {
-  headers: Headers;
-};
-
-export type shipmentsControllerUpdateShipmentResponse =
-  shipmentsControllerUpdateShipmentResponseSuccess | shipmentsControllerUpdateShipmentResponseError;
-
 export const getShipmentsControllerUpdateShipmentUrl = (shipmentId: string) => {
   return `/api/delivery/shipments/${shipmentId}`;
 };
@@ -702,16 +550,13 @@ export const shipmentsControllerUpdateShipment = async (
   shipmentId: string,
   updateShipmentInputDto: UpdateShipmentInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<shipmentsControllerUpdateShipmentResponse> => {
-  return customInstance<shipmentsControllerUpdateShipmentResponse>(
-    getShipmentsControllerUpdateShipmentUrl(shipmentId),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(updateShipmentInputDto),
-    },
-  );
+): Promise<BookOrderViewDto> => {
+  return customInstance<BookOrderViewDto>(getShipmentsControllerUpdateShipmentUrl(shipmentId), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateShipmentInputDto),
+  });
 };
 
 export const getShipmentsControllerUpdateShipmentQueryKey = (
@@ -854,47 +699,6 @@ export function useShipmentsControllerUpdateShipment<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type shipmentsControllerMarkInTransitResponse200 = {
-  data: BookOrderViewDto;
-  status: 200;
-};
-
-export type shipmentsControllerMarkInTransitResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type shipmentsControllerMarkInTransitResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type shipmentsControllerMarkInTransitResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type shipmentsControllerMarkInTransitResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type shipmentsControllerMarkInTransitResponseSuccess =
-  shipmentsControllerMarkInTransitResponse200 & {
-    headers: Headers;
-  };
-export type shipmentsControllerMarkInTransitResponseError = (
-  | shipmentsControllerMarkInTransitResponse400
-  | shipmentsControllerMarkInTransitResponse401
-  | shipmentsControllerMarkInTransitResponse404
-  | shipmentsControllerMarkInTransitResponse409
-) & {
-  headers: Headers;
-};
-
-export type shipmentsControllerMarkInTransitResponse =
-  shipmentsControllerMarkInTransitResponseSuccess | shipmentsControllerMarkInTransitResponseError;
-
 export const getShipmentsControllerMarkInTransitUrl = (shipmentId: string) => {
   return `/api/delivery/shipments/${shipmentId}/in-transit`;
 };
@@ -906,16 +710,13 @@ export const shipmentsControllerMarkInTransit = async (
   shipmentId: string,
   markShipmentInTransitInputDto?: MarkShipmentInTransitInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<shipmentsControllerMarkInTransitResponse> => {
-  return customInstance<shipmentsControllerMarkInTransitResponse>(
-    getShipmentsControllerMarkInTransitUrl(shipmentId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(markShipmentInTransitInputDto),
-    },
-  );
+): Promise<BookOrderViewDto> => {
+  return customInstance<BookOrderViewDto>(getShipmentsControllerMarkInTransitUrl(shipmentId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(markShipmentInTransitInputDto),
+  });
 };
 
 export const getShipmentsControllerMarkInTransitQueryKey = (
@@ -1062,48 +863,6 @@ export function useShipmentsControllerMarkInTransit<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type shipmentsControllerMarkReadyForPickupResponse200 = {
-  data: BookOrderViewDto;
-  status: 200;
-};
-
-export type shipmentsControllerMarkReadyForPickupResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type shipmentsControllerMarkReadyForPickupResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type shipmentsControllerMarkReadyForPickupResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type shipmentsControllerMarkReadyForPickupResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type shipmentsControllerMarkReadyForPickupResponseSuccess =
-  shipmentsControllerMarkReadyForPickupResponse200 & {
-    headers: Headers;
-  };
-export type shipmentsControllerMarkReadyForPickupResponseError = (
-  | shipmentsControllerMarkReadyForPickupResponse400
-  | shipmentsControllerMarkReadyForPickupResponse401
-  | shipmentsControllerMarkReadyForPickupResponse404
-  | shipmentsControllerMarkReadyForPickupResponse409
-) & {
-  headers: Headers;
-};
-
-export type shipmentsControllerMarkReadyForPickupResponse =
-  | shipmentsControllerMarkReadyForPickupResponseSuccess
-  | shipmentsControllerMarkReadyForPickupResponseError;
-
 export const getShipmentsControllerMarkReadyForPickupUrl = (shipmentId: string) => {
   return `/api/delivery/shipments/${shipmentId}/ready-for-pickup`;
 };
@@ -1115,16 +874,13 @@ export const shipmentsControllerMarkReadyForPickup = async (
   shipmentId: string,
   markShipmentReadyForPickupInputDto?: MarkShipmentReadyForPickupInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<shipmentsControllerMarkReadyForPickupResponse> => {
-  return customInstance<shipmentsControllerMarkReadyForPickupResponse>(
-    getShipmentsControllerMarkReadyForPickupUrl(shipmentId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(markShipmentReadyForPickupInputDto),
-    },
-  );
+): Promise<BookOrderViewDto> => {
+  return customInstance<BookOrderViewDto>(getShipmentsControllerMarkReadyForPickupUrl(shipmentId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(markShipmentReadyForPickupInputDto),
+  });
 };
 
 export const getShipmentsControllerMarkReadyForPickupQueryKey = (
@@ -1294,47 +1050,6 @@ export function useShipmentsControllerMarkReadyForPickup<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type shipmentsControllerMarkReceivedResponse200 = {
-  data: BookOrderViewDto;
-  status: 200;
-};
-
-export type shipmentsControllerMarkReceivedResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type shipmentsControllerMarkReceivedResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type shipmentsControllerMarkReceivedResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type shipmentsControllerMarkReceivedResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type shipmentsControllerMarkReceivedResponseSuccess =
-  shipmentsControllerMarkReceivedResponse200 & {
-    headers: Headers;
-  };
-export type shipmentsControllerMarkReceivedResponseError = (
-  | shipmentsControllerMarkReceivedResponse400
-  | shipmentsControllerMarkReceivedResponse401
-  | shipmentsControllerMarkReceivedResponse404
-  | shipmentsControllerMarkReceivedResponse409
-) & {
-  headers: Headers;
-};
-
-export type shipmentsControllerMarkReceivedResponse =
-  shipmentsControllerMarkReceivedResponseSuccess | shipmentsControllerMarkReceivedResponseError;
-
 export const getShipmentsControllerMarkReceivedUrl = (shipmentId: string) => {
   return `/api/delivery/shipments/${shipmentId}/receive`;
 };
@@ -1346,16 +1061,13 @@ export const shipmentsControllerMarkReceived = async (
   shipmentId: string,
   receiveShipmentInputDto?: ReceiveShipmentInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<shipmentsControllerMarkReceivedResponse> => {
-  return customInstance<shipmentsControllerMarkReceivedResponse>(
-    getShipmentsControllerMarkReceivedUrl(shipmentId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(receiveShipmentInputDto),
-    },
-  );
+): Promise<BookOrderViewDto> => {
+  return customInstance<BookOrderViewDto>(getShipmentsControllerMarkReceivedUrl(shipmentId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(receiveShipmentInputDto),
+  });
 };
 
 export const getShipmentsControllerMarkReceivedQueryKey = (
@@ -1502,47 +1214,6 @@ export function useShipmentsControllerMarkReceived<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type shipmentsControllerCancelShipmentResponse200 = {
-  data: BookOrderViewDto;
-  status: 200;
-};
-
-export type shipmentsControllerCancelShipmentResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type shipmentsControllerCancelShipmentResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type shipmentsControllerCancelShipmentResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type shipmentsControllerCancelShipmentResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type shipmentsControllerCancelShipmentResponseSuccess =
-  shipmentsControllerCancelShipmentResponse200 & {
-    headers: Headers;
-  };
-export type shipmentsControllerCancelShipmentResponseError = (
-  | shipmentsControllerCancelShipmentResponse400
-  | shipmentsControllerCancelShipmentResponse401
-  | shipmentsControllerCancelShipmentResponse404
-  | shipmentsControllerCancelShipmentResponse409
-) & {
-  headers: Headers;
-};
-
-export type shipmentsControllerCancelShipmentResponse =
-  shipmentsControllerCancelShipmentResponseSuccess | shipmentsControllerCancelShipmentResponseError;
-
 export const getShipmentsControllerCancelShipmentUrl = (shipmentId: string) => {
   return `/api/delivery/shipments/${shipmentId}/cancel`;
 };
@@ -1554,16 +1225,13 @@ export const shipmentsControllerCancelShipment = async (
   shipmentId: string,
   cancelShipmentInputDto?: CancelShipmentInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<shipmentsControllerCancelShipmentResponse> => {
-  return customInstance<shipmentsControllerCancelShipmentResponse>(
-    getShipmentsControllerCancelShipmentUrl(shipmentId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(cancelShipmentInputDto),
-    },
-  );
+): Promise<BookOrderViewDto> => {
+  return customInstance<BookOrderViewDto>(getShipmentsControllerCancelShipmentUrl(shipmentId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(cancelShipmentInputDto),
+  });
 };
 
 export const getShipmentsControllerCancelShipmentQueryKey = (

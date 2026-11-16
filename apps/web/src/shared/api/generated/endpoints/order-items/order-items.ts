@@ -44,48 +44,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type bookOrderItemsControllerCancelItemResponse200 = {
-  data: BookOrderViewDto;
-  status: 200;
-};
-
-export type bookOrderItemsControllerCancelItemResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookOrderItemsControllerCancelItemResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookOrderItemsControllerCancelItemResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookOrderItemsControllerCancelItemResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type bookOrderItemsControllerCancelItemResponseSuccess =
-  bookOrderItemsControllerCancelItemResponse200 & {
-    headers: Headers;
-  };
-export type bookOrderItemsControllerCancelItemResponseError = (
-  | bookOrderItemsControllerCancelItemResponse400
-  | bookOrderItemsControllerCancelItemResponse401
-  | bookOrderItemsControllerCancelItemResponse404
-  | bookOrderItemsControllerCancelItemResponse409
-) & {
-  headers: Headers;
-};
-
-export type bookOrderItemsControllerCancelItemResponse =
-  | bookOrderItemsControllerCancelItemResponseSuccess
-  | bookOrderItemsControllerCancelItemResponseError;
-
 export const getBookOrderItemsControllerCancelItemUrl = (itemId: string) => {
   return `/api/delivery/items/${itemId}/cancel`;
 };
@@ -97,16 +55,13 @@ export const bookOrderItemsControllerCancelItem = async (
   itemId: string,
   cancelBookOrderItemInputDto?: CancelBookOrderItemInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookOrderItemsControllerCancelItemResponse> => {
-  return customInstance<bookOrderItemsControllerCancelItemResponse>(
-    getBookOrderItemsControllerCancelItemUrl(itemId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(cancelBookOrderItemInputDto),
-    },
-  );
+): Promise<BookOrderViewDto> => {
+  return customInstance<BookOrderViewDto>(getBookOrderItemsControllerCancelItemUrl(itemId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(cancelBookOrderItemInputDto),
+  });
 };
 
 export const getBookOrderItemsControllerCancelItemQueryKey = (
@@ -249,35 +204,6 @@ export function useBookOrderItemsControllerCancelItem<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookOrderItemsControllerBulkReceiveResponse200 = {
-  data: BulkReceiveOrderItemsResultViewDto;
-  status: 200;
-};
-
-export type bookOrderItemsControllerBulkReceiveResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookOrderItemsControllerBulkReceiveResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookOrderItemsControllerBulkReceiveResponseSuccess =
-  bookOrderItemsControllerBulkReceiveResponse200 & {
-    headers: Headers;
-  };
-export type bookOrderItemsControllerBulkReceiveResponseError = (
-  bookOrderItemsControllerBulkReceiveResponse400 | bookOrderItemsControllerBulkReceiveResponse401
-) & {
-  headers: Headers;
-};
-
-export type bookOrderItemsControllerBulkReceiveResponse =
-  | bookOrderItemsControllerBulkReceiveResponseSuccess
-  | bookOrderItemsControllerBulkReceiveResponseError;
-
 export const getBookOrderItemsControllerBulkReceiveUrl = () => {
   return `/api/delivery/books/receive`;
 };
@@ -288,8 +214,8 @@ export const getBookOrderItemsControllerBulkReceiveUrl = () => {
 export const bookOrderItemsControllerBulkReceive = async (
   bulkReceiveOrderItemsInputDto: BulkReceiveOrderItemsInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookOrderItemsControllerBulkReceiveResponse> => {
-  return customInstance<bookOrderItemsControllerBulkReceiveResponse>(
+): Promise<BulkReceiveOrderItemsResultViewDto> => {
+  return customInstance<BulkReceiveOrderItemsResultViewDto>(
     getBookOrderItemsControllerBulkReceiveUrl(),
     {
       ...options,

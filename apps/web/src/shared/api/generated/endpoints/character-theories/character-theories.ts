@@ -45,41 +45,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type characterTheoriesControllerCreateResponse201 = {
-  data: CharacterTheoryViewDto;
-  status: 201;
-};
-
-export type characterTheoriesControllerCreateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterTheoriesControllerCreateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterTheoriesControllerCreateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterTheoriesControllerCreateResponseSuccess =
-  characterTheoriesControllerCreateResponse201 & {
-    headers: Headers;
-  };
-export type characterTheoriesControllerCreateResponseError = (
-  | characterTheoriesControllerCreateResponse400
-  | characterTheoriesControllerCreateResponse401
-  | characterTheoriesControllerCreateResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterTheoriesControllerCreateResponse =
-  characterTheoriesControllerCreateResponseSuccess | characterTheoriesControllerCreateResponseError;
-
 export const getCharacterTheoriesControllerCreateUrl = () => {
   return `/api/character-theories`;
 };
@@ -90,16 +55,13 @@ export const getCharacterTheoriesControllerCreateUrl = () => {
 export const characterTheoriesControllerCreate = async (
   createCharacterTheoryInputDto: CreateCharacterTheoryInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterTheoriesControllerCreateResponse> => {
-  return customInstance<characterTheoriesControllerCreateResponse>(
-    getCharacterTheoriesControllerCreateUrl(),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(createCharacterTheoryInputDto),
-    },
-  );
+): Promise<CharacterTheoryViewDto> => {
+  return customInstance<CharacterTheoryViewDto>(getCharacterTheoriesControllerCreateUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createCharacterTheoryInputDto),
+  });
 };
 
 export const getCharacterTheoriesControllerCreateQueryKey = (
@@ -227,41 +189,6 @@ export function useCharacterTheoriesControllerCreate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterTheoriesControllerListResponse200 = {
-  data: PaginatedCharacterTheoriesDto;
-  status: 200;
-};
-
-export type characterTheoriesControllerListResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterTheoriesControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterTheoriesControllerListResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterTheoriesControllerListResponseSuccess =
-  characterTheoriesControllerListResponse200 & {
-    headers: Headers;
-  };
-export type characterTheoriesControllerListResponseError = (
-  | characterTheoriesControllerListResponse400
-  | characterTheoriesControllerListResponse401
-  | characterTheoriesControllerListResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterTheoriesControllerListResponse =
-  characterTheoriesControllerListResponseSuccess | characterTheoriesControllerListResponseError;
-
 export const getCharacterTheoriesControllerListUrl = (
   params?: CharacterTheoriesControllerListParams,
 ) => {
@@ -286,8 +213,8 @@ export const getCharacterTheoriesControllerListUrl = (
 export const characterTheoriesControllerList = async (
   params?: CharacterTheoriesControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterTheoriesControllerListResponse> => {
-  return customInstance<characterTheoriesControllerListResponse>(
+): Promise<PaginatedCharacterTheoriesDto> => {
+  return customInstance<PaginatedCharacterTheoriesDto>(
     getCharacterTheoriesControllerListUrl(params),
     {
       ...options,
@@ -415,41 +342,6 @@ export function useCharacterTheoriesControllerList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterTheoriesControllerUpdateResponse200 = {
-  data: CharacterTheoryViewDto;
-  status: 200;
-};
-
-export type characterTheoriesControllerUpdateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterTheoriesControllerUpdateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterTheoriesControllerUpdateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterTheoriesControllerUpdateResponseSuccess =
-  characterTheoriesControllerUpdateResponse200 & {
-    headers: Headers;
-  };
-export type characterTheoriesControllerUpdateResponseError = (
-  | characterTheoriesControllerUpdateResponse400
-  | characterTheoriesControllerUpdateResponse401
-  | characterTheoriesControllerUpdateResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterTheoriesControllerUpdateResponse =
-  characterTheoriesControllerUpdateResponseSuccess | characterTheoriesControllerUpdateResponseError;
-
 export const getCharacterTheoriesControllerUpdateUrl = (theoryId: string) => {
   return `/api/character-theories/${theoryId}`;
 };
@@ -461,16 +353,13 @@ export const characterTheoriesControllerUpdate = async (
   theoryId: string,
   updateCharacterTheoryInputDto: UpdateCharacterTheoryInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterTheoriesControllerUpdateResponse> => {
-  return customInstance<characterTheoriesControllerUpdateResponse>(
-    getCharacterTheoriesControllerUpdateUrl(theoryId),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(updateCharacterTheoryInputDto),
-    },
-  );
+): Promise<CharacterTheoryViewDto> => {
+  return customInstance<CharacterTheoryViewDto>(getCharacterTheoriesControllerUpdateUrl(theoryId), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateCharacterTheoryInputDto),
+  });
 };
 
 export const getCharacterTheoriesControllerUpdateQueryKey = (
@@ -613,34 +502,6 @@ export function useCharacterTheoriesControllerUpdate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterTheoriesControllerRemoveResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type characterTheoriesControllerRemoveResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterTheoriesControllerRemoveResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterTheoriesControllerRemoveResponseSuccess =
-  characterTheoriesControllerRemoveResponse204 & {
-    headers: Headers;
-  };
-export type characterTheoriesControllerRemoveResponseError = (
-  characterTheoriesControllerRemoveResponse401 | characterTheoriesControllerRemoveResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterTheoriesControllerRemoveResponse =
-  characterTheoriesControllerRemoveResponseSuccess | characterTheoriesControllerRemoveResponseError;
-
 export const getCharacterTheoriesControllerRemoveUrl = (theoryId: string) => {
   return `/api/character-theories/${theoryId}`;
 };
@@ -651,14 +512,11 @@ export const getCharacterTheoriesControllerRemoveUrl = (theoryId: string) => {
 export const characterTheoriesControllerRemove = async (
   theoryId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterTheoriesControllerRemoveResponse> => {
-  return customInstance<characterTheoriesControllerRemoveResponse>(
-    getCharacterTheoriesControllerRemoveUrl(theoryId),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getCharacterTheoriesControllerRemoveUrl(theoryId), {
+    ...options,
+    method: "DELETE",
+  });
 };
 
 export const getCharacterTheoriesControllerRemoveQueryKey = (theoryId: string) => {

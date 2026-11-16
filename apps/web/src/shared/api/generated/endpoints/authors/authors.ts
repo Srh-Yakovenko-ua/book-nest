@@ -43,26 +43,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type authorsControllerLookupResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type authorsControllerLookupResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type authorsControllerLookupResponseSuccess = authorsControllerLookupResponse200 & {
-  headers: Headers;
-};
-export type authorsControllerLookupResponseError = authorsControllerLookupResponse401 & {
-  headers: Headers;
-};
-
-export type authorsControllerLookupResponse =
-  authorsControllerLookupResponseSuccess | authorsControllerLookupResponseError;
-
 export const getAuthorsControllerLookupUrl = (params: AuthorsControllerLookupParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -85,8 +65,8 @@ export const getAuthorsControllerLookupUrl = (params: AuthorsControllerLookupPar
 export const authorsControllerLookup = async (
   params: AuthorsControllerLookupParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<authorsControllerLookupResponse> => {
-  return customInstance<authorsControllerLookupResponse>(getAuthorsControllerLookupUrl(params), {
+): Promise<void> => {
+  return customInstance<void>(getAuthorsControllerLookupUrl(params), {
     ...options,
     method: "GET",
   });
@@ -209,26 +189,6 @@ export function useAuthorsControllerLookup<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type authorsControllerRecentResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type authorsControllerRecentResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type authorsControllerRecentResponseSuccess = authorsControllerRecentResponse200 & {
-  headers: Headers;
-};
-export type authorsControllerRecentResponseError = authorsControllerRecentResponse401 & {
-  headers: Headers;
-};
-
-export type authorsControllerRecentResponse =
-  authorsControllerRecentResponseSuccess | authorsControllerRecentResponseError;
-
 export const getAuthorsControllerRecentUrl = (params?: AuthorsControllerRecentParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -251,8 +211,8 @@ export const getAuthorsControllerRecentUrl = (params?: AuthorsControllerRecentPa
 export const authorsControllerRecent = async (
   params?: AuthorsControllerRecentParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<authorsControllerRecentResponse> => {
-  return customInstance<authorsControllerRecentResponse>(getAuthorsControllerRecentUrl(params), {
+): Promise<void> => {
+  return customInstance<void>(getAuthorsControllerRecentUrl(params), {
     ...options,
     method: "GET",
   });
@@ -375,26 +335,6 @@ export function useAuthorsControllerRecent<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type authorsControllerListBooksResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type authorsControllerListBooksResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type authorsControllerListBooksResponseSuccess = authorsControllerListBooksResponse200 & {
-  headers: Headers;
-};
-export type authorsControllerListBooksResponseError = authorsControllerListBooksResponse401 & {
-  headers: Headers;
-};
-
-export type authorsControllerListBooksResponse =
-  authorsControllerListBooksResponseSuccess | authorsControllerListBooksResponseError;
-
 export const getAuthorsControllerListBooksUrl = (id: string) => {
   return `/api/authors/${id}/books`;
 };
@@ -405,8 +345,8 @@ export const getAuthorsControllerListBooksUrl = (id: string) => {
 export const authorsControllerListBooks = async (
   id: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<authorsControllerListBooksResponse> => {
-  return customInstance<authorsControllerListBooksResponse>(getAuthorsControllerListBooksUrl(id), {
+): Promise<void> => {
+  return customInstance<void>(getAuthorsControllerListBooksUrl(id), {
     ...options,
     method: "GET",
   });
@@ -532,26 +472,6 @@ export function useAuthorsControllerListBooks<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type authorsControllerSearchResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type authorsControllerSearchResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type authorsControllerSearchResponseSuccess = authorsControllerSearchResponse200 & {
-  headers: Headers;
-};
-export type authorsControllerSearchResponseError = authorsControllerSearchResponse401 & {
-  headers: Headers;
-};
-
-export type authorsControllerSearchResponse =
-  authorsControllerSearchResponseSuccess | authorsControllerSearchResponseError;
-
 export const getAuthorsControllerSearchUrl = (params?: AuthorsControllerSearchParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -572,8 +492,8 @@ export const getAuthorsControllerSearchUrl = (params?: AuthorsControllerSearchPa
 export const authorsControllerSearch = async (
   params?: AuthorsControllerSearchParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<authorsControllerSearchResponse> => {
-  return customInstance<authorsControllerSearchResponse>(getAuthorsControllerSearchUrl(params), {
+): Promise<void> => {
+  return customInstance<void>(getAuthorsControllerSearchUrl(params), {
     ...options,
     method: "GET",
   });

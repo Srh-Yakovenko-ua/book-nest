@@ -5,6 +5,7 @@ import type {
   NicknameAvailabilityQuery,
   NicknameAvailabilityView,
   RegistrationResultView,
+  ResendVerificationResultView,
   ResetPasswordResultView,
   UserView,
 } from "@app/shared";
@@ -54,6 +55,14 @@ import { RegistrationInputDto } from "./input-dto/registration.input-dto.js";
 import { ResendVerificationInputDto } from "./input-dto/resend-verification.input-dto.js";
 import { ResetPasswordInputDto } from "./input-dto/reset-password.input-dto.js";
 import { VerifyEmailInputDto } from "./input-dto/verify-email.input-dto.js";
+import { AuthResultViewDto } from "./view-dto/auth-result.view-dto.js";
+import { ForgotPasswordResultViewDto } from "./view-dto/forgot-password-result.view-dto.js";
+import { LogoutResultViewDto } from "./view-dto/logout-result.view-dto.js";
+import { NicknameAvailabilityViewDto } from "./view-dto/nickname-availability.view-dto.js";
+import { RegistrationResultViewDto } from "./view-dto/registration-result.view-dto.js";
+import { ResendVerificationResultViewDto } from "./view-dto/resend-verification-result.view-dto.js";
+import { ResetPasswordResultViewDto } from "./view-dto/reset-password-result.view-dto.js";
+import { UserViewDto } from "./view-dto/user.view-dto.js";
 
 const REFRESH_COOKIE_NAME = "refresh_token";
 const REFRESH_COOKIE_PATH = "/api/auth";
@@ -86,7 +95,7 @@ export class AuthController {
     private readonly sessionService: SessionService,
   ) {}
 
-  @ApiOkResponse({ description: "The currently authenticated user" })
+  @ApiOkResponse({ description: "The currently authenticated user", type: UserViewDto })
   @ApiOperation({ summary: "Return the currently authenticated user" })
   @Get("me")
   @JwtProtected()
@@ -95,7 +104,10 @@ export class AuthController {
   }
 
   @ApiBadRequestResponse({ description: "Malformed nickname" })
-  @ApiOkResponse({ description: "Whether the nickname is free to claim" })
+  @ApiOkResponse({
+    description: "Whether the nickname is free to claim",
+    type: NicknameAvailabilityViewDto,
+  })
   @ApiOperation({ summary: "Check whether a nickname is available" })
   @ApiQuery({
     name: "nickname",
@@ -117,7 +129,10 @@ export class AuthController {
 
   @ApiBadRequestResponse({ description: "Validation failed or email/nickname already taken" })
   @ApiBody({ type: RegistrationInputDto })
-  @ApiCreatedResponse({ description: "Verification email sent; no session opened" })
+  @ApiCreatedResponse({
+    description: "Verification email sent; no session opened",
+    type: RegistrationResultViewDto,
+  })
   @ApiOperation({ summary: "Register a new user and send an email verification link" })
   @HttpCode(HTTP_STATUS.CREATED)
   @Post("registration")
@@ -132,7 +147,10 @@ export class AuthController {
 
   @ApiBadRequestResponse({ description: "Invalid or expired verification link" })
   @ApiBody({ type: VerifyEmailInputDto })
-  @ApiOkResponse({ description: "Email verified; access token returned, refresh cookie set" })
+  @ApiOkResponse({
+    description: "Email verified; access token returned, refresh cookie set",
+    type: AuthResultViewDto,
+  })
   @ApiOperation({ summary: "Verify an email and open a session" })
   @HttpCode(HTTP_STATUS.OK)
   @Post("verify-email")
@@ -149,7 +167,10 @@ export class AuthController {
 
   @ApiBody({ type: LoginInputDto })
   @ApiForbiddenResponse({ description: "Email not verified" })
-  @ApiOkResponse({ description: "Logged in; access token returned, refresh cookie set" })
+  @ApiOkResponse({
+    description: "Logged in; access token returned, refresh cookie set",
+    type: AuthResultViewDto,
+  })
   @ApiOperation({ summary: "Authenticate with email and password and open a session" })
   @ApiUnauthorizedResponse({ description: "Invalid email or password" })
   @HttpCode(HTTP_STATUS.OK)
@@ -166,7 +187,10 @@ export class AuthController {
     return result;
   }
 
-  @ApiOkResponse({ description: "New access token issued, refresh cookie rotated" })
+  @ApiOkResponse({
+    description: "New access token issued, refresh cookie rotated",
+    type: AuthResultViewDto,
+  })
   @ApiOperation({ summary: "Rotate the refresh token and issue a new access token" })
   @ApiUnauthorizedResponse({
     description: "Missing, invalid, expired, or reused refresh token",
@@ -190,7 +214,10 @@ export class AuthController {
     return result;
   }
 
-  @ApiOkResponse({ description: "Session revoked and refresh cookie cleared" })
+  @ApiOkResponse({
+    description: "Session revoked and refresh cookie cleared",
+    type: LogoutResultViewDto,
+  })
   @ApiOperation({ summary: "Revoke the current session and clear the refresh cookie" })
   @HttpCode(HTTP_STATUS.OK)
   @Post("logout")
@@ -214,21 +241,27 @@ export class AuthController {
   }
 
   @ApiBody({ type: ResendVerificationInputDto })
-  @ApiOkResponse({ description: "Verification email sent if the account exists and is unverified" })
+  @ApiOkResponse({
+    description: "Verification email sent if the account exists and is unverified",
+    type: ResendVerificationResultViewDto,
+  })
   @ApiOperation({ summary: "Resend the email verification link" })
   @HttpCode(HTTP_STATUS.OK)
   @Post("resend-verification")
   @Throttle({ default: { limit: RESEND_LIMIT, ttl: seconds(RESEND_TTL_SECONDS) } })
   async resendVerification(
     @Body(new ZodBodyPipe(ResendVerificationSchema)) body: ResendVerificationInputDto,
-  ): Promise<{ cooldownSeconds: number; status: RegistrationResultView["status"] }> {
+  ): Promise<ResendVerificationResultView> {
     await this.emailVerificationService.resend(body.email);
 
     return { cooldownSeconds: env.resendCooldownSeconds, status: VERIFICATION_SENT };
   }
 
   @ApiBody({ type: ForgotPasswordInputDto })
-  @ApiOkResponse({ description: "If the account exists, a reset email was sent" })
+  @ApiOkResponse({
+    description: "If the account exists, a reset email was sent",
+    type: ForgotPasswordResultViewDto,
+  })
   @ApiOperation({ summary: "Send a password reset link if the account exists and is verified" })
   @HttpCode(HTTP_STATUS.OK)
   @Post("forgot-password")
@@ -245,7 +278,10 @@ export class AuthController {
 
   @ApiBadRequestResponse({ description: "Invalid or expired reset link" })
   @ApiBody({ type: ResetPasswordInputDto })
-  @ApiOkResponse({ description: "Password reset; all sessions invalidated" })
+  @ApiOkResponse({
+    description: "Password reset; all sessions invalidated",
+    type: ResetPasswordResultViewDto,
+  })
   @ApiOperation({ summary: "Set a new password using a reset token and invalidate all sessions" })
   @HttpCode(HTTP_STATUS.OK)
   @Post("reset-password")

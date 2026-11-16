@@ -51,35 +51,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type statisticsControllerGetCalendarPageResponse200 = {
-  data: ReadingStatisticsCalendarPageDto;
-  status: 200;
-};
-
-export type statisticsControllerGetCalendarPageResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type statisticsControllerGetCalendarPageResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type statisticsControllerGetCalendarPageResponseSuccess =
-  statisticsControllerGetCalendarPageResponse200 & {
-    headers: Headers;
-  };
-export type statisticsControllerGetCalendarPageResponseError = (
-  statisticsControllerGetCalendarPageResponse400 | statisticsControllerGetCalendarPageResponse401
-) & {
-  headers: Headers;
-};
-
-export type statisticsControllerGetCalendarPageResponse =
-  | statisticsControllerGetCalendarPageResponseSuccess
-  | statisticsControllerGetCalendarPageResponseError;
-
 export const getStatisticsControllerGetCalendarPageUrl = (
   params: StatisticsControllerGetCalendarPageParams,
 ) => {
@@ -104,8 +75,8 @@ export const getStatisticsControllerGetCalendarPageUrl = (
 export const statisticsControllerGetCalendarPage = async (
   params: StatisticsControllerGetCalendarPageParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<statisticsControllerGetCalendarPageResponse> => {
-  return customInstance<statisticsControllerGetCalendarPageResponse>(
+): Promise<ReadingStatisticsCalendarPageDto> => {
+  return customInstance<ReadingStatisticsCalendarPageDto>(
     getStatisticsControllerGetCalendarPageUrl(params),
     {
       ...options,
@@ -253,36 +224,6 @@ export function useStatisticsControllerGetCalendarPage<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type statisticsControllerGetCompletedReadsResponse200 = {
-  data: ReadingStatisticsCompletedReadsPageDto;
-  status: 200;
-};
-
-export type statisticsControllerGetCompletedReadsResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type statisticsControllerGetCompletedReadsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type statisticsControllerGetCompletedReadsResponseSuccess =
-  statisticsControllerGetCompletedReadsResponse200 & {
-    headers: Headers;
-  };
-export type statisticsControllerGetCompletedReadsResponseError = (
-  | statisticsControllerGetCompletedReadsResponse400
-  | statisticsControllerGetCompletedReadsResponse401
-) & {
-  headers: Headers;
-};
-
-export type statisticsControllerGetCompletedReadsResponse =
-  | statisticsControllerGetCompletedReadsResponseSuccess
-  | statisticsControllerGetCompletedReadsResponseError;
-
 export const getStatisticsControllerGetCompletedReadsUrl = (
   params: StatisticsControllerGetCompletedReadsParams,
 ) => {
@@ -307,8 +248,8 @@ export const getStatisticsControllerGetCompletedReadsUrl = (
 export const statisticsControllerGetCompletedReads = async (
   params: StatisticsControllerGetCompletedReadsParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<statisticsControllerGetCompletedReadsResponse> => {
-  return customInstance<statisticsControllerGetCompletedReadsResponse>(
+): Promise<ReadingStatisticsCompletedReadsPageDto> => {
+  return customInstance<ReadingStatisticsCompletedReadsPageDto>(
     getStatisticsControllerGetCompletedReadsUrl(params),
     {
       ...options,
@@ -457,36 +398,6 @@ export function useStatisticsControllerGetCompletedReads<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type statisticsControllerGetCompletedReadsSubsetResponse200 = {
-  data: ReadingStatisticsCompletedReadsSubsetPageDto;
-  status: 200;
-};
-
-export type statisticsControllerGetCompletedReadsSubsetResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type statisticsControllerGetCompletedReadsSubsetResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type statisticsControllerGetCompletedReadsSubsetResponseSuccess =
-  statisticsControllerGetCompletedReadsSubsetResponse200 & {
-    headers: Headers;
-  };
-export type statisticsControllerGetCompletedReadsSubsetResponseError = (
-  | statisticsControllerGetCompletedReadsSubsetResponse400
-  | statisticsControllerGetCompletedReadsSubsetResponse401
-) & {
-  headers: Headers;
-};
-
-export type statisticsControllerGetCompletedReadsSubsetResponse =
-  | statisticsControllerGetCompletedReadsSubsetResponseSuccess
-  | statisticsControllerGetCompletedReadsSubsetResponseError;
-
 export const getStatisticsControllerGetCompletedReadsSubsetUrl = (
   params: StatisticsControllerGetCompletedReadsSubsetParams,
 ) => {
@@ -511,8 +422,8 @@ export const getStatisticsControllerGetCompletedReadsSubsetUrl = (
 export const statisticsControllerGetCompletedReadsSubset = async (
   params: StatisticsControllerGetCompletedReadsSubsetParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<statisticsControllerGetCompletedReadsSubsetResponse> => {
-  return customInstance<statisticsControllerGetCompletedReadsSubsetResponse>(
+): Promise<ReadingStatisticsCompletedReadsSubsetPageDto> => {
+  return customInstance<ReadingStatisticsCompletedReadsSubsetPageDto>(
     getStatisticsControllerGetCompletedReadsSubsetUrl(params),
     {
       ...options,
@@ -662,34 +573,6 @@ export function useStatisticsControllerGetCompletedReadsSubset<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type statisticsControllerGetOverviewResponse200 = {
-  data: ReadingStatisticsOverviewDto;
-  status: 200;
-};
-
-export type statisticsControllerGetOverviewResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type statisticsControllerGetOverviewResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type statisticsControllerGetOverviewResponseSuccess =
-  statisticsControllerGetOverviewResponse200 & {
-    headers: Headers;
-  };
-export type statisticsControllerGetOverviewResponseError = (
-  statisticsControllerGetOverviewResponse400 | statisticsControllerGetOverviewResponse401
-) & {
-  headers: Headers;
-};
-
-export type statisticsControllerGetOverviewResponse =
-  statisticsControllerGetOverviewResponseSuccess | statisticsControllerGetOverviewResponseError;
-
 export const getStatisticsControllerGetOverviewUrl = (
   params?: StatisticsControllerGetOverviewParams,
 ) => {
@@ -714,8 +597,8 @@ export const getStatisticsControllerGetOverviewUrl = (
 export const statisticsControllerGetOverview = async (
   params?: StatisticsControllerGetOverviewParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<statisticsControllerGetOverviewResponse> => {
-  return customInstance<statisticsControllerGetOverviewResponse>(
+): Promise<ReadingStatisticsOverviewDto> => {
+  return customInstance<ReadingStatisticsOverviewDto>(
     getStatisticsControllerGetOverviewUrl(params),
     {
       ...options,
@@ -843,36 +726,6 @@ export function useStatisticsControllerGetOverview<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type statisticsControllerGetReadingActivityResponse200 = {
-  data: ReadingStatisticsActivityPageDto;
-  status: 200;
-};
-
-export type statisticsControllerGetReadingActivityResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type statisticsControllerGetReadingActivityResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type statisticsControllerGetReadingActivityResponseSuccess =
-  statisticsControllerGetReadingActivityResponse200 & {
-    headers: Headers;
-  };
-export type statisticsControllerGetReadingActivityResponseError = (
-  | statisticsControllerGetReadingActivityResponse400
-  | statisticsControllerGetReadingActivityResponse401
-) & {
-  headers: Headers;
-};
-
-export type statisticsControllerGetReadingActivityResponse =
-  | statisticsControllerGetReadingActivityResponseSuccess
-  | statisticsControllerGetReadingActivityResponseError;
-
 export const getStatisticsControllerGetReadingActivityUrl = (
   params: StatisticsControllerGetReadingActivityParams,
 ) => {
@@ -897,8 +750,8 @@ export const getStatisticsControllerGetReadingActivityUrl = (
 export const statisticsControllerGetReadingActivity = async (
   params: StatisticsControllerGetReadingActivityParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<statisticsControllerGetReadingActivityResponse> => {
-  return customInstance<statisticsControllerGetReadingActivityResponse>(
+): Promise<ReadingStatisticsActivityPageDto> => {
+  return customInstance<ReadingStatisticsActivityPageDto>(
     getStatisticsControllerGetReadingActivityUrl(params),
     {
       ...options,
@@ -1047,34 +900,6 @@ export function useStatisticsControllerGetReadingActivity<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type statisticsControllerGetReadingDayResponse200 = {
-  data: ReadingDayDetailsDto;
-  status: 200;
-};
-
-export type statisticsControllerGetReadingDayResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type statisticsControllerGetReadingDayResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type statisticsControllerGetReadingDayResponseSuccess =
-  statisticsControllerGetReadingDayResponse200 & {
-    headers: Headers;
-  };
-export type statisticsControllerGetReadingDayResponseError = (
-  statisticsControllerGetReadingDayResponse400 | statisticsControllerGetReadingDayResponse401
-) & {
-  headers: Headers;
-};
-
-export type statisticsControllerGetReadingDayResponse =
-  statisticsControllerGetReadingDayResponseSuccess | statisticsControllerGetReadingDayResponseError;
-
 export const getStatisticsControllerGetReadingDayUrl = (date: string) => {
   return `/api/statistics/reading-days/${date}`;
 };
@@ -1085,14 +910,11 @@ export const getStatisticsControllerGetReadingDayUrl = (date: string) => {
 export const statisticsControllerGetReadingDay = async (
   date: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<statisticsControllerGetReadingDayResponse> => {
-  return customInstance<statisticsControllerGetReadingDayResponse>(
-    getStatisticsControllerGetReadingDayUrl(date),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<ReadingDayDetailsDto> => {
+  return customInstance<ReadingDayDetailsDto>(getStatisticsControllerGetReadingDayUrl(date), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getStatisticsControllerGetReadingDayQueryKey = (date: string) => {

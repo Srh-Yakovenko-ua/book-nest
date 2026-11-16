@@ -62,42 +62,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type characterRelationshipsControllerListResponse200 = {
-  data: PaginatedCharacterRelationshipListViewDto;
-  status: 200;
-};
-
-export type characterRelationshipsControllerListResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterRelationshipsControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterRelationshipsControllerListResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterRelationshipsControllerListResponseSuccess =
-  characterRelationshipsControllerListResponse200 & {
-    headers: Headers;
-  };
-export type characterRelationshipsControllerListResponseError = (
-  | characterRelationshipsControllerListResponse400
-  | characterRelationshipsControllerListResponse401
-  | characterRelationshipsControllerListResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterRelationshipsControllerListResponse =
-  | characterRelationshipsControllerListResponseSuccess
-  | characterRelationshipsControllerListResponseError;
-
 export const getCharacterRelationshipsControllerListUrl = (
   params: CharacterRelationshipsControllerListParams,
 ) => {
@@ -131,8 +95,8 @@ export const getCharacterRelationshipsControllerListUrl = (
 export const characterRelationshipsControllerList = async (
   params: CharacterRelationshipsControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterRelationshipsControllerListResponse> => {
-  return customInstance<characterRelationshipsControllerListResponse>(
+): Promise<PaginatedCharacterRelationshipListViewDto> => {
+  return customInstance<PaginatedCharacterRelationshipListViewDto>(
     getCharacterRelationshipsControllerListUrl(params),
     {
       ...options,
@@ -281,48 +245,6 @@ export function useCharacterRelationshipsControllerList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterRelationshipsControllerCreateResponse201 = {
-  data: CharacterRelationshipDetailsViewDto;
-  status: 201;
-};
-
-export type characterRelationshipsControllerCreateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterRelationshipsControllerCreateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterRelationshipsControllerCreateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterRelationshipsControllerCreateResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type characterRelationshipsControllerCreateResponseSuccess =
-  characterRelationshipsControllerCreateResponse201 & {
-    headers: Headers;
-  };
-export type characterRelationshipsControllerCreateResponseError = (
-  | characterRelationshipsControllerCreateResponse400
-  | characterRelationshipsControllerCreateResponse401
-  | characterRelationshipsControllerCreateResponse404
-  | characterRelationshipsControllerCreateResponse409
-) & {
-  headers: Headers;
-};
-
-export type characterRelationshipsControllerCreateResponse =
-  | characterRelationshipsControllerCreateResponseSuccess
-  | characterRelationshipsControllerCreateResponseError;
-
 export const getCharacterRelationshipsControllerCreateUrl = () => {
   return `/api/character-relationships`;
 };
@@ -333,8 +255,8 @@ export const getCharacterRelationshipsControllerCreateUrl = () => {
 export const characterRelationshipsControllerCreate = async (
   createCharacterRelationshipInputDto: CreateCharacterRelationshipInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterRelationshipsControllerCreateResponse> => {
-  return customInstance<characterRelationshipsControllerCreateResponse>(
+): Promise<CharacterRelationshipDetailsViewDto> => {
+  return customInstance<CharacterRelationshipDetailsViewDto>(
     getCharacterRelationshipsControllerCreateUrl(),
     {
       ...options,
@@ -493,42 +415,6 @@ export function useCharacterRelationshipsControllerCreate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterRelationshipsControllerFindPathResponse200 = {
-  data: CharacterRelationshipPathViewDto;
-  status: 200;
-};
-
-export type characterRelationshipsControllerFindPathResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterRelationshipsControllerFindPathResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterRelationshipsControllerFindPathResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterRelationshipsControllerFindPathResponseSuccess =
-  characterRelationshipsControllerFindPathResponse200 & {
-    headers: Headers;
-  };
-export type characterRelationshipsControllerFindPathResponseError = (
-  | characterRelationshipsControllerFindPathResponse400
-  | characterRelationshipsControllerFindPathResponse401
-  | characterRelationshipsControllerFindPathResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterRelationshipsControllerFindPathResponse =
-  | characterRelationshipsControllerFindPathResponseSuccess
-  | characterRelationshipsControllerFindPathResponseError;
-
 export const getCharacterRelationshipsControllerFindPathUrl = (
   params: CharacterRelationshipsControllerFindPathParams,
 ) => {
@@ -562,8 +448,8 @@ export const getCharacterRelationshipsControllerFindPathUrl = (
 export const characterRelationshipsControllerFindPath = async (
   params: CharacterRelationshipsControllerFindPathParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterRelationshipsControllerFindPathResponse> => {
-  return customInstance<characterRelationshipsControllerFindPathResponse>(
+): Promise<CharacterRelationshipPathViewDto> => {
+  return customInstance<CharacterRelationshipPathViewDto>(
     getCharacterRelationshipsControllerFindPathUrl(params),
     {
       ...options,
@@ -713,42 +599,6 @@ export function useCharacterRelationshipsControllerFindPath<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterRelationshipsControllerGetByIdResponse200 = {
-  data: CharacterRelationshipSafeDetailsViewDto;
-  status: 200;
-};
-
-export type characterRelationshipsControllerGetByIdResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterRelationshipsControllerGetByIdResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterRelationshipsControllerGetByIdResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterRelationshipsControllerGetByIdResponseSuccess =
-  characterRelationshipsControllerGetByIdResponse200 & {
-    headers: Headers;
-  };
-export type characterRelationshipsControllerGetByIdResponseError = (
-  | characterRelationshipsControllerGetByIdResponse400
-  | characterRelationshipsControllerGetByIdResponse401
-  | characterRelationshipsControllerGetByIdResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterRelationshipsControllerGetByIdResponse =
-  | characterRelationshipsControllerGetByIdResponseSuccess
-  | characterRelationshipsControllerGetByIdResponseError;
-
 export const getCharacterRelationshipsControllerGetByIdUrl = (
   relationshipId: string,
   params?: CharacterRelationshipsControllerGetByIdParams,
@@ -775,8 +625,8 @@ export const characterRelationshipsControllerGetById = async (
   relationshipId: string,
   params?: CharacterRelationshipsControllerGetByIdParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterRelationshipsControllerGetByIdResponse> => {
-  return customInstance<characterRelationshipsControllerGetByIdResponse>(
+): Promise<CharacterRelationshipSafeDetailsViewDto> => {
+  return customInstance<CharacterRelationshipSafeDetailsViewDto>(
     getCharacterRelationshipsControllerGetByIdUrl(relationshipId, params),
     {
       ...options,
@@ -942,48 +792,6 @@ export function useCharacterRelationshipsControllerGetById<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterRelationshipsControllerUpdateResponse200 = {
-  data: CharacterRelationshipDetailsViewDto;
-  status: 200;
-};
-
-export type characterRelationshipsControllerUpdateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterRelationshipsControllerUpdateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterRelationshipsControllerUpdateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterRelationshipsControllerUpdateResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type characterRelationshipsControllerUpdateResponseSuccess =
-  characterRelationshipsControllerUpdateResponse200 & {
-    headers: Headers;
-  };
-export type characterRelationshipsControllerUpdateResponseError = (
-  | characterRelationshipsControllerUpdateResponse400
-  | characterRelationshipsControllerUpdateResponse401
-  | characterRelationshipsControllerUpdateResponse404
-  | characterRelationshipsControllerUpdateResponse409
-) & {
-  headers: Headers;
-};
-
-export type characterRelationshipsControllerUpdateResponse =
-  | characterRelationshipsControllerUpdateResponseSuccess
-  | characterRelationshipsControllerUpdateResponseError;
-
 export const getCharacterRelationshipsControllerUpdateUrl = (relationshipId: string) => {
   return `/api/character-relationships/${relationshipId}`;
 };
@@ -995,8 +803,8 @@ export const characterRelationshipsControllerUpdate = async (
   relationshipId: string,
   updateCharacterRelationshipInputDto: UpdateCharacterRelationshipInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterRelationshipsControllerUpdateResponse> => {
-  return customInstance<characterRelationshipsControllerUpdateResponse>(
+): Promise<CharacterRelationshipDetailsViewDto> => {
+  return customInstance<CharacterRelationshipDetailsViewDto>(
     getCharacterRelationshipsControllerUpdateUrl(relationshipId),
     {
       ...options,
@@ -1174,36 +982,6 @@ export function useCharacterRelationshipsControllerUpdate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterRelationshipsControllerRemoveResponse200 = {
-  data: CharacterRelationshipDeletionResultViewDto;
-  status: 200;
-};
-
-export type characterRelationshipsControllerRemoveResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterRelationshipsControllerRemoveResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterRelationshipsControllerRemoveResponseSuccess =
-  characterRelationshipsControllerRemoveResponse200 & {
-    headers: Headers;
-  };
-export type characterRelationshipsControllerRemoveResponseError = (
-  | characterRelationshipsControllerRemoveResponse401
-  | characterRelationshipsControllerRemoveResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterRelationshipsControllerRemoveResponse =
-  | characterRelationshipsControllerRemoveResponseSuccess
-  | characterRelationshipsControllerRemoveResponseError;
-
 export const getCharacterRelationshipsControllerRemoveUrl = (relationshipId: string) => {
   return `/api/character-relationships/${relationshipId}`;
 };
@@ -1214,8 +992,8 @@ export const getCharacterRelationshipsControllerRemoveUrl = (relationshipId: str
 export const characterRelationshipsControllerRemove = async (
   relationshipId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterRelationshipsControllerRemoveResponse> => {
-  return customInstance<characterRelationshipsControllerRemoveResponse>(
+): Promise<CharacterRelationshipDeletionResultViewDto> => {
+  return customInstance<CharacterRelationshipDeletionResultViewDto>(
     getCharacterRelationshipsControllerRemoveUrl(relationshipId),
     {
       ...options,
@@ -1371,36 +1149,6 @@ export function useCharacterRelationshipsControllerRemove<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterRelationshipsControllerGetForEditResponse200 = {
-  data: CharacterRelationshipDetailsViewDto;
-  status: 200;
-};
-
-export type characterRelationshipsControllerGetForEditResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterRelationshipsControllerGetForEditResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterRelationshipsControllerGetForEditResponseSuccess =
-  characterRelationshipsControllerGetForEditResponse200 & {
-    headers: Headers;
-  };
-export type characterRelationshipsControllerGetForEditResponseError = (
-  | characterRelationshipsControllerGetForEditResponse401
-  | characterRelationshipsControllerGetForEditResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterRelationshipsControllerGetForEditResponse =
-  | characterRelationshipsControllerGetForEditResponseSuccess
-  | characterRelationshipsControllerGetForEditResponseError;
-
 export const getCharacterRelationshipsControllerGetForEditUrl = (relationshipId: string) => {
   return `/api/character-relationships/${relationshipId}/edit`;
 };
@@ -1411,8 +1159,8 @@ export const getCharacterRelationshipsControllerGetForEditUrl = (relationshipId:
 export const characterRelationshipsControllerGetForEdit = async (
   relationshipId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterRelationshipsControllerGetForEditResponse> => {
-  return customInstance<characterRelationshipsControllerGetForEditResponse>(
+): Promise<CharacterRelationshipDetailsViewDto> => {
+  return customInstance<CharacterRelationshipDetailsViewDto>(
     getCharacterRelationshipsControllerGetForEditUrl(relationshipId),
     {
       ...options,
@@ -1568,42 +1316,6 @@ export function useCharacterRelationshipsControllerGetForEdit<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterRelationshipsControllerUpsertBookStateResponse200 = {
-  data: CharacterRelationshipDetailsViewDto;
-  status: 200;
-};
-
-export type characterRelationshipsControllerUpsertBookStateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterRelationshipsControllerUpsertBookStateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterRelationshipsControllerUpsertBookStateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterRelationshipsControllerUpsertBookStateResponseSuccess =
-  characterRelationshipsControllerUpsertBookStateResponse200 & {
-    headers: Headers;
-  };
-export type characterRelationshipsControllerUpsertBookStateResponseError = (
-  | characterRelationshipsControllerUpsertBookStateResponse400
-  | characterRelationshipsControllerUpsertBookStateResponse401
-  | characterRelationshipsControllerUpsertBookStateResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterRelationshipsControllerUpsertBookStateResponse =
-  | characterRelationshipsControllerUpsertBookStateResponseSuccess
-  | characterRelationshipsControllerUpsertBookStateResponseError;
-
 export const getCharacterRelationshipsControllerUpsertBookStateUrl = (
   relationshipId: string,
   bookId: string,
@@ -1619,8 +1331,8 @@ export const characterRelationshipsControllerUpsertBookState = async (
   bookId: string,
   upsertRelationshipBookStateInputDto: UpsertRelationshipBookStateInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterRelationshipsControllerUpsertBookStateResponse> => {
-  return customInstance<characterRelationshipsControllerUpsertBookStateResponse>(
+): Promise<CharacterRelationshipDetailsViewDto> => {
+  return customInstance<CharacterRelationshipDetailsViewDto>(
     getCharacterRelationshipsControllerUpsertBookStateUrl(relationshipId, bookId),
     {
       ...options,
@@ -1812,36 +1524,6 @@ export function useCharacterRelationshipsControllerUpsertBookState<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterRelationshipsControllerRemoveBookStateResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type characterRelationshipsControllerRemoveBookStateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterRelationshipsControllerRemoveBookStateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterRelationshipsControllerRemoveBookStateResponseSuccess =
-  characterRelationshipsControllerRemoveBookStateResponse204 & {
-    headers: Headers;
-  };
-export type characterRelationshipsControllerRemoveBookStateResponseError = (
-  | characterRelationshipsControllerRemoveBookStateResponse401
-  | characterRelationshipsControllerRemoveBookStateResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterRelationshipsControllerRemoveBookStateResponse =
-  | characterRelationshipsControllerRemoveBookStateResponseSuccess
-  | characterRelationshipsControllerRemoveBookStateResponseError;
-
 export const getCharacterRelationshipsControllerRemoveBookStateUrl = (
   relationshipId: string,
   bookId: string,
@@ -1856,8 +1538,8 @@ export const characterRelationshipsControllerRemoveBookState = async (
   relationshipId: string,
   bookId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterRelationshipsControllerRemoveBookStateResponse> => {
-  return customInstance<characterRelationshipsControllerRemoveBookStateResponse>(
+): Promise<void> => {
+  return customInstance<void>(
     getCharacterRelationshipsControllerRemoveBookStateUrl(relationshipId, bookId),
     {
       ...options,
@@ -2030,36 +1712,6 @@ export function useCharacterRelationshipsControllerRemoveBookState<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterRelationshipCustomTypesControllerListResponse200 = {
-  data: PaginatedCharacterRelationshipCustomTypesViewDto;
-  status: 200;
-};
-
-export type characterRelationshipCustomTypesControllerListResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterRelationshipCustomTypesControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterRelationshipCustomTypesControllerListResponseSuccess =
-  characterRelationshipCustomTypesControllerListResponse200 & {
-    headers: Headers;
-  };
-export type characterRelationshipCustomTypesControllerListResponseError = (
-  | characterRelationshipCustomTypesControllerListResponse400
-  | characterRelationshipCustomTypesControllerListResponse401
-) & {
-  headers: Headers;
-};
-
-export type characterRelationshipCustomTypesControllerListResponse =
-  | characterRelationshipCustomTypesControllerListResponseSuccess
-  | characterRelationshipCustomTypesControllerListResponseError;
-
 export const getCharacterRelationshipCustomTypesControllerListUrl = (
   params?: CharacterRelationshipCustomTypesControllerListParams,
 ) => {
@@ -2084,8 +1736,8 @@ export const getCharacterRelationshipCustomTypesControllerListUrl = (
 export const characterRelationshipCustomTypesControllerList = async (
   params?: CharacterRelationshipCustomTypesControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterRelationshipCustomTypesControllerListResponse> => {
-  return customInstance<characterRelationshipCustomTypesControllerListResponse>(
+): Promise<PaginatedCharacterRelationshipCustomTypesViewDto> => {
+  return customInstance<PaginatedCharacterRelationshipCustomTypesViewDto>(
     getCharacterRelationshipCustomTypesControllerListUrl(params),
     {
       ...options,
@@ -2238,36 +1890,6 @@ export function useCharacterRelationshipCustomTypesControllerList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterRelationshipRoleSuggestionsControllerListResponse200 = {
-  data: PaginatedCharacterRelationshipRoleSuggestionsViewDto;
-  status: 200;
-};
-
-export type characterRelationshipRoleSuggestionsControllerListResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterRelationshipRoleSuggestionsControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterRelationshipRoleSuggestionsControllerListResponseSuccess =
-  characterRelationshipRoleSuggestionsControllerListResponse200 & {
-    headers: Headers;
-  };
-export type characterRelationshipRoleSuggestionsControllerListResponseError = (
-  | characterRelationshipRoleSuggestionsControllerListResponse400
-  | characterRelationshipRoleSuggestionsControllerListResponse401
-) & {
-  headers: Headers;
-};
-
-export type characterRelationshipRoleSuggestionsControllerListResponse =
-  | characterRelationshipRoleSuggestionsControllerListResponseSuccess
-  | characterRelationshipRoleSuggestionsControllerListResponseError;
-
 export const getCharacterRelationshipRoleSuggestionsControllerListUrl = (
   params?: CharacterRelationshipRoleSuggestionsControllerListParams,
 ) => {
@@ -2292,8 +1914,8 @@ export const getCharacterRelationshipRoleSuggestionsControllerListUrl = (
 export const characterRelationshipRoleSuggestionsControllerList = async (
   params?: CharacterRelationshipRoleSuggestionsControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterRelationshipRoleSuggestionsControllerListResponse> => {
-  return customInstance<characterRelationshipRoleSuggestionsControllerListResponse>(
+): Promise<PaginatedCharacterRelationshipRoleSuggestionsViewDto> => {
+  return customInstance<PaginatedCharacterRelationshipRoleSuggestionsViewDto>(
     getCharacterRelationshipRoleSuggestionsControllerListUrl(params),
     {
       ...options,
@@ -2446,36 +2068,6 @@ export function useCharacterRelationshipRoleSuggestionsControllerList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookCharacterRelationshipsControllerListResponse200 = {
-  data: CharacterRelationshipSafeContextViewDto[];
-  status: 200;
-};
-
-export type bookCharacterRelationshipsControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookCharacterRelationshipsControllerListResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookCharacterRelationshipsControllerListResponseSuccess =
-  bookCharacterRelationshipsControllerListResponse200 & {
-    headers: Headers;
-  };
-export type bookCharacterRelationshipsControllerListResponseError = (
-  | bookCharacterRelationshipsControllerListResponse401
-  | bookCharacterRelationshipsControllerListResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookCharacterRelationshipsControllerListResponse =
-  | bookCharacterRelationshipsControllerListResponseSuccess
-  | bookCharacterRelationshipsControllerListResponseError;
-
 export const getBookCharacterRelationshipsControllerListUrl = (
   bookId: string,
   params?: BookCharacterRelationshipsControllerListParams,
@@ -2502,8 +2094,8 @@ export const bookCharacterRelationshipsControllerList = async (
   bookId: string,
   params?: BookCharacterRelationshipsControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookCharacterRelationshipsControllerListResponse> => {
-  return customInstance<bookCharacterRelationshipsControllerListResponse>(
+): Promise<CharacterRelationshipSafeContextViewDto[]> => {
+  return customInstance<CharacterRelationshipSafeContextViewDto[]>(
     getBookCharacterRelationshipsControllerListUrl(bookId, params),
     {
       ...options,
@@ -2668,41 +2260,6 @@ export function useBookCharacterRelationshipsControllerList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookCharacterGraphControllerGetResponse200 = {
-  data: CharacterGraphViewDto | FamilyTreeGraphViewDto;
-  status: 200;
-};
-
-export type bookCharacterGraphControllerGetResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookCharacterGraphControllerGetResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookCharacterGraphControllerGetResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookCharacterGraphControllerGetResponseSuccess =
-  bookCharacterGraphControllerGetResponse200 & {
-    headers: Headers;
-  };
-export type bookCharacterGraphControllerGetResponseError = (
-  | bookCharacterGraphControllerGetResponse400
-  | bookCharacterGraphControllerGetResponse401
-  | bookCharacterGraphControllerGetResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookCharacterGraphControllerGetResponse =
-  bookCharacterGraphControllerGetResponseSuccess | bookCharacterGraphControllerGetResponseError;
-
 export const getBookCharacterGraphControllerGetUrl = (
   bookId: string,
   params?: BookCharacterGraphControllerGetParams,
@@ -2738,8 +2295,8 @@ export const bookCharacterGraphControllerGet = async (
   bookId: string,
   params?: BookCharacterGraphControllerGetParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookCharacterGraphControllerGetResponse> => {
-  return customInstance<bookCharacterGraphControllerGetResponse>(
+): Promise<CharacterGraphViewDto | FamilyTreeGraphViewDto> => {
+  return customInstance<CharacterGraphViewDto | FamilyTreeGraphViewDto>(
     getBookCharacterGraphControllerGetUrl(bookId, params),
     {
       ...options,
@@ -2879,41 +2436,6 @@ export function useBookCharacterGraphControllerGet<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type seriesCharacterGraphControllerGetResponse200 = {
-  data: CharacterGraphViewDto;
-  status: 200;
-};
-
-export type seriesCharacterGraphControllerGetResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type seriesCharacterGraphControllerGetResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type seriesCharacterGraphControllerGetResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type seriesCharacterGraphControllerGetResponseSuccess =
-  seriesCharacterGraphControllerGetResponse200 & {
-    headers: Headers;
-  };
-export type seriesCharacterGraphControllerGetResponseError = (
-  | seriesCharacterGraphControllerGetResponse400
-  | seriesCharacterGraphControllerGetResponse401
-  | seriesCharacterGraphControllerGetResponse404
-) & {
-  headers: Headers;
-};
-
-export type seriesCharacterGraphControllerGetResponse =
-  seriesCharacterGraphControllerGetResponseSuccess | seriesCharacterGraphControllerGetResponseError;
-
 export const getSeriesCharacterGraphControllerGetUrl = (
   seriesId: string,
   params?: SeriesCharacterGraphControllerGetParams,
@@ -2949,8 +2471,8 @@ export const seriesCharacterGraphControllerGet = async (
   seriesId: string,
   params?: SeriesCharacterGraphControllerGetParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<seriesCharacterGraphControllerGetResponse> => {
-  return customInstance<seriesCharacterGraphControllerGetResponse>(
+): Promise<CharacterGraphViewDto> => {
+  return customInstance<CharacterGraphViewDto>(
     getSeriesCharacterGraphControllerGetUrl(seriesId, params),
     {
       ...options,
@@ -3090,42 +2612,6 @@ export function useSeriesCharacterGraphControllerGet<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type seriesCharacterRelationshipsControllerListResponse200 = {
-  data: CharacterRelationshipSafeContextViewDto[];
-  status: 200;
-};
-
-export type seriesCharacterRelationshipsControllerListResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type seriesCharacterRelationshipsControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type seriesCharacterRelationshipsControllerListResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type seriesCharacterRelationshipsControllerListResponseSuccess =
-  seriesCharacterRelationshipsControllerListResponse200 & {
-    headers: Headers;
-  };
-export type seriesCharacterRelationshipsControllerListResponseError = (
-  | seriesCharacterRelationshipsControllerListResponse400
-  | seriesCharacterRelationshipsControllerListResponse401
-  | seriesCharacterRelationshipsControllerListResponse404
-) & {
-  headers: Headers;
-};
-
-export type seriesCharacterRelationshipsControllerListResponse =
-  | seriesCharacterRelationshipsControllerListResponseSuccess
-  | seriesCharacterRelationshipsControllerListResponseError;
-
 export const getSeriesCharacterRelationshipsControllerListUrl = (
   seriesId: string,
   params?: SeriesCharacterRelationshipsControllerListParams,
@@ -3152,8 +2638,8 @@ export const seriesCharacterRelationshipsControllerList = async (
   seriesId: string,
   params?: SeriesCharacterRelationshipsControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<seriesCharacterRelationshipsControllerListResponse> => {
-  return customInstance<seriesCharacterRelationshipsControllerListResponse>(
+): Promise<CharacterRelationshipSafeContextViewDto[]> => {
+  return customInstance<CharacterRelationshipSafeContextViewDto[]>(
     getSeriesCharacterRelationshipsControllerListUrl(seriesId, params),
     {
       ...options,

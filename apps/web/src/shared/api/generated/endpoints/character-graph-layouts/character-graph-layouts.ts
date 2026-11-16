@@ -44,42 +44,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type characterGraphLayoutsControllerGetResponse200 = {
-  data: CharacterGraphLayoutViewDto;
-  status: 200;
-};
-
-export type characterGraphLayoutsControllerGetResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterGraphLayoutsControllerGetResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterGraphLayoutsControllerGetResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterGraphLayoutsControllerGetResponseSuccess =
-  characterGraphLayoutsControllerGetResponse200 & {
-    headers: Headers;
-  };
-export type characterGraphLayoutsControllerGetResponseError = (
-  | characterGraphLayoutsControllerGetResponse400
-  | characterGraphLayoutsControllerGetResponse401
-  | characterGraphLayoutsControllerGetResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterGraphLayoutsControllerGetResponse =
-  | characterGraphLayoutsControllerGetResponseSuccess
-  | characterGraphLayoutsControllerGetResponseError;
-
 export const getCharacterGraphLayoutsControllerGetUrl = (
   params: CharacterGraphLayoutsControllerGetParams,
 ) => {
@@ -104,8 +68,8 @@ export const getCharacterGraphLayoutsControllerGetUrl = (
 export const characterGraphLayoutsControllerGet = async (
   params: CharacterGraphLayoutsControllerGetParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterGraphLayoutsControllerGetResponse> => {
-  return customInstance<characterGraphLayoutsControllerGetResponse>(
+): Promise<CharacterGraphLayoutViewDto> => {
+  return customInstance<CharacterGraphLayoutViewDto>(
     getCharacterGraphLayoutsControllerGetUrl(params),
     {
       ...options,
@@ -233,42 +197,6 @@ export function useCharacterGraphLayoutsControllerGet<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterGraphLayoutsControllerSaveResponse200 = {
-  data: CharacterGraphLayoutViewDto;
-  status: 200;
-};
-
-export type characterGraphLayoutsControllerSaveResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterGraphLayoutsControllerSaveResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterGraphLayoutsControllerSaveResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterGraphLayoutsControllerSaveResponseSuccess =
-  characterGraphLayoutsControllerSaveResponse200 & {
-    headers: Headers;
-  };
-export type characterGraphLayoutsControllerSaveResponseError = (
-  | characterGraphLayoutsControllerSaveResponse400
-  | characterGraphLayoutsControllerSaveResponse401
-  | characterGraphLayoutsControllerSaveResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterGraphLayoutsControllerSaveResponse =
-  | characterGraphLayoutsControllerSaveResponseSuccess
-  | characterGraphLayoutsControllerSaveResponseError;
-
 export const getCharacterGraphLayoutsControllerSaveUrl = () => {
   return `/api/character-graph-layouts`;
 };
@@ -279,16 +207,13 @@ export const getCharacterGraphLayoutsControllerSaveUrl = () => {
 export const characterGraphLayoutsControllerSave = async (
   saveCharacterGraphLayoutInputDto: SaveCharacterGraphLayoutInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterGraphLayoutsControllerSaveResponse> => {
-  return customInstance<characterGraphLayoutsControllerSaveResponse>(
-    getCharacterGraphLayoutsControllerSaveUrl(),
-    {
-      ...options,
-      method: "PUT",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(saveCharacterGraphLayoutInputDto),
-    },
-  );
+): Promise<CharacterGraphLayoutViewDto> => {
+  return customInstance<CharacterGraphLayoutViewDto>(getCharacterGraphLayoutsControllerSaveUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(saveCharacterGraphLayoutInputDto),
+  });
 };
 
 export const getCharacterGraphLayoutsControllerSaveQueryKey = (
@@ -439,42 +364,6 @@ export function useCharacterGraphLayoutsControllerSave<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterGraphLayoutsControllerRemoveResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type characterGraphLayoutsControllerRemoveResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterGraphLayoutsControllerRemoveResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterGraphLayoutsControllerRemoveResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterGraphLayoutsControllerRemoveResponseSuccess =
-  characterGraphLayoutsControllerRemoveResponse204 & {
-    headers: Headers;
-  };
-export type characterGraphLayoutsControllerRemoveResponseError = (
-  | characterGraphLayoutsControllerRemoveResponse400
-  | characterGraphLayoutsControllerRemoveResponse401
-  | characterGraphLayoutsControllerRemoveResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterGraphLayoutsControllerRemoveResponse =
-  | characterGraphLayoutsControllerRemoveResponseSuccess
-  | characterGraphLayoutsControllerRemoveResponseError;
-
 export const getCharacterGraphLayoutsControllerRemoveUrl = (
   params: CharacterGraphLayoutsControllerRemoveParams,
 ) => {
@@ -499,14 +388,11 @@ export const getCharacterGraphLayoutsControllerRemoveUrl = (
 export const characterGraphLayoutsControllerRemove = async (
   params: CharacterGraphLayoutsControllerRemoveParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterGraphLayoutsControllerRemoveResponse> => {
-  return customInstance<characterGraphLayoutsControllerRemoveResponse>(
-    getCharacterGraphLayoutsControllerRemoveUrl(params),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getCharacterGraphLayoutsControllerRemoveUrl(params), {
+    ...options,
+    method: "DELETE",
+  });
 };
 
 export const getCharacterGraphLayoutsControllerRemoveQueryKey = (

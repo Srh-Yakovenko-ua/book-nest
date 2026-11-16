@@ -20,11 +20,19 @@ import type {
 
 import type {
   AuthControllerCheckNicknameAvailabilityParams,
+  AuthResultViewDto,
   ForgotPasswordInputDto,
+  ForgotPasswordResultViewDto,
   LoginInputDto,
+  LogoutResultViewDto,
+  NicknameAvailabilityViewDto,
   RegistrationInputDto,
+  RegistrationResultViewDto,
   ResendVerificationInputDto,
+  ResendVerificationResultViewDto,
   ResetPasswordInputDto,
+  ResetPasswordResultViewDto,
+  UserViewDto,
   VerifyEmailInputDto,
 } from "../../model";
 
@@ -47,26 +55,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type authControllerMeResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type authControllerMeResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type authControllerMeResponseSuccess = authControllerMeResponse200 & {
-  headers: Headers;
-};
-export type authControllerMeResponseError = authControllerMeResponse401 & {
-  headers: Headers;
-};
-
-export type authControllerMeResponse =
-  authControllerMeResponseSuccess | authControllerMeResponseError;
-
 export const getAuthControllerMeUrl = () => {
   return `/api/auth/me`;
 };
@@ -76,8 +64,8 @@ export const getAuthControllerMeUrl = () => {
  */
 export const authControllerMe = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<authControllerMeResponse> => {
-  return customInstance<authControllerMeResponse>(getAuthControllerMeUrl(), {
+): Promise<UserViewDto> => {
+  return customInstance<UserViewDto>(getAuthControllerMeUrl(), {
     ...options,
     method: "GET",
   });
@@ -180,29 +168,6 @@ export function useAuthControllerMe<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type authControllerCheckNicknameAvailabilityResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type authControllerCheckNicknameAvailabilityResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type authControllerCheckNicknameAvailabilityResponseSuccess =
-  authControllerCheckNicknameAvailabilityResponse200 & {
-    headers: Headers;
-  };
-export type authControllerCheckNicknameAvailabilityResponseError =
-  authControllerCheckNicknameAvailabilityResponse400 & {
-    headers: Headers;
-  };
-
-export type authControllerCheckNicknameAvailabilityResponse =
-  | authControllerCheckNicknameAvailabilityResponseSuccess
-  | authControllerCheckNicknameAvailabilityResponseError;
-
 export const getAuthControllerCheckNicknameAvailabilityUrl = (
   params: AuthControllerCheckNicknameAvailabilityParams,
 ) => {
@@ -227,8 +192,8 @@ export const getAuthControllerCheckNicknameAvailabilityUrl = (
 export const authControllerCheckNicknameAvailability = async (
   params: AuthControllerCheckNicknameAvailabilityParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<authControllerCheckNicknameAvailabilityResponse> => {
-  return customInstance<authControllerCheckNicknameAvailabilityResponse>(
+): Promise<NicknameAvailabilityViewDto> => {
+  return customInstance<NicknameAvailabilityViewDto>(
     getAuthControllerCheckNicknameAvailabilityUrl(params),
     {
       ...options,
@@ -378,26 +343,6 @@ export function useAuthControllerCheckNicknameAvailability<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type authControllerRegisterResponse201 = {
-  data: void;
-  status: 201;
-};
-
-export type authControllerRegisterResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type authControllerRegisterResponseSuccess = authControllerRegisterResponse201 & {
-  headers: Headers;
-};
-export type authControllerRegisterResponseError = authControllerRegisterResponse400 & {
-  headers: Headers;
-};
-
-export type authControllerRegisterResponse =
-  authControllerRegisterResponseSuccess | authControllerRegisterResponseError;
-
 export const getAuthControllerRegisterUrl = () => {
   return `/api/auth/registration`;
 };
@@ -408,8 +353,8 @@ export const getAuthControllerRegisterUrl = () => {
 export const authControllerRegister = async (
   registrationInputDto: RegistrationInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<authControllerRegisterResponse> => {
-  return customInstance<authControllerRegisterResponse>(getAuthControllerRegisterUrl(), {
+): Promise<RegistrationResultViewDto> => {
+  return customInstance<RegistrationResultViewDto>(getAuthControllerRegisterUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -534,26 +479,6 @@ export function useAuthControllerRegister<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type authControllerVerifyEmailResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type authControllerVerifyEmailResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type authControllerVerifyEmailResponseSuccess = authControllerVerifyEmailResponse200 & {
-  headers: Headers;
-};
-export type authControllerVerifyEmailResponseError = authControllerVerifyEmailResponse400 & {
-  headers: Headers;
-};
-
-export type authControllerVerifyEmailResponse =
-  authControllerVerifyEmailResponseSuccess | authControllerVerifyEmailResponseError;
-
 export const getAuthControllerVerifyEmailUrl = () => {
   return `/api/auth/verify-email`;
 };
@@ -564,8 +489,8 @@ export const getAuthControllerVerifyEmailUrl = () => {
 export const authControllerVerifyEmail = async (
   verifyEmailInputDto: VerifyEmailInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<authControllerVerifyEmailResponse> => {
-  return customInstance<authControllerVerifyEmailResponse>(getAuthControllerVerifyEmailUrl(), {
+): Promise<AuthResultViewDto> => {
+  return customInstance<AuthResultViewDto>(getAuthControllerVerifyEmailUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -691,33 +616,6 @@ export function useAuthControllerVerifyEmail<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type authControllerLoginResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type authControllerLoginResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type authControllerLoginResponse403 = {
-  data: void;
-  status: 403;
-};
-
-export type authControllerLoginResponseSuccess = authControllerLoginResponse200 & {
-  headers: Headers;
-};
-export type authControllerLoginResponseError = (
-  authControllerLoginResponse401 | authControllerLoginResponse403
-) & {
-  headers: Headers;
-};
-
-export type authControllerLoginResponse =
-  authControllerLoginResponseSuccess | authControllerLoginResponseError;
-
 export const getAuthControllerLoginUrl = () => {
   return `/api/auth/login`;
 };
@@ -728,8 +626,8 @@ export const getAuthControllerLoginUrl = () => {
 export const authControllerLogin = async (
   loginInputDto: LoginInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<authControllerLoginResponse> => {
-  return customInstance<authControllerLoginResponse>(getAuthControllerLoginUrl(), {
+): Promise<AuthResultViewDto> => {
+  return customInstance<AuthResultViewDto>(getAuthControllerLoginUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -853,26 +751,6 @@ export function useAuthControllerLogin<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type authControllerRefreshResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type authControllerRefreshResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type authControllerRefreshResponseSuccess = authControllerRefreshResponse200 & {
-  headers: Headers;
-};
-export type authControllerRefreshResponseError = authControllerRefreshResponse401 & {
-  headers: Headers;
-};
-
-export type authControllerRefreshResponse =
-  authControllerRefreshResponseSuccess | authControllerRefreshResponseError;
-
 export const getAuthControllerRefreshUrl = () => {
   return `/api/auth/refresh`;
 };
@@ -882,8 +760,8 @@ export const getAuthControllerRefreshUrl = () => {
  */
 export const authControllerRefresh = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<authControllerRefreshResponse> => {
-  return customInstance<authControllerRefreshResponse>(getAuthControllerRefreshUrl(), {
+): Promise<AuthResultViewDto> => {
+  return customInstance<AuthResultViewDto>(getAuthControllerRefreshUrl(), {
     ...options,
     method: "POST",
   });
@@ -998,16 +876,6 @@ export function useAuthControllerRefresh<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type authControllerLogoutResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type authControllerLogoutResponseSuccess = authControllerLogoutResponse200 & {
-  headers: Headers;
-};
-export type authControllerLogoutResponse = authControllerLogoutResponseSuccess;
-
 export const getAuthControllerLogoutUrl = () => {
   return `/api/auth/logout`;
 };
@@ -1017,8 +885,8 @@ export const getAuthControllerLogoutUrl = () => {
  */
 export const authControllerLogout = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<authControllerLogoutResponse> => {
-  return customInstance<authControllerLogoutResponse>(getAuthControllerLogoutUrl(), {
+): Promise<LogoutResultViewDto> => {
+  return customInstance<LogoutResultViewDto>(getAuthControllerLogoutUrl(), {
     ...options,
     method: "POST",
   });
@@ -1131,18 +999,6 @@ export function useAuthControllerLogout<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type authControllerResendVerificationResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type authControllerResendVerificationResponseSuccess =
-  authControllerResendVerificationResponse200 & {
-    headers: Headers;
-  };
-export type authControllerResendVerificationResponse =
-  authControllerResendVerificationResponseSuccess;
-
 export const getAuthControllerResendVerificationUrl = () => {
   return `/api/auth/resend-verification`;
 };
@@ -1153,16 +1009,13 @@ export const getAuthControllerResendVerificationUrl = () => {
 export const authControllerResendVerification = async (
   resendVerificationInputDto: ResendVerificationInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<authControllerResendVerificationResponse> => {
-  return customInstance<authControllerResendVerificationResponse>(
-    getAuthControllerResendVerificationUrl(),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(resendVerificationInputDto),
-    },
-  );
+): Promise<ResendVerificationResultViewDto> => {
+  return customInstance<ResendVerificationResultViewDto>(getAuthControllerResendVerificationUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(resendVerificationInputDto),
+  });
 };
 
 export const getAuthControllerResendVerificationQueryKey = (
@@ -1289,17 +1142,6 @@ export function useAuthControllerResendVerification<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type authControllerForgotPasswordResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type authControllerForgotPasswordResponseSuccess =
-  authControllerForgotPasswordResponse200 & {
-    headers: Headers;
-  };
-export type authControllerForgotPasswordResponse = authControllerForgotPasswordResponseSuccess;
-
 export const getAuthControllerForgotPasswordUrl = () => {
   return `/api/auth/forgot-password`;
 };
@@ -1310,16 +1152,13 @@ export const getAuthControllerForgotPasswordUrl = () => {
 export const authControllerForgotPassword = async (
   forgotPasswordInputDto: ForgotPasswordInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<authControllerForgotPasswordResponse> => {
-  return customInstance<authControllerForgotPasswordResponse>(
-    getAuthControllerForgotPasswordUrl(),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(forgotPasswordInputDto),
-    },
-  );
+): Promise<ForgotPasswordResultViewDto> => {
+  return customInstance<ForgotPasswordResultViewDto>(getAuthControllerForgotPasswordUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(forgotPasswordInputDto),
+  });
 };
 
 export const getAuthControllerForgotPasswordQueryKey = (
@@ -1442,26 +1281,6 @@ export function useAuthControllerForgotPassword<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type authControllerResetPasswordResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type authControllerResetPasswordResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type authControllerResetPasswordResponseSuccess = authControllerResetPasswordResponse200 & {
-  headers: Headers;
-};
-export type authControllerResetPasswordResponseError = authControllerResetPasswordResponse400 & {
-  headers: Headers;
-};
-
-export type authControllerResetPasswordResponse =
-  authControllerResetPasswordResponseSuccess | authControllerResetPasswordResponseError;
-
 export const getAuthControllerResetPasswordUrl = () => {
   return `/api/auth/reset-password`;
 };
@@ -1472,8 +1291,8 @@ export const getAuthControllerResetPasswordUrl = () => {
 export const authControllerResetPassword = async (
   resetPasswordInputDto: ResetPasswordInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<authControllerResetPasswordResponse> => {
-  return customInstance<authControllerResetPasswordResponse>(getAuthControllerResetPasswordUrl(), {
+): Promise<ResetPasswordResultViewDto> => {
+  return customInstance<ResetPasswordResultViewDto>(getAuthControllerResetPasswordUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
