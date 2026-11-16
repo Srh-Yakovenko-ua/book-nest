@@ -8,7 +8,7 @@ import type { UpdatePublisherDto } from "@/shared/api/generated/model";
 import { matchesAnyKeyPrefix } from "@/lib/query-keys";
 import { publishersControllerUpdateCustom } from "@/shared/api/generated/endpoints/publishers/publishers";
 
-import { invalidatePublisherIdentityViews } from "./publisher-change-effects";
+import { publisherChangeEffects } from "./publisher-change-effects";
 import { publisherKeys } from "./publisher-keys";
 
 export function useUpdatePublisher(id: string) {
@@ -21,7 +21,8 @@ export function useUpdatePublisher(id: string) {
     },
     onSuccess: (detail) => {
       queryClient.setQueryData(publisherKeys.detail(id), detail);
-      invalidatePublisherIdentityViews(queryClient, {
+      void publisherChangeEffects.publishersChanged(queryClient, {
+        change: "updated",
         keep: [matchesAnyKeyPrefix(publisherKeys.detail(id))],
       });
     },

@@ -1,5 +1,5 @@
 import type { CatalogLocale } from "@app/shared";
-import type { QueryClient, QueryKey } from "@tanstack/react-query";
+import type { QueryKey } from "@tanstack/react-query";
 
 import { partialMatchKey } from "@tanstack/react-query";
 
@@ -35,10 +35,6 @@ export const publisherKeys = {
 };
 
 const matchesPublishersRoot = matchesApiRoot(PUBLISHERS_ROOT);
-
-export function invalidatePublisherQueries(queryClient: QueryClient): Promise<void> {
-  return queryClient.invalidateQueries({ predicate: matchesPublisherCatalogKey });
-}
 
 export function matchesPublisherCatalogKey(query: { queryKey: QueryKey }): boolean {
   return matchesPublishersRoot(query) && !partialMatchKey(query.queryKey, publisherKeys.picker.all);

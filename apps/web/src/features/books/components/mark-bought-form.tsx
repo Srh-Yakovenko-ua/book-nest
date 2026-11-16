@@ -11,7 +11,6 @@ import type { ReactNode } from "react";
 
 import { PURCHASE_INPUT_LIMITS, STORE_LINK_ERROR_CODES } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQueryClient } from "@tanstack/react-query";
 import { isAfter, parseISO } from "date-fns";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
@@ -22,7 +21,6 @@ import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
-import { wishlistKeys } from "@/features/books-to-buy/api/wishlist-keys";
 import { findBestOfferLinkId } from "@/features/books-to-buy/model/best-offer-link";
 import { useProfileTimeZone } from "@/features/settings";
 import { formatNumber } from "@/lib/format";
@@ -68,7 +66,6 @@ export function MarkBoughtForm({
   const t = useTranslations("books.details.ownership.buyConfirm");
   const tErrors = useTranslations("books.details.ownership.errors");
   const tActions = useTranslations("books.actions");
-  const queryClient = useQueryClient();
   const markBought = useMarkBought();
   const [serverError, setServerError] = useState<null | string>(null);
   const bestOfferLinkId = findBestOfferLinkId({ bestOffer, storeLinks });
@@ -127,7 +124,6 @@ export function MarkBoughtForm({
       {
         onError: (error) => {
           if (error instanceof ApiError && error.code === STORE_LINK_ERROR_CODES.NOT_IN_WISHLIST) {
-            void queryClient.invalidateQueries({ queryKey: wishlistKeys.root });
             setServerError(tErrors("notInWishlist"));
             return;
           }

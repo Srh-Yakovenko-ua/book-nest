@@ -3,10 +3,10 @@ import type { CreateReadingGoalInput, ReadingGoalView } from "@app/shared";
 import { ReadingGoalViewSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { invalidateStatisticsQueries } from "@/features/statistics/api/statistics-keys";
 import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 import { readingGoalsControllerCreate } from "@/shared/api/generated/endpoints/reading-goals/reading-goals";
 
+import { goalChangeEffects } from "./goal-change-effects";
 import { invalidateGoalQueries } from "./goal-keys";
 
 type CreateGoalVariables = {
@@ -27,8 +27,7 @@ export function useCreateGoal() {
       void invalidateGoalQueries(queryClient);
     },
     onSuccess: () => {
-      void invalidateGoalQueries(queryClient);
-      void invalidateStatisticsQueries(queryClient);
+      void goalChangeEffects.goalsChanged(queryClient, { change: "created" });
     },
   });
 }

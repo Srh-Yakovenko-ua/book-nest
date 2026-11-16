@@ -1,5 +1,3 @@
-import type { QueryClient } from "@tanstack/react-query";
-
 import type {
   SeriesCharactersControllerListParams,
   SeriesControllerFavoriteContinuationsParams,
@@ -32,7 +30,3 @@ export const seriesKeys = {
 };
 
 export const matchesSeriesKey = matchesApiRoot(SERIES_ROOT);
-
-export function invalidateSeriesQueries(queryClient: QueryClient): Promise<void> {
-  return queryClient.invalidateQueries({ predicate: matchesSeriesKey });
-}

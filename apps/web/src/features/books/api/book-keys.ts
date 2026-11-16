@@ -1,4 +1,4 @@
-import type { QueryClient, QueryKey } from "@tanstack/react-query";
+import type { QueryKey } from "@tanstack/react-query";
 
 import { hashKey } from "@tanstack/react-query";
 
@@ -49,15 +49,6 @@ export const bookKeys = {
 
 export const matchesBookKey = matchesApiRoot(BOOKS_ROOT);
 
-export function invalidateBookQueries(
-  queryClient: QueryClient,
-  { keep = [] }: { keep?: readonly QueryKeyMatcher[] } = {},
-): Promise<void> {
-  return queryClient.invalidateQueries({
-    predicate: (query) => matchesBookKey(query) && !keep.some((kept) => kept(query)),
-  });
-}
-
 export function matchesAnyBookChapters({ queryKey }: { queryKey: QueryKey }): boolean {
   const [, , bookId] = queryKey;
   return typeof bookId === "string" && hashKey(queryKey) === hashKey(bookKeys.chapters(bookId));
@@ -65,11 +56,6 @@ export function matchesAnyBookChapters({ queryKey }: { queryKey: QueryKey }): bo
 
 export function matchesBookDetail(id: string): QueryKeyMatcher {
   return ({ queryKey }) => isBookDetailKey(queryKey, id);
-}
-
-export function matchesBooksExceptDetail(id: string): QueryKeyMatcher {
-  const matchesDetail = matchesBookDetail(id);
-  return (query) => matchesBookKey(query) && !matchesDetail(query);
 }
 
 export function matchesPublisherScopedBookKey(publisherId: string): QueryKeyMatcher {
