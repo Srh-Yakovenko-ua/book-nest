@@ -8,6 +8,8 @@ export const HTTP_STATUS = {
   conflict: 409,
   forbidden: 403,
   notFound: 404,
+  tooManyRequests: 429,
+  unauthorized: 401,
   unprocessableEntity: 422,
 } as const;
 

@@ -56,6 +56,7 @@ const NON_REFRESHABLE_PATHS = [
 ];
 
 export async function request<T>(path: string, init?: RequestOptions): Promise<T> {
+  const requestUserId = getAuthBridge()?.getUserId() ?? null;
   const res = await send(path, init);
 
   if (res.ok) {
@@ -69,7 +70,7 @@ export async function request<T>(path: string, init?: RequestOptions): Promise<T
   }
 
   if (canAttemptRefresh(res.status, path)) {
-    const retried = await refreshAndRetry<T>(path, init);
+    const retried = await refreshAndRetry<T>({ init, path, requestUserId });
     if (retried.handled) return retried.value;
   }
 
@@ -107,10 +108,15 @@ function isMaintenanceResponse(res: Response): boolean {
   return res.headers.get(MAINTENANCE.header) !== null;
 }
 
-async function refreshAndRetry<T>(
-  path: string,
-  init?: RequestOptions,
-): Promise<{ handled: false } | { handled: true; value: T }> {
+async function refreshAndRetry<T>({
+  init,
+  path,
+  requestUserId,
+}: {
+  init?: RequestOptions;
+  path: string;
+  requestUserId: null | string;
+}): Promise<{ handled: false } | { handled: true; value: T }> {
   const bridge = getAuthBridge();
   if (!bridge) return { handled: false };
 
@@ -120,6 +126,10 @@ async function refreshAndRetry<T>(
     bridge.onRefreshFailed();
     return { handled: false };
   }
+
+  const sessionSwitchedToAnotherUser =
+    requestUserId !== null && bridge.getUserId() !== requestUserId;
+  if (sessionSwitchedToAnotherUser) return { handled: false };
 
   const res = await send(path, init);
   if (!res.ok) throw await toApiError(res);
