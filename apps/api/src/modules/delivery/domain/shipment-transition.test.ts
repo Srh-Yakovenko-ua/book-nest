@@ -76,16 +76,57 @@ describe("evaluateShipmentEdit", () => {
 
 describe("resolveShipmentReceivedAt", () => {
   it("stamps the injected now when the receipt date is omitted", () => {
-    expect(resolveShipmentReceivedAt({ now: NOW, receivedAt: undefined })).toEqual(NOW);
+    expect(resolveShipmentReceivedAt({ now: NOW, receivedAt: undefined, timeZone: "UTC" })).toEqual(
+      NOW,
+    );
   });
 
   it("stamps the injected now when the receipt date is explicitly null", () => {
-    expect(resolveShipmentReceivedAt({ now: NOW, receivedAt: null })).toEqual(NOW);
+    expect(resolveShipmentReceivedAt({ now: NOW, receivedAt: null, timeZone: "UTC" })).toEqual(NOW);
   });
 
   it("parses a supplied receipt date as UTC midnight instead of using now", () => {
-    expect(resolveShipmentReceivedAt({ now: NOW, receivedAt: "2026-01-25" })).toEqual(
-      new Date("2026-01-25T00:00:00.000Z"),
-    );
+    expect(
+      resolveShipmentReceivedAt({ now: NOW, receivedAt: "2026-01-25", timeZone: "UTC" }),
+    ).toEqual(new Date("2026-01-25T00:00:00.000Z"));
   });
+
+  it.each([
+    {
+      expected: "2026-02-09T22:00:00.000Z",
+      label: "a winter day in Kyiv starts two hours before UTC midnight",
+      receivedAt: "2026-02-10",
+      timeZone: "Europe/Kyiv",
+    },
+    {
+      expected: "2026-07-09T21:00:00.000Z",
+      label: "a summer day in Kyiv starts three hours before UTC midnight",
+      receivedAt: "2026-07-10",
+      timeZone: "Europe/Kyiv",
+    },
+    {
+      expected: "2026-02-10T05:00:00.000Z",
+      label: "a winter day in New York starts five hours after UTC midnight",
+      receivedAt: "2026-02-10",
+      timeZone: "America/New_York",
+    },
+  ])("stamps a typed receipt date at the start of the reader's day: $label", (receipt) => {
+    const receivedAt = resolveShipmentReceivedAt({
+      now: NOW,
+      receivedAt: receipt.receivedAt,
+      timeZone: receipt.timeZone,
+    });
+
+    expect(receivedAt.toISOString()).toBe(receipt.expected);
+  });
+
+  it.each([
+    { receivedAt: null, timeZone: "Europe/Kyiv" },
+    { receivedAt: undefined, timeZone: "America/New_York" },
+  ])(
+    "stamps exactly the injected now for a $timeZone reader who typed no receipt date ($receivedAt)",
+    ({ receivedAt, timeZone }) => {
+      expect(resolveShipmentReceivedAt({ now: NOW, receivedAt, timeZone })).toEqual(NOW);
+    },
+  );
 });

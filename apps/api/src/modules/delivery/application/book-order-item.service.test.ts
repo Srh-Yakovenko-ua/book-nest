@@ -3,6 +3,7 @@ import type { Nullable } from "@app/shared";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
+import type { UserSettingsContextService } from "../../profile/index.js";
 import type { BookOrderItemsRepository } from "../infrastructure/book-order-items.repository.js";
 import type { OrderBooksRepository } from "../infrastructure/order-books.repository.js";
 import type { ShipmentsRepository } from "../infrastructure/shipments.repository.js";
@@ -10,6 +11,7 @@ import type { BookOrderViewLoader } from "./book-order-view.loader.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
+import { fakeOf } from "../../../test/fake.js";
 import { BookOrderItemService } from "./book-order-item.service.js";
 
 const USER = "user-1";
@@ -49,11 +51,20 @@ function buildService(overrides: {
   const transactionRunner = {
     run: vi.fn((work: (tx: Prisma.TransactionClient) => Promise<unknown>) => work(TX)),
   } as unknown as TransactionRunner;
+  const resolveSettings = vi.fn().mockResolvedValue({ timezone: "UTC", weekStartDay: "monday" });
 
   return {
     books,
     items,
-    service: new BookOrderItemService(items, books, shipments, viewLoader, transactionRunner),
+    resolveSettings,
+    service: new BookOrderItemService(
+      items,
+      books,
+      shipments,
+      viewLoader,
+      transactionRunner,
+      fakeOf<UserSettingsContextService>({ resolve: resolveSettings }),
+    ),
     shipments,
     transactionRunner,
     viewLoader,
@@ -214,7 +225,7 @@ describe("BookOrderItemService.bulkReceive", () => {
   });
 
   it("makes the received books owned in the same transaction", async () => {
-    const { books, service, transactionRunner } = buildService({
+    const { books, resolveSettings, service, transactionRunner } = buildService({
       books: {
         applyOwnership: vi.fn().mockResolvedValue(1),
         listOwned: vi.fn().mockResolvedValue([{ id: BOOK_A, ownershipStatus: "in_transit" }]),
@@ -229,6 +240,7 @@ describe("BookOrderItemService.bulkReceive", () => {
     await service.bulkReceive({ input: { bookIds: [BOOK_A] }, userId: USER });
 
     expect(transactionRunner.run).toHaveBeenCalledTimes(1);
+    expect(resolveSettings).toHaveBeenCalledWith(USER);
     expect(books.applyOwnership).toHaveBeenCalledWith(
       expect.objectContaining({ bookIds: [BOOK_A], ownershipStatus: "owned", userId: USER }),
       TX,

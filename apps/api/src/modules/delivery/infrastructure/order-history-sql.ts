@@ -10,8 +10,9 @@ import { DEFAULT_CURRENCY } from "@app/shared";
 import { assertNever } from "../../../core/assert-never.js";
 import { ilikeContains } from "../../../core/database/like-pattern.js";
 import { Prisma } from "../../../generated/prisma/client.js";
-import { ORDER_EFFECTIVE_TOTAL_SQL, ORDER_PLACED_ON_SQL } from "./in-transit-sql.js";
+import { ORDER_EFFECTIVE_TOTAL_SQL, orderPlacedOnSql } from "./in-transit-sql.js";
 import { orderStateSql } from "./order-state-sql.js";
+import { readerDaySql } from "./reader-day-sql.js";
 
 export const HISTORY_ITEM_SOURCE = Prisma.sql`
   FROM book_order_items item
@@ -46,13 +47,14 @@ export type HistoryFilterInput = {
   service: string[] | undefined;
   store: string[] | undefined;
   tab: BookOrderHistoryTab;
+  timeZone: string;
   to: string | undefined;
   userId: string;
 };
 
-const ITEM_RECEIVED_ON_SQL = Prisma.sql`(item.received_at AT TIME ZONE 'UTC')::date`;
+const ITEM_RECEIVED_AT_SQL = Prisma.sql`item.received_at`;
 
-const ITEM_CANCELLED_ON_SQL = Prisma.sql`(item.cancelled_at AT TIME ZONE 'UTC')::date`;
+const ITEM_CANCELLED_AT_SQL = Prisma.sql`item.cancelled_at`;
 
 const HISTORY_ORDER_SQL: Record<BookOrderHistorySort, Prisma.Sql> = {
   newest_orders: Prisma.sql`book_order.order_date DESC NULLS LAST`,
@@ -97,8 +99,11 @@ export function buildHistoryContentConditions({
   receivedTo,
   service,
   tab,
+  timeZone,
 }: HistoryFilterInput): Prisma.Sql {
   const conditions: Prisma.Sql[] = [LIVE_HISTORY_ITEM_SQL, historyTabSql(tab)];
+  const receivedOn = readerDaySql({ instant: ITEM_RECEIVED_AT_SQL, timeZone });
+  const cancelledOn = readerDaySql({ instant: ITEM_CANCELLED_AT_SQL, timeZone });
 
   if (service !== undefined) {
     conditions.push(
@@ -107,28 +112,40 @@ export function buildHistoryContentConditions({
   }
 
   if (receivedFrom !== undefined) {
-    conditions.push(Prisma.sql`${ITEM_RECEIVED_ON_SQL} >= ${receivedFrom}::date`);
+    conditions.push(Prisma.sql`${receivedOn} >= ${receivedFrom}::date`);
   }
 
   if (receivedTo !== undefined) {
-    conditions.push(Prisma.sql`${ITEM_RECEIVED_ON_SQL} <= ${receivedTo}::date`);
+    conditions.push(Prisma.sql`${receivedOn} <= ${receivedTo}::date`);
   }
 
   if (cancelledFrom !== undefined) {
-    conditions.push(Prisma.sql`${ITEM_CANCELLED_ON_SQL} >= ${cancelledFrom}::date`);
+    conditions.push(Prisma.sql`${cancelledOn} >= ${cancelledFrom}::date`);
   }
 
   if (cancelledTo !== undefined) {
-    conditions.push(Prisma.sql`${ITEM_CANCELLED_ON_SQL} <= ${cancelledTo}::date`);
+    conditions.push(Prisma.sql`${cancelledOn} <= ${cancelledTo}::date`);
   }
 
   return Prisma.join(conditions, " AND ");
 }
 
 export function buildHistoryOrderConditions(filter: HistoryFilterInput): Prisma.Sql {
-  const { booksMax, booksMin, currency, from, orderId, orderState, search, store, to, userId } =
-    filter;
+  const {
+    booksMax,
+    booksMin,
+    currency,
+    from,
+    orderId,
+    orderState,
+    search,
+    store,
+    timeZone,
+    to,
+    userId,
+  } = filter;
   const content = buildHistoryContentConditions(filter);
+  const placedOn = orderPlacedOnSql(timeZone);
   const conditions: Prisma.Sql[] = [
     Prisma.sql`book_order.user_id = ${userId}::uuid`,
     correlatedContentSql(content),
@@ -151,11 +168,11 @@ export function buildHistoryOrderConditions(filter: HistoryFilterInput): Prisma.
   }
 
   if (from !== undefined) {
-    conditions.push(Prisma.sql`${ORDER_PLACED_ON_SQL} >= ${from}::date`);
+    conditions.push(Prisma.sql`${placedOn} >= ${from}::date`);
   }
 
   if (to !== undefined) {
-    conditions.push(Prisma.sql`${ORDER_PLACED_ON_SQL} <= ${to}::date`);
+    conditions.push(Prisma.sql`${placedOn} <= ${to}::date`);
   }
 
   if (booksMin !== undefined) {

@@ -35,7 +35,7 @@ import {
   inTransitOrderSql,
   inTransitQuickFilterSql,
   ORDER_EFFECTIVE_TOTAL_SQL,
-  ORDER_PLACED_ON_SQL,
+  orderPlacedOnSql,
   ordersWithActiveItemsSource,
   shipmentScopedCategorySql,
   toIsoBounds,
@@ -293,7 +293,10 @@ export class DeliveryReadRepository {
   }
 
   async countInTransitQuickFilters(base: InTransitBaseFilterInput): Promise<InTransitQuickCounts> {
-    const categories = inTransitCategorySql(toIsoBounds(base.bounds));
+    const categories = inTransitCategorySql({
+      bounds: toIsoBounds(base.bounds),
+      timeZone: base.timeZone,
+    });
     const countOf = (key: InTransitQuickFilterKey): Prisma.Sql =>
       Prisma.sql`(count(*) FILTER (WHERE ${inTransitQuickFilterSql({ categories, key })}))::int`;
 
@@ -435,13 +438,15 @@ export class DeliveryReadRepository {
 
   async inTransitSummary({
     bounds,
+    timeZone,
     userId,
   }: {
     bounds: DeliveryDateBounds;
+    timeZone: string;
     userId: string;
   }): Promise<InTransitSummaryData> {
     const isoBounds = toIsoBounds(bounds);
-    const categories = inTransitCategorySql(isoBounds);
+    const categories = inTransitCategorySql({ bounds: isoBounds, timeZone });
     const shipmentCategories = shipmentScopedCategorySql(isoBounds);
     const ownedActiveItems = Prisma.sql`book_order.user_id = ${userId}::uuid AND ${ACTIVE_ITEM_SQL}`;
 
@@ -560,7 +565,7 @@ export class DeliveryReadRepository {
       this.prisma.$queryRaw(Prisma.sql`
           SELECT
             (count(*))::int AS "awaitingDispatchOrdersCount",
-            (min(${ORDER_PLACED_ON_SQL}))::text AS "earliestAwaitingOrderDate"
+            (min(${orderPlacedOnSql(timeZone)}))::text AS "earliestAwaitingOrderDate"
           ${ordersWithActiveItemsSource({
             extraConditions: [categories.awaitingDispatch],
             userId,
@@ -611,9 +616,11 @@ export class DeliveryReadRepository {
 
   async latestReceipt({
     bookPreviewsMax,
+    timeZone,
     userId,
   }: {
     bookPreviewsMax: number;
+    timeZone: string;
     userId: string;
   }): Promise<Nullable<LatestReceiptData>> {
     const rows = await this.prisma.$queryRaw(Prisma.sql`
@@ -622,7 +629,7 @@ export class DeliveryReadRepository {
           item.order_id,
           item.shipment_id,
           item.received_at,
-          date_trunc('day', item.received_at AT TIME ZONE 'UTC') AS received_day
+          date_trunc('day', item.received_at AT TIME ZONE ${timeZone}::text) AS received_day
         ${HISTORY_ITEM_SOURCE}
         WHERE book_order.user_id = ${userId}::uuid
           AND ${LIVE_HISTORY_ITEM_SQL}
@@ -642,8 +649,9 @@ export class DeliveryReadRepository {
         receipt_event.order_id AS "orderId",
         receipt_event.shipment_id AS "shipmentId",
         receipt_event.received_at AS "receivedAt",
-        (receipt_event.received_day AT TIME ZONE 'UTC') AS "receivedDay",
-        ((receipt_event.received_day + interval '1 day') AT TIME ZONE 'UTC') AS "receivedDayEnd",
+        (receipt_event.received_day AT TIME ZONE ${timeZone}::text) AS "receivedDay",
+        ((receipt_event.received_day + interval '1 day') AT TIME ZONE ${timeZone}::text)
+          AS "receivedDayEnd",
         receipt_event.books_count AS "booksCount",
         (
           SELECT (count(*))::int - 1

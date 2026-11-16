@@ -6,9 +6,8 @@ import type {
 } from "@app/shared";
 
 import { isClosedReadingStatus, ReadingStatusSchema } from "@app/shared";
-import { differenceInCalendarDays } from "date-fns";
 
-import { toNullableIsoDate } from "../../../core/iso-date.js";
+import { daysBetweenUtcDays, toNullableIsoDate } from "../../../core/iso-date.js";
 import { readingStatusUsesProgress } from "../../books/index.js";
 
 export const PACE_WINDOW_DAYS = 90;
@@ -86,7 +85,10 @@ export function computeQueueVolume(input: {
   const historyDays =
     paceRow.firstEventDate === null
       ? 0
-      : Math.min(PACE_WINDOW_DAYS, differenceInCalendarDays(today, paceRow.firstEventDate) + 1);
+      : Math.min(
+          PACE_WINDOW_DAYS,
+          daysBetweenUtcDays({ end: today, start: paceRow.firstEventDate }) + 1,
+        );
   const pagesPerCalendarDay = historyDays === 0 ? null : paceRow.pagesReadInPeriod / historyDays;
 
   const reason = resolveVolumeReason({
@@ -156,7 +158,7 @@ export function resolveVolumeReason(input: VolumeReasonInput): VolumeReasonResul
   }
   if (
     input.lastEventDate !== null &&
-    differenceInCalendarDays(input.today, input.lastEventDate) > STALE_ACTIVITY_DAYS
+    daysBetweenUtcDays({ end: input.today, start: input.lastEventDate }) > STALE_ACTIVITY_DAYS
   ) {
     return { daysUntilForecast: null, reasonUnavailable: "stale_activity" };
   }

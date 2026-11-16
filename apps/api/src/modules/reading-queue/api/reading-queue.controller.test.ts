@@ -1,14 +1,17 @@
 import type { INestApplication } from "@nestjs/common";
 
-import { subDays } from "date-fns";
+import { format, parseISO, subDays } from "date-fns";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { parseIsoDate, toZonedIsoDate } from "../../../core/iso-date.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
+import { registerReaderInTimezone } from "../../../test/user-timezone.js";
+import { defaultUserToday } from "../../../test/user-today.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { BooksModule } from "../../books/books.module.js";
 import { ReadingQueueModule } from "../reading-queue.module.js";
@@ -106,6 +109,10 @@ function positionsByTitle(res: request.Response): Array<[string, number]> {
   return items.map((item) => [item.book.title, item.position]);
 }
 
+function readerDaysAgo({ days, today }: { days: number; today: string }): Date {
+  return parseIsoDate(format(subDays(parseISO(today), days), "yyyy-MM-dd"));
+}
+
 function removeFromQueue(accessToken: string, bookId: string): request.Test {
   return request(app.getHttpServer())
     .delete(`/api/reading-queue/${bookId}`)
@@ -117,6 +124,17 @@ function reorder(accessToken: string, order: string[]): request.Test {
     .put("/api/reading-queue/reorder")
     .set("Authorization", `Bearer ${accessToken}`)
     .send({ order });
+}
+
+async function seedPaceWindowEdges({
+  bookId,
+  today,
+}: {
+  bookId: string;
+  today: string;
+}): Promise<void> {
+  await seedReadingEvent({ bookId, date: readerDaysAgo({ days: 89, today }), pagesRead: 90 });
+  await seedReadingEvent({ bookId, date: readerDaysAgo({ days: 90, today }), pagesRead: 900 });
 }
 
 function seedReadingEvent(input: {
@@ -1143,6 +1161,48 @@ describe("GET /api/reading-queue/volume-summary", () => {
     expect(res.body.pace.activeDaysInPeriod).toBe(1);
     expect(res.body.pace.pagesPerCalendarDay).not.toBeNull();
   });
+
+  it("counts the last 90 days of the reader's calendar and nothing older", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createOwnedBook(accessToken, {
+      addToReadingQueue: true,
+      pagesCount: 1000,
+      title: "Long read",
+    });
+    await seedPaceWindowEdges({ bookId, today: defaultUserToday() });
+
+    const res = await getVolumeSummary(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body.pace).toMatchObject({
+      activeDaysInPeriod: 1,
+      pagesPerCalendarDay: 1,
+      sourcePeriodDays: 90,
+    });
+  });
+
+  it.each(["Pacific/Kiritimati", "Etc/GMT+12"])(
+    "anchors the 90-day pace window on the calendar of a reader in %s",
+    async (timezone) => {
+      const { accessToken } = await registerReaderInTimezone({ context, timezone });
+      const bookId = await createOwnedBook(accessToken, {
+        addToReadingQueue: true,
+        pagesCount: 1000,
+        title: "Long read",
+      });
+      const today = toZonedIsoDate({ instant: new Date(), timeZone: timezone });
+      await seedPaceWindowEdges({ bookId, today });
+
+      const res = await getVolumeSummary(accessToken);
+
+      expect(res.status).toBe(200);
+      expect(res.body.pace).toMatchObject({
+        activeDaysInPeriod: 1,
+        pagesPerCalendarDay: 1,
+        sourcePeriodDays: 90,
+      });
+    },
+  );
 
   it("matches the volume-summary route instead of the dynamic :bookId route", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();

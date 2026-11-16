@@ -17,7 +17,7 @@ import {
 } from "date-fns";
 
 import { assertNever } from "../../../core/assert-never.js";
-import { addDaysToIsoDate, daysBetweenIsoDates, toIsoDate } from "../../../core/iso-date.js";
+import { addDaysToIsoDate, daysBetweenIsoDates } from "../../../core/iso-date.js";
 
 const COMPARE_MODE = BookOrderStatisticsCompareModeSchema.enum;
 
@@ -46,15 +46,14 @@ type BoundedPeriod = {
 export function resolveStatisticsPeriods({
   compare,
   from,
-  now,
   to,
+  today,
 }: {
   compare?: BookOrderStatisticsCompareMode;
   from?: string;
-  now: Date;
   to?: string;
+  today: string;
 }): ResolvedStatisticsPeriods {
-  const today = toIsoDate(now);
   const currentPeriod: StatisticsPeriod = { from: from ?? null, to: to ?? today };
   const requestedPeriod: RequestedStatisticsPeriod = { from, to };
 

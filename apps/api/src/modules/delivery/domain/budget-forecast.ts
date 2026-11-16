@@ -35,16 +35,16 @@ export function computeBudgetProgress({
   budget,
   deliverySpentToDate,
   isSpendComplete,
-  now,
   spentToDate,
+  today,
 }: {
   budget: number;
   deliverySpentToDate: number;
   isSpendComplete: boolean;
-  now: Date;
   spentToDate: number;
+  today: Date;
 }): BookBudgetProgress {
-  const monthWindow = resolveBudgetMonthWindow(now);
+  const monthWindow = resolveBudgetMonthWindow(today);
   const forecast = forecastMonthSpend({ monthWindow, spentToDate });
   const remainingSigned = roundMoney(budget - spentToDate);
 
@@ -71,14 +71,15 @@ export function computeBudgetProgress({
   };
 }
 
-export function resolveBudgetMonthWindow(now: Date): BudgetMonthWindow {
-  const month = toBudgetMonth(now);
+export function resolveBudgetMonthWindow(today: Date): BudgetMonthWindow {
+  const month = toBudgetMonth(today);
   const monthStart = parseISO(month);
-  const today = parseISO(toIsoDate(now));
+  const todayStart = parseISO(toIsoDate(today));
 
   return {
     daysInMonth: getDaysInMonth(monthStart),
-    elapsedDays: differenceInCalendarDays(today, monthStart) + BUDGET_ARITHMETIC.firstElapsedDay,
+    elapsedDays:
+      differenceInCalendarDays(todayStart, monthStart) + BUDGET_ARITHMETIC.firstElapsedDay,
     lastDay: format(lastDayOfMonth(monthStart), ISO_DAY_FORMAT),
     month,
   };

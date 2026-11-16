@@ -25,6 +25,7 @@ import { TransactionRunner } from "../../../core/database/transaction-runner.js"
 import { BadRequestError, ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { parseIsoDate, toIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
 import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
+import { UserSettingsContextService } from "../../profile/index.js";
 import { computeBudgetProgress, resolveBudgetMonthWindow } from "../domain/budget-forecast.js";
 import { fromMinorUnits, toMinorUnits } from "../domain/money-minor-units.js";
 import { classifyOrder } from "../domain/statistics-scope.js";
@@ -56,6 +57,7 @@ export class BookBudgetService {
     private readonly bookBudgetsRepository: BookBudgetsRepository,
     private readonly deliveryStatisticsRepository: DeliveryStatisticsRepository,
     private readonly transactionRunner: TransactionRunner,
+    private readonly userSettingsContextService: UserSettingsContextService,
   ) {}
 
   async cancelScheduled({
@@ -65,8 +67,8 @@ export class BookBudgetService {
     currency: Currency;
     userId: string;
   }): Promise<BookBudgetOverview> {
-    const now = new Date();
-    const monthStart = parseIsoDate(resolveBudgetMonthWindow(now).month);
+    const today = await this.readerToday(userId);
+    const monthStart = parseIsoDate(resolveBudgetMonthWindow(today).month);
 
     await this.transactionRunner.run(async (tx) => {
       const scheduled = await this.bookBudgetsRepository.findFirstStartingAfter(
@@ -93,7 +95,7 @@ export class BookBudgetService {
       );
     });
 
-    return this.buildOverview({ now, userId });
+    return this.buildOverview({ today, userId });
   }
 
   async cancelScheduledStop({
@@ -103,8 +105,8 @@ export class BookBudgetService {
     currency: Currency;
     userId: string;
   }): Promise<BookBudgetOverview> {
-    const now = new Date();
-    const monthStart = parseIsoDate(resolveBudgetMonthWindow(now).month);
+    const today = await this.readerToday(userId);
+    const monthStart = parseIsoDate(resolveBudgetMonthWindow(today).month);
 
     await this.transactionRunner.run(async (tx) => {
       const stopping = await this.bookBudgetsRepository.findScheduledStop(
@@ -121,11 +123,11 @@ export class BookBudgetService {
       );
     });
 
-    return this.buildOverview({ now, userId });
+    return this.buildOverview({ today, userId });
   }
 
-  overview({ userId }: { userId: string }): Promise<BookBudgetOverview> {
-    return this.buildOverview({ now: new Date(), userId });
+  async overview({ userId }: { userId: string }): Promise<BookBudgetOverview> {
+    return this.buildOverview({ today: await this.readerToday(userId), userId });
   }
 
   async saveAll({
@@ -135,8 +137,8 @@ export class BookBudgetService {
     input: SaveBookBudgetsInput;
     userId: string;
   }): Promise<BookBudgetOverview> {
-    const now = new Date();
-    const validFromMonth = this.requireUpcomingMonth({ month: input.effectiveFromMonth, now });
+    const today = await this.readerToday(userId);
+    const validFromMonth = this.requireUpcomingMonth({ month: input.effectiveFromMonth, today });
 
     await this.transactionRunner.run(async (tx) => {
       const planned = await Promise.all(
@@ -148,7 +150,7 @@ export class BookBudgetService {
       }
     });
 
-    return this.buildOverview({ now, userId });
+    return this.buildOverview({ today, userId });
   }
 
   async stop({
@@ -160,8 +162,8 @@ export class BookBudgetService {
     input: StopBookBudgetInput;
     userId: string;
   }): Promise<BookBudgetOverview> {
-    const now = new Date();
-    const stopFromMonth = this.requireUpcomingMonth({ month: input.effectiveFromMonth, now });
+    const today = await this.readerToday(userId);
+    const stopFromMonth = this.requireUpcomingMonth({ month: input.effectiveFromMonth, today });
 
     await this.transactionRunner.run(async (tx) => {
       const covering = await this.bookBudgetsRepository.findEffectiveAt(
@@ -175,7 +177,7 @@ export class BookBudgetService {
       await this.stopFrom({ covering, currency, tx, userId, validFromMonth: stopFromMonth });
     });
 
-    return this.buildOverview({ now, userId });
+    return this.buildOverview({ today, userId });
   }
 
   async upsert({
@@ -185,8 +187,8 @@ export class BookBudgetService {
     input: UpsertBookBudgetInput;
     userId: string;
   }): Promise<BookBudgetOverview> {
-    const now = new Date();
-    const validFromMonth = this.requireUpcomingMonth({ month: input.effectiveFromMonth, now });
+    const today = await this.readerToday(userId);
+    const validFromMonth = this.requireUpcomingMonth({ month: input.effectiveFromMonth, today });
 
     await this.transactionRunner.run((tx) =>
       this.writeVersion({
@@ -198,7 +200,7 @@ export class BookBudgetService {
       }),
     );
 
-    return this.buildOverview({ now, userId });
+    return this.buildOverview({ today, userId });
   }
 
   private async applyChange({
@@ -237,13 +239,13 @@ export class BookBudgetService {
   }
 
   private async buildOverview({
-    now,
+    today,
     userId,
   }: {
-    now: Date;
+    today: Date;
     userId: string;
   }): Promise<BookBudgetOverview> {
-    const monthWindow = resolveBudgetMonthWindow(now);
+    const monthWindow = resolveBudgetMonthWindow(today);
     const versions = await this.bookBudgetsRepository.findEffectiveOrLater({
       month: parseIsoDate(monthWindow.month),
       userId,
@@ -255,7 +257,7 @@ export class BookBudgetService {
     const spendByCurrency = await this.loadMonthSpend({ monthWindow, userId });
 
     return {
-      budgets: toBudgetStatuses({ monthWindow, now, spendByCurrency, versions }),
+      budgets: toBudgetStatuses({ monthWindow, spendByCurrency, today, versions }),
       month: monthWindow.month,
     };
   }
@@ -341,9 +343,13 @@ export class BookBudgetService {
       : { action: "set", currency: change.currency, monthlyAmount: change.monthlyAmount };
   }
 
-  private requireUpcomingMonth({ month, now }: { month: string; now: Date }): Date {
+  private readerToday(userId: string): Promise<Date> {
+    return this.userSettingsContextService.calendarDay({ now: new Date(), userId });
+  }
+
+  private requireUpcomingMonth({ month, today }: { month: string; today: Date }): Date {
     const monthStart = toBudgetMonth(parseIsoDate(month));
-    if (isBefore(parseISO(monthStart), parseISO(resolveBudgetMonthWindow(now).month))) {
+    if (isBefore(parseISO(monthStart), parseISO(resolveBudgetMonthWindow(today).month))) {
       throw new BadRequestError(BOOK_BUDGET_MESSAGE.backdatedMonth);
     }
     return parseIsoDate(monthStart);
@@ -463,13 +469,13 @@ function sumMonthSpend(orders: ClassifiedOrder[]): Map<Currency, CurrencySpend> 
 
 function toBudgetStatuses({
   monthWindow,
-  now,
   spendByCurrency,
+  today,
   versions,
 }: {
   monthWindow: BudgetMonthWindow;
-  now: Date;
   spendByCurrency: Map<Currency, CurrencySpend>;
+  today: Date;
   versions: BookBudgetModel[];
 }): BookBudgetStatus[] {
   const monthStart = parseIsoDate(monthWindow.month);
@@ -499,7 +505,7 @@ function toBudgetStatuses({
         currentMonth:
           found.current === null
             ? null
-            : toCurrentMonth({ month: monthWindow.month, now, spend, version: found.current }),
+            : toCurrentMonth({ month: monthWindow.month, spend, today, version: found.current }),
         spendCoverage: toSpendCoverage(spend),
         upcomingChanges: toUpcomingChanges({ monthStart, versions: found }),
       },
@@ -509,13 +515,13 @@ function toBudgetStatuses({
 
 function toCurrentMonth({
   month,
-  now,
   spend,
+  today,
   version,
 }: {
   month: string;
-  now: Date;
   spend: CurrencySpend;
+  today: Date;
   version: BookBudgetModel;
 }): BookBudgetCurrentMonth {
   return {
@@ -523,8 +529,8 @@ function toCurrentMonth({
       budget: version.monthlyAmount.toNumber(),
       deliverySpentToDate: fromMinorUnits(spend.deliveryMinorUnits),
       isSpendComplete: spend.ordersCount === spend.ordersWithResolvedAmount,
-      now,
       spentToDate: fromMinorUnits(spend.spentMinorUnits),
+      today,
     }),
     month,
     validFromMonth: toIsoDate(version.validFromMonth),

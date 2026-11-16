@@ -1,5 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 
+import { addSeconds, addYears, format, isWithinInterval, parseISO, subSeconds } from "date-fns";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -14,7 +15,7 @@ import { BooksModule } from "../books.module.js";
 
 const MISSING_UUID = "00000000-0000-4000-8000-000000000000";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const FUTURE_DATE = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString().slice(0, 10);
+const FUTURE_DATE = format(addYears(new Date(), 1), "yyyy-MM-dd");
 
 let context: AuthTestContext;
 let app: INestApplication;
@@ -528,15 +529,16 @@ describe("POST /api/books/:id/deliveries/:deliveryId/receive", () => {
   it("stamps the received date with now when no receivedAt is supplied", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const { bookId, deliveryId } = await seedBookWithDelivery(accessToken);
-    const before = Date.now();
+    const before = new Date();
 
     const res = await receiveDelivery(accessToken, bookId, deliveryId, {});
-    const after = Date.now();
+    const after = new Date();
 
     expect(res.status).toBe(200);
-    const receivedAt = new Date(res.body.delivery.latest.receivedAt).getTime();
-    expect(receivedAt).toBeGreaterThanOrEqual(before - 1000);
-    expect(receivedAt).toBeLessThanOrEqual(after + 1000);
+    const receivedAt = parseISO(res.body.delivery.latest.receivedAt);
+    expect(
+      isWithinInterval(receivedAt, { end: addSeconds(after, 1), start: subSeconds(before, 1) }),
+    ).toBe(true);
   });
 
   it("persists a supplied past received date instead of now", async () => {
@@ -550,9 +552,9 @@ describe("POST /api/books/:id/deliveries/:deliveryId/receive", () => {
     expect(res.status).toBe(200);
     expect(res.body.ownershipStatus).toBe("owned");
     expect(res.body.delivery.latest).toMatchObject({ id: deliveryId, status: "received" });
-    expect(res.body.delivery.latest.receivedAt).toBe("2026-02-10T00:00:00.000Z");
+    expect(res.body.delivery.latest.receivedAt).toBe("2026-02-09T22:00:00.000Z");
     const row = await prisma.bookOrderItem.findFirstOrThrow({ where: { id: deliveryId } });
-    expect(row.receivedAt).toEqual(new Date("2026-02-10T00:00:00.000Z"));
+    expect(row.receivedAt).toEqual(new Date("2026-02-09T22:00:00.000Z"));
   });
 
   it("returns 400 when the supplied received date is in the future", async () => {
