@@ -109,14 +109,14 @@ function respondAt(path: string, body: unknown, status = 200): void {
   });
 }
 
-function sendThrough<TInput, TResult>(
+async function sendThrough<TInput, TResult>(
   useMutationHook: () => { mutateAsync: (input: TInput) => Promise<TResult> },
   input: TInput,
 ): Promise<TResult> {
   const { result } = renderHook(useMutationHook, {
     wrapper: makeWrapper(createTestQueryClient()),
   });
-  return act(() => result.current.mutateAsync(input));
+  return await act(async () => result.current.mutateAsync(input));
 }
 
 function sentRequests() {
