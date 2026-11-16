@@ -76,13 +76,10 @@ jobs:
             fi
           fi
 
+          shards='[1,2,3,4]'
+          total=4
           if [ "$mode" = full ]; then
-            shards='[1,2,3,4]'
-            total=4
             base=""
-          else
-            shards='[1]'
-            total=1
           fi
 
           echo "Test scope: $mode (api=$api, web=$web, base=${base:-none})"
@@ -222,7 +219,7 @@ jobs:
           SHARD: ${{ matrix.shard }}/${{ needs.scope.outputs.total }}
         run: |
           if [ "$MODE" = affected ]; then
-            pnpm --filter @app/api exec vitest run --changed "$BASE" --passWithNoTests
+            pnpm --filter @app/api exec vitest run --changed "$BASE" --shard="$SHARD" --passWithNoTests
           else
             pnpm --filter @app/api exec vitest run --shard="$SHARD"
           fi
