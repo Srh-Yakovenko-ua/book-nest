@@ -10,6 +10,7 @@ import type {
   BookViewAssembler,
   BookWithRelations,
 } from "../../books/index.js";
+import type { UserSettingsContextService } from "../../profile/index.js";
 import type { ReadingQueueRepository } from "../infrastructure/reading-queue.repository.js";
 
 import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
@@ -44,6 +45,7 @@ function buildService(
     assembler,
     repository,
     transactionRunner,
+    fakeOf<UserSettingsContextService>({ calendarDay: vi.fn() }),
   );
   return { listQueue, service, viewOf };
 }
@@ -166,6 +168,7 @@ function buildAddToQueueService(): {
     assembler,
     repository,
     transactionRunner,
+    fakeOf<UserSettingsContextService>({ calendarDay: vi.fn() }),
   );
   return {
     acquireUserQueueLock,
@@ -342,6 +345,7 @@ function buildRemoveFromQueueService(): {
     assembler,
     repository,
     transactionRunner,
+    fakeOf<UserSettingsContextService>({ calendarDay: vi.fn() }),
   );
   return {
     acquireUserQueueLock,
@@ -477,6 +481,7 @@ function buildReorderService(): {
     assembler,
     repository,
     transactionRunner,
+    fakeOf<UserSettingsContextService>({ calendarDay: vi.fn() }),
   );
   return { acquireUserQueueLock, count, findQueuedBookIds, listQueue, service, setPosition, tx };
 }
@@ -526,6 +531,7 @@ function buildStartReadingService(): {
     assembler,
     repository,
     transactionRunner,
+    fakeOf<UserSettingsContextService>({ calendarDay: vi.fn() }),
   );
   return {
     acquireUserQueueLock,
@@ -743,5 +749,49 @@ describe("ReadingQueueService.startReading", () => {
       totalCount: 2,
       totalPagesCount: 350,
     });
+  });
+});
+
+function buildVolumeSummaryService(): {
+  loadPaceAggregate: ReturnType<typeof vi.fn>;
+  service: ReadingQueueService;
+} {
+  const calendarDay = vi.fn().mockResolvedValue(new Date("2026-07-23T00:00:00.000Z"));
+  const loadPaceAggregate = vi.fn().mockResolvedValue({
+    activeDaysInPeriod: 0,
+    firstEventDate: new Date("2026-07-14T00:00:00.000Z"),
+    lastEventDate: new Date("2026-07-14T00:00:00.000Z"),
+    pagesReadInPeriod: 0,
+  });
+  const repository = fakeOf<ReadingQueueRepository>({
+    loadPaceAggregate,
+    loadVolumeRows: vi.fn().mockResolvedValue([]),
+  });
+  const service = new ReadingQueueService(
+    fakeOf<BookAccessService>(),
+    fakeOf<BookReadingService>(),
+    fakeOf<BookViewAssembler>(),
+    repository,
+    fakeOf<TransactionRunner>(),
+    fakeOf<UserSettingsContextService>({ calendarDay }),
+  );
+  return { loadPaceAggregate, service };
+}
+
+describe("ReadingQueueService.volumeSummary", () => {
+  it("loads the pace aggregate from the reader's calendar day minus 89 days", async () => {
+    const { loadPaceAggregate, service } = buildVolumeSummaryService();
+
+    await service.volumeSummary(USER_ID);
+
+    expect(loadPaceAggregate).toHaveBeenCalledWith(USER_ID, new Date("2026-04-25T00:00:00.000Z"));
+  });
+
+  it("counts the source period up to the reader's calendar day", async () => {
+    const { service } = buildVolumeSummaryService();
+
+    const result = await service.volumeSummary(USER_ID);
+
+    expect(result.pace.sourcePeriodDays).toBe(10);
   });
 });
