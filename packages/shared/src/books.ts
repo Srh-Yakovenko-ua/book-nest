@@ -1029,15 +1029,15 @@ export const PurchaseInfoViewSchema = z.object({
 export type PurchaseInfoView = z.infer<typeof PurchaseInfoViewSchema>;
 
 export const ReadingProgressViewSchema = z.object({
-  abandonedAt: z.string().nullable(),
+  abandonedAt: z.iso.date().nullable(),
   currentPage: z.number().nullable(),
-  finishedAt: z.string().nullable(),
+  finishedAt: z.iso.date().nullable(),
   impression: z.string().nullable(),
-  lastProgressUpdateAt: z.string().nullable(),
+  lastProgressUpdateAt: z.iso.date().nullable(),
   note: z.string().nullable(),
-  pausedAt: z.string().nullable(),
+  pausedAt: z.iso.date().nullable(),
   rating: z.number().nullable(),
-  startedAt: z.string().nullable(),
+  startedAt: z.iso.date().nullable(),
 });
 
 export type ReadingProgressView = z.infer<typeof ReadingProgressViewSchema>;
@@ -1068,7 +1068,7 @@ export const ReadingHistoryQuerySchema = z.object({
 export type ReadingHistoryQuery = z.infer<typeof ReadingHistoryQuerySchema>;
 
 export const ReadingHistoryEventViewSchema = z.object({
-  date: z.string(),
+  date: z.iso.date(),
   id: z.string(),
   page: z.number(),
   pagesRead: z.number(),
@@ -1078,7 +1078,7 @@ export const ReadingHistoryEventViewSchema = z.object({
 export type ReadingHistoryEventView = z.infer<typeof ReadingHistoryEventViewSchema>;
 
 export const ReadingDaySummaryViewSchema = z.object({
-  date: z.string(),
+  date: z.iso.date(),
   finalPage: z.number().nullable(),
   pagesRead: z.number(),
   updatesCount: z.number(),
@@ -1087,29 +1087,29 @@ export const ReadingDaySummaryViewSchema = z.object({
 export type ReadingDaySummaryView = z.infer<typeof ReadingDaySummaryViewSchema>;
 
 export const ReadingHistorySummaryViewSchema = z.object({
-  abandonedAt: z.string().nullable(),
+  abandonedAt: z.iso.date().nullable(),
   activeDaysCount: z.number(),
   averagePagesPerActiveDay: z.number().nullable(),
   bestDay: ReadingDaySummaryViewSchema.nullable(),
   currentPage: z.number(),
   estimatedActiveDaysRemaining: z.number().nullable(),
-  finishedAt: z.string().nullable(),
+  finishedAt: z.iso.date().nullable(),
   historyCompleteness: z.object({
     isComplete: z.boolean(),
     untrackedPages: z.number(),
   }),
   lastActivity: ReadingDaySummaryViewSchema.nullable(),
-  lastProgressUpdateAt: z.string().nullable(),
+  lastProgressUpdateAt: z.iso.date().nullable(),
   pagesCount: z.number().nullable(),
   pagesRemaining: z.number().nullable(),
-  pausedAt: z.string().nullable(),
+  pausedAt: z.iso.date().nullable(),
   progressPercent: z.number().nullable(),
   readingPeriod: z.object({
     calendarDays: z.number().nullable(),
-    endDate: z.string().nullable(),
-    startDate: z.string().nullable(),
+    endDate: z.iso.date().nullable(),
+    startDate: z.iso.date().nullable(),
   }),
-  startedAt: z.string().nullable(),
+  startedAt: z.iso.date().nullable(),
   status: ReadingStatusSchema,
   trackedPagesRead: z.number(),
   updatesCount: z.number(),
@@ -1118,7 +1118,7 @@ export const ReadingHistorySummaryViewSchema = z.object({
 export type ReadingHistorySummaryView = z.infer<typeof ReadingHistorySummaryViewSchema>;
 
 export const ReadingActivityPointViewSchema = z.object({
-  date: z.string(),
+  date: z.iso.date(),
   finalPage: z.number().nullable(),
   hasActivity: z.boolean(),
   pagesRead: z.number(),
@@ -1129,7 +1129,7 @@ export const ReadingActivityPointViewSchema = z.object({
 export type ReadingActivityPointView = z.infer<typeof ReadingActivityPointViewSchema>;
 
 export const ReadingActivityViewSchema = z.object({
-  from: z.string().nullable(),
+  from: z.iso.date().nullable(),
   points: z.array(ReadingActivityPointViewSchema),
   range: ReadingActivityRangeSchema,
   summary: z.object({
@@ -1139,13 +1139,13 @@ export const ReadingActivityViewSchema = z.object({
     pagesRead: z.number(),
     updatesCount: z.number(),
   }),
-  to: z.string().nullable(),
+  to: z.iso.date().nullable(),
 });
 
 export type ReadingActivityView = z.infer<typeof ReadingActivityViewSchema>;
 
 export const ReadingHistoryDayViewSchema = z.object({
-  date: z.string(),
+  date: z.iso.date(),
   events: z.array(ReadingHistoryEventViewSchema),
   finalPage: z.number(),
   pagesRead: z.number(),

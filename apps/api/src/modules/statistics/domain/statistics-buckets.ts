@@ -1,5 +1,6 @@
 import type { ReadingStatisticsGranularity, WeekStartDay } from "@app/shared";
 
+import { WEEK_STARTS_ON } from "@app/shared";
 import {
   addDays,
   addMonths,
@@ -16,8 +17,6 @@ import {
 import { assertNever } from "../../../core/assert-never.js";
 
 const ISO_DAY_FORMAT = "yyyy-MM-dd";
-
-const WEEK_STARTS_ON = { monday: 1, sunday: 0 } as const;
 
 export type StatisticsBucketRange = { end: string; start: string };
 

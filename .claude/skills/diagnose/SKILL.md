@@ -23,7 +23,7 @@ A bug goes through a fixed chain: a read-only hunter finds the mechanism, the pa
    - The matching test engineer gets the hunter's drafted repro (path, `it(...)` body, the assertion that must go red).
 6. **Prove it red, then green.** Run that one test file locally. This is the one local test run the repo allows on a bug.
    - api: `cd apps/api && VITEST_MAX_WORKERS=1 pnpm exec vitest run <file>`
-   - web: `cd apps/web && VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run <file>`
+   - web: `cd apps/web && VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit --project unit-tz run <file>` (a `*.tz.test.*` file pins the process time zone and runs only in `unit-tz`, which uses forks because a worker thread ignores `process.env.TZ`)
      It must be green with the fix. Then `git stash push -- <fixed source files>`, run it again (it must be red), and `git stash pop`. A test that passes without the fix proves nothing; send it back to the test engineer.
 7. **Review and gates.** `code-reviewer` on the fix diff, `/fix-loop` if it finds something, `/blast-radius` if the fix touched a contract, `/check` at commit. Commit and push only when the user asked.
 

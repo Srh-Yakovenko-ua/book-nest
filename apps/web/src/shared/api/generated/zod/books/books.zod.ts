@@ -359,6 +359,21 @@ export const booksControllerCreateResponseLoanInfoRemindBeforeDaysMax = 90071992
 export const booksControllerCreateResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const booksControllerCreateResponseReadingProgressAbandonedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerCreateResponseReadingProgressFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerCreateResponseReadingProgressLastProgressUpdateAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerCreateResponseReadingProgressPausedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerCreateResponseReadingProgressStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const booksControllerCreateResponseSeriesAgeCategoriesDefault = [];
 export const booksControllerCreateResponseSeriesCommonGenresDefault = [];
 export const booksControllerCreateResponseSeriesDominantPublisherBookCountMin = -9007199254740991;
@@ -559,15 +574,30 @@ export const BooksControllerCreateResponse = zod.object({
     .nullable(),
   readingProgress: zod
     .object({
-      abandonedAt: zod.string().nullable(),
+      abandonedAt: zod.iso
+        .date()
+        .regex(booksControllerCreateResponseReadingProgressAbandonedAtRegExp)
+        .nullable(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(booksControllerCreateResponseReadingProgressFinishedAtRegExp)
+        .nullable(),
       impression: zod.string().nullable(),
-      lastProgressUpdateAt: zod.string().nullable(),
+      lastProgressUpdateAt: zod.iso
+        .date()
+        .regex(booksControllerCreateResponseReadingProgressLastProgressUpdateAtRegExp)
+        .nullable(),
       note: zod.string().nullable(),
-      pausedAt: zod.string().nullable(),
+      pausedAt: zod.iso
+        .date()
+        .regex(booksControllerCreateResponseReadingProgressPausedAtRegExp)
+        .nullable(),
       rating: zod.number().nullable(),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(booksControllerCreateResponseReadingProgressStartedAtRegExp)
+        .nullable(),
     })
     .nullable(),
   readingStatus: zod.enum([
@@ -960,6 +990,22 @@ export const booksControllerListResponseItemsItemLoanInfoRemindBeforeDaysMax = 9
 export const booksControllerListResponseItemsItemQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const booksControllerListResponseItemsItemReadingProgressAbandonedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerListResponseItemsItemReadingProgressFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerListResponseItemsItemReadingProgressLastProgressUpdateAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const booksControllerListResponseItemsItemReadingProgressPausedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerListResponseItemsItemReadingProgressStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const booksControllerListResponseItemsItemSeriesAgeCategoriesDefault = [];
 export const booksControllerListResponseItemsItemSeriesCommonGenresDefault = [];
 export const booksControllerListResponseItemsItemSeriesDominantPublisherBookCountMin =
@@ -1204,15 +1250,30 @@ export const BooksControllerListResponse = zod.object({
         .nullable(),
       readingProgress: zod
         .object({
-          abandonedAt: zod.string().nullable(),
+          abandonedAt: zod.iso
+            .date()
+            .regex(booksControllerListResponseItemsItemReadingProgressAbandonedAtRegExp)
+            .nullable(),
           currentPage: zod.number().nullable(),
-          finishedAt: zod.string().nullable(),
+          finishedAt: zod.iso
+            .date()
+            .regex(booksControllerListResponseItemsItemReadingProgressFinishedAtRegExp)
+            .nullable(),
           impression: zod.string().nullable(),
-          lastProgressUpdateAt: zod.string().nullable(),
+          lastProgressUpdateAt: zod.iso
+            .date()
+            .regex(booksControllerListResponseItemsItemReadingProgressLastProgressUpdateAtRegExp)
+            .nullable(),
           note: zod.string().nullable(),
-          pausedAt: zod.string().nullable(),
+          pausedAt: zod.iso
+            .date()
+            .regex(booksControllerListResponseItemsItemReadingProgressPausedAtRegExp)
+            .nullable(),
           rating: zod.number().nullable(),
-          startedAt: zod.string().nullable(),
+          startedAt: zod.iso
+            .date()
+            .regex(booksControllerListResponseItemsItemReadingProgressStartedAtRegExp)
+            .nullable(),
         })
         .nullable(),
       readingStatus: zod.enum([
@@ -1454,6 +1515,26 @@ export const booksControllerOverviewResponseRecentlyAddedItemLoanInfoRemindBefor
 export const booksControllerOverviewResponseRecentlyAddedItemLoanInfoRemindBeforeDaysMax = 9007199254740991;
 
 export const booksControllerOverviewResponseRecentlyAddedItemQueuePriorityTargetDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const booksControllerOverviewResponseRecentlyAddedItemReadingProgressAbandonedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const booksControllerOverviewResponseRecentlyAddedItemReadingProgressFinishedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const booksControllerOverviewResponseRecentlyAddedItemReadingProgressLastProgressUpdateAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const booksControllerOverviewResponseRecentlyAddedItemReadingProgressPausedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const booksControllerOverviewResponseRecentlyAddedItemReadingProgressStartedAtRegExp =
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
   );
@@ -1705,15 +1786,32 @@ export const BooksControllerOverviewResponse = zod.object({
         .nullable(),
       readingProgress: zod
         .object({
-          abandonedAt: zod.string().nullable(),
+          abandonedAt: zod.iso
+            .date()
+            .regex(booksControllerOverviewResponseRecentlyAddedItemReadingProgressAbandonedAtRegExp)
+            .nullable(),
           currentPage: zod.number().nullable(),
-          finishedAt: zod.string().nullable(),
+          finishedAt: zod.iso
+            .date()
+            .regex(booksControllerOverviewResponseRecentlyAddedItemReadingProgressFinishedAtRegExp)
+            .nullable(),
           impression: zod.string().nullable(),
-          lastProgressUpdateAt: zod.string().nullable(),
+          lastProgressUpdateAt: zod.iso
+            .date()
+            .regex(
+              booksControllerOverviewResponseRecentlyAddedItemReadingProgressLastProgressUpdateAtRegExp,
+            )
+            .nullable(),
           note: zod.string().nullable(),
-          pausedAt: zod.string().nullable(),
+          pausedAt: zod.iso
+            .date()
+            .regex(booksControllerOverviewResponseRecentlyAddedItemReadingProgressPausedAtRegExp)
+            .nullable(),
           rating: zod.number().nullable(),
-          startedAt: zod.string().nullable(),
+          startedAt: zod.iso
+            .date()
+            .regex(booksControllerOverviewResponseRecentlyAddedItemReadingProgressStartedAtRegExp)
+            .nullable(),
         })
         .nullable(),
       readingStatus: zod.enum([
@@ -2373,6 +2471,22 @@ export const booksControllerWishlistResponseBooksItemLoanInfoRemindBeforeDaysMax
 export const booksControllerWishlistResponseBooksItemQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const booksControllerWishlistResponseBooksItemReadingProgressAbandonedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerWishlistResponseBooksItemReadingProgressFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerWishlistResponseBooksItemReadingProgressLastProgressUpdateAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const booksControllerWishlistResponseBooksItemReadingProgressPausedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerWishlistResponseBooksItemReadingProgressStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const booksControllerWishlistResponseBooksItemSeriesAgeCategoriesDefault = [];
 export const booksControllerWishlistResponseBooksItemSeriesCommonGenresDefault = [];
 export const booksControllerWishlistResponseBooksItemSeriesDominantPublisherBookCountMin =
@@ -2607,15 +2721,32 @@ export const BooksControllerWishlistResponse = zod.object({
         .nullable(),
       readingProgress: zod
         .object({
-          abandonedAt: zod.string().nullable(),
+          abandonedAt: zod.iso
+            .date()
+            .regex(booksControllerWishlistResponseBooksItemReadingProgressAbandonedAtRegExp)
+            .nullable(),
           currentPage: zod.number().nullable(),
-          finishedAt: zod.string().nullable(),
+          finishedAt: zod.iso
+            .date()
+            .regex(booksControllerWishlistResponseBooksItemReadingProgressFinishedAtRegExp)
+            .nullable(),
           impression: zod.string().nullable(),
-          lastProgressUpdateAt: zod.string().nullable(),
+          lastProgressUpdateAt: zod.iso
+            .date()
+            .regex(
+              booksControllerWishlistResponseBooksItemReadingProgressLastProgressUpdateAtRegExp,
+            )
+            .nullable(),
           note: zod.string().nullable(),
-          pausedAt: zod.string().nullable(),
+          pausedAt: zod.iso
+            .date()
+            .regex(booksControllerWishlistResponseBooksItemReadingProgressPausedAtRegExp)
+            .nullable(),
           rating: zod.number().nullable(),
-          startedAt: zod.string().nullable(),
+          startedAt: zod.iso
+            .date()
+            .regex(booksControllerWishlistResponseBooksItemReadingProgressStartedAtRegExp)
+            .nullable(),
         })
         .nullable(),
       readingStatus: zod.enum([
@@ -2969,6 +3100,24 @@ export const booksControllerDedicationsResponseItemsItemLoanInfoRemindBeforeDays
 export const booksControllerDedicationsResponseItemsItemQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const booksControllerDedicationsResponseItemsItemReadingProgressAbandonedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const booksControllerDedicationsResponseItemsItemReadingProgressFinishedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const booksControllerDedicationsResponseItemsItemReadingProgressLastProgressUpdateAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const booksControllerDedicationsResponseItemsItemReadingProgressPausedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerDedicationsResponseItemsItemReadingProgressStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const booksControllerDedicationsResponseItemsItemSeriesAgeCategoriesDefault = [];
 export const booksControllerDedicationsResponseItemsItemSeriesCommonGenresDefault = [];
 export const booksControllerDedicationsResponseItemsItemSeriesDominantPublisherBookCountMin =
@@ -3214,15 +3363,32 @@ export const BooksControllerDedicationsResponse = zod.object({
         .nullable(),
       readingProgress: zod
         .object({
-          abandonedAt: zod.string().nullable(),
+          abandonedAt: zod.iso
+            .date()
+            .regex(booksControllerDedicationsResponseItemsItemReadingProgressAbandonedAtRegExp)
+            .nullable(),
           currentPage: zod.number().nullable(),
-          finishedAt: zod.string().nullable(),
+          finishedAt: zod.iso
+            .date()
+            .regex(booksControllerDedicationsResponseItemsItemReadingProgressFinishedAtRegExp)
+            .nullable(),
           impression: zod.string().nullable(),
-          lastProgressUpdateAt: zod.string().nullable(),
+          lastProgressUpdateAt: zod.iso
+            .date()
+            .regex(
+              booksControllerDedicationsResponseItemsItemReadingProgressLastProgressUpdateAtRegExp,
+            )
+            .nullable(),
           note: zod.string().nullable(),
-          pausedAt: zod.string().nullable(),
+          pausedAt: zod.iso
+            .date()
+            .regex(booksControllerDedicationsResponseItemsItemReadingProgressPausedAtRegExp)
+            .nullable(),
           rating: zod.number().nullable(),
-          startedAt: zod.string().nullable(),
+          startedAt: zod.iso
+            .date()
+            .regex(booksControllerDedicationsResponseItemsItemReadingProgressStartedAtRegExp)
+            .nullable(),
         })
         .nullable(),
       readingStatus: zod.enum([
@@ -3615,6 +3781,21 @@ export const booksControllerGetByIdResponseLoanInfoRemindBeforeDaysMax = 9007199
 export const booksControllerGetByIdResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const booksControllerGetByIdResponseReadingProgressAbandonedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerGetByIdResponseReadingProgressFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerGetByIdResponseReadingProgressLastProgressUpdateAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerGetByIdResponseReadingProgressPausedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerGetByIdResponseReadingProgressStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const booksControllerGetByIdResponseSeriesAgeCategoriesDefault = [];
 export const booksControllerGetByIdResponseSeriesCommonGenresDefault = [];
 export const booksControllerGetByIdResponseSeriesDominantPublisherBookCountMin = -9007199254740991;
@@ -3820,15 +4001,30 @@ export const BooksControllerGetByIdResponse = zod.object({
     .nullable(),
   readingProgress: zod
     .object({
-      abandonedAt: zod.string().nullable(),
+      abandonedAt: zod.iso
+        .date()
+        .regex(booksControllerGetByIdResponseReadingProgressAbandonedAtRegExp)
+        .nullable(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(booksControllerGetByIdResponseReadingProgressFinishedAtRegExp)
+        .nullable(),
       impression: zod.string().nullable(),
-      lastProgressUpdateAt: zod.string().nullable(),
+      lastProgressUpdateAt: zod.iso
+        .date()
+        .regex(booksControllerGetByIdResponseReadingProgressLastProgressUpdateAtRegExp)
+        .nullable(),
       note: zod.string().nullable(),
-      pausedAt: zod.string().nullable(),
+      pausedAt: zod.iso
+        .date()
+        .regex(booksControllerGetByIdResponseReadingProgressPausedAtRegExp)
+        .nullable(),
       rating: zod.number().nullable(),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(booksControllerGetByIdResponseReadingProgressStartedAtRegExp)
+        .nullable(),
     })
     .nullable(),
   readingStatus: zod.enum([
@@ -4366,6 +4562,21 @@ export const booksControllerUpdateResponseLoanInfoRemindBeforeDaysMax = 90071992
 export const booksControllerUpdateResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const booksControllerUpdateResponseReadingProgressAbandonedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerUpdateResponseReadingProgressFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerUpdateResponseReadingProgressLastProgressUpdateAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerUpdateResponseReadingProgressPausedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerUpdateResponseReadingProgressStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const booksControllerUpdateResponseSeriesAgeCategoriesDefault = [];
 export const booksControllerUpdateResponseSeriesCommonGenresDefault = [];
 export const booksControllerUpdateResponseSeriesDominantPublisherBookCountMin = -9007199254740991;
@@ -4566,15 +4777,30 @@ export const BooksControllerUpdateResponse = zod.object({
     .nullable(),
   readingProgress: zod
     .object({
-      abandonedAt: zod.string().nullable(),
+      abandonedAt: zod.iso
+        .date()
+        .regex(booksControllerUpdateResponseReadingProgressAbandonedAtRegExp)
+        .nullable(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(booksControllerUpdateResponseReadingProgressFinishedAtRegExp)
+        .nullable(),
       impression: zod.string().nullable(),
-      lastProgressUpdateAt: zod.string().nullable(),
+      lastProgressUpdateAt: zod.iso
+        .date()
+        .regex(booksControllerUpdateResponseReadingProgressLastProgressUpdateAtRegExp)
+        .nullable(),
       note: zod.string().nullable(),
-      pausedAt: zod.string().nullable(),
+      pausedAt: zod.iso
+        .date()
+        .regex(booksControllerUpdateResponseReadingProgressPausedAtRegExp)
+        .nullable(),
       rating: zod.number().nullable(),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(booksControllerUpdateResponseReadingProgressStartedAtRegExp)
+        .nullable(),
     })
     .nullable(),
   readingStatus: zod.enum([
@@ -4790,6 +5016,21 @@ export const booksControllerRestoreResponseLoanInfoRemindBeforeDaysMax = 9007199
 export const booksControllerRestoreResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const booksControllerRestoreResponseReadingProgressAbandonedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerRestoreResponseReadingProgressFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerRestoreResponseReadingProgressLastProgressUpdateAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerRestoreResponseReadingProgressPausedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerRestoreResponseReadingProgressStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const booksControllerRestoreResponseSeriesAgeCategoriesDefault = [];
 export const booksControllerRestoreResponseSeriesCommonGenresDefault = [];
 export const booksControllerRestoreResponseSeriesDominantPublisherBookCountMin = -9007199254740991;
@@ -4990,15 +5231,30 @@ export const BooksControllerRestoreResponse = zod.object({
     .nullable(),
   readingProgress: zod
     .object({
-      abandonedAt: zod.string().nullable(),
+      abandonedAt: zod.iso
+        .date()
+        .regex(booksControllerRestoreResponseReadingProgressAbandonedAtRegExp)
+        .nullable(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(booksControllerRestoreResponseReadingProgressFinishedAtRegExp)
+        .nullable(),
       impression: zod.string().nullable(),
-      lastProgressUpdateAt: zod.string().nullable(),
+      lastProgressUpdateAt: zod.iso
+        .date()
+        .regex(booksControllerRestoreResponseReadingProgressLastProgressUpdateAtRegExp)
+        .nullable(),
       note: zod.string().nullable(),
-      pausedAt: zod.string().nullable(),
+      pausedAt: zod.iso
+        .date()
+        .regex(booksControllerRestoreResponseReadingProgressPausedAtRegExp)
+        .nullable(),
       rating: zod.number().nullable(),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(booksControllerRestoreResponseReadingProgressStartedAtRegExp)
+        .nullable(),
     })
     .nullable(),
   readingStatus: zod.enum([
@@ -5224,12 +5480,70 @@ export const BookReadingControllerGetReadingHistoryQueryParams = zod.object({
   sort: zod.enum(["asc", "desc"]).default(bookReadingControllerGetReadingHistoryQuerySortDefault),
 });
 
+export const bookReadingControllerGetReadingHistoryResponseActivityFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookReadingControllerGetReadingHistoryResponseActivityPointsItemDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookReadingControllerGetReadingHistoryResponseActivitySummaryBestDayDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookReadingControllerGetReadingHistoryResponseActivityToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookReadingControllerGetReadingHistoryResponseHistoryDaysItemDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookReadingControllerGetReadingHistoryResponseHistoryDaysItemEventsItemDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookReadingControllerGetReadingHistoryResponseSummaryAbandonedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookReadingControllerGetReadingHistoryResponseSummaryBestDayDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookReadingControllerGetReadingHistoryResponseSummaryFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookReadingControllerGetReadingHistoryResponseSummaryLastActivityDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookReadingControllerGetReadingHistoryResponseSummaryLastProgressUpdateAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookReadingControllerGetReadingHistoryResponseSummaryPausedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookReadingControllerGetReadingHistoryResponseSummaryReadingPeriodEndDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookReadingControllerGetReadingHistoryResponseSummaryReadingPeriodStartDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookReadingControllerGetReadingHistoryResponseSummaryStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+
 export const BookReadingControllerGetReadingHistoryResponse = zod.object({
   activity: zod.object({
-    from: zod.string().nullable(),
+    from: zod.iso
+      .date()
+      .regex(bookReadingControllerGetReadingHistoryResponseActivityFromRegExp)
+      .nullable(),
     points: zod.array(
       zod.object({
-        date: zod.string(),
+        date: zod.iso
+          .date()
+          .regex(bookReadingControllerGetReadingHistoryResponseActivityPointsItemDateRegExp),
         finalPage: zod.number().nullable(),
         hasActivity: zod.boolean(),
         pagesRead: zod.number(),
@@ -5243,7 +5557,9 @@ export const BookReadingControllerGetReadingHistoryResponse = zod.object({
       averagePagesPerActiveDay: zod.number().nullable(),
       bestDay: zod
         .object({
-          date: zod.string(),
+          date: zod.iso
+            .date()
+            .regex(bookReadingControllerGetReadingHistoryResponseActivitySummaryBestDayDateRegExp),
           finalPage: zod.number().nullable(),
           pagesRead: zod.number(),
           updatesCount: zod.number(),
@@ -5252,15 +5568,24 @@ export const BookReadingControllerGetReadingHistoryResponse = zod.object({
       pagesRead: zod.number(),
       updatesCount: zod.number(),
     }),
-    to: zod.string().nullable(),
+    to: zod.iso
+      .date()
+      .regex(bookReadingControllerGetReadingHistoryResponseActivityToRegExp)
+      .nullable(),
   }),
   history: zod.object({
     days: zod.array(
       zod.object({
-        date: zod.string(),
+        date: zod.iso
+          .date()
+          .regex(bookReadingControllerGetReadingHistoryResponseHistoryDaysItemDateRegExp),
         events: zod.array(
           zod.object({
-            date: zod.string(),
+            date: zod.iso
+              .date()
+              .regex(
+                bookReadingControllerGetReadingHistoryResponseHistoryDaysItemEventsItemDateRegExp,
+              ),
             id: zod.string(),
             page: zod.number(),
             pagesRead: zod.number(),
@@ -5283,12 +5608,17 @@ export const BookReadingControllerGetReadingHistoryResponse = zod.object({
     }),
   }),
   summary: zod.object({
-    abandonedAt: zod.string().nullable(),
+    abandonedAt: zod.iso
+      .date()
+      .regex(bookReadingControllerGetReadingHistoryResponseSummaryAbandonedAtRegExp)
+      .nullable(),
     activeDaysCount: zod.number(),
     averagePagesPerActiveDay: zod.number().nullable(),
     bestDay: zod
       .object({
-        date: zod.string(),
+        date: zod.iso
+          .date()
+          .regex(bookReadingControllerGetReadingHistoryResponseSummaryBestDayDateRegExp),
         finalPage: zod.number().nullable(),
         pagesRead: zod.number(),
         updatesCount: zod.number(),
@@ -5296,30 +5626,50 @@ export const BookReadingControllerGetReadingHistoryResponse = zod.object({
       .nullable(),
     currentPage: zod.number(),
     estimatedActiveDaysRemaining: zod.number().nullable(),
-    finishedAt: zod.string().nullable(),
+    finishedAt: zod.iso
+      .date()
+      .regex(bookReadingControllerGetReadingHistoryResponseSummaryFinishedAtRegExp)
+      .nullable(),
     historyCompleteness: zod.object({
       isComplete: zod.boolean(),
       untrackedPages: zod.number(),
     }),
     lastActivity: zod
       .object({
-        date: zod.string(),
+        date: zod.iso
+          .date()
+          .regex(bookReadingControllerGetReadingHistoryResponseSummaryLastActivityDateRegExp),
         finalPage: zod.number().nullable(),
         pagesRead: zod.number(),
         updatesCount: zod.number(),
       })
       .nullable(),
-    lastProgressUpdateAt: zod.string().nullable(),
+    lastProgressUpdateAt: zod.iso
+      .date()
+      .regex(bookReadingControllerGetReadingHistoryResponseSummaryLastProgressUpdateAtRegExp)
+      .nullable(),
     pagesCount: zod.number().nullable(),
     pagesRemaining: zod.number().nullable(),
-    pausedAt: zod.string().nullable(),
+    pausedAt: zod.iso
+      .date()
+      .regex(bookReadingControllerGetReadingHistoryResponseSummaryPausedAtRegExp)
+      .nullable(),
     progressPercent: zod.number().nullable(),
     readingPeriod: zod.object({
       calendarDays: zod.number().nullable(),
-      endDate: zod.string().nullable(),
-      startDate: zod.string().nullable(),
+      endDate: zod.iso
+        .date()
+        .regex(bookReadingControllerGetReadingHistoryResponseSummaryReadingPeriodEndDateRegExp)
+        .nullable(),
+      startDate: zod.iso
+        .date()
+        .regex(bookReadingControllerGetReadingHistoryResponseSummaryReadingPeriodStartDateRegExp)
+        .nullable(),
     }),
-    startedAt: zod.string().nullable(),
+    startedAt: zod.iso
+      .date()
+      .regex(bookReadingControllerGetReadingHistoryResponseSummaryStartedAtRegExp)
+      .nullable(),
     status: zod.enum([
       "not_started",
       "want_to_read",
@@ -5383,6 +5733,26 @@ export const bookReadingControllerChangeReadingStatusResponseLoanInfoRemindBefor
 export const bookReadingControllerChangeReadingStatusResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
 
 export const bookReadingControllerChangeReadingStatusResponseQueuePriorityTargetDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookReadingControllerChangeReadingStatusResponseReadingProgressAbandonedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookReadingControllerChangeReadingStatusResponseReadingProgressFinishedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookReadingControllerChangeReadingStatusResponseReadingProgressLastProgressUpdateAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookReadingControllerChangeReadingStatusResponseReadingProgressPausedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookReadingControllerChangeReadingStatusResponseReadingProgressStartedAtRegExp =
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
   );
@@ -5589,15 +5959,32 @@ export const BookReadingControllerChangeReadingStatusResponse = zod.object({
     .nullable(),
   readingProgress: zod
     .object({
-      abandonedAt: zod.string().nullable(),
+      abandonedAt: zod.iso
+        .date()
+        .regex(bookReadingControllerChangeReadingStatusResponseReadingProgressAbandonedAtRegExp)
+        .nullable(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(bookReadingControllerChangeReadingStatusResponseReadingProgressFinishedAtRegExp)
+        .nullable(),
       impression: zod.string().nullable(),
-      lastProgressUpdateAt: zod.string().nullable(),
+      lastProgressUpdateAt: zod.iso
+        .date()
+        .regex(
+          bookReadingControllerChangeReadingStatusResponseReadingProgressLastProgressUpdateAtRegExp,
+        )
+        .nullable(),
       note: zod.string().nullable(),
-      pausedAt: zod.string().nullable(),
+      pausedAt: zod.iso
+        .date()
+        .regex(bookReadingControllerChangeReadingStatusResponseReadingProgressPausedAtRegExp)
+        .nullable(),
       rating: zod.number().nullable(),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(bookReadingControllerChangeReadingStatusResponseReadingProgressStartedAtRegExp)
+        .nullable(),
     })
     .nullable(),
   readingStatus: zod.enum([
@@ -5825,6 +6212,26 @@ export const bookReadingControllerUpdateReadingProgressResponseQueuePriorityTarg
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
   );
+export const bookReadingControllerUpdateReadingProgressResponseReadingProgressAbandonedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookReadingControllerUpdateReadingProgressResponseReadingProgressFinishedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookReadingControllerUpdateReadingProgressResponseReadingProgressLastProgressUpdateAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookReadingControllerUpdateReadingProgressResponseReadingProgressPausedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookReadingControllerUpdateReadingProgressResponseReadingProgressStartedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
 export const bookReadingControllerUpdateReadingProgressResponseSeriesAgeCategoriesDefault = [];
 export const bookReadingControllerUpdateReadingProgressResponseSeriesCommonGenresDefault = [];
 export const bookReadingControllerUpdateReadingProgressResponseSeriesDominantPublisherBookCountMin =
@@ -6029,15 +6436,32 @@ export const BookReadingControllerUpdateReadingProgressResponse = zod.object({
     .nullable(),
   readingProgress: zod
     .object({
-      abandonedAt: zod.string().nullable(),
+      abandonedAt: zod.iso
+        .date()
+        .regex(bookReadingControllerUpdateReadingProgressResponseReadingProgressAbandonedAtRegExp)
+        .nullable(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(bookReadingControllerUpdateReadingProgressResponseReadingProgressFinishedAtRegExp)
+        .nullable(),
       impression: zod.string().nullable(),
-      lastProgressUpdateAt: zod.string().nullable(),
+      lastProgressUpdateAt: zod.iso
+        .date()
+        .regex(
+          bookReadingControllerUpdateReadingProgressResponseReadingProgressLastProgressUpdateAtRegExp,
+        )
+        .nullable(),
       note: zod.string().nullable(),
-      pausedAt: zod.string().nullable(),
+      pausedAt: zod.iso
+        .date()
+        .regex(bookReadingControllerUpdateReadingProgressResponseReadingProgressPausedAtRegExp)
+        .nullable(),
       rating: zod.number().nullable(),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(bookReadingControllerUpdateReadingProgressResponseReadingProgressStartedAtRegExp)
+        .nullable(),
     })
     .nullable(),
   readingStatus: zod.enum([
@@ -6247,6 +6671,22 @@ export const bookOwnershipControllerMarkOwnedResponseLoanInfoRemindBeforeDaysMax
 export const bookOwnershipControllerMarkOwnedResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const bookOwnershipControllerMarkOwnedResponseReadingProgressAbandonedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookOwnershipControllerMarkOwnedResponseReadingProgressFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookOwnershipControllerMarkOwnedResponseReadingProgressLastProgressUpdateAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOwnershipControllerMarkOwnedResponseReadingProgressPausedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookOwnershipControllerMarkOwnedResponseReadingProgressStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const bookOwnershipControllerMarkOwnedResponseSeriesAgeCategoriesDefault = [];
 export const bookOwnershipControllerMarkOwnedResponseSeriesCommonGenresDefault = [];
 export const bookOwnershipControllerMarkOwnedResponseSeriesDominantPublisherBookCountMin =
@@ -6449,15 +6889,30 @@ export const BookOwnershipControllerMarkOwnedResponse = zod.object({
     .nullable(),
   readingProgress: zod
     .object({
-      abandonedAt: zod.string().nullable(),
+      abandonedAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerMarkOwnedResponseReadingProgressAbandonedAtRegExp)
+        .nullable(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerMarkOwnedResponseReadingProgressFinishedAtRegExp)
+        .nullable(),
       impression: zod.string().nullable(),
-      lastProgressUpdateAt: zod.string().nullable(),
+      lastProgressUpdateAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerMarkOwnedResponseReadingProgressLastProgressUpdateAtRegExp)
+        .nullable(),
       note: zod.string().nullable(),
-      pausedAt: zod.string().nullable(),
+      pausedAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerMarkOwnedResponseReadingProgressPausedAtRegExp)
+        .nullable(),
       rating: zod.number().nullable(),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerMarkOwnedResponseReadingProgressStartedAtRegExp)
+        .nullable(),
     })
     .nullable(),
   readingStatus: zod.enum([
@@ -6659,6 +7114,23 @@ export const bookOwnershipControllerRemoveOwnedResponseLoanInfoRemindBeforeDaysM
 export const bookOwnershipControllerRemoveOwnedResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
 
 export const bookOwnershipControllerRemoveOwnedResponseQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookOwnershipControllerRemoveOwnedResponseReadingProgressAbandonedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOwnershipControllerRemoveOwnedResponseReadingProgressFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookOwnershipControllerRemoveOwnedResponseReadingProgressLastProgressUpdateAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOwnershipControllerRemoveOwnedResponseReadingProgressPausedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookOwnershipControllerRemoveOwnedResponseReadingProgressStartedAtRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const bookOwnershipControllerRemoveOwnedResponseSeriesAgeCategoriesDefault = [];
@@ -6863,15 +7335,30 @@ export const BookOwnershipControllerRemoveOwnedResponse = zod.object({
     .nullable(),
   readingProgress: zod
     .object({
-      abandonedAt: zod.string().nullable(),
+      abandonedAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerRemoveOwnedResponseReadingProgressAbandonedAtRegExp)
+        .nullable(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerRemoveOwnedResponseReadingProgressFinishedAtRegExp)
+        .nullable(),
       impression: zod.string().nullable(),
-      lastProgressUpdateAt: zod.string().nullable(),
+      lastProgressUpdateAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerRemoveOwnedResponseReadingProgressLastProgressUpdateAtRegExp)
+        .nullable(),
       note: zod.string().nullable(),
-      pausedAt: zod.string().nullable(),
+      pausedAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerRemoveOwnedResponseReadingProgressPausedAtRegExp)
+        .nullable(),
       rating: zod.number().nullable(),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerRemoveOwnedResponseReadingProgressStartedAtRegExp)
+        .nullable(),
     })
     .nullable(),
   readingStatus: zod.enum([
@@ -7073,6 +7560,26 @@ export const bookOwnershipControllerRemoveFromWishlistResponseLoanInfoRemindBefo
 export const bookOwnershipControllerRemoveFromWishlistResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
 
 export const bookOwnershipControllerRemoveFromWishlistResponseQueuePriorityTargetDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOwnershipControllerRemoveFromWishlistResponseReadingProgressAbandonedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOwnershipControllerRemoveFromWishlistResponseReadingProgressFinishedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOwnershipControllerRemoveFromWishlistResponseReadingProgressLastProgressUpdateAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOwnershipControllerRemoveFromWishlistResponseReadingProgressPausedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOwnershipControllerRemoveFromWishlistResponseReadingProgressStartedAtRegExp =
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
   );
@@ -7279,15 +7786,32 @@ export const BookOwnershipControllerRemoveFromWishlistResponse = zod.object({
     .nullable(),
   readingProgress: zod
     .object({
-      abandonedAt: zod.string().nullable(),
+      abandonedAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerRemoveFromWishlistResponseReadingProgressAbandonedAtRegExp)
+        .nullable(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerRemoveFromWishlistResponseReadingProgressFinishedAtRegExp)
+        .nullable(),
       impression: zod.string().nullable(),
-      lastProgressUpdateAt: zod.string().nullable(),
+      lastProgressUpdateAt: zod.iso
+        .date()
+        .regex(
+          bookOwnershipControllerRemoveFromWishlistResponseReadingProgressLastProgressUpdateAtRegExp,
+        )
+        .nullable(),
       note: zod.string().nullable(),
-      pausedAt: zod.string().nullable(),
+      pausedAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerRemoveFromWishlistResponseReadingProgressPausedAtRegExp)
+        .nullable(),
       rating: zod.number().nullable(),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerRemoveFromWishlistResponseReadingProgressStartedAtRegExp)
+        .nullable(),
     })
     .nullable(),
   readingStatus: zod.enum([
@@ -7517,6 +8041,22 @@ export const bookOwnershipControllerWantToBuyResponseLoanInfoRemindBeforeDaysMax
 export const bookOwnershipControllerWantToBuyResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const bookOwnershipControllerWantToBuyResponseReadingProgressAbandonedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookOwnershipControllerWantToBuyResponseReadingProgressFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookOwnershipControllerWantToBuyResponseReadingProgressLastProgressUpdateAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOwnershipControllerWantToBuyResponseReadingProgressPausedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookOwnershipControllerWantToBuyResponseReadingProgressStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const bookOwnershipControllerWantToBuyResponseSeriesAgeCategoriesDefault = [];
 export const bookOwnershipControllerWantToBuyResponseSeriesCommonGenresDefault = [];
 export const bookOwnershipControllerWantToBuyResponseSeriesDominantPublisherBookCountMin =
@@ -7719,15 +8259,30 @@ export const BookOwnershipControllerWantToBuyResponse = zod.object({
     .nullable(),
   readingProgress: zod
     .object({
-      abandonedAt: zod.string().nullable(),
+      abandonedAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerWantToBuyResponseReadingProgressAbandonedAtRegExp)
+        .nullable(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerWantToBuyResponseReadingProgressFinishedAtRegExp)
+        .nullable(),
       impression: zod.string().nullable(),
-      lastProgressUpdateAt: zod.string().nullable(),
+      lastProgressUpdateAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerWantToBuyResponseReadingProgressLastProgressUpdateAtRegExp)
+        .nullable(),
       note: zod.string().nullable(),
-      pausedAt: zod.string().nullable(),
+      pausedAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerWantToBuyResponseReadingProgressPausedAtRegExp)
+        .nullable(),
       rating: zod.number().nullable(),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerWantToBuyResponseReadingProgressStartedAtRegExp)
+        .nullable(),
     })
     .nullable(),
   readingStatus: zod.enum([
@@ -7954,6 +8509,22 @@ export const bookOwnershipControllerMarkBoughtResponseLoanInfoRemindBeforeDaysMa
 export const bookOwnershipControllerMarkBoughtResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const bookOwnershipControllerMarkBoughtResponseReadingProgressAbandonedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookOwnershipControllerMarkBoughtResponseReadingProgressFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookOwnershipControllerMarkBoughtResponseReadingProgressLastProgressUpdateAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOwnershipControllerMarkBoughtResponseReadingProgressPausedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookOwnershipControllerMarkBoughtResponseReadingProgressStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const bookOwnershipControllerMarkBoughtResponseSeriesAgeCategoriesDefault = [];
 export const bookOwnershipControllerMarkBoughtResponseSeriesCommonGenresDefault = [];
 export const bookOwnershipControllerMarkBoughtResponseSeriesDominantPublisherBookCountMin =
@@ -8156,15 +8727,30 @@ export const BookOwnershipControllerMarkBoughtResponse = zod.object({
     .nullable(),
   readingProgress: zod
     .object({
-      abandonedAt: zod.string().nullable(),
+      abandonedAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerMarkBoughtResponseReadingProgressAbandonedAtRegExp)
+        .nullable(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerMarkBoughtResponseReadingProgressFinishedAtRegExp)
+        .nullable(),
       impression: zod.string().nullable(),
-      lastProgressUpdateAt: zod.string().nullable(),
+      lastProgressUpdateAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerMarkBoughtResponseReadingProgressLastProgressUpdateAtRegExp)
+        .nullable(),
       note: zod.string().nullable(),
-      pausedAt: zod.string().nullable(),
+      pausedAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerMarkBoughtResponseReadingProgressPausedAtRegExp)
+        .nullable(),
       rating: zod.number().nullable(),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(bookOwnershipControllerMarkBoughtResponseReadingProgressStartedAtRegExp)
+        .nullable(),
     })
     .nullable(),
   readingStatus: zod.enum([
@@ -8434,6 +9020,22 @@ export const bookLoanControllerCreateLoanResponseLoanInfoRemindBeforeDaysMax = 9
 export const bookLoanControllerCreateLoanResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const bookLoanControllerCreateLoanResponseReadingProgressAbandonedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookLoanControllerCreateLoanResponseReadingProgressFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookLoanControllerCreateLoanResponseReadingProgressLastProgressUpdateAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookLoanControllerCreateLoanResponseReadingProgressPausedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookLoanControllerCreateLoanResponseReadingProgressStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const bookLoanControllerCreateLoanResponseSeriesAgeCategoriesDefault = [];
 export const bookLoanControllerCreateLoanResponseSeriesCommonGenresDefault = [];
 export const bookLoanControllerCreateLoanResponseSeriesDominantPublisherBookCountMin =
@@ -8635,15 +9237,30 @@ export const BookLoanControllerCreateLoanResponse = zod.object({
     .nullable(),
   readingProgress: zod
     .object({
-      abandonedAt: zod.string().nullable(),
+      abandonedAt: zod.iso
+        .date()
+        .regex(bookLoanControllerCreateLoanResponseReadingProgressAbandonedAtRegExp)
+        .nullable(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(bookLoanControllerCreateLoanResponseReadingProgressFinishedAtRegExp)
+        .nullable(),
       impression: zod.string().nullable(),
-      lastProgressUpdateAt: zod.string().nullable(),
+      lastProgressUpdateAt: zod.iso
+        .date()
+        .regex(bookLoanControllerCreateLoanResponseReadingProgressLastProgressUpdateAtRegExp)
+        .nullable(),
       note: zod.string().nullable(),
-      pausedAt: zod.string().nullable(),
+      pausedAt: zod.iso
+        .date()
+        .regex(bookLoanControllerCreateLoanResponseReadingProgressPausedAtRegExp)
+        .nullable(),
       rating: zod.number().nullable(),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(bookLoanControllerCreateLoanResponseReadingProgressStartedAtRegExp)
+        .nullable(),
     })
     .nullable(),
   readingStatus: zod.enum([
@@ -8865,6 +9482,22 @@ export const bookLoanControllerEditLoanResponseLoanInfoRemindBeforeDaysMax = 900
 export const bookLoanControllerEditLoanResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const bookLoanControllerEditLoanResponseReadingProgressAbandonedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookLoanControllerEditLoanResponseReadingProgressFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookLoanControllerEditLoanResponseReadingProgressLastProgressUpdateAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookLoanControllerEditLoanResponseReadingProgressPausedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookLoanControllerEditLoanResponseReadingProgressStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const bookLoanControllerEditLoanResponseSeriesAgeCategoriesDefault = [];
 export const bookLoanControllerEditLoanResponseSeriesCommonGenresDefault = [];
 export const bookLoanControllerEditLoanResponseSeriesDominantPublisherBookCountMin =
@@ -9066,15 +9699,30 @@ export const BookLoanControllerEditLoanResponse = zod.object({
     .nullable(),
   readingProgress: zod
     .object({
-      abandonedAt: zod.string().nullable(),
+      abandonedAt: zod.iso
+        .date()
+        .regex(bookLoanControllerEditLoanResponseReadingProgressAbandonedAtRegExp)
+        .nullable(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(bookLoanControllerEditLoanResponseReadingProgressFinishedAtRegExp)
+        .nullable(),
       impression: zod.string().nullable(),
-      lastProgressUpdateAt: zod.string().nullable(),
+      lastProgressUpdateAt: zod.iso
+        .date()
+        .regex(bookLoanControllerEditLoanResponseReadingProgressLastProgressUpdateAtRegExp)
+        .nullable(),
       note: zod.string().nullable(),
-      pausedAt: zod.string().nullable(),
+      pausedAt: zod.iso
+        .date()
+        .regex(bookLoanControllerEditLoanResponseReadingProgressPausedAtRegExp)
+        .nullable(),
       rating: zod.number().nullable(),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(bookLoanControllerEditLoanResponseReadingProgressStartedAtRegExp)
+        .nullable(),
     })
     .nullable(),
   readingStatus: zod.enum([
@@ -9278,6 +9926,22 @@ export const bookLoanControllerExtendLoanResponseLoanInfoRemindBeforeDaysMax = 9
 export const bookLoanControllerExtendLoanResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const bookLoanControllerExtendLoanResponseReadingProgressAbandonedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookLoanControllerExtendLoanResponseReadingProgressFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookLoanControllerExtendLoanResponseReadingProgressLastProgressUpdateAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookLoanControllerExtendLoanResponseReadingProgressPausedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookLoanControllerExtendLoanResponseReadingProgressStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const bookLoanControllerExtendLoanResponseSeriesAgeCategoriesDefault = [];
 export const bookLoanControllerExtendLoanResponseSeriesCommonGenresDefault = [];
 export const bookLoanControllerExtendLoanResponseSeriesDominantPublisherBookCountMin =
@@ -9479,15 +10143,30 @@ export const BookLoanControllerExtendLoanResponse = zod.object({
     .nullable(),
   readingProgress: zod
     .object({
-      abandonedAt: zod.string().nullable(),
+      abandonedAt: zod.iso
+        .date()
+        .regex(bookLoanControllerExtendLoanResponseReadingProgressAbandonedAtRegExp)
+        .nullable(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(bookLoanControllerExtendLoanResponseReadingProgressFinishedAtRegExp)
+        .nullable(),
       impression: zod.string().nullable(),
-      lastProgressUpdateAt: zod.string().nullable(),
+      lastProgressUpdateAt: zod.iso
+        .date()
+        .regex(bookLoanControllerExtendLoanResponseReadingProgressLastProgressUpdateAtRegExp)
+        .nullable(),
       note: zod.string().nullable(),
-      pausedAt: zod.string().nullable(),
+      pausedAt: zod.iso
+        .date()
+        .regex(bookLoanControllerExtendLoanResponseReadingProgressPausedAtRegExp)
+        .nullable(),
       rating: zod.number().nullable(),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(bookLoanControllerExtendLoanResponseReadingProgressStartedAtRegExp)
+        .nullable(),
     })
     .nullable(),
   readingStatus: zod.enum([
@@ -9698,6 +10377,22 @@ export const bookLoanControllerSetLoanReminderResponseLoanInfoRemindBeforeDaysMa
 export const bookLoanControllerSetLoanReminderResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const bookLoanControllerSetLoanReminderResponseReadingProgressAbandonedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookLoanControllerSetLoanReminderResponseReadingProgressFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookLoanControllerSetLoanReminderResponseReadingProgressLastProgressUpdateAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookLoanControllerSetLoanReminderResponseReadingProgressPausedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookLoanControllerSetLoanReminderResponseReadingProgressStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const bookLoanControllerSetLoanReminderResponseSeriesAgeCategoriesDefault = [];
 export const bookLoanControllerSetLoanReminderResponseSeriesCommonGenresDefault = [];
 export const bookLoanControllerSetLoanReminderResponseSeriesDominantPublisherBookCountMin =
@@ -9900,15 +10595,30 @@ export const BookLoanControllerSetLoanReminderResponse = zod.object({
     .nullable(),
   readingProgress: zod
     .object({
-      abandonedAt: zod.string().nullable(),
+      abandonedAt: zod.iso
+        .date()
+        .regex(bookLoanControllerSetLoanReminderResponseReadingProgressAbandonedAtRegExp)
+        .nullable(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(bookLoanControllerSetLoanReminderResponseReadingProgressFinishedAtRegExp)
+        .nullable(),
       impression: zod.string().nullable(),
-      lastProgressUpdateAt: zod.string().nullable(),
+      lastProgressUpdateAt: zod.iso
+        .date()
+        .regex(bookLoanControllerSetLoanReminderResponseReadingProgressLastProgressUpdateAtRegExp)
+        .nullable(),
       note: zod.string().nullable(),
-      pausedAt: zod.string().nullable(),
+      pausedAt: zod.iso
+        .date()
+        .regex(bookLoanControllerSetLoanReminderResponseReadingProgressPausedAtRegExp)
+        .nullable(),
       rating: zod.number().nullable(),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(bookLoanControllerSetLoanReminderResponseReadingProgressStartedAtRegExp)
+        .nullable(),
     })
     .nullable(),
   readingStatus: zod.enum([
@@ -10109,6 +10819,22 @@ export const bookLoanControllerReturnLoanResponseLoanInfoRemindBeforeDaysMin = -
 export const bookLoanControllerReturnLoanResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
 
 export const bookLoanControllerReturnLoanResponseQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookLoanControllerReturnLoanResponseReadingProgressAbandonedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookLoanControllerReturnLoanResponseReadingProgressFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookLoanControllerReturnLoanResponseReadingProgressLastProgressUpdateAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookLoanControllerReturnLoanResponseReadingProgressPausedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookLoanControllerReturnLoanResponseReadingProgressStartedAtRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const bookLoanControllerReturnLoanResponseSeriesAgeCategoriesDefault = [];
@@ -10312,15 +11038,30 @@ export const BookLoanControllerReturnLoanResponse = zod.object({
     .nullable(),
   readingProgress: zod
     .object({
-      abandonedAt: zod.string().nullable(),
+      abandonedAt: zod.iso
+        .date()
+        .regex(bookLoanControllerReturnLoanResponseReadingProgressAbandonedAtRegExp)
+        .nullable(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(bookLoanControllerReturnLoanResponseReadingProgressFinishedAtRegExp)
+        .nullable(),
       impression: zod.string().nullable(),
-      lastProgressUpdateAt: zod.string().nullable(),
+      lastProgressUpdateAt: zod.iso
+        .date()
+        .regex(bookLoanControllerReturnLoanResponseReadingProgressLastProgressUpdateAtRegExp)
+        .nullable(),
       note: zod.string().nullable(),
-      pausedAt: zod.string().nullable(),
+      pausedAt: zod.iso
+        .date()
+        .regex(bookLoanControllerReturnLoanResponseReadingProgressPausedAtRegExp)
+        .nullable(),
       rating: zod.number().nullable(),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(bookLoanControllerReturnLoanResponseReadingProgressStartedAtRegExp)
+        .nullable(),
     })
     .nullable(),
   readingStatus: zod.enum([
@@ -10553,6 +11294,22 @@ export const bookDeliveryControllerCreateResponseLoanInfoRemindBeforeDaysMax = 9
 export const bookDeliveryControllerCreateResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const bookDeliveryControllerCreateResponseReadingProgressAbandonedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookDeliveryControllerCreateResponseReadingProgressFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookDeliveryControllerCreateResponseReadingProgressLastProgressUpdateAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookDeliveryControllerCreateResponseReadingProgressPausedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookDeliveryControllerCreateResponseReadingProgressStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const bookDeliveryControllerCreateResponseSeriesAgeCategoriesDefault = [];
 export const bookDeliveryControllerCreateResponseSeriesCommonGenresDefault = [];
 export const bookDeliveryControllerCreateResponseSeriesDominantPublisherBookCountMin =
@@ -10754,15 +11511,30 @@ export const BookDeliveryControllerCreateResponse = zod.object({
     .nullable(),
   readingProgress: zod
     .object({
-      abandonedAt: zod.string().nullable(),
+      abandonedAt: zod.iso
+        .date()
+        .regex(bookDeliveryControllerCreateResponseReadingProgressAbandonedAtRegExp)
+        .nullable(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(bookDeliveryControllerCreateResponseReadingProgressFinishedAtRegExp)
+        .nullable(),
       impression: zod.string().nullable(),
-      lastProgressUpdateAt: zod.string().nullable(),
+      lastProgressUpdateAt: zod.iso
+        .date()
+        .regex(bookDeliveryControllerCreateResponseReadingProgressLastProgressUpdateAtRegExp)
+        .nullable(),
       note: zod.string().nullable(),
-      pausedAt: zod.string().nullable(),
+      pausedAt: zod.iso
+        .date()
+        .regex(bookDeliveryControllerCreateResponseReadingProgressPausedAtRegExp)
+        .nullable(),
       rating: zod.number().nullable(),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(bookDeliveryControllerCreateResponseReadingProgressStartedAtRegExp)
+        .nullable(),
     })
     .nullable(),
   readingStatus: zod.enum([
@@ -11029,6 +11801,22 @@ export const bookDeliveryControllerUpdateResponseLoanInfoRemindBeforeDaysMax = 9
 export const bookDeliveryControllerUpdateResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const bookDeliveryControllerUpdateResponseReadingProgressAbandonedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookDeliveryControllerUpdateResponseReadingProgressFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookDeliveryControllerUpdateResponseReadingProgressLastProgressUpdateAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookDeliveryControllerUpdateResponseReadingProgressPausedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookDeliveryControllerUpdateResponseReadingProgressStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const bookDeliveryControllerUpdateResponseSeriesAgeCategoriesDefault = [];
 export const bookDeliveryControllerUpdateResponseSeriesCommonGenresDefault = [];
 export const bookDeliveryControllerUpdateResponseSeriesDominantPublisherBookCountMin =
@@ -11230,15 +12018,30 @@ export const BookDeliveryControllerUpdateResponse = zod.object({
     .nullable(),
   readingProgress: zod
     .object({
-      abandonedAt: zod.string().nullable(),
+      abandonedAt: zod.iso
+        .date()
+        .regex(bookDeliveryControllerUpdateResponseReadingProgressAbandonedAtRegExp)
+        .nullable(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(bookDeliveryControllerUpdateResponseReadingProgressFinishedAtRegExp)
+        .nullable(),
       impression: zod.string().nullable(),
-      lastProgressUpdateAt: zod.string().nullable(),
+      lastProgressUpdateAt: zod.iso
+        .date()
+        .regex(bookDeliveryControllerUpdateResponseReadingProgressLastProgressUpdateAtRegExp)
+        .nullable(),
       note: zod.string().nullable(),
-      pausedAt: zod.string().nullable(),
+      pausedAt: zod.iso
+        .date()
+        .regex(bookDeliveryControllerUpdateResponseReadingProgressPausedAtRegExp)
+        .nullable(),
       rating: zod.number().nullable(),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(bookDeliveryControllerUpdateResponseReadingProgressStartedAtRegExp)
+        .nullable(),
     })
     .nullable(),
   readingStatus: zod.enum([
@@ -11447,6 +12250,22 @@ export const bookDeliveryControllerReceiveResponseLoanInfoRemindBeforeDaysMax = 
 export const bookDeliveryControllerReceiveResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const bookDeliveryControllerReceiveResponseReadingProgressAbandonedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookDeliveryControllerReceiveResponseReadingProgressFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookDeliveryControllerReceiveResponseReadingProgressLastProgressUpdateAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookDeliveryControllerReceiveResponseReadingProgressPausedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookDeliveryControllerReceiveResponseReadingProgressStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const bookDeliveryControllerReceiveResponseSeriesAgeCategoriesDefault = [];
 export const bookDeliveryControllerReceiveResponseSeriesCommonGenresDefault = [];
 export const bookDeliveryControllerReceiveResponseSeriesDominantPublisherBookCountMin =
@@ -11648,15 +12467,30 @@ export const BookDeliveryControllerReceiveResponse = zod.object({
     .nullable(),
   readingProgress: zod
     .object({
-      abandonedAt: zod.string().nullable(),
+      abandonedAt: zod.iso
+        .date()
+        .regex(bookDeliveryControllerReceiveResponseReadingProgressAbandonedAtRegExp)
+        .nullable(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(bookDeliveryControllerReceiveResponseReadingProgressFinishedAtRegExp)
+        .nullable(),
       impression: zod.string().nullable(),
-      lastProgressUpdateAt: zod.string().nullable(),
+      lastProgressUpdateAt: zod.iso
+        .date()
+        .regex(bookDeliveryControllerReceiveResponseReadingProgressLastProgressUpdateAtRegExp)
+        .nullable(),
       note: zod.string().nullable(),
-      pausedAt: zod.string().nullable(),
+      pausedAt: zod.iso
+        .date()
+        .regex(bookDeliveryControllerReceiveResponseReadingProgressPausedAtRegExp)
+        .nullable(),
       rating: zod.number().nullable(),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(bookDeliveryControllerReceiveResponseReadingProgressStartedAtRegExp)
+        .nullable(),
     })
     .nullable(),
   readingStatus: zod.enum([
@@ -11867,6 +12701,22 @@ export const bookDeliveryControllerCancelResponseLoanInfoRemindBeforeDaysMax = 9
 export const bookDeliveryControllerCancelResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const bookDeliveryControllerCancelResponseReadingProgressAbandonedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookDeliveryControllerCancelResponseReadingProgressFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookDeliveryControllerCancelResponseReadingProgressLastProgressUpdateAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookDeliveryControllerCancelResponseReadingProgressPausedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookDeliveryControllerCancelResponseReadingProgressStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const bookDeliveryControllerCancelResponseSeriesAgeCategoriesDefault = [];
 export const bookDeliveryControllerCancelResponseSeriesCommonGenresDefault = [];
 export const bookDeliveryControllerCancelResponseSeriesDominantPublisherBookCountMin =
@@ -12068,15 +12918,30 @@ export const BookDeliveryControllerCancelResponse = zod.object({
     .nullable(),
   readingProgress: zod
     .object({
-      abandonedAt: zod.string().nullable(),
+      abandonedAt: zod.iso
+        .date()
+        .regex(bookDeliveryControllerCancelResponseReadingProgressAbandonedAtRegExp)
+        .nullable(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(bookDeliveryControllerCancelResponseReadingProgressFinishedAtRegExp)
+        .nullable(),
       impression: zod.string().nullable(),
-      lastProgressUpdateAt: zod.string().nullable(),
+      lastProgressUpdateAt: zod.iso
+        .date()
+        .regex(bookDeliveryControllerCancelResponseReadingProgressLastProgressUpdateAtRegExp)
+        .nullable(),
       note: zod.string().nullable(),
-      pausedAt: zod.string().nullable(),
+      pausedAt: zod.iso
+        .date()
+        .regex(bookDeliveryControllerCancelResponseReadingProgressPausedAtRegExp)
+        .nullable(),
       rating: zod.number().nullable(),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(bookDeliveryControllerCancelResponseReadingProgressStartedAtRegExp)
+        .nullable(),
     })
     .nullable(),
   readingStatus: zod.enum([

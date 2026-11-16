@@ -1,10 +1,10 @@
 import type { DeliveryUiStatus, Nullable, ShipmentStatus, WeekStartDay } from "@app/shared";
-import type { Day } from "date-fns";
 
 import {
   DeliveryUiStatusSchema,
   IN_TRANSIT_ATTENTION_THRESHOLDS,
   ShipmentStatusSchema,
+  WEEK_STARTS_ON,
 } from "@app/shared";
 import { differenceInCalendarDays, lastDayOfWeek, parseISO } from "date-fns";
 
@@ -12,7 +12,6 @@ import { assertNever } from "../../../core/assert-never.js";
 import { addDaysToUtcDay, daysBetweenUtcDays, toIsoDate } from "../../../core/iso-date.js";
 
 const ARRIVING_SOON_DAYS = 7;
-const WEEK_STARTS_ON: Record<WeekStartDay, Day> = { monday: 1, sunday: 0 };
 
 const SHIPMENT_STATUS = ShipmentStatusSchema.enum;
 const UI_STATUS = DeliveryUiStatusSchema.enum;

@@ -76,7 +76,7 @@ const OVERVIEW = makeGenresOverview({
       booksCount: 12,
       key: "mystery",
       label: "Детектив",
-      lastReadingActivityAt: "2026-02-01T10:00:00.000Z",
+      lastReadingActivityAt: "2026-02-01",
       readCount: 6,
     },
   ],
@@ -84,7 +84,7 @@ const OVERVIEW = makeGenresOverview({
     {
       key: "romance",
       label: "Романтика",
-      latestUnratedFinishedAt: "2026-09-01T10:00:00.000Z",
+      latestUnratedFinishedAt: "2026-09-01",
       unratedFinishedCount: 4,
     },
   ],

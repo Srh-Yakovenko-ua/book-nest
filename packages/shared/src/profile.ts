@@ -1,3 +1,5 @@
+import type { Day } from "date-fns";
+
 import { z } from "zod";
 
 import { type Nullable } from "./common.js";
@@ -205,6 +207,8 @@ export type DateFormat = z.infer<typeof DateFormatSchema>;
 export const WeekStartDaySchema = z.enum(["monday", "sunday"]);
 
 export type WeekStartDay = z.infer<typeof WeekStartDaySchema>;
+
+export const WEEK_STARTS_ON = { monday: 1, sunday: 0 } as const satisfies Record<WeekStartDay, Day>;
 
 export const LibraryViewModeSchema = z.enum(["grid", "list"]);
 

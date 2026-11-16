@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../auth/index.js";
 import { MediaModule } from "../media/index.js";
+import { ProfileModule } from "../profile/index.js";
 import { GenresController } from "./api/genres.controller.js";
 import { GenreStatsService } from "./application/genre-stats.service.js";
 import { GenreSummaryService } from "./application/genre-summary.service.js";
@@ -13,7 +14,7 @@ import { GenresRepository } from "./infrastructure/genres.repository.js";
 @Module({
   controllers: [GenresController],
   exports: [GenresService],
-  imports: [AuthModule, MediaModule],
+  imports: [AuthModule, MediaModule, ProfileModule],
   providers: [
     GenresService,
     GenresRepository,

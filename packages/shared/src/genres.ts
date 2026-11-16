@@ -216,7 +216,7 @@ export const DormantGenreViewSchema = z.object({
   booksCount: CountSchema,
   key: z.string(),
   label: z.string(),
-  lastReadingActivityAt: z.iso.datetime(),
+  lastReadingActivityAt: z.iso.date(),
   readCount: CountSchema,
 });
 
@@ -234,7 +234,7 @@ export type NewForYouGenreView = z.infer<typeof NewForYouGenreViewSchema>;
 export const UnratedFinishedGenreViewSchema = z.object({
   key: z.string(),
   label: z.string(),
-  latestUnratedFinishedAt: z.iso.datetime().nullable(),
+  latestUnratedFinishedAt: z.iso.date().nullable(),
   unratedFinishedCount: CountSchema,
 });
 

@@ -12,7 +12,10 @@ import type { ReadingHistoryViewDtoSummaryReadingPeriod } from "./readingHistory
 import type { ReadingHistoryViewDtoSummaryStatus } from "./readingHistoryViewDtoSummaryStatus";
 
 export type ReadingHistoryViewDtoSummary = {
-  /** @nullable */
+  /**
+   * @nullable
+   * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+   */
   abandonedAt: string | null;
   activeDaysCount: number;
   /** @nullable */
@@ -22,23 +25,35 @@ export type ReadingHistoryViewDtoSummary = {
   currentPage: number;
   /** @nullable */
   estimatedActiveDaysRemaining: number | null;
-  /** @nullable */
+  /**
+   * @nullable
+   * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+   */
   finishedAt: string | null;
   historyCompleteness: ReadingHistoryViewDtoSummaryHistoryCompleteness;
   /** @nullable */
   lastActivity: ReadingHistoryViewDtoSummaryLastActivity;
-  /** @nullable */
+  /**
+   * @nullable
+   * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+   */
   lastProgressUpdateAt: string | null;
   /** @nullable */
   pagesCount: number | null;
   /** @nullable */
   pagesRemaining: number | null;
-  /** @nullable */
+  /**
+   * @nullable
+   * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+   */
   pausedAt: string | null;
   /** @nullable */
   progressPercent: number | null;
   readingPeriod: ReadingHistoryViewDtoSummaryReadingPeriod;
-  /** @nullable */
+  /**
+   * @nullable
+   * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+   */
   startedAt: string | null;
   status: ReadingHistoryViewDtoSummaryStatus;
   trackedPagesRead: number;

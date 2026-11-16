@@ -5,9 +5,14 @@ import type {
   StatisticsDynamicsFacts,
   StatisticsDynamicsGranularity,
   StatisticsPeriod,
+  WeekStartDay,
 } from "@app/shared";
 
-import { STATISTICS_DYNAMICS_RULES, StatisticsDynamicsGranularitySchema } from "@app/shared";
+import {
+  STATISTICS_DYNAMICS_RULES,
+  StatisticsDynamicsGranularitySchema,
+  WEEK_STARTS_ON,
+} from "@app/shared";
 import {
   addDays,
   differenceInCalendarDays,
@@ -25,8 +30,6 @@ import { buildDrilldownBreakdown } from "./statistics-drilldown.js";
 import { addOrderAmount, totalsFromAmounts } from "./statistics-scope.js";
 
 const GRANULARITY = StatisticsDynamicsGranularitySchema.enum;
-
-const WEEK_OPTIONS = { weekStartsOn: 1 } as const;
 
 const DAYS_PER_WEEK = 7;
 
@@ -52,11 +55,13 @@ export function buildStatisticsDynamics({
   comparisonPeriod,
   currentPeriod,
   orders,
+  weekStartDay,
 }: {
   comparisonOrders: Nullable<readonly ClassifiedOrder[]>;
   comparisonPeriod: Nullable<StatisticsPeriod>;
   currentPeriod: StatisticsPeriod;
   orders: readonly ClassifiedOrder[];
+  weekStartDay: WeekStartDay;
 }): StatisticsDynamics {
   const current = datedOrders(orders);
   const bounds = periodBounds({ dated: current, period: currentPeriod });
@@ -69,10 +74,15 @@ export function buildStatisticsDynamics({
   const comparisonBounds =
     comparisonDated === null || comparisonPeriod === null
       ? []
-      : bucketBoundsOfPeriod({ dated: comparisonDated, granularity, period: comparisonPeriod });
+      : bucketBoundsOfPeriod({
+          dated: comparisonDated,
+          granularity,
+          period: comparisonPeriod,
+          weekStartDay,
+        });
 
   return {
-    buckets: bucketBounds({ bounds, granularity }).map((slot, index) =>
+    buckets: bucketBounds({ bounds, granularity, weekStartDay }).map((slot, index) =>
       toBucket({
         comparison: comparisonBounds[index] ?? null,
         comparisonDated,
@@ -87,12 +97,14 @@ export function buildStatisticsDynamics({
 function bucketBounds({
   bounds,
   granularity,
+  weekStartDay,
 }: {
   bounds: BucketBounds;
   granularity: StatisticsDynamicsGranularity;
+  weekStartDay: WeekStartDay;
 }): BucketBounds[] {
   const slots: BucketBounds[] = [];
-  let cursor = startOfBucket({ granularity, isoDay: bounds.from });
+  let cursor = startOfBucket({ granularity, isoDay: bounds.from, weekStartDay });
 
   while (cursor <= bounds.to) {
     const slotEnd = endOfBucket({ granularity, start: cursor });
@@ -110,13 +122,15 @@ function bucketBoundsOfPeriod({
   dated,
   granularity,
   period,
+  weekStartDay,
 }: {
   dated: DatedOrder[];
   granularity: StatisticsDynamicsGranularity;
   period: StatisticsPeriod;
+  weekStartDay: WeekStartDay;
 }): BucketBounds[] {
   const bounds = periodBounds({ dated, period });
-  return bounds === null ? [] : bucketBounds({ bounds, granularity });
+  return bounds === null ? [] : bucketBounds({ bounds, granularity, weekStartDay });
 }
 
 function datedOrders(orders: readonly ClassifiedOrder[]): DatedOrder[] {
@@ -199,13 +213,17 @@ function periodBounds({
 function startOfBucket({
   granularity,
   isoDay,
+  weekStartDay,
 }: {
   granularity: StatisticsDynamicsGranularity;
   isoDay: string;
+  weekStartDay: WeekStartDay;
 }): string {
   const date = parseISO(isoDay);
   const start =
-    granularity === GRANULARITY.week ? startOfWeek(date, WEEK_OPTIONS) : startOfMonth(date);
+    granularity === GRANULARITY.week
+      ? startOfWeek(date, { weekStartsOn: WEEK_STARTS_ON[weekStartDay] })
+      : startOfMonth(date);
 
   return format(start, ISO_DAY_FORMAT);
 }

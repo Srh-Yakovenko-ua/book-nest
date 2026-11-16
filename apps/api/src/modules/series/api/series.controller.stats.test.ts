@@ -111,14 +111,14 @@ describe("GET /api/series/:id stats", () => {
     expect(res.body.stats.favoriteBook).toEqual({ id: favoriteBookId, title: "Alpha" });
   });
 
-  it("serializes the earliest start and latest finish loaded from reading progress as ISO strings", async () => {
+  it("serializes the earliest start and latest finish loaded from reading progress as ISO calendar days", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const { seriesId } = await seedStatsSeries(accessToken);
 
     const res = await getSeries(accessToken, seriesId);
 
-    expect(res.body.stats.startedAt).toBe("2026-01-02T00:00:00.000Z");
-    expect(res.body.stats.lastFinishedAt).toBe("2026-01-20T00:00:00.000Z");
+    expect(res.body.stats.startedAt).toBe("2026-01-02");
+    expect(res.body.stats.lastFinishedAt).toBe("2026-01-20");
   });
 
   it("computes the reading duration in calendar days between the start and last finish", async () => {

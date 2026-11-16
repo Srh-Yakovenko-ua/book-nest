@@ -16,6 +16,19 @@ const maxWorkers =
     ? requestedWorkers
     : Math.min(workerLimits.max, Math.max(workerLimits.min, availableParallelism()));
 
+const unitTestFiles = {
+  all: "src/**/*.{test,spec}.{ts,tsx}",
+  timeZonePinned: "src/**/*.tz.{test,spec}.{ts,tsx}",
+} as const;
+
+const unitTestOptions = {
+  css: false,
+  environment: "happy-dom",
+  globals: true,
+  maxWorkers,
+  setupFiles: ["./vitest.setup.ts"],
+};
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -41,16 +54,21 @@ export default defineConfig({
       {
         extends: true,
         test: {
-          css: false,
-          environment: "happy-dom",
-          exclude: ["node_modules", "dist", ".next"],
-          globals: true,
-          include: ["src/**/*.{test,spec}.{ts,tsx}"],
-          maxWorkers,
-          minWorkers: 1,
+          ...unitTestOptions,
+          exclude: ["node_modules", "dist", ".next", unitTestFiles.timeZonePinned],
+          include: [unitTestFiles.all],
           name: "unit",
           pool: "threads",
-          setupFiles: ["./vitest.setup.ts"],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          ...unitTestOptions,
+          exclude: ["node_modules", "dist", ".next"],
+          include: [unitTestFiles.timeZonePinned],
+          name: "unit-tz",
+          pool: "forks",
         },
       },
       {

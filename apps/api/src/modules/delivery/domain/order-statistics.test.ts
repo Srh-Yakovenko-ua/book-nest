@@ -76,6 +76,7 @@ function statisticsOf({
       period: { from: null, to: null },
     },
     topLimit: ORDER_STATISTICS_TOP_LIMIT,
+    weekStartDay: "monday",
   });
 }
 
