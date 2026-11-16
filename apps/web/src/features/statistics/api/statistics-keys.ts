@@ -1,5 +1,3 @@
-import type { QueryClient } from "@tanstack/react-query";
-
 import type {
   StatisticsControllerGetCalendarPageParams,
   StatisticsControllerGetCompletedReadsParams,
@@ -30,7 +28,3 @@ export const statisticsKeys = {
 };
 
 export const matchesStatisticsKey = matchesApiRoot(STATISTICS_ROOT);
-
-export function invalidateStatisticsQueries(queryClient: QueryClient): Promise<void> {
-  return queryClient.invalidateQueries({ predicate: matchesStatisticsKey });
-}

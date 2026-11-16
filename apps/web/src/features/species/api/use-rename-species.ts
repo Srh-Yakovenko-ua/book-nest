@@ -8,7 +8,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { speciesControllerRename } from "@/shared/api/generated/endpoints/species/species";
 
 import { useSpeciesLocale } from "../model/use-species-locale";
-import { invalidateSpeciesDependents, speciesKeys } from "./species-keys";
+import { speciesChangeEffects } from "./species-change-effects";
+import { speciesKeys } from "./species-keys";
 
 type RenameSpeciesVariables = {
   input: SpeciesNameInput;
@@ -26,7 +27,7 @@ export function useRenameSpecies() {
       void queryClient.invalidateQueries({ queryKey: speciesKeys.all });
     },
     onSuccess: () => {
-      void invalidateSpeciesDependents(queryClient);
+      void speciesChangeEffects.speciesChanged(queryClient, { change: "renamed" });
     },
   });
 }

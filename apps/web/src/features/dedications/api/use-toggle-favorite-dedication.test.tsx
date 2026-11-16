@@ -83,12 +83,35 @@ describe("useToggleFavoriteDedication", () => {
     expect(client.getQueryState(detailKey)?.isInvalidated).toBe(true);
     expect(client.getQueryData(detailKey)).toBeUndefined();
   });
+
+  it("refreshes the book detail and book lists after a failed toggle", async () => {
+    const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    const detailKey = bookKeys.detail(BOOK_ID);
+    const listKey = ["/api/books", "list", { page: 1 }];
+    client.setQueryData(detailKey, makeBookDetailsView({ id: BOOK_ID }));
+    client.setQueryData(listKey, {});
+    fetchMock.mockResolvedValue(jsonResponse({ message: "Internal server error" }, 500));
+    const { result } = renderHook(() => useToggleFavoriteDedication(), {
+      wrapper: wrapperFor(client),
+    });
+
+    await act(() =>
+      result.current
+        .mutateAsync({ id: BOOK_ID, isFavoriteDedication: true })
+        .catch(() => undefined),
+    );
+
+    expect([detailKey, listKey].map((key) => client.getQueryState(key)?.isInvalidated)).toEqual([
+      true,
+      true,
+    ]);
+  });
 });
 
-function jsonResponse(body: unknown): Response {
+function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
-    status: 200,
+    status,
   });
 }
 

@@ -4,6 +4,7 @@ import type { QueryKey } from "@tanstack/react-query";
 import { QueryClient, QueryObserver } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 
+import { wishlistKeys } from "@/features/books-to-buy/api/wishlist-keys";
 import { relationshipKeys } from "@/features/character-relationships/api/relationship-keys";
 import { characterKeys } from "@/features/characters/api/character-keys";
 import { deliveryKeys } from "@/features/delivery/api/delivery-keys";
@@ -11,6 +12,7 @@ import { loanKeys } from "@/features/loans/api/loan-keys";
 import { seriesKeys } from "@/features/series/api/series-keys";
 import { statisticsKeys } from "@/features/statistics/api/statistics-keys";
 
+import { makeBookDetailsView, makeBookView } from "../components/book-details.fixtures";
 import { bookChangeEffects } from "./book-change-effects";
 import { bookKeys, matchesBookDetail } from "./book-keys";
 
@@ -30,7 +32,13 @@ const KEYS = {
   seriesSearch: seriesKeys.search({ authorIds: [], search: "x" }),
   statisticsOverview: statisticsKeys.overview({ year: 2026 }),
   unrelated: ["/api/notes", "x"],
+  wishlist: wishlistKeys.root,
 } as const satisfies Record<string, QueryKey>;
+
+const DEDICATION_SAVE = {
+  book: makeBookView({ isFavoriteDedication: true }),
+  cachedDetail: makeBookDetailsView({ notesCount: 3, quotesCount: 2 }),
+};
 
 const STALE_QUEUE: ReadingQueueView = { count: 3, items: [], totalCount: 3, totalPagesCount: 1 };
 
@@ -196,5 +204,46 @@ describe("bookChangeEffects", () => {
     await bookChangeEffects.booksChanged(client, { changes: ["seriesCreated"] });
 
     expect(staleFlags(client, keys)).toEqual([true, true, false, false, false, false, false]);
+  });
+
+  it("writes a saved book into its cached detail and keeps the note and quote counts", async () => {
+    const { book, cachedDetail } = DEDICATION_SAVE;
+    const client = new QueryClient();
+    client.setQueryData(bookKeys.detail(book.id), cachedDetail);
+
+    await bookChangeEffects.bookSaved(client, { book, change: "dedicationFavorited" });
+
+    expect(client.getQueryData(bookKeys.detail(book.id))).toEqual(
+      makeBookDetailsView({ isFavoriteDedication: true, notesCount: 3, quotesCount: 2 }),
+    );
+  });
+
+  it("refreshes book lists but not the written detail after a dedication is favorited", async () => {
+    const { book, cachedDetail } = DEDICATION_SAVE;
+    const client = seededClient([KEYS.bookList]);
+    client.setQueryData(bookKeys.detail(book.id), cachedDetail);
+
+    await bookChangeEffects.bookSaved(client, { book, change: "dedicationFavorited" });
+
+    expect(staleFlags(client, [bookKeys.detail(book.id), KEYS.bookList])).toEqual([false, true]);
+  });
+
+  it("does not write a partial detail for a book with no cached detail", async () => {
+    const { book } = DEDICATION_SAVE;
+    const client = seededClient([KEYS.bookList]);
+
+    await bookChangeEffects.bookSaved(client, { book, change: "dedicationFavorited" });
+
+    expect(client.getQueryData(bookKeys.detail(book.id))).toBeUndefined();
+    expect(staleFlags(client, [KEYS.bookList])).toEqual([true]);
+  });
+
+  it("refreshes the wishlist but not book lists when the wishlist is outdated", async () => {
+    const keys = [KEYS.wishlist, KEYS.bookList];
+    const client = seededClient(keys);
+
+    await bookChangeEffects.booksChanged(client, { changes: ["wishlistOutdated"] });
+
+    expect(staleFlags(client, keys)).toEqual([true, false]);
   });
 });

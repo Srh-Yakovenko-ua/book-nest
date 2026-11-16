@@ -1,13 +1,8 @@
-import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 
 import { getStatisticsControllerGetOverviewQueryKey } from "@/shared/api/generated/endpoints/statistics/statistics";
 
-import {
-  invalidateStatisticsQueries,
-  matchesStatisticsKey,
-  statisticsKeys,
-} from "./statistics-keys";
+import { matchesStatisticsKey, statisticsKeys } from "./statistics-keys";
 
 describe("matchesStatisticsKey", () => {
   it("matches every overview variant of the generated client", () => {
@@ -54,21 +49,5 @@ describe("matchesStatisticsKey", () => {
     for (const queryKey of foreignKeys) {
       expect(matchesStatisticsKey({ queryKey })).toBe(false);
     }
-  });
-});
-
-describe("invalidateStatisticsQueries", () => {
-  it("invalidates only the statistics family", async () => {
-    const queryClient = new QueryClient();
-    const statisticsKey = statisticsKeys.overview({ period: "year" });
-    const booksKey = ["/api/books", "list"];
-
-    queryClient.setQueryData(statisticsKey, { marker: "statistics" });
-    queryClient.setQueryData(booksKey, { marker: "books" });
-
-    await invalidateStatisticsQueries(queryClient);
-
-    expect(queryClient.getQueryState(statisticsKey)?.isInvalidated).toBe(true);
-    expect(queryClient.getQueryState(booksKey)?.isInvalidated).toBe(false);
   });
 });

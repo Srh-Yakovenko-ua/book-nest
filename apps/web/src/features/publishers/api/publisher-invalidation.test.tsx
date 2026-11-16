@@ -15,7 +15,7 @@ import { useDeleteSeries } from "@/features/series/api/use-delete-series";
 import { statisticsKeys } from "@/features/statistics/api/statistics-keys";
 
 import { makePublisherDetail } from "../model/publisher.fixtures";
-import { invalidatePublisherQueries, publisherKeys } from "./publisher-keys";
+import { matchesPublisherCatalogKey, publisherKeys } from "./publisher-keys";
 import { useMergePublisher } from "./use-merge-publisher";
 import { useUpdatePublisher } from "./use-update-publisher";
 
@@ -71,16 +71,19 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe("invalidatePublisherQueries", () => {
-  it("invalidates every /api/publishers query and leaves the picker alone", async () => {
-    const client = seededClient();
+describe("matchesPublisherCatalogKey", () => {
+  it("matches every /api/publishers catalog key", () => {
+    const keys = [CACHE_KEYS.detail, CACHE_KEYS.generated, CACHE_KEYS.quickCounts];
 
-    await invalidatePublisherQueries(client);
+    expect(keys.map((queryKey) => matchesPublisherCatalogKey({ queryKey }))).toEqual([
+      true,
+      true,
+      true,
+    ]);
+  });
 
-    expect(isInvalidated(client, CACHE_KEYS.detail)).toBe(true);
-    expect(isInvalidated(client, CACHE_KEYS.generated)).toBe(true);
-    expect(isInvalidated(client, CACHE_KEYS.quickCounts)).toBe(true);
-    expect(isInvalidated(client, CACHE_KEYS.picker)).toBe(false);
+  it("skips the publisher picker", () => {
+    expect(matchesPublisherCatalogKey({ queryKey: CACHE_KEYS.picker })).toBe(false);
   });
 });
 

@@ -1,8 +1,9 @@
-import type { ReadingQueueView } from "@app/shared";
+import type { BookDetailsView, BookView, ReadingQueueView } from "@app/shared";
 import type { QueryClient } from "@tanstack/react-query";
 
 import type { QueryKeyMatcher } from "@/lib/query-keys";
 
+import { wishlistKeys } from "@/features/books-to-buy/api/wishlist-keys";
 import { characterKeys } from "@/features/characters/api/character-keys";
 import { matchesDeliveryKey } from "@/features/delivery/api/delivery-keys";
 import { genresKeys, matchesGenreDerivedKey } from "@/features/genres/api/genres-keys";
@@ -18,7 +19,7 @@ import { matchesStatisticsKey } from "@/features/statistics/api/statistics-keys"
 import { matchesTagAggregateKey, matchesTagPickerKey } from "@/features/tags/api/tags-keys";
 import { matchesAnyKeyPrefix, retireQueries } from "@/lib/query-keys";
 
-import { bookKeys, matchesBookKey } from "./book-keys";
+import { bookKeys, matchesBookDetail, matchesBookKey } from "./book-keys";
 import {
   matchesReadingQueueKey,
   matchesUnfilteredReadingQueueKey,
@@ -41,6 +42,7 @@ const BOOK_KEY_FAMILIES = {
   statistics: matchesStatisticsKey,
   tagAggregates: matchesTagAggregateKey,
   tagPickers: matchesTagPickerKey,
+  wishlist: matchesAnyKeyPrefix(wishlistKeys.root),
 } as const satisfies Record<string, QueryKeyMatcher>;
 
 type BookKeyFamily = keyof typeof BOOK_KEY_FAMILIES;
@@ -62,6 +64,7 @@ const BOOK_CHANGE_EFFECTS = {
     "delivery",
     "loans",
   ],
+  dedicationFavorited: ["books"],
   edited: [
     "books",
     "readingQueue",
@@ -129,9 +132,28 @@ const BOOK_CHANGE_EFFECTS = {
     "delivery",
   ],
   tagged: ["books", "lists", "tagAggregates", "tagPickers"],
+  thumbnailReady: ["books"],
+  wishlistOutdated: ["wishlist"],
 } as const satisfies Record<string, readonly BookKeyFamily[]>;
 
 type BookChange = keyof typeof BOOK_CHANGE_EFFECTS;
+
+function bookSaved(
+  queryClient: QueryClient,
+  { book, change }: { book: BookView; change: BookChange },
+): Promise<void> {
+  const detailKey = bookKeys.detail(book.id);
+  const cachedDetail = queryClient.getQueryData<BookDetailsView>(detailKey);
+  if (cachedDetail === undefined) return booksChanged(queryClient, { changes: [change] });
+
+  queryClient.setQueryData<BookDetailsView>(detailKey, {
+    ...book,
+    notesCount: cachedDetail.notesCount,
+    quotesCount: cachedDetail.quotesCount,
+  });
+
+  return booksChanged(queryClient, { changes: [change], keep: [matchesBookDetail(book.id)] });
+}
 
 function booksChanged(
   queryClient: QueryClient,
@@ -179,4 +201,4 @@ function readingQueueChanged(
   });
 }
 
-export const bookChangeEffects = { booksChanged, booksRemoved, readingQueueChanged };
+export const bookChangeEffects = { bookSaved, booksChanged, booksRemoved, readingQueueChanged };
