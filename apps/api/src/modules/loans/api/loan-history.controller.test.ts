@@ -2855,3 +2855,141 @@ describe("GET /api/loans/history returned day of a Kyiv reader", () => {
     });
   });
 });
+
+describe("GET /api/loans/history returned day never before the loan day", () => {
+  const RETURNED_AT_UTC_MIDNIGHT_OF_LOAN_DAY = {
+    direction: "borrowed",
+    expectedReturnDate: "2026-08-25",
+    loanDate: "2026-08-25",
+    personName: "Olha",
+    returnedAt: "2026-08-25T00:00:00.000Z",
+    title: "Returned at UTC midnight of the loan day",
+  } as const satisfies CompletedLoanSpec;
+
+  const RETURNED_LATER_ON_THE_READERS_PREVIOUS_DAY = {
+    direction: "borrowed",
+    expectedReturnDate: "2026-08-30",
+    loanDate: "2026-08-01",
+    personName: "Olha",
+    returnedAt: "2026-08-25T02:00:00.000Z",
+    title: "Returned two hours after UTC midnight on the reader's previous day",
+  } as const satisfies CompletedLoanSpec;
+
+  async function newYorkReaderWithLoanReturnedAtUtcMidnight(): Promise<{
+    accessToken: string;
+    loanId: string;
+  }> {
+    const { accessToken } = await registerReaderInTimezone({
+      context,
+      timezone: "America/New_York",
+    });
+    const { loanId } = await completeLoan(accessToken, RETURNED_AT_UTC_MIDNIGHT_OF_LOAN_DAY);
+    return { accessToken, loanId };
+  }
+
+  async function newYorkReaderWithLaterInstantOnEarlierReturnedDay(): Promise<string> {
+    const { accessToken } = await newYorkReaderWithLoanReturnedAtUtcMidnight();
+    await completeLoan(accessToken, RETURNED_LATER_ON_THE_READERS_PREVIOUS_DAY);
+    return accessToken;
+  }
+
+  it("reports the loan day as the returned day with a zero day duration and an on_time result", async () => {
+    const { accessToken } = await newYorkReaderWithLoanReturnedAtUtcMidnight();
+
+    const res = await listHistory(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(historyItems(res)).toEqual([
+      expect.objectContaining({
+        delayDays: null,
+        durationDays: 0,
+        historyResult: "on_time",
+        returnedDate: "2026-08-25",
+      }),
+    ]);
+  });
+
+  it("lists the loan under the loan day", async () => {
+    const { accessToken } = await newYorkReaderWithLoanReturnedAtUtcMidnight();
+
+    const res = await listHistory(accessToken, "?returnedFrom=2026-08-25&returnedTo=2026-08-25");
+
+    expect(res.status).toBe(200);
+    expect(historyTitles(res)).toEqual([RETURNED_AT_UTC_MIDNIGHT_OF_LOAN_DAY.title]);
+  });
+
+  it("leaves the loan out of the reader's day before the loan day", async () => {
+    const { accessToken } = await newYorkReaderWithLoanReturnedAtUtcMidnight();
+
+    const res = await listHistory(accessToken, "?returnedFrom=2026-08-24&returnedTo=2026-08-24");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ items: [], totalCount: 0 });
+  });
+
+  it("counts the loan as on_time in the result counts of the loan day", async () => {
+    const { accessToken } = await newYorkReaderWithLoanReturnedAtUtcMidnight();
+
+    const res = await listHistory(accessToken, "?returnedFrom=2026-08-25&returnedTo=2026-08-25");
+
+    expect(historyResultCounts(res)).toEqual({ all: 1, late: 0, no_due_date: 0, on_time: 1 });
+  });
+
+  it("sorts returned_desc by the floored returned day before the return instant", async () => {
+    const accessToken = await newYorkReaderWithLaterInstantOnEarlierReturnedDay();
+
+    const res = await listHistory(accessToken, "?sort=returned_desc");
+
+    expect(res.status).toBe(200);
+    expect(historyTitles(res)).toEqual([
+      RETURNED_AT_UTC_MIDNIGHT_OF_LOAN_DAY.title,
+      RETURNED_LATER_ON_THE_READERS_PREVIOUS_DAY.title,
+    ]);
+  });
+
+  it("sorts returned_asc by the floored returned day before the return instant", async () => {
+    const accessToken = await newYorkReaderWithLaterInstantOnEarlierReturnedDay();
+
+    const res = await listHistory(accessToken, "?sort=returned_asc");
+
+    expect(res.status).toBe(200);
+    expect(historyTitles(res)).toEqual([
+      RETURNED_LATER_ON_THE_READERS_PREVIOUS_DAY.title,
+      RETURNED_AT_UTC_MIDNIGHT_OF_LOAN_DAY.title,
+    ]);
+  });
+
+  it("reports a zero day shortest and longest duration in the overview", async () => {
+    const { accessToken } = await newYorkReaderWithLoanReturnedAtUtcMidnight();
+
+    const res = await historyOverview(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(LoanHistoryOverviewViewSchema.parse(res.body).duration).toMatchObject({
+      longestDays: 0,
+      shortestDays: 0,
+    });
+  });
+
+  it("reports a zero day average duration in the overview summary", async () => {
+    const { accessToken } = await newYorkReaderWithLoanReturnedAtUtcMidnight();
+
+    const res = await historyOverview(accessToken);
+
+    expect(LoanHistoryOverviewViewSchema.parse(res.body).summary.averageDurationDays).toBe(0);
+  });
+
+  it("shows the loan day as the returned day with a zero day duration in the detail", async () => {
+    const { accessToken, loanId } = await newYorkReaderWithLoanReturnedAtUtcMidnight();
+
+    const res = await historyDetail(accessToken, loanId);
+
+    expect(res.status).toBe(200);
+    expect(LoanHistoryDetailViewSchema.parse(res.body)).toMatchObject({
+      delayDays: null,
+      durationDays: 0,
+      historyResult: "on_time",
+      returnedDate: "2026-08-25",
+    });
+  });
+});

@@ -223,3 +223,46 @@ describe("deriveLoanHistoryOutcome reader time zone", () => {
     });
   });
 });
+
+describe("deriveLoanHistoryOutcome returned day floored to the loan day", () => {
+  const RETURNED_AT_UTC_MIDNIGHT = new Date("2026-08-25T00:00:00.000Z");
+  const NEW_YORK_TIME_ZONE = "America/New_York";
+
+  it("moves a New York reader's day that falls before the loan day up to the loan day", () => {
+    const outcome = deriveLoanHistoryOutcome({
+      expectedReturnDate: utc("2026-08-25"),
+      loanDate: utc("2026-08-25"),
+      returnedAt: RETURNED_AT_UTC_MIDNIGHT,
+      timeZone: NEW_YORK_TIME_ZONE,
+    });
+
+    expect(outcome).toEqual({
+      delayDays: null,
+      durationDays: 0,
+      historyResult: "on_time",
+      returnedDate: "2026-08-25",
+    });
+  });
+
+  it("keeps the reader's day when the loan has no loan day", () => {
+    const outcome = deriveLoanHistoryOutcome({
+      expectedReturnDate: null,
+      loanDate: null,
+      returnedAt: RETURNED_AT_UTC_MIDNIGHT,
+      timeZone: NEW_YORK_TIME_ZONE,
+    });
+
+    expect(outcome.returnedDate).toBe("2026-08-24");
+  });
+
+  it("keeps the reader's day and its duration when that day falls after the loan day", () => {
+    const outcome = deriveLoanHistoryOutcome({
+      expectedReturnDate: null,
+      loanDate: utc("2026-08-10"),
+      returnedAt: RETURNED_AT_UTC_MIDNIGHT,
+      timeZone: NEW_YORK_TIME_ZONE,
+    });
+
+    expect(outcome).toMatchObject({ durationDays: 14, returnedDate: "2026-08-24" });
+  });
+});

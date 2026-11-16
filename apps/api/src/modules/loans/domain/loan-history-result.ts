@@ -1,5 +1,7 @@
 import type { LoanHistoryResult, Nullable } from "@app/shared";
 
+import { isAfter, parseISO } from "date-fns";
+
 import { daysBetweenIsoDates, toNullableIsoDate, toZonedIsoDate } from "../../../core/iso-date.js";
 
 export type CompletedLoanDates = {
@@ -22,7 +24,11 @@ export function deriveLoanHistoryOutcome({
   returnedAt,
   timeZone,
 }: CompletedLoanDates): LoanHistoryOutcome {
-  const returnedDate = toZonedIsoDate({ instant: returnedAt, timeZone });
+  const loanIsoDate = toNullableIsoDate(loanDate);
+  const returnedDate = returnedDateNotBeforeLoanDate({
+    loanIsoDate,
+    readerReturnedDate: toZonedIsoDate({ instant: returnedAt, timeZone }),
+  });
   const daysAfterExpectedReturn = daysAfterExpectedReturnDate({ expectedReturnDate, returnedDate });
 
   return {
@@ -30,7 +36,7 @@ export function deriveLoanHistoryOutcome({
       daysAfterExpectedReturn !== null && daysAfterExpectedReturn > 0
         ? daysAfterExpectedReturn
         : null,
-    durationDays: durationDaysFrom({ loanDate, returnedDate }),
+    durationDays: durationDaysFrom({ loanIsoDate, returnedDate }),
     historyResult: historyResultFrom(daysAfterExpectedReturn),
     returnedDate,
   };
@@ -50,13 +56,12 @@ function daysAfterExpectedReturnDate({
 }
 
 function durationDaysFrom({
-  loanDate,
+  loanIsoDate,
   returnedDate,
 }: {
-  loanDate: Nullable<Date>;
+  loanIsoDate: Nullable<string>;
   returnedDate: string;
 }): Nullable<number> {
-  const loanIsoDate = toNullableIsoDate(loanDate);
   return loanIsoDate === null
     ? null
     : daysBetweenIsoDates({ endIsoDate: returnedDate, startIsoDate: loanIsoDate });
@@ -67,4 +72,19 @@ function historyResultFrom(daysAfterExpectedReturn: Nullable<number>): LoanHisto
     return "no_due_date";
   }
   return daysAfterExpectedReturn > 0 ? "late" : "on_time";
+}
+
+function returnedDateNotBeforeLoanDate({
+  loanIsoDate,
+  readerReturnedDate,
+}: {
+  loanIsoDate: Nullable<string>;
+  readerReturnedDate: string;
+}): string {
+  if (loanIsoDate === null) {
+    return readerReturnedDate;
+  }
+  return isAfter(parseISO(loanIsoDate), parseISO(readerReturnedDate))
+    ? loanIsoDate
+    : readerReturnedDate;
 }
