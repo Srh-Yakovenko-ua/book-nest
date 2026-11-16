@@ -1,16 +1,18 @@
-import type { DeliveryUiStatus, Nullable, ShipmentStatus } from "@app/shared";
+import type { DeliveryUiStatus, Nullable, ShipmentStatus, WeekStartDay } from "@app/shared";
+import type { Day } from "date-fns";
 
 import {
   DeliveryUiStatusSchema,
   IN_TRANSIT_ATTENTION_THRESHOLDS,
   ShipmentStatusSchema,
 } from "@app/shared";
+import { differenceInCalendarDays, lastDayOfWeek, parseISO } from "date-fns";
 
 import { assertNever } from "../../../core/assert-never.js";
-import { addDaysToUtcDay, daysBetweenUtcDays } from "../../../core/iso-date.js";
+import { addDaysToUtcDay, daysBetweenUtcDays, toIsoDate } from "../../../core/iso-date.js";
 
 const ARRIVING_SOON_DAYS = 7;
-const DAYS_FROM_MONDAY_TO_SUNDAY = 6;
+const WEEK_STARTS_ON: Record<WeekStartDay, Day> = { monday: 1, sunday: 0 };
 
 const SHIPMENT_STATUS = ShipmentStatusSchema.enum;
 const UI_STATUS = DeliveryUiStatusSchema.enum;
@@ -29,16 +31,21 @@ export type ShipmentUiStatusSource = {
   status: ShipmentStatus;
 };
 
-export function deliveryDateBounds(today: Date): DeliveryDateBounds {
+export function deliveryDateBounds({
+  today,
+  weekStartDay,
+}: {
+  today: Date;
+  weekStartDay: WeekStartDay;
+}): DeliveryDateBounds {
   const daysFromToday = (days: number): Date => addDaysToUtcDay({ day: today, days });
-  const mondayOffset = (today.getUTCDay() + 6) % 7;
 
   return {
     dispatchCutoff: daysFromToday(-IN_TRANSIT_ATTENTION_THRESHOLDS.awaitingDispatchDays),
     pickupDeadline: daysFromToday(IN_TRANSIT_ATTENTION_THRESHOLDS.pickupExpiringDays),
     soonEnd: daysFromToday(ARRIVING_SOON_DAYS),
     today,
-    weekEnd: daysFromToday(DAYS_FROM_MONDAY_TO_SUNDAY - mondayOffset),
+    weekEnd: daysFromToday(daysUntilReaderWeekEnd({ today, weekStartDay })),
   };
 }
 
@@ -78,6 +85,20 @@ export function getShipmentUiStatus({
     default:
       return assertNever(shipment.status);
   }
+}
+
+function daysUntilReaderWeekEnd({
+  today,
+  weekStartDay,
+}: {
+  today: Date;
+  weekStartDay: WeekStartDay;
+}): number {
+  const calendarDay = parseISO(toIsoDate(today));
+  const lastDayOfReaderWeek = lastDayOfWeek(calendarDay, {
+    weekStartsOn: WEEK_STARTS_ON[weekStartDay],
+  });
+  return differenceInCalendarDays(lastDayOfReaderWeek, calendarDay);
 }
 
 function uiStatusFromDueDate({

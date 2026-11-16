@@ -56,6 +56,21 @@ const bookDueOn15th = makeBookView({
   purchaseInfo: null,
 });
 
+function receivedBookAt(receivedAt: string) {
+  const received: DeliveryView = {
+    ...activeDelivery,
+    orderDate: "2026-02-01",
+    receivedAt,
+    status: "received",
+  };
+  return makeBookView({
+    delivery: { active: null, latest: received, totalCount: 1 },
+    loanInfo: null,
+    ownershipStatus: "owned",
+    purchaseInfo: null,
+  });
+}
+
 const fetchMock = vi.fn();
 
 let profileTimeZone: string = defaultUserProfileSettings.timezone;
@@ -130,5 +145,14 @@ describe("DeliveryBlock delayed hint in the profile time zone", () => {
     expect(
       screen.getByRole("button", { name: deliveryMessages.actions.receive }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("DeliveryBlock latest delivery preview in the profile time zone", () => {
+  it("follows the zone from the profile settings, not the Kyiv fallback", async () => {
+    profileTimeZone = "America/New_York";
+    renderWithProviders(<DeliveryBlock book={receivedBookAt("2026-02-10T03:00:00.000Z")} />);
+
+    expect(await screen.findByText("9 лют. 2026 р.")).toBeInTheDocument();
   });
 });

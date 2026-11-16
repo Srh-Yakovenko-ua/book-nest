@@ -3,7 +3,8 @@ import "@testing-library/jest-dom/vitest";
 import type { CancelledFollowUpBook, CancelledFollowUpView, CancelledPlanBook } from "@app/shared";
 import type { ReactNode } from "react";
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { defaultUserProfileSettings } from "@app/shared";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
@@ -77,10 +78,31 @@ function renderFailedBlocks() {
   );
 }
 
+const fetchMock = vi.fn();
+
+let profileTimeZone: string = defaultUserProfileSettings.timezone;
+
 beforeEach(() => {
   retryMock.mockReset();
   returnAllMock.mockReset();
   wantToBuyMock.mockReset();
+  profileTimeZone = defaultUserProfileSettings.timezone;
+  vi.stubGlobal("fetch", fetchMock);
+  fetchMock.mockReset();
+  fetchMock.mockImplementation((input: RequestInfo | URL) =>
+    String(input).includes("/api/profile/settings")
+      ? Promise.resolve(
+          new Response(
+            JSON.stringify({ ...defaultUserProfileSettings, timezone: profileTimeZone }),
+            { headers: { "Content-Type": "application/json" }, status: 200 },
+          ),
+        )
+      : Promise.reject(new Error(`unexpected fetch ${String(input)}`)),
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 function makeOutcomes(
@@ -223,6 +245,19 @@ describe("books that need a decision", () => {
       screen.getByText("після скасування залишились без наступного кроку"),
     ).toBeInTheDocument();
     expect(screen.getByText("Скасовано 10 серп. 2026 р.")).toBeInTheDocument();
+  });
+
+  it("dates each preview by the profile settings zone, not the Kyiv fallback", async () => {
+    profileTimeZone = "America/New_York";
+    renderBlocks({
+      plans: null,
+      unresolved: {
+        books: [makeUnresolvedBook({ cancelledAt: "2026-08-10T03:00:00.000Z" })],
+        booksCount: 1,
+      },
+    });
+
+    expect(await screen.findByText("Скасовано 9 серп. 2026 р.")).toBeInTheDocument();
   });
 
   it("keeps the cancellation reason next to the date", () => {

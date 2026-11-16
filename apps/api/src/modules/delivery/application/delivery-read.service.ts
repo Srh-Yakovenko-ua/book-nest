@@ -258,11 +258,11 @@ export class DeliveryReadService {
   }
 
   private async readerCalendar(userId: string): Promise<ReaderDeliveryCalendar> {
-    const { timeZone, today } = await this.userSettingsContextService.calendar({
+    const { timeZone, today, weekStartDay } = await this.userSettingsContextService.calendar({
       now: new Date(),
       userId,
     });
-    return { bounds: deliveryDateBounds(today), timeZone };
+    return { bounds: deliveryDateBounds({ today, weekStartDay }), timeZone };
   }
 
   private toBookPreview(book: BookOrderItemRow["book"]): BookPreview {

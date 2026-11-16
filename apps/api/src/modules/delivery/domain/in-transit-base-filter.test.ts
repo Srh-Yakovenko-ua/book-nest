@@ -4,7 +4,7 @@ import { parseIsoDate } from "../../../core/iso-date.js";
 import { deliveryDateBounds } from "./delivery-ui-status.js";
 import { buildInTransitBaseFilter } from "./in-transit-base-filter.js";
 
-const BOUNDS = deliveryDateBounds(parseIsoDate("2026-08-18"));
+const BOUNDS = deliveryDateBounds({ today: parseIsoDate("2026-08-18"), weekStartDay: "monday" });
 
 describe("buildInTransitBaseFilter", () => {
   it("carries every advanced filter, the owner and the time zone, never a quick filter", () => {

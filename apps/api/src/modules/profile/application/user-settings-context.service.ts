@@ -11,6 +11,7 @@ import { SettingsRepository } from "../infrastructure/settings.repository.js";
 export type UserCalendar = {
   timeZone: string;
   today: Date;
+  weekStartDay: WeekStartDay;
 };
 
 export type UserSettingsContext = {
@@ -31,8 +32,12 @@ export class UserSettingsContextService {
     now: Date;
     userId: string;
   }): Promise<UserCalendar> {
-    const { timezone } = await this.resolve(userId, client);
-    return { timeZone: timezone, today: toZonedCalendarDay({ instant: now, timeZone: timezone }) };
+    const { timezone, weekStartDay } = await this.resolve(userId, client);
+    return {
+      timeZone: timezone,
+      today: toZonedCalendarDay({ instant: now, timeZone: timezone }),
+      weekStartDay,
+    };
   }
 
   async calendarDay({

@@ -73,47 +73,62 @@ describe("getDeliveryUiStatus", () => {
 
 describe("deliveryDateBounds", () => {
   it("hands the reader day back as today without moving it", () => {
-    const { today } = deliveryDateBounds(utc("2026-07-08"));
+    const { today } = deliveryDateBounds({ today: utc("2026-07-08"), weekStartDay: "monday" });
 
     expect(today.toISOString()).toBe("2026-07-08T00:00:00.000Z");
   });
 
   it("sets the soon window seven days after today", () => {
-    const { soonEnd, today } = deliveryDateBounds(utc("2026-07-08"));
+    const { soonEnd, today } = deliveryDateBounds({
+      today: utc("2026-07-08"),
+      weekStartDay: "monday",
+    });
 
     expect(soonEnd.toISOString()).toBe("2026-07-15T00:00:00.000Z");
     expect(soonEnd.toISOString()).toBe(addDays(today, 7).toISOString());
   });
 
   it("puts the dispatch cutoff a week behind today, so an older order counts as waiting", () => {
-    const { dispatchCutoff, today } = deliveryDateBounds(utc("2026-07-08"));
+    const { dispatchCutoff, today } = deliveryDateBounds({
+      today: utc("2026-07-08"),
+      weekStartDay: "monday",
+    });
 
     expect(dispatchCutoff.toISOString()).toBe("2026-07-01T00:00:00.000Z");
     expect(dispatchCutoff.toISOString()).toBe(subDays(today, 7).toISOString());
   });
 
   it("puts the pickup deadline two days ahead of today, so a parcel due then already asks for attention", () => {
-    const { pickupDeadline, today } = deliveryDateBounds(utc("2026-07-08"));
+    const { pickupDeadline, today } = deliveryDateBounds({
+      today: utc("2026-07-08"),
+      weekStartDay: "monday",
+    });
 
     expect(pickupDeadline.toISOString()).toBe("2026-07-10T00:00:00.000Z");
     expect(pickupDeadline.toISOString()).toBe(addDays(today, 2).toISOString());
   });
 
   it("closes the week on the Sunday of the Monday-to-Sunday week holding today", () => {
-    const { weekEnd } = deliveryDateBounds(utc("2026-07-08"));
+    const { weekEnd } = deliveryDateBounds({ today: utc("2026-07-08"), weekStartDay: "monday" });
 
     expect(weekEnd.toISOString()).toBe("2026-07-12T00:00:00.000Z");
   });
 
   it("still reaches the coming Sunday when today is the Monday", () => {
-    const { today, weekEnd } = deliveryDateBounds(utc("2026-07-06"));
+    const { today, weekEnd } = deliveryDateBounds({
+      today: utc("2026-07-06"),
+      weekStartDay: "monday",
+    });
 
     expect(weekEnd.toISOString()).toBe("2026-07-12T00:00:00.000Z");
     expect(today.toISOString()).toBe("2026-07-06T00:00:00.000Z");
   });
 
   it("collapses the week onto today when today is the Sunday", () => {
-    const { today, weekEnd } = deliveryDateBounds(utc("2026-07-12"));
+    const { today, weekEnd } = deliveryDateBounds({
+      today: utc("2026-07-12"),
+      weekStartDay: "monday",
+    });
 
     expect(weekEnd.toISOString()).toBe("2026-07-12T00:00:00.000Z");
     expect(today.toISOString()).toBe("2026-07-12T00:00:00.000Z");
@@ -123,19 +138,25 @@ describe("deliveryDateBounds", () => {
     pinProcessTimezone("Europe/Kyiv");
 
     it("keeps the arriving-soon window on 00:00 UTC across the spring clock change", () => {
-      const { soonEnd } = deliveryDateBounds(utc("2026-03-25"));
+      const { soonEnd } = deliveryDateBounds({ today: utc("2026-03-25"), weekStartDay: "monday" });
 
       expect(soonEnd.toISOString()).toBe("2026-04-01T00:00:00.000Z");
     });
 
     it("keeps the dispatch cutoff on 00:00 UTC across the autumn clock change", () => {
-      const { dispatchCutoff } = deliveryDateBounds(utc("2026-10-28"));
+      const { dispatchCutoff } = deliveryDateBounds({
+        today: utc("2026-10-28"),
+        weekStartDay: "monday",
+      });
 
       expect(dispatchCutoff.toISOString()).toBe("2026-10-21T00:00:00.000Z");
     });
 
     it("keeps the pickup deadline on 00:00 UTC across the spring clock change", () => {
-      const { pickupDeadline } = deliveryDateBounds(utc("2026-03-28"));
+      const { pickupDeadline } = deliveryDateBounds({
+        today: utc("2026-03-28"),
+        weekStartDay: "monday",
+      });
 
       expect(pickupDeadline.toISOString()).toBe("2026-03-30T00:00:00.000Z");
     });
@@ -145,13 +166,16 @@ describe("deliveryDateBounds", () => {
     pinProcessTimezone("America/New_York");
 
     it("keeps the arriving-soon window on the seventh calendar day west of UTC", () => {
-      const { soonEnd } = deliveryDateBounds(utc("2026-03-05"));
+      const { soonEnd } = deliveryDateBounds({ today: utc("2026-03-05"), weekStartDay: "monday" });
 
       expect(soonEnd.toISOString()).toBe("2026-03-12T00:00:00.000Z");
     });
 
     it("keeps the dispatch cutoff on 00:00 UTC across the autumn clock change west of UTC", () => {
-      const { dispatchCutoff } = deliveryDateBounds(utc("2026-11-05"));
+      const { dispatchCutoff } = deliveryDateBounds({
+        today: utc("2026-11-05"),
+        weekStartDay: "monday",
+      });
 
       expect(dispatchCutoff.toISOString()).toBe("2026-10-29T00:00:00.000Z");
     });
@@ -161,9 +185,46 @@ describe("deliveryDateBounds", () => {
     pinProcessTimezone("Asia/Jerusalem");
 
     it("closes the week on Sunday 00:00 UTC when the clock changes on Friday", () => {
-      const { weekEnd } = deliveryDateBounds(utc("2026-03-23"));
+      const { weekEnd } = deliveryDateBounds({ today: utc("2026-03-23"), weekStartDay: "monday" });
 
       expect(weekEnd.toISOString()).toBe("2026-03-29T00:00:00.000Z");
+    });
+  });
+
+  describe("for a reader whose week starts on Sunday", () => {
+    it("closes the week on the Saturday of the Sunday-to-Saturday week holding today", () => {
+      const { weekEnd } = deliveryDateBounds({ today: utc("2026-07-08"), weekStartDay: "sunday" });
+
+      expect(weekEnd.toISOString()).toBe("2026-07-11T00:00:00.000Z");
+    });
+
+    it("reaches the coming Saturday when today is the Sunday", () => {
+      const { weekEnd } = deliveryDateBounds({ today: utc("2026-07-12"), weekStartDay: "sunday" });
+
+      expect(weekEnd.toISOString()).toBe("2026-07-18T00:00:00.000Z");
+    });
+
+    it("collapses the week onto today when today is the Saturday", () => {
+      const { today, weekEnd } = deliveryDateBounds({
+        today: utc("2026-07-11"),
+        weekStartDay: "sunday",
+      });
+
+      expect(weekEnd.toISOString()).toBe("2026-07-11T00:00:00.000Z");
+      expect(today.toISOString()).toBe("2026-07-11T00:00:00.000Z");
+    });
+
+    describe("America/New_York", () => {
+      pinProcessTimezone("America/New_York");
+
+      it("keeps the UTC Sunday as the week start while the local clock shows Saturday", () => {
+        const { weekEnd } = deliveryDateBounds({
+          today: utc("2026-07-12"),
+          weekStartDay: "sunday",
+        });
+
+        expect(weekEnd.toISOString()).toBe("2026-07-18T00:00:00.000Z");
+      });
     });
   });
 });

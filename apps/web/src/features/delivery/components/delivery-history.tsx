@@ -68,6 +68,7 @@ export function DeliveryHistory() {
       locale,
       search: params.state.q,
       tab: params.tab,
+      timeZone,
     },
   );
 

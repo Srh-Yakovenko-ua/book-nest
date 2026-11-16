@@ -101,9 +101,11 @@ function buildService(overrides: {
       fakeOf<UserSettingsContextService>({
         calendar:
           overrides.calendar ??
-          vi.fn(({ now }: { now: Date }) =>
-            Promise.resolve({ timeZone: "UTC", today: startOfUtcDay(now) }),
-          ),
+          vi.fn<UserSettingsContextService["calendar"]>(async ({ now }) => ({
+            timeZone: "UTC",
+            today: startOfUtcDay(now),
+            weekStartDay: "monday",
+          })),
       }),
     ),
   };
@@ -847,6 +849,7 @@ describe("DeliveryReadService reader calendar", () => {
       calendar: vi.fn().mockResolvedValue({
         timeZone: "Europe/Kyiv",
         today: new Date("2026-08-19T00:00:00.000Z"),
+        weekStartDay: "monday",
       }),
     });
 
@@ -856,6 +859,24 @@ describe("DeliveryReadService reader calendar", () => {
       expect.objectContaining({
         bounds: expect.objectContaining({ today: new Date("2026-08-19T00:00:00.000Z") }),
         timeZone: "Europe/Kyiv",
+      }),
+    );
+  });
+
+  it("ends the in-transit week on Saturday when the reader's week starts on Sunday", async () => {
+    const { reads, service } = buildService({
+      calendar: vi.fn<UserSettingsContextService["calendar"]>().mockResolvedValue({
+        timeZone: "Europe/Kyiv",
+        today: new Date("2026-07-08T00:00:00.000Z"),
+        weekStartDay: "sunday",
+      }),
+    });
+
+    await service.inTransitList({ query: inTransitQuery(), userId: USER });
+
+    expect(vi.mocked(reads.countInTransit).mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        bounds: expect.objectContaining({ weekEnd: new Date("2026-07-11T00:00:00.000Z") }),
       }),
     );
   });
