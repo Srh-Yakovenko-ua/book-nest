@@ -8,7 +8,12 @@ import type {
 
 import { compareAsc, compareDesc } from "date-fns";
 
-import { daysBetweenIsoDates, toIsoDate, toNullableIsoDateTime } from "../../../core/iso-date.js";
+import {
+  daysBetweenIsoDates,
+  toIsoDate,
+  toNullableIsoDate,
+  toZonedIsoDate,
+} from "../../../core/iso-date.js";
 import { compareGenreIdentity } from "./genre-aggregate.js";
 
 export type GenreOverviewAggregate = {
@@ -35,26 +40,18 @@ const GENRES_OVERVIEW_RULES = {
 
 export function buildGenresOverview({
   genres,
-  now,
-}: {
-  genres: GenreOverviewAggregate[];
-  now: Date;
-}): GenresOverviewView {
-  return {
-    dormantGenres: selectDormantGenres({ genres, now }),
-    newForYouGenres: selectNewForYouGenres({ genres, now }),
-    unratedFinishedGenres: selectUnratedFinishedGenres(genres),
-  };
-}
-
-function calendarDaysSince({
-  instant,
+  timeZone,
   todayIsoDate,
 }: {
-  instant: Date;
+  genres: GenreOverviewAggregate[];
+  timeZone: string;
   todayIsoDate: string;
-}): number {
-  return daysBetweenIsoDates({ endIsoDate: todayIsoDate, startIsoDate: toIsoDate(instant) });
+}): GenresOverviewView {
+  return {
+    dormantGenres: selectDormantGenres({ genres, todayIsoDate }),
+    newForYouGenres: selectNewForYouGenres({ genres, timeZone, todayIsoDate }),
+    unratedFinishedGenres: selectUnratedFinishedGenres(genres),
+  };
 }
 
 function compareNullableDateDesc(left: Nullable<Date>, right: Nullable<Date>): number {
@@ -73,20 +70,26 @@ function isDormantAsOf(todayIsoDate: string) {
     genre.lastReadingActivityAt !== null &&
     genre.readCount > 0 &&
     genre.readCount < genre.booksCount &&
-    calendarDaysSince({ instant: genre.lastReadingActivityAt, todayIsoDate }) >=
-      GENRES_OVERVIEW_RULES.dormantDays;
+    daysBetweenIsoDates({
+      endIsoDate: todayIsoDate,
+      startIsoDate: toIsoDate(genre.lastReadingActivityAt),
+    }) >= GENRES_OVERVIEW_RULES.dormantDays;
 }
 
 function isNewForYou({
   genre,
+  timeZone,
   todayIsoDate,
 }: {
   genre: GenreOverviewAggregate;
+  timeZone: string;
   todayIsoDate: string;
 }): boolean {
   return (
-    calendarDaysSince({ instant: genre.firstAddedAt, todayIsoDate }) <=
-      GENRES_OVERVIEW_RULES.newGenreWindowDays &&
+    daysBetweenIsoDates({
+      endIsoDate: todayIsoDate,
+      startIsoDate: toZonedIsoDate({ instant: genre.firstAddedAt, timeZone }),
+    }) <= GENRES_OVERVIEW_RULES.newGenreWindowDays &&
     genre.lastReadingActivityAt === null &&
     genre.startedBooksCount === 0
   );
@@ -98,13 +101,13 @@ function remainingCount(genre: GenreOverviewAggregate): number {
 
 function selectDormantGenres({
   genres,
-  now,
+  todayIsoDate,
 }: {
   genres: GenreOverviewAggregate[];
-  now: Date;
+  todayIsoDate: string;
 }): DormantGenreView[] {
   return genres
-    .filter(isDormantAsOf(toIsoDate(now)))
+    .filter(isDormantAsOf(todayIsoDate))
     .sort(
       (left, right) =>
         compareAsc(left.lastReadingActivityAt, right.lastReadingActivityAt) ||
@@ -116,21 +119,22 @@ function selectDormantGenres({
       booksCount: genre.booksCount,
       key: genre.key,
       label: genre.label,
-      lastReadingActivityAt: genre.lastReadingActivityAt.toISOString(),
+      lastReadingActivityAt: toIsoDate(genre.lastReadingActivityAt),
       readCount: genre.readCount,
     }));
 }
 
 function selectNewForYouGenres({
   genres,
-  now,
+  timeZone,
+  todayIsoDate,
 }: {
   genres: GenreOverviewAggregate[];
-  now: Date;
+  timeZone: string;
+  todayIsoDate: string;
 }): NewForYouGenreView[] {
-  const todayIsoDate = toIsoDate(now);
   return genres
-    .filter((genre) => isNewForYou({ genre, todayIsoDate }))
+    .filter((genre) => isNewForYou({ genre, timeZone, todayIsoDate }))
     .sort(
       (left, right) =>
         hasMultipleBooks(right) - hasMultipleBooks(left) ||
@@ -160,7 +164,7 @@ function selectUnratedFinishedGenres(genres: GenreOverviewAggregate[]): UnratedF
     .map((genre) => ({
       key: genre.key,
       label: genre.label,
-      latestUnratedFinishedAt: toNullableIsoDateTime(genre.latestUnratedFinishedAt),
+      latestUnratedFinishedAt: toNullableIsoDate(genre.latestUnratedFinishedAt),
       unratedFinishedCount: genre.unratedFinishedCount,
     }));
 }

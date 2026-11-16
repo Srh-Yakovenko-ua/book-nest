@@ -352,6 +352,27 @@ describe("toReadingHistoryView summary", () => {
     expect(view.summary.readingPeriod.calendarDays).toBe(1);
   });
 
+  it("returns each reading progress date as an ISO calendar day", () => {
+    const view = buildView({
+      progress: {
+        abandonedAt: utc("2026-03-07T00:00:00.000Z"),
+        finishedAt: utc("2026-03-11T00:00:00.000Z"),
+        lastProgressUpdateAt: utc("2026-03-09T00:00:00.000Z"),
+        pausedAt: utc("2026-03-06T00:00:00.000Z"),
+        startedAt: utc("2026-03-02T00:00:00.000Z"),
+      },
+      readingStatus: "finished",
+    });
+
+    expect(view.summary).toMatchObject({
+      abandonedAt: "2026-03-07",
+      finishedAt: "2026-03-11",
+      lastProgressUpdateAt: "2026-03-09",
+      pausedAt: "2026-03-06",
+      startedAt: "2026-03-02",
+    });
+  });
+
   it("uses the earliest event as the period start when startedAt is missing", () => {
     const view = buildView({
       events: [

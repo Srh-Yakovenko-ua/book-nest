@@ -17,7 +17,6 @@ import {
   daysBetweenIsoDates,
   toIsoDate,
   toNullableIsoDate,
-  toNullableIsoDateTime,
 } from "../../../core/iso-date.js";
 
 const SEVEN_DAY_WINDOW = 7;
@@ -96,7 +95,7 @@ export function toReadingHistoryView(args: {
   const untrackedPages = Math.max(currentPage - trackedPagesRead, 0);
 
   const summary: ReadingHistoryView["summary"] = {
-    abandonedAt: toNullableIsoDateTime(progress.abandonedAt),
+    abandonedAt: toNullableIsoDate(progress.abandonedAt),
     activeDaysCount,
     averagePagesPerActiveDay,
     bestDay: pickBestDay(days),
@@ -108,16 +107,16 @@ export function toReadingHistoryView(args: {
       pagesRemaining,
       status: readingStatus,
     }),
-    finishedAt: toNullableIsoDateTime(progress.finishedAt),
+    finishedAt: toNullableIsoDate(progress.finishedAt),
     historyCompleteness: {
       isComplete: untrackedPages === 0,
       untrackedPages,
     },
     lastActivity: lastDay === null ? null : toDaySummary(lastDay),
-    lastProgressUpdateAt: toNullableIsoDateTime(progress.lastProgressUpdateAt),
+    lastProgressUpdateAt: toNullableIsoDate(progress.lastProgressUpdateAt),
     pagesCount,
     pagesRemaining,
-    pausedAt: toNullableIsoDateTime(progress.pausedAt),
+    pausedAt: toNullableIsoDate(progress.pausedAt),
     progressPercent:
       pagesCount !== null && pagesCount > 0
         ? Math.min(100, Math.round((currentPage / pagesCount) * 100))
@@ -130,7 +129,7 @@ export function toReadingHistoryView(args: {
       endDate,
       startDate,
     },
-    startedAt: toNullableIsoDateTime(progress.startedAt),
+    startedAt: toNullableIsoDate(progress.startedAt),
     status: readingStatus,
     trackedPagesRead,
     updatesCount: totalEvents,

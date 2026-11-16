@@ -271,7 +271,7 @@ describe("seriesBookPersonalState", () => {
       currentPage: 180,
       pagesCount: 640,
       readingStatus: "reading",
-      startedAt: "2026-05-02T00:00:00.000Z",
+      startedAt: "2026-05-02",
     });
 
     expect(seriesBookPersonalState(book)).toEqual({
@@ -279,7 +279,7 @@ describe("seriesBookPersonalState", () => {
       pages: { current: 180, total: 640 },
       percent: 28,
       rereading: false,
-      startedAt: "2026-05-02T00:00:00.000Z",
+      startedAt: "2026-05-02",
     });
   });
 
@@ -302,9 +302,9 @@ describe("seriesBookPersonalState", () => {
   it("marks a finished book with its finished date", () => {
     expect(
       seriesBookPersonalState(
-        makeSeriesBookView({ finishedAt: "2026-03-14T00:00:00.000Z", readingStatus: "finished" }),
+        makeSeriesBookView({ finishedAt: "2026-03-14", readingStatus: "finished" }),
       ),
-    ).toEqual({ finishedAt: "2026-03-14T00:00:00.000Z", kind: "finished" });
+    ).toEqual({ finishedAt: "2026-03-14", kind: "finished" });
   });
 
   it("has no finished personal state without a finished date", () => {
