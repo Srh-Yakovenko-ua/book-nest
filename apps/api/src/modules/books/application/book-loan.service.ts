@@ -18,6 +18,7 @@ import { TransactionRunner } from "../../../core/database/transaction-runner.js"
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
 import { LoanContactResolver } from "../../loans/index.js";
+import { UserSettingsContextService } from "../../profile/index.js";
 import { LOAN_CREATE_RULES } from "../domain/loan-create-rules.js";
 import { extendReturnDate, resolveReminderFields } from "../domain/loan-quick-actions.js";
 import { buildLoanEditData, computeLoanChange } from "../domain/loan-transition.js";
@@ -43,6 +44,7 @@ export class BookLoanService {
     private readonly viewAssembler: BookViewAssembler,
     private readonly transactionRunner: TransactionRunner,
     private readonly loanContactResolver: LoanContactResolver,
+    private readonly userSettingsContextService: UserSettingsContextService,
   ) {}
 
   async createLoan(userId: string, bookId: string, input: CreateLoanInput): Promise<BookView> {
@@ -139,10 +141,11 @@ export class BookLoanService {
       });
     }
 
+    const today = await this.userSettingsContextService.calendarDay({ now: new Date(), userId });
     const expectedReturnDate = extendReturnDate({
       days: input.days,
       expectedReturnDate: active.expectedReturnDate,
-      now: new Date(),
+      today,
     });
     await this.booksRepository.updateActiveLoanSchedule(userId, bookId, {
       expectedReturnDate,

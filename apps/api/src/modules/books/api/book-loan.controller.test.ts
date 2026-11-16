@@ -1,3 +1,4 @@
+import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import { LOAN_ERROR_CODES } from "@app/shared";
@@ -7,17 +8,19 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { addDaysToIsoDate } from "../../../core/iso-date.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { registerReaderInTimezone } from "../../../test/user-timezone.js";
+import { defaultUserToday } from "../../../test/user-today.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { ListsModule } from "../../lists/lists.module.js";
 import { LoansModule } from "../../loans/index.js";
 import { BooksModule } from "../books.module.js";
 
 const MISSING_UUID = "00000000-0000-4000-8000-000000000000";
-const TODAY = new Date().toISOString().slice(0, 10);
-const FUTURE_DATE = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString().slice(0, 10);
+const TODAY = defaultUserToday();
+const FUTURE_DATE = addDaysToIsoDate(TODAY, 365);
 
 let context: AuthTestContext;
 let app: INestApplication;
@@ -780,5 +783,87 @@ describe("GET /api/books/:id loan badge on the reader's calendar day", () => {
       "overdue",
       "overdue",
     ]);
+  });
+});
+
+describe("POST /api/books/:id/loan/extend on the reader's calendar day", () => {
+  const KYIV_PAST_MIDNIGHT_AFTER_DUE_DAY = Object.freeze({
+    dueDate: "2026-11-16",
+    instant: new Date("2026-11-16T23:00:00.000Z"),
+    loanDate: "2026-11-01",
+  });
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(KYIV_PAST_MIDNIGHT_AFTER_DUE_DAY.instant);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  async function borrowDune({
+    expectedReturnDate,
+    timezone,
+  }: {
+    expectedReturnDate: Nullable<string>;
+    timezone: string;
+  }): Promise<{ accessToken: string; bookId: string }> {
+    const { accessToken } = await registerReaderInTimezone({ context, timezone });
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
+    const loan = await createLoan(accessToken, created.body.id, {
+      direction: "borrowed",
+      expectedReturnDate,
+      loanDate: KYIV_PAST_MIDNIGHT_AFTER_DUE_DAY.loanDate,
+      personName: "Olha",
+    });
+    expect(loan.status).toBe(200);
+    return { accessToken, bookId: created.body.id };
+  }
+
+  function extendLoan(accessToken: string, id: string, days: number): request.Test {
+    return request(app.getHttpServer())
+      .post(`/api/books/${id}/loan/extend`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ days });
+  }
+
+  it("extends from the Kyiv reader's 2026-11-17 when the loan fell due on 2026-11-16", async () => {
+    const { accessToken, bookId } = await borrowDune({
+      expectedReturnDate: KYIV_PAST_MIDNIGHT_AFTER_DUE_DAY.dueDate,
+      timezone: "Europe/Kyiv",
+    });
+
+    const res = await extendLoan(accessToken, bookId, 7);
+
+    expect(res.status).toBe(200);
+    expect(res.body.loanInfo.expectedReturnDate).toBe("2026-11-24");
+  });
+
+  it("extends from the 2026-11-16 return date for a UTC reader still on that day", async () => {
+    const { accessToken, bookId } = await borrowDune({
+      expectedReturnDate: KYIV_PAST_MIDNIGHT_AFTER_DUE_DAY.dueDate,
+      timezone: "UTC",
+    });
+
+    const res = await extendLoan(accessToken, bookId, 7);
+
+    expect(res.status).toBe(200);
+    expect(res.body.loanInfo.expectedReturnDate).toBe("2026-11-23");
+  });
+
+  it("returns 409 when the active loan has no return date to extend", async () => {
+    const { accessToken, bookId } = await borrowDune({
+      expectedReturnDate: null,
+      timezone: "Europe/Kyiv",
+    });
+
+    const res = await extendLoan(accessToken, bookId, 7);
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe(LOAN_ERROR_CODES.extendRequiresReturnDate);
   });
 });
