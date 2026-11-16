@@ -1,12 +1,42 @@
+import type { SettingsView } from "@app/shared";
 import type { ReactNode } from "react";
 
+import { defaultUserProfileSettings } from "@app/shared";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { createTestQueryClient } from "@/test-utils";
 
 import { useStatisticsParams } from "./use-statistics-params";
 
 let currentSearchParams = new URLSearchParams();
+
+let settings: SettingsView = defaultUserProfileSettings;
+
+const fetchMock = vi.fn((input: RequestInfo | URL) => {
+  const url = String(input);
+  if (url.includes("/api/profile/settings")) {
+    return Promise.resolve(
+      new Response(JSON.stringify(settings), {
+        headers: { "Content-Type": "application/json" },
+        status: 200,
+      }),
+    );
+  }
+  return Promise.reject(new Error(`unexpected ${url}`));
+});
+
+beforeEach(() => {
+  settings = defaultUserProfileSettings;
+  vi.stubGlobal("fetch", fetchMock);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
 
 vi.mock("next/navigation", () => ({
   useSearchParams: () => currentSearchParams,
@@ -15,11 +45,15 @@ vi.mock("next/navigation", () => ({
 function renderParams(searchParams = "") {
   currentSearchParams = new URLSearchParams(searchParams);
 
+  const queryClient = createTestQueryClient();
+
   return renderHook(() => useStatisticsParams(), {
     wrapper: ({ children }: { children: ReactNode }) => (
-      <NuqsTestingAdapter hasMemory searchParams={searchParams}>
-        {children}
-      </NuqsTestingAdapter>
+      <QueryClientProvider client={queryClient}>
+        <NuqsTestingAdapter hasMemory searchParams={searchParams}>
+          {children}
+        </NuqsTestingAdapter>
+      </QueryClientProvider>
     ),
   });
 }
@@ -30,6 +64,25 @@ describe("useStatisticsParams", () => {
 
     expect(result.current.state.period).toBe("this_year");
     expect(result.current.periodRange.from).toMatch(/-01-01$/);
+  });
+
+  it("anchors today on the profile time zone, not the device one", async () => {
+    vi.useFakeTimers({ now: new Date("2027-01-01T02:00:00.000Z"), toFake: ["Date"] });
+    settings = { ...defaultUserProfileSettings, timezone: "America/New_York" };
+
+    const { result } = renderParams();
+
+    await waitFor(() => expect(result.current.today).toBe("2026-12-31"));
+    expect(result.current.periodRange.from).toBe("2026-01-01");
+  });
+
+  it("moves today into the new year once midnight passes in the profile time zone", async () => {
+    vi.useFakeTimers({ now: new Date("2026-12-31T22:30:00.000Z"), toFake: ["Date"] });
+    settings = { ...defaultUserProfileSettings, timezone: "Europe/Kyiv" };
+
+    const { result } = renderParams();
+
+    await waitFor(() => expect(result.current.today).toBe("2027-01-01"));
   });
 
   it("starts with the comparison off", () => {

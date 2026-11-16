@@ -1,7 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import type { UserModel } from "../../../generated/prisma/models.js";
 
+import { pinProcessTimezone } from "../../../test/process-timezone.js";
 import { toUserView } from "./user.mapper.js";
 
 function userModel(overrides: Partial<UserModel> = {}): UserModel {
@@ -39,15 +40,7 @@ describe("toUserView", () => {
   });
 
   describe("with a server timezone west of UTC", () => {
-    const originalTimezone = process.env.TZ;
-
-    beforeEach(() => {
-      process.env.TZ = "America/Los_Angeles";
-    });
-
-    afterEach(() => {
-      process.env.TZ = originalTimezone;
-    });
+    pinProcessTimezone("America/Los_Angeles");
 
     it("maps a UTC-midnight dateOfBirth to the same calendar day", () => {
       const view = toUserView(userModel({ dateOfBirth: new Date("1995-07-21T00:00:00.000Z") }));

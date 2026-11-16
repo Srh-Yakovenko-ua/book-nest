@@ -8,8 +8,8 @@ import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "@/i18n/navigation";
+import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 import { focusOnMount } from "@/lib/focus-on-mount";
-import { ApiError } from "@/lib/http-client";
 import { cn } from "@/lib/utils";
 
 import { useSeriesDetails } from "../api/use-series-details";
@@ -57,7 +57,7 @@ export function SeriesDetails({ id }: SeriesDetailsProps) {
     );
   }
 
-  const isNotFound = error instanceof ApiError && error.status === 404;
+  const isNotFound = isApiErrorStatus(error, HTTP_STATUS.notFound);
 
   if (isLoadingError || (isRefetchError && isNotFound)) {
     return (

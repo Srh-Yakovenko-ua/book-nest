@@ -7,6 +7,8 @@ import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { AttentionBlock } from "@/components/attention-block";
+import { useProfileTimeZone } from "@/features/settings";
+import { todayIsoDay } from "@/lib/iso-day";
 
 import type { DeliveryAttentionLabels } from "../model/in-transit-attention";
 
@@ -31,6 +33,7 @@ export function DeliveryAttentionBlock({
 }: DeliveryAttentionBlockProps) {
   const t = useTranslations("delivery.attention");
   const locale = useLocale();
+  const today = todayIsoDay(useProfileTimeZone());
   const [expanded, setExpanded] = useState(false);
 
   const labels: DeliveryAttentionLabels = {
@@ -67,7 +70,7 @@ export function DeliveryAttentionBlock({
     },
   };
 
-  const items = buildDeliveryAttentionItems({ attention, labels, locale });
+  const items = buildDeliveryAttentionItems({ attention, labels, locale, today });
   const visibleItems = expanded ? items : items.slice(0, DELIVERY_ATTENTION_BLOCK.collapsedRows);
 
   return (

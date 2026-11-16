@@ -18,7 +18,7 @@ const discardChanges = messages.common.discardChanges;
 
 const SENTINEL_ENTRY = {
   key: "sentinel-entry",
-  storageKey: "characterFactDraftGuard:entryKey",
+  storageKey: "closeGuard:entryKey",
 } as const;
 
 function closeButton() {

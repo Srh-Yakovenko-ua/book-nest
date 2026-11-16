@@ -2,7 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 
-import type { ActiveFilterChip } from "@/features/books";
+import type { ActiveFilterChip } from "@/components/catalog/active-filters";
 
 import { isStorableOrderId, rangeLabel, storableDay } from "@/lib/filter-chips";
 import { formatDate } from "@/lib/format";

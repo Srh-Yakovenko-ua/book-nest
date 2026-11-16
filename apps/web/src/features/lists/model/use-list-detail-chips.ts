@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
-import type { ActiveFilterChip } from "@/features/books/components/library-active-filters";
+import type { ActiveFilterChip } from "@/components/catalog/active-filters";
 
 import { ListDetailsControllerDetailOwnerItem } from "@/shared/api/generated/model";
 

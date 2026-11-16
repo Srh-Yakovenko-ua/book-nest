@@ -1,13 +1,12 @@
 import type { InTransitSummaryView, NextShipmentView } from "@app/shared";
 
-import { parseISO } from "date-fns";
 import { describe, expect, it } from "vitest";
 
 import type { DeliveryNextShipmentLabels } from "./next-shipment-card";
 
 import { buildDeliveryNextShipmentCard } from "./next-shipment-card";
 
-const NOW = parseISO("2026-08-18T10:00:00");
+const TODAY = "2026-08-18";
 
 const LABELS: DeliveryNextShipmentLabels = {
   booksCount: (count) => `${count} книг`,
@@ -21,8 +20,8 @@ function build(shipment: NextShipmentView | null) {
   return buildDeliveryNextShipmentCard({
     labels: LABELS,
     locale: "uk",
-    now: NOW,
     summary: { nextShipment: shipment } as InTransitSummaryView,
+    today: TODAY,
   });
 }
 
@@ -53,7 +52,7 @@ describe("buildDeliveryNextShipmentCard", () => {
 
   it("returns nothing when there is no summary at all", () => {
     expect(
-      buildDeliveryNextShipmentCard({ labels: LABELS, locale: "uk", now: NOW, summary: null }),
+      buildDeliveryNextShipmentCard({ labels: LABELS, locale: "uk", summary: null, today: TODAY }),
     ).toBeNull();
   });
 
@@ -71,6 +70,19 @@ describe("buildDeliveryNextShipmentCard", () => {
     expect(build(makeShipment({ expectedDeliveryDate: "2026-08-19" }))?.relativeDayText).toBe(
       "Завтра",
     );
+  });
+
+  it("counts days to delivery from the profile today", () => {
+    const model = buildDeliveryNextShipmentCard({
+      labels: LABELS,
+      locale: "uk",
+      summary: {
+        nextShipment: makeShipment({ expectedDeliveryDate: "2026-08-21" }),
+      } as InTransitSummaryView,
+      today: "2026-08-21",
+    });
+
+    expect(model?.relativeDayText).toBe(LABELS.today);
   });
 
   it("still says today when the expected day has already slipped past", () => {

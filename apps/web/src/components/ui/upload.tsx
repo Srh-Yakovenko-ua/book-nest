@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import * as React from "react";
 
 import { UiIcon } from "@/components/icons";
@@ -20,14 +21,9 @@ type UploadProps = {
   title?: string;
 };
 
-function formatSize(bytes: number) {
-  if (bytes >= 1_048_576) return `${(bytes / 1_048_576).toFixed(1)} МБ`;
-  return `${Math.max(1, Math.round(bytes / 1024))} КБ`;
-}
-
 function Upload({
   accept,
-  browseLabel = "Завантажити файл",
+  browseLabel,
   className,
   disabled,
   files,
@@ -36,8 +32,9 @@ function Upload({
   media,
   multiple = false,
   onFilesChange,
-  title = "Перетягніть файл сюди",
+  title,
 }: UploadProps) {
+  const t = useTranslations("upload");
   const inputRef = React.useRef<HTMLInputElement>(null);
   const buttonRef = React.useRef<HTMLButtonElement>(null);
   const [dragOver, setDragOver] = React.useState(false);
@@ -89,6 +86,11 @@ function Upload({
     onFilesChange(files.filter((_, current) => current !== index));
   };
 
+  const formatSize = (bytes: number) => {
+    if (bytes >= 1_048_576) return t("sizeMegabytes", { size: (bytes / 1_048_576).toFixed(1) });
+    return t("sizeKilobytes", { size: Math.max(1, Math.round(bytes / 1024)) });
+  };
+
   return (
     <div className={cn("flex flex-col gap-3", className)} data-slot="upload">
       <button
@@ -135,14 +137,14 @@ function Upload({
           </span>
         )}
         <span className="text-sm font-bold text-ink" id={titleId}>
-          {dragOver ? "Відпустіть, щоб завантажити" : title}
+          {dragOver ? t("dropToUpload") : (title ?? t("title"))}
         </span>
-        <span className="text-sm text-muted-foreground">або</span>
+        <span className="text-sm text-muted-foreground">{t("or")}</span>
         <span className="mt-1 flex w-full">
           <Button asChild className="h-11 w-full" tabIndex={-1}>
             <span>
               <UiIcon name="upload" size={18} />
-              {browseLabel}
+              {browseLabel ?? t("browse")}
             </span>
           </Button>
         </span>
@@ -188,7 +190,7 @@ function Upload({
               </span>
               {disabled ? null : (
                 <Button
-                  aria-label={`Видалити ${file.name}`}
+                  aria-label={t("remove", { name: file.name })}
                   onClick={() => removeAt(index)}
                   size="icon-sm"
                   variant="ghost"

@@ -3,6 +3,7 @@
 import { LayoutGrid, List } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { ActiveFilters } from "@/components/catalog/active-filters";
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
 import { Segmented } from "@/components/ui/segmented";
 import {
@@ -12,7 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LibraryActiveFilters } from "@/features/books/components/library-active-filters";
 
 import type { ListSort, ListsQueryState, ListViewMode } from "../model/lists-query";
 import type { UseListsQueryResult } from "../model/use-lists-query";
@@ -113,7 +113,7 @@ export function ListsToolbar({
         </div>
       </div>
 
-      <LibraryActiveFilters chips={chips} onClearAll={onClearFilters} />
+      <ActiveFilters chips={chips} onClearAll={onClearFilters} />
 
       {counter === undefined ? null : (
         <p aria-live="polite" className="mt-1 text-sm text-muted-foreground">

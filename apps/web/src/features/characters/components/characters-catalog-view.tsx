@@ -8,6 +8,7 @@ import { useLocale, useTranslations } from "next-intl";
 import type { SummaryCard } from "@/components/catalog/summary-cards";
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
+import { ActiveFilters } from "@/components/catalog/active-filters";
 import { SummaryCards } from "@/components/catalog/summary-cards";
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
@@ -22,7 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LibraryActiveFilters } from "@/features/books";
 import { formatNumber } from "@/lib/format";
 
 import { useCharactersCatalog } from "../api/use-characters-catalog";
@@ -185,7 +185,7 @@ export function CharactersCatalogView() {
           value={state.filter}
         />
 
-        <LibraryActiveFilters chips={filterChips} onClearAll={clearAll} />
+        <ActiveFilters chips={filterChips} onClearAll={clearAll} />
 
         {catalog.isLoadingError ? null : (
           <p aria-live="polite" className="text-sm text-muted-foreground">

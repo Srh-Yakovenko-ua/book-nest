@@ -523,6 +523,15 @@
   "facetMultiselect": {
     "remove": "Прибрати {label}"
   },
+  "upload": {
+    "browse": "Завантажити файл",
+    "dropToUpload": "Відпустіть, щоб завантажити",
+    "or": "або",
+    "remove": "Видалити {name}",
+    "sizeKilobytes": "{size} КБ",
+    "sizeMegabytes": "{size} МБ",
+    "title": "Перетягніть файл сюди"
+  },
   "auth": {
     "common": {
       "submit": "Підтвердити",

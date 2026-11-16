@@ -46,7 +46,7 @@ const labels: DeliverySummaryLabels = {
 };
 
 function buildCards(summary: Nullable<InTransitSummaryView>): SummaryCard[] {
-  return buildDeliverySummaryCards({ labels, locale, summary });
+  return buildDeliverySummaryCards({ labels, locale, summary, today: "2026-08-18" });
 }
 
 function cardAt(summary: Nullable<InTransitSummaryView>, index: number): SummaryCard {
@@ -194,6 +194,17 @@ describe("buildDeliverySummaryCards", () => {
       );
 
       expect(card.microfact).toBe("expectedThisWeek.onDate:August 21");
+    });
+
+    it("dates the nearest delivery against the profile today, not the device clock", () => {
+      const [, expectedThisWeek] = buildDeliverySummaryCards({
+        labels,
+        locale,
+        summary: makeSummary({ expectedThisWeekCount: 1, nextExpectedThisWeek: "2026-08-19" }),
+        today: "2026-08-19",
+      });
+
+      expect(expectedThisWeek?.microfact).toBe("expectedThisWeek.today");
     });
 
     it("falls back to the empty line without an expected date", () => {

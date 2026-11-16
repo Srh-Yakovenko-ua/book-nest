@@ -4,7 +4,7 @@ import type { LoanDirection, Nullable } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 
-import type { ActiveFilterChip } from "@/features/books";
+import type { ActiveFilterChip } from "@/components/catalog/active-filters";
 
 import { rangeLabel, storableDay } from "@/lib/filter-chips";
 import { formatDate } from "@/lib/format";

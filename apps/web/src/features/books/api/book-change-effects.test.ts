@@ -9,6 +9,7 @@ import { characterKeys } from "@/features/characters/api/character-keys";
 import { deliveryKeys } from "@/features/delivery/api/delivery-keys";
 import { loanKeys } from "@/features/loans/api/loan-keys";
 import { seriesKeys } from "@/features/series/api/series-keys";
+import { statisticsKeys } from "@/features/statistics/api/statistics-keys";
 
 import { bookChangeEffects } from "./book-change-effects";
 import { bookKeys, matchesBookDetail } from "./book-keys";
@@ -27,6 +28,7 @@ const KEYS = {
   readingHistory: bookKeys.readingHistory("book-1", { page: 1 }),
   relationshipRoster: relationshipKeys.roster({ bookId: "book-1", sort: "name", term: "" }),
   seriesSearch: seriesKeys.search({ authorIds: [], search: "x" }),
+  statisticsOverview: statisticsKeys.overview({ year: 2026 }),
   unrelated: ["/api/notes", "x"],
 } as const satisfies Record<string, QueryKey>;
 
@@ -168,5 +170,31 @@ describe("bookChangeEffects", () => {
     await bookChangeEffects.booksChanged(client, { changes: ["removed"] });
 
     expect(staleFlags(client, keys)).toEqual([true, false]);
+  });
+
+  it("listEdited refreshes book queries and leaves lists and statistics alone", async () => {
+    const keys = [KEYS.bookList, KEYS.listDetail, KEYS.statisticsOverview];
+    const client = seededClient(keys);
+
+    await bookChangeEffects.booksChanged(client, { changes: ["listEdited"] });
+
+    expect(staleFlags(client, keys)).toEqual([true, false, false]);
+  });
+
+  it("seriesCreated refreshes series and statistics and nothing a new series cannot affect", async () => {
+    const keys = [
+      KEYS.seriesSearch,
+      KEYS.statisticsOverview,
+      KEYS.bookList,
+      KEYS.queue,
+      KEYS.listDetail,
+      KEYS.relationshipRoster,
+      KEYS.unrelated,
+    ];
+    const client = seededClient(keys);
+
+    await bookChangeEffects.booksChanged(client, { changes: ["seriesCreated"] });
+
+    expect(staleFlags(client, keys)).toEqual([true, true, false, false, false, false, false]);
   });
 });

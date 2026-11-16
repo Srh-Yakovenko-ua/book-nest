@@ -1,10 +1,10 @@
 import type { Nullable, ReadingGoalResult, ReadingGoalStatus } from "@app/shared";
 
-import { compareAsc, differenceInCalendarDays, isAfter, isBefore } from "date-fns";
+import { compareAsc, isAfter, isBefore } from "date-fns";
 
 import type { ReadingGoalQualificationWindow } from "./reading-goal-window.js";
 
-import { startOfUtcDay } from "../../../core/iso-date.js";
+import { daysBetweenUtcDays, startOfUtcDay } from "../../../core/iso-date.js";
 import { resolveReadingGoalCountingEnd } from "./reading-goal-window.js";
 
 export type ReadingGoalCandidateBook = {
@@ -158,5 +158,5 @@ function compareQualifyingBooks(
 }
 
 function remainingCalendarDays({ deadline, today }: { deadline: Date; today: Date }): number {
-  return Math.max(0, differenceInCalendarDays(deadline, startOfUtcDay(today)));
+  return Math.max(0, daysBetweenUtcDays({ end: deadline, start: today }));
 }

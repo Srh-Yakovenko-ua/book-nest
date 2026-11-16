@@ -13,11 +13,10 @@ import type {
 
 import { LOAN_STATS_WINDOWS, LoanTypeSchema, OwnershipStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
-import { subDays } from "date-fns";
 
 import type { LoanDateBounds } from "../domain/loan-ui-status.js";
 
-import { toNullableIsoDate } from "../../../core/iso-date.js";
+import { addDaysToUtcDay, toNullableIsoDate } from "../../../core/iso-date.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { MediaService } from "../../media/index.js";
 import { UserSettingsContextService } from "../../profile/index.js";
@@ -105,7 +104,7 @@ export class LoansService {
 
   async summary({ userId }: { userId: string }): Promise<LoansSummaryView> {
     const { soonEnd, today } = await this.dateBounds({ now: new Date(), userId });
-    const longHeldBefore = subDays(today, LOAN_STATS_WINDOWS.longHeldDays);
+    const longHeldBefore = addDaysToUtcDay({ day: today, days: -LOAN_STATS_WINDOWS.longHeldDays });
 
     const [counts, people, borrowedLoans, lentLoans] = await Promise.all([
       this.loansRepository.summary({ longHeldBefore, soonEnd, today, userId }),

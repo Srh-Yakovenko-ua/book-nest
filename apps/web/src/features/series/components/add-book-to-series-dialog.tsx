@@ -30,7 +30,7 @@ import { Label } from "@/components/ui/label";
 import { NumberStepper } from "@/components/ui/number-stepper";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { useUpdateBook } from "@/features/books/api/use-update-book";
+import { useUpdateBook } from "@/features/books";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { Link } from "@/i18n/navigation";

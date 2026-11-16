@@ -5,10 +5,9 @@ import {
   IN_TRANSIT_ATTENTION_THRESHOLDS,
   ShipmentStatusSchema,
 } from "@app/shared";
-import { addDays, differenceInCalendarDays, subDays } from "date-fns";
 
 import { assertNever } from "../../../core/assert-never.js";
-import { startOfUtcDay } from "../../../core/iso-date.js";
+import { addDaysToUtcDay, daysBetweenUtcDays, startOfUtcDay } from "../../../core/iso-date.js";
 
 const ARRIVING_SOON_DAYS = 7;
 const DAYS_FROM_MONDAY_TO_SUNDAY = 6;
@@ -32,16 +31,15 @@ export type ShipmentUiStatusSource = {
 
 export function deliveryDateBounds(now: Date): DeliveryDateBounds {
   const today = startOfUtcDay(now);
-  const soonEnd = addDays(today, ARRIVING_SOON_DAYS);
+  const daysFromToday = (days: number): Date => addDaysToUtcDay({ day: today, days });
   const mondayOffset = (today.getUTCDay() + 6) % 7;
-  const weekEnd = addDays(today, DAYS_FROM_MONDAY_TO_SUNDAY - mondayOffset);
 
   return {
-    dispatchCutoff: subDays(today, IN_TRANSIT_ATTENTION_THRESHOLDS.awaitingDispatchDays),
-    pickupDeadline: addDays(today, IN_TRANSIT_ATTENTION_THRESHOLDS.pickupExpiringDays),
-    soonEnd,
+    dispatchCutoff: daysFromToday(-IN_TRANSIT_ATTENTION_THRESHOLDS.awaitingDispatchDays),
+    pickupDeadline: daysFromToday(IN_TRANSIT_ATTENTION_THRESHOLDS.pickupExpiringDays),
+    soonEnd: daysFromToday(ARRIVING_SOON_DAYS),
     today,
-    weekEnd,
+    weekEnd: daysFromToday(DAYS_FROM_MONDAY_TO_SUNDAY - mondayOffset),
   };
 }
 
@@ -94,7 +92,7 @@ function uiStatusFromDueDate({
     return UI_STATUS.no_delivery_date;
   }
 
-  const daysUntilDue = differenceInCalendarDays(dueDate, today);
+  const daysUntilDue = daysBetweenUtcDays({ end: dueDate, start: today });
   if (daysUntilDue < 0) {
     return UI_STATUS.delayed;
   }

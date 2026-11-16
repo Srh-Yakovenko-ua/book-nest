@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import type { OrderStatisticsItemRecord, OrderStatisticsRecord } from "./statistics-scope.js";
 
+import { pinProcessTimezone } from "../../../test/process-timezone.js";
 import { buildActiveMoneyAge } from "./active-age.js";
 import { classifyOrder } from "./statistics-scope.js";
 
@@ -72,6 +73,24 @@ describe("buildActiveMoneyAge boundaries", () => {
 
   it("treats a legacy order dated in the future as brand new instead of going negative", () => {
     expect(bucketsOf([makeOrder({ orderDate: subDays(NOW, -5) })])).toEqual(["0_7"]);
+  });
+
+  describe("Atlantic/Azores", () => {
+    pinProcessTimezone("Atlantic/Azores");
+
+    it("buckets a seven-day-old order into 0_7 across the spring clock change", () => {
+      const order = classifyOrder({
+        includeCancelled: false,
+        record: makeOrder({ orderDate: new Date("2026-03-25T00:00:00.000Z") }),
+      });
+
+      const { buckets } = buildActiveMoneyAge({
+        now: new Date("2026-04-01T12:00:00.000Z"),
+        orders: [order],
+      });
+
+      expect(buckets.map((bucket) => bucket.key)).toEqual(["0_7"]);
+    });
   });
 });
 

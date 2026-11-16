@@ -439,6 +439,53 @@ describe("createBookOrderDraftReducer", () => {
 
       expect(next.shipments).toEqual(shipments);
     });
+
+    it("pickerSelectionApplied drops a deselected book from every distributed shipment", () => {
+      const draft = makeDraft({
+        books: [makeOrderBook(BOOK_1), makeOrderBook(BOOK_2), makeOrderBook(BOOK_3)],
+        pickerSelection: [makeBookView({ id: BOOK_1 }), makeBookView({ id: BOOK_3 })],
+        shipments: [makeShipment(SHIPMENT_1, [BOOK_1, BOOK_2]), makeShipment(SHIPMENT_2, [BOOK_3])],
+        shipping: "yes",
+      });
+
+      const next = createBookOrderDraftReducer(draft, { type: "pickerSelectionApplied" });
+
+      expect(next.shipments).toEqual([
+        makeShipment(SHIPMENT_1, [BOOK_1]),
+        makeShipment(SHIPMENT_2, [BOOK_3]),
+      ]);
+    });
+
+    it("pickerSelectionApplied keeps the shipment of a book that stays selected and leaves a new one unassigned", () => {
+      const draft = makeDraft({
+        books: [makeOrderBook(BOOK_1), makeOrderBook(BOOK_2)],
+        pickerSelection: [makeBookView({ id: BOOK_2 }), makeBookView({ id: BOOK_3 })],
+        shipments: [makeShipment(SHIPMENT_1, [BOOK_1]), makeShipment(SHIPMENT_2, [BOOK_2])],
+        shipping: "yes",
+      });
+
+      const next = createBookOrderDraftReducer(draft, { type: "pickerSelectionApplied" });
+
+      expect(next.shipments).toEqual([
+        makeShipment(SHIPMENT_1, []),
+        makeShipment(SHIPMENT_2, [BOOK_2]),
+      ]);
+      expect(unassignedBooks(next).map(({ book }) => book.id)).toEqual([BOOK_3]);
+    });
+
+    it("pickerSelectionApplied clears a deselected book from the single shipment of a distribution layout", () => {
+      const draft = makeDraft({
+        books: [makeOrderBook(BOOK_1), makeOrderBook(BOOK_2)],
+        pickerSelection: [makeBookView({ id: BOOK_2 })],
+        shipments: [makeShipment(SHIPMENT_1, [BOOK_1])],
+        shipping: "yes",
+      });
+      expect(shipmentLayout(draft)).toBe("distribution");
+
+      const next = createBookOrderDraftReducer(draft, { type: "pickerSelectionApplied" });
+
+      expect(next.shipments).toEqual([makeShipment(SHIPMENT_1, [])]);
+    });
   });
 
   describe("freeChanged", () => {

@@ -9,11 +9,10 @@ import {
   ActiveMoneyAgeBucketSchema,
   isActiveShipmentStatus,
 } from "@app/shared";
-import { differenceInCalendarDays } from "date-fns";
 
 import type { AmountAccumulator, ClassifiedOrder } from "./statistics-scope.js";
 
-import { startOfUtcDay } from "../../../core/iso-date.js";
+import { daysBetweenUtcDays } from "../../../core/iso-date.js";
 import { addOrderAmount, isActiveItem, totalsFromAmounts } from "./statistics-scope.js";
 
 const AGE_BUCKET_ORDER: readonly ActiveMoneyAgeBucket[] = ActiveMoneyAgeBucketSchema.options;
@@ -74,10 +73,7 @@ function ageBucketOf({
     return ActiveMoneyAgeBucketSchema.enum.unknown_date;
   }
 
-  const ageInDays = Math.max(
-    0,
-    differenceInCalendarDays(startOfUtcDay(now), startOfUtcDay(orderDate)),
-  );
+  const ageInDays = Math.max(0, daysBetweenUtcDays({ end: now, start: orderDate }));
   const matched = DATED_AGE_BUCKETS.find(
     ([, bounds]) =>
       ageInDays >= bounds.minDays && (bounds.maxDays === null || ageInDays <= bounds.maxDays),

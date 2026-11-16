@@ -13,12 +13,12 @@ import type {
   LoansControllerListReminder,
 } from "@/shared/api/generated/model";
 
+import { ActiveFilters } from "@/components/catalog/active-filters";
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
-import { LibraryActiveFilters } from "@/features/books/components/library-active-filters";
 import { useProfileTimeZone } from "@/features/settings";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
@@ -223,7 +223,7 @@ export function LoansView({ type }: { type: LoanType }) {
               value={query.filter}
             />
 
-            <LibraryActiveFilters chips={filterChips} onClearAll={query.clearFilters} />
+            <ActiveFilters chips={filterChips} onClearAll={query.clearFilters} />
 
             <p className="text-sm text-muted-foreground" role="status">
               {list.isPending

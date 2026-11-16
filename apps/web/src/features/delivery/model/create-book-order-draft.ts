@@ -293,17 +293,15 @@ export function unassignedBooks({
 
 function applyPickerSelection(draft: CreateBookOrderDraft): CreateBookOrderDraft {
   const selected = draft.pickerSelection;
+  const selectedIds = selected.map(({ id }) => id);
   const books = selected.map((book) => ({
     book,
     price: draft.books.find((entry) => entry.book.id === book.id)?.price ?? "",
   }));
   const shipments =
     shipmentLayout(draft) === "simple"
-      ? withPrimaryShipmentBooks(
-          draft.shipments,
-          selected.map(({ id }) => id),
-        )
-      : draft.shipments;
+      ? withPrimaryShipmentBooks(draft.shipments, selectedIds)
+      : withSelectedBooksOnly(draft.shipments, new Set(selectedIds));
   return { ...replaceBooks(draft, books), shipments };
 }
 
@@ -432,4 +430,14 @@ function withoutItemPrices(books: OrderBookDraft[]): OrderBookDraft[] {
 
 function withPrimaryShipmentBooks(shipments: ShipmentDraft[], bookIds: string[]): ShipmentDraft[] {
   return shipments.map((shipment, index) => (index === 0 ? { ...shipment, bookIds } : shipment));
+}
+
+function withSelectedBooksOnly(
+  shipments: ShipmentDraft[],
+  selectedIds: ReadonlySet<string>,
+): ShipmentDraft[] {
+  return shipments.map((shipment) => ({
+    ...shipment,
+    bookIds: shipment.bookIds.filter((id) => selectedIds.has(id)),
+  }));
 }

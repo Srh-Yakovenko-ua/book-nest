@@ -1,9 +1,9 @@
 import type { Nullable, ReadingStatus, SeriesStatsView } from "@app/shared";
 
 import { compareByPartThenCreated } from "@app/shared";
-import { differenceInCalendarDays, max, min } from "date-fns";
+import { max, min } from "date-fns";
 
-import { toNullableIsoDateTime } from "../../../core/iso-date.js";
+import { daysBetweenUtcDays, toNullableIsoDateTime } from "../../../core/iso-date.js";
 
 type PagedBook = Pick<StatsBook, "pagesCount">;
 
@@ -135,7 +135,7 @@ function computeReadingDurationDays({
   if (startedAt === null || lastFinishedAt === null) {
     return null;
   }
-  const durationDays = differenceInCalendarDays(lastFinishedAt, startedAt);
+  const durationDays = daysBetweenUtcDays({ end: lastFinishedAt, start: startedAt });
   return durationDays < 0 ? null : durationDays;
 }
 

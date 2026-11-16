@@ -1,7 +1,6 @@
 import type { Nullable, ReadingGoalUncountedReason } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
-import { differenceInCalendarDays } from "date-fns";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { ReadingGoalCalculationGoal } from "../domain/reading-goal-metrics.js";
@@ -12,7 +11,7 @@ import type {
 import type { ReadingGoalActivityInput } from "../infrastructure/reading-goal-activity.repository.js";
 import type { ReadingGoalSnapshotEntryWithProgressRow } from "../infrastructure/reading-goal-books.repository.js";
 
-import { startOfUtcDay, toIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
+import { daysBetweenUtcDays, toIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
 import { UserSettingsContextService } from "../../profile/index.js";
 import { calculateReadingGoalMetrics } from "../domain/reading-goal-metrics.js";
 import { selectQualifyingReadingGoalBooks } from "../domain/reading-goal-progress.js";
@@ -264,7 +263,7 @@ function daysBeforeDeadline({
   completedAt: Date;
   deadline: Date;
 }): number {
-  return Math.max(0, differenceInCalendarDays(startOfUtcDay(deadline), startOfUtcDay(completedAt)));
+  return Math.max(0, daysBetweenUtcDays({ end: deadline, start: completedAt }));
 }
 
 function groupEntriesByGoal({

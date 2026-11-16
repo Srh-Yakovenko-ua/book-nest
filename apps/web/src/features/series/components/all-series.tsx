@@ -6,7 +6,8 @@ import { type ReactNode, useState } from "react";
 
 import type { SummaryCard } from "@/components/catalog/summary-cards";
 
-import { type ActiveFilterChip, LibraryActiveFilters, useGenres } from "@/features/books";
+import { type ActiveFilterChip, ActiveFilters } from "@/components/catalog/active-filters";
+import { useGenres } from "@/features/books";
 import { useRouter } from "@/i18n/navigation";
 import { formatNumber } from "@/lib/format";
 
@@ -308,7 +309,7 @@ export function AllSeries() {
   return (
     <>
       <AllSeriesView
-        activeFilters={<LibraryActiveFilters chips={filterChips} onClearAll={clearFilters} />}
+        activeFilters={<ActiveFilters chips={filterChips} onClearAll={clearFilters} />}
         counterLabel={counterLabel}
         hasActiveQuery={hasActiveQuery}
         hasAnySeries={hasAnySeries}

@@ -267,6 +267,8 @@ const OwnershipPersonNameSchema = z
 
 export const PURCHASE_INPUT_LIMITS = {
   priceMax: OWNERSHIP_PRICE_MAX,
+  priceMin: OWNERSHIP_PRICE_MIN,
+  storeNameMax: OWNERSHIP_STORE_NAME_MAX,
 } as const;
 
 const PurchaseInfoFieldsSchema = z.object({

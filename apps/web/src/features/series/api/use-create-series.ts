@@ -5,10 +5,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import type { NewSeriesInputDto } from "@/shared/api/generated/model";
 
-import { invalidateStatisticsQueries } from "@/features/statistics/api/statistics-keys";
+import { bookChangeEffects } from "@/features/books/api/book-change-effects";
 import { seriesControllerCreate } from "@/shared/api/generated/endpoints/series/series";
-
-import { invalidateSeriesQueries } from "./series-keys";
 
 export function useCreateSeries() {
   const queryClient = useQueryClient();
@@ -19,8 +17,7 @@ export function useCreateSeries() {
       return SeriesViewSchema.parse(response);
     },
     onSuccess: () => {
-      void invalidateSeriesQueries(queryClient);
-      void invalidateStatisticsQueries(queryClient);
+      void bookChangeEffects.booksChanged(queryClient, { changes: ["seriesCreated"] });
     },
   });
 }

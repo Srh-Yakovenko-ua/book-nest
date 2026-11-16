@@ -1,11 +1,10 @@
-import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 
-import { genresKeys, invalidateGenreDerivedQueries } from "./genres-keys";
+import { genresKeys, matchesGenreDerivedKey } from "./genres-keys";
 
 const LIST_PARAMS = { filter: "all", sort: "books_count_desc" } as const;
 
-const SEEDED_KEYS = {
+const GENRE_KEYS = {
   catalog: genresKeys.catalog,
   facets: genresKeys.facets({ q: "фе" }),
   overview: genresKeys.overview,
@@ -14,35 +13,17 @@ const SEEDED_KEYS = {
   summary: genresKeys.summary,
 } as const;
 
-function isInvalidated(queryClient: QueryClient, queryKey: readonly unknown[]): boolean {
-  return queryClient.getQueryState(queryKey)?.isInvalidated ?? false;
-}
-
-function seededClient(): QueryClient {
-  const queryClient = new QueryClient();
-  for (const key of Object.values(SEEDED_KEYS)) queryClient.setQueryData(key, {});
-  return queryClient;
-}
-
-describe("invalidateGenreDerivedQueries", () => {
-  it("refreshes the list, facets, summary and overview of the Genres page", async () => {
-    const queryClient = seededClient();
-
-    await invalidateGenreDerivedQueries(queryClient);
-
-    expect(isInvalidated(queryClient, SEEDED_KEYS.stats)).toBe(true);
-    expect(isInvalidated(queryClient, SEEDED_KEYS.facets)).toBe(true);
-    expect(isInvalidated(queryClient, SEEDED_KEYS.summary)).toBe(true);
-    expect(isInvalidated(queryClient, SEEDED_KEYS.overview)).toBe(true);
+describe("matchesGenreDerivedKey", () => {
+  it("matches the list, facets, summary and overview of the Genres page", () => {
+    expect(matchesGenreDerivedKey({ queryKey: GENRE_KEYS.stats })).toBe(true);
+    expect(matchesGenreDerivedKey({ queryKey: GENRE_KEYS.facets })).toBe(true);
+    expect(matchesGenreDerivedKey({ queryKey: GENRE_KEYS.summary })).toBe(true);
+    expect(matchesGenreDerivedKey({ queryKey: GENRE_KEYS.overview })).toBe(true);
   });
 
-  it("leaves the global genre catalog and recent usage untouched", async () => {
-    const queryClient = seededClient();
-
-    await invalidateGenreDerivedQueries(queryClient);
-
-    expect(isInvalidated(queryClient, SEEDED_KEYS.catalog)).toBe(false);
-    expect(isInvalidated(queryClient, SEEDED_KEYS.recent)).toBe(false);
+  it("leaves the global genre catalog and recent usage out", () => {
+    expect(matchesGenreDerivedKey({ queryKey: GENRE_KEYS.catalog })).toBe(false);
+    expect(matchesGenreDerivedKey({ queryKey: GENRE_KEYS.recent })).toBe(false);
   });
 });
 

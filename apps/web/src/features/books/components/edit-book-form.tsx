@@ -10,8 +10,8 @@ import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "@/i18n/navigation";
+import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 import { focusOnMount } from "@/lib/focus-on-mount";
-import { ApiError } from "@/lib/http-client";
 
 import { useBook } from "../api/use-book";
 import { BookForm } from "./book-form";
@@ -52,7 +52,7 @@ export function EditBookForm({ id }: EditBookFormProps) {
     );
   }
 
-  const isNotFound = error instanceof ApiError && error.status === 404;
+  const isNotFound = isApiErrorStatus(error, HTTP_STATUS.notFound);
 
   if (isLoadingError || (isRefetchError && isNotFound)) {
     return (

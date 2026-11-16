@@ -9,7 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { CharacterGraphLayoutsControllerGetParams } from "@/shared/api/generated/model";
 
-import { ApiError } from "@/lib/http-client";
+import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 import {
   characterGraphLayoutsControllerGet,
   characterGraphLayoutsControllerRemove,
@@ -19,8 +19,6 @@ import {
 import type { RelationshipGraphLayoutKey } from "../model/relationship-graph-scope";
 
 import { relationshipKeys } from "./relationship-keys";
-
-const LAYOUT_MISSING_STATUS = 404;
 
 export type RelationshipGraphLayoutSnapshot = {
   layoutVersion: string;
@@ -76,7 +74,7 @@ export function useRelationshipGraphLayout(
 }
 
 function isLayoutMissing(error: unknown): boolean {
-  return error instanceof ApiError && error.status === LAYOUT_MISSING_STATUS;
+  return isApiErrorStatus(error, HTTP_STATUS.notFound);
 }
 
 function toLayoutKeyParams({

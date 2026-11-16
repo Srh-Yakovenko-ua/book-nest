@@ -1,10 +1,12 @@
 import "@testing-library/jest-dom/vitest";
 
-import type { BookView, PublisherDuplicateCandidate, SeriesView } from "@app/shared";
+import type { BookView, PublisherDuplicateCandidate, SeriesView, UserView } from "@app/shared";
 
+import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
+import { useAuthStore } from "@/features/auth";
 import { makeSeriesView } from "@/features/series/model/series.fixtures";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
@@ -24,7 +26,18 @@ const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promis
 const VIVAT = { bookCount: 5, id: "publisher-vivat", name: "Vivat" };
 const KSD = { bookCount: 3, id: "publisher-ksd", name: "КСД" };
 
-const DRAFT_KEY = "book-form-draft:create";
+const READER: UserView = {
+  createdAt: "2026-01-01T00:00:00.000Z",
+  dateOfBirth: null,
+  email: "reader@book-nest.net",
+  emailVerified: true,
+  id: "user-reader",
+  name: "Reader",
+  nickname: "reader",
+  role: "user",
+};
+
+const DRAFT_KEY = "book-form-draft:user:user-reader:create";
 
 const CHAS = { id: "publisher-chas", name: "Видавництво Час" };
 const CHASOPYS = { id: "publisher-chasopys", name: "Часопис" };
@@ -196,6 +209,7 @@ vi.stubGlobal("fetch", fetchMock);
 
 beforeEach(() => {
   sessionStorage.clear();
+  useAuthStore.getState().setSession("access-token", READER);
   duplicateCandidates = [];
   duplicateLookupStatus = 200;
   fetchMock.mockReset();
@@ -203,6 +217,10 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  act(() => {
+    useAuthStore.getState().clearSession();
+  });
+  sessionStorage.clear();
   vi.clearAllMocks();
 });
 
