@@ -2,12 +2,14 @@ import type { BookView } from "@app/shared";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type { UserSettingsContextService } from "../../profile/index.js";
 import type { GuardedChangeOutcome } from "../infrastructure/books.repository.js";
 import type { BooksRepository } from "../infrastructure/books.repository.js";
 import type { BookViewAssembler } from "./book-view-assembler.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
+import { fakeOf } from "../../../test/fake.js";
 import { computeOwnershipChange } from "../domain/ownership-transition.js";
 import { BookStoreLinkRepository } from "../infrastructure/book-store-link.repository.js";
 import { BookOwnershipService } from "./book-ownership.service.js";
@@ -38,15 +40,17 @@ function setup(ownershipStatus: string, outcome: GuardedChangeOutcome = "applied
   const transactionRunner = {
     run: vi.fn().mockImplementation((fn: (tx: unknown) => unknown) => fn({})),
   } as unknown as TransactionRunner;
+  const today = vi.fn<UserSettingsContextService["today"]>();
 
   const service = new BookOwnershipService(
     booksRepository,
     storeLinkRepository,
     transactionRunner,
     viewAssembler,
+    fakeOf<UserSettingsContextService>({ today }),
   );
 
-  return { applyOwnershipChange, loadView, service, storeLinkRepository };
+  return { applyOwnershipChange, loadView, service, storeLinkRepository, today };
 }
 
 describe("BookOwnershipService.removeFromWishlist", () => {
@@ -135,6 +139,51 @@ describe("BookOwnershipService.wantToBuy", () => {
 });
 
 describe("BookOwnershipService.markBought", () => {
+  const LATE_EVENING_UTC_BEFORE_KYIV_MIDNIGHT = new Date("2026-02-28T22:30:00.000Z");
+  const READER_TODAY = "2026-03-01";
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("defaults the purchase day to the reader's own calendar day when the input has none", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(LATE_EVENING_UTC_BEFORE_KYIV_MIDNIGHT);
+    const { applyOwnershipChange, service, today } = setup("want_to_buy");
+    today.mockResolvedValue(READER_TODAY);
+
+    await service.markBought(USER_ID, BOOK_ID, {});
+
+    expect(today).toHaveBeenCalledWith(USER_ID);
+    expect(applyOwnershipChange).toHaveBeenCalledWith(
+      USER_ID,
+      BOOK_ID,
+      expect.objectContaining({
+        purchaseInfo: { purchasedAt: new Date("2026-03-01T00:00:00.000Z") },
+      }),
+      { expectedStatuses: ["want_to_buy"] },
+    );
+  });
+
+  it("keeps a typed purchase day as is without asking for the reader's calendar day", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(LATE_EVENING_UTC_BEFORE_KYIV_MIDNIGHT);
+    const { applyOwnershipChange, service, today } = setup("want_to_buy");
+    today.mockResolvedValue(READER_TODAY);
+
+    await service.markBought(USER_ID, BOOK_ID, { purchasedAt: "2025-01-15" });
+
+    expect(today).not.toHaveBeenCalled();
+    expect(applyOwnershipChange).toHaveBeenCalledWith(
+      USER_ID,
+      BOOK_ID,
+      expect.objectContaining({
+        purchaseInfo: { purchasedAt: new Date("2025-01-15T00:00:00.000Z") },
+      }),
+      { expectedStatuses: ["want_to_buy"] },
+    );
+  });
+
   it("throws a NOT_IN_WISHLIST conflict when the book is no longer in the wishlist", async () => {
     const { applyOwnershipChange, service } = setup("owned");
 
