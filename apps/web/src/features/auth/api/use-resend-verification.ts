@@ -1,19 +1,15 @@
-import type { ResendVerificationInput } from "@app/shared";
+import type { ResendVerificationInput, ResendVerificationResultView } from "@app/shared";
 
+import { ResendVerificationResultViewSchema } from "@app/shared";
 import { useMutation } from "@tanstack/react-query";
-import { type z } from "zod";
 
 import { authControllerResendVerification } from "@/shared/api/generated/endpoints/auth/auth";
 
-import { ResendVerificationResultSchema } from "./schemas";
-
-type ResendVerificationResult = z.infer<typeof ResendVerificationResultSchema>;
-
 export function useResendVerification() {
   return useMutation({
-    mutationFn: async (input: ResendVerificationInput): Promise<ResendVerificationResult> => {
+    mutationFn: async (input: ResendVerificationInput): Promise<ResendVerificationResultView> => {
       const body = await authControllerResendVerification(input);
-      return ResendVerificationResultSchema.parse(body);
+      return ResendVerificationResultViewSchema.parse(body);
     },
   });
 }

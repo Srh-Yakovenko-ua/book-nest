@@ -133,7 +133,7 @@ const BOOK_CHANGE_EFFECTS = {
   ],
   tagged: ["books", "lists", "tagAggregates", "tagPickers"],
   thumbnailReady: ["books"],
-  wishlistOutdated: ["wishlist"],
+  wishlistOutdated: ["books", "wishlist"],
 } as const satisfies Record<string, readonly BookKeyFamily[]>;
 
 type BookChange = keyof typeof BOOK_CHANGE_EFFECTS;

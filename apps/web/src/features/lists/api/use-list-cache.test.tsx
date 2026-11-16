@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
 import { genresKeys } from "@/features/genres/api/genres-keys";
+import { staleFlags } from "@/test-query-cache";
 
 import { useSetListBookReadingStatus } from "./use-list-book-actions";
 import { useBulkAddListBooksToQueue } from "./use-list-bulk";
@@ -114,10 +115,6 @@ function seededClient(extraKeys: readonly QueryKey[] = []): QueryClient {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
   for (const key of [...GENRE_DERIVED_KEYS, ...extraKeys]) client.setQueryData(key, {});
   return client;
-}
-
-function staleFlags(client: QueryClient, keys: readonly QueryKey[]): boolean[] {
-  return keys.map((key) => client.getQueryState(key)?.isInvalidated ?? false);
 }
 
 function wrapperFor(client: QueryClient) {

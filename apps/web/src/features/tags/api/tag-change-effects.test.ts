@@ -1,11 +1,11 @@
 import type { QueryKey } from "@tanstack/react-query";
 
-import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 
 import { characterKeys } from "@/features/characters/api/character-keys";
 import { genresKeys } from "@/features/genres/api/genres-keys";
 import { seriesKeys } from "@/features/series/api/series-keys";
+import { seededClient, staleFlags } from "@/test-query-cache";
 
 import { tagChangeEffects } from "./tag-change-effects";
 import { tagsKeys } from "./tags-keys";
@@ -21,16 +21,6 @@ const KEYS = {
   series: seriesKeys.overview,
   summary: tagsKeys.summary,
 } as const satisfies Record<string, QueryKey>;
-
-function seededClient(keys: readonly QueryKey[]): QueryClient {
-  const client = new QueryClient();
-  for (const key of keys) client.setQueryData(key, {});
-  return client;
-}
-
-function staleFlags(client: QueryClient, keys: readonly QueryKey[]): boolean[] {
-  return keys.map((key) => client.getQueryState(key)?.isInvalidated ?? false);
-}
 
 describe("tagChangeEffects", () => {
   it.each(["created", "updated", "deleted"] as const)(

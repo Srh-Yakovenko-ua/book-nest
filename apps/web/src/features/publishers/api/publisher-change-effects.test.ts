@@ -1,16 +1,14 @@
 import type { QueryKey } from "@tanstack/react-query";
 
-import { QueryClient, QueryObserver } from "@tanstack/react-query";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { seriesKeys } from "@/features/series/api/series-keys";
 import { statisticsKeys } from "@/features/statistics/api/statistics-keys";
 import { matchesAnyKeyPrefix } from "@/lib/query-keys";
+import { cacheStatuses, seededClient, watchedQuery } from "@/test-query-cache";
 
 import { publisherChangeEffects } from "./publisher-change-effects";
 import { publisherKeys } from "./publisher-keys";
-
-type CacheStatus = "fresh" | "removed" | "stale";
 
 const KEYS = {
   bookList: ["/api/books", "list", { page: 1 }],
@@ -23,27 +21,6 @@ const KEYS = {
   statistics: statisticsKeys.overview({ year: 2026 }),
   summary: publisherKeys.summary("uk"),
 } as const satisfies Record<string, QueryKey>;
-
-function cacheStatuses(client: QueryClient, keys: readonly QueryKey[]): CacheStatus[] {
-  return keys.map((key): CacheStatus => {
-    const state = client.getQueryState(key);
-    if (state === undefined) return "removed";
-    return state.isInvalidated ? "stale" : "fresh";
-  });
-}
-
-function seededClient(keys: readonly QueryKey[]): QueryClient {
-  const client = new QueryClient();
-  for (const key of keys) client.setQueryData(key, {});
-  return client;
-}
-
-async function watchedQuery(client: QueryClient, queryKey: QueryKey) {
-  const queryFn = vi.fn(() => Promise.resolve({}));
-  await client.prefetchQuery({ queryFn, queryKey });
-  const observer = new QueryObserver(client, { queryFn, queryKey, staleTime: Infinity });
-  return { queryFn, unsubscribe: observer.subscribe(() => undefined) };
-}
 
 describe("publisherChangeEffects", () => {
   it("refreshes the publisher catalog, the picker, books, series and statistics after an update", async () => {

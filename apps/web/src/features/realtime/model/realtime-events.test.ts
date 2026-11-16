@@ -2,12 +2,12 @@ import type { RealtimeEvent } from "@app/shared";
 import type { QueryKey } from "@tanstack/react-query";
 
 import { REALTIME_CONTRACT } from "@app/shared";
-import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 
 import { makeMediaView } from "@/features/lists/model/lists.fixtures";
 import { notificationKeys } from "@/features/notifications/api/notification-keys";
 import { seriesKeys } from "@/features/series/api/series-keys";
+import { seededClient, staleFlags } from "@/test-query-cache";
 
 import { applyRealtimeEvent } from "./realtime-events";
 
@@ -27,16 +27,6 @@ const EVENTS = {
     type: REALTIME_CONTRACT.events.mediaThumbnailReady,
   },
 } as const satisfies Record<string, RealtimeEvent>;
-
-function seededClient(keys: readonly QueryKey[]): QueryClient {
-  const client = new QueryClient();
-  for (const key of keys) client.setQueryData(key, {});
-  return client;
-}
-
-function staleFlags(client: QueryClient, keys: readonly QueryKey[]): boolean[] {
-  return keys.map((key) => client.getQueryState(key)?.isInvalidated ?? false);
-}
 
 describe("applyRealtimeEvent", () => {
   it("refreshes books but not notifications or series when a thumbnail is ready", () => {

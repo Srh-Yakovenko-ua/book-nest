@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-import type { Nullable } from "./common.js";
-
 const NAME_MIN = 2;
 const NAME_MAX = 50;
 const NAME_ALLOWED = /^[\p{L}\p{M} '’-]+$/u;
@@ -78,9 +76,11 @@ export const NicknameAvailabilityQuerySchema = z.object({
 
 export type NicknameAvailabilityQuery = z.infer<typeof NicknameAvailabilityQuerySchema>;
 
-export type NicknameAvailabilityView = {
-  available: boolean;
-};
+export const NicknameAvailabilityViewSchema = z.object({
+  available: z.boolean(),
+});
+
+export type NicknameAvailabilityView = z.infer<typeof NicknameAvailabilityViewSchema>;
 
 export const VerifyEmailSchema = z.object({
   token: z.string().min(1),
@@ -103,36 +103,62 @@ export const ResetPasswordInputSchema = z.object({
   token: z.string().min(1),
 });
 
-export type AuthResultView = {
-  accessToken: string;
-  user: UserView;
-};
-
-export type ForgotPasswordResultView = { cooldownSeconds?: number; status: "reset_email_sent" };
-
-export type LogoutResultView = { status: "logged_out" };
-
 export type RegistrationInput = z.infer<typeof RegistrationInputSchema>;
-
-export type RegistrationResultView = {
-  cooldownSeconds?: number;
-  email: string;
-  status: "verification_sent";
-};
 
 export type ResendVerificationInput = z.infer<typeof ResendVerificationSchema>;
 
 export type ResetPasswordInput = z.infer<typeof ResetPasswordInputSchema>;
 
-export type ResetPasswordResultView = { status: "password_reset" };
+export const UserViewSchema = z.object({
+  createdAt: z.string(),
+  dateOfBirth: z.string().nullable(),
+  email: z.string(),
+  emailVerified: z.boolean(),
+  id: z.string(),
+  name: z.string(),
+  nickname: z.string().nullable(),
+  role: RoleSchema,
+});
 
-export type UserView = {
-  createdAt: string;
-  dateOfBirth: Nullable<string>;
-  email: string;
-  emailVerified: boolean;
-  id: string;
-  name: string;
-  nickname: Nullable<string>;
-  role: Role;
-};
+export type UserView = z.infer<typeof UserViewSchema>;
+
+export const AuthResultViewSchema = z.object({
+  accessToken: z.string(),
+  user: UserViewSchema,
+});
+
+export type AuthResultView = z.infer<typeof AuthResultViewSchema>;
+
+export const RegistrationResultViewSchema = z.object({
+  cooldownSeconds: z.number().optional(),
+  email: z.string(),
+  status: z.literal("verification_sent"),
+});
+
+export type RegistrationResultView = z.infer<typeof RegistrationResultViewSchema>;
+
+export const ResendVerificationResultViewSchema = z.object({
+  cooldownSeconds: z.number().optional(),
+  status: z.literal("verification_sent"),
+});
+
+export type ResendVerificationResultView = z.infer<typeof ResendVerificationResultViewSchema>;
+
+export const ForgotPasswordResultViewSchema = z.object({
+  cooldownSeconds: z.number().optional(),
+  status: z.literal("reset_email_sent"),
+});
+
+export type ForgotPasswordResultView = z.infer<typeof ForgotPasswordResultViewSchema>;
+
+export const ResetPasswordResultViewSchema = z.object({
+  status: z.literal("password_reset"),
+});
+
+export type ResetPasswordResultView = z.infer<typeof ResetPasswordResultViewSchema>;
+
+export const LogoutResultViewSchema = z.object({
+  status: z.literal("logged_out"),
+});
+
+export type LogoutResultView = z.infer<typeof LogoutResultViewSchema>;
