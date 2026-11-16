@@ -1,10 +1,8 @@
 import type { UserView } from "@app/shared";
 import type { QueryClient } from "@tanstack/react-query";
-import type { ReactNode } from "react";
 import type { Mock } from "vitest";
 
 import { REALTIME_CONTRACT } from "@app/shared";
-import { QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -12,6 +10,7 @@ import { useAuthStore } from "@/features/auth/model/auth-store";
 import { notificationKeys } from "@/features/notifications/api/notification-keys";
 import { registerAuthBridge } from "@/lib/auth-bridge";
 import { ApiError } from "@/lib/http-client";
+import { queryClientWrapper } from "@/test-query-cache";
 import { createTestQueryClient } from "@/test-utils";
 
 import { useRealtimeConnection } from "./use-realtime-connection";
@@ -89,12 +88,6 @@ function createFakeSocket() {
   return socket;
 }
 
-function makeWrapper(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
-}
-
 function refuseHandshake(message: string) {
   return act(async () => {
     socket.emitFrame("connect_error", new Error(message));
@@ -103,7 +96,7 @@ function refuseHandshake(message: string) {
 }
 
 function renderConnection(client: QueryClient) {
-  return renderHook(() => useRealtimeConnection(), { wrapper: makeWrapper(client) });
+  return renderHook(() => useRealtimeConnection(), { wrapper: queryClientWrapper(client) });
 }
 
 beforeEach(() => {

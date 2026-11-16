@@ -1,6 +1,7 @@
 import type { QueryKey } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 
-import { QueryClient, QueryObserver } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, QueryObserver } from "@tanstack/react-query";
 import { vi } from "vitest";
 
 type CacheStatus = "fresh" | "removed" | "stale";
@@ -11,6 +12,12 @@ export function cacheStatuses(client: QueryClient, keys: readonly QueryKey[]): C
     if (state === undefined) return "removed";
     return state.isInvalidated ? "stale" : "fresh";
   });
+}
+
+export function queryClientWrapper(client: QueryClient) {
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  };
 }
 
 export function seededClient(keys: readonly QueryKey[]): QueryClient {

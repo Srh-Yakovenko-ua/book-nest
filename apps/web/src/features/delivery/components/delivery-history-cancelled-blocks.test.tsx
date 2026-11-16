@@ -6,31 +6,29 @@ import type { ReactNode } from "react";
 import { defaultUserProfileSettings } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { makeBookView } from "@/features/books/components/book-details.fixtures";
 import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import { DeliveryHistoryCancelledBlocks } from "./delivery-history-sidebar";
 
 const retryMock = vi.fn();
-const returnAllMock = vi.fn();
-const wantToBuyMock = vi.fn();
+
+const paths = {
+  profileSettings: "/api/profile/settings",
+  returnAllToWishlist: "/api/delivery/books/history/cancelled-follow-up/want-to-buy",
+  wantToBuy: "/api/books/book-1/ownership/want-to-buy",
+};
+
+const wishlistResponses = new Map<string, unknown>([
+  [paths.returnAllToWishlist, { updatedCount: 2 }],
+  [paths.wantToBuy, makeBookView({ id: "book-1", ownershipStatus: "want_to_buy" })],
+]);
 
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   ),
   useRouter: () => ({ push: vi.fn() }),
-}));
-
-vi.mock("@/shared/api/generated/endpoints/delivery-read/delivery-read", () => ({
-  cancelledFollowUpControllerReturnAllToWishlist: (...args: unknown[]) => returnAllMock(...args),
-}));
-
-vi.mock("@/shared/api/generated/endpoints/books/books", () => ({
-  bookOwnershipControllerMarkBought: vi.fn(),
-  bookOwnershipControllerMarkOwned: vi.fn(),
-  bookOwnershipControllerRemoveFromWishlist: vi.fn(),
-  bookOwnershipControllerRemoveOwned: vi.fn(),
-  bookOwnershipControllerWantToBuy: (...args: unknown[]) => wantToBuyMock(...args),
 }));
 
 function makePlanBook(overrides: Partial<CancelledPlanBook> = {}): CancelledPlanBook {
@@ -78,27 +76,54 @@ function renderFailedBlocks() {
   );
 }
 
-const fetchMock = vi.fn();
+const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
 
 let profileTimeZone: string = defaultUserProfileSettings.timezone;
 
+function jsonResponse(body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    headers: { "Content-Type": "application/json" },
+    status: 200,
+  });
+}
+
+function parseJsonBody(body: RequestInit["body"]): unknown {
+  return typeof body === "string" ? JSON.parse(body) : body;
+}
+
+function requestPath(input: RequestInfo | URL): string {
+  return new URL(String(input), "http://localhost").pathname;
+}
+
+function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const path = requestPath(input);
+  if (init?.method === "GET" && path === paths.profileSettings) {
+    return Promise.resolve(
+      jsonResponse({ ...defaultUserProfileSettings, timezone: profileTimeZone }),
+    );
+  }
+  if (init?.method === "POST" && wishlistResponses.has(path)) {
+    return Promise.resolve(jsonResponse(wishlistResponses.get(path)));
+  }
+  return Promise.reject(new Error(`unexpected fetch ${init?.method} ${String(input)}`));
+}
+
+function sentMutations() {
+  return fetchMock.mock.calls
+    .filter(([input]) => requestPath(input) !== paths.profileSettings)
+    .map(([input, init]) => ({
+      body: parseJsonBody(init?.body),
+      method: init?.method,
+      path: requestPath(input),
+    }));
+}
+
 beforeEach(() => {
   retryMock.mockReset();
-  returnAllMock.mockReset();
-  wantToBuyMock.mockReset();
   profileTimeZone = defaultUserProfileSettings.timezone;
   vi.stubGlobal("fetch", fetchMock);
   fetchMock.mockReset();
-  fetchMock.mockImplementation((input: RequestInfo | URL) =>
-    String(input).includes("/api/profile/settings")
-      ? Promise.resolve(
-          new Response(
-            JSON.stringify({ ...defaultUserProfileSettings, timezone: profileTimeZone }),
-            { headers: { "Content-Type": "application/json" }, status: 200 },
-          ),
-        )
-      : Promise.reject(new Error(`unexpected fetch ${String(input)}`)),
-  );
+  fetchMock.mockImplementation(respond);
 });
 
 afterEach(() => {
@@ -273,7 +298,6 @@ describe("books that need a decision", () => {
   });
 
   it("sends one book back to the wishlist", async () => {
-    wantToBuyMock.mockResolvedValue({ id: "book-1", ownershipStatus: "want_to_buy" });
     renderBlocks({
       plans: null,
       unresolved: { books: [makeUnresolvedBook()], booksCount: 1 },
@@ -281,7 +305,9 @@ describe("books that need a decision", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Повернути у список бажань" }));
 
-    await waitFor(() => expect(wantToBuyMock).toHaveBeenCalledWith("book-1", {}));
+    await waitFor(() =>
+      expect(sentMutations()).toEqual([{ body: {}, method: "POST", path: paths.wantToBuy }]),
+    );
   });
 
   it("offers the bulk action only once more than one book is waiting", () => {
@@ -296,7 +322,6 @@ describe("books that need a decision", () => {
   });
 
   it("asks the server to resolve the whole set for the bulk action", async () => {
-    returnAllMock.mockResolvedValue({ updatedCount: 2 });
     renderBlocks({
       plans: null,
       unresolved: {
@@ -307,8 +332,11 @@ describe("books that need a decision", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Повернути всі у список бажань" }));
 
-    await waitFor(() => expect(returnAllMock).toHaveBeenCalledOnce());
-    expect(returnAllMock.mock.calls[0]?.[0]).toBeUndefined();
+    await waitFor(() =>
+      expect(sentMutations()).toEqual([
+        { body: undefined, method: "POST", path: paths.returnAllToWishlist },
+      ]),
+    );
   });
 });
 

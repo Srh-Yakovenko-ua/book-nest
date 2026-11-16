@@ -7,9 +7,7 @@ import type {
   UserView,
   VerifyEmailInput,
 } from "@app/shared";
-import type { ReactNode } from "react";
 
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook } from "@testing-library/react";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -17,6 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerAuthBridge } from "@/lib/auth-bridge";
 import { env } from "@/lib/env";
 import { ApiError } from "@/lib/http-client";
+import { queryClientWrapper } from "@/test-query-cache";
 import { createTestQueryClient } from "@/test-utils";
 
 import { useAuthStore } from "../model/auth-store";
@@ -85,12 +84,6 @@ function expectedJsonPost(path: string, body: unknown) {
   };
 }
 
-function makeWrapper(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
-}
-
 function parseJsonBody(body: RequestInit["body"]): unknown {
   return typeof body === "string" ? JSON.parse(body) : body;
 }
@@ -114,7 +107,7 @@ async function sendThrough<TInput, TResult>(
   input: TInput,
 ): Promise<TResult> {
   const { result } = renderHook(useMutationHook, {
-    wrapper: makeWrapper(createTestQueryClient()),
+    wrapper: queryClientWrapper(createTestQueryClient()),
   });
   return await act(async () => result.current.mutateAsync(input));
 }

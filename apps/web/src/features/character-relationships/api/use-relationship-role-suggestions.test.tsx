@@ -1,11 +1,10 @@
 import type { CharacterRelationshipRoleSuggestionView, Nullable } from "@app/shared";
-import type { ReactNode } from "react";
 
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { queryClientWrapper } from "@/test-query-cache";
 import { createTestQueryClient } from "@/test-utils";
 
 import type { RelationshipRoleSuggestions } from "./use-relationship-role-suggestions";
@@ -53,12 +52,6 @@ function lastRequest(): URL {
   return request;
 }
 
-function makeWrapper(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
-}
-
 function mentorPage(items: readonly CharacterRelationshipRoleSuggestionView[]) {
   return { items, page: 1, pagesCount: 1, pageSize: 20, totalCount: items.length };
 }
@@ -66,7 +59,7 @@ function mentorPage(items: readonly CharacterRelationshipRoleSuggestionView[]) {
 function renderSuggestions(props: Partial<SuggestionProps> = {}) {
   return renderHook((current: SuggestionProps) => useRelationshipRoleSuggestions(current), {
     initialProps: { ...BROWSE, ...props },
-    wrapper: makeWrapper(createTestQueryClient()),
+    wrapper: queryClientWrapper(createTestQueryClient()),
   });
 }
 

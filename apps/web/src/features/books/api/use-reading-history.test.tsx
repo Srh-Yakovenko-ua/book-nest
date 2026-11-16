@@ -1,13 +1,10 @@
 import "@testing-library/jest-dom/vitest";
-
-import type { ReactNode } from "react";
-
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { BookReadingControllerGetReadingHistoryParams } from "@/shared/api/generated/model/bookReadingControllerGetReadingHistoryParams";
 
+import { queryClientWrapper } from "@/test-query-cache";
 import { createTestQueryClient } from "@/test-utils";
 
 import { makeBookView } from "../components/book-details.fixtures";
@@ -36,12 +33,6 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-function makeWrapper(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
-}
-
 beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
   fetchMock.mockReset();
@@ -61,7 +52,7 @@ afterEach(() => {
 describe("useReadingHistory", () => {
   it("parses and returns the reading-history response", async () => {
     const { result } = renderHook(() => useReadingHistory(BOOK_ID, DEFAULT_PARAMS), {
-      wrapper: makeWrapper(createTestQueryClient()),
+      wrapper: queryClientWrapper(createTestQueryClient()),
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -71,7 +62,7 @@ describe("useReadingHistory", () => {
   it("sends the range, page, sort and limit params in the request", async () => {
     renderHook(
       () => useReadingHistory(BOOK_ID, { activityRange: "14d", limit: 20, page: 2, sort: "asc" }),
-      { wrapper: makeWrapper(createTestQueryClient()) },
+      { wrapper: queryClientWrapper(createTestQueryClient()) },
     );
 
     await waitFor(() => expect(historyRequests().length).toBeGreaterThan(0));
@@ -87,7 +78,7 @@ describe("useReadingHistory", () => {
   it("does not fetch while disabled", async () => {
     const { result } = renderHook(
       () => useReadingHistory(BOOK_ID, DEFAULT_PARAMS, { enabled: false }),
-      { wrapper: makeWrapper(createTestQueryClient()) },
+      { wrapper: queryClientWrapper(createTestQueryClient()) },
     );
 
     await Promise.resolve();
@@ -99,7 +90,7 @@ describe("useReadingHistory", () => {
     fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ unexpected: true })));
 
     const { result } = renderHook(() => useReadingHistory(BOOK_ID, DEFAULT_PARAMS), {
-      wrapper: makeWrapper(createTestQueryClient()),
+      wrapper: queryClientWrapper(createTestQueryClient()),
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -107,7 +98,7 @@ describe("useReadingHistory", () => {
 
   it("refetches the reading history after a book mutation sync invalidates it", async () => {
     const client = createTestQueryClient();
-    const wrapper = makeWrapper(client);
+    const wrapper = queryClientWrapper(client);
 
     const { result: historyResult } = renderHook(() => useReadingHistory(BOOK_ID, DEFAULT_PARAMS), {
       wrapper,
