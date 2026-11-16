@@ -5,9 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-const ORIGINAL_TIME_ZONE = process.env.TZ;
-process.env.TZ = "Pacific/Kiritimati";
-
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
@@ -34,7 +31,6 @@ beforeAll(() => {
 
 afterAll(() => {
   vi.useRealTimers();
-  process.env.TZ = ORIGINAL_TIME_ZONE;
 });
 
 function card(priority: keyof typeof cardNames) {
@@ -402,18 +398,6 @@ describe("QueuePrioritySection submit", () => {
 
     expect(values.queuePriority).toBe("high");
     expect(values.queuePriorityReason).toBeNull();
-  });
-
-  it("keeps the picked day free of any time zone shift", async () => {
-    const onSubmit = vi.fn();
-    renderSection({ queuePriority: "high" }, onSubmit);
-    await chooseReason(copy.reason.options.bookClub);
-
-    await userEvent.click(screen.getByRole("button", { name: copy.targetDate.label }));
-    await userEvent.click(await screen.findByRole("button", { name: /24-е серпня 2026/ }));
-    const values = await submittedValues(onSubmit);
-
-    expect(values.queuePriorityTargetDate).toBe("2026-08-24");
   });
 });
 

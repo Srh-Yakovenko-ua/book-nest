@@ -270,7 +270,7 @@ jobs:
         run: |
           if [ "$MODE" = affected ]; then
             pnpm --filter @app/shared build
-            pnpm --filter @app/web exec vitest --project unit run --changed "$BASE" --passWithNoTests
+            pnpm --filter @app/web exec vitest --project unit --project unit-tz run --changed "$BASE" --passWithNoTests
           else
             pnpm turbo run test --filter=@app/web
           fi
