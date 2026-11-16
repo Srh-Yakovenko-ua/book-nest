@@ -48,8 +48,8 @@ const HISTORY_ORDER_BY: Record<LoanHistorySort, Prisma.Sql> = {
   duration_desc: Prisma.sql`duration_days DESC NULLS LAST, returned_at DESC, id ASC`,
   loan_date_desc: Prisma.sql`loan_date DESC NULLS LAST, returned_at DESC, id ASC`,
   person_asc: Prisma.sql`person_name ASC, returned_at DESC, id ASC`,
-  returned_asc: Prisma.sql`returned_at ASC, id ASC`,
-  returned_desc: Prisma.sql`returned_at DESC, id ASC`,
+  returned_asc: Prisma.sql`returned_day ASC, returned_at ASC, id ASC`,
+  returned_desc: Prisma.sql`returned_day DESC, returned_at DESC, id ASC`,
   title_asc: Prisma.sql`title ASC, id ASC`,
 };
 
@@ -194,6 +194,7 @@ export class LoanHistoryRepository {
         SELECT
           loan.id AS id,
           loan.returned_at AS returned_at,
+          ${returnedDayNotBeforeLoanDaySql(filter.timeZone)} AS returned_day,
           loan.loan_date AS loan_date,
           contact.name AS person_name,
           book.title AS title,
@@ -337,7 +338,7 @@ function buildHistoryScopeConditions({
   if (contactId !== undefined) {
     conditions.push(Prisma.sql`loan.loan_contact_id = ${contactId}::uuid`);
   }
-  const returnedDay = readerDaySql({ instant: LOAN_RETURNED_AT_SQL, timeZone });
+  const returnedDay = returnedDayNotBeforeLoanDaySql(timeZone);
   if (returnedFrom !== undefined) {
     conditions.push(Prisma.sql`${returnedDay} >= ${returnedFrom}::date`);
   }
@@ -391,7 +392,7 @@ function buildMatchedResultWhere(result: LoanHistoryResultFilter): Prisma.Sql {
 }
 
 function buildReturnedDaySql(timeZone: string): ReturnedDaySql {
-  const returnedDay = readerDaySql({ instant: LOAN_RETURNED_AT_SQL, timeZone });
+  const returnedDay = returnedDayNotBeforeLoanDaySql(timeZone);
   const resultCondition: Record<LoanHistoryResult, Prisma.Sql> = {
     late: Prisma.sql`(loan.expected_return_date IS NOT NULL AND ${returnedDay} > loan.expected_return_date)`,
     no_due_date: Prisma.sql`(loan.expected_return_date IS NULL)`,
@@ -426,6 +427,11 @@ function orderLoansByIds({
     const row = byId.get(id);
     return row === undefined || !isCompletedLoan(row) ? [] : [row];
   });
+}
+
+function returnedDayNotBeforeLoanDaySql(timeZone: string): Prisma.Sql {
+  const readerReturnedDay = readerDaySql({ instant: LOAN_RETURNED_AT_SQL, timeZone });
+  return Prisma.sql`GREATEST(${readerReturnedDay}, loan.loan_date)`;
 }
 
 function toResultCounts({
