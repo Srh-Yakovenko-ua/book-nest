@@ -15,6 +15,7 @@ import type {
   CurrencyTotal,
   Nullable,
   StatisticsPeriod,
+  WeekStartDay,
 } from "@app/shared";
 
 import { CurrencySchema } from "@app/shared";
@@ -81,6 +82,7 @@ export function computeBookOrderStatistics({
   records,
   scope,
   topLimit,
+  weekStartDay,
 }: {
   activeRecords: OrderStatisticsRecord[];
   comparisonPeriod: Nullable<StatisticsPeriod>;
@@ -89,6 +91,7 @@ export function computeBookOrderStatistics({
   records: OrderStatisticsRecord[];
   scope: BookOrderStatisticsRecordScope;
   topLimit: number;
+  weekStartDay: WeekStartDay;
 }): BookOrderStatisticsAggregates {
   const orders = records.map((record) => classifyOrder({ includeCancelled, record }));
   const includedOrders = orders.filter((order) => order.isIncluded);
@@ -113,6 +116,7 @@ export function computeBookOrderStatistics({
     comparisonPeriod,
     currentPeriod: scope.period,
     orders: includedOrders,
+    weekStartDay,
   });
   const recordsIncludedOrders = records
     .map((record) => classifyOrder({ includeCancelled: false, record }))

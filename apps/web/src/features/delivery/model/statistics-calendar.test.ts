@@ -2,6 +2,8 @@ import type { BookOrderStatisticsDay, Nullable, StatisticsPeriod } from "@app/sh
 
 import { describe, expect, it } from "vitest";
 
+import type { WeekStartsOn } from "@/features/settings";
+
 import type { CalendarScope } from "./statistics-calendar";
 
 import {
@@ -55,14 +57,16 @@ function gridOf({
   daily = DAILY,
   metric = "orders" as const,
   period = ALL_TIME,
+  weekStartsOn = 1,
   year = 2026,
 }: {
   daily?: BookOrderStatisticsDay[];
   metric?: "books" | "orders";
   period?: StatisticsPeriod;
+  weekStartsOn?: WeekStartsOn;
   year?: number;
 }) {
-  return calendarGrid({ daily, metric, scope: scopeOf(period, daily), year });
+  return calendarGrid({ daily, metric, scope: scopeOf(period, daily), weekStartsOn, year });
 }
 
 function scopeOf(period: StatisticsPeriod, daily: BookOrderStatisticsDay[] = DAILY): CalendarScope {
@@ -156,6 +160,54 @@ describe("calendarGrid", () => {
     const [week] = gridOf({ period: { from: "2026-03-02", to: "2026-03-08" } }).weeks;
 
     expect(week?.at(0)?.date).toBe("2026-03-02");
+  });
+
+  it("puts Sunday in the first row of the week for a reader whose week starts on Sunday", () => {
+    const [week] = gridOf({
+      period: { from: "2026-03-01", to: "2026-03-07" },
+      weekStartsOn: 0,
+    }).weeks;
+
+    expect(week?.map((cell) => cell?.date ?? null)).toEqual([
+      "2026-03-01",
+      "2026-03-02",
+      "2026-03-03",
+      "2026-03-04",
+      "2026-03-05",
+      "2026-03-06",
+      "2026-03-07",
+    ]);
+  });
+
+  it("starts a Sunday-first year on 28 December, putting 1 January in the fifth row", () => {
+    const [week] = gridOf({
+      period: { from: "2026-01-01", to: "2026-12-31" },
+      weekStartsOn: 0,
+    }).weeks;
+
+    expect(week?.map((cell) => cell?.date ?? null)).toEqual([
+      null,
+      null,
+      null,
+      null,
+      "2026-01-01",
+      "2026-01-02",
+      "2026-01-03",
+    ]);
+  });
+
+  it("starts a Monday-first year on 29 December, putting 1 January in the fourth row", () => {
+    const [week] = gridOf({ period: { from: "2026-01-01", to: "2026-12-31" } }).weeks;
+
+    expect(week?.map((cell) => cell?.date ?? null)).toEqual([
+      null,
+      null,
+      null,
+      "2026-01-01",
+      "2026-01-02",
+      "2026-01-03",
+      "2026-01-04",
+    ]);
   });
 
   it("stops the running year at today instead of drawing the months ahead", () => {

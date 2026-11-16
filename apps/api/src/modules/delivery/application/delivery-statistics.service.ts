@@ -66,11 +66,15 @@ export class DeliveryStatisticsService {
     query: BookOrderStatisticsQuery;
     userId: string;
   }): Promise<BookOrderStatisticsView> {
+    const { today, weekStartDay } = await this.userSettingsContextService.calendar({
+      now: new Date(),
+      userId,
+    });
     const { comparisonPeriod, currentPeriod, requestedPeriod } = resolveStatisticsPeriods({
       compare: query.compare,
       from: query.from,
       to: query.to,
-      today: await this.userSettingsContextService.today(userId),
+      today: toIsoDate(today),
     });
 
     const [page, activePage, comparisonPage] = await Promise.all([
@@ -104,6 +108,7 @@ export class DeliveryStatisticsService {
           period: currentPeriod,
         },
         topLimit: ORDER_STATISTICS_TOP_LIMIT,
+        weekStartDay,
       }),
       meta: {
         activeSource: toSourceQuality(activePage),

@@ -1,4 +1,4 @@
-import type { BookOrderStatisticsQuery } from "@app/shared";
+import type { BookOrderStatisticsQuery, WeekStartDay } from "@app/shared";
 
 import { BookOrderStatisticsViewSchema } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,7 +8,7 @@ import type { OrderStatisticsRecordsPage } from "../domain/order-statistics-page
 import type { OrderStatisticsRecord } from "../domain/statistics-scope.js";
 import type { DeliveryStatisticsRepository } from "../infrastructure/delivery-statistics.repository.js";
 
-import { startOfUtcDay, toIsoDate, toZonedCalendarDay } from "../../../core/iso-date.js";
+import { startOfUtcDay, toZonedCalendarDay } from "../../../core/iso-date.js";
 import { fakeOf } from "../../../test/fake.js";
 import { capOrderStatisticsIds, ORDER_STATISTICS_FETCH } from "../domain/order-statistics-page.js";
 import { DeliveryStatisticsService } from "./delivery-statistics.service.js";
@@ -86,16 +86,18 @@ function statisticsQuery(
   return { includeCancelled: false, ...overrides };
 }
 
-function statisticsService(repository: DeliveryStatisticsRepository): DeliveryStatisticsService {
+function statisticsService(
+  repository: DeliveryStatisticsRepository,
+  weekStartDay: WeekStartDay = "monday",
+): DeliveryStatisticsService {
   return new DeliveryStatisticsService(
     repository,
     fakeOf<UserSettingsContextService>({
       calendar: vi.fn<UserSettingsContextService["calendar"]>(async ({ now }) => ({
         timeZone: "UTC",
         today: startOfUtcDay(now),
-        weekStartDay: "monday",
+        weekStartDay,
       })),
-      today: vi.fn().mockResolvedValue(toIsoDate(NOW)),
     }),
   );
 }
@@ -474,6 +476,49 @@ describe("DeliveryStatisticsService.statistics query shape", () => {
     expect(vi.mocked(repository.listOrderRecords).mock.calls[1]?.[0]).toEqual(
       expect.objectContaining({ from: "2026-06-01", to: "2026-06-30" }),
     );
+  });
+});
+
+describe("DeliveryStatisticsService.statistics week start", () => {
+  it("buckets the weekly dynamics on the reader's own week start from the calendar", async () => {
+    const orderPlacedOnSundayJulyTwelfth: OrderStatisticsRecord = {
+      currency: "UAH",
+      deliveryPrice: null,
+      discount: null,
+      id: "order-1",
+      isFree: false,
+      items: [
+        {
+          bookId: "book-a",
+          bookTitle: "Alpha",
+          cancelledAt: null,
+          id: "item-a",
+          price: 100,
+          receivedAt: null,
+          shipmentId: null,
+        },
+      ],
+      orderDate: new Date("2026-07-12T00:00:00.000Z"),
+      orderNumber: null,
+      shipments: [],
+      storeName: "Yakaboo",
+      totalAmount: 100,
+    };
+    const service = statisticsService(
+      repositoryWithRecords([orderPlacedOnSundayJulyTwelfth]),
+      "sunday",
+    );
+
+    const { dynamics } = await service.statistics({
+      query: statisticsQuery({ from: "2026-07-01", to: "2026-07-31" }),
+      userId: USER,
+    });
+
+    expect(
+      dynamics.buckets
+        .filter((bucket) => bucket.current.ordersCount > 0)
+        .map((bucket) => ({ key: bucket.key, to: bucket.current.to })),
+    ).toEqual([{ key: "2026-07-12", to: "2026-07-18" }]);
   });
 });
 

@@ -126,6 +126,7 @@ function statisticsOf({
     records,
     scope: UNFILTERED_SCOPE,
     topLimit: ORDER_STATISTICS_TOP_LIMIT,
+    weekStartDay: "monday",
   });
 }
 
