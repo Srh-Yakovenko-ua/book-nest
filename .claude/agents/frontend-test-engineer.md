@@ -52,6 +52,8 @@ apps/web/src/features/books/components/library-organization-section.test.tsx  â†
 
 Test file name pattern: `*.test.{ts,tsx}`. The config also matches `*.spec.*`, but no file uses it and the repo has no `__tests__` folders, so stay with the colocated `.test` name.
 
+A test that sets `process.env.TZ` goes in its own `*.tz.test.{ts,tsx}` file. The `unit` project runs in worker threads, where assigning `process.env.TZ` changes nothing: a pinned zone there passes on the old code and proves nothing (measured on Node 24). `*.tz.test.*` files run in the `unit-tz` project, which uses forks, where the assignment takes effect. Set the zone in `beforeEach`, then the system time, and restore `TZ` in `afterEach`, deleting it when it was unset (assigning `undefined` leaves the string `"undefined"`). Deleting `TZ` does not reset the zone the process has already cached; the forked project isolates each file, so pin one zone per file.
+
 # Always use `renderWithProviders`
 
 Never call `render()` from `@testing-library/react` directly in a test. Always use the helper from `@/test-utils`:

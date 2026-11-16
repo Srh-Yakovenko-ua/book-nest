@@ -26,7 +26,7 @@ tests_for() {
     case "$file" in
       *.test.ts | *.test.tsx) printf '%s\n' "${file#apps/$app/}" ;;
       *.ts | *.tsx)
-        for candidate in "${file%.*}.test.ts" "${file%.*}.test.tsx"; do
+        for candidate in "${file%.*}.test.ts" "${file%.*}.test.tsx" "${file%.*}.tz.test.ts" "${file%.*}.tz.test.tsx"; do
           [ -f "$candidate" ] && printf '%s\n' "${candidate#apps/$app/}"
         done
         ;;
@@ -97,7 +97,7 @@ if [ "$WITH_TESTS" = 1 ] && [ -n "$API_TESTS" ]; then
   run_step "api-tests[$(printf '%s\n' "$API_TESTS" | grep -c .)]" in_batches "$API_TESTS" apps/api pnpm exec vitest run
 fi
 if [ "$WITH_TESTS" = 1 ] && [ -n "$WEB_TESTS" ]; then
-  run_step "web-tests[$(printf '%s\n' "$WEB_TESTS" | grep -c .)]" in_batches "$WEB_TESTS" apps/web pnpm exec vitest --project unit run
+  run_step "web-tests[$(printf '%s\n' "$WEB_TESTS" | grep -c .)]" in_batches "$WEB_TESTS" apps/web pnpm exec vitest --project unit --project unit-tz run
 fi
 if [ "$WITH_TESTS" = 0 ] && [ -n "$API_TESTS$WEB_TESTS" ]; then
   echo "skip tests: $(printf '%s\n' $API_TESTS $WEB_TESTS | grep -c .) related test files run in CI (pass --with-tests to run them here)"
