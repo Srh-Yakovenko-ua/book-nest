@@ -3,10 +3,13 @@ import type { Nullable } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
-import type { Prisma } from "../../../generated/prisma/client.js";
 import type { ReadingGoalBookModel } from "../../../generated/prisma/models.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { readerDaySql } from "../../../core/database/reader-day-sql.js";
+import { Prisma } from "../../../generated/prisma/client.js";
+
+const GOAL_CREATED_AT_SQL = Prisma.sql`goal.created_at`;
 
 const SnapshotEntryRowSchema = z.object({
   archivedAt: z.date().nullable(),
@@ -171,7 +174,7 @@ export class ReadingGoalBooksRepository {
           AND cycle.state = 'finished'
           AND cycle.finished_at IS NOT NULL
           AND book.deleted_at IS NULL
-          AND cycle.finished_at >= (goal.created_at AT TIME ZONE ${timeZone}::text)::date
+          AND cycle.finished_at >= ${readerDaySql({ instant: GOAL_CREATED_AT_SQL, timeZone })}
           AND cycle.finished_at <= goal.deadline
         ORDER BY cycle.finished_at ASC, cycle.id ASC
         LIMIT 1
@@ -217,7 +220,7 @@ export class ReadingGoalBooksRepository {
           AND cycle.state = 'finished'
           AND cycle.finished_at IS NOT NULL
           AND book.deleted_at IS NULL
-          AND cycle.finished_at >= (goal.created_at AT TIME ZONE ${timeZone}::text)::date
+          AND cycle.finished_at >= ${readerDaySql({ instant: GOAL_CREATED_AT_SQL, timeZone })}
           AND cycle.finished_at <= goal.deadline
         ORDER BY cycle.finished_at ASC, cycle.id ASC
         LIMIT 1

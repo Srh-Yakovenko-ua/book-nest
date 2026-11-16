@@ -16,7 +16,7 @@ import type {
 
 import { LoanTypeSchema, normalizeSearch, OwnershipStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
-import { isBefore } from "date-fns";
+import { isBefore, parseISO } from "date-fns";
 
 import type {
   CompletedLoanWithBook,
@@ -26,9 +26,10 @@ import type {
 } from "../infrastructure/loan-history.repository.js";
 
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
-import { parseIsoDate, startOfUtcDay, toNullableIsoDate } from "../../../core/iso-date.js";
+import { toIsoDate, toNullableIsoDate, toZonedDayStart } from "../../../core/iso-date.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { MediaService } from "../../media/index.js";
+import { UserSettingsContextService } from "../../profile/index.js";
 import { deriveLoanHistoryOutcome } from "../domain/loan-history-result.js";
 import { resolveHistoryLoanPerson } from "../domain/loan-person.js";
 import { LoanHistoryRepository } from "../infrastructure/loan-history.repository.js";
@@ -45,6 +46,7 @@ export class LoanHistoryService {
   constructor(
     private readonly loanHistoryRepository: LoanHistoryRepository,
     private readonly mediaService: MediaService,
+    private readonly userSettingsContextService: UserSettingsContextService,
   ) {}
 
   async correct({
@@ -57,9 +59,11 @@ export class LoanHistoryService {
     userId: string;
   }): Promise<LoanHistoryDetailView> {
     const loan = await this.requireCompletedLoan({ loanId, userId });
+    const timeZone = await this.readerTimeZone(userId);
     const returnedAt = toCorrectedReturnedAt({
       loanDate: loan.loanDate,
       returnedDate: input.returnedDate,
+      timeZone,
     });
 
     const corrected = await this.loanHistoryRepository.correct({
@@ -72,7 +76,10 @@ export class LoanHistoryService {
       throw new NotFoundError(LOAN_HISTORY_MESSAGE.notFound);
     }
 
-    return this.toDetailView(await this.requireCompletedLoan({ loanId, userId }));
+    return this.toDetailView({
+      loan: await this.requireCompletedLoan({ loanId, userId }),
+      timeZone,
+    });
   }
 
   async detail({
@@ -82,7 +89,9 @@ export class LoanHistoryService {
     loanId: string;
     userId: string;
   }): Promise<LoanHistoryDetailView> {
-    return this.toDetailView(await this.requireCompletedLoan({ loanId, userId }));
+    const loan = await this.requireCompletedLoan({ loanId, userId });
+    const timeZone = await this.readerTimeZone(userId);
+    return this.toDetailView({ loan, timeZone });
   }
 
   async list({
@@ -92,8 +101,9 @@ export class LoanHistoryService {
     query: LoanHistoryQuery;
     userId: string;
   }): Promise<PaginatedLoanHistory> {
+    const timeZone = await this.readerTimeZone(userId);
     const { items, resultCounts, totalCount } = await this.loanHistoryRepository.listHistory({
-      ...toHistoryScope({ query, userId }),
+      ...toHistoryScope({ query, timeZone, userId }),
       result: query.result,
       search: normalizeSearch(query.search),
       sort: query.sort,
@@ -102,7 +112,7 @@ export class LoanHistoryService {
 
     return {
       ...buildPaginator({
-        items: items.map((loan) => this.toListItemView(loan)),
+        items: items.map((loan) => this.toListItemView({ loan, timeZone })),
         pageNumber: query.pageNumber,
         pageSize: query.pageSize,
         totalCount,
@@ -118,11 +128,12 @@ export class LoanHistoryService {
     query: LoanHistoryOverviewQuery;
     userId: string;
   }): Promise<LoanHistoryOverviewView> {
-    const scope = toHistoryScope({ query, userId });
+    const timeZone = await this.readerTimeZone(userId);
+    const scope = toHistoryScope({ query, timeZone, userId });
     const [row, topPeople] = await Promise.all([
       this.loanHistoryRepository.overview(scope),
       this.loanHistoryRepository.topPeople({
-        ...toHistoryFacetScope({ query, userId }),
+        ...toHistoryFacetScope({ query, timeZone, userId }),
         take: TOP_PEOPLE_LIMIT,
       }),
     ]);
@@ -171,17 +182,18 @@ export class LoanHistoryService {
     query: LoanHistoryPeopleQuery;
     userId: string;
   }): Promise<LoanHistoryPeopleView> {
+    const timeZone = await this.readerTimeZone(userId);
     const rows = await this.loanHistoryRepository.people({
+      ...toHistoryFacetScope({ query, timeZone, userId }),
       limit: query.limit,
-      loanDateFrom: query.loanDateFrom,
-      loanDateTo: query.loanDateTo,
-      returnedFrom: query.returnedFrom,
-      returnedTo: query.returnedTo,
       search: normalizeSearch(query.search),
-      type: query.type,
-      userId,
     });
     return { items: rows.map((row) => toPersonOption(row)) };
+  }
+
+  private async readerTimeZone(userId: string): Promise<string> {
+    const { timezone } = await this.userSettingsContextService.resolve(userId);
+    return timezone;
   }
 
   private async requireCompletedLoan({
@@ -211,9 +223,15 @@ export class LoanHistoryService {
     };
   }
 
-  private toDetailView(loan: CompletedLoanWithBook): LoanHistoryDetailView {
+  private toDetailView({
+    loan,
+    timeZone,
+  }: {
+    loan: CompletedLoanWithBook;
+    timeZone: string;
+  }): LoanHistoryDetailView {
     return {
-      ...this.toListItemView(loan),
+      ...this.toListItemView({ loan, timeZone }),
       contact: resolveHistoryLoanPerson(loan).contact,
       createdAt: loan.createdAt.toISOString(),
       note: loan.note,
@@ -221,11 +239,18 @@ export class LoanHistoryService {
     };
   }
 
-  private toListItemView(loan: CompletedLoanWithBook): LoanHistoryListItemView {
+  private toListItemView({
+    loan,
+    timeZone,
+  }: {
+    loan: CompletedLoanWithBook;
+    timeZone: string;
+  }): LoanHistoryListItemView {
     const { delayDays, durationDays, historyResult, returnedDate } = deriveLoanHistoryOutcome({
       expectedReturnDate: loan.expectedReturnDate,
       loanDate: loan.loanDate,
       returnedAt: loan.returnedAt,
+      timeZone,
     });
     const person = resolveHistoryLoanPerson(loan);
 
@@ -253,31 +278,34 @@ function toAverage({ divisor, sum }: { divisor: number; sum: Nullable<number> })
 function toCorrectedReturnedAt({
   loanDate,
   returnedDate,
+  timeZone,
 }: {
   loanDate: Nullable<Date>;
   returnedDate: string | undefined;
+  timeZone: string;
 }): Date | undefined {
   if (returnedDate === undefined) {
     return undefined;
   }
 
-  const returnedAt = parseIsoDate(returnedDate);
-  if (loanDate !== null && isBefore(returnedAt, startOfUtcDay(loanDate))) {
+  if (loanDate !== null && isBefore(parseISO(returnedDate), parseISO(toIsoDate(loanDate)))) {
     throw new BadRequestError(LOAN_HISTORY_MESSAGE.returnedBeforeLoan, {
       fields: [{ field: "returnedDate", message: LOAN_HISTORY_MESSAGE.returnedBeforeLoan }],
     });
   }
-  return returnedAt;
+  return toZonedDayStart({ isoDate: returnedDate, timeZone });
 }
 
 function toHistoryFacetScope({
   query,
+  timeZone,
   userId,
 }: {
   query: Pick<
     LoanHistoryQuery,
     "loanDateFrom" | "loanDateTo" | "returnedFrom" | "returnedTo" | "type"
   >;
+  timeZone: string;
   userId: string;
 }): Omit<LoanHistoryScope, "contactId"> {
   return {
@@ -285,6 +313,7 @@ function toHistoryFacetScope({
     loanDateTo: query.loanDateTo,
     returnedFrom: query.returnedFrom,
     returnedTo: query.returnedTo,
+    timeZone,
     type: query.type,
     userId,
   };
@@ -292,15 +321,17 @@ function toHistoryFacetScope({
 
 function toHistoryScope({
   query,
+  timeZone,
   userId,
 }: {
   query: Pick<
     LoanHistoryQuery,
     "contactId" | "loanDateFrom" | "loanDateTo" | "returnedFrom" | "returnedTo" | "type"
   >;
+  timeZone: string;
   userId: string;
 }): LoanHistoryScope {
-  return { ...toHistoryFacetScope({ query, userId }), contactId: query.contactId };
+  return { ...toHistoryFacetScope({ query, timeZone, userId }), contactId: query.contactId };
 }
 
 function toOnTimePercent({
