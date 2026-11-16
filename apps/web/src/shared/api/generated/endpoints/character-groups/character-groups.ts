@@ -47,41 +47,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type characterGroupsControllerCreateResponse201 = {
-  data: CharacterGroupDetailsViewDto;
-  status: 201;
-};
-
-export type characterGroupsControllerCreateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterGroupsControllerCreateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterGroupsControllerCreateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterGroupsControllerCreateResponseSuccess =
-  characterGroupsControllerCreateResponse201 & {
-    headers: Headers;
-  };
-export type characterGroupsControllerCreateResponseError = (
-  | characterGroupsControllerCreateResponse400
-  | characterGroupsControllerCreateResponse401
-  | characterGroupsControllerCreateResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterGroupsControllerCreateResponse =
-  characterGroupsControllerCreateResponseSuccess | characterGroupsControllerCreateResponseError;
-
 export const getCharacterGroupsControllerCreateUrl = () => {
   return `/api/character-groups`;
 };
@@ -92,16 +57,13 @@ export const getCharacterGroupsControllerCreateUrl = () => {
 export const characterGroupsControllerCreate = async (
   createCharacterGroupInputDto: CreateCharacterGroupInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterGroupsControllerCreateResponse> => {
-  return customInstance<characterGroupsControllerCreateResponse>(
-    getCharacterGroupsControllerCreateUrl(),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(createCharacterGroupInputDto),
-    },
-  );
+): Promise<CharacterGroupDetailsViewDto> => {
+  return customInstance<CharacterGroupDetailsViewDto>(getCharacterGroupsControllerCreateUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createCharacterGroupInputDto),
+  });
 };
 
 export const getCharacterGroupsControllerCreateQueryKey = (
@@ -229,28 +191,6 @@ export function useCharacterGroupsControllerCreate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterGroupsControllerListResponse200 = {
-  data: PaginatedCharacterGroupSummaryDto;
-  status: 200;
-};
-
-export type characterGroupsControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterGroupsControllerListResponseSuccess =
-  characterGroupsControllerListResponse200 & {
-    headers: Headers;
-  };
-export type characterGroupsControllerListResponseError =
-  characterGroupsControllerListResponse401 & {
-    headers: Headers;
-  };
-
-export type characterGroupsControllerListResponse =
-  characterGroupsControllerListResponseSuccess | characterGroupsControllerListResponseError;
-
 export const getCharacterGroupsControllerListUrl = (
   params?: CharacterGroupsControllerListParams,
 ) => {
@@ -275,8 +215,8 @@ export const getCharacterGroupsControllerListUrl = (
 export const characterGroupsControllerList = async (
   params?: CharacterGroupsControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterGroupsControllerListResponse> => {
-  return customInstance<characterGroupsControllerListResponse>(
+): Promise<PaginatedCharacterGroupSummaryDto> => {
+  return customInstance<PaginatedCharacterGroupSummaryDto>(
     getCharacterGroupsControllerListUrl(params),
     {
       ...options,
@@ -404,41 +344,6 @@ export function useCharacterGroupsControllerList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterGroupsControllerGetByIdResponse200 = {
-  data: CharacterGroupDetailsViewDto;
-  status: 200;
-};
-
-export type characterGroupsControllerGetByIdResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterGroupsControllerGetByIdResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterGroupsControllerGetByIdResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterGroupsControllerGetByIdResponseSuccess =
-  characterGroupsControllerGetByIdResponse200 & {
-    headers: Headers;
-  };
-export type characterGroupsControllerGetByIdResponseError = (
-  | characterGroupsControllerGetByIdResponse400
-  | characterGroupsControllerGetByIdResponse401
-  | characterGroupsControllerGetByIdResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterGroupsControllerGetByIdResponse =
-  characterGroupsControllerGetByIdResponseSuccess | characterGroupsControllerGetByIdResponseError;
-
 export const getCharacterGroupsControllerGetByIdUrl = (
   groupId: string,
   params?: CharacterGroupsControllerGetByIdParams,
@@ -465,8 +370,8 @@ export const characterGroupsControllerGetById = async (
   groupId: string,
   params?: CharacterGroupsControllerGetByIdParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterGroupsControllerGetByIdResponse> => {
-  return customInstance<characterGroupsControllerGetByIdResponse>(
+): Promise<CharacterGroupDetailsViewDto> => {
+  return customInstance<CharacterGroupDetailsViewDto>(
     getCharacterGroupsControllerGetByIdUrl(groupId, params),
     {
       ...options,
@@ -606,41 +511,6 @@ export function useCharacterGroupsControllerGetById<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterGroupsControllerUpdateResponse200 = {
-  data: CharacterGroupDetailsViewDto;
-  status: 200;
-};
-
-export type characterGroupsControllerUpdateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterGroupsControllerUpdateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterGroupsControllerUpdateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterGroupsControllerUpdateResponseSuccess =
-  characterGroupsControllerUpdateResponse200 & {
-    headers: Headers;
-  };
-export type characterGroupsControllerUpdateResponseError = (
-  | characterGroupsControllerUpdateResponse400
-  | characterGroupsControllerUpdateResponse401
-  | characterGroupsControllerUpdateResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterGroupsControllerUpdateResponse =
-  characterGroupsControllerUpdateResponseSuccess | characterGroupsControllerUpdateResponseError;
-
 export const getCharacterGroupsControllerUpdateUrl = (groupId: string) => {
   return `/api/character-groups/${groupId}`;
 };
@@ -652,8 +522,8 @@ export const characterGroupsControllerUpdate = async (
   groupId: string,
   updateCharacterGroupInputDto: UpdateCharacterGroupInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterGroupsControllerUpdateResponse> => {
-  return customInstance<characterGroupsControllerUpdateResponse>(
+): Promise<CharacterGroupDetailsViewDto> => {
+  return customInstance<CharacterGroupDetailsViewDto>(
     getCharacterGroupsControllerUpdateUrl(groupId),
     {
       ...options,
@@ -804,34 +674,6 @@ export function useCharacterGroupsControllerUpdate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterGroupsControllerRemoveResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type characterGroupsControllerRemoveResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterGroupsControllerRemoveResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterGroupsControllerRemoveResponseSuccess =
-  characterGroupsControllerRemoveResponse204 & {
-    headers: Headers;
-  };
-export type characterGroupsControllerRemoveResponseError = (
-  characterGroupsControllerRemoveResponse401 | characterGroupsControllerRemoveResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterGroupsControllerRemoveResponse =
-  characterGroupsControllerRemoveResponseSuccess | characterGroupsControllerRemoveResponseError;
-
 export const getCharacterGroupsControllerRemoveUrl = (groupId: string) => {
   return `/api/character-groups/${groupId}`;
 };
@@ -842,14 +684,11 @@ export const getCharacterGroupsControllerRemoveUrl = (groupId: string) => {
 export const characterGroupsControllerRemove = async (
   groupId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterGroupsControllerRemoveResponse> => {
-  return customInstance<characterGroupsControllerRemoveResponse>(
-    getCharacterGroupsControllerRemoveUrl(groupId),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getCharacterGroupsControllerRemoveUrl(groupId), {
+    ...options,
+    method: "DELETE",
+  });
 };
 
 export const getCharacterGroupsControllerRemoveQueryKey = (groupId: string) => {
@@ -974,42 +813,6 @@ export function useCharacterGroupsControllerRemove<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterGroupsControllerUpsertMemberResponse200 = {
-  data: CharacterGroupDetailsViewDto;
-  status: 200;
-};
-
-export type characterGroupsControllerUpsertMemberResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterGroupsControllerUpsertMemberResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterGroupsControllerUpsertMemberResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterGroupsControllerUpsertMemberResponseSuccess =
-  characterGroupsControllerUpsertMemberResponse200 & {
-    headers: Headers;
-  };
-export type characterGroupsControllerUpsertMemberResponseError = (
-  | characterGroupsControllerUpsertMemberResponse400
-  | characterGroupsControllerUpsertMemberResponse401
-  | characterGroupsControllerUpsertMemberResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterGroupsControllerUpsertMemberResponse =
-  | characterGroupsControllerUpsertMemberResponseSuccess
-  | characterGroupsControllerUpsertMemberResponseError;
-
 export const getCharacterGroupsControllerUpsertMemberUrl = (
   groupId: string,
   characterId: string,
@@ -1025,8 +828,8 @@ export const characterGroupsControllerUpsertMember = async (
   characterId: string,
   upsertCharacterGroupMembershipInputDto: UpsertCharacterGroupMembershipInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterGroupsControllerUpsertMemberResponse> => {
-  return customInstance<characterGroupsControllerUpsertMemberResponse>(
+): Promise<CharacterGroupDetailsViewDto> => {
+  return customInstance<CharacterGroupDetailsViewDto>(
     getCharacterGroupsControllerUpsertMemberUrl(groupId, characterId),
     {
       ...options,
@@ -1218,36 +1021,6 @@ export function useCharacterGroupsControllerUpsertMember<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterGroupsControllerRemoveMemberResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type characterGroupsControllerRemoveMemberResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterGroupsControllerRemoveMemberResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterGroupsControllerRemoveMemberResponseSuccess =
-  characterGroupsControllerRemoveMemberResponse204 & {
-    headers: Headers;
-  };
-export type characterGroupsControllerRemoveMemberResponseError = (
-  | characterGroupsControllerRemoveMemberResponse401
-  | characterGroupsControllerRemoveMemberResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterGroupsControllerRemoveMemberResponse =
-  | characterGroupsControllerRemoveMemberResponseSuccess
-  | characterGroupsControllerRemoveMemberResponseError;
-
 export const getCharacterGroupsControllerRemoveMemberUrl = (
   groupId: string,
   characterId: string,
@@ -1262,14 +1035,11 @@ export const characterGroupsControllerRemoveMember = async (
   groupId: string,
   characterId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterGroupsControllerRemoveMemberResponse> => {
-  return customInstance<characterGroupsControllerRemoveMemberResponse>(
-    getCharacterGroupsControllerRemoveMemberUrl(groupId, characterId),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getCharacterGroupsControllerRemoveMemberUrl(groupId, characterId), {
+    ...options,
+    method: "DELETE",
+  });
 };
 
 export const getCharacterGroupsControllerRemoveMemberQueryKey = (

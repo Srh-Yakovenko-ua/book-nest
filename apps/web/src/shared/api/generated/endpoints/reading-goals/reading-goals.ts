@@ -51,47 +51,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type readingGoalsControllerCreateResponse201 = {
-  data: ReadingGoalViewDto;
-  status: 201;
-};
-
-export type readingGoalsControllerCreateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type readingGoalsControllerCreateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type readingGoalsControllerCreateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type readingGoalsControllerCreateResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type readingGoalsControllerCreateResponseSuccess =
-  readingGoalsControllerCreateResponse201 & {
-    headers: Headers;
-  };
-export type readingGoalsControllerCreateResponseError = (
-  | readingGoalsControllerCreateResponse400
-  | readingGoalsControllerCreateResponse401
-  | readingGoalsControllerCreateResponse404
-  | readingGoalsControllerCreateResponse409
-) & {
-  headers: Headers;
-};
-
-export type readingGoalsControllerCreateResponse =
-  readingGoalsControllerCreateResponseSuccess | readingGoalsControllerCreateResponseError;
-
 export const getReadingGoalsControllerCreateUrl = (listId: string) => {
   return `/api/lists/${listId}/goal`;
 };
@@ -103,16 +62,13 @@ export const readingGoalsControllerCreate = async (
   listId: string,
   createReadingGoalInputDto: CreateReadingGoalInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<readingGoalsControllerCreateResponse> => {
-  return customInstance<readingGoalsControllerCreateResponse>(
-    getReadingGoalsControllerCreateUrl(listId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(createReadingGoalInputDto),
-    },
-  );
+): Promise<ReadingGoalViewDto> => {
+  return customInstance<ReadingGoalViewDto>(getReadingGoalsControllerCreateUrl(listId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createReadingGoalInputDto),
+  });
 };
 
 export const getReadingGoalsControllerCreateQueryKey = (
@@ -250,40 +206,6 @@ export function useReadingGoalsControllerCreate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type readingGoalsControllerFindByListResponse200 = {
-  data: ReadingGoalViewDto;
-  status: 200;
-};
-
-export type readingGoalsControllerFindByListResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type readingGoalsControllerFindByListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type readingGoalsControllerFindByListResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type readingGoalsControllerFindByListResponseSuccess = (
-  readingGoalsControllerFindByListResponse200 | readingGoalsControllerFindByListResponse204
-) & {
-  headers: Headers;
-};
-export type readingGoalsControllerFindByListResponseError = (
-  readingGoalsControllerFindByListResponse401 | readingGoalsControllerFindByListResponse404
-) & {
-  headers: Headers;
-};
-
-export type readingGoalsControllerFindByListResponse =
-  readingGoalsControllerFindByListResponseSuccess | readingGoalsControllerFindByListResponseError;
-
 export const getReadingGoalsControllerFindByListUrl = (listId: string) => {
   return `/api/lists/${listId}/goal`;
 };
@@ -294,14 +216,11 @@ export const getReadingGoalsControllerFindByListUrl = (listId: string) => {
 export const readingGoalsControllerFindByList = async (
   listId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<readingGoalsControllerFindByListResponse> => {
-  return customInstance<readingGoalsControllerFindByListResponse>(
-    getReadingGoalsControllerFindByListUrl(listId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<ReadingGoalViewDto | void> => {
+  return customInstance<ReadingGoalViewDto | void>(getReadingGoalsControllerFindByListUrl(listId), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getReadingGoalsControllerFindByListQueryKey = (listId: string) => {
@@ -426,33 +345,6 @@ export function useReadingGoalsControllerFindByList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type readingGoalsControllerListResponse200 = {
-  data: ReadingGoalListResponseDto;
-  status: 200;
-};
-
-export type readingGoalsControllerListResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type readingGoalsControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type readingGoalsControllerListResponseSuccess = readingGoalsControllerListResponse200 & {
-  headers: Headers;
-};
-export type readingGoalsControllerListResponseError = (
-  readingGoalsControllerListResponse400 | readingGoalsControllerListResponse401
-) & {
-  headers: Headers;
-};
-
-export type readingGoalsControllerListResponse =
-  readingGoalsControllerListResponseSuccess | readingGoalsControllerListResponseError;
-
 export const getReadingGoalsControllerListUrl = (params?: ReadingGoalsControllerListParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -473,14 +365,11 @@ export const getReadingGoalsControllerListUrl = (params?: ReadingGoalsController
 export const readingGoalsControllerList = async (
   params?: ReadingGoalsControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<readingGoalsControllerListResponse> => {
-  return customInstance<readingGoalsControllerListResponse>(
-    getReadingGoalsControllerListUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<ReadingGoalListResponseDto> => {
+  return customInstance<ReadingGoalListResponseDto>(getReadingGoalsControllerListUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getReadingGoalsControllerListQueryKey = (
@@ -602,28 +491,6 @@ export function useReadingGoalsControllerList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type readingGoalsControllerOverviewResponse200 = {
-  data: ReadingGoalsOverviewDto;
-  status: 200;
-};
-
-export type readingGoalsControllerOverviewResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type readingGoalsControllerOverviewResponseSuccess =
-  readingGoalsControllerOverviewResponse200 & {
-    headers: Headers;
-  };
-export type readingGoalsControllerOverviewResponseError =
-  readingGoalsControllerOverviewResponse401 & {
-    headers: Headers;
-  };
-
-export type readingGoalsControllerOverviewResponse =
-  readingGoalsControllerOverviewResponseSuccess | readingGoalsControllerOverviewResponseError;
-
 export const getReadingGoalsControllerOverviewUrl = () => {
   return `/api/goals/overview`;
 };
@@ -633,14 +500,11 @@ export const getReadingGoalsControllerOverviewUrl = () => {
  */
 export const readingGoalsControllerOverview = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<readingGoalsControllerOverviewResponse> => {
-  return customInstance<readingGoalsControllerOverviewResponse>(
-    getReadingGoalsControllerOverviewUrl(),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<ReadingGoalsOverviewDto> => {
+  return customInstance<ReadingGoalsOverviewDto>(getReadingGoalsControllerOverviewUrl(), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getReadingGoalsControllerOverviewQueryKey = () => {
@@ -753,34 +617,6 @@ export function useReadingGoalsControllerOverview<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type readingGoalsControllerFindOneResponse200 = {
-  data: ReadingGoalDetailDto;
-  status: 200;
-};
-
-export type readingGoalsControllerFindOneResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type readingGoalsControllerFindOneResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type readingGoalsControllerFindOneResponseSuccess =
-  readingGoalsControllerFindOneResponse200 & {
-    headers: Headers;
-  };
-export type readingGoalsControllerFindOneResponseError = (
-  readingGoalsControllerFindOneResponse401 | readingGoalsControllerFindOneResponse404
-) & {
-  headers: Headers;
-};
-
-export type readingGoalsControllerFindOneResponse =
-  readingGoalsControllerFindOneResponseSuccess | readingGoalsControllerFindOneResponseError;
-
 export const getReadingGoalsControllerFindOneUrl = (goalId: string) => {
   return `/api/goals/${goalId}`;
 };
@@ -791,14 +627,11 @@ export const getReadingGoalsControllerFindOneUrl = (goalId: string) => {
 export const readingGoalsControllerFindOne = async (
   goalId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<readingGoalsControllerFindOneResponse> => {
-  return customInstance<readingGoalsControllerFindOneResponse>(
-    getReadingGoalsControllerFindOneUrl(goalId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<ReadingGoalDetailDto> => {
+  return customInstance<ReadingGoalDetailDto>(getReadingGoalsControllerFindOneUrl(goalId), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getReadingGoalsControllerFindOneQueryKey = (goalId: string) => {
@@ -921,41 +754,6 @@ export function useReadingGoalsControllerFindOne<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type readingGoalsControllerUpdateResponse200 = {
-  data: ReadingGoalViewDto;
-  status: 200;
-};
-
-export type readingGoalsControllerUpdateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type readingGoalsControllerUpdateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type readingGoalsControllerUpdateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type readingGoalsControllerUpdateResponseSuccess =
-  readingGoalsControllerUpdateResponse200 & {
-    headers: Headers;
-  };
-export type readingGoalsControllerUpdateResponseError = (
-  | readingGoalsControllerUpdateResponse400
-  | readingGoalsControllerUpdateResponse401
-  | readingGoalsControllerUpdateResponse404
-) & {
-  headers: Headers;
-};
-
-export type readingGoalsControllerUpdateResponse =
-  readingGoalsControllerUpdateResponseSuccess | readingGoalsControllerUpdateResponseError;
-
 export const getReadingGoalsControllerUpdateUrl = (goalId: string) => {
   return `/api/goals/${goalId}`;
 };
@@ -967,16 +765,13 @@ export const readingGoalsControllerUpdate = async (
   goalId: string,
   updateReadingGoalInputDto: UpdateReadingGoalInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<readingGoalsControllerUpdateResponse> => {
-  return customInstance<readingGoalsControllerUpdateResponse>(
-    getReadingGoalsControllerUpdateUrl(goalId),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(updateReadingGoalInputDto),
-    },
-  );
+): Promise<ReadingGoalViewDto> => {
+  return customInstance<ReadingGoalViewDto>(getReadingGoalsControllerUpdateUrl(goalId), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateReadingGoalInputDto),
+  });
 };
 
 export const getReadingGoalsControllerUpdateQueryKey = (
@@ -1114,34 +909,6 @@ export function useReadingGoalsControllerUpdate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type readingGoalsControllerDeleteResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type readingGoalsControllerDeleteResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type readingGoalsControllerDeleteResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type readingGoalsControllerDeleteResponseSuccess =
-  readingGoalsControllerDeleteResponse204 & {
-    headers: Headers;
-  };
-export type readingGoalsControllerDeleteResponseError = (
-  readingGoalsControllerDeleteResponse401 | readingGoalsControllerDeleteResponse404
-) & {
-  headers: Headers;
-};
-
-export type readingGoalsControllerDeleteResponse =
-  readingGoalsControllerDeleteResponseSuccess | readingGoalsControllerDeleteResponseError;
-
 export const getReadingGoalsControllerDeleteUrl = (goalId: string) => {
   return `/api/goals/${goalId}`;
 };
@@ -1152,14 +919,11 @@ export const getReadingGoalsControllerDeleteUrl = (goalId: string) => {
 export const readingGoalsControllerDelete = async (
   goalId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<readingGoalsControllerDeleteResponse> => {
-  return customInstance<readingGoalsControllerDeleteResponse>(
-    getReadingGoalsControllerDeleteUrl(goalId),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getReadingGoalsControllerDeleteUrl(goalId), {
+    ...options,
+    method: "DELETE",
+  });
 };
 
 export const getReadingGoalsControllerDeleteQueryKey = (goalId: string) => {
@@ -1282,41 +1046,6 @@ export function useReadingGoalsControllerDelete<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type readingGoalsControllerListBooksResponse200 = {
-  data: ReadingGoalBooksResponseDto;
-  status: 200;
-};
-
-export type readingGoalsControllerListBooksResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type readingGoalsControllerListBooksResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type readingGoalsControllerListBooksResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type readingGoalsControllerListBooksResponseSuccess =
-  readingGoalsControllerListBooksResponse200 & {
-    headers: Headers;
-  };
-export type readingGoalsControllerListBooksResponseError = (
-  | readingGoalsControllerListBooksResponse400
-  | readingGoalsControllerListBooksResponse401
-  | readingGoalsControllerListBooksResponse404
-) & {
-  headers: Headers;
-};
-
-export type readingGoalsControllerListBooksResponse =
-  readingGoalsControllerListBooksResponseSuccess | readingGoalsControllerListBooksResponseError;
-
 export const getReadingGoalsControllerListBooksUrl = (
   goalId: string,
   params?: ReadingGoalsControllerListBooksParams,
@@ -1343,8 +1072,8 @@ export const readingGoalsControllerListBooks = async (
   goalId: string,
   params?: ReadingGoalsControllerListBooksParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<readingGoalsControllerListBooksResponse> => {
-  return customInstance<readingGoalsControllerListBooksResponse>(
+): Promise<ReadingGoalBooksResponseDto> => {
+  return customInstance<ReadingGoalBooksResponseDto>(
     getReadingGoalsControllerListBooksUrl(goalId, params),
     {
       ...options,
@@ -1484,42 +1213,6 @@ export function useReadingGoalsControllerListBooks<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type readingGoalsControllerListActivityResponse200 = {
-  data: ReadingGoalActivityResponseDto;
-  status: 200;
-};
-
-export type readingGoalsControllerListActivityResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type readingGoalsControllerListActivityResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type readingGoalsControllerListActivityResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type readingGoalsControllerListActivityResponseSuccess =
-  readingGoalsControllerListActivityResponse200 & {
-    headers: Headers;
-  };
-export type readingGoalsControllerListActivityResponseError = (
-  | readingGoalsControllerListActivityResponse400
-  | readingGoalsControllerListActivityResponse401
-  | readingGoalsControllerListActivityResponse404
-) & {
-  headers: Headers;
-};
-
-export type readingGoalsControllerListActivityResponse =
-  | readingGoalsControllerListActivityResponseSuccess
-  | readingGoalsControllerListActivityResponseError;
-
 export const getReadingGoalsControllerListActivityUrl = (
   goalId: string,
   params?: ReadingGoalsControllerListActivityParams,
@@ -1546,8 +1239,8 @@ export const readingGoalsControllerListActivity = async (
   goalId: string,
   params?: ReadingGoalsControllerListActivityParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<readingGoalsControllerListActivityResponse> => {
-  return customInstance<readingGoalsControllerListActivityResponse>(
+): Promise<ReadingGoalActivityResponseDto> => {
+  return customInstance<ReadingGoalActivityResponseDto>(
     getReadingGoalsControllerListActivityUrl(goalId, params),
     {
       ...options,
@@ -1687,34 +1380,6 @@ export function useReadingGoalsControllerListActivity<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type readingGoalsControllerArchiveResponse200 = {
-  data: ReadingGoalViewDto;
-  status: 200;
-};
-
-export type readingGoalsControllerArchiveResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type readingGoalsControllerArchiveResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type readingGoalsControllerArchiveResponseSuccess =
-  readingGoalsControllerArchiveResponse200 & {
-    headers: Headers;
-  };
-export type readingGoalsControllerArchiveResponseError = (
-  readingGoalsControllerArchiveResponse401 | readingGoalsControllerArchiveResponse404
-) & {
-  headers: Headers;
-};
-
-export type readingGoalsControllerArchiveResponse =
-  readingGoalsControllerArchiveResponseSuccess | readingGoalsControllerArchiveResponseError;
-
 export const getReadingGoalsControllerArchiveUrl = (goalId: string) => {
   return `/api/goals/${goalId}/archive`;
 };
@@ -1725,14 +1390,11 @@ export const getReadingGoalsControllerArchiveUrl = (goalId: string) => {
 export const readingGoalsControllerArchive = async (
   goalId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<readingGoalsControllerArchiveResponse> => {
-  return customInstance<readingGoalsControllerArchiveResponse>(
-    getReadingGoalsControllerArchiveUrl(goalId),
-    {
-      ...options,
-      method: "POST",
-    },
-  );
+): Promise<ReadingGoalViewDto> => {
+  return customInstance<ReadingGoalViewDto>(getReadingGoalsControllerArchiveUrl(goalId), {
+    ...options,
+    method: "POST",
+  });
 };
 
 export const getReadingGoalsControllerArchiveQueryKey = (goalId: string) => {

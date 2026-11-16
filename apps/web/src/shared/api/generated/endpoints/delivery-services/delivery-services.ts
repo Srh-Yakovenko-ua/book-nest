@@ -42,28 +42,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type deliveryServicesControllerSearchResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type deliveryServicesControllerSearchResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type deliveryServicesControllerSearchResponseSuccess =
-  deliveryServicesControllerSearchResponse200 & {
-    headers: Headers;
-  };
-export type deliveryServicesControllerSearchResponseError =
-  deliveryServicesControllerSearchResponse401 & {
-    headers: Headers;
-  };
-
-export type deliveryServicesControllerSearchResponse =
-  deliveryServicesControllerSearchResponseSuccess | deliveryServicesControllerSearchResponseError;
-
 export const getDeliveryServicesControllerSearchUrl = (
   params?: DeliveryServicesControllerSearchParams,
 ) => {
@@ -88,14 +66,11 @@ export const getDeliveryServicesControllerSearchUrl = (
 export const deliveryServicesControllerSearch = async (
   params?: DeliveryServicesControllerSearchParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<deliveryServicesControllerSearchResponse> => {
-  return customInstance<deliveryServicesControllerSearchResponse>(
-    getDeliveryServicesControllerSearchUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getDeliveryServicesControllerSearchUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getDeliveryServicesControllerSearchQueryKey = (
@@ -217,28 +192,6 @@ export function useDeliveryServicesControllerSearch<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type deliveryServicesControllerRecentResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type deliveryServicesControllerRecentResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type deliveryServicesControllerRecentResponseSuccess =
-  deliveryServicesControllerRecentResponse200 & {
-    headers: Headers;
-  };
-export type deliveryServicesControllerRecentResponseError =
-  deliveryServicesControllerRecentResponse401 & {
-    headers: Headers;
-  };
-
-export type deliveryServicesControllerRecentResponse =
-  deliveryServicesControllerRecentResponseSuccess | deliveryServicesControllerRecentResponseError;
-
 export const getDeliveryServicesControllerRecentUrl = (
   params?: DeliveryServicesControllerRecentParams,
 ) => {
@@ -263,14 +216,11 @@ export const getDeliveryServicesControllerRecentUrl = (
 export const deliveryServicesControllerRecent = async (
   params?: DeliveryServicesControllerRecentParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<deliveryServicesControllerRecentResponse> => {
-  return customInstance<deliveryServicesControllerRecentResponse>(
-    getDeliveryServicesControllerRecentUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getDeliveryServicesControllerRecentUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getDeliveryServicesControllerRecentQueryKey = (
@@ -392,34 +342,6 @@ export function useDeliveryServicesControllerRecent<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type deliveryServicesControllerDeleteResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type deliveryServicesControllerDeleteResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type deliveryServicesControllerDeleteResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type deliveryServicesControllerDeleteResponseSuccess =
-  deliveryServicesControllerDeleteResponse204 & {
-    headers: Headers;
-  };
-export type deliveryServicesControllerDeleteResponseError = (
-  deliveryServicesControllerDeleteResponse401 | deliveryServicesControllerDeleteResponse404
-) & {
-  headers: Headers;
-};
-
-export type deliveryServicesControllerDeleteResponse =
-  deliveryServicesControllerDeleteResponseSuccess | deliveryServicesControllerDeleteResponseError;
-
 export const getDeliveryServicesControllerDeleteUrl = (id: string) => {
   return `/api/delivery-services/${id}`;
 };
@@ -430,14 +352,11 @@ export const getDeliveryServicesControllerDeleteUrl = (id: string) => {
 export const deliveryServicesControllerDelete = async (
   id: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<deliveryServicesControllerDeleteResponse> => {
-  return customInstance<deliveryServicesControllerDeleteResponse>(
-    getDeliveryServicesControllerDeleteUrl(id),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getDeliveryServicesControllerDeleteUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
 };
 
 export const getDeliveryServicesControllerDeleteQueryKey = (id: string) => {

@@ -52,35 +52,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type timelineEventsControllerListEventsResponse200 = {
-  data: PaginatedTimelineEventsDto;
-  status: 200;
-};
-
-export type timelineEventsControllerListEventsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type timelineEventsControllerListEventsResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type timelineEventsControllerListEventsResponseSuccess =
-  timelineEventsControllerListEventsResponse200 & {
-    headers: Headers;
-  };
-export type timelineEventsControllerListEventsResponseError = (
-  timelineEventsControllerListEventsResponse401 | timelineEventsControllerListEventsResponse404
-) & {
-  headers: Headers;
-};
-
-export type timelineEventsControllerListEventsResponse =
-  | timelineEventsControllerListEventsResponseSuccess
-  | timelineEventsControllerListEventsResponseError;
-
 export const getTimelineEventsControllerListEventsUrl = (
   bookId: string,
   params?: TimelineEventsControllerListEventsParams,
@@ -116,8 +87,8 @@ export const timelineEventsControllerListEvents = async (
   bookId: string,
   params?: TimelineEventsControllerListEventsParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<timelineEventsControllerListEventsResponse> => {
-  return customInstance<timelineEventsControllerListEventsResponse>(
+): Promise<PaginatedTimelineEventsDto> => {
+  return customInstance<PaginatedTimelineEventsDto>(
     getTimelineEventsControllerListEventsUrl(bookId, params),
     {
       ...options,
@@ -257,48 +228,6 @@ export function useTimelineEventsControllerListEvents<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type timelineEventsControllerCreateEventResponse201 = {
-  data: TimelineEventViewDto;
-  status: 201;
-};
-
-export type timelineEventsControllerCreateEventResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type timelineEventsControllerCreateEventResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type timelineEventsControllerCreateEventResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type timelineEventsControllerCreateEventResponse422 = {
-  data: void;
-  status: 422;
-};
-
-export type timelineEventsControllerCreateEventResponseSuccess =
-  timelineEventsControllerCreateEventResponse201 & {
-    headers: Headers;
-  };
-export type timelineEventsControllerCreateEventResponseError = (
-  | timelineEventsControllerCreateEventResponse400
-  | timelineEventsControllerCreateEventResponse401
-  | timelineEventsControllerCreateEventResponse404
-  | timelineEventsControllerCreateEventResponse422
-) & {
-  headers: Headers;
-};
-
-export type timelineEventsControllerCreateEventResponse =
-  | timelineEventsControllerCreateEventResponseSuccess
-  | timelineEventsControllerCreateEventResponseError;
-
 export const getTimelineEventsControllerCreateEventUrl = (bookId: string) => {
   return `/api/books/${bookId}/timeline-events`;
 };
@@ -310,16 +239,13 @@ export const timelineEventsControllerCreateEvent = async (
   bookId: string,
   createTimelineEventInputDto: CreateTimelineEventInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<timelineEventsControllerCreateEventResponse> => {
-  return customInstance<timelineEventsControllerCreateEventResponse>(
-    getTimelineEventsControllerCreateEventUrl(bookId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(createTimelineEventInputDto),
-    },
-  );
+): Promise<TimelineEventViewDto> => {
+  return customInstance<TimelineEventViewDto>(getTimelineEventsControllerCreateEventUrl(bookId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createTimelineEventInputDto),
+  });
 };
 
 export const getTimelineEventsControllerCreateEventQueryKey = (
@@ -482,34 +408,6 @@ export function useTimelineEventsControllerCreateEvent<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type timelineEventsControllerOverviewResponse200 = {
-  data: TimelineOverviewViewDto;
-  status: 200;
-};
-
-export type timelineEventsControllerOverviewResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type timelineEventsControllerOverviewResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type timelineEventsControllerOverviewResponseSuccess =
-  timelineEventsControllerOverviewResponse200 & {
-    headers: Headers;
-  };
-export type timelineEventsControllerOverviewResponseError = (
-  timelineEventsControllerOverviewResponse401 | timelineEventsControllerOverviewResponse404
-) & {
-  headers: Headers;
-};
-
-export type timelineEventsControllerOverviewResponse =
-  timelineEventsControllerOverviewResponseSuccess | timelineEventsControllerOverviewResponseError;
-
 export const getTimelineEventsControllerOverviewUrl = (bookId: string) => {
   return `/api/books/${bookId}/timeline/overview`;
 };
@@ -520,14 +418,11 @@ export const getTimelineEventsControllerOverviewUrl = (bookId: string) => {
 export const timelineEventsControllerOverview = async (
   bookId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<timelineEventsControllerOverviewResponse> => {
-  return customInstance<timelineEventsControllerOverviewResponse>(
-    getTimelineEventsControllerOverviewUrl(bookId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<TimelineOverviewViewDto> => {
+  return customInstance<TimelineOverviewViewDto>(getTimelineEventsControllerOverviewUrl(bookId), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getTimelineEventsControllerOverviewQueryKey = (bookId: string) => {
@@ -652,34 +547,6 @@ export function useTimelineEventsControllerOverview<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type timelineEventsControllerLocationsResponse200 = {
-  data: TimelineLocationsViewDto;
-  status: 200;
-};
-
-export type timelineEventsControllerLocationsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type timelineEventsControllerLocationsResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type timelineEventsControllerLocationsResponseSuccess =
-  timelineEventsControllerLocationsResponse200 & {
-    headers: Headers;
-  };
-export type timelineEventsControllerLocationsResponseError = (
-  timelineEventsControllerLocationsResponse401 | timelineEventsControllerLocationsResponse404
-) & {
-  headers: Headers;
-};
-
-export type timelineEventsControllerLocationsResponse =
-  timelineEventsControllerLocationsResponseSuccess | timelineEventsControllerLocationsResponseError;
-
 export const getTimelineEventsControllerLocationsUrl = (bookId: string) => {
   return `/api/books/${bookId}/timeline/locations`;
 };
@@ -690,14 +557,11 @@ export const getTimelineEventsControllerLocationsUrl = (bookId: string) => {
 export const timelineEventsControllerLocations = async (
   bookId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<timelineEventsControllerLocationsResponse> => {
-  return customInstance<timelineEventsControllerLocationsResponse>(
-    getTimelineEventsControllerLocationsUrl(bookId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<TimelineLocationsViewDto> => {
+  return customInstance<TimelineLocationsViewDto>(getTimelineEventsControllerLocationsUrl(bookId), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getTimelineEventsControllerLocationsQueryKey = (bookId: string) => {
@@ -822,34 +686,6 @@ export function useTimelineEventsControllerLocations<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type timelineEventsControllerGetEventResponse200 = {
-  data: TimelineEventDetailViewDto;
-  status: 200;
-};
-
-export type timelineEventsControllerGetEventResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type timelineEventsControllerGetEventResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type timelineEventsControllerGetEventResponseSuccess =
-  timelineEventsControllerGetEventResponse200 & {
-    headers: Headers;
-  };
-export type timelineEventsControllerGetEventResponseError = (
-  timelineEventsControllerGetEventResponse401 | timelineEventsControllerGetEventResponse404
-) & {
-  headers: Headers;
-};
-
-export type timelineEventsControllerGetEventResponse =
-  timelineEventsControllerGetEventResponseSuccess | timelineEventsControllerGetEventResponseError;
-
 export const getTimelineEventsControllerGetEventUrl = (eventId: string) => {
   return `/api/timeline-events/${eventId}`;
 };
@@ -860,8 +696,8 @@ export const getTimelineEventsControllerGetEventUrl = (eventId: string) => {
 export const timelineEventsControllerGetEvent = async (
   eventId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<timelineEventsControllerGetEventResponse> => {
-  return customInstance<timelineEventsControllerGetEventResponse>(
+): Promise<TimelineEventDetailViewDto> => {
+  return customInstance<TimelineEventDetailViewDto>(
     getTimelineEventsControllerGetEventUrl(eventId),
     {
       ...options,
@@ -992,48 +828,6 @@ export function useTimelineEventsControllerGetEvent<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type timelineEventsControllerUpdateEventResponse200 = {
-  data: TimelineEventViewDto;
-  status: 200;
-};
-
-export type timelineEventsControllerUpdateEventResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type timelineEventsControllerUpdateEventResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type timelineEventsControllerUpdateEventResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type timelineEventsControllerUpdateEventResponse422 = {
-  data: void;
-  status: 422;
-};
-
-export type timelineEventsControllerUpdateEventResponseSuccess =
-  timelineEventsControllerUpdateEventResponse200 & {
-    headers: Headers;
-  };
-export type timelineEventsControllerUpdateEventResponseError = (
-  | timelineEventsControllerUpdateEventResponse400
-  | timelineEventsControllerUpdateEventResponse401
-  | timelineEventsControllerUpdateEventResponse404
-  | timelineEventsControllerUpdateEventResponse422
-) & {
-  headers: Headers;
-};
-
-export type timelineEventsControllerUpdateEventResponse =
-  | timelineEventsControllerUpdateEventResponseSuccess
-  | timelineEventsControllerUpdateEventResponseError;
-
 export const getTimelineEventsControllerUpdateEventUrl = (eventId: string) => {
   return `/api/timeline-events/${eventId}`;
 };
@@ -1045,16 +839,13 @@ export const timelineEventsControllerUpdateEvent = async (
   eventId: string,
   updateTimelineEventInputDto: UpdateTimelineEventInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<timelineEventsControllerUpdateEventResponse> => {
-  return customInstance<timelineEventsControllerUpdateEventResponse>(
-    getTimelineEventsControllerUpdateEventUrl(eventId),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(updateTimelineEventInputDto),
-    },
-  );
+): Promise<TimelineEventViewDto> => {
+  return customInstance<TimelineEventViewDto>(getTimelineEventsControllerUpdateEventUrl(eventId), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateTimelineEventInputDto),
+  });
 };
 
 export const getTimelineEventsControllerUpdateEventQueryKey = (
@@ -1217,35 +1008,6 @@ export function useTimelineEventsControllerUpdateEvent<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type timelineEventsControllerDeleteEventResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type timelineEventsControllerDeleteEventResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type timelineEventsControllerDeleteEventResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type timelineEventsControllerDeleteEventResponseSuccess =
-  timelineEventsControllerDeleteEventResponse204 & {
-    headers: Headers;
-  };
-export type timelineEventsControllerDeleteEventResponseError = (
-  timelineEventsControllerDeleteEventResponse401 | timelineEventsControllerDeleteEventResponse404
-) & {
-  headers: Headers;
-};
-
-export type timelineEventsControllerDeleteEventResponse =
-  | timelineEventsControllerDeleteEventResponseSuccess
-  | timelineEventsControllerDeleteEventResponseError;
-
 export const getTimelineEventsControllerDeleteEventUrl = (eventId: string) => {
   return `/api/timeline-events/${eventId}`;
 };
@@ -1256,14 +1018,11 @@ export const getTimelineEventsControllerDeleteEventUrl = (eventId: string) => {
 export const timelineEventsControllerDeleteEvent = async (
   eventId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<timelineEventsControllerDeleteEventResponse> => {
-  return customInstance<timelineEventsControllerDeleteEventResponse>(
-    getTimelineEventsControllerDeleteEventUrl(eventId),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getTimelineEventsControllerDeleteEventUrl(eventId), {
+    ...options,
+    method: "DELETE",
+  });
 };
 
 export const getTimelineEventsControllerDeleteEventQueryKey = (eventId: string) => {
@@ -1409,48 +1168,6 @@ export function useTimelineEventsControllerDeleteEvent<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type timelineEventsControllerReorderEventResponse200 = {
-  data: TimelineEventViewDto;
-  status: 200;
-};
-
-export type timelineEventsControllerReorderEventResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type timelineEventsControllerReorderEventResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type timelineEventsControllerReorderEventResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type timelineEventsControllerReorderEventResponse422 = {
-  data: void;
-  status: 422;
-};
-
-export type timelineEventsControllerReorderEventResponseSuccess =
-  timelineEventsControllerReorderEventResponse200 & {
-    headers: Headers;
-  };
-export type timelineEventsControllerReorderEventResponseError = (
-  | timelineEventsControllerReorderEventResponse401
-  | timelineEventsControllerReorderEventResponse404
-  | timelineEventsControllerReorderEventResponse409
-  | timelineEventsControllerReorderEventResponse422
-) & {
-  headers: Headers;
-};
-
-export type timelineEventsControllerReorderEventResponse =
-  | timelineEventsControllerReorderEventResponseSuccess
-  | timelineEventsControllerReorderEventResponseError;
-
 export const getTimelineEventsControllerReorderEventUrl = (eventId: string) => {
   return `/api/timeline-events/${eventId}/reorder`;
 };
@@ -1462,16 +1179,13 @@ export const timelineEventsControllerReorderEvent = async (
   eventId: string,
   reorderTimelineEventInputDto: ReorderTimelineEventInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<timelineEventsControllerReorderEventResponse> => {
-  return customInstance<timelineEventsControllerReorderEventResponse>(
-    getTimelineEventsControllerReorderEventUrl(eventId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(reorderTimelineEventInputDto),
-    },
-  );
+): Promise<TimelineEventViewDto> => {
+  return customInstance<TimelineEventViewDto>(getTimelineEventsControllerReorderEventUrl(eventId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(reorderTimelineEventInputDto),
+  });
 };
 
 export const getTimelineEventsControllerReorderEventQueryKey = (
@@ -1634,47 +1348,6 @@ export function useTimelineEventsControllerReorderEvent<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type timelineEventsControllerMoveEventResponse200 = {
-  data: TimelineEventViewDto;
-  status: 200;
-};
-
-export type timelineEventsControllerMoveEventResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type timelineEventsControllerMoveEventResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type timelineEventsControllerMoveEventResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type timelineEventsControllerMoveEventResponse422 = {
-  data: void;
-  status: 422;
-};
-
-export type timelineEventsControllerMoveEventResponseSuccess =
-  timelineEventsControllerMoveEventResponse200 & {
-    headers: Headers;
-  };
-export type timelineEventsControllerMoveEventResponseError = (
-  | timelineEventsControllerMoveEventResponse401
-  | timelineEventsControllerMoveEventResponse404
-  | timelineEventsControllerMoveEventResponse409
-  | timelineEventsControllerMoveEventResponse422
-) & {
-  headers: Headers;
-};
-
-export type timelineEventsControllerMoveEventResponse =
-  timelineEventsControllerMoveEventResponseSuccess | timelineEventsControllerMoveEventResponseError;
-
 export const getTimelineEventsControllerMoveEventUrl = (eventId: string) => {
   return `/api/timeline-events/${eventId}/move`;
 };
@@ -1686,16 +1359,13 @@ export const timelineEventsControllerMoveEvent = async (
   eventId: string,
   moveTimelineEventInputDto: MoveTimelineEventInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<timelineEventsControllerMoveEventResponse> => {
-  return customInstance<timelineEventsControllerMoveEventResponse>(
-    getTimelineEventsControllerMoveEventUrl(eventId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(moveTimelineEventInputDto),
-    },
-  );
+): Promise<TimelineEventViewDto> => {
+  return customInstance<TimelineEventViewDto>(getTimelineEventsControllerMoveEventUrl(eventId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(moveTimelineEventInputDto),
+  });
 };
 
 export const getTimelineEventsControllerMoveEventQueryKey = (
@@ -1838,54 +1508,6 @@ export function useTimelineEventsControllerMoveEvent<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type timelineEventsControllerCreateRelationResponse201 = {
-  data: CreatedEventRelationViewDto;
-  status: 201;
-};
-
-export type timelineEventsControllerCreateRelationResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type timelineEventsControllerCreateRelationResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type timelineEventsControllerCreateRelationResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type timelineEventsControllerCreateRelationResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type timelineEventsControllerCreateRelationResponse422 = {
-  data: void;
-  status: 422;
-};
-
-export type timelineEventsControllerCreateRelationResponseSuccess =
-  timelineEventsControllerCreateRelationResponse201 & {
-    headers: Headers;
-  };
-export type timelineEventsControllerCreateRelationResponseError = (
-  | timelineEventsControllerCreateRelationResponse400
-  | timelineEventsControllerCreateRelationResponse401
-  | timelineEventsControllerCreateRelationResponse404
-  | timelineEventsControllerCreateRelationResponse409
-  | timelineEventsControllerCreateRelationResponse422
-) & {
-  headers: Headers;
-};
-
-export type timelineEventsControllerCreateRelationResponse =
-  | timelineEventsControllerCreateRelationResponseSuccess
-  | timelineEventsControllerCreateRelationResponseError;
-
 export const getTimelineEventsControllerCreateRelationUrl = (eventId: string) => {
   return `/api/timeline-events/${eventId}/relations`;
 };
@@ -1897,8 +1519,8 @@ export const timelineEventsControllerCreateRelation = async (
   eventId: string,
   createEventRelationInputDto: CreateEventRelationInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<timelineEventsControllerCreateRelationResponse> => {
-  return customInstance<timelineEventsControllerCreateRelationResponse>(
+): Promise<CreatedEventRelationViewDto> => {
+  return customInstance<CreatedEventRelationViewDto>(
     getTimelineEventsControllerCreateRelationUrl(eventId),
     {
       ...options,
@@ -2073,36 +1695,6 @@ export function useTimelineEventsControllerCreateRelation<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type timelineEventsControllerDeleteRelationResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type timelineEventsControllerDeleteRelationResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type timelineEventsControllerDeleteRelationResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type timelineEventsControllerDeleteRelationResponseSuccess =
-  timelineEventsControllerDeleteRelationResponse204 & {
-    headers: Headers;
-  };
-export type timelineEventsControllerDeleteRelationResponseError = (
-  | timelineEventsControllerDeleteRelationResponse401
-  | timelineEventsControllerDeleteRelationResponse404
-) & {
-  headers: Headers;
-};
-
-export type timelineEventsControllerDeleteRelationResponse =
-  | timelineEventsControllerDeleteRelationResponseSuccess
-  | timelineEventsControllerDeleteRelationResponseError;
-
 export const getTimelineEventsControllerDeleteRelationUrl = (relationId: string) => {
   return `/api/timeline-event-relations/${relationId}`;
 };
@@ -2113,14 +1705,11 @@ export const getTimelineEventsControllerDeleteRelationUrl = (relationId: string)
 export const timelineEventsControllerDeleteRelation = async (
   relationId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<timelineEventsControllerDeleteRelationResponse> => {
-  return customInstance<timelineEventsControllerDeleteRelationResponse>(
-    getTimelineEventsControllerDeleteRelationUrl(relationId),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getTimelineEventsControllerDeleteRelationUrl(relationId), {
+    ...options,
+    method: "DELETE",
+  });
 };
 
 export const getTimelineEventsControllerDeleteRelationQueryKey = (relationId: string) => {

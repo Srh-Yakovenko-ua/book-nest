@@ -44,47 +44,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type characterFormsControllerCreateResponse201 = {
-  data: CharacterFormViewDto;
-  status: 201;
-};
-
-export type characterFormsControllerCreateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterFormsControllerCreateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterFormsControllerCreateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterFormsControllerCreateResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type characterFormsControllerCreateResponseSuccess =
-  characterFormsControllerCreateResponse201 & {
-    headers: Headers;
-  };
-export type characterFormsControllerCreateResponseError = (
-  | characterFormsControllerCreateResponse400
-  | characterFormsControllerCreateResponse401
-  | characterFormsControllerCreateResponse404
-  | characterFormsControllerCreateResponse409
-) & {
-  headers: Headers;
-};
-
-export type characterFormsControllerCreateResponse =
-  characterFormsControllerCreateResponseSuccess | characterFormsControllerCreateResponseError;
-
 export const getCharacterFormsControllerCreateUrl = (characterId: string) => {
   return `/api/characters/${characterId}/forms`;
 };
@@ -96,16 +55,13 @@ export const characterFormsControllerCreate = async (
   characterId: string,
   createCharacterFormInputDto: CreateCharacterFormInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterFormsControllerCreateResponse> => {
-  return customInstance<characterFormsControllerCreateResponse>(
-    getCharacterFormsControllerCreateUrl(characterId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(createCharacterFormInputDto),
-    },
-  );
+): Promise<CharacterFormViewDto> => {
+  return customInstance<CharacterFormViewDto>(getCharacterFormsControllerCreateUrl(characterId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createCharacterFormInputDto),
+  });
 };
 
 export const getCharacterFormsControllerCreateQueryKey = (
@@ -248,34 +204,6 @@ export function useCharacterFormsControllerCreate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterFormsControllerListResponse200 = {
-  data: CharacterFormListViewDto;
-  status: 200;
-};
-
-export type characterFormsControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterFormsControllerListResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterFormsControllerListResponseSuccess =
-  characterFormsControllerListResponse200 & {
-    headers: Headers;
-  };
-export type characterFormsControllerListResponseError = (
-  characterFormsControllerListResponse401 | characterFormsControllerListResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterFormsControllerListResponse =
-  characterFormsControllerListResponseSuccess | characterFormsControllerListResponseError;
-
 export const getCharacterFormsControllerListUrl = (characterId: string) => {
   return `/api/characters/${characterId}/forms`;
 };
@@ -286,14 +214,11 @@ export const getCharacterFormsControllerListUrl = (characterId: string) => {
 export const characterFormsControllerList = async (
   characterId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterFormsControllerListResponse> => {
-  return customInstance<characterFormsControllerListResponse>(
-    getCharacterFormsControllerListUrl(characterId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<CharacterFormListViewDto> => {
+  return customInstance<CharacterFormListViewDto>(getCharacterFormsControllerListUrl(characterId), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getCharacterFormsControllerListQueryKey = (characterId: string) => {
@@ -416,47 +341,6 @@ export function useCharacterFormsControllerList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterFormsControllerUpdateResponse200 = {
-  data: CharacterFormViewDto;
-  status: 200;
-};
-
-export type characterFormsControllerUpdateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterFormsControllerUpdateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterFormsControllerUpdateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterFormsControllerUpdateResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type characterFormsControllerUpdateResponseSuccess =
-  characterFormsControllerUpdateResponse200 & {
-    headers: Headers;
-  };
-export type characterFormsControllerUpdateResponseError = (
-  | characterFormsControllerUpdateResponse400
-  | characterFormsControllerUpdateResponse401
-  | characterFormsControllerUpdateResponse404
-  | characterFormsControllerUpdateResponse409
-) & {
-  headers: Headers;
-};
-
-export type characterFormsControllerUpdateResponse =
-  characterFormsControllerUpdateResponseSuccess | characterFormsControllerUpdateResponseError;
-
 export const getCharacterFormsControllerUpdateUrl = (characterId: string, formId: string) => {
   return `/api/characters/${characterId}/forms/${formId}`;
 };
@@ -469,8 +353,8 @@ export const characterFormsControllerUpdate = async (
   formId: string,
   updateCharacterFormInputDto: UpdateCharacterFormInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterFormsControllerUpdateResponse> => {
-  return customInstance<characterFormsControllerUpdateResponse>(
+): Promise<CharacterFormViewDto> => {
+  return customInstance<CharacterFormViewDto>(
     getCharacterFormsControllerUpdateUrl(characterId, formId),
     {
       ...options,
@@ -633,34 +517,6 @@ export function useCharacterFormsControllerUpdate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterFormsControllerRemoveResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type characterFormsControllerRemoveResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterFormsControllerRemoveResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterFormsControllerRemoveResponseSuccess =
-  characterFormsControllerRemoveResponse204 & {
-    headers: Headers;
-  };
-export type characterFormsControllerRemoveResponseError = (
-  characterFormsControllerRemoveResponse401 | characterFormsControllerRemoveResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterFormsControllerRemoveResponse =
-  characterFormsControllerRemoveResponseSuccess | characterFormsControllerRemoveResponseError;
-
 export const getCharacterFormsControllerRemoveUrl = (characterId: string, formId: string) => {
   return `/api/characters/${characterId}/forms/${formId}`;
 };
@@ -672,14 +528,11 @@ export const characterFormsControllerRemove = async (
   characterId: string,
   formId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterFormsControllerRemoveResponse> => {
-  return customInstance<characterFormsControllerRemoveResponse>(
-    getCharacterFormsControllerRemoveUrl(characterId, formId),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getCharacterFormsControllerRemoveUrl(characterId, formId), {
+    ...options,
+    method: "DELETE",
+  });
 };
 
 export const getCharacterFormsControllerRemoveQueryKey = (characterId: string, formId: string) => {

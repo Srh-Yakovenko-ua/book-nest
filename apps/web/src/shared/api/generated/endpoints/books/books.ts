@@ -97,40 +97,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type booksControllerCreateResponse201 = {
-  data: BookViewDto;
-  status: 201;
-};
-
-export type booksControllerCreateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type booksControllerCreateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type booksControllerCreateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type booksControllerCreateResponseSuccess = booksControllerCreateResponse201 & {
-  headers: Headers;
-};
-export type booksControllerCreateResponseError = (
-  | booksControllerCreateResponse400
-  | booksControllerCreateResponse401
-  | booksControllerCreateResponse404
-) & {
-  headers: Headers;
-};
-
-export type booksControllerCreateResponse =
-  booksControllerCreateResponseSuccess | booksControllerCreateResponseError;
-
 export const getBooksControllerCreateUrl = () => {
   return `/api/books`;
 };
@@ -141,8 +107,8 @@ export const getBooksControllerCreateUrl = () => {
 export const booksControllerCreate = async (
   createBookInputDto: CreateBookInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<booksControllerCreateResponse> => {
-  return customInstance<booksControllerCreateResponse>(getBooksControllerCreateUrl(), {
+): Promise<BookViewDto> => {
+  return customInstance<BookViewDto>(getBooksControllerCreateUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -266,26 +232,6 @@ export function useBooksControllerCreate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type booksControllerListResponse200 = {
-  data: PaginatedBooksDto;
-  status: 200;
-};
-
-export type booksControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type booksControllerListResponseSuccess = booksControllerListResponse200 & {
-  headers: Headers;
-};
-export type booksControllerListResponseError = booksControllerListResponse401 & {
-  headers: Headers;
-};
-
-export type booksControllerListResponse =
-  booksControllerListResponseSuccess | booksControllerListResponseError;
-
 export const getBooksControllerListUrl = (params?: BooksControllerListParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -325,8 +271,8 @@ export const getBooksControllerListUrl = (params?: BooksControllerListParams) =>
 export const booksControllerList = async (
   params?: BooksControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<booksControllerListResponse> => {
-  return customInstance<booksControllerListResponse>(getBooksControllerListUrl(params), {
+): Promise<PaginatedBooksDto> => {
+  return customInstance<PaginatedBooksDto>(getBooksControllerListUrl(params), {
     ...options,
     method: "GET",
   });
@@ -448,26 +394,6 @@ export function useBooksControllerList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type booksControllerOverviewResponse200 = {
-  data: LibraryOverviewViewDto;
-  status: 200;
-};
-
-export type booksControllerOverviewResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type booksControllerOverviewResponseSuccess = booksControllerOverviewResponse200 & {
-  headers: Headers;
-};
-export type booksControllerOverviewResponseError = booksControllerOverviewResponse401 & {
-  headers: Headers;
-};
-
-export type booksControllerOverviewResponse =
-  booksControllerOverviewResponseSuccess | booksControllerOverviewResponseError;
-
 export const getBooksControllerOverviewUrl = (params?: BooksControllerOverviewParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -499,8 +425,8 @@ export const getBooksControllerOverviewUrl = (params?: BooksControllerOverviewPa
 export const booksControllerOverview = async (
   params?: BooksControllerOverviewParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<booksControllerOverviewResponse> => {
-  return customInstance<booksControllerOverviewResponse>(getBooksControllerOverviewUrl(params), {
+): Promise<LibraryOverviewViewDto> => {
+  return customInstance<LibraryOverviewViewDto>(getBooksControllerOverviewUrl(params), {
     ...options,
     method: "GET",
   });
@@ -623,33 +549,6 @@ export function useBooksControllerOverview<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type booksControllerQuickCountsResponse200 = {
-  data: LibraryQuickCountsViewDto;
-  status: 200;
-};
-
-export type booksControllerQuickCountsResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type booksControllerQuickCountsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type booksControllerQuickCountsResponseSuccess = booksControllerQuickCountsResponse200 & {
-  headers: Headers;
-};
-export type booksControllerQuickCountsResponseError = (
-  booksControllerQuickCountsResponse400 | booksControllerQuickCountsResponse401
-) & {
-  headers: Headers;
-};
-
-export type booksControllerQuickCountsResponse =
-  booksControllerQuickCountsResponseSuccess | booksControllerQuickCountsResponseError;
-
 export const getBooksControllerQuickCountsUrl = (params?: BooksControllerQuickCountsParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -689,14 +588,11 @@ export const getBooksControllerQuickCountsUrl = (params?: BooksControllerQuickCo
 export const booksControllerQuickCounts = async (
   params?: BooksControllerQuickCountsParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<booksControllerQuickCountsResponse> => {
-  return customInstance<booksControllerQuickCountsResponse>(
-    getBooksControllerQuickCountsUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<LibraryQuickCountsViewDto> => {
+  return customInstance<LibraryQuickCountsViewDto>(getBooksControllerQuickCountsUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getBooksControllerQuickCountsQueryKey = (
@@ -818,28 +714,6 @@ export function useBooksControllerQuickCounts<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type booksControllerPurchaseStoresResponse200 = {
-  data: string[];
-  status: 200;
-};
-
-export type booksControllerPurchaseStoresResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type booksControllerPurchaseStoresResponseSuccess =
-  booksControllerPurchaseStoresResponse200 & {
-    headers: Headers;
-  };
-export type booksControllerPurchaseStoresResponseError =
-  booksControllerPurchaseStoresResponse401 & {
-    headers: Headers;
-  };
-
-export type booksControllerPurchaseStoresResponse =
-  booksControllerPurchaseStoresResponseSuccess | booksControllerPurchaseStoresResponseError;
-
 export const getBooksControllerPurchaseStoresUrl = (
   params?: BooksControllerPurchaseStoresParams,
 ) => {
@@ -864,14 +738,11 @@ export const getBooksControllerPurchaseStoresUrl = (
 export const booksControllerPurchaseStores = async (
   params?: BooksControllerPurchaseStoresParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<booksControllerPurchaseStoresResponse> => {
-  return customInstance<booksControllerPurchaseStoresResponse>(
-    getBooksControllerPurchaseStoresUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<string[]> => {
+  return customInstance<string[]>(getBooksControllerPurchaseStoresUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getBooksControllerPurchaseStoresQueryKey = (
@@ -993,28 +864,6 @@ export function useBooksControllerPurchaseStores<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type booksControllerFavoritesSummaryResponse200 = {
-  data: FavoritesSummaryViewDto;
-  status: 200;
-};
-
-export type booksControllerFavoritesSummaryResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type booksControllerFavoritesSummaryResponseSuccess =
-  booksControllerFavoritesSummaryResponse200 & {
-    headers: Headers;
-  };
-export type booksControllerFavoritesSummaryResponseError =
-  booksControllerFavoritesSummaryResponse401 & {
-    headers: Headers;
-  };
-
-export type booksControllerFavoritesSummaryResponse =
-  booksControllerFavoritesSummaryResponseSuccess | booksControllerFavoritesSummaryResponseError;
-
 export const getBooksControllerFavoritesSummaryUrl = () => {
   return `/api/books/favorites-summary`;
 };
@@ -1024,14 +873,11 @@ export const getBooksControllerFavoritesSummaryUrl = () => {
  */
 export const booksControllerFavoritesSummary = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<booksControllerFavoritesSummaryResponse> => {
-  return customInstance<booksControllerFavoritesSummaryResponse>(
-    getBooksControllerFavoritesSummaryUrl(),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<FavoritesSummaryViewDto> => {
+  return customInstance<FavoritesSummaryViewDto>(getBooksControllerFavoritesSummaryUrl(), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getBooksControllerFavoritesSummaryQueryKey = () => {
@@ -1144,26 +990,6 @@ export function useBooksControllerFavoritesSummary<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type booksControllerWishlistResponse200 = {
-  data: WishlistViewDto;
-  status: 200;
-};
-
-export type booksControllerWishlistResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type booksControllerWishlistResponseSuccess = booksControllerWishlistResponse200 & {
-  headers: Headers;
-};
-export type booksControllerWishlistResponseError = booksControllerWishlistResponse401 & {
-  headers: Headers;
-};
-
-export type booksControllerWishlistResponse =
-  booksControllerWishlistResponseSuccess | booksControllerWishlistResponseError;
-
 export const getBooksControllerWishlistUrl = (params?: BooksControllerWishlistParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -1206,8 +1032,8 @@ export const getBooksControllerWishlistUrl = (params?: BooksControllerWishlistPa
 export const booksControllerWishlist = async (
   params?: BooksControllerWishlistParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<booksControllerWishlistResponse> => {
-  return customInstance<booksControllerWishlistResponse>(getBooksControllerWishlistUrl(params), {
+): Promise<WishlistViewDto> => {
+  return customInstance<WishlistViewDto>(getBooksControllerWishlistUrl(params), {
     ...options,
     method: "GET",
   });
@@ -1330,26 +1156,6 @@ export function useBooksControllerWishlist<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type booksControllerFacetsResponse200 = {
-  data: BookFacetsViewDto;
-  status: 200;
-};
-
-export type booksControllerFacetsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type booksControllerFacetsResponseSuccess = booksControllerFacetsResponse200 & {
-  headers: Headers;
-};
-export type booksControllerFacetsResponseError = booksControllerFacetsResponse401 & {
-  headers: Headers;
-};
-
-export type booksControllerFacetsResponse =
-  booksControllerFacetsResponseSuccess | booksControllerFacetsResponseError;
-
 export const getBooksControllerFacetsUrl = (params: BooksControllerFacetsParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -1372,8 +1178,8 @@ export const getBooksControllerFacetsUrl = (params: BooksControllerFacetsParams)
 export const booksControllerFacets = async (
   params: BooksControllerFacetsParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<booksControllerFacetsResponse> => {
-  return customInstance<booksControllerFacetsResponse>(getBooksControllerFacetsUrl(params), {
+): Promise<BookFacetsViewDto> => {
+  return customInstance<BookFacetsViewDto>(getBooksControllerFacetsUrl(params), {
     ...options,
     method: "GET",
   });
@@ -1495,28 +1301,6 @@ export function useBooksControllerFacets<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type booksControllerWishlistFacetsResponse200 = {
-  data: WishlistFacetsViewDto;
-  status: 200;
-};
-
-export type booksControllerWishlistFacetsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type booksControllerWishlistFacetsResponseSuccess =
-  booksControllerWishlistFacetsResponse200 & {
-    headers: Headers;
-  };
-export type booksControllerWishlistFacetsResponseError =
-  booksControllerWishlistFacetsResponse401 & {
-    headers: Headers;
-  };
-
-export type booksControllerWishlistFacetsResponse =
-  booksControllerWishlistFacetsResponseSuccess | booksControllerWishlistFacetsResponseError;
-
 export const getBooksControllerWishlistFacetsUrl = () => {
   return `/api/books/wishlist/facets`;
 };
@@ -1526,14 +1310,11 @@ export const getBooksControllerWishlistFacetsUrl = () => {
  */
 export const booksControllerWishlistFacets = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<booksControllerWishlistFacetsResponse> => {
-  return customInstance<booksControllerWishlistFacetsResponse>(
-    getBooksControllerWishlistFacetsUrl(),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<WishlistFacetsViewDto> => {
+  return customInstance<WishlistFacetsViewDto>(getBooksControllerWishlistFacetsUrl(), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getBooksControllerWishlistFacetsQueryKey = () => {
@@ -1646,26 +1427,6 @@ export function useBooksControllerWishlistFacets<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type booksControllerDedicationsResponse200 = {
-  data: PaginatedBooksDto;
-  status: 200;
-};
-
-export type booksControllerDedicationsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type booksControllerDedicationsResponseSuccess = booksControllerDedicationsResponse200 & {
-  headers: Headers;
-};
-export type booksControllerDedicationsResponseError = booksControllerDedicationsResponse401 & {
-  headers: Headers;
-};
-
-export type booksControllerDedicationsResponse =
-  booksControllerDedicationsResponseSuccess | booksControllerDedicationsResponseError;
-
 export const getBooksControllerDedicationsUrl = (params?: BooksControllerDedicationsParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -1688,14 +1449,11 @@ export const getBooksControllerDedicationsUrl = (params?: BooksControllerDedicat
 export const booksControllerDedications = async (
   params?: BooksControllerDedicationsParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<booksControllerDedicationsResponse> => {
-  return customInstance<booksControllerDedicationsResponse>(
-    getBooksControllerDedicationsUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<PaginatedBooksDto> => {
+  return customInstance<PaginatedBooksDto>(getBooksControllerDedicationsUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getBooksControllerDedicationsQueryKey = (
@@ -1817,36 +1575,6 @@ export function useBooksControllerDedications<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type booksControllerDedicationsQuickCountsResponse200 = {
-  data: DedicationsQuickCountsViewDto;
-  status: 200;
-};
-
-export type booksControllerDedicationsQuickCountsResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type booksControllerDedicationsQuickCountsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type booksControllerDedicationsQuickCountsResponseSuccess =
-  booksControllerDedicationsQuickCountsResponse200 & {
-    headers: Headers;
-  };
-export type booksControllerDedicationsQuickCountsResponseError = (
-  | booksControllerDedicationsQuickCountsResponse400
-  | booksControllerDedicationsQuickCountsResponse401
-) & {
-  headers: Headers;
-};
-
-export type booksControllerDedicationsQuickCountsResponse =
-  | booksControllerDedicationsQuickCountsResponseSuccess
-  | booksControllerDedicationsQuickCountsResponseError;
-
 export const getBooksControllerDedicationsQuickCountsUrl = (
   params?: BooksControllerDedicationsQuickCountsParams,
 ) => {
@@ -1871,8 +1599,8 @@ export const getBooksControllerDedicationsQuickCountsUrl = (
 export const booksControllerDedicationsQuickCounts = async (
   params?: BooksControllerDedicationsQuickCountsParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<booksControllerDedicationsQuickCountsResponse> => {
-  return customInstance<booksControllerDedicationsQuickCountsResponse>(
+): Promise<DedicationsQuickCountsViewDto> => {
+  return customInstance<DedicationsQuickCountsViewDto>(
     getBooksControllerDedicationsQuickCountsUrl(params),
     {
       ...options,
@@ -2021,28 +1749,6 @@ export function useBooksControllerDedicationsQuickCounts<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type booksControllerDedicationsSummaryResponse200 = {
-  data: DedicationsSummaryViewDto;
-  status: 200;
-};
-
-export type booksControllerDedicationsSummaryResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type booksControllerDedicationsSummaryResponseSuccess =
-  booksControllerDedicationsSummaryResponse200 & {
-    headers: Headers;
-  };
-export type booksControllerDedicationsSummaryResponseError =
-  booksControllerDedicationsSummaryResponse401 & {
-    headers: Headers;
-  };
-
-export type booksControllerDedicationsSummaryResponse =
-  booksControllerDedicationsSummaryResponseSuccess | booksControllerDedicationsSummaryResponseError;
-
 export const getBooksControllerDedicationsSummaryUrl = () => {
   return `/api/books/dedications/summary`;
 };
@@ -2052,14 +1758,11 @@ export const getBooksControllerDedicationsSummaryUrl = () => {
  */
 export const booksControllerDedicationsSummary = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<booksControllerDedicationsSummaryResponse> => {
-  return customInstance<booksControllerDedicationsSummaryResponse>(
-    getBooksControllerDedicationsSummaryUrl(),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<DedicationsSummaryViewDto> => {
+  return customInstance<DedicationsSummaryViewDto>(getBooksControllerDedicationsSummaryUrl(), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getBooksControllerDedicationsSummaryQueryKey = () => {
@@ -2172,26 +1875,6 @@ export function useBooksControllerDedicationsSummary<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type booksControllerListTrashResponse200 = {
-  data: PaginatedTrashedBooksDto;
-  status: 200;
-};
-
-export type booksControllerListTrashResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type booksControllerListTrashResponseSuccess = booksControllerListTrashResponse200 & {
-  headers: Headers;
-};
-export type booksControllerListTrashResponseError = booksControllerListTrashResponse401 & {
-  headers: Headers;
-};
-
-export type booksControllerListTrashResponse =
-  booksControllerListTrashResponseSuccess | booksControllerListTrashResponseError;
-
 export const getBooksControllerListTrashUrl = (params?: BooksControllerListTrashParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -2214,8 +1897,8 @@ export const getBooksControllerListTrashUrl = (params?: BooksControllerListTrash
 export const booksControllerListTrash = async (
   params?: BooksControllerListTrashParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<booksControllerListTrashResponse> => {
-  return customInstance<booksControllerListTrashResponse>(getBooksControllerListTrashUrl(params), {
+): Promise<PaginatedTrashedBooksDto> => {
+  return customInstance<PaginatedTrashedBooksDto>(getBooksControllerListTrashUrl(params), {
     ...options,
     method: "GET",
   });
@@ -2338,33 +2021,6 @@ export function useBooksControllerListTrash<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type booksControllerGetByIdResponse200 = {
-  data: BookDetailsViewDto;
-  status: 200;
-};
-
-export type booksControllerGetByIdResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type booksControllerGetByIdResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type booksControllerGetByIdResponseSuccess = booksControllerGetByIdResponse200 & {
-  headers: Headers;
-};
-export type booksControllerGetByIdResponseError = (
-  booksControllerGetByIdResponse401 | booksControllerGetByIdResponse404
-) & {
-  headers: Headers;
-};
-
-export type booksControllerGetByIdResponse =
-  booksControllerGetByIdResponseSuccess | booksControllerGetByIdResponseError;
-
 export const getBooksControllerGetByIdUrl = (id: string) => {
   return `/api/books/${id}`;
 };
@@ -2375,8 +2031,8 @@ export const getBooksControllerGetByIdUrl = (id: string) => {
 export const booksControllerGetById = async (
   id: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<booksControllerGetByIdResponse> => {
-  return customInstance<booksControllerGetByIdResponse>(getBooksControllerGetByIdUrl(id), {
+): Promise<BookDetailsViewDto> => {
+  return customInstance<BookDetailsViewDto>(getBooksControllerGetByIdUrl(id), {
     ...options,
     method: "GET",
   });
@@ -2501,40 +2157,6 @@ export function useBooksControllerGetById<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type booksControllerUpdateResponse200 = {
-  data: BookViewDto;
-  status: 200;
-};
-
-export type booksControllerUpdateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type booksControllerUpdateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type booksControllerUpdateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type booksControllerUpdateResponseSuccess = booksControllerUpdateResponse200 & {
-  headers: Headers;
-};
-export type booksControllerUpdateResponseError = (
-  | booksControllerUpdateResponse400
-  | booksControllerUpdateResponse401
-  | booksControllerUpdateResponse404
-) & {
-  headers: Headers;
-};
-
-export type booksControllerUpdateResponse =
-  booksControllerUpdateResponseSuccess | booksControllerUpdateResponseError;
-
 export const getBooksControllerUpdateUrl = (id: string) => {
   return `/api/books/${id}`;
 };
@@ -2546,8 +2168,8 @@ export const booksControllerUpdate = async (
   id: string,
   updateBookInputDto: UpdateBookInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<booksControllerUpdateResponse> => {
-  return customInstance<booksControllerUpdateResponse>(getBooksControllerUpdateUrl(id), {
+): Promise<BookViewDto> => {
+  return customInstance<BookViewDto>(getBooksControllerUpdateUrl(id), {
     ...options,
     method: "PATCH",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -2683,33 +2305,6 @@ export function useBooksControllerUpdate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type booksControllerDeleteResponse200 = {
-  data: BookDeletionResultDto;
-  status: 200;
-};
-
-export type booksControllerDeleteResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type booksControllerDeleteResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type booksControllerDeleteResponseSuccess = booksControllerDeleteResponse200 & {
-  headers: Headers;
-};
-export type booksControllerDeleteResponseError = (
-  booksControllerDeleteResponse401 | booksControllerDeleteResponse404
-) & {
-  headers: Headers;
-};
-
-export type booksControllerDeleteResponse =
-  booksControllerDeleteResponseSuccess | booksControllerDeleteResponseError;
-
 export const getBooksControllerDeleteUrl = (id: string) => {
   return `/api/books/${id}`;
 };
@@ -2720,8 +2315,8 @@ export const getBooksControllerDeleteUrl = (id: string) => {
 export const booksControllerDelete = async (
   id: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<booksControllerDeleteResponse> => {
-  return customInstance<booksControllerDeleteResponse>(getBooksControllerDeleteUrl(id), {
+): Promise<BookDeletionResultDto> => {
+  return customInstance<BookDeletionResultDto>(getBooksControllerDeleteUrl(id), {
     ...options,
     method: "DELETE",
   });
@@ -2846,33 +2441,6 @@ export function useBooksControllerDelete<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type booksControllerRestoreResponse200 = {
-  data: BookViewDto;
-  status: 200;
-};
-
-export type booksControllerRestoreResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type booksControllerRestoreResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type booksControllerRestoreResponseSuccess = booksControllerRestoreResponse200 & {
-  headers: Headers;
-};
-export type booksControllerRestoreResponseError = (
-  booksControllerRestoreResponse401 | booksControllerRestoreResponse404
-) & {
-  headers: Headers;
-};
-
-export type booksControllerRestoreResponse =
-  booksControllerRestoreResponseSuccess | booksControllerRestoreResponseError;
-
 export const getBooksControllerRestoreUrl = (id: string) => {
   return `/api/books/${id}/restore`;
 };
@@ -2883,8 +2451,8 @@ export const getBooksControllerRestoreUrl = (id: string) => {
 export const booksControllerRestore = async (
   id: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<booksControllerRestoreResponse> => {
-  return customInstance<booksControllerRestoreResponse>(getBooksControllerRestoreUrl(id), {
+): Promise<BookViewDto> => {
+  return customInstance<BookViewDto>(getBooksControllerRestoreUrl(id), {
     ...options,
     method: "POST",
   });
@@ -3009,36 +2577,6 @@ export function useBooksControllerRestore<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookReadingControllerDeleteReadingEventResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type bookReadingControllerDeleteReadingEventResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookReadingControllerDeleteReadingEventResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookReadingControllerDeleteReadingEventResponseSuccess =
-  bookReadingControllerDeleteReadingEventResponse204 & {
-    headers: Headers;
-  };
-export type bookReadingControllerDeleteReadingEventResponseError = (
-  | bookReadingControllerDeleteReadingEventResponse401
-  | bookReadingControllerDeleteReadingEventResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookReadingControllerDeleteReadingEventResponse =
-  | bookReadingControllerDeleteReadingEventResponseSuccess
-  | bookReadingControllerDeleteReadingEventResponseError;
-
 export const getBookReadingControllerDeleteReadingEventUrl = (id: string, eventId: string) => {
   return `/api/books/${id}/reading-events/${eventId}`;
 };
@@ -3050,14 +2588,11 @@ export const bookReadingControllerDeleteReadingEvent = async (
   id: string,
   eventId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookReadingControllerDeleteReadingEventResponse> => {
-  return customInstance<bookReadingControllerDeleteReadingEventResponse>(
-    getBookReadingControllerDeleteReadingEventUrl(id, eventId),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getBookReadingControllerDeleteReadingEventUrl(id, eventId), {
+    ...options,
+    method: "DELETE",
+  });
 };
 
 export const getBookReadingControllerDeleteReadingEventQueryKey = (id: string, eventId: string) => {
@@ -3209,42 +2744,6 @@ export function useBookReadingControllerDeleteReadingEvent<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookReadingControllerGetReadingHistoryResponse200 = {
-  data: ReadingHistoryViewDto;
-  status: 200;
-};
-
-export type bookReadingControllerGetReadingHistoryResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookReadingControllerGetReadingHistoryResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookReadingControllerGetReadingHistoryResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookReadingControllerGetReadingHistoryResponseSuccess =
-  bookReadingControllerGetReadingHistoryResponse200 & {
-    headers: Headers;
-  };
-export type bookReadingControllerGetReadingHistoryResponseError = (
-  | bookReadingControllerGetReadingHistoryResponse400
-  | bookReadingControllerGetReadingHistoryResponse401
-  | bookReadingControllerGetReadingHistoryResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookReadingControllerGetReadingHistoryResponse =
-  | bookReadingControllerGetReadingHistoryResponseSuccess
-  | bookReadingControllerGetReadingHistoryResponseError;
-
 export const getBookReadingControllerGetReadingHistoryUrl = (
   id: string,
   params?: BookReadingControllerGetReadingHistoryParams,
@@ -3271,8 +2770,8 @@ export const bookReadingControllerGetReadingHistory = async (
   id: string,
   params?: BookReadingControllerGetReadingHistoryParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookReadingControllerGetReadingHistoryResponse> => {
-  return customInstance<bookReadingControllerGetReadingHistoryResponse>(
+): Promise<ReadingHistoryViewDto> => {
+  return customInstance<ReadingHistoryViewDto>(
     getBookReadingControllerGetReadingHistoryUrl(id, params),
     {
       ...options,
@@ -3433,48 +2932,6 @@ export function useBookReadingControllerGetReadingHistory<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookReadingControllerChangeReadingStatusResponse200 = {
-  data: BookViewDto;
-  status: 200;
-};
-
-export type bookReadingControllerChangeReadingStatusResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookReadingControllerChangeReadingStatusResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookReadingControllerChangeReadingStatusResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookReadingControllerChangeReadingStatusResponse422 = {
-  data: void;
-  status: 422;
-};
-
-export type bookReadingControllerChangeReadingStatusResponseSuccess =
-  bookReadingControllerChangeReadingStatusResponse200 & {
-    headers: Headers;
-  };
-export type bookReadingControllerChangeReadingStatusResponseError = (
-  | bookReadingControllerChangeReadingStatusResponse400
-  | bookReadingControllerChangeReadingStatusResponse401
-  | bookReadingControllerChangeReadingStatusResponse404
-  | bookReadingControllerChangeReadingStatusResponse422
-) & {
-  headers: Headers;
-};
-
-export type bookReadingControllerChangeReadingStatusResponse =
-  | bookReadingControllerChangeReadingStatusResponseSuccess
-  | bookReadingControllerChangeReadingStatusResponseError;
-
 export const getBookReadingControllerChangeReadingStatusUrl = (id: string) => {
   return `/api/books/${id}/reading-status`;
 };
@@ -3486,16 +2943,13 @@ export const bookReadingControllerChangeReadingStatus = async (
   id: string,
   changeReadingStatusInputDto: ChangeReadingStatusInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookReadingControllerChangeReadingStatusResponse> => {
-  return customInstance<bookReadingControllerChangeReadingStatusResponse>(
-    getBookReadingControllerChangeReadingStatusUrl(id),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(changeReadingStatusInputDto),
-    },
-  );
+): Promise<BookViewDto> => {
+  return customInstance<BookViewDto>(getBookReadingControllerChangeReadingStatusUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(changeReadingStatusInputDto),
+  });
 };
 
 export const getBookReadingControllerChangeReadingStatusQueryKey = (
@@ -3658,48 +3112,6 @@ export function useBookReadingControllerChangeReadingStatus<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookReadingControllerUpdateReadingProgressResponse200 = {
-  data: BookViewDto;
-  status: 200;
-};
-
-export type bookReadingControllerUpdateReadingProgressResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookReadingControllerUpdateReadingProgressResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookReadingControllerUpdateReadingProgressResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookReadingControllerUpdateReadingProgressResponse422 = {
-  data: void;
-  status: 422;
-};
-
-export type bookReadingControllerUpdateReadingProgressResponseSuccess =
-  bookReadingControllerUpdateReadingProgressResponse200 & {
-    headers: Headers;
-  };
-export type bookReadingControllerUpdateReadingProgressResponseError = (
-  | bookReadingControllerUpdateReadingProgressResponse400
-  | bookReadingControllerUpdateReadingProgressResponse401
-  | bookReadingControllerUpdateReadingProgressResponse404
-  | bookReadingControllerUpdateReadingProgressResponse422
-) & {
-  headers: Headers;
-};
-
-export type bookReadingControllerUpdateReadingProgressResponse =
-  | bookReadingControllerUpdateReadingProgressResponseSuccess
-  | bookReadingControllerUpdateReadingProgressResponseError;
-
 export const getBookReadingControllerUpdateReadingProgressUrl = (id: string) => {
   return `/api/books/${id}/reading-progress`;
 };
@@ -3711,16 +3123,13 @@ export const bookReadingControllerUpdateReadingProgress = async (
   id: string,
   updateReadingProgressInputDto: UpdateReadingProgressInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookReadingControllerUpdateReadingProgressResponse> => {
-  return customInstance<bookReadingControllerUpdateReadingProgressResponse>(
-    getBookReadingControllerUpdateReadingProgressUrl(id),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(updateReadingProgressInputDto),
-    },
-  );
+): Promise<BookViewDto> => {
+  return customInstance<BookViewDto>(getBookReadingControllerUpdateReadingProgressUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateReadingProgressInputDto),
+  });
 };
 
 export const getBookReadingControllerUpdateReadingProgressQueryKey = (
@@ -3883,41 +3292,6 @@ export function useBookReadingControllerUpdateReadingProgress<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookOwnershipControllerMarkOwnedResponse200 = {
-  data: BookViewDto;
-  status: 200;
-};
-
-export type bookOwnershipControllerMarkOwnedResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookOwnershipControllerMarkOwnedResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookOwnershipControllerMarkOwnedResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type bookOwnershipControllerMarkOwnedResponseSuccess =
-  bookOwnershipControllerMarkOwnedResponse200 & {
-    headers: Headers;
-  };
-export type bookOwnershipControllerMarkOwnedResponseError = (
-  | bookOwnershipControllerMarkOwnedResponse401
-  | bookOwnershipControllerMarkOwnedResponse404
-  | bookOwnershipControllerMarkOwnedResponse409
-) & {
-  headers: Headers;
-};
-
-export type bookOwnershipControllerMarkOwnedResponse =
-  bookOwnershipControllerMarkOwnedResponseSuccess | bookOwnershipControllerMarkOwnedResponseError;
-
 export const getBookOwnershipControllerMarkOwnedUrl = (id: string) => {
   return `/api/books/${id}/ownership/mark-owned`;
 };
@@ -3928,14 +3302,11 @@ export const getBookOwnershipControllerMarkOwnedUrl = (id: string) => {
 export const bookOwnershipControllerMarkOwned = async (
   id: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookOwnershipControllerMarkOwnedResponse> => {
-  return customInstance<bookOwnershipControllerMarkOwnedResponse>(
-    getBookOwnershipControllerMarkOwnedUrl(id),
-    {
-      ...options,
-      method: "POST",
-    },
-  );
+): Promise<BookViewDto> => {
+  return customInstance<BookViewDto>(getBookOwnershipControllerMarkOwnedUrl(id), {
+    ...options,
+    method: "POST",
+  });
 };
 
 export const getBookOwnershipControllerMarkOwnedQueryKey = (id: string) => {
@@ -4060,42 +3431,6 @@ export function useBookOwnershipControllerMarkOwned<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookOwnershipControllerRemoveOwnedResponse200 = {
-  data: BookViewDto;
-  status: 200;
-};
-
-export type bookOwnershipControllerRemoveOwnedResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookOwnershipControllerRemoveOwnedResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookOwnershipControllerRemoveOwnedResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type bookOwnershipControllerRemoveOwnedResponseSuccess =
-  bookOwnershipControllerRemoveOwnedResponse200 & {
-    headers: Headers;
-  };
-export type bookOwnershipControllerRemoveOwnedResponseError = (
-  | bookOwnershipControllerRemoveOwnedResponse401
-  | bookOwnershipControllerRemoveOwnedResponse404
-  | bookOwnershipControllerRemoveOwnedResponse409
-) & {
-  headers: Headers;
-};
-
-export type bookOwnershipControllerRemoveOwnedResponse =
-  | bookOwnershipControllerRemoveOwnedResponseSuccess
-  | bookOwnershipControllerRemoveOwnedResponseError;
-
 export const getBookOwnershipControllerRemoveOwnedUrl = (id: string) => {
   return `/api/books/${id}/ownership/remove-owned`;
 };
@@ -4106,14 +3441,11 @@ export const getBookOwnershipControllerRemoveOwnedUrl = (id: string) => {
 export const bookOwnershipControllerRemoveOwned = async (
   id: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookOwnershipControllerRemoveOwnedResponse> => {
-  return customInstance<bookOwnershipControllerRemoveOwnedResponse>(
-    getBookOwnershipControllerRemoveOwnedUrl(id),
-    {
-      ...options,
-      method: "POST",
-    },
-  );
+): Promise<BookViewDto> => {
+  return customInstance<BookViewDto>(getBookOwnershipControllerRemoveOwnedUrl(id), {
+    ...options,
+    method: "POST",
+  });
 };
 
 export const getBookOwnershipControllerRemoveOwnedQueryKey = (id: string) => {
@@ -4238,42 +3570,6 @@ export function useBookOwnershipControllerRemoveOwned<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookOwnershipControllerRemoveFromWishlistResponse200 = {
-  data: BookViewDto;
-  status: 200;
-};
-
-export type bookOwnershipControllerRemoveFromWishlistResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookOwnershipControllerRemoveFromWishlistResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookOwnershipControllerRemoveFromWishlistResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type bookOwnershipControllerRemoveFromWishlistResponseSuccess =
-  bookOwnershipControllerRemoveFromWishlistResponse200 & {
-    headers: Headers;
-  };
-export type bookOwnershipControllerRemoveFromWishlistResponseError = (
-  | bookOwnershipControllerRemoveFromWishlistResponse401
-  | bookOwnershipControllerRemoveFromWishlistResponse404
-  | bookOwnershipControllerRemoveFromWishlistResponse409
-) & {
-  headers: Headers;
-};
-
-export type bookOwnershipControllerRemoveFromWishlistResponse =
-  | bookOwnershipControllerRemoveFromWishlistResponseSuccess
-  | bookOwnershipControllerRemoveFromWishlistResponseError;
-
 export const getBookOwnershipControllerRemoveFromWishlistUrl = (id: string) => {
   return `/api/books/${id}/ownership/remove-from-wishlist`;
 };
@@ -4284,14 +3580,11 @@ export const getBookOwnershipControllerRemoveFromWishlistUrl = (id: string) => {
 export const bookOwnershipControllerRemoveFromWishlist = async (
   id: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookOwnershipControllerRemoveFromWishlistResponse> => {
-  return customInstance<bookOwnershipControllerRemoveFromWishlistResponse>(
-    getBookOwnershipControllerRemoveFromWishlistUrl(id),
-    {
-      ...options,
-      method: "POST",
-    },
-  );
+): Promise<BookViewDto> => {
+  return customInstance<BookViewDto>(getBookOwnershipControllerRemoveFromWishlistUrl(id), {
+    ...options,
+    method: "POST",
+  });
 };
 
 export const getBookOwnershipControllerRemoveFromWishlistQueryKey = (id: string) => {
@@ -4437,47 +3730,6 @@ export function useBookOwnershipControllerRemoveFromWishlist<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookOwnershipControllerWantToBuyResponse200 = {
-  data: BookViewDto;
-  status: 200;
-};
-
-export type bookOwnershipControllerWantToBuyResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookOwnershipControllerWantToBuyResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookOwnershipControllerWantToBuyResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookOwnershipControllerWantToBuyResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type bookOwnershipControllerWantToBuyResponseSuccess =
-  bookOwnershipControllerWantToBuyResponse200 & {
-    headers: Headers;
-  };
-export type bookOwnershipControllerWantToBuyResponseError = (
-  | bookOwnershipControllerWantToBuyResponse400
-  | bookOwnershipControllerWantToBuyResponse401
-  | bookOwnershipControllerWantToBuyResponse404
-  | bookOwnershipControllerWantToBuyResponse409
-) & {
-  headers: Headers;
-};
-
-export type bookOwnershipControllerWantToBuyResponse =
-  bookOwnershipControllerWantToBuyResponseSuccess | bookOwnershipControllerWantToBuyResponseError;
-
 export const getBookOwnershipControllerWantToBuyUrl = (id: string) => {
   return `/api/books/${id}/ownership/want-to-buy`;
 };
@@ -4489,16 +3741,13 @@ export const bookOwnershipControllerWantToBuy = async (
   id: string,
   wantToBuyInputDto: WantToBuyInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookOwnershipControllerWantToBuyResponse> => {
-  return customInstance<bookOwnershipControllerWantToBuyResponse>(
-    getBookOwnershipControllerWantToBuyUrl(id),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(wantToBuyInputDto),
-    },
-  );
+): Promise<BookViewDto> => {
+  return customInstance<BookViewDto>(getBookOwnershipControllerWantToBuyUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(wantToBuyInputDto),
+  });
 };
 
 export const getBookOwnershipControllerWantToBuyQueryKey = (
@@ -4636,47 +3885,6 @@ export function useBookOwnershipControllerWantToBuy<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookOwnershipControllerMarkBoughtResponse200 = {
-  data: BookViewDto;
-  status: 200;
-};
-
-export type bookOwnershipControllerMarkBoughtResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookOwnershipControllerMarkBoughtResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookOwnershipControllerMarkBoughtResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookOwnershipControllerMarkBoughtResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type bookOwnershipControllerMarkBoughtResponseSuccess =
-  bookOwnershipControllerMarkBoughtResponse200 & {
-    headers: Headers;
-  };
-export type bookOwnershipControllerMarkBoughtResponseError = (
-  | bookOwnershipControllerMarkBoughtResponse400
-  | bookOwnershipControllerMarkBoughtResponse401
-  | bookOwnershipControllerMarkBoughtResponse404
-  | bookOwnershipControllerMarkBoughtResponse409
-) & {
-  headers: Headers;
-};
-
-export type bookOwnershipControllerMarkBoughtResponse =
-  bookOwnershipControllerMarkBoughtResponseSuccess | bookOwnershipControllerMarkBoughtResponseError;
-
 export const getBookOwnershipControllerMarkBoughtUrl = (id: string) => {
   return `/api/books/${id}/ownership/mark-bought`;
 };
@@ -4688,16 +3896,13 @@ export const bookOwnershipControllerMarkBought = async (
   id: string,
   markBoughtInputDto: MarkBoughtInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookOwnershipControllerMarkBoughtResponse> => {
-  return customInstance<bookOwnershipControllerMarkBoughtResponse>(
-    getBookOwnershipControllerMarkBoughtUrl(id),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(markBoughtInputDto),
-    },
-  );
+): Promise<BookViewDto> => {
+  return customInstance<BookViewDto>(getBookOwnershipControllerMarkBoughtUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(markBoughtInputDto),
+  });
 };
 
 export const getBookOwnershipControllerMarkBoughtQueryKey = (
@@ -4835,48 +4040,6 @@ export function useBookOwnershipControllerMarkBought<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookLoanBatchControllerCreateLoansResponse200 = {
-  data: CreateLoansBatchResultDto;
-  status: 200;
-};
-
-export type bookLoanBatchControllerCreateLoansResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookLoanBatchControllerCreateLoansResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookLoanBatchControllerCreateLoansResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookLoanBatchControllerCreateLoansResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type bookLoanBatchControllerCreateLoansResponseSuccess =
-  bookLoanBatchControllerCreateLoansResponse200 & {
-    headers: Headers;
-  };
-export type bookLoanBatchControllerCreateLoansResponseError = (
-  | bookLoanBatchControllerCreateLoansResponse400
-  | bookLoanBatchControllerCreateLoansResponse401
-  | bookLoanBatchControllerCreateLoansResponse404
-  | bookLoanBatchControllerCreateLoansResponse409
-) & {
-  headers: Headers;
-};
-
-export type bookLoanBatchControllerCreateLoansResponse =
-  | bookLoanBatchControllerCreateLoansResponseSuccess
-  | bookLoanBatchControllerCreateLoansResponseError;
-
 export const getBookLoanBatchControllerCreateLoansUrl = () => {
   return `/api/books/loans/batch`;
 };
@@ -4887,16 +4050,13 @@ export const getBookLoanBatchControllerCreateLoansUrl = () => {
 export const bookLoanBatchControllerCreateLoans = async (
   createLoansBatchInputDto: CreateLoansBatchInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookLoanBatchControllerCreateLoansResponse> => {
-  return customInstance<bookLoanBatchControllerCreateLoansResponse>(
-    getBookLoanBatchControllerCreateLoansUrl(),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(createLoansBatchInputDto),
-    },
-  );
+): Promise<CreateLoansBatchResultDto> => {
+  return customInstance<CreateLoansBatchResultDto>(getBookLoanBatchControllerCreateLoansUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createLoansBatchInputDto),
+  });
 };
 
 export const getBookLoanBatchControllerCreateLoansQueryKey = (
@@ -5023,47 +4183,6 @@ export function useBookLoanBatchControllerCreateLoans<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookLoanControllerCreateLoanResponse200 = {
-  data: BookViewDto;
-  status: 200;
-};
-
-export type bookLoanControllerCreateLoanResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookLoanControllerCreateLoanResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookLoanControllerCreateLoanResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookLoanControllerCreateLoanResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type bookLoanControllerCreateLoanResponseSuccess =
-  bookLoanControllerCreateLoanResponse200 & {
-    headers: Headers;
-  };
-export type bookLoanControllerCreateLoanResponseError = (
-  | bookLoanControllerCreateLoanResponse400
-  | bookLoanControllerCreateLoanResponse401
-  | bookLoanControllerCreateLoanResponse404
-  | bookLoanControllerCreateLoanResponse409
-) & {
-  headers: Headers;
-};
-
-export type bookLoanControllerCreateLoanResponse =
-  bookLoanControllerCreateLoanResponseSuccess | bookLoanControllerCreateLoanResponseError;
-
 export const getBookLoanControllerCreateLoanUrl = (id: string) => {
   return `/api/books/${id}/loan`;
 };
@@ -5075,16 +4194,13 @@ export const bookLoanControllerCreateLoan = async (
   id: string,
   createLoanInputDto: CreateLoanInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookLoanControllerCreateLoanResponse> => {
-  return customInstance<bookLoanControllerCreateLoanResponse>(
-    getBookLoanControllerCreateLoanUrl(id),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(createLoanInputDto),
-    },
-  );
+): Promise<BookViewDto> => {
+  return customInstance<BookViewDto>(getBookLoanControllerCreateLoanUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createLoanInputDto),
+  });
 };
 
 export const getBookLoanControllerCreateLoanQueryKey = (
@@ -5216,40 +4332,6 @@ export function useBookLoanControllerCreateLoan<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookLoanControllerEditLoanResponse200 = {
-  data: BookViewDto;
-  status: 200;
-};
-
-export type bookLoanControllerEditLoanResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookLoanControllerEditLoanResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookLoanControllerEditLoanResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookLoanControllerEditLoanResponseSuccess = bookLoanControllerEditLoanResponse200 & {
-  headers: Headers;
-};
-export type bookLoanControllerEditLoanResponseError = (
-  | bookLoanControllerEditLoanResponse400
-  | bookLoanControllerEditLoanResponse401
-  | bookLoanControllerEditLoanResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookLoanControllerEditLoanResponse =
-  bookLoanControllerEditLoanResponseSuccess | bookLoanControllerEditLoanResponseError;
-
 export const getBookLoanControllerEditLoanUrl = (id: string) => {
   return `/api/books/${id}/loan`;
 };
@@ -5261,8 +4343,8 @@ export const bookLoanControllerEditLoan = async (
   id: string,
   updateLoanInputDto: UpdateLoanInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookLoanControllerEditLoanResponse> => {
-  return customInstance<bookLoanControllerEditLoanResponse>(getBookLoanControllerEditLoanUrl(id), {
+): Promise<BookViewDto> => {
+  return customInstance<BookViewDto>(getBookLoanControllerEditLoanUrl(id), {
     ...options,
     method: "PATCH",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -5399,47 +4481,6 @@ export function useBookLoanControllerEditLoan<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookLoanControllerExtendLoanResponse200 = {
-  data: BookViewDto;
-  status: 200;
-};
-
-export type bookLoanControllerExtendLoanResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookLoanControllerExtendLoanResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookLoanControllerExtendLoanResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookLoanControllerExtendLoanResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type bookLoanControllerExtendLoanResponseSuccess =
-  bookLoanControllerExtendLoanResponse200 & {
-    headers: Headers;
-  };
-export type bookLoanControllerExtendLoanResponseError = (
-  | bookLoanControllerExtendLoanResponse400
-  | bookLoanControllerExtendLoanResponse401
-  | bookLoanControllerExtendLoanResponse404
-  | bookLoanControllerExtendLoanResponse409
-) & {
-  headers: Headers;
-};
-
-export type bookLoanControllerExtendLoanResponse =
-  bookLoanControllerExtendLoanResponseSuccess | bookLoanControllerExtendLoanResponseError;
-
 export const getBookLoanControllerExtendLoanUrl = (id: string) => {
   return `/api/books/${id}/loan/extend`;
 };
@@ -5451,16 +4492,13 @@ export const bookLoanControllerExtendLoan = async (
   id: string,
   extendLoanInputDto: ExtendLoanInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookLoanControllerExtendLoanResponse> => {
-  return customInstance<bookLoanControllerExtendLoanResponse>(
-    getBookLoanControllerExtendLoanUrl(id),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(extendLoanInputDto),
-    },
-  );
+): Promise<BookViewDto> => {
+  return customInstance<BookViewDto>(getBookLoanControllerExtendLoanUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(extendLoanInputDto),
+  });
 };
 
 export const getBookLoanControllerExtendLoanQueryKey = (
@@ -5592,47 +4630,6 @@ export function useBookLoanControllerExtendLoan<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookLoanControllerSetLoanReminderResponse200 = {
-  data: BookViewDto;
-  status: 200;
-};
-
-export type bookLoanControllerSetLoanReminderResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookLoanControllerSetLoanReminderResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookLoanControllerSetLoanReminderResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookLoanControllerSetLoanReminderResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type bookLoanControllerSetLoanReminderResponseSuccess =
-  bookLoanControllerSetLoanReminderResponse200 & {
-    headers: Headers;
-  };
-export type bookLoanControllerSetLoanReminderResponseError = (
-  | bookLoanControllerSetLoanReminderResponse400
-  | bookLoanControllerSetLoanReminderResponse401
-  | bookLoanControllerSetLoanReminderResponse404
-  | bookLoanControllerSetLoanReminderResponse409
-) & {
-  headers: Headers;
-};
-
-export type bookLoanControllerSetLoanReminderResponse =
-  bookLoanControllerSetLoanReminderResponseSuccess | bookLoanControllerSetLoanReminderResponseError;
-
 export const getBookLoanControllerSetLoanReminderUrl = (id: string) => {
   return `/api/books/${id}/loan/reminder`;
 };
@@ -5644,16 +4641,13 @@ export const bookLoanControllerSetLoanReminder = async (
   id: string,
   setLoanReminderInputDto: SetLoanReminderInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookLoanControllerSetLoanReminderResponse> => {
-  return customInstance<bookLoanControllerSetLoanReminderResponse>(
-    getBookLoanControllerSetLoanReminderUrl(id),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(setLoanReminderInputDto),
-    },
-  );
+): Promise<BookViewDto> => {
+  return customInstance<BookViewDto>(getBookLoanControllerSetLoanReminderUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(setLoanReminderInputDto),
+  });
 };
 
 export const getBookLoanControllerSetLoanReminderQueryKey = (
@@ -5793,41 +4787,6 @@ export function useBookLoanControllerSetLoanReminder<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookLoanControllerReturnLoanResponse200 = {
-  data: BookViewDto;
-  status: 200;
-};
-
-export type bookLoanControllerReturnLoanResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookLoanControllerReturnLoanResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookLoanControllerReturnLoanResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type bookLoanControllerReturnLoanResponseSuccess =
-  bookLoanControllerReturnLoanResponse200 & {
-    headers: Headers;
-  };
-export type bookLoanControllerReturnLoanResponseError = (
-  | bookLoanControllerReturnLoanResponse401
-  | bookLoanControllerReturnLoanResponse404
-  | bookLoanControllerReturnLoanResponse409
-) & {
-  headers: Headers;
-};
-
-export type bookLoanControllerReturnLoanResponse =
-  bookLoanControllerReturnLoanResponseSuccess | bookLoanControllerReturnLoanResponseError;
-
 export const getBookLoanControllerReturnLoanUrl = (id: string) => {
   return `/api/books/${id}/loan/return`;
 };
@@ -5838,14 +4797,11 @@ export const getBookLoanControllerReturnLoanUrl = (id: string) => {
 export const bookLoanControllerReturnLoan = async (
   id: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookLoanControllerReturnLoanResponse> => {
-  return customInstance<bookLoanControllerReturnLoanResponse>(
-    getBookLoanControllerReturnLoanUrl(id),
-    {
-      ...options,
-      method: "POST",
-    },
-  );
+): Promise<BookViewDto> => {
+  return customInstance<BookViewDto>(getBookLoanControllerReturnLoanUrl(id), {
+    ...options,
+    method: "POST",
+  });
 };
 
 export const getBookLoanControllerReturnLoanQueryKey = (id: string) => {
@@ -5968,47 +4924,6 @@ export function useBookLoanControllerReturnLoan<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookDeliveryControllerCreateResponse200 = {
-  data: BookViewDto;
-  status: 200;
-};
-
-export type bookDeliveryControllerCreateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookDeliveryControllerCreateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookDeliveryControllerCreateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookDeliveryControllerCreateResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type bookDeliveryControllerCreateResponseSuccess =
-  bookDeliveryControllerCreateResponse200 & {
-    headers: Headers;
-  };
-export type bookDeliveryControllerCreateResponseError = (
-  | bookDeliveryControllerCreateResponse400
-  | bookDeliveryControllerCreateResponse401
-  | bookDeliveryControllerCreateResponse404
-  | bookDeliveryControllerCreateResponse409
-) & {
-  headers: Headers;
-};
-
-export type bookDeliveryControllerCreateResponse =
-  bookDeliveryControllerCreateResponseSuccess | bookDeliveryControllerCreateResponseError;
-
 export const getBookDeliveryControllerCreateUrl = (id: string) => {
   return `/api/books/${id}/deliveries`;
 };
@@ -6020,16 +4935,13 @@ export const bookDeliveryControllerCreate = async (
   id: string,
   createDeliveryInputDto: CreateDeliveryInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookDeliveryControllerCreateResponse> => {
-  return customInstance<bookDeliveryControllerCreateResponse>(
-    getBookDeliveryControllerCreateUrl(id),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(createDeliveryInputDto),
-    },
-  );
+): Promise<BookViewDto> => {
+  return customInstance<BookViewDto>(getBookDeliveryControllerCreateUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createDeliveryInputDto),
+  });
 };
 
 export const getBookDeliveryControllerCreateQueryKey = (
@@ -6165,34 +5077,6 @@ export function useBookDeliveryControllerCreate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookDeliveryControllerListHistoryResponse200 = {
-  data: DeliveryViewDto[];
-  status: 200;
-};
-
-export type bookDeliveryControllerListHistoryResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookDeliveryControllerListHistoryResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookDeliveryControllerListHistoryResponseSuccess =
-  bookDeliveryControllerListHistoryResponse200 & {
-    headers: Headers;
-  };
-export type bookDeliveryControllerListHistoryResponseError = (
-  bookDeliveryControllerListHistoryResponse401 | bookDeliveryControllerListHistoryResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookDeliveryControllerListHistoryResponse =
-  bookDeliveryControllerListHistoryResponseSuccess | bookDeliveryControllerListHistoryResponseError;
-
 export const getBookDeliveryControllerListHistoryUrl = (id: string) => {
   return `/api/books/${id}/deliveries`;
 };
@@ -6203,14 +5087,11 @@ export const getBookDeliveryControllerListHistoryUrl = (id: string) => {
 export const bookDeliveryControllerListHistory = async (
   id: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookDeliveryControllerListHistoryResponse> => {
-  return customInstance<bookDeliveryControllerListHistoryResponse>(
-    getBookDeliveryControllerListHistoryUrl(id),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<DeliveryViewDto[]> => {
+  return customInstance<DeliveryViewDto[]>(getBookDeliveryControllerListHistoryUrl(id), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getBookDeliveryControllerListHistoryQueryKey = (id: string) => {
@@ -6335,47 +5216,6 @@ export function useBookDeliveryControllerListHistory<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookDeliveryControllerUpdateResponse200 = {
-  data: BookViewDto;
-  status: 200;
-};
-
-export type bookDeliveryControllerUpdateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookDeliveryControllerUpdateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookDeliveryControllerUpdateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookDeliveryControllerUpdateResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type bookDeliveryControllerUpdateResponseSuccess =
-  bookDeliveryControllerUpdateResponse200 & {
-    headers: Headers;
-  };
-export type bookDeliveryControllerUpdateResponseError = (
-  | bookDeliveryControllerUpdateResponse400
-  | bookDeliveryControllerUpdateResponse401
-  | bookDeliveryControllerUpdateResponse404
-  | bookDeliveryControllerUpdateResponse409
-) & {
-  headers: Headers;
-};
-
-export type bookDeliveryControllerUpdateResponse =
-  bookDeliveryControllerUpdateResponseSuccess | bookDeliveryControllerUpdateResponseError;
-
 export const getBookDeliveryControllerUpdateUrl = (id: string, deliveryId: string) => {
   return `/api/books/${id}/deliveries/${deliveryId}`;
 };
@@ -6388,16 +5228,13 @@ export const bookDeliveryControllerUpdate = async (
   deliveryId: string,
   updateDeliveryInputDto: UpdateDeliveryInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookDeliveryControllerUpdateResponse> => {
-  return customInstance<bookDeliveryControllerUpdateResponse>(
-    getBookDeliveryControllerUpdateUrl(id, deliveryId),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(updateDeliveryInputDto),
-    },
-  );
+): Promise<BookViewDto> => {
+  return customInstance<BookViewDto>(getBookDeliveryControllerUpdateUrl(id, deliveryId), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateDeliveryInputDto),
+  });
 };
 
 export const getBookDeliveryControllerUpdateQueryKey = (
@@ -6545,47 +5382,6 @@ export function useBookDeliveryControllerUpdate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookDeliveryControllerReceiveResponse200 = {
-  data: BookViewDto;
-  status: 200;
-};
-
-export type bookDeliveryControllerReceiveResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookDeliveryControllerReceiveResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookDeliveryControllerReceiveResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookDeliveryControllerReceiveResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type bookDeliveryControllerReceiveResponseSuccess =
-  bookDeliveryControllerReceiveResponse200 & {
-    headers: Headers;
-  };
-export type bookDeliveryControllerReceiveResponseError = (
-  | bookDeliveryControllerReceiveResponse400
-  | bookDeliveryControllerReceiveResponse401
-  | bookDeliveryControllerReceiveResponse404
-  | bookDeliveryControllerReceiveResponse409
-) & {
-  headers: Headers;
-};
-
-export type bookDeliveryControllerReceiveResponse =
-  bookDeliveryControllerReceiveResponseSuccess | bookDeliveryControllerReceiveResponseError;
-
 export const getBookDeliveryControllerReceiveUrl = (id: string, deliveryId: string) => {
   return `/api/books/${id}/deliveries/${deliveryId}/receive`;
 };
@@ -6598,16 +5394,13 @@ export const bookDeliveryControllerReceive = async (
   deliveryId: string,
   receiveDeliveryInputDto: ReceiveDeliveryInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookDeliveryControllerReceiveResponse> => {
-  return customInstance<bookDeliveryControllerReceiveResponse>(
-    getBookDeliveryControllerReceiveUrl(id, deliveryId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(receiveDeliveryInputDto),
-    },
-  );
+): Promise<BookViewDto> => {
+  return customInstance<BookViewDto>(getBookDeliveryControllerReceiveUrl(id, deliveryId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(receiveDeliveryInputDto),
+  });
 };
 
 export const getBookDeliveryControllerReceiveQueryKey = (
@@ -6759,47 +5552,6 @@ export function useBookDeliveryControllerReceive<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookDeliveryControllerCancelResponse200 = {
-  data: BookViewDto;
-  status: 200;
-};
-
-export type bookDeliveryControllerCancelResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookDeliveryControllerCancelResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookDeliveryControllerCancelResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookDeliveryControllerCancelResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type bookDeliveryControllerCancelResponseSuccess =
-  bookDeliveryControllerCancelResponse200 & {
-    headers: Headers;
-  };
-export type bookDeliveryControllerCancelResponseError = (
-  | bookDeliveryControllerCancelResponse400
-  | bookDeliveryControllerCancelResponse401
-  | bookDeliveryControllerCancelResponse404
-  | bookDeliveryControllerCancelResponse409
-) & {
-  headers: Headers;
-};
-
-export type bookDeliveryControllerCancelResponse =
-  bookDeliveryControllerCancelResponseSuccess | bookDeliveryControllerCancelResponseError;
-
 export const getBookDeliveryControllerCancelUrl = (id: string, deliveryId: string) => {
   return `/api/books/${id}/deliveries/${deliveryId}/cancel`;
 };
@@ -6812,16 +5564,13 @@ export const bookDeliveryControllerCancel = async (
   deliveryId: string,
   cancelDeliveryInputDto: CancelDeliveryInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookDeliveryControllerCancelResponse> => {
-  return customInstance<bookDeliveryControllerCancelResponse>(
-    getBookDeliveryControllerCancelUrl(id, deliveryId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(cancelDeliveryInputDto),
-    },
-  );
+): Promise<BookViewDto> => {
+  return customInstance<BookViewDto>(getBookDeliveryControllerCancelUrl(id, deliveryId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(cancelDeliveryInputDto),
+  });
 };
 
 export const getBookDeliveryControllerCancelQueryKey = (
@@ -6973,36 +5722,6 @@ export function useBookDeliveryControllerCancel<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookStoreLinkControllerGetBookStoreLinksResponse200 = {
-  data: BookStoreLinksViewDto;
-  status: 200;
-};
-
-export type bookStoreLinkControllerGetBookStoreLinksResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookStoreLinkControllerGetBookStoreLinksResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookStoreLinkControllerGetBookStoreLinksResponseSuccess =
-  bookStoreLinkControllerGetBookStoreLinksResponse200 & {
-    headers: Headers;
-  };
-export type bookStoreLinkControllerGetBookStoreLinksResponseError = (
-  | bookStoreLinkControllerGetBookStoreLinksResponse401
-  | bookStoreLinkControllerGetBookStoreLinksResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookStoreLinkControllerGetBookStoreLinksResponse =
-  | bookStoreLinkControllerGetBookStoreLinksResponseSuccess
-  | bookStoreLinkControllerGetBookStoreLinksResponseError;
-
 export const getBookStoreLinkControllerGetBookStoreLinksUrl = (id: string) => {
   return `/api/books/${id}/store-links`;
 };
@@ -7013,14 +5732,11 @@ export const getBookStoreLinkControllerGetBookStoreLinksUrl = (id: string) => {
 export const bookStoreLinkControllerGetBookStoreLinks = async (
   id: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookStoreLinkControllerGetBookStoreLinksResponse> => {
-  return customInstance<bookStoreLinkControllerGetBookStoreLinksResponse>(
-    getBookStoreLinkControllerGetBookStoreLinksUrl(id),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<BookStoreLinksViewDto> => {
+  return customInstance<BookStoreLinksViewDto>(getBookStoreLinkControllerGetBookStoreLinksUrl(id), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getBookStoreLinkControllerGetBookStoreLinksQueryKey = (id: string) => {
@@ -7166,47 +5882,6 @@ export function useBookStoreLinkControllerGetBookStoreLinks<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookStoreLinkControllerAddLinkResponse201 = {
-  data: BookStoreLinkViewDto;
-  status: 201;
-};
-
-export type bookStoreLinkControllerAddLinkResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookStoreLinkControllerAddLinkResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookStoreLinkControllerAddLinkResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookStoreLinkControllerAddLinkResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type bookStoreLinkControllerAddLinkResponseSuccess =
-  bookStoreLinkControllerAddLinkResponse201 & {
-    headers: Headers;
-  };
-export type bookStoreLinkControllerAddLinkResponseError = (
-  | bookStoreLinkControllerAddLinkResponse400
-  | bookStoreLinkControllerAddLinkResponse401
-  | bookStoreLinkControllerAddLinkResponse404
-  | bookStoreLinkControllerAddLinkResponse409
-) & {
-  headers: Headers;
-};
-
-export type bookStoreLinkControllerAddLinkResponse =
-  bookStoreLinkControllerAddLinkResponseSuccess | bookStoreLinkControllerAddLinkResponseError;
-
 export const getBookStoreLinkControllerAddLinkUrl = (id: string) => {
   return `/api/books/${id}/store-links`;
 };
@@ -7218,16 +5893,13 @@ export const bookStoreLinkControllerAddLink = async (
   id: string,
   createBookStoreLinkInputDto: CreateBookStoreLinkInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookStoreLinkControllerAddLinkResponse> => {
-  return customInstance<bookStoreLinkControllerAddLinkResponse>(
-    getBookStoreLinkControllerAddLinkUrl(id),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(createBookStoreLinkInputDto),
-    },
-  );
+): Promise<BookStoreLinkViewDto> => {
+  return customInstance<BookStoreLinkViewDto>(getBookStoreLinkControllerAddLinkUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createBookStoreLinkInputDto),
+  });
 };
 
 export const getBookStoreLinkControllerAddLinkQueryKey = (
@@ -7367,47 +6039,6 @@ export function useBookStoreLinkControllerAddLink<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookStoreLinkControllerEditLinkResponse200 = {
-  data: BookStoreLinkViewDto;
-  status: 200;
-};
-
-export type bookStoreLinkControllerEditLinkResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookStoreLinkControllerEditLinkResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookStoreLinkControllerEditLinkResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookStoreLinkControllerEditLinkResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type bookStoreLinkControllerEditLinkResponseSuccess =
-  bookStoreLinkControllerEditLinkResponse200 & {
-    headers: Headers;
-  };
-export type bookStoreLinkControllerEditLinkResponseError = (
-  | bookStoreLinkControllerEditLinkResponse400
-  | bookStoreLinkControllerEditLinkResponse401
-  | bookStoreLinkControllerEditLinkResponse404
-  | bookStoreLinkControllerEditLinkResponse409
-) & {
-  headers: Headers;
-};
-
-export type bookStoreLinkControllerEditLinkResponse =
-  bookStoreLinkControllerEditLinkResponseSuccess | bookStoreLinkControllerEditLinkResponseError;
-
 export const getBookStoreLinkControllerEditLinkUrl = (id: string, linkId: string) => {
   return `/api/books/${id}/store-links/${linkId}`;
 };
@@ -7420,16 +6051,13 @@ export const bookStoreLinkControllerEditLink = async (
   linkId: string,
   updateBookStoreLinkInputDto: UpdateBookStoreLinkInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookStoreLinkControllerEditLinkResponse> => {
-  return customInstance<bookStoreLinkControllerEditLinkResponse>(
-    getBookStoreLinkControllerEditLinkUrl(id, linkId),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(updateBookStoreLinkInputDto),
-    },
-  );
+): Promise<BookStoreLinkViewDto> => {
+  return customInstance<BookStoreLinkViewDto>(getBookStoreLinkControllerEditLinkUrl(id, linkId), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateBookStoreLinkInputDto),
+  });
 };
 
 export const getBookStoreLinkControllerEditLinkQueryKey = (
@@ -7579,34 +6207,6 @@ export function useBookStoreLinkControllerEditLink<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookStoreLinkControllerDeleteLinkResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type bookStoreLinkControllerDeleteLinkResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookStoreLinkControllerDeleteLinkResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookStoreLinkControllerDeleteLinkResponseSuccess =
-  bookStoreLinkControllerDeleteLinkResponse204 & {
-    headers: Headers;
-  };
-export type bookStoreLinkControllerDeleteLinkResponseError = (
-  bookStoreLinkControllerDeleteLinkResponse401 | bookStoreLinkControllerDeleteLinkResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookStoreLinkControllerDeleteLinkResponse =
-  bookStoreLinkControllerDeleteLinkResponseSuccess | bookStoreLinkControllerDeleteLinkResponseError;
-
 export const getBookStoreLinkControllerDeleteLinkUrl = (id: string, linkId: string) => {
   return `/api/books/${id}/store-links/${linkId}`;
 };
@@ -7618,14 +6218,11 @@ export const bookStoreLinkControllerDeleteLink = async (
   id: string,
   linkId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookStoreLinkControllerDeleteLinkResponse> => {
-  return customInstance<bookStoreLinkControllerDeleteLinkResponse>(
-    getBookStoreLinkControllerDeleteLinkUrl(id, linkId),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getBookStoreLinkControllerDeleteLinkUrl(id, linkId), {
+    ...options,
+    method: "DELETE",
+  });
 };
 
 export const getBookStoreLinkControllerDeleteLinkQueryKey = (id: string, linkId: string) => {
@@ -7756,33 +6353,6 @@ export function useBookStoreLinkControllerDeleteLink<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bulkBooksControllerFavoriteResponse200 = {
-  data: BulkActionResultDto;
-  status: 200;
-};
-
-export type bulkBooksControllerFavoriteResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bulkBooksControllerFavoriteResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bulkBooksControllerFavoriteResponseSuccess = bulkBooksControllerFavoriteResponse200 & {
-  headers: Headers;
-};
-export type bulkBooksControllerFavoriteResponseError = (
-  bulkBooksControllerFavoriteResponse400 | bulkBooksControllerFavoriteResponse401
-) & {
-  headers: Headers;
-};
-
-export type bulkBooksControllerFavoriteResponse =
-  bulkBooksControllerFavoriteResponseSuccess | bulkBooksControllerFavoriteResponseError;
-
 export const getBulkBooksControllerFavoriteUrl = () => {
   return `/api/books/bulk/favorite`;
 };
@@ -7793,8 +6363,8 @@ export const getBulkBooksControllerFavoriteUrl = () => {
 export const bulkBooksControllerFavorite = async (
   bulkFavoriteInputDto: BulkFavoriteInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bulkBooksControllerFavoriteResponse> => {
-  return customInstance<bulkBooksControllerFavoriteResponse>(getBulkBooksControllerFavoriteUrl(), {
+): Promise<BulkActionResultDto> => {
+  return customInstance<BulkActionResultDto>(getBulkBooksControllerFavoriteUrl(), {
     ...options,
     method: "PATCH",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -7922,34 +6492,6 @@ export function useBulkBooksControllerFavorite<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bulkBooksControllerReadingStatusResponse200 = {
-  data: BulkActionResultDto;
-  status: 200;
-};
-
-export type bulkBooksControllerReadingStatusResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bulkBooksControllerReadingStatusResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bulkBooksControllerReadingStatusResponseSuccess =
-  bulkBooksControllerReadingStatusResponse200 & {
-    headers: Headers;
-  };
-export type bulkBooksControllerReadingStatusResponseError = (
-  bulkBooksControllerReadingStatusResponse400 | bulkBooksControllerReadingStatusResponse401
-) & {
-  headers: Headers;
-};
-
-export type bulkBooksControllerReadingStatusResponse =
-  bulkBooksControllerReadingStatusResponseSuccess | bulkBooksControllerReadingStatusResponseError;
-
 export const getBulkBooksControllerReadingStatusUrl = () => {
   return `/api/books/bulk/reading-status`;
 };
@@ -7960,16 +6502,13 @@ export const getBulkBooksControllerReadingStatusUrl = () => {
 export const bulkBooksControllerReadingStatus = async (
   bulkReadingStatusInputDto: BulkReadingStatusInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bulkBooksControllerReadingStatusResponse> => {
-  return customInstance<bulkBooksControllerReadingStatusResponse>(
-    getBulkBooksControllerReadingStatusUrl(),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(bulkReadingStatusInputDto),
-    },
-  );
+): Promise<BulkActionResultDto> => {
+  return customInstance<BulkActionResultDto>(getBulkBooksControllerReadingStatusUrl(), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(bulkReadingStatusInputDto),
+  });
 };
 
 export const getBulkBooksControllerReadingStatusQueryKey = (
@@ -8096,35 +6635,6 @@ export function useBulkBooksControllerReadingStatus<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bulkBooksControllerOwnershipStatusResponse200 = {
-  data: BulkActionResultDto;
-  status: 200;
-};
-
-export type bulkBooksControllerOwnershipStatusResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bulkBooksControllerOwnershipStatusResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bulkBooksControllerOwnershipStatusResponseSuccess =
-  bulkBooksControllerOwnershipStatusResponse200 & {
-    headers: Headers;
-  };
-export type bulkBooksControllerOwnershipStatusResponseError = (
-  bulkBooksControllerOwnershipStatusResponse400 | bulkBooksControllerOwnershipStatusResponse401
-) & {
-  headers: Headers;
-};
-
-export type bulkBooksControllerOwnershipStatusResponse =
-  | bulkBooksControllerOwnershipStatusResponseSuccess
-  | bulkBooksControllerOwnershipStatusResponseError;
-
 export const getBulkBooksControllerOwnershipStatusUrl = () => {
   return `/api/books/bulk/ownership-status`;
 };
@@ -8135,16 +6645,13 @@ export const getBulkBooksControllerOwnershipStatusUrl = () => {
 export const bulkBooksControllerOwnershipStatus = async (
   bulkOwnershipStatusInputDto: BulkOwnershipStatusInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bulkBooksControllerOwnershipStatusResponse> => {
-  return customInstance<bulkBooksControllerOwnershipStatusResponse>(
-    getBulkBooksControllerOwnershipStatusUrl(),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(bulkOwnershipStatusInputDto),
-    },
-  );
+): Promise<BulkActionResultDto> => {
+  return customInstance<BulkActionResultDto>(getBulkBooksControllerOwnershipStatusUrl(), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(bulkOwnershipStatusInputDto),
+  });
 };
 
 export const getBulkBooksControllerOwnershipStatusQueryKey = (
@@ -8272,34 +6779,6 @@ export function useBulkBooksControllerOwnershipStatus<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bulkBooksControllerPagesCountResponse200 = {
-  data: BulkPagesCountResultDto;
-  status: 200;
-};
-
-export type bulkBooksControllerPagesCountResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bulkBooksControllerPagesCountResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bulkBooksControllerPagesCountResponseSuccess =
-  bulkBooksControllerPagesCountResponse200 & {
-    headers: Headers;
-  };
-export type bulkBooksControllerPagesCountResponseError = (
-  bulkBooksControllerPagesCountResponse400 | bulkBooksControllerPagesCountResponse401
-) & {
-  headers: Headers;
-};
-
-export type bulkBooksControllerPagesCountResponse =
-  bulkBooksControllerPagesCountResponseSuccess | bulkBooksControllerPagesCountResponseError;
-
 export const getBulkBooksControllerPagesCountUrl = () => {
   return `/api/books/bulk/pages-count`;
 };
@@ -8310,16 +6789,13 @@ export const getBulkBooksControllerPagesCountUrl = () => {
 export const bulkBooksControllerPagesCount = async (
   bulkPagesCountInputDto: BulkPagesCountInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bulkBooksControllerPagesCountResponse> => {
-  return customInstance<bulkBooksControllerPagesCountResponse>(
-    getBulkBooksControllerPagesCountUrl(),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(bulkPagesCountInputDto),
-    },
-  );
+): Promise<BulkPagesCountResultDto> => {
+  return customInstance<BulkPagesCountResultDto>(getBulkBooksControllerPagesCountUrl(), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(bulkPagesCountInputDto),
+  });
 };
 
 export const getBulkBooksControllerPagesCountQueryKey = (
@@ -8445,33 +6921,6 @@ export function useBulkBooksControllerPagesCount<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bulkBooksControllerTagsResponse200 = {
-  data: BulkActionResultDto;
-  status: 200;
-};
-
-export type bulkBooksControllerTagsResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bulkBooksControllerTagsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bulkBooksControllerTagsResponseSuccess = bulkBooksControllerTagsResponse200 & {
-  headers: Headers;
-};
-export type bulkBooksControllerTagsResponseError = (
-  bulkBooksControllerTagsResponse400 | bulkBooksControllerTagsResponse401
-) & {
-  headers: Headers;
-};
-
-export type bulkBooksControllerTagsResponse =
-  bulkBooksControllerTagsResponseSuccess | bulkBooksControllerTagsResponseError;
-
 export const getBulkBooksControllerTagsUrl = () => {
   return `/api/books/bulk/tags`;
 };
@@ -8482,8 +6931,8 @@ export const getBulkBooksControllerTagsUrl = () => {
 export const bulkBooksControllerTags = async (
   bulkTagsInputDto: BulkTagsInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bulkBooksControllerTagsResponse> => {
-  return customInstance<bulkBooksControllerTagsResponse>(getBulkBooksControllerTagsUrl(), {
+): Promise<BulkActionResultDto> => {
+  return customInstance<BulkActionResultDto>(getBulkBooksControllerTagsUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -8608,40 +7057,6 @@ export function useBulkBooksControllerTags<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bulkBooksControllerListsResponse200 = {
-  data: BulkActionResultDto;
-  status: 200;
-};
-
-export type bulkBooksControllerListsResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bulkBooksControllerListsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bulkBooksControllerListsResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bulkBooksControllerListsResponseSuccess = bulkBooksControllerListsResponse200 & {
-  headers: Headers;
-};
-export type bulkBooksControllerListsResponseError = (
-  | bulkBooksControllerListsResponse400
-  | bulkBooksControllerListsResponse401
-  | bulkBooksControllerListsResponse404
-) & {
-  headers: Headers;
-};
-
-export type bulkBooksControllerListsResponse =
-  bulkBooksControllerListsResponseSuccess | bulkBooksControllerListsResponseError;
-
 export const getBulkBooksControllerListsUrl = () => {
   return `/api/books/bulk/lists`;
 };
@@ -8652,8 +7067,8 @@ export const getBulkBooksControllerListsUrl = () => {
 export const bulkBooksControllerLists = async (
   bulkListsInputDto: BulkListsInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bulkBooksControllerListsResponse> => {
-  return customInstance<bulkBooksControllerListsResponse>(getBulkBooksControllerListsUrl(), {
+): Promise<BulkActionResultDto> => {
+  return customInstance<BulkActionResultDto>(getBulkBooksControllerListsUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -8778,34 +7193,6 @@ export function useBulkBooksControllerLists<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bulkBooksControllerReadingQueueResponse200 = {
-  data: BulkActionResultDto;
-  status: 200;
-};
-
-export type bulkBooksControllerReadingQueueResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bulkBooksControllerReadingQueueResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bulkBooksControllerReadingQueueResponseSuccess =
-  bulkBooksControllerReadingQueueResponse200 & {
-    headers: Headers;
-  };
-export type bulkBooksControllerReadingQueueResponseError = (
-  bulkBooksControllerReadingQueueResponse400 | bulkBooksControllerReadingQueueResponse401
-) & {
-  headers: Headers;
-};
-
-export type bulkBooksControllerReadingQueueResponse =
-  bulkBooksControllerReadingQueueResponseSuccess | bulkBooksControllerReadingQueueResponseError;
-
 export const getBulkBooksControllerReadingQueueUrl = () => {
   return `/api/books/bulk/reading-queue`;
 };
@@ -8816,16 +7203,13 @@ export const getBulkBooksControllerReadingQueueUrl = () => {
 export const bulkBooksControllerReadingQueue = async (
   bulkBookIdsDto: BulkBookIdsDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bulkBooksControllerReadingQueueResponse> => {
-  return customInstance<bulkBooksControllerReadingQueueResponse>(
-    getBulkBooksControllerReadingQueueUrl(),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(bulkBookIdsDto),
-    },
-  );
+): Promise<BulkActionResultDto> => {
+  return customInstance<BulkActionResultDto>(getBulkBooksControllerReadingQueueUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(bulkBookIdsDto),
+  });
 };
 
 export const getBulkBooksControllerReadingQueueQueryKey = (bulkBookIdsDto?: BulkBookIdsDto) => {
@@ -8946,33 +7330,6 @@ export function useBulkBooksControllerReadingQueue<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bulkBooksControllerDeleteResponse200 = {
-  data: BulkActionResultDto;
-  status: 200;
-};
-
-export type bulkBooksControllerDeleteResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bulkBooksControllerDeleteResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bulkBooksControllerDeleteResponseSuccess = bulkBooksControllerDeleteResponse200 & {
-  headers: Headers;
-};
-export type bulkBooksControllerDeleteResponseError = (
-  bulkBooksControllerDeleteResponse400 | bulkBooksControllerDeleteResponse401
-) & {
-  headers: Headers;
-};
-
-export type bulkBooksControllerDeleteResponse =
-  bulkBooksControllerDeleteResponseSuccess | bulkBooksControllerDeleteResponseError;
-
 export const getBulkBooksControllerDeleteUrl = () => {
   return `/api/books/bulk/delete`;
 };
@@ -8983,8 +7340,8 @@ export const getBulkBooksControllerDeleteUrl = () => {
 export const bulkBooksControllerDelete = async (
   bulkBookIdsDto: BulkBookIdsDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bulkBooksControllerDeleteResponse> => {
-  return customInstance<bulkBooksControllerDeleteResponse>(getBulkBooksControllerDeleteUrl(), {
+): Promise<BulkActionResultDto> => {
+  return customInstance<BulkActionResultDto>(getBulkBooksControllerDeleteUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -9109,33 +7466,6 @@ export function useBulkBooksControllerDelete<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookListsControllerGetListsResponse200 = {
-  data: BookListsViewDto;
-  status: 200;
-};
-
-export type bookListsControllerGetListsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookListsControllerGetListsResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookListsControllerGetListsResponseSuccess = bookListsControllerGetListsResponse200 & {
-  headers: Headers;
-};
-export type bookListsControllerGetListsResponseError = (
-  bookListsControllerGetListsResponse401 | bookListsControllerGetListsResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookListsControllerGetListsResponse =
-  bookListsControllerGetListsResponseSuccess | bookListsControllerGetListsResponseError;
-
 export const getBookListsControllerGetListsUrl = (bookId: string) => {
   return `/api/books/${bookId}/lists`;
 };
@@ -9146,14 +7476,11 @@ export const getBookListsControllerGetListsUrl = (bookId: string) => {
 export const bookListsControllerGetLists = async (
   bookId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookListsControllerGetListsResponse> => {
-  return customInstance<bookListsControllerGetListsResponse>(
-    getBookListsControllerGetListsUrl(bookId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<BookListsViewDto> => {
+  return customInstance<BookListsViewDto>(getBookListsControllerGetListsUrl(bookId), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getBookListsControllerGetListsQueryKey = (bookId: string) => {
@@ -9276,40 +7603,6 @@ export function useBookListsControllerGetLists<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookListsControllerSetListsResponse200 = {
-  data: BookListsViewDto;
-  status: 200;
-};
-
-export type bookListsControllerSetListsResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookListsControllerSetListsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookListsControllerSetListsResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookListsControllerSetListsResponseSuccess = bookListsControllerSetListsResponse200 & {
-  headers: Headers;
-};
-export type bookListsControllerSetListsResponseError = (
-  | bookListsControllerSetListsResponse400
-  | bookListsControllerSetListsResponse401
-  | bookListsControllerSetListsResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookListsControllerSetListsResponse =
-  bookListsControllerSetListsResponseSuccess | bookListsControllerSetListsResponseError;
-
 export const getBookListsControllerSetListsUrl = (bookId: string) => {
   return `/api/books/${bookId}/lists`;
 };
@@ -9321,16 +7614,13 @@ export const bookListsControllerSetLists = async (
   bookId: string,
   setBookListsInputDto: SetBookListsInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookListsControllerSetListsResponse> => {
-  return customInstance<bookListsControllerSetListsResponse>(
-    getBookListsControllerSetListsUrl(bookId),
-    {
-      ...options,
-      method: "PUT",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(setBookListsInputDto),
-    },
-  );
+): Promise<BookListsViewDto> => {
+  return customInstance<BookListsViewDto>(getBookListsControllerSetListsUrl(bookId), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(setBookListsInputDto),
+  });
 };
 
 export const getBookListsControllerSetListsQueryKey = (
@@ -9466,34 +7756,6 @@ export function useBookListsControllerSetLists<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookChaptersControllerGetChaptersResponse200 = {
-  data: BookChaptersViewDto;
-  status: 200;
-};
-
-export type bookChaptersControllerGetChaptersResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookChaptersControllerGetChaptersResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookChaptersControllerGetChaptersResponseSuccess =
-  bookChaptersControllerGetChaptersResponse200 & {
-    headers: Headers;
-  };
-export type bookChaptersControllerGetChaptersResponseError = (
-  bookChaptersControllerGetChaptersResponse401 | bookChaptersControllerGetChaptersResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookChaptersControllerGetChaptersResponse =
-  bookChaptersControllerGetChaptersResponseSuccess | bookChaptersControllerGetChaptersResponseError;
-
 export const getBookChaptersControllerGetChaptersUrl = (bookId: string) => {
   return `/api/books/${bookId}/chapters`;
 };
@@ -9504,14 +7766,11 @@ export const getBookChaptersControllerGetChaptersUrl = (bookId: string) => {
 export const bookChaptersControllerGetChapters = async (
   bookId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookChaptersControllerGetChaptersResponse> => {
-  return customInstance<bookChaptersControllerGetChaptersResponse>(
-    getBookChaptersControllerGetChaptersUrl(bookId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<BookChaptersViewDto> => {
+  return customInstance<BookChaptersViewDto>(getBookChaptersControllerGetChaptersUrl(bookId), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getBookChaptersControllerGetChaptersQueryKey = (bookId: string) => {

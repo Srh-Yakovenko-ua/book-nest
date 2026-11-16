@@ -55,29 +55,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type deliveryReadControllerInTransitSummaryResponse200 = {
-  data: InTransitSummaryViewDto;
-  status: 200;
-};
-
-export type deliveryReadControllerInTransitSummaryResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type deliveryReadControllerInTransitSummaryResponseSuccess =
-  deliveryReadControllerInTransitSummaryResponse200 & {
-    headers: Headers;
-  };
-export type deliveryReadControllerInTransitSummaryResponseError =
-  deliveryReadControllerInTransitSummaryResponse401 & {
-    headers: Headers;
-  };
-
-export type deliveryReadControllerInTransitSummaryResponse =
-  | deliveryReadControllerInTransitSummaryResponseSuccess
-  | deliveryReadControllerInTransitSummaryResponseError;
-
 export const getDeliveryReadControllerInTransitSummaryUrl = () => {
   return `/api/delivery/books/in-transit/summary`;
 };
@@ -87,14 +64,11 @@ export const getDeliveryReadControllerInTransitSummaryUrl = () => {
  */
 export const deliveryReadControllerInTransitSummary = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<deliveryReadControllerInTransitSummaryResponse> => {
-  return customInstance<deliveryReadControllerInTransitSummaryResponse>(
-    getDeliveryReadControllerInTransitSummaryUrl(),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<InTransitSummaryViewDto> => {
+  return customInstance<InTransitSummaryViewDto>(getDeliveryReadControllerInTransitSummaryUrl(), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getDeliveryReadControllerInTransitSummaryQueryKey = () => {
@@ -227,29 +201,6 @@ export function useDeliveryReadControllerInTransitSummary<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type deliveryReadControllerInTransitImpactResponse200 = {
-  data: InTransitImpactViewDto;
-  status: 200;
-};
-
-export type deliveryReadControllerInTransitImpactResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type deliveryReadControllerInTransitImpactResponseSuccess =
-  deliveryReadControllerInTransitImpactResponse200 & {
-    headers: Headers;
-  };
-export type deliveryReadControllerInTransitImpactResponseError =
-  deliveryReadControllerInTransitImpactResponse401 & {
-    headers: Headers;
-  };
-
-export type deliveryReadControllerInTransitImpactResponse =
-  | deliveryReadControllerInTransitImpactResponseSuccess
-  | deliveryReadControllerInTransitImpactResponseError;
-
 export const getDeliveryReadControllerInTransitImpactUrl = () => {
   return `/api/delivery/books/in-transit/impact`;
 };
@@ -259,14 +210,11 @@ export const getDeliveryReadControllerInTransitImpactUrl = () => {
  */
 export const deliveryReadControllerInTransitImpact = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<deliveryReadControllerInTransitImpactResponse> => {
-  return customInstance<deliveryReadControllerInTransitImpactResponse>(
-    getDeliveryReadControllerInTransitImpactUrl(),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<InTransitImpactViewDto> => {
+  return customInstance<InTransitImpactViewDto>(getDeliveryReadControllerInTransitImpactUrl(), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getDeliveryReadControllerInTransitImpactQueryKey = () => {
@@ -399,29 +347,6 @@ export function useDeliveryReadControllerInTransitImpact<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type deliveryReadControllerInTransitFacetsResponse200 = {
-  data: InTransitFacetsViewDto;
-  status: 200;
-};
-
-export type deliveryReadControllerInTransitFacetsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type deliveryReadControllerInTransitFacetsResponseSuccess =
-  deliveryReadControllerInTransitFacetsResponse200 & {
-    headers: Headers;
-  };
-export type deliveryReadControllerInTransitFacetsResponseError =
-  deliveryReadControllerInTransitFacetsResponse401 & {
-    headers: Headers;
-  };
-
-export type deliveryReadControllerInTransitFacetsResponse =
-  | deliveryReadControllerInTransitFacetsResponseSuccess
-  | deliveryReadControllerInTransitFacetsResponseError;
-
 export const getDeliveryReadControllerInTransitFacetsUrl = () => {
   return `/api/delivery/books/in-transit/facets`;
 };
@@ -431,14 +356,11 @@ export const getDeliveryReadControllerInTransitFacetsUrl = () => {
  */
 export const deliveryReadControllerInTransitFacets = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<deliveryReadControllerInTransitFacetsResponse> => {
-  return customInstance<deliveryReadControllerInTransitFacetsResponse>(
-    getDeliveryReadControllerInTransitFacetsUrl(),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<InTransitFacetsViewDto> => {
+  return customInstance<InTransitFacetsViewDto>(getDeliveryReadControllerInTransitFacetsUrl(), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getDeliveryReadControllerInTransitFacetsQueryKey = () => {
@@ -571,36 +493,6 @@ export function useDeliveryReadControllerInTransitFacets<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type deliveryReadControllerInTransitQuickCountsResponse200 = {
-  data: InTransitQuickCountsViewDto;
-  status: 200;
-};
-
-export type deliveryReadControllerInTransitQuickCountsResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type deliveryReadControllerInTransitQuickCountsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type deliveryReadControllerInTransitQuickCountsResponseSuccess =
-  deliveryReadControllerInTransitQuickCountsResponse200 & {
-    headers: Headers;
-  };
-export type deliveryReadControllerInTransitQuickCountsResponseError = (
-  | deliveryReadControllerInTransitQuickCountsResponse400
-  | deliveryReadControllerInTransitQuickCountsResponse401
-) & {
-  headers: Headers;
-};
-
-export type deliveryReadControllerInTransitQuickCountsResponse =
-  | deliveryReadControllerInTransitQuickCountsResponseSuccess
-  | deliveryReadControllerInTransitQuickCountsResponseError;
-
 export const getDeliveryReadControllerInTransitQuickCountsUrl = (
   params?: DeliveryReadControllerInTransitQuickCountsParams,
 ) => {
@@ -634,8 +526,8 @@ export const getDeliveryReadControllerInTransitQuickCountsUrl = (
 export const deliveryReadControllerInTransitQuickCounts = async (
   params?: DeliveryReadControllerInTransitQuickCountsParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<deliveryReadControllerInTransitQuickCountsResponse> => {
-  return customInstance<deliveryReadControllerInTransitQuickCountsResponse>(
+): Promise<InTransitQuickCountsViewDto> => {
+  return customInstance<InTransitQuickCountsViewDto>(
     getDeliveryReadControllerInTransitQuickCountsUrl(params),
     {
       ...options,
@@ -785,29 +677,6 @@ export function useDeliveryReadControllerInTransitQuickCounts<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type deliveryReadControllerInTransitListResponse200 = {
-  data: PaginatedBookOrderItemRowsDto;
-  status: 200;
-};
-
-export type deliveryReadControllerInTransitListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type deliveryReadControllerInTransitListResponseSuccess =
-  deliveryReadControllerInTransitListResponse200 & {
-    headers: Headers;
-  };
-export type deliveryReadControllerInTransitListResponseError =
-  deliveryReadControllerInTransitListResponse401 & {
-    headers: Headers;
-  };
-
-export type deliveryReadControllerInTransitListResponse =
-  | deliveryReadControllerInTransitListResponseSuccess
-  | deliveryReadControllerInTransitListResponseError;
-
 export const getDeliveryReadControllerInTransitListUrl = (
   params?: DeliveryReadControllerInTransitListParams,
 ) => {
@@ -841,8 +710,8 @@ export const getDeliveryReadControllerInTransitListUrl = (
 export const deliveryReadControllerInTransitList = async (
   params?: DeliveryReadControllerInTransitListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<deliveryReadControllerInTransitListResponse> => {
-  return customInstance<deliveryReadControllerInTransitListResponse>(
+): Promise<PaginatedBookOrderItemRowsDto> => {
+  return customInstance<PaginatedBookOrderItemRowsDto>(
     getDeliveryReadControllerInTransitListUrl(params),
     {
       ...options,
@@ -990,29 +859,6 @@ export function useDeliveryReadControllerInTransitList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type deliveryReadControllerHistorySummaryResponse200 = {
-  data: BookOrderHistorySummaryViewDto;
-  status: 200;
-};
-
-export type deliveryReadControllerHistorySummaryResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type deliveryReadControllerHistorySummaryResponseSuccess =
-  deliveryReadControllerHistorySummaryResponse200 & {
-    headers: Headers;
-  };
-export type deliveryReadControllerHistorySummaryResponseError =
-  deliveryReadControllerHistorySummaryResponse401 & {
-    headers: Headers;
-  };
-
-export type deliveryReadControllerHistorySummaryResponse =
-  | deliveryReadControllerHistorySummaryResponseSuccess
-  | deliveryReadControllerHistorySummaryResponseError;
-
 export const getDeliveryReadControllerHistorySummaryUrl = () => {
   return `/api/delivery/books/history/summary`;
 };
@@ -1022,8 +868,8 @@ export const getDeliveryReadControllerHistorySummaryUrl = () => {
  */
 export const deliveryReadControllerHistorySummary = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<deliveryReadControllerHistorySummaryResponse> => {
-  return customInstance<deliveryReadControllerHistorySummaryResponse>(
+): Promise<BookOrderHistorySummaryViewDto> => {
+  return customInstance<BookOrderHistorySummaryViewDto>(
     getDeliveryReadControllerHistorySummaryUrl(),
     {
       ...options,
@@ -1158,29 +1004,6 @@ export function useDeliveryReadControllerHistorySummary<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type deliveryReadControllerHistoryOutcomeResponse200 = {
-  data: BookOrderHistoryOutcomeViewDto;
-  status: 200;
-};
-
-export type deliveryReadControllerHistoryOutcomeResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type deliveryReadControllerHistoryOutcomeResponseSuccess =
-  deliveryReadControllerHistoryOutcomeResponse200 & {
-    headers: Headers;
-  };
-export type deliveryReadControllerHistoryOutcomeResponseError =
-  deliveryReadControllerHistoryOutcomeResponse401 & {
-    headers: Headers;
-  };
-
-export type deliveryReadControllerHistoryOutcomeResponse =
-  | deliveryReadControllerHistoryOutcomeResponseSuccess
-  | deliveryReadControllerHistoryOutcomeResponseError;
-
 export const getDeliveryReadControllerHistoryOutcomeUrl = () => {
   return `/api/delivery/books/history/outcome`;
 };
@@ -1190,8 +1013,8 @@ export const getDeliveryReadControllerHistoryOutcomeUrl = () => {
  */
 export const deliveryReadControllerHistoryOutcome = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<deliveryReadControllerHistoryOutcomeResponse> => {
-  return customInstance<deliveryReadControllerHistoryOutcomeResponse>(
+): Promise<BookOrderHistoryOutcomeViewDto> => {
+  return customInstance<BookOrderHistoryOutcomeViewDto>(
     getDeliveryReadControllerHistoryOutcomeUrl(),
     {
       ...options,
@@ -1326,29 +1149,6 @@ export function useDeliveryReadControllerHistoryOutcome<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type deliveryReadControllerHistoryFacetsResponse200 = {
-  data: BookOrderHistoryFacetsViewDto;
-  status: 200;
-};
-
-export type deliveryReadControllerHistoryFacetsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type deliveryReadControllerHistoryFacetsResponseSuccess =
-  deliveryReadControllerHistoryFacetsResponse200 & {
-    headers: Headers;
-  };
-export type deliveryReadControllerHistoryFacetsResponseError =
-  deliveryReadControllerHistoryFacetsResponse401 & {
-    headers: Headers;
-  };
-
-export type deliveryReadControllerHistoryFacetsResponse =
-  | deliveryReadControllerHistoryFacetsResponseSuccess
-  | deliveryReadControllerHistoryFacetsResponseError;
-
 export const getDeliveryReadControllerHistoryFacetsUrl = (
   params: DeliveryReadControllerHistoryFacetsParams,
 ) => {
@@ -1373,8 +1173,8 @@ export const getDeliveryReadControllerHistoryFacetsUrl = (
 export const deliveryReadControllerHistoryFacets = async (
   params: DeliveryReadControllerHistoryFacetsParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<deliveryReadControllerHistoryFacetsResponse> => {
-  return customInstance<deliveryReadControllerHistoryFacetsResponse>(
+): Promise<BookOrderHistoryFacetsViewDto> => {
+  return customInstance<BookOrderHistoryFacetsViewDto>(
     getDeliveryReadControllerHistoryFacetsUrl(params),
     {
       ...options,
@@ -1522,28 +1322,6 @@ export function useDeliveryReadControllerHistoryFacets<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type deliveryReadControllerHistoryListResponse200 = {
-  data: PaginatedOrderHistoryGroupsDto;
-  status: 200;
-};
-
-export type deliveryReadControllerHistoryListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type deliveryReadControllerHistoryListResponseSuccess =
-  deliveryReadControllerHistoryListResponse200 & {
-    headers: Headers;
-  };
-export type deliveryReadControllerHistoryListResponseError =
-  deliveryReadControllerHistoryListResponse401 & {
-    headers: Headers;
-  };
-
-export type deliveryReadControllerHistoryListResponse =
-  deliveryReadControllerHistoryListResponseSuccess | deliveryReadControllerHistoryListResponseError;
-
 export const getDeliveryReadControllerHistoryListUrl = (
   params?: DeliveryReadControllerHistoryListParams,
 ) => {
@@ -1577,8 +1355,8 @@ export const getDeliveryReadControllerHistoryListUrl = (
 export const deliveryReadControllerHistoryList = async (
   params?: DeliveryReadControllerHistoryListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<deliveryReadControllerHistoryListResponse> => {
-  return customInstance<deliveryReadControllerHistoryListResponse>(
+): Promise<PaginatedOrderHistoryGroupsDto> => {
+  return customInstance<PaginatedOrderHistoryGroupsDto>(
     getDeliveryReadControllerHistoryListUrl(params),
     {
       ...options,
@@ -1706,28 +1484,6 @@ export function useDeliveryReadControllerHistoryList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type cancelledFollowUpControllerReadResponse200 = {
-  data: CancelledFollowUpViewDto;
-  status: 200;
-};
-
-export type cancelledFollowUpControllerReadResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type cancelledFollowUpControllerReadResponseSuccess =
-  cancelledFollowUpControllerReadResponse200 & {
-    headers: Headers;
-  };
-export type cancelledFollowUpControllerReadResponseError =
-  cancelledFollowUpControllerReadResponse401 & {
-    headers: Headers;
-  };
-
-export type cancelledFollowUpControllerReadResponse =
-  cancelledFollowUpControllerReadResponseSuccess | cancelledFollowUpControllerReadResponseError;
-
 export const getCancelledFollowUpControllerReadUrl = () => {
   return `/api/delivery/books/history/cancelled-follow-up`;
 };
@@ -1737,14 +1493,11 @@ export const getCancelledFollowUpControllerReadUrl = () => {
  */
 export const cancelledFollowUpControllerRead = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<cancelledFollowUpControllerReadResponse> => {
-  return customInstance<cancelledFollowUpControllerReadResponse>(
-    getCancelledFollowUpControllerReadUrl(),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<CancelledFollowUpViewDto> => {
+  return customInstance<CancelledFollowUpViewDto>(getCancelledFollowUpControllerReadUrl(), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getCancelledFollowUpControllerReadQueryKey = () => {
@@ -1857,29 +1610,6 @@ export function useCancelledFollowUpControllerRead<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type cancelledFollowUpControllerReturnAllToWishlistResponse200 = {
-  data: CancelledFollowUpWishlistResultDto;
-  status: 200;
-};
-
-export type cancelledFollowUpControllerReturnAllToWishlistResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type cancelledFollowUpControllerReturnAllToWishlistResponseSuccess =
-  cancelledFollowUpControllerReturnAllToWishlistResponse200 & {
-    headers: Headers;
-  };
-export type cancelledFollowUpControllerReturnAllToWishlistResponseError =
-  cancelledFollowUpControllerReturnAllToWishlistResponse401 & {
-    headers: Headers;
-  };
-
-export type cancelledFollowUpControllerReturnAllToWishlistResponse =
-  | cancelledFollowUpControllerReturnAllToWishlistResponseSuccess
-  | cancelledFollowUpControllerReturnAllToWishlistResponseError;
-
 export const getCancelledFollowUpControllerReturnAllToWishlistUrl = () => {
   return `/api/delivery/books/history/cancelled-follow-up/want-to-buy`;
 };
@@ -1889,8 +1619,8 @@ export const getCancelledFollowUpControllerReturnAllToWishlistUrl = () => {
  */
 export const cancelledFollowUpControllerReturnAllToWishlist = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<cancelledFollowUpControllerReturnAllToWishlistResponse> => {
-  return customInstance<cancelledFollowUpControllerReturnAllToWishlistResponse>(
+): Promise<CancelledFollowUpWishlistResultDto> => {
+  return customInstance<CancelledFollowUpWishlistResultDto>(
     getCancelledFollowUpControllerReturnAllToWishlistUrl(),
     {
       ...options,

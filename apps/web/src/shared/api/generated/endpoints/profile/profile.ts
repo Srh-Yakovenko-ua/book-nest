@@ -45,33 +45,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type profileControllerGetProfileResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type profileControllerGetProfileResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type profileControllerGetProfileResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type profileControllerGetProfileResponseSuccess = profileControllerGetProfileResponse200 & {
-  headers: Headers;
-};
-export type profileControllerGetProfileResponseError = (
-  profileControllerGetProfileResponse401 | profileControllerGetProfileResponse404
-) & {
-  headers: Headers;
-};
-
-export type profileControllerGetProfileResponse =
-  profileControllerGetProfileResponseSuccess | profileControllerGetProfileResponseError;
-
 export const getProfileControllerGetProfileUrl = () => {
   return `/api/profile`;
 };
@@ -81,8 +54,8 @@ export const getProfileControllerGetProfileUrl = () => {
  */
 export const profileControllerGetProfile = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<profileControllerGetProfileResponse> => {
-  return customInstance<profileControllerGetProfileResponse>(getProfileControllerGetProfileUrl(), {
+): Promise<void> => {
+  return customInstance<void>(getProfileControllerGetProfileUrl(), {
     ...options,
     method: "GET",
   });
@@ -198,41 +171,6 @@ export function useProfileControllerGetProfile<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type profileControllerUpdateProfileResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type profileControllerUpdateProfileResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type profileControllerUpdateProfileResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type profileControllerUpdateProfileResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type profileControllerUpdateProfileResponseSuccess =
-  profileControllerUpdateProfileResponse200 & {
-    headers: Headers;
-  };
-export type profileControllerUpdateProfileResponseError = (
-  | profileControllerUpdateProfileResponse400
-  | profileControllerUpdateProfileResponse401
-  | profileControllerUpdateProfileResponse409
-) & {
-  headers: Headers;
-};
-
-export type profileControllerUpdateProfileResponse =
-  profileControllerUpdateProfileResponseSuccess | profileControllerUpdateProfileResponseError;
-
 export const getProfileControllerUpdateProfileUrl = () => {
   return `/api/profile`;
 };
@@ -243,16 +181,13 @@ export const getProfileControllerUpdateProfileUrl = () => {
 export const profileControllerUpdateProfile = async (
   updateProfileInputDto: UpdateProfileInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<profileControllerUpdateProfileResponse> => {
-  return customInstance<profileControllerUpdateProfileResponse>(
-    getProfileControllerUpdateProfileUrl(),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(updateProfileInputDto),
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getProfileControllerUpdateProfileUrl(), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateProfileInputDto),
+  });
 };
 
 export const getProfileControllerUpdateProfileQueryKey = (
@@ -378,40 +313,6 @@ export function useProfileControllerUpdateProfile<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type socialLinkControllerCreateResponse201 = {
-  data: void;
-  status: 201;
-};
-
-export type socialLinkControllerCreateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type socialLinkControllerCreateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type socialLinkControllerCreateResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type socialLinkControllerCreateResponseSuccess = socialLinkControllerCreateResponse201 & {
-  headers: Headers;
-};
-export type socialLinkControllerCreateResponseError = (
-  | socialLinkControllerCreateResponse400
-  | socialLinkControllerCreateResponse401
-  | socialLinkControllerCreateResponse409
-) & {
-  headers: Headers;
-};
-
-export type socialLinkControllerCreateResponse =
-  socialLinkControllerCreateResponseSuccess | socialLinkControllerCreateResponseError;
-
 export const getSocialLinkControllerCreateUrl = () => {
   return `/api/profile/social-links`;
 };
@@ -422,8 +323,8 @@ export const getSocialLinkControllerCreateUrl = () => {
 export const socialLinkControllerCreate = async (
   createSocialLinkInputDto: CreateSocialLinkInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<socialLinkControllerCreateResponse> => {
-  return customInstance<socialLinkControllerCreateResponse>(getSocialLinkControllerCreateUrl(), {
+): Promise<void> => {
+  return customInstance<void>(getSocialLinkControllerCreateUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -551,46 +452,6 @@ export function useSocialLinkControllerCreate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type socialLinkControllerUpdateResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type socialLinkControllerUpdateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type socialLinkControllerUpdateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type socialLinkControllerUpdateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type socialLinkControllerUpdateResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type socialLinkControllerUpdateResponseSuccess = socialLinkControllerUpdateResponse200 & {
-  headers: Headers;
-};
-export type socialLinkControllerUpdateResponseError = (
-  | socialLinkControllerUpdateResponse400
-  | socialLinkControllerUpdateResponse401
-  | socialLinkControllerUpdateResponse404
-  | socialLinkControllerUpdateResponse409
-) & {
-  headers: Headers;
-};
-
-export type socialLinkControllerUpdateResponse =
-  socialLinkControllerUpdateResponseSuccess | socialLinkControllerUpdateResponseError;
-
 export const getSocialLinkControllerUpdateUrl = (id: string) => {
   return `/api/profile/social-links/${id}`;
 };
@@ -602,8 +463,8 @@ export const socialLinkControllerUpdate = async (
   id: string,
   updateSocialLinkInputDto: UpdateSocialLinkInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<socialLinkControllerUpdateResponse> => {
-  return customInstance<socialLinkControllerUpdateResponse>(getSocialLinkControllerUpdateUrl(id), {
+): Promise<void> => {
+  return customInstance<void>(getSocialLinkControllerUpdateUrl(id), {
     ...options,
     method: "PATCH",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -744,33 +605,6 @@ export function useSocialLinkControllerUpdate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type socialLinkControllerDeleteResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type socialLinkControllerDeleteResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type socialLinkControllerDeleteResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type socialLinkControllerDeleteResponseSuccess = socialLinkControllerDeleteResponse204 & {
-  headers: Headers;
-};
-export type socialLinkControllerDeleteResponseError = (
-  socialLinkControllerDeleteResponse401 | socialLinkControllerDeleteResponse404
-) & {
-  headers: Headers;
-};
-
-export type socialLinkControllerDeleteResponse =
-  socialLinkControllerDeleteResponseSuccess | socialLinkControllerDeleteResponseError;
-
 export const getSocialLinkControllerDeleteUrl = (id: string) => {
   return `/api/profile/social-links/${id}`;
 };
@@ -781,8 +615,8 @@ export const getSocialLinkControllerDeleteUrl = (id: string) => {
 export const socialLinkControllerDelete = async (
   id: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<socialLinkControllerDeleteResponse> => {
-  return customInstance<socialLinkControllerDeleteResponse>(getSocialLinkControllerDeleteUrl(id), {
+): Promise<void> => {
+  return customInstance<void>(getSocialLinkControllerDeleteUrl(id), {
     ...options,
     method: "DELETE",
   });
@@ -908,28 +742,6 @@ export function useSocialLinkControllerDelete<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type settingsControllerGetSettingsResponse200 = {
-  data: SettingsViewDto;
-  status: 200;
-};
-
-export type settingsControllerGetSettingsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type settingsControllerGetSettingsResponseSuccess =
-  settingsControllerGetSettingsResponse200 & {
-    headers: Headers;
-  };
-export type settingsControllerGetSettingsResponseError =
-  settingsControllerGetSettingsResponse401 & {
-    headers: Headers;
-  };
-
-export type settingsControllerGetSettingsResponse =
-  settingsControllerGetSettingsResponseSuccess | settingsControllerGetSettingsResponseError;
-
 export const getSettingsControllerGetSettingsUrl = () => {
   return `/api/profile/settings`;
 };
@@ -939,14 +751,11 @@ export const getSettingsControllerGetSettingsUrl = () => {
  */
 export const settingsControllerGetSettings = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<settingsControllerGetSettingsResponse> => {
-  return customInstance<settingsControllerGetSettingsResponse>(
-    getSettingsControllerGetSettingsUrl(),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<SettingsViewDto> => {
+  return customInstance<SettingsViewDto>(getSettingsControllerGetSettingsUrl(), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getSettingsControllerGetSettingsQueryKey = () => {
@@ -1059,34 +868,6 @@ export function useSettingsControllerGetSettings<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type settingsControllerUpdateSettingsResponse200 = {
-  data: SettingsViewDto;
-  status: 200;
-};
-
-export type settingsControllerUpdateSettingsResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type settingsControllerUpdateSettingsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type settingsControllerUpdateSettingsResponseSuccess =
-  settingsControllerUpdateSettingsResponse200 & {
-    headers: Headers;
-  };
-export type settingsControllerUpdateSettingsResponseError = (
-  settingsControllerUpdateSettingsResponse400 | settingsControllerUpdateSettingsResponse401
-) & {
-  headers: Headers;
-};
-
-export type settingsControllerUpdateSettingsResponse =
-  settingsControllerUpdateSettingsResponseSuccess | settingsControllerUpdateSettingsResponseError;
-
 export const getSettingsControllerUpdateSettingsUrl = () => {
   return `/api/profile/settings`;
 };
@@ -1097,16 +878,13 @@ export const getSettingsControllerUpdateSettingsUrl = () => {
 export const settingsControllerUpdateSettings = async (
   updateSettingsInputDto: UpdateSettingsInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<settingsControllerUpdateSettingsResponse> => {
-  return customInstance<settingsControllerUpdateSettingsResponse>(
-    getSettingsControllerUpdateSettingsUrl(),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(updateSettingsInputDto),
-    },
-  );
+): Promise<SettingsViewDto> => {
+  return customInstance<SettingsViewDto>(getSettingsControllerUpdateSettingsUrl(), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateSettingsInputDto),
+  });
 };
 
 export const getSettingsControllerUpdateSettingsQueryKey = (

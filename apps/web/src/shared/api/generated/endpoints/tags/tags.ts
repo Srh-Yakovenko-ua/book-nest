@@ -50,40 +50,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type tagsControllerCreateResponse201 = {
-  data: TagCatalogViewDto;
-  status: 201;
-};
-
-export type tagsControllerCreateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type tagsControllerCreateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type tagsControllerCreateResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type tagsControllerCreateResponseSuccess = tagsControllerCreateResponse201 & {
-  headers: Headers;
-};
-export type tagsControllerCreateResponseError = (
-  | tagsControllerCreateResponse400
-  | tagsControllerCreateResponse401
-  | tagsControllerCreateResponse409
-) & {
-  headers: Headers;
-};
-
-export type tagsControllerCreateResponse =
-  tagsControllerCreateResponseSuccess | tagsControllerCreateResponseError;
-
 export const getTagsControllerCreateUrl = () => {
   return `/api/tags`;
 };
@@ -94,8 +60,8 @@ export const getTagsControllerCreateUrl = () => {
 export const tagsControllerCreate = async (
   createTagDto: CreateTagDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<tagsControllerCreateResponse> => {
-  return customInstance<tagsControllerCreateResponse>(getTagsControllerCreateUrl(), {
+): Promise<TagCatalogViewDto> => {
+  return customInstance<TagCatalogViewDto>(getTagsControllerCreateUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -219,26 +185,6 @@ export function useTagsControllerCreate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type tagsControllerSearchResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type tagsControllerSearchResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type tagsControllerSearchResponseSuccess = tagsControllerSearchResponse200 & {
-  headers: Headers;
-};
-export type tagsControllerSearchResponseError = tagsControllerSearchResponse401 & {
-  headers: Headers;
-};
-
-export type tagsControllerSearchResponse =
-  tagsControllerSearchResponseSuccess | tagsControllerSearchResponseError;
-
 export const getTagsControllerSearchUrl = (params?: TagsControllerSearchParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -268,8 +214,8 @@ export const getTagsControllerSearchUrl = (params?: TagsControllerSearchParams) 
 export const tagsControllerSearch = async (
   params?: TagsControllerSearchParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<tagsControllerSearchResponse> => {
-  return customInstance<tagsControllerSearchResponse>(getTagsControllerSearchUrl(params), {
+): Promise<void> => {
+  return customInstance<void>(getTagsControllerSearchUrl(params), {
     ...options,
     method: "GET",
   });
@@ -391,33 +337,6 @@ export function useTagsControllerSearch<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type tagsControllerCatalogResponse200 = {
-  data: PaginatedTagCatalogDto;
-  status: 200;
-};
-
-export type tagsControllerCatalogResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type tagsControllerCatalogResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type tagsControllerCatalogResponseSuccess = tagsControllerCatalogResponse200 & {
-  headers: Headers;
-};
-export type tagsControllerCatalogResponseError = (
-  tagsControllerCatalogResponse400 | tagsControllerCatalogResponse401
-) & {
-  headers: Headers;
-};
-
-export type tagsControllerCatalogResponse =
-  tagsControllerCatalogResponseSuccess | tagsControllerCatalogResponseError;
-
 export const getTagsControllerCatalogUrl = (params?: TagsControllerCatalogParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -449,8 +368,8 @@ export const getTagsControllerCatalogUrl = (params?: TagsControllerCatalogParams
 export const tagsControllerCatalog = async (
   params?: TagsControllerCatalogParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<tagsControllerCatalogResponse> => {
-  return customInstance<tagsControllerCatalogResponse>(getTagsControllerCatalogUrl(params), {
+): Promise<PaginatedTagCatalogDto> => {
+  return customInstance<PaginatedTagCatalogDto>(getTagsControllerCatalogUrl(params), {
     ...options,
     method: "GET",
   });
@@ -572,33 +491,6 @@ export function useTagsControllerCatalog<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type tagsControllerCatalogFacetsResponse200 = {
-  data: TagsCatalogFacetsViewDto;
-  status: 200;
-};
-
-export type tagsControllerCatalogFacetsResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type tagsControllerCatalogFacetsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type tagsControllerCatalogFacetsResponseSuccess = tagsControllerCatalogFacetsResponse200 & {
-  headers: Headers;
-};
-export type tagsControllerCatalogFacetsResponseError = (
-  tagsControllerCatalogFacetsResponse400 | tagsControllerCatalogFacetsResponse401
-) & {
-  headers: Headers;
-};
-
-export type tagsControllerCatalogFacetsResponse =
-  tagsControllerCatalogFacetsResponseSuccess | tagsControllerCatalogFacetsResponseError;
-
 export const getTagsControllerCatalogFacetsUrl = (params?: TagsControllerCatalogFacetsParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -630,14 +522,11 @@ export const getTagsControllerCatalogFacetsUrl = (params?: TagsControllerCatalog
 export const tagsControllerCatalogFacets = async (
   params?: TagsControllerCatalogFacetsParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<tagsControllerCatalogFacetsResponse> => {
-  return customInstance<tagsControllerCatalogFacetsResponse>(
-    getTagsControllerCatalogFacetsUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<TagsCatalogFacetsViewDto> => {
+  return customInstance<TagsCatalogFacetsViewDto>(getTagsControllerCatalogFacetsUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getTagsControllerCatalogFacetsQueryKey = (
@@ -759,26 +648,6 @@ export function useTagsControllerCatalogFacets<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type tagsControllerSummaryResponse200 = {
-  data: TagsSummaryViewDto;
-  status: 200;
-};
-
-export type tagsControllerSummaryResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type tagsControllerSummaryResponseSuccess = tagsControllerSummaryResponse200 & {
-  headers: Headers;
-};
-export type tagsControllerSummaryResponseError = tagsControllerSummaryResponse401 & {
-  headers: Headers;
-};
-
-export type tagsControllerSummaryResponse =
-  tagsControllerSummaryResponseSuccess | tagsControllerSummaryResponseError;
-
 export const getTagsControllerSummaryUrl = () => {
   return `/api/tags/summary`;
 };
@@ -788,8 +657,8 @@ export const getTagsControllerSummaryUrl = () => {
  */
 export const tagsControllerSummary = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<tagsControllerSummaryResponse> => {
-  return customInstance<tagsControllerSummaryResponse>(getTagsControllerSummaryUrl(), {
+): Promise<TagsSummaryViewDto> => {
+  return customInstance<TagsSummaryViewDto>(getTagsControllerSummaryUrl(), {
     ...options,
     method: "GET",
   });
@@ -904,34 +773,6 @@ export function useTagsControllerSummary<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type tagsControllerDeletionPreviewResponse200 = {
-  data: TagDeletionPreviewViewDto;
-  status: 200;
-};
-
-export type tagsControllerDeletionPreviewResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type tagsControllerDeletionPreviewResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type tagsControllerDeletionPreviewResponseSuccess =
-  tagsControllerDeletionPreviewResponse200 & {
-    headers: Headers;
-  };
-export type tagsControllerDeletionPreviewResponseError = (
-  tagsControllerDeletionPreviewResponse401 | tagsControllerDeletionPreviewResponse404
-) & {
-  headers: Headers;
-};
-
-export type tagsControllerDeletionPreviewResponse =
-  tagsControllerDeletionPreviewResponseSuccess | tagsControllerDeletionPreviewResponseError;
-
 export const getTagsControllerDeletionPreviewUrl = (id: string) => {
   return `/api/tags/${id}/deletion-preview`;
 };
@@ -942,14 +783,11 @@ export const getTagsControllerDeletionPreviewUrl = (id: string) => {
 export const tagsControllerDeletionPreview = async (
   id: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<tagsControllerDeletionPreviewResponse> => {
-  return customInstance<tagsControllerDeletionPreviewResponse>(
-    getTagsControllerDeletionPreviewUrl(id),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<TagDeletionPreviewViewDto> => {
+  return customInstance<TagDeletionPreviewViewDto>(getTagsControllerDeletionPreviewUrl(id), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getTagsControllerDeletionPreviewQueryKey = (id: string) => {
@@ -1072,46 +910,6 @@ export function useTagsControllerDeletionPreview<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type tagsControllerUpdateResponse200 = {
-  data: TagCatalogViewDto;
-  status: 200;
-};
-
-export type tagsControllerUpdateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type tagsControllerUpdateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type tagsControllerUpdateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type tagsControllerUpdateResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type tagsControllerUpdateResponseSuccess = tagsControllerUpdateResponse200 & {
-  headers: Headers;
-};
-export type tagsControllerUpdateResponseError = (
-  | tagsControllerUpdateResponse400
-  | tagsControllerUpdateResponse401
-  | tagsControllerUpdateResponse404
-  | tagsControllerUpdateResponse409
-) & {
-  headers: Headers;
-};
-
-export type tagsControllerUpdateResponse =
-  tagsControllerUpdateResponseSuccess | tagsControllerUpdateResponseError;
-
 export const getTagsControllerUpdateUrl = (id: string) => {
   return `/api/tags/${id}`;
 };
@@ -1123,8 +921,8 @@ export const tagsControllerUpdate = async (
   id: string,
   updateTagDto: UpdateTagDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<tagsControllerUpdateResponse> => {
-  return customInstance<tagsControllerUpdateResponse>(getTagsControllerUpdateUrl(id), {
+): Promise<TagCatalogViewDto> => {
+  return customInstance<TagCatalogViewDto>(getTagsControllerUpdateUrl(id), {
     ...options,
     method: "PATCH",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -1256,33 +1054,6 @@ export function useTagsControllerUpdate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type tagsControllerDeleteResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type tagsControllerDeleteResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type tagsControllerDeleteResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type tagsControllerDeleteResponseSuccess = tagsControllerDeleteResponse204 & {
-  headers: Headers;
-};
-export type tagsControllerDeleteResponseError = (
-  tagsControllerDeleteResponse401 | tagsControllerDeleteResponse404
-) & {
-  headers: Headers;
-};
-
-export type tagsControllerDeleteResponse =
-  tagsControllerDeleteResponseSuccess | tagsControllerDeleteResponseError;
-
 export const getTagsControllerDeleteUrl = (id: string) => {
   return `/api/tags/${id}`;
 };
@@ -1293,8 +1064,8 @@ export const getTagsControllerDeleteUrl = (id: string) => {
 export const tagsControllerDelete = async (
   id: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<tagsControllerDeleteResponse> => {
-  return customInstance<tagsControllerDeleteResponse>(getTagsControllerDeleteUrl(id), {
+): Promise<void> => {
+  return customInstance<void>(getTagsControllerDeleteUrl(id), {
     ...options,
     method: "DELETE",
   });
