@@ -13,6 +13,7 @@ import type { StatusEntry } from "@/lib/book-status";
 import { deliveryStatuses } from "@/lib/book-status";
 import { formatDate } from "@/lib/format";
 import { isHttpsUrl } from "@/lib/is-https-url";
+import { instantToIsoDay } from "@/lib/iso-day";
 
 import type { DeliveryHistoryTab } from "./history-params";
 
@@ -77,6 +78,7 @@ type CardOptions = {
   locale: string;
   search: string;
   tab: DeliveryHistoryTab;
+  timeZone: string;
 };
 
 type OrderOptions = CardOptions & { currency: Nullable<Currency> };
@@ -119,6 +121,10 @@ function bookHaystack(book: HistoryBookModel): string {
     .toLocaleLowerCase();
 }
 
+function formatReaderDay({ instant, options }: { instant: string; options: CardOptions }): string {
+  return formatDate(instantToIsoDay({ instant, timeZone: options.timeZone }), options.locale);
+}
+
 function hidesSearchMatch({
   search,
   shipments,
@@ -138,7 +144,7 @@ function hidesSearchMatch({
 
 function toBookModel(entry: OrderHistoryBookView, options: BookOptions): HistoryBookModel {
   const { book } = entry;
-  const ownDate = toBookTerminalDate(entry, options.locale);
+  const ownDate = toBookTerminalDate(entry, options);
 
   return {
     authorName: book.firstAuthorName,
@@ -171,9 +177,9 @@ function toBookModel(entry: OrderHistoryBookView, options: BookOptions): History
   };
 }
 
-function toBookTerminalDate(entry: OrderHistoryBookView, locale: string): Nullable<string> {
-  if (entry.cancelledAt !== null) return formatDate(entry.cancelledAt, locale);
-  if (entry.receivedAt !== null) return formatDate(entry.receivedAt, locale);
+function toBookTerminalDate(entry: OrderHistoryBookView, options: CardOptions): Nullable<string> {
+  if (entry.cancelledAt !== null) return formatReaderDay({ instant: entry.cancelledAt, options });
+  if (entry.receivedAt !== null) return formatReaderDay({ instant: entry.receivedAt, options });
   return null;
 }
 
@@ -246,12 +252,12 @@ function toShipmentTerminal(
   if (shipment === null) return { cancelReason: null, date: null, text: null };
 
   if (shipment.status === "received" && shipment.receivedAt !== null) {
-    const date = formatDate(shipment.receivedAt, options.locale);
+    const date = formatReaderDay({ instant: shipment.receivedAt, options });
     return { cancelReason: null, date, text: options.labels.receivedOn(date) };
   }
 
   if (shipment.status === "cancelled" && shipment.cancelledAt !== null) {
-    const date = formatDate(shipment.cancelledAt, options.locale);
+    const date = formatReaderDay({ instant: shipment.cancelledAt, options });
     return { cancelReason: shipment.cancelReason, date, text: options.labels.cancelledOn(date) };
   }
 

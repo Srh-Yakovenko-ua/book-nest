@@ -7,6 +7,16 @@ export function dateToIsoDay(date: Date): string {
   return format(date, ISO_DAY.format);
 }
 
+export function instantToIsoDay({
+  instant,
+  timeZone,
+}: {
+  instant: string;
+  timeZone: string;
+}): string {
+  return formatInTimeZone(instant, timeZone, ISO_DAY.format);
+}
+
 export function isoDayToDate(value: string | undefined): Date | undefined {
   if (value === undefined || value === "") return undefined;
   const parsed = parse(value, ISO_DAY.format, new Date());

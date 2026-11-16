@@ -11,6 +11,7 @@ import type {
 import { CANCELLED_OUTCOMES } from "@app/shared";
 
 import { formatDate } from "@/lib/format";
+import { instantToIsoDay } from "@/lib/iso-day";
 
 import type { DeliveryBookPreviewModel } from "./delivery-book-preview";
 
@@ -45,14 +46,18 @@ export function buildCancelledDecisionRows({
   books,
   cancelledOn,
   locale,
+  timeZone,
 }: {
   books: readonly CancelledFollowUpBook[];
   cancelledOn: (date: string) => string;
   locale: string;
+  timeZone: string;
 }): CancelledDecisionRow[] {
   return books.map((book) => ({
     ...toDeliveryBookPreviewModel(book),
-    cancelledOnText: cancelledOn(formatDate(book.cancelledAt, locale)),
+    cancelledOnText: cancelledOn(
+      formatDate(instantToIsoDay({ instant: book.cancelledAt, timeZone }), locale),
+    ),
     cancelReason: book.cancelReason,
   }));
 }

@@ -1,10 +1,9 @@
 import type { BookOrderHistorySummaryView, DeliveryBookPreview, Nullable } from "@app/shared";
 
 import { differenceInCalendarDays } from "date-fns";
-import { formatInTimeZone } from "date-fns-tz";
 
 import { formatDate, parseIsoDay } from "@/lib/format";
-import { ISO_DAY } from "@/lib/iso-day";
+import { instantToIsoDay } from "@/lib/iso-day";
 
 import type { DeliveryBookPreviewModel } from "./delivery-book-preview";
 
@@ -49,7 +48,7 @@ export function buildDeliveryLatestReceiptCard({
   const receipt = summary?.latestReceipt ?? null;
   if (receipt === null) return null;
 
-  const receivedDay = formatInTimeZone(receipt.receivedAt, timeZone, ISO_DAY.format);
+  const receivedDay = instantToIsoDay({ instant: receipt.receivedAt, timeZone });
 
   return {
     books: toBooks({ booksCount: receipt.booksCount, labels, previews: receipt.bookPreviews }),

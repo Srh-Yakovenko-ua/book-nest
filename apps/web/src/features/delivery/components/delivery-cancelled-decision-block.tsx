@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWantToBuy } from "@/features/books/api/use-ownership";
 import { LibraryOverviewSection } from "@/features/books/components/library-overview-blocks";
+import { useProfileTimeZone } from "@/features/settings";
 
 import type { CancelledDecisionRow } from "../model/cancelled-follow-up";
 
@@ -31,6 +32,7 @@ export function DeliveryCancelledDecisionBlock({
   const t = useTranslations("delivery.history.cancelledDecision");
   const tToast = useTranslations("delivery.toast");
   const locale = useLocale();
+  const timeZone = useProfileTimeZone();
   const wantToBuy = useWantToBuy();
   const returnAll = useReturnAllToWishlist();
 
@@ -54,6 +56,7 @@ export function DeliveryCancelledDecisionBlock({
     books: unresolved.books,
     cancelledOn: (date) => t("cancelledOn", { date }),
     locale,
+    timeZone,
   });
 
   function returnOne(row: CancelledDecisionRow) {

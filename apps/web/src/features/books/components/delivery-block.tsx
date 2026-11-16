@@ -1,6 +1,6 @@
 "use client";
 
-import type { BookView, Currency, DeliveryView, ShipmentStatus } from "@app/shared";
+import type { BookView, Currency, DeliveryView, Nullable, ShipmentStatus } from "@app/shared";
 
 import { isBefore, parseISO } from "date-fns";
 import { useLocale, useTranslations } from "next-intl";
@@ -15,7 +15,7 @@ import { useProfileTimeZone } from "@/features/settings";
 import { deliveryStatuses } from "@/lib/book-status";
 import { formatDate } from "@/lib/format";
 import { isHttpsUrl } from "@/lib/is-https-url";
-import { todayIsoDay } from "@/lib/iso-day";
+import { instantToIsoDay, todayIsoDay } from "@/lib/iso-day";
 
 import { useDeliveryHistory, useReceiveDelivery } from "../api/use-delivery";
 import { toDeliveryErrorKey } from "../model/delivery-error";
@@ -243,10 +243,11 @@ function HistoryPreview({
 }) {
   const t = useTranslations("books.details.delivery");
   const locale = useLocale();
+  const timeZone = useProfileTimeZone();
   const [expanded, setExpanded] = useState(false);
   const history = useDeliveryHistory(bookId, expanded);
 
-  const previewDate = terminalDate(latest) ?? latest.orderDate;
+  const previewDate = terminalDay({ delivery: latest, timeZone }) ?? latest.orderDate;
   const previewLabel =
     latest.receivedAt !== null
       ? t("fields.receivedAt")
@@ -288,7 +289,7 @@ function HistoryPreview({
         ) : (
           <ul className="flex flex-col gap-3">
             {history.data.map((entry) => (
-              <HistoryRow entry={entry} key={entry.id} locale={locale} />
+              <HistoryRow entry={entry} key={entry.id} locale={locale} timeZone={timeZone} />
             ))}
           </ul>
         )
@@ -297,8 +298,16 @@ function HistoryPreview({
   );
 }
 
-function HistoryRow({ entry, locale }: { entry: DeliveryView; locale: string }) {
-  const terminal = terminalDate(entry);
+function HistoryRow({
+  entry,
+  locale,
+  timeZone,
+}: {
+  entry: DeliveryView;
+  locale: string;
+  timeZone: string;
+}) {
+  const terminal = terminalDay({ delivery: entry, timeZone });
 
   return (
     <li className="flex flex-col gap-1.5 border-t border-border pt-3 first:border-t-0 first:pt-0">
@@ -339,6 +348,13 @@ function RepairState({ onAdd }: { onAdd: () => void }) {
   );
 }
 
-function terminalDate(delivery: DeliveryView): null | string {
-  return delivery.receivedAt ?? delivery.cancelledAt;
+function terminalDay({
+  delivery,
+  timeZone,
+}: {
+  delivery: DeliveryView;
+  timeZone: string;
+}): Nullable<string> {
+  const instant = delivery.receivedAt ?? delivery.cancelledAt;
+  return instant === null ? null : instantToIsoDay({ instant, timeZone });
 }
