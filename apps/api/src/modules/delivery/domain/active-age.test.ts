@@ -10,6 +10,7 @@ import { buildActiveMoneyAge } from "./active-age.js";
 import { classifyOrder } from "./statistics-scope.js";
 
 const NOW = new Date("2026-08-20T09:15:00.000Z");
+const TODAY = "2026-08-20";
 
 function bucketOfAge(ageInDays: number): ActiveMoneyAgeBucket[] {
   return bucketsOf([makeOrder({ orderDate: subDays(NOW, ageInDays) })]);
@@ -19,6 +20,7 @@ function bucketsOf(records: OrderStatisticsRecord[]): ActiveMoneyAgeBucket[] {
   return buildActiveMoneyAge({
     now: NOW,
     orders: records.map((record) => classifyOrder({ includeCancelled: false, record })),
+    today: TODAY,
   }).buckets.map((bucket) => bucket.key);
 }
 
@@ -75,6 +77,21 @@ describe("buildActiveMoneyAge boundaries", () => {
     expect(bucketsOf([makeOrder({ orderDate: subDays(NOW, -5) })])).toEqual(["0_7"]);
   });
 
+  it("ages an order by the reader day, not the UTC day of now, just past Kyiv midnight", () => {
+    const order = classifyOrder({
+      includeCancelled: false,
+      record: makeOrder({ orderDate: new Date("2026-08-12T00:00:00.000Z") }),
+    });
+
+    const { buckets } = buildActiveMoneyAge({
+      now: new Date("2026-08-19T21:30:00.000Z"),
+      orders: [order],
+      today: "2026-08-20",
+    });
+
+    expect(buckets.map((bucket) => bucket.key)).toEqual(["8_14"]);
+  });
+
   describe("Atlantic/Azores", () => {
     pinProcessTimezone("Atlantic/Azores");
 
@@ -87,6 +104,7 @@ describe("buildActiveMoneyAge boundaries", () => {
       const { buckets } = buildActiveMoneyAge({
         now: new Date("2026-04-01T12:00:00.000Z"),
         orders: [order],
+        today: "2026-04-01",
       });
 
       expect(buckets.map((bucket) => bucket.key)).toEqual(["0_7"]);
@@ -111,6 +129,7 @@ describe("buildActiveMoneyAge scope", () => {
           items: [makeItem({ bookId: "c", cancelledAt: NOW, price: 900 })],
         }),
       ].map((record) => classifyOrder({ includeCancelled: false, record })),
+      today: TODAY,
     });
 
     expect(snapshot.buckets).toEqual([
@@ -131,6 +150,7 @@ describe("buildActiveMoneyAge scope", () => {
         makeOrder({ id: "uah", items: [makeItem({ bookId: "a", price: 900 })] }),
         makeOrder({ currency: "USD", id: "usd", items: [makeItem({ bookId: "b", price: 30 })] }),
       ].map((record) => classifyOrder({ includeCancelled: false, record })),
+      today: TODAY,
     });
 
     expect(snapshot.buckets.at(0)?.totalsByCurrency).toEqual([
@@ -148,13 +168,14 @@ describe("buildActiveMoneyAge scope", () => {
           shipments: [{ cancelledAt: null, id: "s-1", receivedAt: null, status: "in_transit" }],
         }),
       ].map((record) => classifyOrder({ includeCancelled: false, record })),
+      today: TODAY,
     });
 
     expect(snapshot.buckets.at(0)?.shipmentsCount).toBe(1);
   });
 
   it("reports the injected clock as asOf so the snapshot is reproducible", () => {
-    const snapshot = buildActiveMoneyAge({ now: NOW, orders: [] });
+    const snapshot = buildActiveMoneyAge({ now: NOW, orders: [], today: TODAY });
 
     expect(snapshot).toEqual({ asOf: "2026-08-20T09:15:00.000Z", buckets: [] });
   });

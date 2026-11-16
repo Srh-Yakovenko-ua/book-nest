@@ -11,6 +11,7 @@ import type { OrderItemShipmentRef } from "../infrastructure/book-order-items.re
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { UserSettingsContextService } from "../../profile/index.js";
 import {
   ORDER_ITEM_CANCEL_REJECTIONS,
   planOrderItemCancellation,
@@ -31,9 +32,10 @@ export class BookOrderItemService {
     private readonly shipmentsRepository: ShipmentsRepository,
     private readonly viewLoader: BookOrderViewLoader,
     private readonly transactionRunner: TransactionRunner,
+    private readonly userSettingsContextService: UserSettingsContextService,
   ) {}
 
-  bulkReceive({
+  async bulkReceive({
     input,
     userId,
   }: {
@@ -43,6 +45,7 @@ export class BookOrderItemService {
     const { bookIds, receivedAt } = input;
     const now = new Date();
     const requestedBookIds = [...new Set(bookIds)];
+    const { timezone } = await this.userSettingsContextService.resolve(userId);
 
     return this.transactionRunner.run(async (tx) => {
       const ownedBookIds = new Set(
@@ -51,7 +54,7 @@ export class BookOrderItemService {
         ),
       );
 
-      const itemReceivedAt = resolveShipmentReceivedAt({ now, receivedAt });
+      const itemReceivedAt = resolveShipmentReceivedAt({ now, receivedAt, timeZone: timezone });
       const received = await this.bookOrderItemsRepository.receiveForBooks(
         { bookIds: [...ownedBookIds], receivedAt: itemReceivedAt, userId },
         tx,

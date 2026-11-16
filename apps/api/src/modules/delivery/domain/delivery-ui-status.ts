@@ -7,7 +7,7 @@ import {
 } from "@app/shared";
 
 import { assertNever } from "../../../core/assert-never.js";
-import { addDaysToUtcDay, daysBetweenUtcDays, startOfUtcDay } from "../../../core/iso-date.js";
+import { addDaysToUtcDay, daysBetweenUtcDays } from "../../../core/iso-date.js";
 
 const ARRIVING_SOON_DAYS = 7;
 const DAYS_FROM_MONDAY_TO_SUNDAY = 6;
@@ -29,8 +29,7 @@ export type ShipmentUiStatusSource = {
   status: ShipmentStatus;
 };
 
-export function deliveryDateBounds(now: Date): DeliveryDateBounds {
-  const today = startOfUtcDay(now);
+export function deliveryDateBounds(today: Date): DeliveryDateBounds {
   const daysFromToday = (days: number): Date => addDaysToUtcDay({ day: today, days });
   const mondayOffset = (today.getUTCDay() + 6) % 7;
 

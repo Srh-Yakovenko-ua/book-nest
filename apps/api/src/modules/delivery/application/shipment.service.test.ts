@@ -3,6 +3,7 @@ import type { Nullable, ShipmentStatus } from "@app/shared";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
+import type { UserSettingsContextService } from "../../profile/index.js";
 import type { BookOrderItemsRepository } from "../infrastructure/book-order-items.repository.js";
 import type { BookOrdersRepository } from "../infrastructure/book-orders.repository.js";
 import type { OrderBooksRepository } from "../infrastructure/order-books.repository.js";
@@ -12,6 +13,7 @@ import type { ShipmentDeliveryServiceResolver } from "./shipment-delivery-servic
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
+import { fakeOf } from "../../../test/fake.js";
 import { ShipmentService } from "./shipment.service.js";
 
 const USER = "user-1";
@@ -72,12 +74,14 @@ function buildService(overrides: {
   const transactionRunner = {
     run: vi.fn((work: (tx: Prisma.TransactionClient) => Promise<unknown>) => work(TX)),
   } as unknown as TransactionRunner;
+  const resolveSettings = vi.fn().mockResolvedValue({ timezone: "UTC", weekStartDay: "monday" });
 
   return {
     books,
     items,
     orders,
     resolver,
+    resolveSettings,
     service: new ShipmentService(
       shipments,
       items,
@@ -86,6 +90,7 @@ function buildService(overrides: {
       resolver,
       viewLoader,
       transactionRunner,
+      fakeOf<UserSettingsContextService>({ resolve: resolveSettings }),
     ),
     shipments,
     transactionRunner,
@@ -571,7 +576,7 @@ describe("ShipmentService.receiveMany", () => {
   });
 
   it("receives the whole batch inside a single transaction", async () => {
-    const { service, shipments, transactionRunner } = buildService({
+    const { resolveSettings, service, shipments, transactionRunner } = buildService({
       shipments: {
         findOwnedById: findOwnedByStatus({
           [OTHER_SHIPMENT_ID]: "in_transit",
@@ -586,6 +591,7 @@ describe("ShipmentService.receiveMany", () => {
     });
 
     expect(transactionRunner.run).toHaveBeenCalledTimes(1);
+    expect(resolveSettings).toHaveBeenCalledWith(USER);
     expect(shipments.receiveActive).toHaveBeenCalledWith(
       expect.objectContaining({ shipmentId: SHIPMENT_ID }),
       TX,

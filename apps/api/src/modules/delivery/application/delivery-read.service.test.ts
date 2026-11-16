@@ -8,11 +8,14 @@ import type {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MediaService } from "../../media/index.js";
+import type { UserSettingsContextService } from "../../profile/index.js";
 import type { DeliveryImpactRepository } from "../infrastructure/delivery-impact.repository.js";
 import type { DeliveryReadRepository } from "../infrastructure/delivery-read.repository.js";
 import type { HistoryOutcomeRepository } from "../infrastructure/history-outcome.repository.js";
 
+import { startOfUtcDay } from "../../../core/iso-date.js";
 import { Prisma } from "../../../generated/prisma/client.js";
+import { fakeOf } from "../../../test/fake.js";
 import { DeliveryReadService } from "./delivery-read.service.js";
 
 const USER = "user-1";
@@ -55,6 +58,7 @@ const orderRow = {
 };
 
 function buildService(overrides: {
+  calendar?: UserSettingsContextService["calendar"];
   impact?: Partial<DeliveryImpactRepository>;
   outcome?: Partial<HistoryOutcomeRepository>;
   reads?: Partial<DeliveryReadRepository>;
@@ -89,7 +93,19 @@ function buildService(overrides: {
     impact,
     outcome,
     reads,
-    service: new DeliveryReadService(impact, reads, outcome, mediaStub),
+    service: new DeliveryReadService(
+      impact,
+      reads,
+      outcome,
+      mediaStub,
+      fakeOf<UserSettingsContextService>({
+        calendar:
+          overrides.calendar ??
+          vi.fn(({ now }: { now: Date }) =>
+            Promise.resolve({ timeZone: "UTC", today: startOfUtcDay(now) }),
+          ),
+      }),
+    ),
   };
 }
 
@@ -288,6 +304,7 @@ describe("DeliveryReadService.inTransitList", () => {
       service: undefined,
       store: ["Bookstore"],
       structure: undefined,
+      timeZone: "UTC",
       userId: USER,
     });
     expect(listArgs).toEqual(
@@ -572,7 +589,11 @@ describe("DeliveryReadService.historySummary", () => {
 
     const summary = await service.historySummary(USER);
 
-    expect(latestReceipt).toHaveBeenCalledWith({ bookPreviewsMax: 3, userId: USER });
+    expect(latestReceipt).toHaveBeenCalledWith({
+      bookPreviewsMax: 3,
+      timeZone: "UTC",
+      userId: USER,
+    });
     expect(summary.latestReceipt).toEqual({
       bookPreviews: [{ authorName: "Adams", cover: null, id: "book-a", title: "Alpha" }],
       booksCount: 4,
@@ -808,5 +829,34 @@ describe("DeliveryReadService.inTransitQuickCounts", () => {
     const listFilter = vi.mocked(reads.countInTransit).mock.calls[0]?.[0];
     const countsBase = vi.mocked(reads.countInTransitQuickFilters).mock.calls[0]?.[0];
     expect({ ...countsBase, filter: "ordered" }).toEqual(listFilter);
+  });
+});
+
+describe("DeliveryReadService reader calendar", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-18T21:30:00.000Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("filters the in-transit list on the reader zone and day, not the UTC day", async () => {
+    const { reads, service } = buildService({
+      calendar: vi.fn().mockResolvedValue({
+        timeZone: "Europe/Kyiv",
+        today: new Date("2026-08-19T00:00:00.000Z"),
+      }),
+    });
+
+    await service.inTransitList({ query: inTransitQuery(), userId: USER });
+
+    expect(vi.mocked(reads.countInTransit).mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        bounds: expect.objectContaining({ today: new Date("2026-08-19T00:00:00.000Z") }),
+        timeZone: "Europe/Kyiv",
+      }),
+    );
   });
 });

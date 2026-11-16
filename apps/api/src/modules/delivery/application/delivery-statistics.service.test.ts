@@ -3,10 +3,13 @@ import type { BookOrderStatisticsQuery } from "@app/shared";
 import { BookOrderStatisticsViewSchema } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { UserSettingsContextService } from "../../profile/index.js";
 import type { OrderStatisticsRecordsPage } from "../domain/order-statistics-page.js";
 import type { OrderStatisticsRecord } from "../domain/statistics-scope.js";
 import type { DeliveryStatisticsRepository } from "../infrastructure/delivery-statistics.repository.js";
 
+import { startOfUtcDay, toIsoDate, toZonedCalendarDay } from "../../../core/iso-date.js";
+import { fakeOf } from "../../../test/fake.js";
 import { capOrderStatisticsIds, ORDER_STATISTICS_FETCH } from "../domain/order-statistics-page.js";
 import { DeliveryStatisticsService } from "./delivery-statistics.service.js";
 
@@ -83,6 +86,18 @@ function statisticsQuery(
   return { includeCancelled: false, ...overrides };
 }
 
+function statisticsService(repository: DeliveryStatisticsRepository): DeliveryStatisticsService {
+  return new DeliveryStatisticsService(
+    repository,
+    fakeOf<UserSettingsContextService>({
+      calendar: vi.fn(({ now }: { now: Date }) =>
+        Promise.resolve({ timeZone: "UTC", today: startOfUtcDay(now) }),
+      ),
+      today: vi.fn().mockResolvedValue(toIsoDate(NOW)),
+    }),
+  );
+}
+
 function toPage(records: OrderStatisticsRecord[]): OrderStatisticsRecordsPage {
   const { ids, ...quality } = capOrderStatisticsIds(records.map((record) => record.id));
   return { ...quality, records: records.slice(0, ids.length) };
@@ -126,7 +141,7 @@ describe("DeliveryStatisticsService.statistics", () => {
         totalAmount: 150,
       },
     ]);
-    const service = new DeliveryStatisticsService(repository);
+    const service = statisticsService(repository);
 
     const result = await service.statistics({
       query: statisticsQuery({ from: "2026-07-01" }),
@@ -143,7 +158,7 @@ describe("DeliveryStatisticsService.statistics", () => {
 
   it("filters the read on the very same period it reports", async () => {
     const repository = repositoryWithRecords([]);
-    const service = new DeliveryStatisticsService(repository);
+    const service = statisticsService(repository);
 
     const result = await service.statistics({
       query: statisticsQuery({ from: "2026-07-01", to: "2026-07-31" }),
@@ -159,7 +174,7 @@ describe("DeliveryStatisticsService.statistics", () => {
 
   it("closes an open-ended period at today to report it, but not to read by it", async () => {
     const repository = repositoryWithRecords([]);
-    const service = new DeliveryStatisticsService(repository);
+    const service = statisticsService(repository);
 
     const result = await service.statistics({ query: statisticsQuery(), userId: USER });
 
@@ -171,7 +186,7 @@ describe("DeliveryStatisticsService.statistics", () => {
 
   it("reads money in transit with the same filters and no dates at all", async () => {
     const repository = repositoryWithRecords([]);
-    const service = new DeliveryStatisticsService(repository);
+    const service = statisticsService(repository);
 
     await service.statistics({
       query: statisticsQuery({
@@ -218,7 +233,7 @@ describe("DeliveryStatisticsService.statistics", () => {
       storeName: "Yakaboo",
       totalAmount: 340,
     };
-    const service = new DeliveryStatisticsService(repositoryWithRecords([], [stillMoving]));
+    const service = statisticsService(repositoryWithRecords([], [stillMoving]));
 
     const view = await service.statistics({
       query: statisticsQuery({ from: "2026-07-01", to: "2026-07-31" }),
@@ -241,7 +256,7 @@ describe("DeliveryStatisticsService.statistics", () => {
 describe("DeliveryStatisticsService.statistics truncation", () => {
   it("reports a full read when one order short of the cap is stored", async () => {
     const ordersCount = ORDER_STATISTICS_FETCH.maxOrders - 1;
-    const service = new DeliveryStatisticsService(repositoryHolding(ordersCount));
+    const service = statisticsService(repositoryHolding(ordersCount));
 
     const { meta, summary } = await service.statistics({
       query: statisticsQuery(),
@@ -258,7 +273,7 @@ describe("DeliveryStatisticsService.statistics truncation", () => {
 
   it("reports a full read when exactly the cap is stored", async () => {
     const ordersCount = ORDER_STATISTICS_FETCH.maxOrders;
-    const service = new DeliveryStatisticsService(repositoryHolding(ordersCount));
+    const service = statisticsService(repositoryHolding(ordersCount));
 
     const { meta, summary } = await service.statistics({
       query: statisticsQuery(),
@@ -274,9 +289,7 @@ describe("DeliveryStatisticsService.statistics truncation", () => {
   });
 
   it("reports a truncated read when one order past the cap is stored", async () => {
-    const service = new DeliveryStatisticsService(
-      repositoryHolding(ORDER_STATISTICS_FETCH.maxOrders + 1),
-    );
+    const service = statisticsService(repositoryHolding(ORDER_STATISTICS_FETCH.maxOrders + 1));
 
     const { meta, summary } = await service.statistics({
       query: statisticsQuery(),
@@ -301,7 +314,7 @@ describe("DeliveryStatisticsService.statistics source quality", () => {
   }
 
   it("reports the comparison period's own completeness, not the current one's", async () => {
-    const service = new DeliveryStatisticsService(
+    const service = statisticsService(
       repositoryWithSources({
         comparisonRecords: buildOrderRecords(
           ORDER_STATISTICS_FETCH.maxOrders + ORDER_STATISTICS_FETCH.overshootRows,
@@ -326,7 +339,7 @@ describe("DeliveryStatisticsService.statistics source quality", () => {
   });
 
   it("keeps a truncated current period from claiming the comparison was cut too", async () => {
-    const service = new DeliveryStatisticsService(
+    const service = statisticsService(
       repositoryWithSources({
         comparisonRecords: buildOrderRecords(4),
         currentFrom: CURRENT_FROM,
@@ -347,7 +360,7 @@ describe("DeliveryStatisticsService.statistics source quality", () => {
   });
 
   it("leaves the comparison quality absent when no comparison was asked for", async () => {
-    const service = new DeliveryStatisticsService(repositoryWithRecords(buildOrderRecords(2)));
+    const service = statisticsService(repositoryWithRecords(buildOrderRecords(2)));
 
     const { meta } = await service.statistics({ query: statisticsQuery(), userId: USER });
 
@@ -356,7 +369,7 @@ describe("DeliveryStatisticsService.statistics source quality", () => {
   });
 
   it("says the active snapshot was cut short instead of stopping at the cap in silence", async () => {
-    const service = new DeliveryStatisticsService(
+    const service = statisticsService(
       repositoryWithSources({
         activeRecords: buildOrderRecords(
           ORDER_STATISTICS_FETCH.maxOrders + ORDER_STATISTICS_FETCH.overshootRows,
@@ -377,7 +390,7 @@ describe("DeliveryStatisticsService.statistics source quality", () => {
   });
 
   it("reports the same completeness for the standalone active-age read", async () => {
-    const service = new DeliveryStatisticsService(
+    const service = statisticsService(
       repositoryWithSources({
         activeRecords: buildOrderRecords(
           ORDER_STATISTICS_FETCH.maxOrders + ORDER_STATISTICS_FETCH.overshootRows,
@@ -398,9 +411,7 @@ describe("DeliveryStatisticsService.statistics source quality", () => {
 
 describe("DeliveryStatisticsService.statistics contract", () => {
   it("returns a truncated read that still satisfies the shared response contract", async () => {
-    const service = new DeliveryStatisticsService(
-      repositoryHolding(ORDER_STATISTICS_FETCH.maxOrders + 1),
-    );
+    const service = statisticsService(repositoryHolding(ORDER_STATISTICS_FETCH.maxOrders + 1));
 
     const view = await service.statistics({ query: statisticsQuery(), userId: USER });
 
@@ -409,7 +420,7 @@ describe("DeliveryStatisticsService.statistics contract", () => {
   });
 
   it("returns an empty read as empty arrays and null scalars, not as placeholder rows", async () => {
-    const service = new DeliveryStatisticsService(repositoryWithRecords([]));
+    const service = statisticsService(repositoryWithRecords([]));
 
     const view = BookOrderStatisticsViewSchema.parse(
       await service.statistics({ query: statisticsQuery(), userId: USER }),
@@ -440,7 +451,7 @@ describe("DeliveryStatisticsService.statistics contract", () => {
 describe("DeliveryStatisticsService.statistics query shape", () => {
   it("reads the orders once, never once per store or per bucket", async () => {
     const repository = repositoryWithRecords(buildOrderRecords(50));
-    const service = new DeliveryStatisticsService(repository);
+    const service = statisticsService(repository);
 
     const view = await service.statistics({ query: statisticsQuery(), userId: USER });
 
@@ -450,7 +461,7 @@ describe("DeliveryStatisticsService.statistics query shape", () => {
 
   it("adds exactly one more read when a comparison period is asked for", async () => {
     const repository = repositoryWithRecords(buildOrderRecords(10));
-    const service = new DeliveryStatisticsService(repository);
+    const service = statisticsService(repository);
 
     await service.statistics({
       query: statisticsQuery({ compare: "previous_period", from: "2026-07-01", to: "2026-07-31" }),
@@ -461,5 +472,50 @@ describe("DeliveryStatisticsService.statistics query shape", () => {
     expect(vi.mocked(repository.listOrderRecords).mock.calls[1]?.[0]).toEqual(
       expect.objectContaining({ from: "2026-06-01", to: "2026-06-30" }),
     );
+  });
+});
+
+describe("DeliveryStatisticsService.activeMoneyAge reader day", () => {
+  it("ages active money by the reader day, not the UTC day of the clock", async () => {
+    vi.setSystemTime(new Date("2026-08-19T21:30:00.000Z"));
+    const orderPlacedOnAugustTwelfth: OrderStatisticsRecord = {
+      currency: "UAH",
+      deliveryPrice: null,
+      discount: null,
+      id: "order-1",
+      isFree: false,
+      items: [
+        {
+          bookId: "book-a",
+          bookTitle: "Alpha",
+          cancelledAt: null,
+          id: "item-a",
+          price: 100,
+          receivedAt: null,
+          shipmentId: null,
+        },
+      ],
+      orderDate: new Date("2026-08-12T00:00:00.000Z"),
+      orderNumber: null,
+      shipments: [],
+      storeName: "Yakaboo",
+      totalAmount: null,
+    };
+    const service = new DeliveryStatisticsService(
+      repositoryWithRecords([], [orderPlacedOnAugustTwelfth]),
+      fakeOf<UserSettingsContextService>({
+        calendar: vi.fn(({ now }: { now: Date }) =>
+          Promise.resolve({
+            timeZone: "Europe/Kyiv",
+            today: toZonedCalendarDay({ instant: now, timeZone: "Europe/Kyiv" }),
+          }),
+        ),
+      }),
+    );
+
+    const { asOf, buckets } = await service.activeMoneyAge({ query: {}, userId: USER });
+
+    expect(asOf).toBe("2026-08-19T21:30:00.000Z");
+    expect(buckets.map((bucket) => bucket.key)).toEqual(["8_14"]);
   });
 });

@@ -8,10 +8,12 @@ import type { DeliveryDateBounds } from "./delivery-ui-status.js";
 export function buildInTransitBaseFilter({
   bounds,
   query,
+  timeZone,
   userId,
 }: {
   bounds: DeliveryDateBounds;
   query: InTransitQuickCountsQuery;
+  timeZone: string;
   userId: string;
 }): InTransitBaseFilterInput {
   return {
@@ -33,6 +35,7 @@ export function buildInTransitBaseFilter({
     service: query.service,
     store: query.store,
     structure: query.structure,
+    timeZone,
     userId,
   };
 }

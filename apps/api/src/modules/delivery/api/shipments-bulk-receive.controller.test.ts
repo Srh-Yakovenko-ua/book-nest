@@ -257,21 +257,19 @@ describe("POST /api/delivery/shipments/receive", () => {
 
   it("stamps the receipt date the reader chose on every parcel of the batch", async () => {
     const { order, parcelA, parcelB } = await seedSplitOrder();
-    const receivedAt = isoDay(-1);
-
     await postJson({
       accessToken: reader.accessToken,
       app,
-      body: { receivedAt, shipmentIds: [parcelA, parcelB] },
+      body: { receivedAt: "2026-02-10", shipmentIds: [parcelA, parcelB] },
       path: RECEIVE_SHIPMENTS_PATH,
     });
 
     const view = await readOrder(order.id);
     expect(view.shipments.find((shipment) => shipment.id === parcelA)).toMatchObject({
-      receivedAt: `${receivedAt}T00:00:00.000Z`,
+      receivedAt: "2026-02-09T22:00:00.000Z",
     });
     expect(view.shipments.find((shipment) => shipment.id === parcelB)).toMatchObject({
-      receivedAt: `${receivedAt}T00:00:00.000Z`,
+      receivedAt: "2026-02-09T22:00:00.000Z",
     });
   });
 

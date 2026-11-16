@@ -24,6 +24,7 @@ import { ilikeContains } from "../../../core/database/like-pattern.js";
 import { addDaysToIsoDate, toIsoDate } from "../../../core/iso-date.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { orderStateSql } from "./order-state-sql.js";
+import { readerDaySql } from "./reader-day-sql.js";
 
 const SHIPMENT_STATUS = ShipmentStatusSchema.enum;
 
@@ -35,10 +36,6 @@ const AWAITING_ARRIVAL_SHIPMENT_STATUSES = [
 const AWAITING_ARRIVAL_SQL = Prisma.sql`shipment.status = ANY(${[
   ...AWAITING_ARRIVAL_SHIPMENT_STATUSES,
 ]}::text[])`;
-
-export const ORDER_PLACED_ON_SQL = Prisma.sql`
-  COALESCE(book_order.order_date, (book_order.created_at AT TIME ZONE 'UTC')::date)
-`;
 
 const DISPATCHED_SHIPMENT_STATUSES = [
   SHIPMENT_STATUS.in_transit,
@@ -145,6 +142,7 @@ export type InTransitFilterInput = InTransitAdvancedFilter & {
   bounds: DeliveryDateBounds;
   filter: InTransitFilter;
   search: string | undefined;
+  timeZone: string;
   userId: string;
 };
 
@@ -229,6 +227,7 @@ export function buildInTransitConditions({
   bounds,
   filter,
   search,
+  timeZone,
   userId,
   ...advanced
 }: InTransitFilterInput): Prisma.Sql {
@@ -236,7 +235,7 @@ export function buildInTransitConditions({
   const conditions: Prisma.Sql[] = [
     Prisma.sql`book_order.user_id = ${userId}::uuid`,
     ACTIVE_ITEM_SQL,
-    ...advancedInTransitConditions(advanced),
+    ...advancedInTransitConditions({ ...advanced, timeZone }),
   ];
 
   if (ageBucket !== undefined) {
@@ -244,7 +243,7 @@ export function buildInTransitConditions({
   }
 
   const filterCondition = inTransitFilterSql({
-    categories: inTransitCategorySql(isoBounds),
+    categories: inTransitCategorySql({ bounds: isoBounds, timeZone }),
     filter,
   });
   if (filterCondition !== null) {
@@ -268,8 +267,17 @@ export function currencySql(currency: Currency): Prisma.Sql {
   )`;
 }
 
-export function inTransitCategorySql(bounds: IsoDateBounds): InTransitCategorySql {
-  return { ...orderScopedCategorySql(bounds), ...shipmentScopedCategorySql(bounds) };
+export function inTransitCategorySql({
+  bounds,
+  timeZone,
+}: {
+  bounds: IsoDateBounds;
+  timeZone: string;
+}): InTransitCategorySql {
+  return {
+    ...orderScopedCategorySql({ dispatchCutoffIso: bounds.dispatchCutoffIso, timeZone }),
+    ...shipmentScopedCategorySql(bounds),
+  };
 }
 
 export function inTransitOrderSql({
@@ -293,6 +301,13 @@ export function inTransitQuickFilterSql({
   key: InTransitQuickFilterKey;
 }): Prisma.Sql {
   return inTransitFilterSql({ categories, filter: key }) ?? Prisma.sql`TRUE`;
+}
+
+export function orderPlacedOnSql(timeZone: string): Prisma.Sql {
+  return Prisma.sql`COALESCE(
+    book_order.order_date,
+    ${readerDaySql({ instant: Prisma.sql`book_order.created_at`, timeZone })}
+  )`;
 }
 
 export function ordersWithActiveItemsSource({
@@ -389,7 +404,8 @@ function advancedInTransitConditions({
   service,
   store,
   structure,
-}: InTransitAdvancedFilter): Prisma.Sql[] {
+  timeZone,
+}: InTransitAdvancedFilter & { timeZone: string }): Prisma.Sql[] {
   const conditions: Prisma.Sql[] = [];
 
   if (orderId !== undefined) {
@@ -413,11 +429,11 @@ function advancedInTransitConditions({
   }
 
   if (orderedFrom !== undefined) {
-    conditions.push(Prisma.sql`${ORDER_PLACED_ON_SQL} >= ${orderedFrom}::date`);
+    conditions.push(Prisma.sql`${orderPlacedOnSql(timeZone)} >= ${orderedFrom}::date`);
   }
 
   if (orderedTo !== undefined) {
-    conditions.push(Prisma.sql`${ORDER_PLACED_ON_SQL} <= ${orderedTo}::date`);
+    conditions.push(Prisma.sql`${orderPlacedOnSql(timeZone)} <= ${orderedTo}::date`);
   }
 
   if (booksMin !== undefined) {
@@ -594,10 +610,16 @@ function orderHasAwaitedShipmentInRangeSql({
   )`;
 }
 
-function orderScopedCategorySql({ dispatchCutoffIso }: IsoDateBounds): OrderScopedCategorySql {
+function orderScopedCategorySql({
+  dispatchCutoffIso,
+  timeZone,
+}: {
+  dispatchCutoffIso: string;
+  timeZone: string;
+}): OrderScopedCategorySql {
   return {
     awaitingDispatch: Prisma.sql`(
-      ${ORDER_PLACED_ON_SQL} <= ${dispatchCutoffIso}::date
+      ${orderPlacedOnSql(timeZone)} <= ${dispatchCutoffIso}::date
       AND NOT ${ORDER_HAS_DISPATCHED_SHIPMENT_SQL}
     )`,
     hasPrice: Prisma.sql`item.price IS NOT NULL`,

@@ -3,8 +3,10 @@ import type { INestApplication } from "@nestjs/common";
 import type { z } from "zod";
 
 import { CreateBookOrderInputSchema, DEFAULT_CURRENCY } from "@app/shared";
-import { addDays, endOfWeek, format, startOfMonth, subMonths } from "date-fns";
+import { addDays, endOfWeek, format, parseISO, startOfMonth, subMonths } from "date-fns";
 import request from "supertest";
+
+import { defaultUserToday } from "../../../test/user-today.js";
 
 export type CreateOrderPayload = Omit<z.input<typeof CreateBookOrderInputSchema>, "currency"> & {
   currency?: z.input<typeof CreateBookOrderInputSchema>["currency"];
@@ -154,15 +156,15 @@ export function getJson({ accessToken, app, path }: AuthedApp & { path: string }
 }
 
 export function isoDay(offset: number): string {
-  return format(addDays(new Date(), offset), ISO_DATE_FORMAT);
+  return format(addDays(readerToday(), offset), ISO_DATE_FORMAT);
 }
 
 export function isoDayOfPreviousMonth(dayOffset: number): string {
-  return format(addDays(subMonths(startOfMonth(new Date()), 1), dayOffset), ISO_DATE_FORMAT);
+  return format(addDays(subMonths(startOfMonth(readerToday()), 1), dayOffset), ISO_DATE_FORMAT);
 }
 
 export function isoSundayOfThisWeek(): string {
-  return format(endOfWeek(new Date(), { weekStartsOn: MONDAY }), ISO_DATE_FORMAT);
+  return format(endOfWeek(readerToday(), { weekStartsOn: MONDAY }), ISO_DATE_FORMAT);
 }
 
 export function itemOf({
@@ -216,7 +218,7 @@ export function postJson({
 }
 
 export function previousMonthKey(): string {
-  return format(subMonths(startOfMonth(new Date()), 1), MONTH_FORMAT);
+  return format(subMonths(startOfMonth(readerToday()), 1), MONTH_FORMAT);
 }
 
 export async function seedStatisticsFixture({
@@ -389,4 +391,8 @@ export function shipmentOf({
     throw new Error(`book ${bookId} is not loaded into any shipment of order ${view.id}`);
   }
   return shipment;
+}
+
+function readerToday(): Date {
+  return parseISO(defaultUserToday());
 }
