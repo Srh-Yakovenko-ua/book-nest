@@ -90,6 +90,7 @@ describe("UserSettingsContextService.calendar", () => {
     ).resolves.toEqual({
       timeZone: "Europe/Kyiv",
       today: new Date("2026-11-16T00:00:00.000Z"),
+      weekStartDay: "sunday",
     });
   });
 
@@ -102,10 +103,11 @@ describe("UserSettingsContextService.calendar", () => {
     ).resolves.toEqual({
       timeZone: "America/New_York",
       today: new Date("2026-11-15T00:00:00.000Z"),
+      weekStartDay: "sunday",
     });
   });
 
-  it("uses the product default zone when the reader has no settings row", async () => {
+  it("uses the product default zone and week start without a settings row", async () => {
     await expect(
       buildService(null).calendar({
         now: NIGHT_IN_KYIV_EVENING_IN_NEW_YORK,
@@ -114,6 +116,7 @@ describe("UserSettingsContextService.calendar", () => {
     ).resolves.toEqual({
       timeZone: "Europe/Kyiv",
       today: new Date("2026-11-16T00:00:00.000Z"),
+      weekStartDay: "monday",
     });
   });
 });

@@ -90,9 +90,11 @@ function statisticsService(repository: DeliveryStatisticsRepository): DeliverySt
   return new DeliveryStatisticsService(
     repository,
     fakeOf<UserSettingsContextService>({
-      calendar: vi.fn(({ now }: { now: Date }) =>
-        Promise.resolve({ timeZone: "UTC", today: startOfUtcDay(now) }),
-      ),
+      calendar: vi.fn<UserSettingsContextService["calendar"]>(async ({ now }) => ({
+        timeZone: "UTC",
+        today: startOfUtcDay(now),
+        weekStartDay: "monday",
+      })),
       today: vi.fn().mockResolvedValue(toIsoDate(NOW)),
     }),
   );
@@ -504,12 +506,11 @@ describe("DeliveryStatisticsService.activeMoneyAge reader day", () => {
     const service = new DeliveryStatisticsService(
       repositoryWithRecords([], [orderPlacedOnAugustTwelfth]),
       fakeOf<UserSettingsContextService>({
-        calendar: vi.fn(({ now }: { now: Date }) =>
-          Promise.resolve({
-            timeZone: "Europe/Kyiv",
-            today: toZonedCalendarDay({ instant: now, timeZone: "Europe/Kyiv" }),
-          }),
-        ),
+        calendar: vi.fn<UserSettingsContextService["calendar"]>(async ({ now }) => ({
+          timeZone: "Europe/Kyiv",
+          today: toZonedCalendarDay({ instant: now, timeZone: "Europe/Kyiv" }),
+          weekStartDay: "monday",
+        })),
       }),
     );
 
