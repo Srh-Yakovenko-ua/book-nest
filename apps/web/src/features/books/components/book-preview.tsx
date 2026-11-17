@@ -7,9 +7,9 @@ import Image from "next/image";
 import { type ReactNode, useState } from "react";
 
 import { UiIcon, type UiIconName } from "@/components/icons";
+import { TagChip } from "@/components/tag-chip";
 import { RatingScore } from "@/components/ui/rating-score";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { TagChip } from "@/features/tags/components/tag-chip";
 import { ownershipStatuses, readingStatuses, type StatusDefinition } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
 

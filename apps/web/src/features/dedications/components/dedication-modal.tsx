@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
 import { GenreIcon, isGenreIconName, UiIcon } from "@/components/icons";
+import { TagChip } from "@/components/tag-chip";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,7 +18,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useGenres } from "@/features/books/api/use-genres";
-import { TagChip } from "@/features/tags/components/tag-chip";
 import { Link } from "@/i18n/navigation";
 
 import { useDedicationActions } from "../hooks/use-dedication-actions";

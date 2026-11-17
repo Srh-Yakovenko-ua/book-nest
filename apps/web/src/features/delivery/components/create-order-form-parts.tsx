@@ -2,50 +2,16 @@
 
 import type { ReactNode } from "react";
 
+import { DateField } from "@/components/date-field";
 import { UiIcon, type UiIconName } from "@/components/icons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BookDateField } from "@/features/books/components/book-date-field";
 import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
 
 const MONEY_STEP = "1";
-
-export function DateField({
-  allowFuture,
-  className,
-  disablePast,
-  id,
-  label,
-  onChange,
-  optional,
-  value,
-}: {
-  allowFuture?: boolean;
-  className?: string;
-  disablePast?: boolean;
-  id: string;
-  label: string;
-  onChange: (value: string) => void;
-  optional?: boolean;
-  value: string;
-}) {
-  return (
-    <Field className={className} label={label} optional={optional}>
-      <BookDateField
-        allowFuture={allowFuture}
-        ariaLabel={label}
-        className="h-10"
-        disablePast={disablePast}
-        id={id}
-        onChange={(next) => onChange(next ?? "")}
-        value={value}
-      />
-    </Field>
-  );
-}
 
 export function Field({
   children,
@@ -100,6 +66,40 @@ export function FormSection({
       </header>
       {children}
     </section>
+  );
+}
+
+export function LabeledDateField({
+  allowFuture,
+  className,
+  disablePast,
+  id,
+  label,
+  onChange,
+  optional,
+  value,
+}: {
+  allowFuture?: boolean;
+  className?: string;
+  disablePast?: boolean;
+  id: string;
+  label: string;
+  onChange: (value: string) => void;
+  optional?: boolean;
+  value: string;
+}) {
+  return (
+    <Field className={className} label={label} optional={optional}>
+      <DateField
+        allowFuture={allowFuture}
+        ariaLabel={label}
+        className="h-10"
+        disablePast={disablePast}
+        id={id}
+        onChange={(next) => onChange(next ?? "")}
+        value={value}
+      />
+    </Field>
   );
 }
 

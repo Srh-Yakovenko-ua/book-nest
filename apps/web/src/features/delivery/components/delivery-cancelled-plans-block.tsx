@@ -4,7 +4,7 @@ import type { CancelledFollowUpView, Nullable, ReadingGoalRiskLevel } from "@app
 
 import { useTranslations } from "next-intl";
 
-import { LibraryOverviewSection } from "@/features/books/components/library-overview-blocks";
+import { OverviewSection } from "@/components/overview-section";
 
 import { buildCancelledPlanRows } from "../model/cancelled-follow-up";
 import { DeliveryBookMetaLink } from "./delivery-book-preview";
@@ -39,7 +39,7 @@ export function DeliveryCancelledPlansBlock({ plans }: DeliveryCancelledPlansBlo
   const hiddenCount = plans.booksCount - rows.length;
 
   return (
-    <LibraryOverviewSection className="sidebar-card-leaf" title={t("title")}>
+    <OverviewSection className="sidebar-card-leaf" title={t("title")}>
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
           <p className="font-heading text-lg leading-tight font-semibold text-ink">
@@ -67,7 +67,7 @@ export function DeliveryCancelledPlansBlock({ plans }: DeliveryCancelledPlansBlo
           <p className="text-xs text-muted-foreground">{t("more", { count: hiddenCount })}</p>
         ) : null}
       </div>
-    </LibraryOverviewSection>
+    </OverviewSection>
   );
 }
 

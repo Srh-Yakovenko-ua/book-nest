@@ -2,11 +2,10 @@
 
 import type { ReactNode } from "react";
 
+import { BookThumb } from "@/components/book-thumb";
 import { UiIcon } from "@/components/icons";
 
 import type { BookSelectOption } from "../model/book-select-option";
-
-import { BookThumb } from "./book-picker";
 
 type BookSingleSelectValueProps = {
   action?: ReactNode;

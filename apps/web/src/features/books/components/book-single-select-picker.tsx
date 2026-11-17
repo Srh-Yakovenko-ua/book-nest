@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import type { SingleSelectPickerLabels } from "@/components/single-select-picker";
 
+import { BookThumb } from "@/components/book-thumb";
 import { SingleSelectPicker } from "@/components/single-select-picker";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { BooksControllerListSort } from "@/shared/api/generated/model";
@@ -16,7 +17,6 @@ import type { LibraryListParams } from "../model/library-query";
 
 import { LIBRARY_BOOKS_RETENTION, useLibraryBooks } from "../api/use-books";
 import { libraryListParams } from "../model/library-query";
-import { BookThumb } from "./book-picker";
 import { BookSingleSelectValue } from "./book-single-select-value";
 
 const BOOK_SINGLE_SELECT_PICKER = {

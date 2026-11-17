@@ -5,6 +5,7 @@ import type { ReadingStatus } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { type Control, Controller, type FieldErrors, useWatch } from "react-hook-form";
 
+import { DateField } from "@/components/date-field";
 import { UiIcon } from "@/components/icons";
 import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
@@ -17,7 +18,6 @@ import type { CreateBookFormValues } from "../model/create-book-form";
 
 import { READING_STATUS_OPTIONS, readingProgressFieldsFor } from "../model/book-status-fields";
 import { READING_STATUS_FIELDS } from "../model/section-completeness";
-import { BookDateField } from "./book-date-field";
 import { FormSection } from "./form-section";
 import { StatusChipGroup } from "./status-chip-group";
 import { useSectionCompletion } from "./use-section-completion";
@@ -283,7 +283,7 @@ function ProgressDateField({
         control={control}
         name={name}
         render={({ field }) => (
-          <BookDateField
+          <DateField
             ariaLabel={ariaLabel}
             describedBy={error ? errorId : undefined}
             id={id}

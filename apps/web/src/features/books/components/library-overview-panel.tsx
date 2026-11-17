@@ -6,6 +6,7 @@ import type { SummaryCard } from "@/components/catalog/summary-cards";
 import type { MobilePageOverviewTab } from "@/components/ui/mobile-page-overview-panel";
 
 import { SummaryDetails } from "@/components/catalog/summary-mobile";
+import { OverviewSection } from "@/components/overview-section";
 import {
   MobilePageOverviewLink,
   MobilePageOverviewPanel,
@@ -20,7 +21,6 @@ import type {
 } from "./library-overview-blocks";
 
 import {
-  LibraryOverviewSection,
   LibraryRecentlyAddedBlock,
   LibraryTopGenresBlock,
   LibraryTopTagsBlock,
@@ -55,12 +55,12 @@ export function LibraryOverviewPanel({
     {
       content: (
         <div className="flex flex-col gap-4">
-          <LibraryOverviewSection title={tBlocks("topGenres")}>
+          <OverviewSection title={tBlocks("topGenres")}>
             <LibraryTopGenresBlock genres={topGenres} isLoading={isLoading} />
-          </LibraryOverviewSection>
-          <LibraryOverviewSection title={tBlocks("topTags")}>
+          </OverviewSection>
+          <OverviewSection title={tBlocks("topTags")}>
             <LibraryTopTagsBlock isLoading={isLoading} tags={topTags} />
-          </LibraryOverviewSection>
+          </OverviewSection>
         </div>
       ),
       id: "taxonomy",
@@ -68,13 +68,13 @@ export function LibraryOverviewPanel({
     },
     {
       content: (
-        <LibraryOverviewSection title={tBlocks("recentlyAdded")}>
+        <OverviewSection title={tBlocks("recentlyAdded")}>
           <LibraryRecentlyAddedBlock
             books={recentlyAdded}
             isLoading={isLoading}
             linkComponent={MobilePageOverviewLink}
           />
-        </LibraryOverviewSection>
+        </OverviewSection>
       ),
       id: "activity",
       label: t("tabs.activity"),

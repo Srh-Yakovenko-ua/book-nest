@@ -7,7 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 
 import type { SummaryCard } from "@/components/catalog/summary-cards";
 
-import { topGenreIconSlot } from "@/features/books/components/top-genre-icon-slot";
+import { topGenreIconSlot } from "@/components/icons";
 import { formatNumber } from "@/lib/format";
 
 import type { GenreLeaderCardKey, GenreLeaderFact } from "./genre-summary";

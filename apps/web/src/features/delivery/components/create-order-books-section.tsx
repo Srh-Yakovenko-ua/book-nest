@@ -5,10 +5,10 @@ import type { Dispatch } from "react";
 
 import { useTranslations } from "next-intl";
 
+import { BookThumb } from "@/components/book-thumb";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BookThumb } from "@/features/books/components/book-picker";
 import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,

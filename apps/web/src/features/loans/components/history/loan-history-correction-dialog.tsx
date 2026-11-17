@@ -9,6 +9,7 @@ import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { DateField } from "@/components/date-field";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +24,6 @@ import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { BookDateField } from "@/features/books/components/book-date-field";
 import { useProfileTimeZone } from "@/features/settings";
 import { applyFieldErrors, getErrorMessage } from "@/lib/api-errors";
 import { ISO_DAY, todayIsoDay } from "@/lib/iso-day";
@@ -272,7 +272,7 @@ function ReturnedDateForm({ loan, onDone }: { loan: LoanHistoryDetailView; onDon
           control={control}
           name="returnedDate"
           render={({ field }) => (
-            <BookDateField
+            <DateField
               ariaLabel={t("label")}
               describedBy={errors.returnedDate ? "loan-history-returned-date-error" : undefined}
               id="loan-history-returned-date"

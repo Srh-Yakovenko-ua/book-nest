@@ -6,6 +6,7 @@ import { useId, useState } from "react";
 import { type Control, Controller, type FieldErrors } from "react-hook-form";
 
 import { UiIcon } from "@/components/icons";
+import { TagChip } from "@/components/tag-chip";
 import {
   Command,
   CommandEmpty,
@@ -13,10 +14,9 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { PALETTE_COLOR_STYLES } from "@/components/ui/palette-color";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { TagInput } from "@/components/ui/tag-input";
-import { TagChip } from "@/features/tags/components/tag-chip";
-import { TAG_COLOR_STYLES } from "@/features/tags/model/tag-color";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 import type { CreateBookFormValues } from "../model/create-book-form";
@@ -95,7 +95,7 @@ export function TagsField({ control, errors, tagColorOf }: TagsFieldProps) {
                     aria-invalid={tagsErrorMessage !== undefined}
                     atMax={atMax}
                     chipStyle={(tag) => {
-                      const colors = TAG_COLOR_STYLES[tagColorOf(tag)];
+                      const colors = PALETTE_COLOR_STYLES[tagColorOf(tag)];
                       return { backgroundColor: colors.bg, color: colors.text };
                     }}
                     id="book-tags"

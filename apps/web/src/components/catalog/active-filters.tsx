@@ -5,7 +5,7 @@ import type { TagColor } from "@app/shared";
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
-import { TagChip, TagChipRemoveButton } from "@/features/tags/components/tag-chip";
+import { TagChip, TagChipRemoveButton } from "@/components/tag-chip";
 
 export type ActiveFilterChip = {
   key: string;

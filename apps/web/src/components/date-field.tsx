@@ -10,7 +10,7 @@ import { dateToIsoDay, isoDayToDate } from "@/lib/iso-day";
 
 const YEAR_SPAN = 10;
 
-type BookDateFieldProps = {
+type DateFieldProps = {
   allowFuture?: boolean;
   ariaLabel: string;
   className?: string;
@@ -25,7 +25,7 @@ type BookDateFieldProps = {
   value: unknown;
 };
 
-export function BookDateField({
+export function DateField({
   allowFuture = false,
   ariaLabel,
   className,
@@ -38,7 +38,7 @@ export function BookDateField({
   required,
   today,
   value,
-}: BookDateFieldProps) {
+}: DateFieldProps) {
   const weekStartsOn = useWeekStartsOn();
   const todayDate = isoDayToDate(today);
   const referenceDay = todayDate ?? new Date();

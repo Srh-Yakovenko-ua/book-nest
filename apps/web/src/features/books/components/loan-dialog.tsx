@@ -18,6 +18,8 @@ import { z } from "zod";
 
 import type { LoanContactSelection } from "@/features/loans/model/loan-contact-selection";
 
+import { BookThumb } from "@/components/book-thumb";
+import { DateField } from "@/components/date-field";
 import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -48,8 +50,6 @@ import { useCreateLoansBatch } from "../api/use-create-loans-batch";
 import { useCreateLoan } from "../api/use-loan";
 import { toLoanBatchConflicts } from "../model/loan-batch-error";
 import { toLoanErrorKey } from "../model/loan-error";
-import { BookDateField } from "./book-date-field";
-import { BookThumb } from "./book-picker";
 import { LoanBooksStep } from "./loan-books-step";
 
 const NOTE_MAX = 300;
@@ -473,7 +473,7 @@ function LoanForm({
             control={control}
             name="loanDate"
             render={({ field }) => (
-              <BookDateField
+              <DateField
                 ariaLabel={t(`${variant}.loanDate`)}
                 describedBy={errors.loanDate ? "loan-date-error" : undefined}
                 id="loan-date"
@@ -495,7 +495,7 @@ function LoanForm({
             control={control}
             name="expectedReturnDate"
             render={({ field }) => (
-              <BookDateField
+              <DateField
                 allowFuture
                 ariaLabel={t("fields.returnDate")}
                 describedBy={errors.expectedReturnDate ? "loan-return-date-error" : undefined}

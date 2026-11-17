@@ -47,7 +47,7 @@ import {
 import { CreateOrderBookPickerView } from "./create-order-book-picker-view";
 import { CreateOrderBooksSection } from "./create-order-books-section";
 import { CreateOrderCostSection } from "./create-order-cost-section";
-import { DateField, Field, FormSection, TextField } from "./create-order-form-parts";
+import { Field, FormSection, LabeledDateField, TextField } from "./create-order-form-parts";
 import { CreateOrderShippingSection } from "./create-order-shipping-section";
 
 const FINANCIAL_ERROR_KEY = {
@@ -226,7 +226,7 @@ function CreateBookOrderForm({
               optional
               value={order.orderNumber}
             />
-            <DateField
+            <LabeledDateField
               className="sm:col-span-4"
               id="order-date"
               label={t("order.date")}

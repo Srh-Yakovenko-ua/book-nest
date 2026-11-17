@@ -9,7 +9,6 @@ export { useRecentPublishers } from "./api/use-recent-publishers";
 export { useSelectedTagsLookup } from "./api/use-tags-search";
 export { useUpdateBook } from "./api/use-update-book";
 export { AuthorsField, useAuthorsFieldFocus } from "./components/authors-field";
-export { BookDateField } from "./components/book-date-field";
 export { BookDetails } from "./components/book-details";
 export { BookFormDraftCleanup } from "./components/book-form-draft-cleanup";
 export { BookFormatFilter } from "./components/book-format-filter";

@@ -5,6 +5,7 @@ import type { ActiveMoneyAgeBucket, DeliveryFacetEntry, Nullable } from "@app/sh
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { DateField } from "@/components/date-field";
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { BookDateField } from "@/features/books/components/book-date-field";
 import { blockNegativeNumberKeys } from "@/lib/block-negative-number-keys";
 import { cn } from "@/lib/utils";
 
@@ -104,7 +104,7 @@ export function DeliveryAdvancedFilters({
 
           <FilterSection title={t("sections.orderDate")}>
             <div className="grid gap-2.5">
-              <BookDateField
+              <DateField
                 ariaLabel={t("range.from")}
                 className="h-9 text-sm"
                 id="delivery-filter-ordered-from"
@@ -112,7 +112,7 @@ export function DeliveryAdvancedFilters({
                 placeholder={t("range.from")}
                 value={draft.orderedFrom}
               />
-              <BookDateField
+              <DateField
                 ariaLabel={t("range.to")}
                 className="h-9 text-sm"
                 id="delivery-filter-ordered-to"
@@ -183,7 +183,7 @@ export function DeliveryAdvancedFilters({
 
           <FilterSection title={t("sections.expectedDate")}>
             <div className="grid gap-2.5">
-              <BookDateField
+              <DateField
                 allowFuture
                 ariaLabel={t("range.from")}
                 className="h-9 text-sm"
@@ -192,7 +192,7 @@ export function DeliveryAdvancedFilters({
                 placeholder={t("range.from")}
                 value={draft.expectedFrom}
               />
-              <BookDateField
+              <DateField
                 allowFuture
                 ariaLabel={t("range.to")}
                 className="h-9 text-sm"

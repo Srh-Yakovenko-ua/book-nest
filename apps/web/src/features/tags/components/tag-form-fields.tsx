@@ -10,6 +10,7 @@ import {
   useWatch,
 } from "react-hook-form";
 
+import { TagChip } from "@/components/tag-chip";
 import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,7 +25,6 @@ import { Textarea } from "@/components/ui/textarea";
 
 import type { TagFormValues } from "../model/tag-form";
 
-import { TagChip } from "./tag-chip";
 import { TagColorPicker } from "./tag-color-picker";
 
 type TagFormFieldsProps = {

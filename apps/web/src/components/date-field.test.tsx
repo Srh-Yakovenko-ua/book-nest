@@ -4,7 +4,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 
 import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
 
-import { BookDateField } from "./book-date-field";
+import { DateField } from "./date-field";
 
 const TODAY = new Date(2026, 7, 15, 9, 0, 0);
 
@@ -41,11 +41,11 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe("BookDateField", () => {
+describe("DateField", () => {
   it("reports null when the selected day is clicked again", async () => {
     const onChange = vi.fn();
     renderWithProviders(
-      <BookDateField
+      <DateField
         ariaLabel="Дата покупки"
         id="purchase-date"
         onChange={onChange}

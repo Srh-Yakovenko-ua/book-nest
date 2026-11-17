@@ -5,6 +5,7 @@ import type { DeliveryFacetEntry, Nullable } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { DateField } from "@/components/date-field";
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { BookDateField } from "@/features/books/components/book-date-field";
 import { blockNegativeNumberKeys } from "@/lib/block-negative-number-keys";
 import { cn } from "@/lib/utils";
 
@@ -115,7 +115,7 @@ export function DeliveryHistoryAdvancedFilters({
 
           <FilterSection title={t("sections.orderDate")}>
             <div className="grid gap-2.5">
-              <BookDateField
+              <DateField
                 ariaLabel={t("orderDate.from")}
                 className="h-9 text-sm"
                 id="history-filter-ordered-from"
@@ -123,7 +123,7 @@ export function DeliveryHistoryAdvancedFilters({
                 placeholder={t("range.from")}
                 value={draft.from}
               />
-              <BookDateField
+              <DateField
                 ariaLabel={t("orderDate.to")}
                 className="h-9 text-sm"
                 id="history-filter-ordered-to"
@@ -234,7 +234,7 @@ export function DeliveryHistoryAdvancedFilters({
             title={isCancelledTab ? t("sections.cancelledDate") : t("sections.receivedDate")}
           >
             <div className="grid gap-2.5">
-              <BookDateField
+              <DateField
                 ariaLabel={isCancelledTab ? t("cancelledDate.from") : t("receivedDate.from")}
                 className="h-9 text-sm"
                 id="history-filter-terminal-from"
@@ -242,7 +242,7 @@ export function DeliveryHistoryAdvancedFilters({
                 placeholder={t("range.from")}
                 value={terminal.from}
               />
-              <BookDateField
+              <DateField
                 ariaLabel={isCancelledTab ? t("cancelledDate.to") : t("receivedDate.to")}
                 className="h-9 text-sm"
                 id="history-filter-terminal-to"

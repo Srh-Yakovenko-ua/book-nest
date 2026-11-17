@@ -5,7 +5,7 @@ import type { CancelledFollowUpView, Nullable } from "@app/shared";
 import { useTranslations } from "next-intl";
 
 import { UiIcon, type UiIconName } from "@/components/icons";
-import { LibraryOverviewSection } from "@/features/books/components/library-overview-blocks";
+import { OverviewSection } from "@/components/overview-section";
 
 import { buildCancelledOutcomeRows } from "../model/cancelled-follow-up";
 
@@ -34,7 +34,7 @@ export function DeliveryCancelledOutcomeBlock({ outcomes }: DeliveryCancelledOut
   });
 
   return (
-    <LibraryOverviewSection className="sidebar-card-leaf" title={t("title")}>
+    <OverviewSection className="sidebar-card-leaf" title={t("title")}>
       <div className="flex flex-col gap-3">
         <p className="font-heading text-lg leading-tight font-semibold text-ink">
           {t("booksCount", { count: outcomes.totalBooksCount })}
@@ -54,6 +54,6 @@ export function DeliveryCancelledOutcomeBlock({ outcomes }: DeliveryCancelledOut
           ))}
         </ul>
       </div>
-    </LibraryOverviewSection>
+    </OverviewSection>
   );
 }

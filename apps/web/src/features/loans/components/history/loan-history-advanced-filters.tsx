@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { DateField } from "@/components/date-field";
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { BookDateField } from "@/features/books/components/book-date-field";
 import { cn } from "@/lib/utils";
 
 import type {
@@ -152,7 +152,7 @@ export function LoanHistoryAdvancedFilters({
             />
             {returnedPreset === "custom" ? (
               <div className="grid gap-2.5">
-                <BookDateField
+                <DateField
                   ariaLabel={tPeriod("from")}
                   className="h-9 text-sm"
                   id="loan-history-filter-returned-from"
@@ -161,7 +161,7 @@ export function LoanHistoryAdvancedFilters({
                   placeholder={tPeriod("from")}
                   value={draft.from}
                 />
-                <BookDateField
+                <DateField
                   ariaLabel={tPeriod("to")}
                   className="h-9 text-sm"
                   id="loan-history-filter-returned-to"
@@ -181,7 +181,7 @@ export function LoanHistoryAdvancedFilters({
 
           <FilterSection title={t("sections.loanDate")}>
             <div className="grid gap-2.5">
-              <BookDateField
+              <DateField
                 ariaLabel={t("range.from")}
                 className="h-9 text-sm"
                 id="loan-history-filter-loan-from"
@@ -190,7 +190,7 @@ export function LoanHistoryAdvancedFilters({
                 placeholder={t("range.from")}
                 value={draft.loanFrom}
               />
-              <BookDateField
+              <DateField
                 ariaLabel={t("range.to")}
                 className="h-9 text-sm"
                 id="loan-history-filter-loan-to"
