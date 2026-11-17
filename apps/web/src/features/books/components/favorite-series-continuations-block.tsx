@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { assertNever } from "@/lib/assert-never";
 import {
+  FALLBACK_READING_STATUS,
   ownershipStatuses,
   readingStatuses,
   type StatusDefinition,
@@ -347,9 +348,6 @@ function resolveCta(
       return assertNever(rankReason);
   }
 }
-
-const FALLBACK_READING_STATUS: StatusDefinition =
-  readingStatuses.find((entry) => entry.value === "not_started") ?? readingStatuses[0];
 
 const FALLBACK_OWNERSHIP_STATUS: StatusDefinition =
   ownershipStatuses.find((entry) => entry.value === "none") ?? ownershipStatuses[0];

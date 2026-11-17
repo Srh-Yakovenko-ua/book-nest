@@ -16,12 +16,12 @@ import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBookPagesCount } from "@/features/books/api/use-book";
-import { bookPageCeiling } from "@/features/books/model/book-page-ceiling";
 import { type OwnSpeciesChange, useSpeciesLocale } from "@/features/species";
 import { useCloseGuard, useReleaseOrphanedHistorySentinel } from "@/hooks/use-close-guard";
 import { type LinkDestination, useLinkLeaveGuard } from "@/hooks/use-link-leave-guard";
 import { useRouter } from "@/i18n/navigation";
 import { applyFieldErrors } from "@/lib/api-errors";
+import { bookPageCeiling } from "@/lib/book-page-ceiling";
 
 import type { CharacterEditMessages, CharacterEditValues } from "../model/character-edit-form";
 import type { CharacterAliasesHandle } from "../model/use-character-alias-editor";

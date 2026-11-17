@@ -22,8 +22,8 @@ import {
 } from "@app/shared";
 import { z } from "zod";
 
-import type { BookPageCeiling } from "@/features/books/model/book-page-ceiling";
 import type { OwnSpeciesChange } from "@/features/species";
+import type { BookPageCeiling } from "@/lib/book-page-ceiling";
 
 import {
   applyOwnSpeciesChange,

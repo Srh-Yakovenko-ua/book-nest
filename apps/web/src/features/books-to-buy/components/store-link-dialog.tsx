@@ -48,11 +48,11 @@ import {
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
 import { formatNumber } from "@/lib/format";
+import { CURRENCY_LABELS } from "@/lib/format-price";
 import { ApiError } from "@/lib/http-client";
 import { isHttpsUrl } from "@/lib/is-https-url";
 
 import { useAddStoreLink, useEditStoreLink } from "../api/use-store-links";
-import { CURRENCY_LABELS } from "../model/format-store-price";
 
 const CURRENCY_OPTIONS = ["UAH", "USD", "EUR"] as const satisfies readonly Currency[];
 

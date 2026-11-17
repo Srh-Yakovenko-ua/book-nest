@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatStorePrice } from "./format-store-price";
+import { formatStorePrice } from "./format-price";
 
 describe("formatStorePrice", () => {
   it.each([

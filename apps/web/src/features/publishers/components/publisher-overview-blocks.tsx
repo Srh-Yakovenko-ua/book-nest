@@ -20,8 +20,8 @@ import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
 import { Progress } from "@/components/ui/progress";
-import { formatStorePrice } from "@/features/books-to-buy/model/format-store-price";
 import { formatDate } from "@/lib/format";
+import { formatStorePrice } from "@/lib/format-price";
 import { cn } from "@/lib/utils";
 
 type LatestBookBadge = {

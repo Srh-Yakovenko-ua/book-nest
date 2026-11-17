@@ -15,10 +15,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useLibraryBooks } from "@/features/books/api/use-books";
 import { UnsetOwnershipDialog } from "@/features/books/components/unset-ownership-dialog";
 import { unsetOwnershipParams } from "@/features/books/model/unset-ownership";
+import { formatStorePrice } from "@/lib/format-price";
 
 import type { WishlistBestOffer } from "../model/books-to-buy-derive";
-
-import { formatStorePrice } from "../model/format-store-price";
 
 const BEST_OFFERS_LIMIT = 3;
 const UNSET_OWNERSHIP_ITEM_ID = "unset_ownership";

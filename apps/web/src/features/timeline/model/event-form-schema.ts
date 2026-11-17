@@ -13,7 +13,7 @@ import {
 } from "@app/shared";
 import { z } from "zod";
 
-import { bookPageCeiling } from "@/features/books/model/book-page-ceiling";
+import { bookPageCeiling } from "@/lib/book-page-ceiling";
 import { emptyToNull } from "@/lib/empty-to-null";
 
 export const EVENT_TITLE_MAX = 150;
