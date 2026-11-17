@@ -66,6 +66,8 @@ Every feature lives in a single folder under `src/features/<name>/`. The folder 
 
 Each feature has an `index.ts` that acts as its **public API** — only things re-exported from `index.ts` are meant to be used by other code. Internals (like `StatusDot` inside `features/health/components/`) are private to the feature.
 
+Another feature may import a feature in exactly three places: its `index.ts`, its `api/*-keys.ts` query key factory and its `api/*-effects.ts` cache effects module. The eslint rule `boundaries/dependencies` in `eslint.config.mjs` checks this for every file under `src/features/`, except tests, stories and fixtures.
+
 ### Rationale
 
 - **Cohesion** — all code for one feature lives together; finding things is linear
@@ -82,16 +84,19 @@ Each feature has an `index.ts` that acts as its **public API** — only things r
 | A page that is routing-level (404, error, login?) | `src/routes/`                                         |
 | A layout (topbar, sidebar, split pane)            | `src/routes/layouts/`                                 |
 | A component used only by one feature              | `src/features/<name>/components/`                     |
-| A component used by 2+ features                   | `src/components/` (promoted from feature)             |
+| A generic component used by 2+ features           | `src/components/` (promoted from feature)             |
 | A hook used only by one feature                   | `src/features/<name>/hooks/`                          |
-| A hook used by 2+ features                        | `src/hooks/` (promoted from feature)                  |
+| A generic hook used by 2+ features                | `src/hooks/` (promoted from feature)                  |
 | A pure function used by one feature               | `src/features/<name>/lib/`                            |
-| A pure function used by 2+ features               | `src/lib/` (promoted from feature)                    |
+| A generic pure function used by 2+ features       | `src/lib/` (promoted from feature)                    |
+| Domain code another feature needs                 | stays in its feature, exported from its `index.ts`    |
 | Shadcn vendored component                         | Never hand-edit — `pnpm dlx shadcn@latest add <name>` |
 
 ## YAGNI promotion rule
 
 Code starts in a feature folder. It is promoted to `src/components/`, `src/hooks/`, or `src/lib/` **only when a second feature needs it**. No premature "shared" code — premature promotion creates abstractions that fit the first feature but don't serve later ones.
+
+Promotion is for generic code: a date field, a chip, a price formatter, nothing that knows a domain. Domain code that a second feature needs, such as a book picker or a loan dialog, stays in its feature and is exported from that feature's `index.ts`.
 
 ## apps/api — layered backend
 
@@ -117,8 +122,8 @@ The layer separation (controllers → services → repositories) is intentional:
 
 - `lib/` can import from itself only (no React, no features)
 - `hooks/` can import from `lib/` and from other `hooks/`
-- `components/` can import from `lib/`, `hooks/`, `components/ui/`
-- `features/*/` can import from everything except other features
-- `features/foo/` cannot import from `features/bar/` (enforced by convention, not tooling yet)
+- `components/` can import from `lib/`, `hooks/`, `components/ui/`, and a feature's `index.ts` when it needs that feature's data (the shared date field reads the week start from settings)
+- `features/*/` can import from everything except the internals of other features
+- `features/foo/` imports `features/bar/` only through its `index.ts`, `api/*-keys.ts` or `api/*-effects.ts` (eslint `boundaries/dependencies`)
 - `routes/` can import features (via their `index.ts` public API)
 - Shadcn `components/ui/**` can import only from `lib/utils` and other `components/ui/**`
