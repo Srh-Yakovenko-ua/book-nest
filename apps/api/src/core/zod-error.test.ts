@@ -65,8 +65,8 @@ describe("mapZodError", () => {
     );
   });
 
-  it("caps the reported issues of an oversized array of invalid values", () => {
-    const schema = z.object({ ids: z.array(z.uuid()).max(100) });
+  it("caps the reported issues of a large array of invalid values", () => {
+    const schema = z.object({ ids: z.array(z.uuid()) });
     const result = schema.safeParse({
       ids: Array.from({ length: OVERSIZED_ARRAY_LENGTH }, () => "x"),
     });

@@ -13,13 +13,13 @@ const ZodBoundedArray = z.core.$constructor(
   (inst: z.ZodArray, def: z.core.$ZodArrayDef) => {
     z.ZodArray.init(inst, def);
     const parseEveryElement = inst._zod.parse;
+    const maxLength = smallestMaxLength(def.checks);
     inst._zod.parse = (payload, ctx) => {
       if (!Array.isArray(payload.value)) {
         return parseEveryElement(payload, ctx);
       }
       const items: readonly unknown[] = payload.value;
-      const maxLength = inst._zod.bag.maximum;
-      if (typeof maxLength === "number" && items.length > maxLength) {
+      if (items.length > maxLength) {
         return payload;
       }
       return parseUntilFirstIssue({
@@ -55,6 +55,12 @@ function acceptElement({
   return true;
 }
 
+function isMaxLengthCheckDef(
+  checkDef: z.core.$ZodCheckDef,
+): checkDef is z.core.$ZodCheckMaxLengthDef {
+  return checkDef.check === "max_length";
+}
+
 function parseUntilFirstIssue({
   startIndex,
   state,
@@ -77,4 +83,12 @@ function parseUntilFirstIssue({
   }
   state.payload.value = state.parsedItems;
   return state.payload;
+}
+
+function smallestMaxLength(checks: readonly z.core.$ZodCheck<never>[] = []): number {
+  const maximums = checks
+    .map((check) => check._zod.def)
+    .filter(isMaxLengthCheckDef)
+    .map((checkDef) => checkDef.maximum);
+  return Math.min(Number.POSITIVE_INFINITY, ...maximums);
 }
