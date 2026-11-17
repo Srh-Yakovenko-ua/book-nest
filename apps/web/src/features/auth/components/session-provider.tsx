@@ -10,6 +10,7 @@ import { useAuthStore } from "../model/auth-store";
 
 registerAuthBridge({
   getAccessToken: () => useAuthStore.getState().accessToken,
+  getUserId: () => useAuthStore.getState().user?.id ?? null,
   onRefreshFailed: () => useAuthStore.getState().clearSession(),
   refresh: singleFlightRefresh,
 });

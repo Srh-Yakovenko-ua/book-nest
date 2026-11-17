@@ -107,6 +107,7 @@ beforeEach(() => {
   refresh = vi.fn<() => Promise<string>>(() => Promise.resolve("access-token-1"));
   registerAuthBridge({
     getAccessToken: () => useAuthStore.getState().accessToken,
+    getUserId: () => null,
     onRefreshFailed,
     refresh,
   });

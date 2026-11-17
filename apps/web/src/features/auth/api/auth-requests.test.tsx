@@ -128,6 +128,7 @@ beforeEach(() => {
   useAuthStore.setState(useAuthStore.getInitialState(), true);
   registerAuthBridge({
     getAccessToken: () => null,
+    getUserId: () => null,
     onRefreshFailed: () => {},
     refresh: () => Promise.resolve("refreshed-access-token"),
   });
