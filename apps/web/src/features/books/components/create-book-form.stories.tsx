@@ -53,6 +53,7 @@ const GENRES_FIXTURE = [
 function taxonomyHandler(extra?: Handler): Handler {
   return (path, init) => {
     if (path.includes("/api/publishers/recent")) return jsonResponse(200, []);
+    if (path.includes("/api/publishers/duplicate-candidates")) return jsonResponse(200, []);
     if (path.includes("/api/books/purchase-stores")) return jsonResponse(200, []);
     if (path.includes("/api/genres") && (init?.method ?? "GET") === "GET") {
       return jsonResponse(200, GENRES_FIXTURE);
@@ -60,8 +61,8 @@ function taxonomyHandler(extra?: Handler): Handler {
     if (path.includes("/api/tags") && (init?.method ?? "GET") === "GET") {
       return jsonResponse(200, {
         items: [
-          { id: "tag-1", name: "улюблене" },
-          { id: "tag-2", name: "подарунок" },
+          { color: "sage", id: "tag-1", name: "улюблене" },
+          { color: "rose", id: "tag-2", name: "подарунок" },
         ],
         page: 1,
         pagesCount: 1,
@@ -74,8 +75,24 @@ function taxonomyHandler(extra?: Handler): Handler {
     if (path.includes("/api/lists") && init?.method !== "POST") {
       return jsonResponse(200, {
         items: [
-          { description: null, id: "list-1", name: "Літнє читання" },
-          { description: "подарунки", id: "list-2", name: "Подарунки" },
+          {
+            bookCount: 0,
+            createdAt: "2026-01-01T00:00:00.000Z",
+            description: null,
+            id: "list-1",
+            name: "Літнє читання",
+            previewCovers: [],
+            updatedAt: "2026-01-01T00:00:00.000Z",
+          },
+          {
+            bookCount: 0,
+            createdAt: "2026-01-01T00:00:00.000Z",
+            description: "подарунки",
+            id: "list-2",
+            name: "Подарунки",
+            previewCovers: [],
+            updatedAt: "2026-01-01T00:00:00.000Z",
+          },
         ],
         page: 1,
         pagesCount: 1,
