@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { libraryQueryParsers } from "@/features/books";
 
-import { publisherDetailUrlParsers } from "./publisher-detail-url";
+import { createPublisherDetailUrlParsers } from "./publisher-detail-url";
 import { usePublisherDetailUrlCleanup } from "./use-publisher-detail-url-cleanup";
 
 vi.mock("@/i18n/navigation", () => ({}));
@@ -24,7 +24,7 @@ function renderAt(searchParams: string) {
 
 function useCleanedDetailUrl() {
   const [books] = useQueryStates(libraryQueryParsers);
-  const [detail] = useQueryStates(publisherDetailUrlParsers);
+  const [detail] = useQueryStates(createPublisherDetailUrlParsers());
   usePublisherDetailUrlCleanup();
   return { books, tab: detail.tab };
 }

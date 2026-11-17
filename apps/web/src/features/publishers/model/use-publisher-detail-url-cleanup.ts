@@ -1,10 +1,13 @@
 import { useQueryStates } from "nuqs";
 import { useEffect } from "react";
 
-import { publisherDetailUrlNormalization, publisherDetailUrlParsers } from "./publisher-detail-url";
+import {
+  createPublisherDetailUrlParsers,
+  publisherDetailUrlNormalization,
+} from "./publisher-detail-url";
 
 export function usePublisherDetailUrlCleanup() {
-  const [urlState, setUrlState] = useQueryStates(publisherDetailUrlParsers);
+  const [urlState, setUrlState] = useQueryStates(createPublisherDetailUrlParsers());
 
   useEffect(() => {
     const normalization = publisherDetailUrlNormalization(urlState);
