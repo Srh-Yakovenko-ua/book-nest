@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { useQuery } from "@tanstack/react-query";
 import { act } from "react";
+import { toast, Toaster } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getAuthBridge } from "@/lib/auth-bridge";
@@ -138,5 +139,70 @@ describe("SessionProvider", () => {
     act(() => useAuthStore.getState().setSession("token-a", readers.first));
 
     expect(queryClient.getQueryData(cachedBooks.queryKey)).toEqual(cachedBooks.data);
+  });
+});
+
+describe("SessionProvider toasts", () => {
+  const undoToast = { action: "Undo", exitSettleMs: 400, message: "Removed" };
+  const undoSpy = vi.fn();
+
+  async function showUndoToast() {
+    act(() => {
+      toast(undoToast.message, {
+        action: { label: undoToast.action, onClick: undoSpy },
+        duration: Infinity,
+      });
+    });
+    await screen.findByText(undoToast.message);
+  }
+
+  function waitPastToastExit() {
+    return act(() => new Promise((resolve) => setTimeout(resolve, undoToast.exitSettleMs)));
+  }
+
+  afterEach(() => {
+    toast.dismiss();
+  });
+
+  it("closes the previous reader's toast without undoing when the reader switches", async () => {
+    await mountSession(<Toaster />);
+    act(() => useAuthStore.getState().setSession("token-a", readers.first));
+    await showUndoToast();
+
+    act(() => useAuthStore.getState().setSession("token-b", readers.second));
+
+    await waitFor(() => expect(screen.queryByText(undoToast.message)).not.toBeInTheDocument());
+    expect(undoSpy).not.toHaveBeenCalled();
+  });
+
+  it("closes the reader's toast when the session ends", async () => {
+    await mountSession(<Toaster />);
+    act(() => useAuthStore.getState().setSession("token-a", readers.first));
+    await showUndoToast();
+
+    act(() => useAuthStore.getState().clearSession());
+
+    await waitFor(() => expect(screen.queryByText(undoToast.message)).not.toBeInTheDocument());
+  });
+
+  it("keeps a toast shown while signed out when a reader signs in", async () => {
+    await mountSession(<Toaster />);
+    await showUndoToast();
+
+    act(() => useAuthStore.getState().setSession("token-a", readers.first));
+    await waitPastToastExit();
+
+    expect(screen.getByText(undoToast.message)).toBeInTheDocument();
+  });
+
+  it("keeps the reader's toast when the same reader gets a rotated token", async () => {
+    await mountSession(<Toaster />);
+    act(() => useAuthStore.getState().setSession("token-a", readers.first));
+    await showUndoToast();
+
+    act(() => useAuthStore.getState().setSession("token-a-rotated", { ...readers.first }));
+    await waitPastToastExit();
+
+    expect(screen.getByText(undoToast.message)).toBeInTheDocument();
   });
 });
