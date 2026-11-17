@@ -12,7 +12,9 @@ import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { CancelDeliveryDialog } from "@/features/books/components/cancel-delivery-dialog";
 import { useDeliveryErrorText } from "@/features/books/hooks/use-delivery-error-text";
+import { useProfileTimeZone } from "@/features/settings";
 import { useRouter } from "@/i18n/navigation";
+import { todayIsoDay } from "@/lib/iso-day";
 
 import type { DeliverySummaryLabels } from "../model/in-transit-summary-cards";
 import type { DeliveryOrderBookModel, DeliveryOrderCardModel } from "../model/order-card-model";
@@ -23,7 +25,10 @@ import { useInTransitImpact } from "../api/use-in-transit-impact";
 import { useInTransitList } from "../api/use-in-transit-list";
 import { useInTransitQuickCounts } from "../api/use-in-transit-quick-counts";
 import { useInTransitSummary } from "../api/use-in-transit-summary";
-import { useSetShipmentStatus } from "../api/use-order-shipment-actions";
+import {
+  usePendingShipmentStatusIds,
+  useSetShipmentStatus,
+} from "../api/use-order-shipment-actions";
 import { useRevealDeliveryTarget } from "../hooks/use-reveal-delivery-target";
 import { useDeliverySelectionStore } from "../model/delivery-selection-store";
 import {
@@ -57,6 +62,7 @@ export function DeliveryInTransit() {
   const tLibraryCard = useTranslations("books.library.card");
   const tNextShipment = useTranslations("delivery.nextShipment");
   const locale = useLocale();
+  const today = todayIsoDay(useProfileTimeZone());
   const router = useRouter();
   const deliveryErrorText = useDeliveryErrorText();
 
@@ -66,6 +72,7 @@ export function DeliveryInTransit() {
   const summaryQuery = useInTransitSummary();
   const impactQuery = useInTransitImpact();
   const setShipmentStatus = useSetShipmentStatus();
+  const pendingShipmentIds = usePendingShipmentStatusIds();
 
   const clearSelection = useDeliverySelectionStore((state) => state.clear);
   const enterSelection = useDeliverySelectionStore((state) => state.enterSelection);
@@ -91,10 +98,12 @@ export function DeliveryInTransit() {
 
     setPreparingOrderId(action.order.id);
     try {
-      await queryClient.ensureQueryData(bookOrderQueryOptions(action.order.id));
+      await queryClient.fetchQuery(bookOrderQueryOptions(action.order.id));
+      setManageAction(action);
+    } catch {
+      toast.error(t("states.error.title"));
     } finally {
       setPreparingOrderId(null);
-      setManageAction(action);
     }
   }
 
@@ -145,12 +154,9 @@ export function DeliveryInTransit() {
   );
 
   function changeShipmentStatus(shipmentId: string, status: ActiveShipmentStatus) {
-    setShipmentStatus.mutate(
-      { shipmentId, status },
-      {
-        onError: (error) => toast.error(deliveryErrorText(error)),
-        onSuccess: () => toast.success(tToast("statusUpdated")),
-      },
+    void setShipmentStatus.mutateAsync({ shipmentId, status }).then(
+      () => toast.success(tToast("statusUpdated")),
+      (error: unknown) => toast.error(deliveryErrorText(error)),
     );
   }
 
@@ -159,20 +165,18 @@ export function DeliveryInTransit() {
     else selectAllShipments(selectableShipments.map((shipment) => shipment.id));
   }
 
-  const hasListError = listQuery.isError && !listQuery.isFetchNextPageError;
-
-  const content: DeliveryContent = hasListError
+  const content: DeliveryContent = listQuery.isLoadingError
     ? { kind: "error" }
     : listQuery.isPending
       ? { kind: "loading" }
       : orders.length === 0
         ? params.hasActiveFilters || params.hasActiveSearch
-          ? { kind: "filtered-empty" }
+          ? { isRefreshing: listQuery.isPlaceholderData, kind: "filtered-empty" }
           : { kind: "empty" }
-        : { items: orders, kind: "ready" };
+        : { isRefreshing: listQuery.isPlaceholderData, items: orders, kind: "ready" };
 
   const showToolbar =
-    !hasListError &&
+    !listQuery.isLoadingError &&
     (listQuery.isPending || orders.length > 0 || params.hasActiveSearch || params.hasActiveFilters);
 
   const summaryData = summaryQuery.data;
@@ -220,6 +224,7 @@ export function DeliveryInTransit() {
     labels: summaryLabels,
     locale,
     summary: summaryData ?? null,
+    today,
   });
 
   const nextShipmentCard = buildDeliveryNextShipmentCard({
@@ -231,8 +236,8 @@ export function DeliveryInTransit() {
       tomorrow: tNextShipment("tomorrow"),
     },
     locale,
-    now: new Date(),
     summary: summaryData ?? null,
+    today,
   });
 
   const nextShipmentNeedsReset =
@@ -267,6 +272,7 @@ export function DeliveryInTransit() {
         setReceiveTarget({ bookCount, kind: "shipment", shipmentId })
       }
       onToggleSelectShipment={toggleSelectShipment}
+      pendingShipmentIds={pendingShipmentIds}
       preparingEdit={preparingOrderId === model.id}
       revealedOrderId={revealedTarget?.kind === "order" ? revealedTarget.id : null}
       revealedShipmentId={revealedTarget?.kind === "shipment" ? revealedTarget.id : null}
@@ -310,6 +316,11 @@ export function DeliveryInTransit() {
           isFetchingNextPage: listQuery.isFetchingNextPage,
           isFetchNextPageError: listQuery.isFetchNextPageError,
         }}
+        refetchError={
+          listQuery.isRefetchError
+            ? { isRetrying: listQuery.isRefetching, onRetry: () => void listQuery.refetch() }
+            : null
+        }
         renderCard={renderCard}
         selectAll={
           selectionMode && selectableShipments.length > 0
@@ -364,6 +375,7 @@ export function DeliveryInTransit() {
             filterCounts={quickCountsQuery.data}
             filterCountsPending={quickCountsQuery.isPending}
             isPending={listQuery.isPending}
+            isRefreshing={listQuery.isPlaceholderData}
             loadingLabel={t("states.loading")}
             onApplyAdvanced={params.applyAdvanced}
             onClearAll={params.clearFilters}

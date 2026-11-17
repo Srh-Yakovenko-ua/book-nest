@@ -234,7 +234,7 @@ export const SeriesBookViewSchema = z.object({
   cover: MediaViewSchema.nullable().optional(),
   createdAt: z.string(),
   currentPage: z.number().nullable(),
-  finishedAt: z.string().nullable(),
+  finishedAt: z.iso.date().nullable(),
   formats: z.array(BookFormatSchema),
   genres: z.array(z.string()),
   id: z.string(),
@@ -249,7 +249,7 @@ export const SeriesBookViewSchema = z.object({
   publisher: BookPublisherRefSchema.nullable(),
   rating: z.number().nullable(),
   readingStatus: ReadingStatusSchema,
-  startedAt: z.string().nullable(),
+  startedAt: z.iso.date().nullable(),
   tags: z.array(TagViewSchema),
   title: z.string(),
 });
@@ -262,13 +262,13 @@ export const SeriesStatsViewSchema = z.object({
   booksCount: z.number(),
   favoriteBook: z.object({ id: z.string(), title: z.string() }).nullable(),
   finishedCount: z.number(),
-  lastFinishedAt: z.string().nullable(),
+  lastFinishedAt: z.iso.date().nullable(),
   pagesCount: z.number().nullable(),
   readingCount: z.number(),
   readingDurationDays: z.number().nullable(),
   readPagesCount: z.number().nullable(),
   readPagesPartial: z.boolean(),
-  startedAt: z.string().nullable(),
+  startedAt: z.iso.date().nullable(),
   unreadCount: z.number(),
 });
 

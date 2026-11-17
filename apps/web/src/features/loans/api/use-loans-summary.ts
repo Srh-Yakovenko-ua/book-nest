@@ -1,11 +1,16 @@
-import { LoansSummaryViewSchema } from "@app/shared";
+import type { LoansSummaryView } from "@app/shared";
 
-import { useLoansControllerSummary } from "@/shared/api/generated/endpoints/loans/loans";
+import { LoansSummaryViewSchema } from "@app/shared";
+import { useQuery } from "@tanstack/react-query";
+
+import { loansControllerSummary } from "@/shared/api/generated/endpoints/loans/loans";
+
+import { loanKeys } from "./loan-keys";
 
 export function useLoansSummary() {
-  return useLoansControllerSummary({
-    query: {
-      select: (data) => LoansSummaryViewSchema.parse(data),
-    },
+  return useQuery({
+    queryFn: async ({ signal }): Promise<LoansSummaryView> =>
+      LoansSummaryViewSchema.parse(await loansControllerSummary({ signal })),
+    queryKey: loanKeys.summary,
   });
 }

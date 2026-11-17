@@ -6,11 +6,10 @@ import {
 } from "@app/shared";
 import { z } from "zod";
 
+import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 import { ApiError } from "@/lib/http-client";
 
 import type { RelationshipFormField } from "./relationship-form-schema";
-
-const NOT_FOUND_STATUS = 404;
 
 const INITIAL_BOOK_STATE_PATH = /^initialBookStates\.\d+\./;
 
@@ -42,7 +41,12 @@ const SERVER_FIELD_TO_FORM_FIELD = {
 } as const satisfies Record<string, RelationshipFormField>;
 
 export type RelationshipFieldErrorReason =
-  "bookNotFound" | "characterNotFound" | "directionMismatch" | "duplicate" | "selfReference";
+  | "bookContextInvalid"
+  | "bookNotFound"
+  | "characterNotFound"
+  | "directionMismatch"
+  | "duplicate"
+  | "selfReference";
 
 export type RelationshipSaveError =
   | { field: RelationshipFormField; kind: "field"; reason: RelationshipFieldErrorReason }
@@ -54,7 +58,7 @@ export type RelationshipSaveError =
 type ServerField = keyof typeof SERVER_FIELD_TO_FORM_FIELD;
 
 export function isRelationshipGone(error: unknown): boolean {
-  return error instanceof ApiError && error.status === NOT_FOUND_STATUS;
+  return isApiErrorStatus(error, HTTP_STATUS.notFound);
 }
 
 export function toRelationshipSaveError(error: unknown): RelationshipSaveError {
@@ -62,6 +66,7 @@ export function toRelationshipSaveError(error: unknown): RelationshipSaveError {
 
   switch (error.code) {
     case CHARACTER_RELATIONSHIP_ERROR_CODES.bookContextInvalid:
+      return { field: "bookId", kind: "field", reason: "bookContextInvalid" };
     case CHARACTER_RELATIONSHIP_ERROR_CODES.bookNotFound:
       return { field: "bookId", kind: "field", reason: "bookNotFound" };
     case CHARACTER_RELATIONSHIP_ERROR_CODES.characterNotFound:
@@ -87,7 +92,7 @@ export function toRelationshipSaveError(error: unknown): RelationshipSaveError {
       kind: "invalid",
     };
   }
-  if (error.status === NOT_FOUND_STATUS) return { kind: "gone" };
+  if (error.status === HTTP_STATUS.notFound) return { kind: "gone" };
   return { kind: "unknown" };
 }
 

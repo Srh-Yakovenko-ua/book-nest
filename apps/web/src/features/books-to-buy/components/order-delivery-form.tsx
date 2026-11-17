@@ -9,31 +9,33 @@ import type {
 } from "@app/shared";
 import type { ReactNode } from "react";
 
+import { DELIVERY_INPUT_LIMITS } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { isAfter, isBefore, parseISO } from "date-fns";
-import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { DateField } from "@/components/date-field";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DialogFooter } from "@/components/ui/dialog";
 import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import {
-  BookDateField,
   buildStoreSourceSchema,
   resolveStoreName,
   resolveStorePrice,
-  STORE_SOURCE_LIMITS,
   StoreSourceFields,
   type StoreSourceValue,
-  todayIso,
   toStoreSourceDefaults,
   useCreateDelivery,
+  useDeliveryErrorText,
 } from "@/features/books";
-import { ApiError } from "@/lib/http-client";
+import { useProfileTimeZone } from "@/features/settings";
+import { formatNumber } from "@/lib/format";
+import { todayIsoDay } from "@/lib/iso-day";
 
 import { findBestOfferLinkId } from "../model/best-offer-link";
 
@@ -41,6 +43,7 @@ type OrderDeliveryFormProps = {
   bestOffer: Nullable<BestOfferView>;
   book: BookView;
   onDone: () => void;
+  onPendingChange: (pending: boolean) => void;
   renderFields: (fields: ReactNode) => ReactNode;
   storeLinks: BookStoreLinkView[];
 };
@@ -56,9 +59,11 @@ export function OrderDeliveryForm({
   bestOffer,
   book,
   onDone,
+  onPendingChange,
   renderFields,
   storeLinks,
 }: OrderDeliveryFormProps) {
+  const locale = useLocale();
   const t = useTranslations("booksToBuy.statusDialog.ordered");
   const tConfirm = useTranslations("books.details.ownership.buyConfirm");
   const tDelivery = useTranslations("books.details.delivery");
@@ -66,18 +71,23 @@ export function OrderDeliveryForm({
   const tOwnershipErrors = useTranslations("books.details.ownership.errors");
   const tActions = useTranslations("books.actions");
   const createDelivery = useCreateDelivery();
+  const deliveryErrorText = useDeliveryErrorText();
   const [serverError, setServerError] = useState<null | string>(null);
   const bestOfferLinkId = findBestOfferLinkId({ bestOffer, storeLinks });
+  const today = todayIsoDay(useProfileTimeZone());
 
   const {
     control,
     formState: { errors },
+    getFieldState,
+    getValues,
     handleSubmit,
+    resetField,
   } = useForm<OrderDeliveryValues>({
     defaultValues: {
       expectedDeliveryDate: "",
       isFree: false,
-      orderDate: todayIso(),
+      orderDate: today,
       store: toStoreSourceDefaults({ bestOffer, purchaseInfo: book.purchaseInfo, storeLinks }),
     },
     mode: "onTouched",
@@ -90,13 +100,18 @@ export function OrderDeliveryForm({
             .string()
             .refine((value) => value.length > 0, tErrors("orderDateRequired"))
             .refine(
-              (value) => value.length === 0 || !isAfter(parseISO(value), new Date()),
+              (value) => value.length === 0 || !isAfter(parseISO(value), parseISO(today)),
               tErrors("orderDateFuture"),
             ),
           store: buildStoreSourceSchema({
-            price: tOwnershipErrors("price"),
-            priceMax: tOwnershipErrors("priceMax"),
-            storeNameMax: tErrors("storeNameMax", { max: STORE_SOURCE_LIMITS.storeNameMax }),
+            limits: DELIVERY_INPUT_LIMITS,
+            messages: {
+              price: tOwnershipErrors("price"),
+              priceMax: tOwnershipErrors("priceMax", {
+                max: formatNumber(DELIVERY_INPUT_LIMITS.priceMax, locale),
+              }),
+              storeNameMax: tErrors("storeNameMax", { max: DELIVERY_INPUT_LIMITS.storeNameMax }),
+            },
           }).refine((value) => resolveStoreName({ storeLinks, value }).length > 0, {
             message: tErrors("storeNameRequired"),
             path: ["storeName"],
@@ -120,13 +135,22 @@ export function OrderDeliveryForm({
     ),
   });
 
+  useEffect(() => {
+    onPendingChange(createDelivery.isPending);
+    return () => onPendingChange(false);
+  }, [createDelivery.isPending, onPendingChange]);
+
+  useEffect(() => {
+    if (getFieldState("orderDate").isDirty || getValues("orderDate") === today) return;
+    resetField("orderDate", { defaultValue: today });
+  }, [getFieldState, getValues, resetField, today]);
+
   const onSubmit = handleSubmit((values) => {
     setServerError(null);
     createDelivery.mutate(
       { id: book.id, payload: buildPayload({ storeLinks, values }) },
       {
-        onError: (error) =>
-          setServerError(error instanceof ApiError ? error.message : tErrors("generic")),
+        onError: (error) => setServerError(deliveryErrorText(error)),
         onSuccess: onDone,
       },
     );
@@ -179,13 +203,14 @@ export function OrderDeliveryForm({
                 control={control}
                 name="orderDate"
                 render={({ field }) => (
-                  <BookDateField
+                  <DateField
                     ariaLabel={t("orderDate")}
                     describedBy={errors.orderDate ? "order-delivery-order-date-error" : undefined}
                     id="order-delivery-order-date"
                     invalid={errors.orderDate !== undefined}
                     onChange={(next) => field.onChange(next ?? "")}
                     required
+                    today={today}
                     value={field.value}
                   />
                 )}
@@ -199,7 +224,7 @@ export function OrderDeliveryForm({
                 control={control}
                 name="expectedDeliveryDate"
                 render={({ field }) => (
-                  <BookDateField
+                  <DateField
                     allowFuture
                     ariaLabel={t("expectedDate")}
                     describedBy={
@@ -208,6 +233,7 @@ export function OrderDeliveryForm({
                     id="order-delivery-expected-date"
                     invalid={errors.expectedDeliveryDate !== undefined}
                     onChange={(next) => field.onChange(next ?? "")}
+                    today={today}
                     value={field.value}
                   />
                 )}
@@ -228,7 +254,12 @@ export function OrderDeliveryForm({
       )}
 
       <DialogFooter>
-        <Button onClick={onDone} type="button" variant="secondary">
+        <Button
+          disabled={createDelivery.isPending}
+          onClick={onDone}
+          type="button"
+          variant="secondary"
+        >
           {tActions("cancel")}
         </Button>
         <Button

@@ -20,6 +20,7 @@ import {
   BookCharacterStatusSchema,
   CHARACTER_INT4_MAX,
   CharacterAliasTypeSchema,
+  type CharacterAttitude,
   CharacterAttitudeSchema,
   CharacterEntityKindSchema,
   CharacterFormTypeSchema,
@@ -70,6 +71,18 @@ const speciesKeyRef = () => z.string().trim().min(1).max(BUNDLE_SPECIES_KEY_MAX)
 const ONLY_WHEN_PARSED_CLEANLY = {
   when: (payload: z.core.ParsePayload) => payload.issues.length === 0,
 } satisfies z.core.$ZodSuperRefineParams;
+
+const LEGACY_FAVORITE_ATTITUDE = {
+  replacement: "like",
+  value: "favorite",
+} as const satisfies { replacement: CharacterAttitude; value: string };
+
+const ImportableCharacterAttitudeSchema = z.enum([
+  ...CharacterAttitudeSchema.options,
+  LEGACY_FAVORITE_ATTITUDE.value,
+]);
+
+type ImportableCharacterAttitude = z.infer<typeof ImportableCharacterAttitudeSchema>;
 
 const BundleAliasSchema = z
   .object({
@@ -150,6 +163,16 @@ const BundleAppearanceSchema = BundleAppearanceV1Schema.extend({
 
 export type BundleAppearance = z.infer<typeof BundleAppearanceSchema>;
 
+const importableAppearanceAttitude = { attitude: ImportableCharacterAttitudeSchema.nullable() };
+
+const ImportableBundleAppearanceV1Schema = BundleAppearanceV1Schema.extend(
+  importableAppearanceAttitude,
+);
+
+const ImportableBundleAppearanceSchema = BundleAppearanceSchema.extend(
+  importableAppearanceAttitude,
+);
+
 const BundleFormSchema = z
   .object({
     description: nullableText(BUNDLE_LONG_TEXT_MAX),
@@ -182,16 +205,23 @@ const bundleCharacterFields = {
   tagIds: boundedArray(externalRef(), CHARACTER_BUNDLE_TAGS_PER_CHARACTER_MAX),
 };
 
+const importableBundleCharacterFields = {
+  ...bundleCharacterFields,
+  globalAttitude: ImportableCharacterAttitudeSchema.nullable(),
+};
+
 const BundleCharacterV1Schema = z
   .object({
-    ...bundleCharacterFields,
+    ...importableBundleCharacterFields,
     appearances: boundedArray(
-      BundleAppearanceV1Schema,
+      ImportableBundleAppearanceV1Schema,
       CHARACTER_BUNDLE_APPEARANCES_PER_CHARACTER_MAX,
     ),
   })
   .strict()
   .superRefine(requireCustomGender, ONLY_WHEN_PARSED_CLEANLY);
+
+type BundleCharacterV1 = z.infer<typeof BundleCharacterV1Schema>;
 
 const BundleCharacterSchema = z
   .object({
@@ -205,6 +235,19 @@ const BundleCharacterSchema = z
   .superRefine(requireCustomGender, ONLY_WHEN_PARSED_CLEANLY);
 
 export type BundleCharacter = z.infer<typeof BundleCharacterSchema>;
+
+const ImportableBundleCharacterSchema = z
+  .object({
+    ...importableBundleCharacterFields,
+    appearances: boundedArray(
+      ImportableBundleAppearanceSchema,
+      CHARACTER_BUNDLE_APPEARANCES_PER_CHARACTER_MAX,
+    ),
+  })
+  .strict()
+  .superRefine(requireCustomGender, ONLY_WHEN_PARSED_CLEANLY);
+
+type ImportableBundleCharacter = z.infer<typeof ImportableBundleCharacterSchema>;
 
 const BundleMembershipSchema = z
   .object({
@@ -368,16 +411,24 @@ export const CharacterBundleSchema = z
     formatVersion: z.literal(CHARACTER_BUNDLE_FORMAT_VERSION),
   })
   .strict()
-  .superRefine((bundle, ctx) => {
-    requireBundleCharacterReferences(bundle, ctx);
-    limitBundleFactTotal(bundle, ctx);
-  }, ONLY_WHEN_PARSED_CLEANLY);
+  .superRefine(requireCurrentBundleIntegrity, ONLY_WHEN_PARSED_CLEANLY);
 
 export type CharacterBundle = z.infer<typeof CharacterBundleSchema>;
 
+const ImportableCharacterBundleSchema = z
+  .object({
+    ...bundleCollectionFields,
+    characters: boundedArray(ImportableBundleCharacterSchema, CHARACTER_BUNDLE_CHARACTERS_MAX),
+    formatVersion: z.literal(CHARACTER_BUNDLE_FORMAT_VERSION),
+  })
+  .strict()
+  .superRefine(requireCurrentBundleIntegrity, ONLY_WHEN_PARSED_CLEANLY);
+
+type ImportableCharacterBundle = z.infer<typeof ImportableCharacterBundleSchema>;
+
 export const CharacterBundleAnyVersionSchema = z.discriminatedUnion("formatVersion", [
   CharacterBundleV1Schema,
-  CharacterBundleSchema,
+  ImportableCharacterBundleSchema,
 ]);
 
 type BundleCharacterReferences = {
@@ -387,7 +438,11 @@ type BundleCharacterReferences = {
   theories: readonly BundleTheory[];
 };
 
-function countBundleFacts(bundle: Pick<CharacterBundle, "characters">): number {
+type BundleFactCarrier = {
+  characters: readonly { appearances: readonly { facts: readonly BundleFact[] }[] }[];
+};
+
+function countBundleFacts(bundle: BundleFactCarrier): number {
   return bundle.characters.reduce(
     (characterTotal, character) =>
       characterTotal +
@@ -399,10 +454,7 @@ function countBundleFacts(bundle: Pick<CharacterBundle, "characters">): number {
   );
 }
 
-function limitBundleFactTotal(
-  bundle: Pick<CharacterBundle, "characters">,
-  ctx: z.RefinementCtx,
-): void {
+function limitBundleFactTotal(bundle: BundleFactCarrier, ctx: z.RefinementCtx): void {
   if (countBundleFacts(bundle) <= CHARACTER_BUNDLE_FACTS_TOTAL_MAX) {
     return;
   }
@@ -468,6 +520,14 @@ function requireBundleCharacterReferences(
       });
     }
   }
+}
+
+function requireCurrentBundleIntegrity(
+  bundle: BundleCharacterReferences & BundleFactCarrier,
+  ctx: z.RefinementCtx,
+): void {
+  requireBundleCharacterReferences(bundle, ctx);
+  limitBundleFactTotal(bundle, ctx);
 }
 
 function requireCustomGender(
@@ -609,16 +669,36 @@ export const CharacterBundleImportSchema = z
 
 export type ImportedCharacterBundle = z.infer<typeof CharacterBundleImportSchema>;
 
-function toCurrentCharacterBundle(bundle: CharacterBundle | CharacterBundleV1): CharacterBundle {
-  if (bundle.formatVersion === CHARACTER_BUNDLE_FORMAT_VERSION) {
-    return bundle;
-  }
+function toCurrentAttitude(
+  attitude: Nullable<ImportableCharacterAttitude>,
+): Nullable<CharacterAttitude> {
+  return attitude === LEGACY_FAVORITE_ATTITUDE.value
+    ? LEGACY_FAVORITE_ATTITUDE.replacement
+    : attitude;
+}
+
+function toCurrentBundleCharacter(character: ImportableBundleCharacter): BundleCharacter {
+  return {
+    ...character,
+    appearances: character.appearances.map((appearance) => ({
+      ...appearance,
+      attitude: toCurrentAttitude(appearance.attitude),
+    })),
+    globalAttitude: toCurrentAttitude(character.globalAttitude),
+    isFavorite: character.isFavorite || character.globalAttitude === LEGACY_FAVORITE_ATTITUDE.value,
+  };
+}
+
+function toCurrentCharacterBundle(
+  bundle: CharacterBundleV1 | ImportableCharacterBundle,
+): CharacterBundle {
+  const characters =
+    bundle.formatVersion === CHARACTER_BUNDLE_FORMAT_VERSION
+      ? bundle.characters
+      : bundle.characters.map((character) => withEmptyFacts(character));
   return {
     ...bundle,
-    characters: bundle.characters.map((character) => ({
-      ...character,
-      appearances: character.appearances.map((appearance) => ({ ...appearance, facts: [] })),
-    })),
+    characters: characters.map((character) => toCurrentBundleCharacter(character)),
     formatVersion: CHARACTER_BUNDLE_FORMAT_VERSION,
   };
 }
@@ -627,6 +707,13 @@ function upgradeV1CharacterBundle(payload: unknown): unknown {
   return V1FormatVersionProbeSchema.safeParse(payload).success
     ? upgradeLegacyCharacterBundle(payload)
     : payload;
+}
+
+function withEmptyFacts(character: BundleCharacterV1): ImportableBundleCharacter {
+  return {
+    ...character,
+    appearances: character.appearances.map((appearance) => ({ ...appearance, facts: [] })),
+  };
 }
 
 export const CharacterExportQuerySchema = z.object({

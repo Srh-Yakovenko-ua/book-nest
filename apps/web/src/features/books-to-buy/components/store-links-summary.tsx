@@ -5,11 +5,11 @@ import type { BestOfferView, BookStoreLinkView, Nullable } from "@app/shared";
 import { useLocale, useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
+import { formatStorePrice } from "@/lib/format-price";
 import { isHttpsUrl } from "@/lib/is-https-url";
 import { cn } from "@/lib/utils";
 
 import { findBestOfferLinkId } from "../model/best-offer-link";
-import { formatStorePrice } from "../model/format-store-price";
 import { hasMultipleCurrencies } from "../model/store-link-prices";
 
 export function StoreLinksSummary({

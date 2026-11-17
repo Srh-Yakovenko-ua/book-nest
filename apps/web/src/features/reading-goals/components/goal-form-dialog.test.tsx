@@ -4,14 +4,22 @@ import type { ReadingGoalView } from "@app/shared";
 import type { ReactNode, RefObject } from "react";
 
 import { defaultUserProfileSettings } from "@app/shared";
+import { toast } from "sonner";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { makeReadingGoalView } from "../model/reading-goals.fixtures";
 import { GoalFormDialog } from "./goal-form-dialog";
 
 const TODAY = new Date(2026, 7, 15, 9, 0, 0);
+const NEW_YORK_EVENING = {
+  instant: "2026-11-16T02:00:00.000Z",
+  timeZone: "America/New_York",
+  todayLabel: "Сьогодні, неділя, 15-е листопада 2026 р.",
+} as const;
+const CREATE_GOAL_URL = "/api/lists/list-1/goal";
 const GOAL_URL = "/api/goals/goal-1";
 const QUICK_PICK_GROUP = {
   deadline: "Швидкий вибір дедлайну",
@@ -33,10 +41,20 @@ const fetchMock = vi.fn();
 const onOpenChange = vi.fn();
 const openerRef: RefObject<HTMLButtonElement | null> = { current: null };
 
+let profileTimeZone: string;
+let respondToCreate: () => Promise<Response>;
 let respondToUpdate: () => Response;
 
 function calendarDay(day: string) {
   return within(screen.getByRole("grid")).getByText(day);
+}
+
+function deferredResponse() {
+  let resolve: (response: Response) => void = () => undefined;
+  const promise = new Promise<Response>((settle) => {
+    resolve = settle;
+  });
+  return { promise, resolve };
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -87,13 +105,18 @@ afterAll(() => {
 
 beforeEach(() => {
   vi.setSystemTime(TODAY);
+  profileTimeZone = defaultUserProfileSettings.timezone;
+  respondToCreate = () => Promise.resolve(jsonResponse(makeReadingGoalView()));
   respondToUpdate = () => jsonResponse(makeReadingGoalView());
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
     if (url.includes("/api/profile/settings"))
-      return Promise.resolve(jsonResponse(defaultUserProfileSettings));
+      return Promise.resolve(
+        jsonResponse({ ...defaultUserProfileSettings, timezone: profileTimeZone }),
+      );
+    if (url.includes(CREATE_GOAL_URL) && method === "POST") return respondToCreate();
     if (url.includes(GOAL_URL) && method === "PATCH") return Promise.resolve(respondToUpdate());
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
   });
@@ -106,18 +129,17 @@ afterEach(() => {
 });
 
 describe("GoalFormDialog validation", () => {
-  it("puts a deadline moved to today right next to its own field", async () => {
+  it("keeps today out of reach in the deadline calendar", async () => {
     const dialog = openEditDialog(makeReadingGoalView({ deadline: "2026-08-20" }));
 
     await userEvent.click(within(dialog).getByRole("button", { name: "До дати, 20 серпня 2026" }));
+    const todayButton = await screen.findByRole("button", { name: /^Сьогодні/ });
+    expect(todayButton).toBeDisabled();
     await userEvent.click(calendarDay("15"));
-    await userEvent.click(within(dialog).getByRole("button", { name: "Зберегти" }));
 
-    await waitFor(() =>
-      expect(
-        within(dialog).getByRole("button", { name: "До дати, 15 серпня 2026" }),
-      ).toHaveAccessibleDescription("Оберіть дату пізніше за сьогодні"),
-    );
+    expect(
+      within(dialog).getByRole("button", { name: "До дати, 20 серпня 2026" }),
+    ).toBeInTheDocument();
     expect(updateCall()).toBeUndefined();
   });
 
@@ -295,5 +317,90 @@ describe("GoalFormDialog deadline shortcuts", () => {
     const dialog = openEditDialog(makeReadingGoalView({ deadline: "2027-01-20" }));
 
     expect(quickPickLabels(dialog, "deadline")).toEqual(["Кінець місяця", "Через 3 місяці"]);
+  });
+});
+
+describe("GoalFormDialog while saving", () => {
+  it("stays open on Escape while the goal is being created and closes once it is", async () => {
+    const creating = deferredResponse();
+    respondToCreate = () => creating.promise;
+    renderWithProviders(
+      <GoalFormDialog
+        bookCount={20}
+        listName="Книги на осінь"
+        mode={{ kind: "create", listId: "list-1", previousOutcome: null }}
+        onOpenChange={onOpenChange}
+        open
+        openerRef={openerRef}
+      />,
+    );
+    const dialog = screen.getByRole("dialog", { name: "Створити ціль для добірки" });
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Кінець місяця" }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Створити ціль" }));
+    await waitFor(() =>
+      expect(within(dialog).getByRole("button", { name: "Скасувати" })).toBeDisabled(),
+    );
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(screen.getByRole("dialog", { name: "Створити ціль для добірки" })).toBeInTheDocument();
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    creating.resolve(jsonResponse(makeReadingGoalView()));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Ціль створено"));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+});
+
+describe("GoalFormDialog with unsaved changes", () => {
+  it("asks before Escape throws away a renamed goal and keeps the dialog", async () => {
+    const dialog = openEditDialog(makeReadingGoalView());
+
+    await userEvent.type(within(dialog).getByLabelText(/Назва цілі/), "Осінній забіг");
+    await userEvent.keyboard("{Escape}");
+
+    expect(
+      await screen.findByRole("alertdialog", { name: messages.common.discardChanges.title }),
+    ).toBeInTheDocument();
+    expect(dialog).toBeInTheDocument();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("GoalFormDialog in the profile time zone", () => {
+  beforeEach(() => {
+    vi.setSystemTime(NEW_YORK_EVENING.instant);
+    profileTimeZone = NEW_YORK_EVENING.timeZone;
+  });
+
+  it("accepts the next New York day as a deadline while UTC has already reached it", async () => {
+    const dialog = openEditDialog(makeReadingGoalView({ deadline: "2026-11-20" }));
+
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "До дати, 20 листопада 2026" }),
+    );
+    await userEvent.click(calendarDay("16"));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Зберегти" }));
+
+    await waitFor(() => expect(updateCall()).toBeDefined());
+    expect(updateBody()).toEqual({ deadline: "2026-11-16" });
+  });
+
+  it("keeps the current New York day out of reach in the deadline calendar", async () => {
+    const dialog = openEditDialog(makeReadingGoalView({ deadline: "2026-11-20" }));
+
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "До дати, 20 листопада 2026" }),
+    );
+    const todayButton = await screen.findByRole("button", { name: NEW_YORK_EVENING.todayLabel });
+    expect(todayButton).toBeDisabled();
+    await userEvent.click(calendarDay("15"));
+
+    expect(
+      within(dialog).getByRole("button", { name: "До дати, 20 листопада 2026" }),
+    ).toBeInTheDocument();
+    expect(updateCall()).toBeUndefined();
   });
 });

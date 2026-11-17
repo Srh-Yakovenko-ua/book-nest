@@ -32,6 +32,5 @@ export function useRelationshipPath(pathQuery: RelationshipGraphPathQuery) {
               ),
             ),
     queryKey: relationshipKeys.path(pathQuery),
-    retry: false,
   });
 }

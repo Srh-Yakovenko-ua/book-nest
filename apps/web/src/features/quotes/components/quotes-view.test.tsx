@@ -10,10 +10,12 @@ import type {
 import type { OnUrlUpdateFunction, UrlUpdateEvent } from "nuqs/adapters/testing";
 import type { ReactNode } from "react";
 
+import { createTranslator } from "next-intl";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import {
   mockIntersectionObserver,
   renderWithProviders,
@@ -23,16 +25,21 @@ import {
   within,
 } from "@/test-utils";
 
+import { quoteKeys } from "../api/quote-keys";
 import { QUOTES_PAGE_SIZE } from "../model/quotes-query";
 import { makeQuote } from "../model/quotes.fixtures";
 import { QuotesView } from "./quotes-view";
 
 const SORT_LABEL = "Сортування цитат";
 
+const translateQuotes = createTranslator({ locale: "uk", messages, namespace: "quotes" });
+
 const viewport = mockIntersectionObserver();
 
 type QuotesMockOptions = {
   facetsFor?: (url: string) => QuotesFacetsView;
+  listHeldUntil?: (url: string) => Promise<void>;
+  listStatus?: number;
   overview?: QuotesOverviewView;
   summaryStatus?: number;
 };
@@ -208,6 +215,24 @@ describe("QuotesView quick filters", () => {
     );
     expect(screen.getByText("Показано 10 із 13 цитат")).toBeInTheDocument();
   });
+
+  it("dims the quotes but not the facet-driven counter while a preset loads", async () => {
+    mockQuotes(quotes(13), {
+      listHeldUntil: (url) =>
+        url.includes("filter=favorites") ? new Promise<void>(() => {}) : Promise.resolve(),
+    });
+    renderQuotes();
+    expect(await screen.findByText("Цитата 1")).toBeInTheDocument();
+    await waitFor(() => expect(filterChipTexts()[0]).toBe("Усі13"));
+
+    const presets = within(screen.getByRole("radiogroup", { name: "Швидкі фільтри цитат" }));
+    await userEvent.click(presets.getByRole("radio", { name: /^Улюблені/ }));
+
+    await waitFor(() => expect(regionBusyState(screen.getByText("Цитата 1"))).toBe("true"));
+    expect(listUrls().at(-1)).toContain("filter=favorites");
+    const counter = screen.getByText(translateQuotes("counter", { shown: 2, total: 13 }));
+    expect(counter.closest('[aria-busy="true"]')).toBeNull();
+  });
 });
 
 describe("QuotesView advanced filters", () => {
@@ -362,18 +387,81 @@ describe("QuotesView overview cards", () => {
   });
 
   it("keeps the mobile overview reachable when the summary request fails", async () => {
-    mockQuotes(quotes(13), { summaryStatus: 500 });
+    stubMobileViewport();
+    mockQuotes(quotes(13), {
+      overview: { memoryQuote: makeQuote(), postFinish: null },
+      summaryStatus: 500,
+    });
 
     renderQuotes();
 
     expect(await screen.findByText("Цитата 1")).toBeInTheDocument();
+    expect(await screen.findByText(messages.common.summaryError.title)).toBeInTheDocument();
     const trigger = await screen.findByRole("button", { name: "Огляд цитат" });
 
     await waitFor(() =>
       expect(trigger.parentElement?.querySelectorAll('[data-slot="card"]')).toHaveLength(0),
     );
     expect(summaryCardTexts()).toHaveLength(0);
-    expect(trigger).toBeInTheDocument();
+
+    await userEvent.click(trigger);
+    const drawer = await screen.findByRole("dialog", { name: "Огляд цитат" });
+
+    expect(
+      await within(drawer).findByRole("heading", {
+        level: 2,
+        name: messages.quotes.sidebar.rediscovery.title,
+      }),
+    ).toBeVisible();
+    expect(
+      within(drawer).queryByRole("heading", { name: messages.quotes.summary.mobile.title }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps the loaded summary numbers when a summary refetch fails", async () => {
+    mockQuotes(quotes(3));
+    const { queryClient } = renderQuotes();
+    await waitFor(() => expect(summaryCardTexts().join(" ")).toContain("Дюна"));
+    const loadedCards = summaryCardTexts();
+
+    mockQuotes(quotes(3), { summaryStatus: 500 });
+    await act(() => queryClient.refetchQueries({ queryKey: quoteKeys.summary }));
+
+    expect(requestedUrls.filter((url) => url.includes("/api/quotes/summary"))).toHaveLength(2);
+    expect(summaryCardTexts()).toEqual(loadedCards);
+    expect(screen.queryByText(messages.common.summaryError.title)).not.toBeInTheDocument();
+  });
+});
+
+describe("QuotesView refetch failure", () => {
+  it("keeps the loaded quotes and shows the refresh banner when a refetch fails", async () => {
+    mockQuotes(quotes(3));
+    const { queryClient } = renderQuotes();
+    expect(await screen.findByText("Цитата 1")).toBeInTheDocument();
+
+    mockQuotes(quotes(3), { listStatus: 500 });
+    await act(() => queryClient.invalidateQueries({ queryKey: quoteKeys.root }));
+
+    expect(await screen.findByText(messages.common.refetchError)).toBeInTheDocument();
+    expect(screen.getByText("Цитата 1")).toBeInTheDocument();
+    expect(screen.queryByText(messages.quotes.error.load)).not.toBeInTheDocument();
+  });
+});
+
+describe("QuotesView first-load retry", () => {
+  it("moves keyboard focus to the quotes list while the retry request is pending", async () => {
+    const retryName = messages.quotes.actions.retry;
+    mockQuotes(quotes(3), { listStatus: 500 });
+    renderQuotes();
+    (await screen.findByRole("button", { name: retryName })).focus();
+
+    mockQuotes(quotes(3), { listHeldUntil: () => new Promise<void>(() => undefined) });
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: retryName })).not.toBeInTheDocument(),
+    );
+
+    expect(screen.getByRole("region", { name: messages.quotes.listLabel })).toHaveFocus();
   });
 });
 
@@ -478,7 +566,13 @@ function listUrls(): string[] {
 }
 
 function mockQuotes(items: QuoteView[], options: QuotesMockOptions = {}) {
-  const { facetsFor = () => FACETS, overview = EMPTY_OVERVIEW, summaryStatus = 200 } = options;
+  const {
+    facetsFor = () => FACETS,
+    listHeldUntil = () => Promise.resolve(),
+    listStatus = 200,
+    overview = EMPTY_OVERVIEW,
+    summaryStatus = 200,
+  } = options;
 
   vi.stubGlobal(
     "fetch",
@@ -490,7 +584,11 @@ function mockQuotes(items: QuoteView[], options: QuotesMockOptions = {}) {
       }
       if (url.includes("/api/quotes/overview")) return Promise.resolve(jsonResponse(overview));
       if (url.includes("/api/quotes/facets")) return Promise.resolve(jsonResponse(facetsFor(url)));
-      if (url.includes("/api/quotes")) return Promise.resolve(jsonResponse(quotesPage(items, url)));
+      if (url.includes("/api/quotes")) {
+        return listHeldUntil(url).then(() =>
+          listStatus === 200 ? jsonResponse(quotesPage(items, url)) : jsonResponse({}, listStatus),
+        );
+      }
       if (url.includes("/api/books")) {
         return Promise.resolve(
           jsonResponse({ items: [], page: 1, pagesCount: 0, pageSize: 20, totalCount: 0 }),
@@ -546,6 +644,10 @@ function quotesPage(items: QuoteView[], url: string) {
     pageSize,
     totalCount: items.length,
   };
+}
+
+function regionBusyState(element: HTMLElement) {
+  return element.closest("[aria-busy]")?.getAttribute("aria-busy");
 }
 
 function renderQuotes(searchParams = "", onUrlUpdate?: OnUrlUpdateFunction) {

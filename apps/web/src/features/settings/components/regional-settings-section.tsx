@@ -23,6 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Segmented } from "@/components/ui/segmented";
 
 import { useUpdateSettings } from "../api/use-update-settings";
+import { currentTimezoneName, legacyTimezoneNames } from "../model/current-timezone-names";
 
 const WEEK_START_OPTIONS: readonly WeekStartDay[] = ["monday", "sunday"];
 
@@ -67,15 +68,28 @@ function isWeekStartDay(value: string): value is WeekStartDay {
   return WeekStartDaySchema.safeParse(value).success;
 }
 
-function timezoneOptions(timezone: string): readonly string[] {
-  const storedZone = TIMEZONE_LIST.canonicalise(timezone);
-  const withoutStoredAlias = TIMEZONE_LIST.supported.filter(
-    (zone) => zone === timezone || TIMEZONE_LIST.canonicalise(zone) !== storedZone,
-  );
+function timezoneKeywords({
+  option,
+  storedZone,
+}: {
+  option: string;
+  storedZone: string;
+}): string[] {
+  const legacyNames = legacyTimezoneNames(option);
+  if (option !== currentTimezoneName(storedZone)) return legacyNames;
 
-  return TIMEZONE_LIST.sort(
-    withoutStoredAlias.includes(timezone) ? withoutStoredAlias : [...withoutStoredAlias, timezone],
+  const storedRuntimeZone = TIMEZONE_LIST.canonicalise(storedZone);
+  return [...new Set([...legacyNames, currentTimezoneName(storedRuntimeZone), storedRuntimeZone])];
+}
+
+function timezoneOptions(storedZone: string): readonly string[] {
+  const storedRuntimeZone = TIMEZONE_LIST.canonicalise(storedZone);
+  const otherRuntimeZones = TIMEZONE_LIST.supported.filter(
+    (zone) => TIMEZONE_LIST.canonicalise(zone) !== storedRuntimeZone,
   );
+  const currentNames = [...otherRuntimeZones, storedZone].map(currentTimezoneName);
+
+  return TIMEZONE_LIST.sort([...new Set(currentNames)]);
 }
 
 function TimezoneRow({ timezone }: { timezone: string }) {
@@ -90,6 +104,7 @@ function TimezoneRow({ timezone }: { timezone: string }) {
   const value = updateSettings.isPending
     ? (updateSettings.variables?.timezone ?? timezone)
     : timezone;
+  const selectedZone = currentTimezoneName(value);
 
   return (
     <div className="flex flex-col gap-2">
@@ -103,7 +118,7 @@ function TimezoneRow({ timezone }: { timezone: string }) {
             type="button"
             variant="outline"
           >
-            <span className="truncate">{value}</span>
+            <span className="truncate">{selectedZone}</span>
             <UiIcon className="ml-2 shrink-0 opacity-60" name="chevron-down" size={16} />
           </Button>
         </PopoverTrigger>
@@ -117,9 +132,10 @@ function TimezoneRow({ timezone }: { timezone: string }) {
                   <CommandItem
                     className="cursor-pointer justify-between gap-2"
                     key={option}
+                    keywords={timezoneKeywords({ option, storedZone: value })}
                     onSelect={() => {
                       setOpen(false);
-                      if (option === value) return;
+                      if (option === selectedZone) return;
                       updateSettings.mutate(
                         { timezone: option },
                         {
@@ -131,7 +147,7 @@ function TimezoneRow({ timezone }: { timezone: string }) {
                     value={option}
                   >
                     <span className="min-w-0 truncate">{option}</span>
-                    {option === value ? (
+                    {option === selectedZone ? (
                       <UiIcon className="shrink-0 text-primary" name="check" size={16} />
                     ) : null}
                   </CommandItem>

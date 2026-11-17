@@ -30,6 +30,23 @@ const characterScopedAppearanceSelect = {
   characterId: true,
 } satisfies Prisma.BookCharacterSelect;
 
+const characterBookOrderKeySelect = {
+  book: {
+    select: {
+      id: true,
+      partNumber: true,
+      series: { select: { id: true, name: true } },
+      title: true,
+    },
+  },
+  characterId: true,
+} satisfies Prisma.BookCharacterSelect;
+
+const characterBookCoverSelect = {
+  coverMedia: true,
+  id: true,
+} satisfies Prisma.BookSelect;
+
 const detailsInclude = {
   aliases: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] },
   avatarMedia: true,
@@ -135,6 +152,7 @@ const purgeSelect = {
 } satisfies Prisma.CharacterSelect;
 
 const graphNodeSelect = {
+  avatarMedia: true,
   entityKind: true,
   id: true,
   isFavorite: true,
@@ -190,6 +208,14 @@ export type BookContextRow = {
   partNumber: Nullable<number>;
   seriesId: Nullable<string>;
 };
+
+export type CharacterBookCoverRow = Prisma.BookGetPayload<{
+  select: typeof characterBookCoverSelect;
+}>;
+
+export type CharacterBookOrderKeyRow = Prisma.BookCharacterGetPayload<{
+  select: typeof characterBookOrderKeySelect;
+}>;
 
 export type CharacterDeletionImpact = {
   aliasCount: number;
@@ -319,10 +345,16 @@ export type GlobalCharacterFilter = {
 };
 
 export type GraphNodeRow = {
+  avatarMedia: Nullable<MediaAssetModel>;
   bookAppearances: {
     bookId: string;
     createdAt: Date;
+    displayName: Nullable<string>;
+    displayNameIsSpoiler: boolean;
     importance: string;
+    portraitIsSpoiler: boolean;
+    portraitMedia: Nullable<MediaAssetModel>;
+    portraitMediaId: Nullable<string>;
   }[];
   entityKind: string;
   id: string;
@@ -847,6 +879,55 @@ export class CharactersRepository {
     });
   }
 
+  listBookCovers({
+    bookIds,
+    userId,
+  }: {
+    bookIds: string[];
+    userId: string;
+  }): Promise<CharacterBookCoverRow[]> {
+    if (bookIds.length === 0) {
+      return Promise.resolve([]);
+    }
+    return this.prisma.book.findMany({
+      select: characterBookCoverSelect,
+      where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId },
+    });
+  }
+
+  listBookLinks(
+    { bookIds, characterIds }: { bookIds: string[]; characterIds: string[] },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<{ bookId: string; characterId: string }[]> {
+    if (bookIds.length === 0 || characterIds.length === 0) {
+      return Promise.resolve([]);
+    }
+    return client.bookCharacter.findMany({
+      select: { bookId: true, characterId: true },
+      where: { bookId: { in: bookIds }, characterId: { in: characterIds } },
+    });
+  }
+
+  listBookOrderKeys({
+    characterIds,
+    userId,
+  }: {
+    characterIds: string[];
+    userId: string;
+  }): Promise<CharacterBookOrderKeyRow[]> {
+    if (characterIds.length === 0) {
+      return Promise.resolve([]);
+    }
+    return this.prisma.bookCharacter.findMany({
+      select: characterBookOrderKeySelect,
+      where: {
+        book: { ...SOFT_DELETE_SCOPE.active, userId },
+        character: { deletedAt: null, userId },
+        characterId: { in: characterIds },
+      },
+    });
+  }
+
   listGlobalSummaries({
     filter,
     skip,
@@ -883,7 +964,16 @@ export class CharactersRepository {
       select: {
         ...graphNodeSelect,
         bookAppearances: {
-          select: { bookId: true, createdAt: true, importance: true },
+          select: {
+            bookId: true,
+            createdAt: true,
+            displayName: true,
+            displayNameIsSpoiler: true,
+            importance: true,
+            portraitIsSpoiler: true,
+            portraitMedia: true,
+            portraitMediaId: true,
+          },
           where: { book: SOFT_DELETE_SCOPE.active, bookId: { in: bookIds } },
         },
       },
@@ -1196,7 +1286,9 @@ const PERSONAL_IMPRESSION_APPEARANCE = {
   book: SOFT_DELETE_SCOPE.active,
 } satisfies Prisma.BookCharacterWhereInput;
 
-function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.CharacterWhereInput {
+export function buildGlobalCharacterWhere(
+  filter: GlobalCharacterFilter,
+): Prisma.CharacterWhereInput {
   const {
     archived,
     attitudes,
@@ -1246,17 +1338,13 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
     where.id = { in: multipleBookCharacterIds };
   }
 
-  const scopeAppearance = (
-    extra: Prisma.BookCharacterWhereInput,
-  ): Prisma.BookCharacterWhereInput =>
-    contextBookId === undefined ? extra : { ...extra, bookId: contextBookId };
+  const scopeAppearance = (extra: Prisma.BookCharacterWhereInput): Prisma.BookCharacterWhereInput =>
+    scopeAppearanceToContextBook({ contextBookId, extra });
 
   const scopeMembership = (
     extra: Prisma.CharacterGroupMembershipWhereInput,
   ): Prisma.CharacterGroupMembershipWhereInput =>
-    contextBookId === undefined
-      ? extra
-      : { ...extra, OR: [{ bookId: null }, { bookId: contextBookId }] };
+    scopeMembershipToContextBook({ contextBookId, extra });
 
   const and: Prisma.CharacterWhereInput[] = [];
   if (importances !== undefined) {
@@ -1269,7 +1357,7 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
           roles: {
             some: {
               roleType: { in: roleTypes },
-              ...(includeSpoilerSearch ? {} : { isSpoiler: false }),
+              ...spoilerSearchScope(includeSpoilerSearch),
             },
           },
         }),
@@ -1295,7 +1383,7 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
       groupMemberships: {
         some: scopeMembership({
           groupId: { in: groupIds },
-          ...(includeSpoilerSearch ? {} : { isSpoiler: false }),
+          ...spoilerSearchScope(includeSpoilerSearch),
         }),
       },
     });
@@ -1317,7 +1405,7 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
         { name: contains },
         {
           aliases: {
-            some: { name: contains, ...(includeSpoilerSearch ? {} : { isSpoiler: false }) },
+            some: { name: contains, ...spoilerSearchScope(includeSpoilerSearch) },
           },
         },
         {
@@ -1335,6 +1423,32 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
     where.AND = and;
   }
   return where;
+}
+
+export function scopeAppearanceToContextBook({
+  contextBookId,
+  extra,
+}: {
+  contextBookId: string | undefined;
+  extra: Prisma.BookCharacterWhereInput;
+}): Prisma.BookCharacterWhereInput {
+  return contextBookId === undefined ? extra : { ...extra, bookId: contextBookId };
+}
+
+export function scopeMembershipToContextBook({
+  contextBookId,
+  extra,
+}: {
+  contextBookId: string | undefined;
+  extra: Prisma.CharacterGroupMembershipWhereInput;
+}): Prisma.CharacterGroupMembershipWhereInput {
+  return contextBookId === undefined
+    ? extra
+    : { ...extra, OR: [{ bookId: null }, { bookId: contextBookId }] };
+}
+
+export function spoilerSearchScope(includeSpoilerSearch: boolean): { isSpoiler?: false } {
+  return includeSpoilerSearch ? {} : { isSpoiler: false };
 }
 
 function buildHasSpoilerContentWhere({

@@ -8,7 +8,7 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import type { ChangelogPopoverState } from "@/features/changelog/components/changelog-popover-content";
+import type { ChangelogPopoverState } from "@/features/changelog";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";

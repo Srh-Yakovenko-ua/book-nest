@@ -1,16 +1,16 @@
 import type { AuthorView } from "@app/shared";
 
-import { CatalogLocaleSchema } from "@app/shared";
+import { AuthorViewSchema, CatalogLocaleSchema } from "@app/shared";
 import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
 import { z } from "zod";
 
 import { authorsControllerRecent } from "@/shared/api/generated/endpoints/authors/authors";
 
-import { authorViewSchema } from "./use-author-search";
+import { authorKeys } from "./author-keys";
 
 const RECENT_AUTHORS_LIMIT = 8;
-const recentAuthorsSchema = z.array(authorViewSchema);
+const recentAuthorsSchema = z.array(AuthorViewSchema);
 
 export function useRecentAuthors() {
   const locale = CatalogLocaleSchema.catch("uk").parse(useLocale());
@@ -20,6 +20,6 @@ export function useRecentAuthors() {
       const response = await authorsControllerRecent({ limit: RECENT_AUTHORS_LIMIT, locale });
       return recentAuthorsSchema.parse(response);
     },
-    queryKey: ["authors", "recent", locale],
+    queryKey: authorKeys.recent(locale),
   });
 }

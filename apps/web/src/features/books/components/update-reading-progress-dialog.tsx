@@ -3,11 +3,13 @@
 import type { BookView, ChangeReadingStatusInput, UpdateReadingProgressInput } from "@app/shared";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { isAfter, parseISO } from "date-fns";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
+import { DateField } from "@/components/date-field";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -23,15 +25,11 @@ import { Label } from "@/components/ui/label";
 import { NumberStepper } from "@/components/ui/number-stepper";
 import { Rating } from "@/components/ui/rating";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiError } from "@/lib/http-client";
+import { useProfileTimeZone } from "@/features/settings";
+import { ISO_DAY, todayIsoDay } from "@/lib/iso-day";
 
 import { useChangeReadingStatus, useUpdateReadingProgress } from "../api/use-reading-progress";
-import {
-  ISO_DATE_PATTERN,
-  READING_CURRENT_PAGE_CEILING,
-  todayIso,
-} from "../model/reading-progress";
-import { BookDateField } from "./book-date-field";
+import { READING_CURRENT_PAGE_CEILING } from "../model/reading-progress";
 
 const IMPRESSION_MAX = 5000;
 const RATING_MAX = 10;
@@ -76,10 +74,12 @@ function buildSchema({
   messages,
   pagesCount,
   savedPage,
+  today,
 }: {
   messages: ValidationMessages;
   pagesCount: null | number;
   savedPage: number;
+  today: string;
 }) {
   return z.object({
     currentPage: z
@@ -92,8 +92,8 @@ function buildSchema({
     rating: z.literal(0).or(z.number().min(0.5).max(RATING_MAX).multipleOf(0.5)),
     updateDate: z
       .string()
-      .refine((value) => ISO_DATE_PATTERN.test(value), messages.dateInvalid)
-      .refine((value) => value <= todayIso(), messages.dateFuture),
+      .refine((value) => ISO_DAY.pattern.test(value), messages.dateInvalid)
+      .refine((value) => !isAfter(parseISO(value), parseISO(today)), messages.dateFuture),
   });
 }
 
@@ -105,6 +105,7 @@ function UpdateProgressForm({ book, onDone }: { book: BookView; onDone: () => vo
   const update = useUpdateReadingProgress();
   const change = useChangeReadingStatus();
   const [serverError, setServerError] = useState<null | string>(null);
+  const today = todayIsoDay(useProfileTimeZone());
 
   const pagesCount = book.pagesCount;
   const savedPage = book.readingProgress?.currentPage ?? 0;
@@ -112,7 +113,10 @@ function UpdateProgressForm({ book, onDone }: { book: BookView; onDone: () => vo
   const {
     control,
     formState: { errors },
+    getFieldState,
+    getValues,
     handleSubmit,
+    resetField,
     setValue,
   } = useForm<UpdateProgressValues>({
     defaultValues: {
@@ -120,7 +124,7 @@ function UpdateProgressForm({ book, onDone }: { book: BookView; onDone: () => vo
       impression: book.readingProgress?.impression ?? "",
       markAsFinished: false,
       rating: book.readingProgress?.rating ?? 0,
-      updateDate: todayIso(),
+      updateDate: today,
     },
     mode: "onTouched",
     resolver: zodResolver(
@@ -136,9 +140,15 @@ function UpdateProgressForm({ book, onDone }: { book: BookView; onDone: () => vo
         },
         pagesCount,
         savedPage,
+        today,
       }),
     ),
   });
+
+  useEffect(() => {
+    if (getFieldState("updateDate").isDirty || getValues("updateDate") === today) return;
+    resetField("updateDate", { defaultValue: today });
+  }, [getFieldState, getValues, resetField, today]);
 
   const finished = useWatch({ control, name: "markAsFinished" });
   const currentPage = useWatch({ control, name: "currentPage" });
@@ -147,8 +157,7 @@ function UpdateProgressForm({ book, onDone }: { book: BookView; onDone: () => vo
   const onSubmit = handleSubmit((values) => {
     setServerError(null);
     const handlers = {
-      onError: (error: Error) =>
-        setServerError(error instanceof ApiError ? error.message : t("errors.generic")),
+      onError: () => setServerError(t("errors.generic")),
       onSuccess: onDone,
     };
 
@@ -293,13 +302,14 @@ function UpdateProgressForm({ book, onDone }: { book: BookView; onDone: () => vo
           control={control}
           name="updateDate"
           render={({ field }) => (
-            <BookDateField
+            <DateField
               ariaLabel={t("updateDialog.updateDate")}
               describedBy={errors.updateDate ? "update-date-error" : undefined}
               id="update-date"
               invalid={errors.updateDate !== undefined}
               onChange={(next) => field.onChange(next ?? "")}
               required
+              today={today}
               value={field.value}
             />
           )}

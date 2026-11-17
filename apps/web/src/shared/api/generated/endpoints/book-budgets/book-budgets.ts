@@ -44,35 +44,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type bookBudgetsControllerCancelScheduledResponse200 = {
-  data: BookBudgetOverviewViewDto;
-  status: 200;
-};
-
-export type bookBudgetsControllerCancelScheduledResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookBudgetsControllerCancelScheduledResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookBudgetsControllerCancelScheduledResponseSuccess =
-  bookBudgetsControllerCancelScheduledResponse200 & {
-    headers: Headers;
-  };
-export type bookBudgetsControllerCancelScheduledResponseError = (
-  bookBudgetsControllerCancelScheduledResponse401 | bookBudgetsControllerCancelScheduledResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookBudgetsControllerCancelScheduledResponse =
-  | bookBudgetsControllerCancelScheduledResponseSuccess
-  | bookBudgetsControllerCancelScheduledResponseError;
-
 export const getBookBudgetsControllerCancelScheduledUrl = (currency: "UAH" | "EUR" | "USD") => {
   return `/api/delivery/budgets/${currency}/scheduled`;
 };
@@ -83,8 +54,8 @@ export const getBookBudgetsControllerCancelScheduledUrl = (currency: "UAH" | "EU
 export const bookBudgetsControllerCancelScheduled = async (
   currency: "UAH" | "EUR" | "USD",
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookBudgetsControllerCancelScheduledResponse> => {
-  return customInstance<bookBudgetsControllerCancelScheduledResponse>(
+): Promise<BookBudgetOverviewViewDto> => {
+  return customInstance<BookBudgetOverviewViewDto>(
     getBookBudgetsControllerCancelScheduledUrl(currency),
     {
       ...options,
@@ -238,36 +209,6 @@ export function useBookBudgetsControllerCancelScheduled<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookBudgetsControllerCancelScheduledStopResponse200 = {
-  data: BookBudgetOverviewViewDto;
-  status: 200;
-};
-
-export type bookBudgetsControllerCancelScheduledStopResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookBudgetsControllerCancelScheduledStopResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookBudgetsControllerCancelScheduledStopResponseSuccess =
-  bookBudgetsControllerCancelScheduledStopResponse200 & {
-    headers: Headers;
-  };
-export type bookBudgetsControllerCancelScheduledStopResponseError = (
-  | bookBudgetsControllerCancelScheduledStopResponse401
-  | bookBudgetsControllerCancelScheduledStopResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookBudgetsControllerCancelScheduledStopResponse =
-  | bookBudgetsControllerCancelScheduledStopResponseSuccess
-  | bookBudgetsControllerCancelScheduledStopResponseError;
-
 export const getBookBudgetsControllerCancelScheduledStopUrl = (currency: "UAH" | "EUR" | "USD") => {
   return `/api/delivery/budgets/${currency}/scheduled-stop`;
 };
@@ -278,8 +219,8 @@ export const getBookBudgetsControllerCancelScheduledStopUrl = (currency: "UAH" |
 export const bookBudgetsControllerCancelScheduledStop = async (
   currency: "UAH" | "EUR" | "USD",
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookBudgetsControllerCancelScheduledStopResponse> => {
-  return customInstance<bookBudgetsControllerCancelScheduledStopResponse>(
+): Promise<BookBudgetOverviewViewDto> => {
+  return customInstance<BookBudgetOverviewViewDto>(
     getBookBudgetsControllerCancelScheduledStopUrl(currency),
     {
       ...options,
@@ -434,28 +375,6 @@ export function useBookBudgetsControllerCancelScheduledStop<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookBudgetsControllerOverviewResponse200 = {
-  data: BookBudgetOverviewViewDto;
-  status: 200;
-};
-
-export type bookBudgetsControllerOverviewResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookBudgetsControllerOverviewResponseSuccess =
-  bookBudgetsControllerOverviewResponse200 & {
-    headers: Headers;
-  };
-export type bookBudgetsControllerOverviewResponseError =
-  bookBudgetsControllerOverviewResponse401 & {
-    headers: Headers;
-  };
-
-export type bookBudgetsControllerOverviewResponse =
-  bookBudgetsControllerOverviewResponseSuccess | bookBudgetsControllerOverviewResponseError;
-
 export const getBookBudgetsControllerOverviewUrl = () => {
   return `/api/delivery/budgets`;
 };
@@ -465,14 +384,11 @@ export const getBookBudgetsControllerOverviewUrl = () => {
  */
 export const bookBudgetsControllerOverview = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookBudgetsControllerOverviewResponse> => {
-  return customInstance<bookBudgetsControllerOverviewResponse>(
-    getBookBudgetsControllerOverviewUrl(),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<BookBudgetOverviewViewDto> => {
+  return customInstance<BookBudgetOverviewViewDto>(getBookBudgetsControllerOverviewUrl(), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getBookBudgetsControllerOverviewQueryKey = () => {
@@ -585,40 +501,6 @@ export function useBookBudgetsControllerOverview<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookBudgetsControllerUpsertResponse200 = {
-  data: BookBudgetOverviewViewDto;
-  status: 200;
-};
-
-export type bookBudgetsControllerUpsertResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookBudgetsControllerUpsertResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookBudgetsControllerUpsertResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type bookBudgetsControllerUpsertResponseSuccess = bookBudgetsControllerUpsertResponse200 & {
-  headers: Headers;
-};
-export type bookBudgetsControllerUpsertResponseError = (
-  | bookBudgetsControllerUpsertResponse400
-  | bookBudgetsControllerUpsertResponse401
-  | bookBudgetsControllerUpsertResponse409
-) & {
-  headers: Headers;
-};
-
-export type bookBudgetsControllerUpsertResponse =
-  bookBudgetsControllerUpsertResponseSuccess | bookBudgetsControllerUpsertResponseError;
-
 export const getBookBudgetsControllerUpsertUrl = () => {
   return `/api/delivery/budgets`;
 };
@@ -629,8 +511,8 @@ export const getBookBudgetsControllerUpsertUrl = () => {
 export const bookBudgetsControllerUpsert = async (
   upsertBookBudgetInputDto: UpsertBookBudgetInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookBudgetsControllerUpsertResponse> => {
-  return customInstance<bookBudgetsControllerUpsertResponse>(getBookBudgetsControllerUpsertUrl(), {
+): Promise<BookBudgetOverviewViewDto> => {
+  return customInstance<BookBudgetOverviewViewDto>(getBookBudgetsControllerUpsertUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -761,46 +643,6 @@ export function useBookBudgetsControllerUpsert<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookBudgetsControllerSaveResponse200 = {
-  data: BookBudgetOverviewViewDto;
-  status: 200;
-};
-
-export type bookBudgetsControllerSaveResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookBudgetsControllerSaveResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookBudgetsControllerSaveResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookBudgetsControllerSaveResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type bookBudgetsControllerSaveResponseSuccess = bookBudgetsControllerSaveResponse200 & {
-  headers: Headers;
-};
-export type bookBudgetsControllerSaveResponseError = (
-  | bookBudgetsControllerSaveResponse400
-  | bookBudgetsControllerSaveResponse401
-  | bookBudgetsControllerSaveResponse404
-  | bookBudgetsControllerSaveResponse409
-) & {
-  headers: Headers;
-};
-
-export type bookBudgetsControllerSaveResponse =
-  bookBudgetsControllerSaveResponseSuccess | bookBudgetsControllerSaveResponseError;
-
 export const getBookBudgetsControllerSaveUrl = () => {
   return `/api/delivery/budgets/save`;
 };
@@ -811,8 +653,8 @@ export const getBookBudgetsControllerSaveUrl = () => {
 export const bookBudgetsControllerSave = async (
   saveBookBudgetsInputDto: SaveBookBudgetsInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookBudgetsControllerSaveResponse> => {
-  return customInstance<bookBudgetsControllerSaveResponse>(getBookBudgetsControllerSaveUrl(), {
+): Promise<BookBudgetOverviewViewDto> => {
+  return customInstance<BookBudgetOverviewViewDto>(getBookBudgetsControllerSaveUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -940,40 +782,6 @@ export function useBookBudgetsControllerSave<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookBudgetsControllerStopResponse200 = {
-  data: BookBudgetOverviewViewDto;
-  status: 200;
-};
-
-export type bookBudgetsControllerStopResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookBudgetsControllerStopResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookBudgetsControllerStopResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookBudgetsControllerStopResponseSuccess = bookBudgetsControllerStopResponse200 & {
-  headers: Headers;
-};
-export type bookBudgetsControllerStopResponseError = (
-  | bookBudgetsControllerStopResponse400
-  | bookBudgetsControllerStopResponse401
-  | bookBudgetsControllerStopResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookBudgetsControllerStopResponse =
-  bookBudgetsControllerStopResponseSuccess | bookBudgetsControllerStopResponseError;
-
 export const getBookBudgetsControllerStopUrl = (currency: "UAH" | "EUR" | "USD") => {
   return `/api/delivery/budgets/${currency}/stop`;
 };
@@ -985,16 +793,13 @@ export const bookBudgetsControllerStop = async (
   currency: "UAH" | "EUR" | "USD",
   stopBookBudgetInputDto: StopBookBudgetInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookBudgetsControllerStopResponse> => {
-  return customInstance<bookBudgetsControllerStopResponse>(
-    getBookBudgetsControllerStopUrl(currency),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(stopBookBudgetInputDto),
-    },
-  );
+): Promise<BookBudgetOverviewViewDto> => {
+  return customInstance<BookBudgetOverviewViewDto>(getBookBudgetsControllerStopUrl(currency), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(stopBookBudgetInputDto),
+  });
 };
 
 export const getBookBudgetsControllerStopQueryKey = (

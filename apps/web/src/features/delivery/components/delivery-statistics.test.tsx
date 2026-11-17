@@ -3,11 +3,13 @@ import "@testing-library/jest-dom/vitest";
 import type { ReactNode } from "react";
 
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen, userEvent } from "@/test-utils";
+import messages from "@/messages/uk.json";
+import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
 
-import { STATISTICS_QUERY_KEY } from "../api/use-statistics";
+import { deliveryKeys } from "../api/delivery-keys";
 import {
   makeActiveMoneyAge,
   makeBookBudgetOverview,
@@ -54,6 +56,10 @@ const STRETCHED_CARDS = [
 const EMPTY_VIEW = makeStatisticsView({
   summary: { ...makeStatisticsView().summary, ordersCount: 0 },
 });
+
+const copy = messages.delivery.statistics;
+
+const OVERVIEW_QUERY_PREFIX = deliveryKeys.statistics.overview({}).slice(0, 2);
 
 const fetchMock = vi.fn();
 
@@ -388,12 +394,45 @@ describe("DeliveryStatistics refreshing", () => {
     await settle();
 
     handlers.statistics = () => Promise.resolve(failingResponse());
-    void queryClient.refetchQueries({ queryKey: [STATISTICS_QUERY_KEY] });
+    void queryClient.refetchQueries({ queryKey: OVERVIEW_QUERY_PREFIX });
 
-    expect(
-      await screen.findByText("Не вдалося оновити статистику. Показуємо останні завантажені дані."),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(messages.common.refetchError)).toBeInTheDocument();
     expect(screen.getByText("Динаміка покупок")).toBeInTheDocument();
     expect(screen.queryByText("Не вдалося завантажити дані")).toBe(null);
+  });
+
+  it("keeps the dashboard reachable and undimmed while the same period refetches in the background", async () => {
+    const { queryClient } = renderStatistics();
+    await settle();
+
+    handlers.statistics = hangs;
+    void queryClient.invalidateQueries({ queryKey: OVERVIEW_QUERY_PREFIX });
+
+    const region = await screen.findByRole("generic", { busy: true });
+    expect(within(region).getByText(copy.kpi.spend.label)).toBeInTheDocument();
+    expect(region).not.toHaveAttribute("inert");
+    expect(region).not.toHaveClass("opacity-60");
+
+    const editBudget = within(region).getByRole("button", { name: copy.budget.edit });
+    act(() => editBudget.focus());
+    expect(editBudget).toHaveFocus();
+  });
+
+  it("dims the dashboard and takes it out of reach while a new period is loading", async () => {
+    renderStatistics();
+    await settle();
+
+    handlers.statistics = hangs;
+    await userEvent.click(screen.getByRole("combobox", { name: copy.period.label }));
+    await userEvent.click(await screen.findByRole("option", { name: copy.period.last_month }));
+
+    const region = await screen.findByRole("generic", { busy: true });
+    expect(within(region).getByText(copy.kpi.spend.label)).toBeInTheDocument();
+    expect(region).toHaveAttribute("inert");
+    expect(region).toHaveClass("opacity-60");
+
+    const editBudget = within(region).getByRole("button", { name: copy.budget.edit });
+    act(() => editBudget.focus());
+    expect(editBudget).not.toHaveFocus();
   });
 });

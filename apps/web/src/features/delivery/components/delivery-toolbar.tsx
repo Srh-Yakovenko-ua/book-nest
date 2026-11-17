@@ -8,6 +8,7 @@ import type {
   DeliveryReadControllerInTransitListSort,
 } from "@/shared/api/generated/model";
 
+import { ActiveFilters } from "@/components/catalog/active-filters";
 import { Button } from "@/components/ui/button";
 import { ChipGroup } from "@/components/ui/chip-group";
 import {
@@ -17,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LibraryActiveFilters } from "@/features/books/components/library-active-filters";
 
 import type { DeliveryAdvancedState, DeliveryFilterCounts } from "../model/in-transit-params";
 
@@ -42,6 +42,7 @@ type DeliveryToolbarProps = {
   filterCounts?: DeliveryFilterCounts;
   filterCountsPending?: boolean;
   isPending: boolean;
+  isRefreshing: boolean;
   loadingLabel: string;
   onApplyAdvanced: (draft: DeliveryAdvancedState) => void;
   onClearAll: () => void;
@@ -62,6 +63,7 @@ export function DeliveryToolbar({
   filterCounts,
   filterCountsPending,
   isPending,
+  isRefreshing,
   loadingLabel,
   onApplyAdvanced,
   onClearAll,
@@ -179,10 +181,10 @@ export function DeliveryToolbar({
         />
       </div>
 
-      <LibraryActiveFilters chips={activeFilterChips} onClearAll={onClearAll} />
+      <ActiveFilters chips={activeFilterChips} onClearAll={onClearAll} />
 
       <p aria-live="polite" className="text-sm text-muted-foreground">
-        {isPending ? loadingLabel : counterLabel}
+        {isPending || isRefreshing ? loadingLabel : counterLabel}
       </p>
     </div>
   );

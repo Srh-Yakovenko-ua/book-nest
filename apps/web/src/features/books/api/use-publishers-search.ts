@@ -1,21 +1,12 @@
 import type { PublisherView } from "@app/shared";
+import type { z } from "zod";
 
-import { CatalogLocaleSchema } from "@app/shared";
+import { CatalogLocaleSchema, PaginatedPublishersSchema } from "@app/shared";
 import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
-import { z } from "zod";
 
+import { publisherKeys } from "@/features/publishers/api/publisher-keys";
 import { publishersControllerSearch } from "@/shared/api/generated/endpoints/publishers/publishers";
-
-import { publisherViewSchema } from "../model/publisher-view-schema";
-
-const publisherSearchResultSchema = z.object({
-  items: z.array(publisherViewSchema),
-  page: z.number(),
-  pagesCount: z.number(),
-  pageSize: z.number(),
-  totalCount: z.number(),
-});
 
 const PUBLISHER_SEARCH_PAGE_SIZE = 20;
 
@@ -27,7 +18,7 @@ type PublisherSearchOptions = {
   items: PublisherView[];
 };
 
-type PublisherSearchPage = z.infer<typeof publisherSearchResultSchema>;
+type PublisherSearchPage = z.infer<typeof PaginatedPublishersSchema>;
 
 export function usePublishersSearch(search: string): PublisherSearchOptions {
   const trimmed = search.trim();
@@ -45,9 +36,9 @@ export function usePublishersSearch(search: string): PublisherSearchOptions {
         pageSize: PUBLISHER_SEARCH_PAGE_SIZE,
         search: trimmed.length > 0 ? trimmed : undefined,
       });
-      return publisherSearchResultSchema.parse(response);
+      return PaginatedPublishersSchema.parse(response);
     },
-    queryKey: ["publishers", "search", trimmed, locale],
+    queryKey: publisherKeys.picker.search(trimmed, locale),
   });
 
   return {

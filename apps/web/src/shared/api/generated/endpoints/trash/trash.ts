@@ -43,26 +43,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type trashControllerSummaryResponse200 = {
-  data: TrashSummaryViewDto;
-  status: 200;
-};
-
-export type trashControllerSummaryResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type trashControllerSummaryResponseSuccess = trashControllerSummaryResponse200 & {
-  headers: Headers;
-};
-export type trashControllerSummaryResponseError = trashControllerSummaryResponse401 & {
-  headers: Headers;
-};
-
-export type trashControllerSummaryResponse =
-  trashControllerSummaryResponseSuccess | trashControllerSummaryResponseError;
-
 export const getTrashControllerSummaryUrl = () => {
   return `/api/trash/summary`;
 };
@@ -72,8 +52,8 @@ export const getTrashControllerSummaryUrl = () => {
  */
 export const trashControllerSummary = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<trashControllerSummaryResponse> => {
-  return customInstance<trashControllerSummaryResponse>(getTrashControllerSummaryUrl(), {
+): Promise<TrashSummaryViewDto> => {
+  return customInstance<TrashSummaryViewDto>(getTrashControllerSummaryUrl(), {
     ...options,
     method: "GET",
   });
@@ -188,26 +168,6 @@ export function useTrashControllerSummary<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type trashControllerListResponse200 = {
-  data: PaginatedTrashDto;
-  status: 200;
-};
-
-export type trashControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type trashControllerListResponseSuccess = trashControllerListResponse200 & {
-  headers: Headers;
-};
-export type trashControllerListResponseError = trashControllerListResponse401 & {
-  headers: Headers;
-};
-
-export type trashControllerListResponse =
-  trashControllerListResponseSuccess | trashControllerListResponseError;
-
 export const getTrashControllerListUrl = (params?: TrashControllerListParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -228,8 +188,8 @@ export const getTrashControllerListUrl = (params?: TrashControllerListParams) =>
 export const trashControllerList = async (
   params?: TrashControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<trashControllerListResponse> => {
-  return customInstance<trashControllerListResponse>(getTrashControllerListUrl(params), {
+): Promise<PaginatedTrashDto> => {
+  return customInstance<PaginatedTrashDto>(getTrashControllerListUrl(params), {
     ...options,
     method: "GET",
   });

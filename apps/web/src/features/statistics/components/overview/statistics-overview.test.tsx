@@ -1,12 +1,15 @@
-import type { ReadingStatisticsOverview } from "@app/shared";
+import type { ReadingStatisticsInsight, ReadingStatisticsOverview } from "@app/shared";
 import type { MouseEventHandler, ReactNode } from "react";
 
 import { defaultUserProfileSettings } from "@app/shared";
 import { NuqsTestingAdapter, type UrlUpdateEvent } from "nuqs/adapters/testing";
+import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
+
+import type { DynamicsMetric } from "../../model/statistics-dynamics";
 
 import {
   completedReadFixture,
@@ -38,7 +41,12 @@ vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams()
 const text = messages.statistics;
 
 const SECTION_TITLES = {
-  activity: [text.dynamics.title, text.calendar.title],
+  activity: [
+    text.dynamics.title,
+    text.habits.title,
+    text.habits.weekdays.title,
+    text.calendarLink.title,
+  ],
   overview: [text.kpi.completedReads.label, text.dynamics.title, text.recentReads.title],
   progress: [text.goal.title, text.series.title, text.libraryBalance.title, text.records.title],
   tastes: [
@@ -51,7 +59,7 @@ const SECTION_TITLES = {
   ],
 } as const;
 
-let overviewResponse: () => Response = () => jsonResponse(overviewFixture());
+let overviewResponse: () => Promise<Response> | Response = () => jsonResponse(overviewFixture());
 
 const fetchMock = vi.fn((input: RequestInfo | URL) => {
   const url = String(input);
@@ -99,12 +107,12 @@ function overviewRequests(): string[] {
 
 function renderStatistics(searchParams = "") {
   const onUrlUpdate = vi.fn<(event: UrlUpdateEvent) => void>();
-  renderWithProviders(
+  const { queryClient } = renderWithProviders(
     <NuqsTestingAdapter hasMemory onUrlUpdate={onUrlUpdate} searchParams={searchParams}>
       <StatisticsOverview />
     </NuqsTestingAdapter>,
   );
-  return { onUrlUpdate };
+  return { onUrlUpdate, queryClient };
 }
 
 function withActivity({
@@ -143,6 +151,40 @@ describe("StatisticsOverview tabs", () => {
       "true",
     );
     await expectSections(SECTION_TITLES[tab]);
+  });
+
+  it("stacks the activity tab as dynamics beside habits, then weekday activity and the calendar link, with no fifth section", async () => {
+    renderStatistics("?tab=activity");
+    const panel = await activePanel();
+
+    const dynamics = await within(panel).findByText(text.dynamics.title);
+    const habits = within(panel).getByText(text.habits.title);
+    const weekdays = within(panel).getByText(text.habits.weekdays.title);
+    const calendar = within(panel).getByText(text.calendarLink.title);
+
+    expect(dynamics.compareDocumentPosition(habits) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(habits.compareDocumentPosition(weekdays) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(weekdays.compareDocumentPosition(calendar) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(panel.childElementCount).toBe(3);
+  });
+
+  it("links the activity tab to the reading calendar page instead of a calendar with mode radios", async () => {
+    renderStatistics("?tab=activity");
+    const panel = await activePanel();
+
+    const link = await within(panel).findByRole("link", { name: text.calendarLink.action });
+
+    expect(link).toHaveAttribute("href", expect.stringMatching(/\/reading-calendar$/));
+    expect(within(panel).getAllByRole("radio")).toEqual([
+      within(panel).getByRole("radio", { name: text.dynamics.metrics.reads }),
+      within(panel).getByRole("radio", { name: text.dynamics.metrics.pages }),
+    ]);
   });
 
   it("switches tabs through the URL without touching the period or refetching the overview", async () => {
@@ -211,6 +253,7 @@ describe("StatisticsOverview tabs", () => {
 
     await user.click(screen.getByRole("tab", { name: text.tabs.overview }));
     await user.click(await screen.findByRole("button", { name: text.states.periodEmpty.action }));
+    expect(screen.getByRole("combobox", { name: text.period.label })).toHaveFocus();
 
     await waitFor(() => expect(overviewRequests()).toHaveLength(2));
     expect(overviewRequests().at(-1)).toContain("period=all_time");
@@ -257,6 +300,21 @@ describe("StatisticsOverview tabs", () => {
     expect(screen.queryByRole("tablist")).toBeNull();
   });
 
+  it("moves keyboard focus to the statistics results while the first-load retry is pending", async () => {
+    const retryName = text.states.error.retry;
+    overviewResponse = () => jsonResponse({ message: "boom" }, 500);
+    renderStatistics();
+    (await screen.findByRole("button", { name: retryName })).focus();
+
+    overviewResponse = () => new Promise<Response>(() => undefined);
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: retryName })).not.toBeInTheDocument(),
+    );
+
+    expect(screen.getByRole("region", { name: text.resultsLabel })).toHaveFocus();
+  });
+
   it("shows the invalid-range state instead of tabs and never requests the overview", async () => {
     renderStatistics("?period=custom&from=2026-05-31&to=2026-03-01&tab=activity");
 
@@ -292,13 +350,39 @@ describe("StatisticsOverview compact overview", () => {
     expect(overviewRequests()).toHaveLength(1);
   });
 
+  it("opens the habits section on the activity tab from the active-days KPI, keeping the period", async () => {
+    const user = userEvent.setup();
+    const { onUrlUpdate } = renderStatistics("?period=year&year=2025&compare=previous_period");
+
+    await user.click(
+      await screen.findByRole("link", { name: new RegExp(text.kpi.activeDays.label) }),
+    );
+
+    expect(await screen.findByRole("tab", { name: text.tabs.activity })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await waitFor(() => {
+      expect(document.activeElement).toHaveTextContent(text.habits.title);
+      expect(document.activeElement).not.toHaveTextContent(text.calendarLink.title);
+    });
+    const update = onUrlUpdate.mock.calls.at(-1)?.[0];
+    expect(update?.searchParams.toString()).toBe(
+      "period=year&year=2025&compare=previous_period&section=habits&tab=activity",
+    );
+    expect(update?.options.history).toBe("push");
+  });
+
   it.each([
-    ["?tab=activity&section=calendar", text.calendar.title],
+    ["?tab=activity&section=habits", text.habits.title],
     ["?tab=tastes&section=ratings", text.ratings.title],
   ])("moves focus to the section a deep link names (%s)", async (search, title) => {
     renderStatistics(search);
 
-    await waitFor(() => expect(document.activeElement).toHaveTextContent(title));
+    await waitFor(() => {
+      expect(document.activeElement).not.toBe(document.body);
+      expect(document.activeElement).toHaveTextContent(title);
+    });
   });
 
   it("shows only metric-relevant insights next to the chart and follows the metric toggle", async () => {
@@ -410,5 +494,228 @@ describe("StatisticsOverview compact overview", () => {
       expect(screen.queryByText(text.goal.currentTitle)).toBeNull();
       expect(screen.queryByRole("link", { name: text.goal.create })).toBeNull();
     });
+  });
+});
+
+describe("StatisticsOverview activity comparison result", () => {
+  const COMPARISON = {
+    pages: {
+      insight: {
+        category: "reading",
+        code: "pages_read_vs_comparison",
+        params: { absoluteDelta: 120, comparisonValue: 300, currentValue: 420, percentDelta: 40 },
+        tone: "positive",
+      },
+      title: "На 120 сторінок більше",
+      values: "Поточний період: 420 · Період порівняння: 300",
+    },
+    reads: {
+      insight: {
+        category: "reading",
+        code: "completed_reads_vs_comparison",
+        params: { absoluteDelta: -2, comparisonValue: 9, currentValue: 7, percentDelta: -22.2 },
+        tone: "negative",
+      },
+      title: "На 2 завершені прочитання менше",
+      values: "Поточний період: 7 · Період порівняння: 9",
+    },
+  } satisfies Record<
+    DynamicsMetric,
+    { insight: ReadingStatisticsInsight; title: string; values: string }
+  >;
+
+  const comparisonValues = new RegExp(
+    text.dynamics.comparisonResult.values
+      .replace("{current}", "\\d+")
+      .replace("{comparison}", "\\d+"),
+  );
+
+  function withComparisonInsights(): ReadingStatisticsOverview {
+    const overview = overviewFixture();
+    return {
+      ...overview,
+      overviewInsights: {
+        pages: [...overview.overviewInsights.pages, COMPARISON.pages.insight],
+        reads: [COMPARISON.reads.insight],
+      },
+    };
+  }
+
+  async function findComparisonNotices(): Promise<HTMLElement[]> {
+    const panel = await activePanel();
+    await within(panel).findByText(text.dynamics.title);
+    return within(panel)
+      .queryAllByRole("status")
+      .filter((status) => comparisonValues.test(status.textContent ?? ""));
+  }
+
+  it("shows only the pages comparison result when the chart counts pages", async () => {
+    overviewResponse = () => jsonResponse(withComparisonInsights());
+    renderStatistics("?tab=activity&metric=pages");
+
+    const notices = await findComparisonNotices();
+
+    expect(notices).toHaveLength(1);
+    expect(notices[0]).toHaveTextContent(COMPARISON.pages.title);
+    expect(notices[0]).toHaveTextContent(COMPARISON.pages.values);
+  });
+
+  it("shows the reads comparison result instead of the pages one when the chart counts reads", async () => {
+    overviewResponse = () => jsonResponse(withComparisonInsights());
+    renderStatistics("?tab=activity");
+
+    const notices = await findComparisonNotices();
+
+    expect(notices).toHaveLength(1);
+    expect(notices[0]).toHaveTextContent(COMPARISON.reads.title);
+    expect(notices[0]).toHaveTextContent(COMPARISON.reads.values);
+  });
+
+  it("shows no comparison result when the period has no comparison observation", async () => {
+    renderStatistics("?tab=activity&metric=pages");
+
+    expect(await findComparisonNotices()).toHaveLength(0);
+  });
+});
+
+describe("StatisticsOverview period change", () => {
+  const [captionLead = ""] = text.period.caption.split("{range}");
+
+  const captionPattern = new RegExp(`^${captionLead}`);
+
+  beforeEach(() => {
+    vi.useFakeTimers({ now: new Date("2026-06-15T12:00:00Z"), toFake: ["Date"] });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function deferredResponse() {
+    let resolve: (response: Response) => void = () => undefined;
+    const promise = new Promise<Response>((settle) => {
+      resolve = settle;
+    });
+    return { promise, resolve };
+  }
+
+  function overviewOfYear(year: number): ReadingStatisticsOverview {
+    const overview = overviewFixture();
+    return {
+      ...overview,
+      period: { ...overview.period, from: `${year}-01-01`, to: `${year}-12-31` },
+    };
+  }
+
+  function periodToolbar(): HTMLElement {
+    return screen.getByRole("region", { name: text.period.toolbarLabel });
+  }
+
+  async function findWeekdayRow(weekday: string): Promise<HTMLElement> {
+    const list = await screen.findByRole("list", { name: text.habits.weekdays.title });
+    return within(list).getByRole("button", { name: weekday });
+  }
+
+  async function renderYear2025() {
+    overviewResponse = () => jsonResponse(overviewOfYear(2025));
+    const view = renderStatistics("?period=year&year=2025");
+    expect(await within(periodToolbar()).findByText(captionPattern)).toHaveTextContent("2025");
+    return view;
+  }
+
+  async function switchYearTo2026(): Promise<(response: Response) => void> {
+    const user = userEvent.setup();
+    const pending = deferredResponse();
+    overviewResponse = () => pending.promise;
+
+    await user.click(screen.getByRole("button", { name: text.period.yearLabel }));
+    await user.click(
+      within(await screen.findByRole("dialog")).getByRole("button", { name: "2026" }),
+    );
+
+    await waitFor(() => expect(overviewRequests().at(-1)).toContain("year=2026"));
+    return pending.resolve;
+  }
+
+  it("freezes the previous year's results behind a status while the new year loads, leaving the period controls usable", async () => {
+    await renderYear2025();
+    await switchYearTo2026();
+
+    const status = await screen.findByText(text.states.periodChanging);
+
+    expect(status.closest("[role='status']")).not.toBeNull();
+    expect(screen.getByRole("tablist").closest("[inert]")).not.toBeNull();
+    const yearControl = screen.getByRole("button", { name: text.period.yearLabel });
+    expect(yearControl).toBeEnabled();
+    expect(yearControl.closest("[inert]")).toBeNull();
+  });
+
+  it("drops the period caption while the shown results still belong to the previous year", async () => {
+    await renderYear2025();
+    await switchYearTo2026();
+
+    await screen.findByText(text.states.periodChanging);
+
+    expect(within(periodToolbar()).queryByText(captionPattern)).toBeNull();
+  });
+
+  it("lifts the freeze and captions the new year once its response arrives", async () => {
+    await renderYear2025();
+    const respond = await switchYearTo2026();
+    await screen.findByText(text.states.periodChanging);
+
+    respond(jsonResponse(overviewOfYear(2026)));
+
+    await waitFor(() =>
+      expect(within(periodToolbar()).getByText(captionPattern)).toHaveTextContent("2026"),
+    );
+    expect(within(periodToolbar()).getByText(captionPattern)).not.toHaveTextContent("2025");
+    const tablist = screen.getByRole("tablist");
+    expect(tablist.closest("[inert]")).toBeNull();
+    expect(screen.queryByText(text.states.periodChanging)).toBeNull();
+  });
+
+  it("keeps the results interactive with the refreshing note during a same-period background refetch", async () => {
+    const { queryClient } = await renderYear2025();
+    const pending = deferredResponse();
+    overviewResponse = () => pending.promise;
+
+    act(() => {
+      void queryClient.invalidateQueries();
+    });
+
+    expect(await screen.findByText(text.states.refreshing)).toBeInTheDocument();
+    const tablist = screen.getByRole("tablist");
+    expect(tablist.closest("[inert]")).toBeNull();
+    expect(screen.queryByText(text.states.periodChanging)).toBeNull();
+  });
+
+  it("replaces the frozen previous year with the first-load error when the new year fails", async () => {
+    await renderYear2025();
+    const respond = await switchYearTo2026();
+    await screen.findByText(text.states.periodChanging);
+
+    respond(jsonResponse({ message: "boom" }, 500));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(text.states.error.title);
+    expect(screen.queryByRole("tablist")).toBeNull();
+  });
+
+  it("returns the weekday pick to the most active weekday once the new year arrives", async () => {
+    const user = userEvent.setup();
+    await renderYear2025();
+    await user.click(screen.getByRole("tab", { name: text.tabs.activity }));
+    await user.click(await findWeekdayRow("вівторок"));
+    expect(await findWeekdayRow("вівторок")).toHaveAttribute("aria-pressed", "true");
+
+    const respond = await switchYearTo2026();
+    await screen.findByText(text.states.periodChanging);
+    respond(jsonResponse(overviewOfYear(2026)));
+
+    await waitFor(() =>
+      expect(within(periodToolbar()).getByText(captionPattern)).toHaveTextContent("2026"),
+    );
+    expect(await findWeekdayRow("понеділок")).toHaveAttribute("aria-pressed", "true");
+    expect(await findWeekdayRow("вівторок")).toHaveAttribute("aria-pressed", "false");
   });
 });

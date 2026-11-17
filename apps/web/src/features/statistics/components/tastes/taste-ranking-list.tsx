@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReadingStatisticsContextAction } from "@app/shared";
+import type { ReadingStatisticsContextAction, ReadingStatisticsDrilldown } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
@@ -11,12 +11,18 @@ import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
-import { toContextActionLinks } from "../../model/statistics-drilldown";
+import {
+  buildStatisticsDrilldownTarget,
+  toContextActionLinks,
+} from "../../model/statistics-drilldown";
+import { StatisticsDetailSurface } from "../details/statistics-detail-surface";
+import { StatisticsSubsetDetails } from "../details/statistics-subset-details";
 
 const COLLAPSED_ROWS = 3;
 
 export type TasteRankingRow = {
   contextActions?: readonly ReadingStatisticsContextAction[];
+  drilldown?: ReadingStatisticsDrilldown;
   key: string;
   label: string;
   secondary?: ReactNode;
@@ -24,10 +30,17 @@ export type TasteRankingRow = {
   valueLabel: string;
 };
 
-export function TasteRankingList({ rows }: { rows: readonly TasteRankingRow[] }) {
+export function TasteRankingList({
+  rows,
+  scaleMax,
+}: {
+  rows: readonly TasteRankingRow[];
+  scaleMax?: number;
+}) {
   const t = useTranslations("statistics.rankings");
   const [expanded, setExpanded] = useState(false);
   const peak = rows.reduce((max, row) => Math.max(max, row.value), 0);
+  const barScale = scaleMax ?? peak;
   const hiddenCount = Math.max(rows.length - COLLAPSED_ROWS, 0);
 
   return (
@@ -46,7 +59,7 @@ export function TasteRankingList({ rows }: { rows: readonly TasteRankingRow[] })
                 <span className="w-5 shrink-0 text-xs font-semibold text-muted-foreground tabular-nums">
                   {index + 1}
                 </span>
-                <span className="truncate text-sm font-medium text-foreground">{row.label}</span>
+                <TasteRankingLabel drilldown={row.drilldown} label={row.label} />
                 <TasteContextActions actions={row.contextActions ?? []} />
               </span>
               <span className="flex shrink-0 items-baseline gap-2">
@@ -63,7 +76,7 @@ export function TasteRankingList({ rows }: { rows: readonly TasteRankingRow[] })
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
               <div
                 className="h-full rounded-full bg-primary transition-[width] duration-500 motion-reduce:transition-none"
-                style={{ width: `${peak <= 0 ? 0 : (row.value / peak) * 100}%` }}
+                style={{ width: `${barScale <= 0 ? 0 : (row.value / barScale) * 100}%` }}
               />
             </div>
           </li>
@@ -104,5 +117,40 @@ function TasteContextActions({ actions }: { actions: readonly ReadingStatisticsC
         </Link>
       ))}
     </>
+  );
+}
+
+function TasteRankingLabel({
+  drilldown,
+  label,
+}: {
+  drilldown?: ReadingStatisticsDrilldown;
+  label: string;
+}) {
+  const t = useTranslations("statistics.details.subset");
+  const target = drilldown === undefined ? null : buildStatisticsDrilldownTarget(drilldown);
+  const labelClassName =
+    "min-w-0 text-sm font-medium break-words whitespace-normal text-foreground";
+
+  if (target === null || target.kind !== "completed_reads_subset") {
+    return <span className={labelClassName}>{label}</span>;
+  }
+
+  const { filter, period } = target;
+
+  return (
+    <StatisticsDetailSurface
+      contentClassName="max-h-(--radix-popover-content-available-height) overflow-y-auto"
+      detail={() => <StatisticsSubsetDetails filter={filter} period={period} />}
+      key={[filter.field, filter.value, period.from ?? "", period.to].join("|")}
+      label={t("open", { name: label })}
+      title={t("title", { name: label })}
+      triggerClassName={cn(
+        labelClassName,
+        "rounded-sm underline decoration-dotted underline-offset-4 transition-colors outline-none hover:text-primary focus-visible:ring-[3px] focus-visible:ring-ring/50",
+      )}
+    >
+      {label}
+    </StatisticsDetailSurface>
   );
 }

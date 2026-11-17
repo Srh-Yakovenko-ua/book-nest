@@ -1,5 +1,6 @@
 import type { Nullable } from "@app/shared";
 
+import { WISHLIST_INPUT_LIMITS } from "@app/shared";
 import {
   type inferParserType,
   parseAsArrayOf,
@@ -159,7 +160,7 @@ export function resolvePriceCurrency(
 }
 
 export function toWishlistParams(state: WishlistQueryState): BooksControllerWishlistParams {
-  const search = state.q.trim();
+  const search = toWishlistSearch(state.q);
   const flags = wishlistRangeFlags(state);
   const priceCurrency = resolvePriceCurrency(state);
 
@@ -192,6 +193,11 @@ export function toWishlistParams(state: WishlistQueryState): BooksControllerWish
           ...(state.priceMax === null ? {} : { priceMax: state.priceMax }),
         }),
   };
+}
+
+export function toWishlistSearch(q: string): string {
+  const search = q.trim();
+  return search.length > WISHLIST_INPUT_LIMITS.searchMax ? "" : search;
 }
 
 export function wishlistRangeFlags(source: WishlistRangeSource): WishlistRangeFlags {

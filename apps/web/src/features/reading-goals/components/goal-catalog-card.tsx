@@ -12,6 +12,7 @@ import { Link } from "@/i18n/navigation";
 import { formatDate, formatDateLong } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+import { goalDisplayPercent } from "../model/goal-display-percent";
 import { GOAL_SIGNAL_TONE, GOAL_STATUS_BADGE } from "../model/goal-status";
 
 type GoalCatalogItemProps = {
@@ -94,7 +95,7 @@ function GoalBadges({ goal }: GoalCatalogItemProps) {
 
 function GoalProgress({ goal }: GoalCatalogItemProps) {
   const t = useTranslations("goals.catalog.card");
-  const percent = Math.round(goal.progressPercent);
+  const percent = goalDisplayPercent(goal);
 
   return (
     <div className="flex flex-col gap-1.5">

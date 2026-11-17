@@ -21,6 +21,5 @@ export function useNotesArchiveList(params: NotesListParams) {
         await fetchNotesArchivePage({ pageNumber: pageParam, params, signal }),
       ),
     queryKey: notesKeys.archiveList(params),
-    retry: false,
   });
 }

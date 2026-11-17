@@ -285,12 +285,16 @@ function UpcomingChanges({ status }: { status: BookBudgetStatus }) {
           disabled={cancelScheduled.isPending || cancelStop.isPending}
           onClick={() => {
             if (isStop) {
-              cancelStop.mutate(status.currency);
-              toast.success(t("stopCancelled"));
+              cancelStop.mutate(status.currency, {
+                onError: () => toast.error(t("stopCancelFailed")),
+                onSuccess: () => toast.success(t("stopCancelled")),
+              });
               return;
             }
-            cancelScheduled.mutate(status.currency);
-            toast.success(t("scheduledCancelled"));
+            cancelScheduled.mutate(status.currency, {
+              onError: () => toast.error(t("scheduledCancelFailed")),
+              onSuccess: () => toast.success(t("scheduledCancelled")),
+            });
           }}
           size="sm"
           variant="ghost"

@@ -12,6 +12,7 @@ function query<TData>(
     error: null,
     isError: false,
     isFetching: false,
+    isPlaceholderData: false,
     refetch: vi.fn(),
     ...overrides,
   };
@@ -42,6 +43,23 @@ describe("toStatisticsScopeState", () => {
 
     expect(scope.isRefreshing).toBe(true);
     expect(scope.isInitialLoading).toBe(false);
+  });
+
+  it("marks the previous period's data shown during a period change as placeholder", () => {
+    const scope = toStatisticsScopeState(
+      query({ data: 7, isFetching: true, isPlaceholderData: true }),
+    );
+
+    expect(scope.isPlaceholderData).toBe(true);
+  });
+
+  it("keeps a background refetch of the same period refreshing but not placeholder", () => {
+    const scope = toStatisticsScopeState(
+      query({ data: 7, isFetching: true, isPlaceholderData: false }),
+    );
+
+    expect(scope.isRefreshing).toBe(true);
+    expect(scope.isPlaceholderData).toBe(false);
   });
 
   it("retries through the query it belongs to", () => {

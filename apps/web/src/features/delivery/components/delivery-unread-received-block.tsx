@@ -4,8 +4,8 @@ import type { Nullable, ReceivedUnreadView } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 
+import { OverviewSection } from "@/components/overview-section";
 import { Skeleton } from "@/components/ui/skeleton";
-import { LibraryOverviewSection } from "@/features/books/components/library-overview-blocks";
 
 import { buildDeliveryUnreadReceived } from "../model/history-outcome";
 import { DeliveryBookCover, DeliveryBookLink } from "./delivery-book-preview";
@@ -31,13 +31,13 @@ export function DeliveryUnreadReceivedBlock({
 
   if (isLoading) {
     return (
-      <LibraryOverviewSection className="sidebar-card-leaf" title={t("title")}>
+      <OverviewSection className="sidebar-card-leaf" title={t("title")}>
         <div aria-busy className="flex flex-col gap-3">
           <Skeleton className="h-6 w-24" />
           <Skeleton className="h-3 w-32" />
           <Skeleton className="h-12 w-full rounded-md" />
         </div>
-      </LibraryOverviewSection>
+      </OverviewSection>
     );
   }
 
@@ -47,17 +47,17 @@ export function DeliveryUnreadReceivedBlock({
 
   if (model.books.kind === "none") {
     return (
-      <LibraryOverviewSection className="sidebar-card-leaf" title={t("title")}>
+      <OverviewSection className="sidebar-card-leaf" title={t("title")}>
         <div className="flex flex-col gap-1">
           <p className="text-sm font-medium text-ink">{t("empty.text")}</p>
           <p className="text-xs text-muted-foreground">{t("empty.helper")}</p>
         </div>
-      </LibraryOverviewSection>
+      </OverviewSection>
     );
   }
 
   return (
-    <LibraryOverviewSection className="sidebar-card-leaf" title={t("title")}>
+    <OverviewSection className="sidebar-card-leaf" title={t("title")}>
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
           <p className="font-heading text-lg leading-tight font-semibold text-ink">
@@ -78,6 +78,6 @@ export function DeliveryUnreadReceivedBlock({
           </span>
         )}
       </div>
-    </LibraryOverviewSection>
+    </OverviewSection>
   );
 }

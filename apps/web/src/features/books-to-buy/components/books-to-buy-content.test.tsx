@@ -24,10 +24,12 @@ function renderContent(overrides: Partial<ContentProps> = {}) {
     hasAnyBooks: true,
     isError: false,
     isPending: false,
+    isRefreshing: false,
     onAddBook: vi.fn(),
     onClearFilters: vi.fn(),
     onOpenLibrary: vi.fn(),
     onRetry: vi.fn(),
+    retryButtonRef: null,
     ...overrides,
   };
   return renderWithProviders(<BooksToBuyContent {...props} />);

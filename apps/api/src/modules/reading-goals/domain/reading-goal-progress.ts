@@ -1,8 +1,10 @@
 import type { Nullable, ReadingGoalResult, ReadingGoalStatus } from "@app/shared";
 
-import { compareAsc, differenceInCalendarDays, isAfter, isBefore } from "date-fns";
+import { compareAsc, isAfter, isBefore } from "date-fns";
 
-import { startOfUtcDay } from "../../../core/iso-date.js";
+import type { ReadingGoalQualificationWindow } from "./reading-goal-window.js";
+
+import { daysBetweenUtcDays, startOfUtcDay } from "../../../core/iso-date.js";
 import { resolveReadingGoalCountingEnd } from "./reading-goal-window.js";
 
 export type ReadingGoalCandidateBook = {
@@ -25,58 +27,63 @@ export type ReadingGoalQualifyingBook = {
 };
 
 type LifecycleInput = {
-  archivedAt: Nullable<Date>;
+  archivedDay: Nullable<Date>;
   completedCount: number;
   deadline: Date;
-  now: Date;
   targetCount: number;
+  today: Date;
 };
 
 type ProgressInput = {
-  archivedAt: Nullable<Date>;
+  archivedDay: Nullable<Date>;
   books: ReadingGoalCandidateBook[];
   deadline: Date;
   goalStartDate: Date;
-  now: Date;
   targetCount: number;
-};
-
-type QualificationWindow = {
-  countingEndsAt: Date;
-  goalStartDate: Date;
+  today: Date;
 };
 
 export function calculateReadingGoalProgress({
-  archivedAt,
+  archivedDay,
   books,
   deadline,
   goalStartDate,
-  now,
   targetCount,
+  today,
 }: ProgressInput): ReadingGoalProgress {
   const qualifyingBooks = selectQualifyingReadingGoalBooks({
     books,
-    countingEndsAt: resolveReadingGoalCountingEnd({ archivedAt, deadline }),
+    countingEndsAt: resolveReadingGoalCountingEnd({ archivedDay, deadline }),
     goalStartDate,
   });
   const completedCount = qualifyingBooks.length;
-  const lifecycle = { archivedAt, completedCount, deadline, now, targetCount };
+  const lifecycle = { archivedDay, completedCount, deadline, targetCount, today };
   const status = resolveReadingGoalStatus(lifecycle);
   return {
     completedAt: qualifyingBooks[targetCount - 1]?.finishedAt ?? null,
     completedCount,
-    daysLeft: status === "active" ? remainingCalendarDays({ deadline, now }) : null,
+    daysLeft: status === "active" ? remainingCalendarDays({ deadline, today }) : null,
     remainingCount: Math.max(0, targetCount - completedCount),
     result: resolveReadingGoalResult(lifecycle),
     status,
   };
 }
 
+export function hasDeadlinePassed({
+  deadline,
+  reference,
+}: {
+  deadline: Date;
+  reference: Date;
+}): boolean {
+  return isBefore(deadline, startOfUtcDay(reference));
+}
+
 export function qualifiesForReadingGoal({
   countingEndsAt,
   finishedAt,
   goalStartDate,
-}: QualificationWindow & { finishedAt: Nullable<Date> }): boolean {
+}: ReadingGoalQualificationWindow & { finishedAt: Nullable<Date> }): boolean {
   if (finishedAt === null) {
     return false;
   }
@@ -88,32 +95,32 @@ export function qualifiesForReadingGoal({
 }
 
 export function resolveReadingGoalResult({
-  archivedAt,
+  archivedDay,
   completedCount,
   deadline,
-  now,
   targetCount,
+  today,
 }: LifecycleInput): Nullable<ReadingGoalResult> {
   if (completedCount >= targetCount) {
     return "completed";
   }
-  return hasDeadlinePassed({ deadline, reference: archivedAt ?? now }) ? "expired" : null;
+  return hasDeadlinePassed({ deadline, reference: archivedDay ?? today }) ? "expired" : null;
 }
 
 export function resolveReadingGoalStatus({
-  archivedAt,
+  archivedDay,
   completedCount,
   deadline,
-  now,
   targetCount,
+  today,
 }: LifecycleInput): ReadingGoalStatus {
-  if (archivedAt !== null) {
+  if (archivedDay !== null) {
     return "archived";
   }
   if (completedCount >= targetCount) {
     return "completed";
   }
-  if (hasDeadlinePassed({ deadline, reference: now })) {
+  if (hasDeadlinePassed({ deadline, reference: today })) {
     return "expired";
   }
   return "active";
@@ -123,7 +130,9 @@ export function selectQualifyingReadingGoalBooks({
   books,
   countingEndsAt,
   goalStartDate,
-}: QualificationWindow & { books: ReadingGoalCandidateBook[] }): ReadingGoalQualifyingBook[] {
+}: ReadingGoalQualificationWindow & {
+  books: ReadingGoalCandidateBook[];
+}): ReadingGoalQualifyingBook[] {
   return books
     .flatMap(({ bookId, finishedAt }) => {
       if (
@@ -148,10 +157,6 @@ function compareQualifyingBooks(
   return left.bookId.localeCompare(right.bookId);
 }
 
-function hasDeadlinePassed({ deadline, reference }: { deadline: Date; reference: Date }): boolean {
-  return isBefore(deadline, startOfUtcDay(reference));
-}
-
-function remainingCalendarDays({ deadline, now }: { deadline: Date; now: Date }): number {
-  return Math.max(0, differenceInCalendarDays(deadline, startOfUtcDay(now)));
+function remainingCalendarDays({ deadline, today }: { deadline: Date; today: Date }): number {
+  return Math.max(0, daysBetweenUtcDays({ end: deadline, start: today }));
 }

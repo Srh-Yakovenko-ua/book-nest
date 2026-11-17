@@ -366,7 +366,7 @@ describe("series character profile", () => {
       roles: [{ roleType: "supporting" }],
     });
     await linkExisting(accessToken, thirdBook, characterId, {
-      attitude: "favorite",
+      attitude: "like",
       roles: [
         { roleType: "protagonist" },
         { customRole: "Secret Messiah", isSpoiler: true, roleType: "custom" },
@@ -385,7 +385,7 @@ describe("series character profile", () => {
     expect(first).toMatchObject({ attitude: "distrust", attitudeChangedFromPrevious: false });
     expect(first.roles.map((role: { roleType: string }) => role.roleType)).toEqual(["antagonist"]);
     expect(second).toMatchObject({ attitude: "distrust", attitudeChangedFromPrevious: false });
-    expect(third).toMatchObject({ attitude: "favorite", attitudeChangedFromPrevious: true });
+    expect(third).toMatchObject({ attitude: "like", attitudeChangedFromPrevious: true });
     expect(third.roles.map((role: { roleType: string }) => role.roleType)).toEqual(["protagonist"]);
     expect(JSON.stringify(res.body)).not.toContain("Secret Messiah");
   });

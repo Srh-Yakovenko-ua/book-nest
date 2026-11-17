@@ -1,11 +1,14 @@
 import { createLoader } from "nuqs/server";
 import { describe, expect, it, vi } from "vitest";
 
-import { publisherDetailUrlNormalization, publisherDetailUrlParsers } from "./publisher-detail-url";
+import {
+  createPublisherDetailUrlParsers,
+  publisherDetailUrlNormalization,
+} from "./publisher-detail-url";
 
 vi.mock("@/i18n/navigation", () => ({}));
 
-const loadDetailUrl = createLoader(publisherDetailUrlParsers);
+const loadDetailUrl = createLoader(createPublisherDetailUrlParsers());
 
 function normalize(search: string) {
   return publisherDetailUrlNormalization(loadDetailUrl(search));

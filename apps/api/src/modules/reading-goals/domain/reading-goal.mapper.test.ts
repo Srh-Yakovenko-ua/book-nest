@@ -20,11 +20,15 @@ const goal = {
   userId: "3b2f1c0d-9e8a-4b7c-8d6e-5f4a3b2c1d0e",
 } satisfies ReadingGoalWithList;
 
-const now = new Date("2026-08-10T12:00:00.000Z");
+const today = new Date("2026-08-10T12:00:00.000Z");
 
 const calculation = calculateReadingGoalMetrics({
-  goal,
-  now,
+  goal: {
+    archivedDay: null,
+    createdDay: parseIsoDate("2026-08-01"),
+    deadline: goal.deadline,
+    targetCount: goal.targetCount,
+  },
   snapshotBooks: [
     { bookId: "book-1", qualifiedFinishedAt: parseIsoDate("2026-08-03") },
     { bookId: "book-2", qualifiedFinishedAt: parseIsoDate("2026-08-07") },
@@ -32,6 +36,7 @@ const calculation = calculateReadingGoalMetrics({
     { bookId: "book-4", qualifiedFinishedAt: null },
     { bookId: "book-5", qualifiedFinishedAt: null },
   ],
+  today,
 });
 
 describe("toReadingGoalView", () => {

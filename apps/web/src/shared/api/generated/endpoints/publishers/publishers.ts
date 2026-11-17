@@ -25,8 +25,10 @@ import type {
   LibraryPublishersQuickCountsDto,
   LibraryPublishersSummaryDto,
   MergePublisherDto,
+  PaginatedPublishersDto,
   PublisherDuplicateCandidateDto,
   PublisherMergeResultDto,
+  PublisherViewDto,
   PublishersControllerDuplicateCandidatesParams,
   PublishersControllerLibraryDetailParams,
   PublishersControllerLibraryListParams,
@@ -56,29 +58,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type publishersControllerLibrarySummaryResponse200 = {
-  data: LibraryPublishersSummaryDto;
-  status: 200;
-};
-
-export type publishersControllerLibrarySummaryResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type publishersControllerLibrarySummaryResponseSuccess =
-  publishersControllerLibrarySummaryResponse200 & {
-    headers: Headers;
-  };
-export type publishersControllerLibrarySummaryResponseError =
-  publishersControllerLibrarySummaryResponse401 & {
-    headers: Headers;
-  };
-
-export type publishersControllerLibrarySummaryResponse =
-  | publishersControllerLibrarySummaryResponseSuccess
-  | publishersControllerLibrarySummaryResponseError;
-
 export const getPublishersControllerLibrarySummaryUrl = (
   params?: PublishersControllerLibrarySummaryParams,
 ) => {
@@ -103,8 +82,8 @@ export const getPublishersControllerLibrarySummaryUrl = (
 export const publishersControllerLibrarySummary = async (
   params?: PublishersControllerLibrarySummaryParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<publishersControllerLibrarySummaryResponse> => {
-  return customInstance<publishersControllerLibrarySummaryResponse>(
+): Promise<LibraryPublishersSummaryDto> => {
+  return customInstance<LibraryPublishersSummaryDto>(
     getPublishersControllerLibrarySummaryUrl(params),
     {
       ...options,
@@ -232,36 +211,6 @@ export function usePublishersControllerLibrarySummary<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type publishersControllerLibraryQuickCountsResponse200 = {
-  data: LibraryPublishersQuickCountsDto;
-  status: 200;
-};
-
-export type publishersControllerLibraryQuickCountsResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type publishersControllerLibraryQuickCountsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type publishersControllerLibraryQuickCountsResponseSuccess =
-  publishersControllerLibraryQuickCountsResponse200 & {
-    headers: Headers;
-  };
-export type publishersControllerLibraryQuickCountsResponseError = (
-  | publishersControllerLibraryQuickCountsResponse400
-  | publishersControllerLibraryQuickCountsResponse401
-) & {
-  headers: Headers;
-};
-
-export type publishersControllerLibraryQuickCountsResponse =
-  | publishersControllerLibraryQuickCountsResponseSuccess
-  | publishersControllerLibraryQuickCountsResponseError;
-
 export const getPublishersControllerLibraryQuickCountsUrl = (
   params?: PublishersControllerLibraryQuickCountsParams,
 ) => {
@@ -286,8 +235,8 @@ export const getPublishersControllerLibraryQuickCountsUrl = (
 export const publishersControllerLibraryQuickCounts = async (
   params?: PublishersControllerLibraryQuickCountsParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<publishersControllerLibraryQuickCountsResponse> => {
-  return customInstance<publishersControllerLibraryQuickCountsResponse>(
+): Promise<LibraryPublishersQuickCountsDto> => {
+  return customInstance<LibraryPublishersQuickCountsDto>(
     getPublishersControllerLibraryQuickCountsUrl(params),
     {
       ...options,
@@ -436,28 +385,6 @@ export function usePublishersControllerLibraryQuickCounts<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type publishersControllerLibraryListResponse200 = {
-  data: LibraryPublishersPageDto;
-  status: 200;
-};
-
-export type publishersControllerLibraryListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type publishersControllerLibraryListResponseSuccess =
-  publishersControllerLibraryListResponse200 & {
-    headers: Headers;
-  };
-export type publishersControllerLibraryListResponseError =
-  publishersControllerLibraryListResponse401 & {
-    headers: Headers;
-  };
-
-export type publishersControllerLibraryListResponse =
-  publishersControllerLibraryListResponseSuccess | publishersControllerLibraryListResponseError;
-
 export const getPublishersControllerLibraryListUrl = (
   params?: PublishersControllerLibraryListParams,
 ) => {
@@ -482,14 +409,11 @@ export const getPublishersControllerLibraryListUrl = (
 export const publishersControllerLibraryList = async (
   params?: PublishersControllerLibraryListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<publishersControllerLibraryListResponse> => {
-  return customInstance<publishersControllerLibraryListResponse>(
-    getPublishersControllerLibraryListUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<LibraryPublishersPageDto> => {
+  return customInstance<LibraryPublishersPageDto>(getPublishersControllerLibraryListUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getPublishersControllerLibraryListQueryKey = (
@@ -611,36 +535,6 @@ export function usePublishersControllerLibraryList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type publishersControllerDuplicateCandidatesResponse200 = {
-  data: PublisherDuplicateCandidateDto[];
-  status: 200;
-};
-
-export type publishersControllerDuplicateCandidatesResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type publishersControllerDuplicateCandidatesResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type publishersControllerDuplicateCandidatesResponseSuccess =
-  publishersControllerDuplicateCandidatesResponse200 & {
-    headers: Headers;
-  };
-export type publishersControllerDuplicateCandidatesResponseError = (
-  | publishersControllerDuplicateCandidatesResponse400
-  | publishersControllerDuplicateCandidatesResponse401
-) & {
-  headers: Headers;
-};
-
-export type publishersControllerDuplicateCandidatesResponse =
-  | publishersControllerDuplicateCandidatesResponseSuccess
-  | publishersControllerDuplicateCandidatesResponseError;
-
 export const getPublishersControllerDuplicateCandidatesUrl = (
   params: PublishersControllerDuplicateCandidatesParams,
 ) => {
@@ -665,8 +559,8 @@ export const getPublishersControllerDuplicateCandidatesUrl = (
 export const publishersControllerDuplicateCandidates = async (
   params: PublishersControllerDuplicateCandidatesParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<publishersControllerDuplicateCandidatesResponse> => {
-  return customInstance<publishersControllerDuplicateCandidatesResponse>(
+): Promise<PublisherDuplicateCandidateDto[]> => {
+  return customInstance<PublisherDuplicateCandidateDto[]>(
     getPublishersControllerDuplicateCandidatesUrl(params),
     {
       ...options,
@@ -816,26 +710,6 @@ export function usePublishersControllerDuplicateCandidates<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type publishersControllerRecentResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type publishersControllerRecentResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type publishersControllerRecentResponseSuccess = publishersControllerRecentResponse200 & {
-  headers: Headers;
-};
-export type publishersControllerRecentResponseError = publishersControllerRecentResponse401 & {
-  headers: Headers;
-};
-
-export type publishersControllerRecentResponse =
-  publishersControllerRecentResponseSuccess | publishersControllerRecentResponseError;
-
 export const getPublishersControllerRecentUrl = (params?: PublishersControllerRecentParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -858,14 +732,11 @@ export const getPublishersControllerRecentUrl = (params?: PublishersControllerRe
 export const publishersControllerRecent = async (
   params?: PublishersControllerRecentParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<publishersControllerRecentResponse> => {
-  return customInstance<publishersControllerRecentResponse>(
-    getPublishersControllerRecentUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<PublisherViewDto[]> => {
+  return customInstance<PublisherViewDto[]>(getPublishersControllerRecentUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getPublishersControllerRecentQueryKey = (
@@ -987,26 +858,6 @@ export function usePublishersControllerRecent<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type publishersControllerSearchResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type publishersControllerSearchResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type publishersControllerSearchResponseSuccess = publishersControllerSearchResponse200 & {
-  headers: Headers;
-};
-export type publishersControllerSearchResponseError = publishersControllerSearchResponse401 & {
-  headers: Headers;
-};
-
-export type publishersControllerSearchResponse =
-  publishersControllerSearchResponseSuccess | publishersControllerSearchResponseError;
-
 export const getPublishersControllerSearchUrl = (params?: PublishersControllerSearchParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -1027,14 +878,11 @@ export const getPublishersControllerSearchUrl = (params?: PublishersControllerSe
 export const publishersControllerSearch = async (
   params?: PublishersControllerSearchParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<publishersControllerSearchResponse> => {
-  return customInstance<publishersControllerSearchResponse>(
-    getPublishersControllerSearchUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<PaginatedPublishersDto> => {
+  return customInstance<PaginatedPublishersDto>(getPublishersControllerSearchUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getPublishersControllerSearchQueryKey = (
@@ -1156,34 +1004,6 @@ export function usePublishersControllerSearch<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type publishersControllerLibraryDetailResponse200 = {
-  data: LibraryPublisherDetailDto;
-  status: 200;
-};
-
-export type publishersControllerLibraryDetailResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type publishersControllerLibraryDetailResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type publishersControllerLibraryDetailResponseSuccess =
-  publishersControllerLibraryDetailResponse200 & {
-    headers: Headers;
-  };
-export type publishersControllerLibraryDetailResponseError = (
-  publishersControllerLibraryDetailResponse401 | publishersControllerLibraryDetailResponse404
-) & {
-  headers: Headers;
-};
-
-export type publishersControllerLibraryDetailResponse =
-  publishersControllerLibraryDetailResponseSuccess | publishersControllerLibraryDetailResponseError;
-
 export const getPublishersControllerLibraryDetailUrl = (
   publisherId: string,
   params?: PublishersControllerLibraryDetailParams,
@@ -1210,8 +1030,8 @@ export const publishersControllerLibraryDetail = async (
   publisherId: string,
   params?: PublishersControllerLibraryDetailParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<publishersControllerLibraryDetailResponse> => {
-  return customInstance<publishersControllerLibraryDetailResponse>(
+): Promise<LibraryPublisherDetailDto> => {
+  return customInstance<LibraryPublisherDetailDto>(
     getPublishersControllerLibraryDetailUrl(publisherId, params),
     {
       ...options,
@@ -1355,35 +1175,6 @@ export function usePublishersControllerLibraryDetail<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type publishersControllerLibraryOverviewResponse200 = {
-  data: LibraryPublisherOverviewDto;
-  status: 200;
-};
-
-export type publishersControllerLibraryOverviewResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type publishersControllerLibraryOverviewResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type publishersControllerLibraryOverviewResponseSuccess =
-  publishersControllerLibraryOverviewResponse200 & {
-    headers: Headers;
-  };
-export type publishersControllerLibraryOverviewResponseError = (
-  publishersControllerLibraryOverviewResponse401 | publishersControllerLibraryOverviewResponse404
-) & {
-  headers: Headers;
-};
-
-export type publishersControllerLibraryOverviewResponse =
-  | publishersControllerLibraryOverviewResponseSuccess
-  | publishersControllerLibraryOverviewResponseError;
-
 export const getPublishersControllerLibraryOverviewUrl = (publisherId: string) => {
   return `/api/publishers/${publisherId}/library-overview`;
 };
@@ -1394,8 +1185,8 @@ export const getPublishersControllerLibraryOverviewUrl = (publisherId: string) =
 export const publishersControllerLibraryOverview = async (
   publisherId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<publishersControllerLibraryOverviewResponse> => {
-  return customInstance<publishersControllerLibraryOverviewResponse>(
+): Promise<LibraryPublisherOverviewDto> => {
+  return customInstance<LibraryPublisherOverviewDto>(
     getPublishersControllerLibraryOverviewUrl(publisherId),
     {
       ...options,
@@ -1547,53 +1338,6 @@ export function usePublishersControllerLibraryOverview<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type publishersControllerMergeCustomResponse200 = {
-  data: PublisherMergeResultDto;
-  status: 200;
-};
-
-export type publishersControllerMergeCustomResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type publishersControllerMergeCustomResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type publishersControllerMergeCustomResponse403 = {
-  data: void;
-  status: 403;
-};
-
-export type publishersControllerMergeCustomResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type publishersControllerMergeCustomResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type publishersControllerMergeCustomResponseSuccess =
-  publishersControllerMergeCustomResponse200 & {
-    headers: Headers;
-  };
-export type publishersControllerMergeCustomResponseError = (
-  | publishersControllerMergeCustomResponse400
-  | publishersControllerMergeCustomResponse401
-  | publishersControllerMergeCustomResponse403
-  | publishersControllerMergeCustomResponse404
-  | publishersControllerMergeCustomResponse409
-) & {
-  headers: Headers;
-};
-
-export type publishersControllerMergeCustomResponse =
-  publishersControllerMergeCustomResponseSuccess | publishersControllerMergeCustomResponseError;
-
 export const getPublishersControllerMergeCustomUrl = (sourcePublisherId: string) => {
   return `/api/publishers/${sourcePublisherId}/merge`;
 };
@@ -1605,8 +1349,8 @@ export const publishersControllerMergeCustom = async (
   sourcePublisherId: string,
   mergePublisherDto: MergePublisherDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<publishersControllerMergeCustomResponse> => {
-  return customInstance<publishersControllerMergeCustomResponse>(
+): Promise<PublisherMergeResultDto> => {
+  return customInstance<PublisherMergeResultDto>(
     getPublishersControllerMergeCustomUrl(sourcePublisherId),
     {
       ...options,
@@ -1757,53 +1501,6 @@ export function usePublishersControllerMergeCustom<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type publishersControllerUpdateCustomResponse200 = {
-  data: LibraryPublisherDetailDto;
-  status: 200;
-};
-
-export type publishersControllerUpdateCustomResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type publishersControllerUpdateCustomResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type publishersControllerUpdateCustomResponse403 = {
-  data: void;
-  status: 403;
-};
-
-export type publishersControllerUpdateCustomResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type publishersControllerUpdateCustomResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type publishersControllerUpdateCustomResponseSuccess =
-  publishersControllerUpdateCustomResponse200 & {
-    headers: Headers;
-  };
-export type publishersControllerUpdateCustomResponseError = (
-  | publishersControllerUpdateCustomResponse400
-  | publishersControllerUpdateCustomResponse401
-  | publishersControllerUpdateCustomResponse403
-  | publishersControllerUpdateCustomResponse404
-  | publishersControllerUpdateCustomResponse409
-) & {
-  headers: Headers;
-};
-
-export type publishersControllerUpdateCustomResponse =
-  publishersControllerUpdateCustomResponseSuccess | publishersControllerUpdateCustomResponseError;
-
 export const getPublishersControllerUpdateCustomUrl = (publisherId: string) => {
   return `/api/publishers/${publisherId}`;
 };
@@ -1815,8 +1512,8 @@ export const publishersControllerUpdateCustom = async (
   publisherId: string,
   updatePublisherDto: UpdatePublisherDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<publishersControllerUpdateCustomResponse> => {
-  return customInstance<publishersControllerUpdateCustomResponse>(
+): Promise<LibraryPublisherDetailDto> => {
+  return customInstance<LibraryPublisherDetailDto>(
     getPublishersControllerUpdateCustomUrl(publisherId),
     {
       ...options,
@@ -1967,47 +1664,6 @@ export function usePublishersControllerUpdateCustom<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type publishersControllerDeleteCustomResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type publishersControllerDeleteCustomResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type publishersControllerDeleteCustomResponse403 = {
-  data: void;
-  status: 403;
-};
-
-export type publishersControllerDeleteCustomResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type publishersControllerDeleteCustomResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type publishersControllerDeleteCustomResponseSuccess =
-  publishersControllerDeleteCustomResponse204 & {
-    headers: Headers;
-  };
-export type publishersControllerDeleteCustomResponseError = (
-  | publishersControllerDeleteCustomResponse401
-  | publishersControllerDeleteCustomResponse403
-  | publishersControllerDeleteCustomResponse404
-  | publishersControllerDeleteCustomResponse409
-) & {
-  headers: Headers;
-};
-
-export type publishersControllerDeleteCustomResponse =
-  publishersControllerDeleteCustomResponseSuccess | publishersControllerDeleteCustomResponseError;
-
 export const getPublishersControllerDeleteCustomUrl = (publisherId: string) => {
   return `/api/publishers/${publisherId}`;
 };
@@ -2018,14 +1674,11 @@ export const getPublishersControllerDeleteCustomUrl = (publisherId: string) => {
 export const publishersControllerDeleteCustom = async (
   publisherId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<publishersControllerDeleteCustomResponse> => {
-  return customInstance<publishersControllerDeleteCustomResponse>(
-    getPublishersControllerDeleteCustomUrl(publisherId),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getPublishersControllerDeleteCustomUrl(publisherId), {
+    ...options,
+    method: "DELETE",
+  });
 };
 
 export const getPublishersControllerDeleteCustomQueryKey = (publisherId: string) => {

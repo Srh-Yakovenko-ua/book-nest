@@ -200,7 +200,10 @@ export class CharacterRelationshipsController {
     return this.pathService.findPath({ query, userId: user.id });
   }
 
-  @ApiBadRequestResponse({ description: "Validation, self-reference or direction mismatch" })
+  @ApiBadRequestResponse({
+    description:
+      "Validation, self-reference, direction mismatch, or a character not linked to an initial state's book (relationship_book_context_invalid)",
+  })
   @ApiBody({ type: CreateCharacterRelationshipInputDto })
   @ApiConflictResponse({ description: "Duplicate relationship or family cycle" })
   @ApiCreatedResponse({
@@ -334,7 +337,10 @@ export class CharacterRelationshipsController {
     return this.relationshipsService.remove({ relationshipId, userId: user.id });
   }
 
-  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiBadRequestResponse({
+    description:
+      "Validation failed, or a new state for a book one of the characters is not linked to (relationship_book_context_invalid)",
+  })
   @ApiBody({ type: UpsertRelationshipBookStateInputDto })
   @ApiNotFoundResponse({ description: "Relationship or book not found" })
   @ApiOkResponse({

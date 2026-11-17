@@ -3,6 +3,7 @@ import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/index.js";
 import { ListsModule } from "../lists/index.js";
 import { MediaModule } from "../media/index.js";
+import { ProfileModule } from "../profile/index.js";
 import { ReadingGoalsController } from "./api/reading-goals.controller.js";
 import { ReadingGoalActivityRecorder } from "./application/reading-goal-activity.recorder.js";
 import { ReadingGoalActivityService } from "./application/reading-goal-activity.service.js";
@@ -24,7 +25,7 @@ import { ReadingGoalsRepository } from "./infrastructure/reading-goals.repositor
 @Module({
   controllers: [ReadingGoalsController],
   exports: [ReadingGoalPlansService, ReadingGoalSyncService],
-  imports: [AuthModule, ListsModule, MediaModule],
+  imports: [AuthModule, ListsModule, MediaModule, ProfileModule],
   providers: [
     ReadingGoalsService,
     ReadingGoalActivityRecorder,

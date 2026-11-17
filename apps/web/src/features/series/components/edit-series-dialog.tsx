@@ -32,20 +32,17 @@ import {
   SeriesStatusChips,
   useAuthorsFieldFocus,
 } from "@/features/books";
+import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
-import { ApiError } from "@/lib/http-client";
 
 import { useUpdateSeries } from "../api/use-update-series";
 
 const NAME_MAX = 120;
 const TOTAL_BOOKS_MIN = 1;
 const TOTAL_BOOKS_MAX = 999;
-const DUPLICATE_STATUS = 409;
-const UNPROCESSABLE_STATUS = 422;
-
 type EditSeriesDialogProps = {
   onOpenChange: (open: boolean) => void;
   open: boolean;
@@ -124,11 +121,11 @@ function EditSeriesForm({
     };
     updateSeries.mutate(payload, {
       onError: (error) => {
-        if (error instanceof ApiError && error.status === DUPLICATE_STATUS) {
+        if (isApiErrorStatus(error, HTTP_STATUS.conflict)) {
           setError("name", { message: t("duplicate") });
           return;
         }
-        if (error instanceof ApiError && error.status === UNPROCESSABLE_STATUS) {
+        if (isApiErrorStatus(error, HTTP_STATUS.unprocessableEntity)) {
           setError("totalBooks", { message: t("totalBooksTooLow") });
           return;
         }

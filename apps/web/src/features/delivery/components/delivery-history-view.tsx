@@ -1,17 +1,25 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { Nullable } from "@app/shared";
+import type { ReactNode, Ref } from "react";
 
 import { useTranslations } from "next-intl";
+import { useRef } from "react";
 
+import type { RefetchErrorState } from "@/components/refetch-error-banner";
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { pageTabsTriggerId } from "@/components/page-tabs";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import type { HistoryOrderCardModel } from "../model/history-order-card-model";
 import type { DeliveryHistoryTab } from "../model/history-params";
@@ -19,10 +27,10 @@ import type { DeliveryHistoryTab } from "../model/history-params";
 import { DELIVERY_HISTORY_PANEL_ID } from "../model/history-params";
 
 export type HistoryContent =
-  | { items: HistoryOrderCardModel[]; kind: "ready" }
+  | { isRefreshing: boolean; items: HistoryOrderCardModel[]; kind: "ready" }
+  | { isRefreshing: boolean; kind: "filtered-empty" }
   | { kind: "empty" }
   | { kind: "error" }
-  | { kind: "filtered-empty" }
   | { kind: "loading" };
 
 type DeliveryHistoryViewProps = {
@@ -36,6 +44,7 @@ type DeliveryHistoryViewProps = {
     isFetchingNextPage: boolean;
     isFetchNextPageError: boolean;
   };
+  refetchError: Nullable<RefetchErrorState>;
   renderCard: (model: HistoryOrderCardModel) => ReactNode;
   showToolbar: boolean;
   sidebar?: ReactNode;
@@ -53,6 +62,7 @@ export function DeliveryHistoryView({
   onResetFilters,
   onRetry,
   pagination,
+  refetchError,
   renderCard,
   showToolbar,
   sidebar,
@@ -61,6 +71,8 @@ export function DeliveryHistoryView({
   toolbar,
 }: DeliveryHistoryViewProps) {
   const t = useTranslations("delivery.history");
+  const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsHeadingRef);
 
   return (
     <div className="flex flex-col gap-6">
@@ -82,7 +94,7 @@ export function DeliveryHistoryView({
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <div
-          className="flex min-w-0 flex-1 flex-col gap-6"
+          className={cn("flex min-w-0 flex-1 flex-col gap-6", RETRY_FOCUS_RING.aroundHiddenHeading)}
           {...(showToolbar
             ? {
                 "aria-labelledby": pageTabsTriggerId(DELIVERY_HISTORY_PANEL_ID, tab),
@@ -91,15 +103,19 @@ export function DeliveryHistoryView({
               }
             : {})}
         >
-          <h2 className="sr-only">{t("resultsTitle")}</h2>
+          <h2 className="sr-only" ref={resultsHeadingRef} tabIndex={-1}>
+            {t("resultsTitle")}
+          </h2>
+          <RefetchErrorBanner state={refetchError} />
           <HistoryContentArea
             content={content}
             onGoToInTransit={onGoToInTransit}
             onLoadMore={onLoadMore}
             onResetFilters={onResetFilters}
-            onRetry={onRetry}
+            onRetry={withRetryFocus(onRetry)}
             pagination={pagination}
             renderCard={renderCard}
+            retryButtonRef={retryButtonRef}
             tab={tab}
           />
         </div>
@@ -117,6 +133,7 @@ function HistoryContentArea({
   onRetry,
   pagination,
   renderCard,
+  retryButtonRef,
   tab,
 }: Pick<
   DeliveryHistoryViewProps,
@@ -128,7 +145,7 @@ function HistoryContentArea({
   | "pagination"
   | "renderCard"
   | "tab"
->) {
+> & { retryButtonRef: Ref<HTMLButtonElement> }) {
   const t = useTranslations("delivery.history");
 
   if (content.kind === "error") {
@@ -140,7 +157,7 @@ function HistoryContentArea({
     };
     return (
       <div aria-live="assertive" role="alert">
-        <EmptyState onPrimary={onRetry} state={errorState} />
+        <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
       </div>
     );
   }
@@ -175,7 +192,11 @@ function HistoryContentArea({
       primary: { icon: "x", label: t("states.filteredEmpty.reset") },
       title: t("states.filteredEmpty.title"),
     };
-    return <EmptyState onPrimary={onResetFilters} state={filteredState} />;
+    return (
+      <RefreshingRegion isRefreshing={content.isRefreshing}>
+        <EmptyState onPrimary={onResetFilters} state={filteredState} />
+      </RefreshingRegion>
+    );
   }
 
   const scrollState: InfiniteScrollState = pagination.isFetchNextPageError
@@ -188,7 +209,9 @@ function HistoryContentArea({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-4">{content.items.map((model) => renderCard(model))}</div>
+      <RefreshingRegion className="flex flex-col gap-4" isRefreshing={content.isRefreshing}>
+        {content.items.map((model) => renderCard(model))}
+      </RefreshingRegion>
 
       <InfiniteScrollFooter
         errorLabel={t("loadMoreError")}

@@ -1,8 +1,8 @@
 import "@testing-library/jest-dom/vitest";
-import { useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { act, useState } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { render, screen, userEvent, waitFor } from "@/test-utils";
+import { render, renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import { DebouncedSearchInput } from "./debounced-search-input";
 
@@ -11,6 +11,19 @@ const LABEL = "Пошук цитат";
 
 function activeQuery(): string {
   return screen.getByRole("status").textContent ?? "";
+}
+
+function searchBoxCalling(onSearch: (value: string) => void) {
+  return (
+    <DebouncedSearchInput
+      clearLabel={CLEAR_LABEL}
+      label={LABEL}
+      onClear={vi.fn()}
+      onSearch={onSearch}
+      placeholder="Пошук"
+      value=""
+    />
+  );
 }
 
 function SearchHarness({
@@ -118,5 +131,31 @@ describe("DebouncedSearchInput", () => {
     await userEvent.type(searchInput(), "к");
 
     await waitFor(() => expect(activeQuery()).toBe("к"));
+  });
+});
+
+describe("DebouncedSearchInput handler swap", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    vi.stubGlobal("jest", { advanceTimersByTime: (ms: number) => vi.advanceTimersByTime(ms) });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("hands the debounced search to the handler of the latest render", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const first = vi.fn();
+    const second = vi.fn();
+    const { rerender } = renderWithProviders(searchBoxCalling(first));
+
+    await user.type(searchInput(), "dune");
+    rerender(searchBoxCalling(second));
+    await act(() => vi.advanceTimersByTimeAsync(300));
+
+    expect(second).toHaveBeenCalledWith("dune");
+    expect(first).not.toHaveBeenCalled();
   });
 });

@@ -5,15 +5,15 @@ import type { Nullable, QuoteView } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 import type { MobilePageOverviewTab } from "@/components/ui/mobile-page-overview-panel";
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
+import { SummaryDetails } from "@/components/catalog/summary-mobile";
 import {
   MobilePageOverviewPanel,
   MobilePageOverviewTrigger,
   useMobilePageOverviewPanel,
 } from "@/components/ui/mobile-page-overview-panel";
-import { LibrarySummaryDetails } from "@/features/books/components/library-summary-mobile";
 
 import { PostFinishQuotesBlock } from "./post-finish-quotes-block";
 import { QuoteRediscoveryBlock } from "./quote-rediscovery-block";
@@ -27,7 +27,7 @@ type QuotesOverviewPanelProps = {
   onShowFavorites: () => void;
   onShowRecent: () => void;
   onShowWithComment: () => void;
-  summaryCards: LibrarySummaryCard[];
+  summaryCards: Nullable<SummaryCard[]>;
 };
 
 export function QuotesOverviewPanel({
@@ -48,7 +48,9 @@ export function QuotesOverviewPanel({
     {
       content: (
         <div className="flex flex-col gap-4">
-          <LibrarySummaryDetails cards={summaryCards} title={tDetails("title")} />
+          {summaryCards === null ? null : (
+            <SummaryDetails cards={summaryCards} title={tDetails("title")} />
+          )}
           <QuoteRediscoveryBlock
             isVisible
             onOpenFullView={(quote) => panel.closeThen(() => setFullViewQuote(quote))}

@@ -12,10 +12,6 @@ import { LIBRARY_PUBLISHER_PRESENCE_MISSING, libraryQueryParsers } from "@/featu
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-const MISSING_PUBLISHER_BOOKS_HREF = createSerializer(libraryQueryParsers)("/books", {
-  publisherPresence: LIBRARY_PUBLISHER_PRESENCE_MISSING,
-});
-
 type PublisherInsightsProps = {
   summary: LibraryPublishersSummary;
 };
@@ -49,7 +45,7 @@ export function PublisherInsights({ summary }: PublisherInsightsProps) {
           </div>
           <MobilePageOverviewLink
             className="group/insight inline-flex cursor-pointer items-center gap-1.5 self-start rounded-md text-sm font-medium text-primary no-underline transition-colors outline-none hover:text-primary-hover focus-visible:ring-3 focus-visible:ring-ring/50"
-            href={MISSING_PUBLISHER_BOOKS_HREF}
+            href={buildMissingPublisherBooksHref()}
           >
             <span className="group-hover/insight:underline">{t("attention.action")}</span>
             <UiIcon
@@ -133,6 +129,12 @@ function BestRatedPublisherRow({
       </MobilePageOverviewLink>
     </li>
   );
+}
+
+function buildMissingPublisherBooksHref() {
+  return createSerializer(libraryQueryParsers)("/books", {
+    publisherPresence: LIBRARY_PUBLISHER_PRESENCE_MISSING,
+  });
 }
 
 function InsightBlock({

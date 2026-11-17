@@ -3,9 +3,11 @@ import "@testing-library/jest-dom/vitest";
 import type { LibraryQuickCounts } from "@app/shared";
 import type { ReactNode } from "react";
 
-import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { createTranslator } from "next-intl";
+import { NuqsTestingAdapter, type OnUrlUpdateFunction } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { makeBookView } from "./book-details.fixtures";
@@ -21,16 +23,21 @@ vi.mock("@/i18n/navigation", () => ({
 
 const QUICK_AXES = ["status", "owner", "bookType", "isFavorite"] as const;
 
+const library = messages.books.library;
+const translateLibrary = createTranslator({ locale: "uk", messages, namespace: "books.library" });
+const INVERTED_YEAR_RANGE = "?yearMin=2020&yearMax=2000";
+const SEARCH_BOOK = makeBookView({ id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", title: "Дюна" });
+
 const fetchMock = vi.fn();
 
 function booksPage() {
   return { items: [makeBookView()], page: 1, pagesCount: 1, pageSize: 24, totalCount: 1 };
 }
 
-function jsonResponse(body: unknown): Response {
+function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
-    status: 200,
+    status,
   });
 }
 
@@ -76,6 +83,12 @@ function chip(name: string): HTMLElement {
   return match;
 }
 
+function listRequests(): URL[] {
+  return fetchMock.mock.calls
+    .map(([input]) => new URL(String(input), "http://localhost"))
+    .filter((url) => url.pathname === "/api/books");
+}
+
 function mockApi(countsFor: (url: URL) => LibraryQuickCounts = () => quickCounts()) {
   fetchMock.mockImplementation((input: RequestInfo | URL) => {
     const url = new URL(String(input), "http://localhost");
@@ -90,15 +103,58 @@ function mockApi(countsFor: (url: URL) => LibraryQuickCounts = () => quickCounts
   });
 }
 
+function mockFailedFirstLoad(retryReply: () => Promise<Response>) {
+  let listRequestCount = 0;
+  fetchMock.mockImplementation((input: RequestInfo | URL) => {
+    const url = new URL(String(input), "http://localhost");
+    if (url.pathname === "/api/books/overview") return Promise.resolve(jsonResponse(OVERVIEW));
+    if (url.pathname === "/api/books/quick-counts") {
+      return Promise.resolve(jsonResponse(quickCounts()));
+    }
+    if (url.pathname === "/api/books") {
+      listRequestCount += 1;
+      if (listRequestCount === 1) return Promise.resolve(jsonResponse({ message: "boom" }, 500));
+      return retryReply();
+    }
+    return Promise.resolve(jsonResponse([]));
+  });
+}
+
+function mockHeldSearch(): () => void {
+  let answerSearch = () => {};
+  const searchAnswered = new Promise<void>((resolve) => {
+    answerSearch = () => resolve();
+  });
+  fetchMock.mockImplementation((input: RequestInfo | URL) => {
+    const url = new URL(String(input), "http://localhost");
+    if (url.pathname === "/api/books/overview") return Promise.resolve(jsonResponse(OVERVIEW));
+    if (url.pathname === "/api/books/quick-counts") {
+      return Promise.resolve(jsonResponse(quickCounts()));
+    }
+    if (url.pathname === "/api/books" && url.searchParams.has("q")) {
+      return searchAnswered.then(() =>
+        jsonResponse({ items: [SEARCH_BOOK], page: 1, pagesCount: 1, pageSize: 24, totalCount: 1 }),
+      );
+    }
+    if (url.pathname === "/api/books") return Promise.resolve(jsonResponse(booksPage()));
+    return Promise.resolve(jsonResponse([]));
+  });
+  return answerSearch;
+}
+
 function quickCountRequests(): URL[] {
   return fetchMock.mock.calls
     .map(([input]) => new URL(String(input), "http://localhost"))
     .filter((url) => url.pathname === "/api/books/quick-counts");
 }
 
-function renderLibrary(scope: "all" | "my", searchParams = "") {
+function regionBusyState(element: HTMLElement) {
+  return element.closest("[aria-busy]")?.getAttribute("aria-busy");
+}
+
+function renderLibrary(scope: "all" | "my", searchParams = "", onUrlUpdate?: OnUrlUpdateFunction) {
   return renderWithProviders(
-    <NuqsTestingAdapter hasMemory searchParams={searchParams}>
+    <NuqsTestingAdapter hasMemory onUrlUpdate={onUrlUpdate} searchParams={searchParams}>
       <BooksLibrary scope={scope} />
     </NuqsTestingAdapter>,
   );
@@ -185,5 +241,131 @@ describe("BooksLibrary quick filter counts", () => {
     const [request] = quickCountRequests();
     expect(request?.searchParams.get("scope")).toBe("my");
     expect(request?.searchParams.has("owner")).toBe(false);
+  });
+});
+
+describe("BooksLibrary summary error", () => {
+  it("shows the summary error card instead of zero counts when the overview fails to load", async () => {
+    fetchMock.mockImplementation((input: RequestInfo | URL) => {
+      const url = new URL(String(input), "http://localhost");
+      if (url.pathname === "/api/books/overview") {
+        return Promise.resolve(jsonResponse({ message: "boom" }, 500));
+      }
+      if (url.pathname === "/api/books/quick-counts") {
+        return Promise.resolve(jsonResponse(quickCounts()));
+      }
+      if (url.pathname === "/api/books") return Promise.resolve(jsonResponse(booksPage()));
+      return Promise.resolve(jsonResponse([]));
+    });
+    renderLibrary("all");
+
+    const { summary } = library;
+    const { summaryError } = messages.common;
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(summaryError.title);
+    expect(within(alert).getByRole("button", { name: summaryError.retry })).toBeInTheDocument();
+    expect(screen.queryByText(summary.total)).not.toBeInTheDocument();
+  });
+});
+
+describe("BooksLibrary inverted range", () => {
+  it("asks to fix an inverted year range instead of loading the list", async () => {
+    mockApi();
+    renderLibrary("all", INVERTED_YEAR_RANGE);
+
+    const { invalidRange } = library;
+    expect(await screen.findByRole("heading", { name: invalidRange.title })).toBeInTheDocument();
+    expect(
+      screen.getByText(invalidRange.description.replace("{ranges}", invalidRange.ranges.year)),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Скинути діапазон" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getAllByText("40").length).toBeGreaterThan(0));
+    expect(screen.queryByText(library.loading)).not.toBeInTheDocument();
+    expect(listRequests()).toHaveLength(0);
+  });
+
+  it("drops the inverted year range from the url and loads the list after the reset", async () => {
+    mockApi();
+    const urlUpdates: URLSearchParams[] = [];
+    renderLibrary("all", INVERTED_YEAR_RANGE, (event) => {
+      urlUpdates.push(event.searchParams);
+    });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Скинути діапазон" }));
+
+    expect(await screen.findByText(makeBookView().title)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: library.resultsTitle })).toHaveFocus();
+    expect(urlUpdates.at(-1)?.has("yearMin")).toBe(false);
+    expect(urlUpdates.at(-1)?.has("yearMax")).toBe(false);
+    const [request] = listRequests();
+    expect(request?.searchParams.has("yearMin")).toBe(false);
+    expect(request?.searchParams.has("yearMax")).toBe(false);
+  });
+});
+
+describe("BooksLibrary refreshing results", () => {
+  it("dims only the previous books and swaps the counter for the loading label while a search loads", async () => {
+    const settledCounter = translateLibrary("counter", { shown: 1, total: 1 });
+    mockHeldSearch();
+    renderLibrary("all");
+    expect(await screen.findByText(makeBookView().title)).toBeInTheDocument();
+    expect(screen.getByText(settledCounter)).toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole("textbox", { name: library.search.label }), "дюна");
+
+    await waitFor(() =>
+      expect(regionBusyState(screen.getByText(makeBookView().title))).toBe("true"),
+    );
+    const status = screen.getByText(library.loading);
+    expect(status.closest('[aria-busy="true"]')).toBeNull();
+    expect(screen.queryByText(settledCounter)).not.toBeInTheDocument();
+    const search = screen.getByRole("textbox", { name: library.search.label });
+    expect(search.closest('[aria-busy="true"]')).toBeNull();
+  });
+
+  it("shows the found books undimmed once the search answers", async () => {
+    const answerSearch = mockHeldSearch();
+    renderLibrary("all");
+    expect(await screen.findByText(makeBookView().title)).toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole("textbox", { name: library.search.label }), "дюна");
+    await waitFor(() => expect(listRequests().at(-1)?.searchParams.get("q")).toBe("дюна"));
+    answerSearch();
+
+    const found = await screen.findByText(SEARCH_BOOK.title);
+    expect(regionBusyState(found)).toBe("false");
+    expect(screen.queryByText(makeBookView().title)).not.toBeInTheDocument();
+  });
+});
+
+describe("BooksLibrary first load retry focus", () => {
+  it("moves focus to the new retry button when the retry fails again", async () => {
+    let failRetry = () => {};
+    const retryFailure = new Promise<Response>((resolve) => {
+      failRetry = () => resolve(jsonResponse({ message: "boom" }, 500));
+    });
+    mockFailedFirstLoad(() => retryFailure);
+    renderLibrary("all");
+    (await screen.findByRole("button", { name: library.error.retry })).focus();
+
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: library.error.retry })).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("heading", { name: library.resultsTitle })).toHaveFocus();
+    failRetry();
+
+    expect(await screen.findByRole("button", { name: library.error.retry })).toHaveFocus();
+  });
+
+  it("keeps focus on the results heading when the retry loads the books", async () => {
+    mockFailedFirstLoad(() => Promise.resolve(jsonResponse(booksPage())));
+    renderLibrary("all");
+    (await screen.findByRole("button", { name: library.error.retry })).focus();
+
+    await userEvent.keyboard("{Enter}");
+
+    expect(await screen.findByText(makeBookView().title)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: library.resultsTitle })).toHaveFocus();
   });
 });

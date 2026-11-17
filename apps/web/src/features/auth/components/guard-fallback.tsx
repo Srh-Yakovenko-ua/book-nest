@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
-import { UiIcon } from "@/components/icons";
+import { Spinner } from "@/components/spinner";
 
 export function GuardFallback() {
   const t = useTranslations("auth.session");
@@ -14,7 +14,7 @@ export function GuardFallback() {
       className="flex min-h-svh flex-col items-center justify-center gap-3 bg-background text-muted-foreground"
       role="status"
     >
-      <UiIcon aria-hidden className="animate-spin text-primary" name="refresh" size={28} />
+      <Spinner className="text-primary" size="lg" />
       <span className="text-sm">{t("checking")}</span>
     </div>
   );

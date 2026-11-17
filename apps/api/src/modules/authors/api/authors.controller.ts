@@ -23,6 +23,10 @@ import { AuthorsService } from "../application/authors.service.js";
 import { AuthorLookupQueryDto } from "./input-dto/author-lookup-query.input-dto.js";
 import { AuthorSearchPaginationQueryDto } from "./input-dto/author-search-query.input-dto.js";
 import { RecentAuthorsQueryDto } from "./input-dto/recent-authors-query.input-dto.js";
+import { AuthorBookSuggestionViewDto } from "./view-dto/author-book-suggestion.view-dto.js";
+import { AuthorLookupResultDto } from "./view-dto/author-lookup-result.view-dto.js";
+import { AuthorViewDto } from "./view-dto/author.view-dto.js";
+import { PaginatedAuthorsDto } from "./view-dto/paginated-authors.view-dto.js";
 
 const LOOKUP_TTL_SECONDS = 60;
 const LOOKUP_LIMIT = 30;
@@ -31,7 +35,11 @@ const LOOKUP_LIMIT = 30;
 @Controller("api/authors")
 export class AuthorsController {
   constructor(private readonly authorsService: AuthorsService) {}
-  @ApiOkResponse({ description: "Author candidates from Open Library with an in-database flag" })
+  @ApiOkResponse({
+    description: "Author candidates from Open Library with an in-database flag",
+    isArray: true,
+    type: AuthorLookupResultDto,
+  })
   @ApiOperation({ summary: "Look up authors from Open Library" })
   @ApiQuery({ name: "q", required: true })
   @Get("lookup")
@@ -43,7 +51,11 @@ export class AuthorsController {
   ): Promise<AuthorLookupResult[]> {
     return this.authorsService.lookup(user.id, query.q);
   }
-  @ApiOkResponse({ description: "Authors the current user recently used in their own books" })
+  @ApiOkResponse({
+    description: "Authors the current user recently used in their own books",
+    isArray: true,
+    type: AuthorViewDto,
+  })
   @ApiOperation({ summary: "List recently used authors for the current user" })
   @ApiQuery({ name: "limit", required: false })
   @ApiQuery({ enum: CatalogLocaleSchema.options, name: "locale", required: false })
@@ -59,7 +71,11 @@ export class AuthorsController {
       userId: user.id,
     });
   }
-  @ApiOkResponse({ description: "Books by this author proxied live from Open Library" })
+  @ApiOkResponse({
+    description: "Books by this author proxied live from Open Library",
+    isArray: true,
+    type: AuthorBookSuggestionViewDto,
+  })
   @ApiOperation({ summary: "List an author's books from Open Library" })
   @ApiParam({ name: "id" })
   @Get(":id/books")
@@ -71,7 +87,10 @@ export class AuthorsController {
   ): Promise<AuthorBookSuggestionView[]> {
     return this.authorsService.listBookSuggestions(user.id, authorId);
   }
-  @ApiOkResponse({ description: "A page of authors visible to the current user" })
+  @ApiOkResponse({
+    description: "A page of authors visible to the current user",
+    type: PaginatedAuthorsDto,
+  })
   @ApiOperation({ summary: "Search authors (global seeds + own custom)" })
   @ApiQuery({ name: "search", required: false })
   @ApiQuery({ name: "pageNumber", required: false })

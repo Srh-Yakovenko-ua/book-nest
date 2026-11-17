@@ -1,9 +1,9 @@
 import type { Nullable } from "@app/shared";
 
-import { differenceInCalendarDays, format, parseISO } from "date-fns";
+import { differenceInCalendarDays, parseISO } from "date-fns";
 
-const DISPLAY_DATE_FORMAT = "dd.MM.yyyy";
-const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+import { formatDate } from "@/lib/format";
+import { ISO_DAY } from "@/lib/iso-day";
 
 export type LoanRelative =
   | { days: number; kind: "overdue" }
@@ -23,17 +23,23 @@ export function daysBetweenLoanDates(
   toIso: Nullable<string>,
 ): Nullable<number> {
   if (fromIso === null || toIso === null) return null;
-  if (!ISO_DATE_PATTERN.test(fromIso) || !ISO_DATE_PATTERN.test(toIso)) return null;
+  if (!ISO_DAY.pattern.test(fromIso) || !ISO_DAY.pattern.test(toIso)) return null;
   return differenceInCalendarDays(parseISO(toIso), parseISO(fromIso));
 }
 
-export function formatLoanDate(iso: null | string): null | string {
-  if (iso === null || !ISO_DATE_PATTERN.test(iso)) return null;
-  return format(parseISO(iso), DISPLAY_DATE_FORMAT);
+export function formatLoanDate({
+  iso,
+  locale,
+}: {
+  iso: Nullable<string>;
+  locale: string;
+}): Nullable<string> {
+  if (iso === null || !ISO_DAY.pattern.test(iso)) return null;
+  return formatDate(iso, locale);
 }
 
 export function loanRelative(expectedReturnDate: null | string, today: string): LoanRelative {
-  if (expectedReturnDate === null || !ISO_DATE_PATTERN.test(expectedReturnDate)) {
+  if (expectedReturnDate === null || !ISO_DAY.pattern.test(expectedReturnDate)) {
     return { kind: "none" };
   }
 

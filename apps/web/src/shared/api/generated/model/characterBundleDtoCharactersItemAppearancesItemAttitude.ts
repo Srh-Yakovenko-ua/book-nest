@@ -14,7 +14,6 @@ export type CharacterBundleDtoCharactersItemAppearancesItemAttitude =
   | null;
 
 export const CharacterBundleDtoCharactersItemAppearancesItemAttitude = {
-  favorite: "favorite",
   like: "like",
   neutral: "neutral",
   distrust: "distrust",

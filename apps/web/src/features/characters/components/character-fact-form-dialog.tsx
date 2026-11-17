@@ -10,6 +10,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,10 +20,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DiscardConfirmDialog } from "@/features/books";
 import { useBookPagesCount } from "@/features/books/api/use-book";
-import { bookPageCeiling } from "@/features/books/model/book-page-ceiling";
+import { useCloseGuard } from "@/hooks/use-close-guard";
 import { applyFieldErrors } from "@/lib/api-errors";
+import { bookPageCeiling } from "@/lib/book-page-ceiling";
 import { ApiError } from "@/lib/http-client";
 
 import type { CharacterFactsScope } from "../api/character-keys";
@@ -36,7 +37,6 @@ import type {
 import { isCharacterFactGone } from "../api/character-fact-mutation-effects";
 import { useCreateCharacterFact } from "../api/use-create-character-fact";
 import { useUpdateCharacterFact } from "../api/use-update-character-fact";
-import { useCharacterFactDraftGuard } from "../hooks/use-character-fact-draft-guard";
 import {
   buildCharacterFactFormSchema,
   characterFactFormDefaults,
@@ -103,8 +103,9 @@ export function CharacterFactFormDialog({
     trigger,
   } = form;
 
-  const guard = useCharacterFactDraftGuard({
-    focusFirstField: () => setFocus("title"),
+  const guard = useCloseGuard({
+    focusFallback: () => setFocus("title"),
+    guardHistory: true,
     isDirty,
     isOpen: open,
     isPending: isSubmitting,
@@ -217,7 +218,7 @@ export function CharacterFactFormDialog({
         </DialogContent>
       </Dialog>
 
-      <DiscardConfirmDialog
+      <DiscardChangesDialog
         cancelLabel={tDiscardChanges("cancel")}
         confirmLabel={tDiscardChanges("confirm")}
         description={t("discard.description")}

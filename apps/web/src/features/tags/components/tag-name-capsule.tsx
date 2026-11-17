@@ -5,11 +5,10 @@ import type { TagColor } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { TagChip } from "@/components/tag-chip";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsTextClamped } from "@/hooks/use-is-text-clamped";
 import { cn } from "@/lib/utils";
-
-import { TagChip } from "./tag-chip";
 
 type TagNameCapsuleProps = {
   className?: string;

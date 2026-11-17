@@ -2,11 +2,13 @@ import type {
   BookOrderStatisticsDaily,
   StatisticsCalendarCoverage,
   StatisticsPeriod,
+  WeekStartDay,
 } from "@app/shared";
 import type { ReactNode } from "react";
 
+import { defaultUserProfileSettings } from "@app/shared";
 import { addWeeks, format, parseISO, startOfWeek } from "date-fns";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
 
@@ -20,6 +22,30 @@ vi.mock("@/i18n/navigation", () => ({
   ),
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
+
+const fetchMock = vi.fn();
+
+function serveWeekStartDay(weekStartDay: WeekStartDay): void {
+  fetchMock.mockImplementation((input: RequestInfo | URL) =>
+    String(input).includes("/api/profile/settings")
+      ? Promise.resolve(
+          new Response(JSON.stringify({ ...defaultUserProfileSettings, weekStartDay }), {
+            headers: { "Content-Type": "application/json" },
+          }),
+        )
+      : Promise.reject(new Error(`unexpected fetch ${String(input)}`)),
+  );
+}
+
+beforeEach(() => {
+  vi.stubGlobal("fetch", fetchMock);
+  serveWeekStartDay("monday");
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  fetchMock.mockReset();
+});
 
 const TODAY = "2026-03-08";
 
@@ -396,6 +422,17 @@ describe("StatisticsCalendar geometry", () => {
 
     expect(screen.getByText("ср")).toBeInTheDocument();
     expect(screen.queryByText("вт")).not.toBeInTheDocument();
+  });
+
+  it("starts the weekday labels on Sunday for a reader whose week starts on Sunday", async () => {
+    serveWeekStartDay("sunday");
+    renderCalendar();
+
+    await screen.findByText("вт");
+    const grid = screen.getByRole("region", { name: "Сітка календаря покупок" });
+    const labels = within(grid).getAllByText(/^(пн|вт|ср|чт|пт|сб|нд)$/u);
+
+    expect(labels.map((label) => label.textContent)).toEqual(["нд", "вт", "чт", "сб"]);
   });
 });
 

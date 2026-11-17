@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 
 import type { DeliveryReadControllerHistoryListSort } from "@/shared/api/generated/model";
 
+import { ActiveFilters } from "@/components/catalog/active-filters";
 import { PageTabs } from "@/components/page-tabs";
 import {
   Select,
@@ -12,7 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LibraryActiveFilters } from "@/features/books/components/library-active-filters";
 
 import type { DeliveryHistoryAdvancedState, DeliveryHistoryTab } from "../model/history-params";
 
@@ -34,6 +34,7 @@ type DeliveryHistoryToolbarProps = {
   canSortByPrice: boolean;
   counterLabel: string;
   isPending: boolean;
+  isRefreshing: boolean;
   loadingLabel: string;
   onApplyAdvanced: (draft: DeliveryHistoryAdvancedState) => void;
   onClearAdvanced: () => void;
@@ -52,6 +53,7 @@ export function DeliveryHistoryToolbar({
   canSortByPrice,
   counterLabel,
   isPending,
+  isRefreshing,
   loadingLabel,
   onApplyAdvanced,
   onClearAdvanced,
@@ -142,10 +144,10 @@ export function DeliveryHistoryToolbar({
         </div>
       </div>
 
-      <LibraryActiveFilters chips={activeFilterChips} onClearAll={onClearAdvanced} />
+      <ActiveFilters chips={activeFilterChips} onClearAll={onClearAdvanced} />
 
       <p aria-live="polite" className="text-sm text-muted-foreground">
-        {isPending ? loadingLabel : counterLabel}
+        {isPending || isRefreshing ? loadingLabel : counterLabel}
       </p>
     </div>
   );

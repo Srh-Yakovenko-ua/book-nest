@@ -3,14 +3,17 @@ import "@testing-library/jest-dom/vitest";
 import type {
   BookOrderItemRowShipmentView,
   BookOrderItemRowView,
+  BookOrderView,
   InTransitQuickCounts,
   Nullable,
 } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import {
   mockIntersectionObserver,
   renderWithProviders,
@@ -20,6 +23,8 @@ import {
   within,
 } from "@/test-utils";
 
+import { matchesDeliveryKey } from "../api/delivery-keys";
+import { bookOrderQueryOptions } from "../api/use-book-order";
 import { useDeliverySelectionStore } from "../model/delivery-selection-store";
 import { DeliveryInTransit } from "./delivery-in-transit";
 import {
@@ -35,6 +40,12 @@ vi.mock("@/i18n/navigation", () => ({
   ),
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
+
+const { toastMock } = vi.hoisted(() => ({
+  toastMock: { error: vi.fn(), success: vi.fn(), warning: vi.fn() },
+}));
+
+vi.mock("sonner", () => ({ toast: toastMock }));
 
 const travellingParcel = makeDeliveryItemRowShipment({
   activeItemsCount: 3,
@@ -54,8 +65,10 @@ const waitingParcel = makeDeliveryItemRowShipment({
 
 const fetchMock = vi.fn();
 
-let respondToList: (url: string) => Response;
+let respondToList: (url: string) => Promise<Response> | Response;
+let respondToOrder: (url: string) => Promise<Response>;
 let respondToQuickCounts: (url: string) => Promise<Response>;
+let respondToStatusChange: (url: string) => Promise<Response>;
 
 const QUICK_COUNTS: InTransitQuickCounts = {
   all: 4,
@@ -85,6 +98,10 @@ async function enterSelection(): Promise<void> {
   await userEvent.click(await screen.findByRole("button", { name: "Вибрати" }));
 }
 
+function isStatusChange(url: string): boolean {
+  return /\/api\/delivery\/shipments\/[^/]+\/(in-transit|ready-for-pickup)$/.test(url);
+}
+
 function itemRow(
   id: string,
   title: string,
@@ -98,14 +115,46 @@ function itemRow(
   });
 }
 
-function jsonResponse(body: unknown): Response {
-  return new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } });
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    headers: { "Content-Type": "application/json" },
+    status,
+  });
 }
 
 function listRequests(): string[] {
   return fetchMock.mock.calls
     .map(([url]) => String(url))
     .filter((url) => /\/books\/in-transit(\?|$)/.test(url));
+}
+
+async function openOrderEditor(): Promise<void> {
+  await userEvent.click(
+    await screen.findByRole("button", { name: messages.delivery.card.orderActionsAria }),
+  );
+  await userEvent.click(
+    await screen.findByRole("menuitem", { name: messages.delivery.card.editOrder }),
+  );
+}
+
+function orderDetail(storeName: string): BookOrderView {
+  return {
+    createdAt: "2026-07-05T10:00:00.000Z",
+    currency: "UAH",
+    deliveryPrice: null,
+    derivedStatus: "active",
+    discount: null,
+    id: "order-1",
+    isFree: false,
+    items: [],
+    note: null,
+    orderDate: "2026-07-05",
+    orderNumber: "ORD-10241",
+    shipments: [],
+    storeName,
+    totalAmount: 480,
+    updatedAt: "2026-07-05T10:00:00.000Z",
+  };
 }
 
 function parcelCheckbox(title: string): HTMLElement {
@@ -137,6 +186,10 @@ function selectAllCheckbox(): HTMLElement {
   return within(screen.getByText(/Вибрати всі видимі посилки/)).getByRole("checkbox");
 }
 
+function statusChangeRequests(): string[] {
+  return fetchMock.mock.calls.map(([url]) => String(url)).filter(isStatusChange);
+}
+
 beforeEach(() => {
   useDeliverySelectionStore.getState().exitSelection();
 
@@ -150,7 +203,9 @@ beforeEach(() => {
       ]),
     );
 
+  respondToOrder = (url) => Promise.reject(new Error(`unexpected ${url}`));
   respondToQuickCounts = () => Promise.resolve(jsonResponse(QUICK_COUNTS));
+  respondToStatusChange = (url) => Promise.reject(new Error(`unexpected ${url}`));
 
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL) => {
@@ -163,6 +218,9 @@ beforeEach(() => {
     if (url.includes("/shipments/receive")) {
       return Promise.resolve(jsonResponse({ receivedShipmentIds: ["shipment-b"], skipped: [] }));
     }
+    if (url.includes("/api/delivery/orders/order-1")) return respondToOrder(url);
+    if (url.includes("/purchase-stores")) return Promise.resolve(jsonResponse([]));
+    if (isStatusChange(url)) return respondToStatusChange(url);
     if (url.includes("/in-transit")) return Promise.resolve(respondToList(url));
     return Promise.reject(new Error(`unexpected ${url}`));
   });
@@ -464,5 +522,145 @@ describe("DeliveryInTransit endless scrolling", () => {
 
     expect(await screen.findByText("Дюна")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});
+
+describe("DeliveryInTransit refetch failure", () => {
+  it("keeps the loaded books and shows the refresh banner when a refetch fails", async () => {
+    const { queryClient } = renderPage();
+    expect(await screen.findByText("Таємна історія")).toBeInTheDocument();
+
+    respondToList = () => jsonResponse({}, 500);
+    await act(() => queryClient.invalidateQueries({ predicate: matchesDeliveryKey }));
+
+    expect(await screen.findByText(messages.common.refetchError)).toBeInTheDocument();
+    expect(screen.getByText("Таємна історія")).toBeInTheDocument();
+    expect(screen.queryByText(messages.delivery.states.error.title)).not.toBeInTheDocument();
+  });
+});
+
+describe("DeliveryInTransit order editor", () => {
+  it("fills the editor from the server once the cached order went out of date", async () => {
+    const { queryClient } = renderPage();
+    const order = bookOrderQueryOptions("order-1");
+    queryClient.setQueryDefaults(order.queryKey, { gcTime: Infinity });
+    queryClient.setQueryData(order.queryKey, orderDetail("Old Store"));
+    await act(() => queryClient.invalidateQueries({ queryKey: order.queryKey }));
+    respondToOrder = () => Promise.resolve(jsonResponse(orderDetail("New Store")));
+
+    await openOrderEditor();
+
+    const editor = await screen.findByRole("dialog", { name: messages.delivery.manage.editOrder });
+    expect(within(editor).getByLabelText(messages.delivery.manage.store)).toHaveValue("New Store");
+  });
+
+  it("reports a failed order load instead of opening the editor", async () => {
+    respondToOrder = () => Promise.resolve(jsonResponse({}, 500));
+    renderPage();
+
+    await openOrderEditor();
+
+    await waitFor(() => expect(toastMock.error).toHaveBeenCalledTimes(1));
+    expect(
+      screen.queryByRole("dialog", { name: messages.delivery.manage.editOrder }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("DeliveryInTransit shipment next step", () => {
+  const card = messages.delivery.card;
+
+  it("ignores a second click while the status change is in flight", async () => {
+    respondToStatusChange = () => deferred().promise;
+    renderPage();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: card.markReadyForPickupCompact }),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: card.markReadyForPickupCompact })).toBeDisabled(),
+    );
+    await userEvent.click(screen.getByRole("button", { name: card.markReadyForPickupCompact }));
+
+    expect(statusChangeRequests()).toHaveLength(1);
+  });
+
+  it("stays disabled until the refreshed list shows the new status", async () => {
+    const arrivedParcel: BookOrderItemRowShipmentView = {
+      ...travellingParcel,
+      status: "ready_for_pickup",
+    };
+    const statusChange = deferred();
+    respondToStatusChange = () => statusChange.promise;
+    renderPage();
+    const arrival = await screen.findByRole("button", { name: card.markReadyForPickupCompact });
+    const loadedListRequests = listRequests().length;
+    const refreshedList = deferred();
+    respondToList = () => refreshedList.promise;
+
+    await userEvent.click(arrival);
+    statusChange.resolve(jsonResponse(orderDetail("Yakaboo")));
+    await waitFor(() => expect(listRequests()).toHaveLength(loadedListRequests + 1));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: card.markReadyForPickupCompact })).toBeDisabled(),
+    );
+
+    refreshedList.resolve(
+      jsonResponse(
+        makeDeliveryInTransitPage([
+          itemRow("item-1", "Таємна історія", arrivedParcel),
+          itemRow("item-2", "Амадока", arrivedParcel),
+          itemRow("item-3", "Нічний цирк", waitingParcel),
+          itemRow("item-4", "Місто", null),
+        ]),
+      ),
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole("button", { busy: false, name: card.receiveShipmentCompact }),
+      ).toHaveLength(2),
+    );
+  });
+
+  it("keeps every shipment with a status change in flight disabled", async () => {
+    respondToList = () =>
+      jsonResponse(
+        makeDeliveryInTransitPage([
+          itemRow("item-1", "Таємна історія", travellingParcel),
+          itemRow(
+            "item-5",
+            "Дюна",
+            makeDeliveryItemRowShipment({ id: "shipment-c", status: "ordered" }),
+          ),
+        ]),
+      );
+    respondToStatusChange = () => deferred().promise;
+    renderPage();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: card.markReadyForPickupCompact }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: card.markInTransitCompact }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: card.markInTransitCompact })).toBeDisabled(),
+    );
+    expect(screen.getByRole("button", { name: card.markReadyForPickupCompact })).toBeDisabled();
+  });
+
+  it("marks the reading statistics stale once a shipment changes status", async () => {
+    const statisticsKey = ["/api/statistics", "overview", { period: "year" }];
+    respondToStatusChange = () => Promise.resolve(jsonResponse(orderDetail("Yakaboo")));
+    const { queryClient } = renderPage();
+    queryClient.setQueryDefaults(statisticsKey, { gcTime: Infinity });
+    queryClient.setQueryData(statisticsKey, {});
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: card.markReadyForPickupCompact }),
+    );
+
+    await waitFor(() => expect(queryClient.getQueryState(statisticsKey)?.isInvalidated).toBe(true));
   });
 });

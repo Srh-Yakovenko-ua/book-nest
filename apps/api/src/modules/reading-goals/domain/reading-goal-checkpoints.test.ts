@@ -11,7 +11,7 @@ import { READING_GOAL_CHECKPOINTS } from "./reading-goal.constants.js";
 
 const goalStartDate = new Date("2026-08-01T00:00:00.000Z");
 const deadline = new Date("2026-08-10T00:00:00.000Z");
-const now = new Date("2026-08-05T12:00:00.000Z");
+const today = new Date("2026-08-05T12:00:00.000Z");
 
 function book(bookId: string, finishedAt: null | string): ReadingGoalCandidateBook {
   return { bookId, finishedAt: finishedAt === null ? null : new Date(finishedAt) };
@@ -19,24 +19,24 @@ function book(bookId: string, finishedAt: null | string): ReadingGoalCandidateBo
 
 function targetsFor(targetCount: number): number[] {
   return buildReadingGoalCheckpoints({
-    archivedAt: null,
+    archivedDay: null,
     books: [],
     deadline,
     goalStartDate,
-    now,
     targetCount,
+    today,
   }).map((checkpoint) => checkpoint.targetCount);
 }
 
 describe("buildReadingGoalCheckpoints targets", () => {
   it("returns a single checkpoint on the deadline for a one book goal", () => {
     const checkpoints = buildReadingGoalCheckpoints({
-      archivedAt: null,
+      archivedDay: null,
       books: [],
       deadline,
       goalStartDate,
-      now,
       targetCount: 1,
+      today,
     });
 
     expect(checkpoints).toEqual([
@@ -123,12 +123,12 @@ describe("dedupeCheckpointTargets", () => {
 describe("buildReadingGoalCheckpoints dueDate", () => {
   it("spreads the checkpoints evenly across the inclusive goal window", () => {
     const checkpoints = buildReadingGoalCheckpoints({
-      archivedAt: null,
+      archivedDay: null,
       books: [],
       deadline,
       goalStartDate,
-      now,
       targetCount: 10,
+      today,
     });
 
     expect(checkpoints.map((checkpoint) => checkpoint.dueDate)).toEqual([
@@ -153,12 +153,12 @@ describe("buildReadingGoalCheckpoints dueDate", () => {
     "spreads a goal of $targetCount books evenly rather than onto the fraction grid",
     ({ expected, targetCount }) => {
       const checkpoints = buildReadingGoalCheckpoints({
-        archivedAt: null,
+        archivedDay: null,
         books: [],
         deadline,
         goalStartDate,
-        now,
         targetCount,
+        today,
       });
 
       expect(checkpoints.map((checkpoint) => checkpoint.dueDate)).toEqual(expected);
@@ -167,12 +167,12 @@ describe("buildReadingGoalCheckpoints dueDate", () => {
 
   it("matches the spec example of ten books between the first of September and the last of December", () => {
     const checkpoints = buildReadingGoalCheckpoints({
-      archivedAt: null,
+      archivedDay: null,
       books: [],
       deadline: new Date("2026-12-31T00:00:00.000Z"),
       goalStartDate: new Date("2026-09-01T00:00:00.000Z"),
-      now: new Date("2026-09-10T12:00:00.000Z"),
       targetCount: 10,
+      today: new Date("2026-09-10T12:00:00.000Z"),
     });
 
     expect(checkpoints.map((checkpoint) => checkpoint.dueDate)).toEqual([
@@ -188,20 +188,20 @@ describe("buildReadingGoalCheckpoints dueDate", () => {
     "ends on the deadline with the full goal target for target %i",
     (targetCount) => {
       const shortWindow = buildReadingGoalCheckpoints({
-        archivedAt: null,
+        archivedDay: null,
         books: [],
         deadline: new Date("2026-08-07T00:00:00.000Z"),
         goalStartDate,
-        now,
         targetCount,
+        today,
       });
       const longWindow = buildReadingGoalCheckpoints({
-        archivedAt: null,
+        archivedDay: null,
         books: [],
         deadline: new Date("2026-12-31T00:00:00.000Z"),
         goalStartDate: new Date("2026-09-01T00:00:00.000Z"),
-        now: new Date("2026-09-10T12:00:00.000Z"),
         targetCount,
+        today: new Date("2026-09-10T12:00:00.000Z"),
       });
 
       expect(shortWindow.at(-1)).toMatchObject({ dueDate: "2026-08-07", targetCount });
@@ -211,12 +211,12 @@ describe("buildReadingGoalCheckpoints dueDate", () => {
 
   it("never places a checkpoint before the goal started on a two day window", () => {
     const checkpoints = buildReadingGoalCheckpoints({
-      archivedAt: null,
+      archivedDay: null,
       books: [],
       deadline: new Date("2026-08-02T00:00:00.000Z"),
       goalStartDate,
-      now: new Date("2026-08-01T09:00:00.000Z"),
       targetCount: 5,
+      today: new Date("2026-08-01T09:00:00.000Z"),
     });
 
     expect(checkpoints.map((checkpoint) => checkpoint.dueDate)).toEqual([
@@ -230,12 +230,12 @@ describe("buildReadingGoalCheckpoints dueDate", () => {
 
   it("collapses a single day goal onto its only day", () => {
     const checkpoints = buildReadingGoalCheckpoints({
-      archivedAt: null,
+      archivedDay: null,
       books: [],
       deadline: goalStartDate,
       goalStartDate,
-      now: new Date("2026-08-01T09:00:00.000Z"),
       targetCount: 3,
+      today: new Date("2026-08-01T09:00:00.000Z"),
     });
 
     expect(checkpoints.map((checkpoint) => checkpoint.dueDate)).toEqual([
@@ -249,7 +249,7 @@ describe("buildReadingGoalCheckpoints dueDate", () => {
 describe("buildReadingGoalCheckpoints status", () => {
   it("reports the whole schedule of a partially finished goal", () => {
     const checkpoints = buildReadingGoalCheckpoints({
-      archivedAt: null,
+      archivedDay: null,
       books: [
         book("book-c", "2026-08-05T08:00:00.000Z"),
         book("book-a", "2026-08-01T09:00:00.000Z"),
@@ -257,8 +257,8 @@ describe("buildReadingGoalCheckpoints status", () => {
       ],
       deadline,
       goalStartDate,
-      now,
       targetCount: 10,
+      today,
     });
 
     expect(checkpoints).toEqual([
@@ -302,12 +302,12 @@ describe("buildReadingGoalCheckpoints status", () => {
 
   it("achieves a checkpoint reached late in the evening of its own dueDate", () => {
     const [firstCheckpoint] = buildReadingGoalCheckpoints({
-      archivedAt: null,
+      archivedDay: null,
       books: [book("book-a", "2026-08-02T23:59:00.000Z")],
       deadline,
       goalStartDate,
-      now,
       targetCount: 5,
+      today,
     });
 
     expect(firstCheckpoint).toMatchObject({
@@ -319,12 +319,12 @@ describe("buildReadingGoalCheckpoints status", () => {
 
   it("misses a checkpoint whose dueDate passed with the target unreached", () => {
     const checkpoints = buildReadingGoalCheckpoints({
-      archivedAt: null,
+      archivedDay: null,
       books: [book("book-a", "2026-08-01T09:00:00.000Z")],
       deadline,
       goalStartDate,
-      now,
       targetCount: 10,
+      today,
     });
 
     expect(checkpoints[1]).toEqual({
@@ -338,12 +338,12 @@ describe("buildReadingGoalCheckpoints status", () => {
 
   it("leaves a checkpoint upcoming while its dueDate is still today", () => {
     const checkpoints = buildReadingGoalCheckpoints({
-      archivedAt: null,
+      archivedDay: null,
       books: [],
       deadline,
       goalStartDate,
-      now: new Date("2026-08-06T23:00:00.000Z"),
       targetCount: 10,
+      today: new Date("2026-08-06T23:00:00.000Z"),
     });
 
     expect(checkpoints[2]).toMatchObject({ dueDate: "2026-08-06", status: "upcoming" });
@@ -351,7 +351,7 @@ describe("buildReadingGoalCheckpoints status", () => {
 
   it("misses every early checkpoint when the books were all finished in one late burst", () => {
     const checkpoints = buildReadingGoalCheckpoints({
-      archivedAt: null,
+      archivedDay: null,
       books: [
         book("book-a", "2026-08-05T09:00:00.000Z"),
         book("book-b", "2026-08-05T10:00:00.000Z"),
@@ -360,8 +360,8 @@ describe("buildReadingGoalCheckpoints status", () => {
       ],
       deadline,
       goalStartDate,
-      now,
       targetCount: 10,
+      today,
     });
 
     expect(checkpoints.map((checkpoint) => checkpoint.status)).toEqual([
@@ -385,15 +385,15 @@ describe("buildReadingGoalCheckpoints status", () => {
 
   it("resolves achievedAt through the qualifying order rather than the input order", () => {
     const [firstCheckpoint] = buildReadingGoalCheckpoints({
-      archivedAt: null,
+      archivedDay: null,
       books: [
         book("book-z", "2026-08-04T10:00:00.000Z"),
         book("book-a", "2026-08-01T10:00:00.000Z"),
       ],
       deadline,
       goalStartDate,
-      now,
       targetCount: 5,
+      today,
     });
 
     expect(firstCheckpoint).toMatchObject({ achievedAt: "2026-08-01", targetCount: 1 });
@@ -401,7 +401,7 @@ describe("buildReadingGoalCheckpoints status", () => {
 
   it("ignores books finished outside the qualification window", () => {
     const checkpoints = buildReadingGoalCheckpoints({
-      archivedAt: null,
+      archivedDay: null,
       books: [
         book("too-early", "2026-07-31T22:00:00.000Z"),
         book("unfinished", null),
@@ -410,8 +410,8 @@ describe("buildReadingGoalCheckpoints status", () => {
       ],
       deadline,
       goalStartDate,
-      now: new Date("2026-08-12T09:00:00.000Z"),
       targetCount: 5,
+      today: new Date("2026-08-12T09:00:00.000Z"),
     });
 
     expect(checkpoints[0]).toEqual({
@@ -426,12 +426,12 @@ describe("buildReadingGoalCheckpoints status", () => {
 
   it("matches the shared checkpoint contract", () => {
     const checkpoints = buildReadingGoalCheckpoints({
-      archivedAt: null,
+      archivedDay: null,
       books: [book("book-a", "2026-08-02T09:00:00.000Z")],
       deadline,
       goalStartDate,
-      now,
       targetCount: 12,
+      today,
     });
 
     expect(ReadingGoalCheckpointSchema.array().safeParse(checkpoints).success).toBe(true);

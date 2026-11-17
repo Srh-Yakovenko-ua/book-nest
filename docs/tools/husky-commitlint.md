@@ -135,6 +135,16 @@ refactor(http-client): extract interceptor pattern
 - **`body-max-line-length`** is off — long explanations in the body are fine
 - **`footer-max-line-length`** is off — for long `BREAKING CHANGE:` or issue references
 
+## Hook 3: `.husky/pre-push`
+
+Before a push the hook runs `pnpm typecheck && pnpm lint` over the whole repo. On a Windows dev machine that takes 153 to 214 seconds, and most of the time it repeats work that has just passed, because the gates script (`gates.sh`) runs typecheck, ESLint and Prettier right before the commit.
+
+So a green gates run writes the hash of the tree it checked into the git directory (`booknest-gates-ok`, one per worktree). When the tip commit of every pushed branch has exactly that tree, pre-push skips its checks and the push takes about a second. Any edit during or after the gates run changes the tree, and the full checks run again. The gates script writes no stamp when the branch changes something that affects how lint reads files it did not lint itself: `eslint.config.mjs`, a `package.json`, the lockfile, `pnpm-workspace.yaml`, `turbo.json`, a `tsconfig` file, or a script outside `apps/` and `packages/`. CI still runs typecheck and lint on every PR and every push to `dev` and `prod`, so the skip never removes the real gate.
+
+When the checks do run on a working tree with uncommitted changes, the hook stashes those changes first, so the checks see only what is committed. The stash stack is shared by every worktree of the repo, so the hook tags its entry with its process id and later restores and drops that exact entry by its hash. If the restore fails, your changes stay in the stash and the hook prints the `git stash apply` command that brings them back.
+
+To force the full checks anyway, run `pnpm typecheck && pnpm lint` yourself, or delete the stamp with `rm "$(git rev-parse --git-path booknest-gates-ok)"`.
+
 ## Bypassing hooks (avoid unless necessary)
 
 ```bash

@@ -7,6 +7,7 @@ import { isActiveShipmentStatus, SHIPMENT_ACTIVE_STATUSES } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { DateField } from "@/components/date-field";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import {
@@ -17,7 +18,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { BookDateField } from "@/features/books/components/book-date-field";
 import { DeliveryServiceAutocomplete } from "@/features/books/components/delivery-service-autocomplete";
 import { useDeliveryErrorText } from "@/features/books/hooks/use-delivery-error-text";
 
@@ -192,7 +192,7 @@ function EditShipmentDialog({
           />
         </Labeled>
         <Labeled htmlFor="edit-shipment-expected-date" label={t("expectedDate")}>
-          <BookDateField
+          <DateField
             allowFuture
             ariaLabel={t("expectedDate")}
             id="edit-shipment-expected-date"
@@ -201,7 +201,7 @@ function EditShipmentDialog({
           />
         </Labeled>
         <Labeled htmlFor="edit-shipment-pickup-until" label={t("pickupUntil")}>
-          <BookDateField
+          <DateField
             allowFuture
             ariaLabel={t("pickupUntil")}
             id="edit-shipment-pickup-until"

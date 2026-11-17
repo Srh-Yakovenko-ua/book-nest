@@ -7,6 +7,7 @@ import { ProfileModule } from "../profile/index.js";
 import { ReadingGoalsModule } from "../reading-goals/index.js";
 import { StatisticsController } from "./api/statistics.controller.js";
 import { CompletedReadMapper } from "./application/completed-read.mapper.js";
+import { ReadingCalendarPageService } from "./application/reading-calendar-page.service.js";
 import { ReadingCoreComposer } from "./application/reading-core.composer.js";
 import { ReadingDayDetailsService } from "./application/reading-day-details.service.js";
 import { ReadingIntervalDetailsService } from "./application/reading-interval-details.service.js";
@@ -25,6 +26,7 @@ import { StatisticsLibraryRepository } from "./infrastructure/statistics-library
   imports: [AuthModule, BooksModule, MediaModule, ProfileModule, ReadingGoalsModule],
   providers: [
     StatisticsOverviewService,
+    ReadingCalendarPageService,
     ReadingDayDetailsService,
     ReadingIntervalDetailsService,
     CompletedReadMapper,

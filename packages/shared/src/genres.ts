@@ -29,14 +29,16 @@ export const BookGenresSchema = z
   .max(BOOK_GENRES_MAX, "You can select at most 5 genres")
   .refine((genres) => new Set(genres).size === genres.length, "Genres must not contain duplicates");
 
-export type GenreView = {
-  groupKey: string;
-  groupName: string;
-  id: string;
-  isDefault: boolean;
-  key: string;
-  name: string;
-};
+export const GenreViewSchema = z.object({
+  groupKey: GenreGroupKeySchema,
+  groupName: z.string(),
+  id: z.string(),
+  isDefault: z.boolean(),
+  key: GenreKeySchema,
+  name: z.string(),
+});
+
+export type GenreView = z.infer<typeof GenreViewSchema>;
 
 export const RecentGenresQuerySchema = z.object({
   limit: z.coerce
@@ -216,7 +218,7 @@ export const DormantGenreViewSchema = z.object({
   booksCount: CountSchema,
   key: z.string(),
   label: z.string(),
-  lastReadingActivityAt: z.iso.datetime(),
+  lastReadingActivityAt: z.iso.date(),
   readCount: CountSchema,
 });
 
@@ -234,7 +236,7 @@ export type NewForYouGenreView = z.infer<typeof NewForYouGenreViewSchema>;
 export const UnratedFinishedGenreViewSchema = z.object({
   key: z.string(),
   label: z.string(),
-  latestUnratedFinishedAt: z.iso.datetime().nullable(),
+  latestUnratedFinishedAt: z.iso.date().nullable(),
   unratedFinishedCount: CountSchema,
 });
 

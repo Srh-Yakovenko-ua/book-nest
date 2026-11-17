@@ -60,6 +60,7 @@ import { TagsCatalogQueryDto } from "./input-dto/tags-catalog-query.input-dto.js
 import { TagsSearchQueryDto } from "./input-dto/tags-search-query.input-dto.js";
 import { UpdateTagDto } from "./input-dto/update-tag.input-dto.js";
 import { PaginatedTagCatalogDto } from "./view-dto/paginated-tag-catalog.view-dto.js";
+import { PaginatedTagsDto } from "./view-dto/paginated-tags.view-dto.js";
 import { TagCatalogViewDto } from "./view-dto/tag-catalog.view-dto.js";
 import { TagDeletionPreviewViewDto } from "./view-dto/tag-deletion-preview.view-dto.js";
 import { TagsCatalogFacetsViewDto } from "./view-dto/tags-catalog-facets.view-dto.js";
@@ -90,7 +91,7 @@ export class TagsController {
   ): Promise<TagCatalogView> {
     return this.tagsService.create(user.id, body);
   }
-  @ApiOkResponse({ description: "A page of the current user own tags" })
+  @ApiOkResponse({ description: "A page of the current user own tags", type: PaginatedTagsDto })
   @ApiOperation({ summary: "Search the current user personal tags" })
   @ApiQuery({ name: "search", required: false })
   @ApiQuery({ name: "pageNumber", required: false })

@@ -4,11 +4,14 @@ import type { TagCatalogListItem } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import type { TagsListState } from "../model/tags-list-state";
 
@@ -44,6 +47,8 @@ export function TagsView() {
   const summaryCards = useTagsSummaryCards(summary.data);
   const summaryStatus = summary.data === undefined ? summary.status : "success";
   const [dialog, setDialog] = useState<TagDialog>(CLOSED_DIALOG);
+  const catalogHeadingRef = useRef<HTMLHeadingElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(catalogHeadingRef);
 
   const listState = tagsListState({
     catalog,
@@ -109,9 +114,9 @@ export function TagsView() {
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <section
           aria-labelledby="tags-catalog-title"
-          className="flex min-w-0 flex-1 flex-col gap-4"
+          className={cn("flex min-w-0 flex-1 flex-col gap-4", RETRY_FOCUS_RING.aroundHiddenHeading)}
         >
-          <h2 className="sr-only" id="tags-catalog-title">
+          <h2 className="sr-only" id="tags-catalog-title" ref={catalogHeadingRef} tabIndex={-1}>
             {t("catalog.title")}
           </h2>
           <TagsCatalog
@@ -121,8 +126,9 @@ export function TagsView() {
             onDeleteTag={(tag) => setDialog({ kind: "delete", tag })}
             onEditTag={(tag) => setDialog({ kind: "edit", tag })}
             onLoadMore={loadMore}
-            onRetry={() => void catalog.refetch()}
+            onRetry={withRetryFocus(() => void catalog.refetch())}
             onShowAll={() => query.setFilter("all")}
+            retryButtonRef={retryButtonRef}
             state={listState}
             view={query.state.view}
           />

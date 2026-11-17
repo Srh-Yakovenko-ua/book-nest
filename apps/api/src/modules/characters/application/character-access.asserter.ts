@@ -5,7 +5,7 @@ import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 
-import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { BookAccessService } from "../../books/index.js";
 import { MediaService } from "../../media/index.js";
 import { SpeciesService } from "../../species/index.js";
@@ -57,6 +57,27 @@ export class CharacterAccessAsserter {
     });
   }
 
+  async assertCharacterInBook({
+    bookId,
+    characterId,
+    notFoundCode = CHARACTER_ERROR_CODES.notFound,
+    userId,
+  }: {
+    bookId: string;
+    characterId: string;
+    notFoundCode?: string;
+    userId: string;
+  }): Promise<void> {
+    const link = await this.charactersRepository.findOwnedBookCharacter({
+      bookId,
+      characterId,
+      userId,
+    });
+    if (link === null) {
+      throw new NotFoundError("Character not found", { code: notFoundCode });
+    }
+  }
+
   async assertCharacterOwned({
     characterId,
     notFoundCode = CHARACTER_ERROR_CODES.notFound,
@@ -69,6 +90,27 @@ export class CharacterAccessAsserter {
     const owned = await this.charactersRepository.findOwnedCharacterBare({ characterId, userId });
     if (owned === null) {
       throw new NotFoundError("Character not found", { code: notFoundCode });
+    }
+  }
+
+  async assertCharactersLinkedToBooks(
+    {
+      bookIds,
+      characterIds,
+      invalidCode,
+    }: { bookIds: string[]; characterIds: string[]; invalidCode: string },
+    client: Prisma.TransactionClient,
+  ): Promise<void> {
+    const uniqueBookIds = [...new Set(bookIds)];
+    const uniqueCharacterIds = [...new Set(characterIds)];
+    const links = await this.charactersRepository.listBookLinks(
+      { bookIds: uniqueBookIds, characterIds: uniqueCharacterIds },
+      client,
+    );
+    if (links.length !== uniqueBookIds.length * uniqueCharacterIds.length) {
+      throw new BadRequestError("Every character must appear in the selected book", {
+        code: invalidCode,
+      });
     }
   }
 

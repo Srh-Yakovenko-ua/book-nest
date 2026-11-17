@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Link } from "@/i18n/navigation";
 import { formatDateLong } from "@/lib/format";
 
+import { goalDisplayPercent } from "../model/goal-display-percent";
 import { GOAL_STATUS_BADGE } from "../model/goal-status";
 import { useGoalTimeNote } from "../model/use-goal-time-note";
 
@@ -72,7 +73,7 @@ function GoalBackLink({ goal }: GoalDetailPartProps) {
 
 function GoalDetailProgress({ goal }: GoalDetailPartProps) {
   const t = useTranslations("goals.detail");
-  const percent = Math.round(goal.progressPercent);
+  const percent = goalDisplayPercent(goal);
 
   return (
     <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-soft">

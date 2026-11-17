@@ -2,6 +2,7 @@ import type { Nullable, ReadingStatus } from "@app/shared";
 
 import { describe, expect, it } from "vitest";
 
+import { pinProcessTimezone } from "../../../test/process-timezone.js";
 import { computeSeriesStats } from "./series-stats.js";
 
 type StatsBook = {
@@ -237,8 +238,8 @@ describe("computeSeriesStats reading window", () => {
       makeBook({ finishedAt: null, startedAt: null }),
     ]);
 
-    expect(stats.startedAt).toBe("2026-01-05T00:00:00.000Z");
-    expect(stats.lastFinishedAt).toBe("2026-01-20T00:00:00.000Z");
+    expect(stats.startedAt).toBe("2026-01-05");
+    expect(stats.lastFinishedAt).toBe("2026-01-20");
     expect(stats.readingDurationDays).toBe(15);
   });
 
@@ -262,7 +263,7 @@ describe("computeSeriesStats reading window", () => {
       }),
     ]);
 
-    expect(stats.startedAt).toBe("2026-03-01T00:00:00.000Z");
+    expect(stats.startedAt).toBe("2026-03-01");
     expect(stats.lastFinishedAt).toBeNull();
     expect(stats.readingDurationDays).toBeNull();
   });
@@ -281,9 +282,25 @@ describe("computeSeriesStats reading window", () => {
       }),
     ]);
 
-    expect(stats.startedAt).toBe("2026-01-10T00:00:00.000Z");
-    expect(stats.lastFinishedAt).toBe("2026-01-05T00:00:00.000Z");
+    expect(stats.startedAt).toBe("2026-01-10");
+    expect(stats.lastFinishedAt).toBe("2026-01-05");
     expect(stats.readingDurationDays).toBeNull();
+  });
+
+  describe("Atlantic/Azores", () => {
+    pinProcessTimezone("Atlantic/Azores");
+
+    it("counts reading duration in UTC days across the spring clock change", () => {
+      const stats = computeSeriesStats([
+        makeBook({
+          finishedAt: new Date("2026-04-01T00:00:00.000Z"),
+          readingStatus: "finished",
+          startedAt: new Date("2026-03-25T00:00:00.000Z"),
+        }),
+      ]);
+
+      expect(stats.readingDurationDays).toBe(7);
+    });
   });
 });
 
@@ -326,13 +343,13 @@ describe("computeSeriesStats full data", () => {
       booksCount: 3,
       favoriteBook: { id: "b1", title: "One" },
       finishedCount: 2,
-      lastFinishedAt: "2026-01-20T00:00:00.000Z",
+      lastFinishedAt: "2026-01-20",
       pagesCount: 600,
       readingCount: 1,
       readingDurationDays: 19,
       readPagesCount: 500,
       readPagesPartial: false,
-      startedAt: "2026-01-01T00:00:00.000Z",
+      startedAt: "2026-01-01",
       unreadCount: 0,
     });
   });

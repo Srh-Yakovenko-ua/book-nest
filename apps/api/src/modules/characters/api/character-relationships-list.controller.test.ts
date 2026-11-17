@@ -9,6 +9,7 @@ import type {
 import type { INestApplication } from "@nestjs/common";
 
 import {
+  CHARACTER_ERROR_CODES,
   CharacterRelationshipSafeDetailsViewSchema,
   PaginatedCharacterRelationshipListViewSchema,
   SeriesReadingContextDefaultViewSchema,
@@ -144,6 +145,9 @@ async function createCharacter(token: string, name: string): Promise<string> {
 }
 
 async function createEdge(token: string, seed: EdgeSeed): Promise<string> {
+  for (const state of seed.states ?? []) {
+    await ensureLinkedToBook(token, state.bookId, [seed.source, seed.target]);
+  }
   const res = await authed("post", LIST_PATH, token).send({
     ...edgeSemantics(seed),
     initialBookStates: seed.states ?? [],
@@ -177,6 +181,25 @@ function edgeSemantics(seed: EdgeSeed): Record<string, unknown> {
   }
   const type = seed.type ?? "friend_of";
   return { ...CATALOG[type], type };
+}
+
+async function ensureLinkedToBook(
+  token: string,
+  bookId: string,
+  characterIds: string[],
+): Promise<void> {
+  for (const characterId of characterIds) {
+    const res = await authed("post", `/api/books/${bookId}/characters`, token).send({
+      bookProfile: {},
+      characterId,
+      mode: "existing",
+    });
+    if (res.status === HttpStatus.CONFLICT) {
+      expect(res.body.code).toBe(CHARACTER_ERROR_CODES.alreadyLinkedToBook);
+      continue;
+    }
+    expect(res.status).toBe(HttpStatus.CREATED);
+  }
 }
 
 function idsOf(items: CharacterRelationshipListItemView[]): string[] {
@@ -1865,7 +1888,13 @@ describe("GET /api/character-relationships parity with safe details", () => {
 });
 
 describe("authoring CRUD reflected in GET /api/character-relationships", () => {
-  type CrudFixture = { edgeId: string; firstBook: string; hub: string; secondBook: string };
+  type CrudFixture = {
+    edgeId: string;
+    firstBook: string;
+    hub: string;
+    secondBook: string;
+    tenar: string;
+  };
 
   async function seedAuthoredEdge(token: string): Promise<CrudFixture> {
     const firstBook = await createStandaloneBook(token, "Alpha Tale");
@@ -1876,7 +1905,7 @@ describe("authoring CRUD reflected in GET /api/character-relationships", () => {
       states: [{ bookId: firstBook, description: "Meet in the tombs", intensity: "medium" }],
       target: tenar,
     });
-    return { edgeId, firstBook, hub, secondBook };
+    return { edgeId, firstBook, hub, secondBook, tenar };
   }
 
   it("lists an edge created with initial book states in that book", async () => {
@@ -1913,6 +1942,7 @@ describe("authoring CRUD reflected in GET /api/character-relationships", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const fixture = await seedAuthoredEdge(accessToken);
     expect(await listIds(accessToken, bookScope(fixture.secondBook))).toEqual([]);
+    await ensureLinkedToBook(accessToken, fixture.secondBook, [fixture.hub, fixture.tenar]);
 
     await putState(accessToken, {
       bookId: fixture.secondBook,

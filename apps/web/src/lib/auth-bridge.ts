@@ -1,5 +1,6 @@
 type AuthBridge = {
   getAccessToken: () => null | string;
+  getUserId: () => null | string;
   onRefreshFailed: () => void;
   refresh: () => Promise<string>;
 };

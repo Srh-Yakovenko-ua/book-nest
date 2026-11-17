@@ -155,8 +155,8 @@ export class ReadingQueueRepository {
   ): Promise<ReadingQueuePaceRow> {
     const rows = await client.$queryRaw`
       SELECT
-        COALESCE(SUM(e.pages_read) FILTER (WHERE e.date >= ${since}), 0)::int AS "pagesReadInPeriod",
-        COUNT(DISTINCT e.date) FILTER (WHERE e.date >= ${since})::int         AS "activeDaysInPeriod",
+        COALESCE(SUM(e.pages_read) FILTER (WHERE e.date >= ${since}::date), 0)::int AS "pagesReadInPeriod",
+        COUNT(DISTINCT e.date) FILTER (WHERE e.date >= ${since}::date)::int         AS "activeDaysInPeriod",
         MIN(e.date)                                                           AS "firstEventDate",
         MAX(e.date)                                                           AS "lastEventDate"
       FROM book_reading_progress_events e

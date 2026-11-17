@@ -4,15 +4,15 @@ import type { Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 import type { MobilePageOverviewTab } from "@/components/ui/mobile-page-overview-panel";
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
+import { SummaryDetails } from "@/components/catalog/summary-mobile";
 import {
   MobilePageOverviewPanel,
   MobilePageOverviewTrigger,
   useMobilePageOverviewPanel,
 } from "@/components/ui/mobile-page-overview-panel";
-import { LibrarySummaryDetails } from "@/features/books/components/library-summary-mobile";
 
 import type { ListAttentionReason } from "../model/lists-query";
 
@@ -23,7 +23,7 @@ type ListsOverviewPanelProps = {
   attentionCounts: Record<ListAttentionReason, number>;
   isLoading: boolean;
   onAttentionSelect: (reason: ListAttentionReason) => void;
-  summaryCards: LibrarySummaryCard[];
+  summaryCards: SummaryCard[];
 };
 
 export function ListsOverviewPanel({
@@ -41,7 +41,7 @@ export function ListsOverviewPanel({
 
   const tabs: MobilePageOverviewTab[] = [
     {
-      content: <LibrarySummaryDetails cards={summaryCards} title={tDetails("title")} />,
+      content: <SummaryDetails cards={summaryCards} title={tDetails("title")} />,
       id: "overview",
       label: t("tabs.overview"),
     },

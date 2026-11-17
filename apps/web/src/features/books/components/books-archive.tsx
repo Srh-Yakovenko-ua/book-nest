@@ -7,13 +7,14 @@ import { useState } from "react";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
+import { ActiveFilters } from "@/components/catalog/active-filters";
+import { useGenres } from "@/features/genres";
 import { Link } from "@/i18n/navigation";
 
 import type { LibraryBook } from "../model/library-book";
 import type { LibraryPublisherContext, LibraryScope } from "../model/library-query";
 
 import { useLibraryBooks } from "../api/use-books";
-import { useGenres } from "../api/use-genres";
 import { useLibraryOverview } from "../api/use-library-overview";
 import { useLibraryQuickCounts } from "../api/use-library-quick-counts";
 import { useSelectedTags } from "../api/use-tags-search";
@@ -28,7 +29,6 @@ import {
 } from "../model/library-quick-filters";
 import { countAdvancedFilterChips, useLibraryFilterChips } from "../model/use-library-filter-chips";
 import { useLibraryQuery } from "../model/use-library-query";
-import { LibraryActiveFilters } from "./library-active-filters";
 import { LibraryAdvancedFilters } from "./library-advanced-filters";
 import { LibraryArchiveView } from "./library-archive-view";
 import { LibraryQuickFilters } from "./library-quick-filters";
@@ -64,10 +64,13 @@ export function BooksArchive({
     data,
     fetchNextPage,
     hasNextPage,
-    isError,
     isFetchingNextPage,
     isFetchNextPageError,
+    isLoadingError,
     isPending,
+    isPlaceholderData,
+    isRefetchError,
+    isRefetching,
     refetch,
   } = useLibraryBooks(library.listParams);
   const quickCounts = useLibraryQuickCounts(toLibraryQuickCountsParams(library.listParams, scope));
@@ -103,7 +106,6 @@ export function BooksArchive({
     .flatMap((page) => page.items)
     .map((book) => toLibraryBook(book, labels));
   const summary = overview.data?.summary;
-  const hasListError = isError && !isFetchNextPageError;
 
   const noSearchResultsState: EmptyStateEntry = {
     desc: t("noSearchResults.description"),
@@ -124,7 +126,7 @@ export function BooksArchive({
   return (
     <LibraryArchiveView
       actions={actions}
-      activeFilters={<LibraryActiveFilters chips={filterChips} onClearAll={library.clearAll} />}
+      activeFilters={<ActiveFilters chips={filterChips} onClearAll={library.clearAll} />}
       advancedFilters={
         <LibraryAdvancedFilters
           activeCount={countAdvancedFilterChips(filterChips)}
@@ -146,12 +148,14 @@ export function BooksArchive({
       hasActiveSearch={library.hasActiveSearch}
       hasNextPage={hasNextPage}
       header={header}
-      isError={hasListError}
+      invalidRange={library.invalidRange}
+      isError={isLoadingError}
       isFetchingNextPage={isFetchingNextPage}
       isLoadMoreError={isFetchNextPageError}
       isPending={isPending}
+      isRefreshing={isPlaceholderData}
       libraryTotal={summary?.total ?? 0}
-      libraryTotalLoading={overview.isPending}
+      libraryTotalLoading={overview.isPending || overview.isLoadingError}
       linkComponent={Link}
       loadingLabel={t("loading")}
       loadMoreErrorLabel={t("loadMoreError")}
@@ -174,6 +178,9 @@ export function BooksArchive({
           scope={scope}
           value={activeQuickFilter(library.state)}
         />
+      }
+      refetchError={
+        isRefetchError ? { isRetrying: isRefetching, onRetry: () => void refetch() } : null
       }
       searchControl={
         <LibrarySearchInput

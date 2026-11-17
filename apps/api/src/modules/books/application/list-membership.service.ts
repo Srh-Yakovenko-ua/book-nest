@@ -1,6 +1,7 @@
 import type {
   AddBooksToListInput,
   AddBooksToListResult,
+  ListBookRestorePosition,
   MoveListBookDirection,
   MoveListBookInput,
   RemoveBooksFromListInput,
@@ -9,10 +10,13 @@ import type {
 
 import { Injectable } from "@nestjs/common";
 
+import type { Prisma } from "../../../generated/prisma/client.js";
+
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { isForeignKeyConstraintError } from "../../../core/prisma-errors.js";
 import { ListsService } from "../../lists/index.js";
+import { buildRestoredListOrder } from "../domain/list-restore-order.js";
 import {
   LIST_LIMITS,
   ListMembershipRepository,
@@ -28,6 +32,16 @@ type AddBooksInput = {
   input: AddBooksToListInput;
   listId: string;
   userId: string;
+};
+
+type AppendInOrderInput = {
+  bookIds: string[];
+  listId: string;
+  tx: Prisma.TransactionClient;
+};
+
+type InsertBooksInput = AppendInOrderInput & {
+  restorePositions: ListBookRestorePosition[];
 };
 
 type MoveBookInput = {
@@ -87,9 +101,12 @@ export class ListMembershipService {
 
       const before = await this.membershipRepository.countItems(tx, { listId });
       try {
-        for (const bookId of orderedOwnedIds) {
-          await this.membershipRepository.append(tx, { bookId, listId });
-        }
+        await this.insertBooks({
+          bookIds: orderedOwnedIds,
+          listId,
+          restorePositions: input.positions ?? [],
+          tx,
+        });
       } catch (error) {
         if (isForeignKeyConstraintError(error)) {
           throw new NotFoundError(LIST_NOT_FOUND_MESSAGE);
@@ -160,6 +177,44 @@ export class ListMembershipService {
       }
 
       return { bookCount: await this.membershipRepository.countItems(tx, { listId }), removed };
+    });
+  }
+
+  private async appendInOrder({ bookIds, listId, tx }: AppendInOrderInput): Promise<void> {
+    for (const bookId of bookIds) {
+      await this.membershipRepository.append(tx, { bookId, listId });
+    }
+  }
+
+  private async insertBooks({
+    bookIds,
+    listId,
+    restorePositions,
+    tx,
+  }: InsertBooksInput): Promise<void> {
+    if (restorePositions.length === 0) {
+      await this.appendInOrder({ bookIds, listId, tx });
+      return;
+    }
+
+    const memberships = await this.membershipRepository.findActiveMemberships(tx, { listId });
+    if (memberships.length > LIST_LIMITS.reorderMax) {
+      await this.appendInOrder({ bookIds, listId, tx });
+      return;
+    }
+
+    const currentBookIds = memberships.map((membership) => membership.bookId);
+    const memberIds = new Set(currentBookIds);
+    const addedBookIds = bookIds.filter((bookId) => !memberIds.has(bookId));
+    if (addedBookIds.length === 0) {
+      return;
+    }
+
+    await this.membershipRepository.appendMany(tx, { bookIds: addedBookIds, listId });
+    const order = buildRestoredListOrder({ addedBookIds, currentBookIds, restorePositions });
+    await this.membershipRepository.applyPositions(tx, {
+      listId,
+      positions: order.map((bookId, index) => ({ bookId, position: index + 1 })),
     });
   }
 

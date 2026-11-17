@@ -114,6 +114,8 @@ export const TagViewSchema = z.object({
 
 export type TagView = z.infer<typeof TagViewSchema>;
 
+export const PaginatedTagsSchema = createPaginatedSchema(TagViewSchema);
+
 export type TagViewSource = { color: Nullable<string>; id: string; name: string };
 
 export function toTagView(tag: TagViewSource): TagView {

@@ -1,8 +1,39 @@
-STASHED=0
+STAMPED="$(cat "$(git rev-parse --git-path booknest-gates-ok)" 2>/dev/null || true)"
+if [ -n "$STAMPED" ]; then
+  PUSHED=0
+  MATCHED=1
+  while read -r local_ref local_sha remote_ref remote_sha; do
+    case "$local_sha" in "" | *[!0]*) ;; *) continue ;; esac
+    [ -n "$local_sha" ] || continue
+    PUSHED=1
+    [ "$(git rev-parse "$local_sha^{tree}" 2>/dev/null || true)" = "$STAMPED" ] || MATCHED=0
+  done
+  if [ "$PUSHED" = 1 ] && [ "$MATCHED" = 1 ]; then
+    echo "pre-push: gates.sh already passed on this exact tree, skipping typecheck and lint"
+    exit 0
+  fi
+fi
+
+STASH_TAG="husky-pre-push-$$"
+STASH_SHA=""
+
+restore_stash() {
+  [ -n "$STASH_SHA" ] || return 0
+  if git stash apply --quiet --index "$STASH_SHA" 2>/dev/null || git stash apply --quiet "$STASH_SHA"; then
+    STASH_REF="$(git stash list --format='%gd %H' | awk -v sha="$STASH_SHA" '$2 == sha { print $1; exit }')"
+    if [ -n "$STASH_REF" ] && [ "$(git rev-parse "$STASH_REF" 2>/dev/null || true)" = "$STASH_SHA" ]; then
+      git stash drop --quiet "$STASH_REF" || true
+    fi
+  else
+    echo "pre-push: could not restore your uncommitted changes; they are safe in stash $STASH_SHA (git stash apply $STASH_SHA)" >&2
+  fi
+  STASH_SHA=""
+}
+
 if [ -n "$(git status --porcelain)" ]; then
-  git stash push --include-untracked --quiet -m "husky-pre-push"
-  STASHED=1
-  trap 'if [ $STASHED -eq 1 ]; then git stash pop --quiet || true; fi' EXIT INT TERM
+  git stash push --include-untracked --quiet -m "$STASH_TAG"
+  STASH_SHA="$(git stash list --format='%H %gs' | awk -v tag="$STASH_TAG" '$NF == tag { print $1; exit }')"
+  trap restore_stash EXIT INT TERM
 fi
 
 pnpm typecheck && pnpm lint

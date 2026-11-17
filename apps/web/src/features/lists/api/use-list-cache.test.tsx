@@ -1,11 +1,13 @@
+import type { QueryKey } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
 import { genresKeys } from "@/features/genres/api/genres-keys";
+import { queryClientWrapper, staleFlags } from "@/test-query-cache";
 
 import { useSetListBookReadingStatus } from "./use-list-book-actions";
 import { useBulkAddListBooksToQueue } from "./use-list-bulk";
@@ -42,7 +44,7 @@ describe("list mutations and the Genres page", () => {
     replyWith(makeBookView({ id: BOOK_ID }));
     const client = seededClient();
     const { result } = renderHook(() => useSetListBookReadingStatus(LIST_ID), {
-      wrapper: wrapperFor(client),
+      wrapper: queryClientWrapper(client),
     });
 
     await act(() => result.current.mutateAsync({ bookId: BOOK_ID, readingStatus: "finished" }));
@@ -54,12 +56,43 @@ describe("list mutations and the Genres page", () => {
     replyWith({ affected: 1 });
     const client = seededClient();
     const { result } = renderHook(() => useBulkAddListBooksToQueue(LIST_ID), {
-      wrapper: wrapperFor(client),
+      wrapper: queryClientWrapper(client),
     });
 
     await act(() => result.current.mutateAsync([BOOK_ID]));
 
     expect(derivedInvalidation(client)).toEqual([true, true, true, true]);
+  });
+});
+
+describe("list mutations and the pages a book change feeds", () => {
+  it("refreshes the reading queue and its summary after queueing list books", async () => {
+    const queueKeys = [["/api/reading-queue"], ["/api/reading-queue/summary"]];
+    replyWith({ affected: 1 });
+    const client = seededClient(queueKeys);
+    const { result } = renderHook(() => useBulkAddListBooksToQueue(LIST_ID), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    await act(() => result.current.mutateAsync([BOOK_ID]));
+
+    expect(staleFlags(client, queueKeys)).toEqual([true, true]);
+  });
+
+  it("refreshes statistics and goals after a reading-status change from a list", async () => {
+    const progressKeys = [
+      ["/api/statistics", "overview", { period: "year" }],
+      ["/api/goals", "overview"],
+    ];
+    replyWith(makeBookView({ id: BOOK_ID }));
+    const client = seededClient(progressKeys);
+    const { result } = renderHook(() => useSetListBookReadingStatus(LIST_ID), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    await act(() => result.current.mutateAsync({ bookId: BOOK_ID, readingStatus: "finished" }));
+
+    expect(staleFlags(client, progressKeys)).toEqual([true, true]);
   });
 });
 
@@ -78,14 +111,8 @@ function replyWith(body: unknown) {
   );
 }
 
-function seededClient(): QueryClient {
+function seededClient(extraKeys: readonly QueryKey[] = []): QueryClient {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
-  for (const key of GENRE_DERIVED_KEYS) client.setQueryData(key, {});
+  for (const key of [...GENRE_DERIVED_KEYS, ...extraKeys]) client.setQueryData(key, {});
   return client;
-}
-
-function wrapperFor(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
 }

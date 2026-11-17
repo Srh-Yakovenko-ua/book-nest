@@ -1,13 +1,11 @@
 import type { QueryClient } from "@tanstack/react-query";
 
-import { ApiError } from "@/lib/http-client";
+import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 
 import { type CharacterFactsScope, characterKeys } from "./character-keys";
 
-const NOT_FOUND_STATUS = 404;
-
 export function isCharacterFactGone(error: unknown): boolean {
-  return error instanceof ApiError && error.status === NOT_FOUND_STATUS;
+  return isApiErrorStatus(error, HTTP_STATUS.notFound);
 }
 
 export async function refreshCharacterFacts(

@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 
-import type { BookBudgetOverview } from "@app/shared";
+import type { BookBudgetOverview, SettingsView } from "@app/shared";
 
 import { defaultUserProfileSettings } from "@app/shared";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -58,7 +58,14 @@ const OVERVIEW: BookBudgetOverview = {
   month: "2026-08-01",
 };
 
+const TOKYO_PROFILE = {
+  now: "2026-08-31T16:00:00.000Z",
+  settings: { ...defaultUserProfileSettings, timezone: "Asia/Tokyo" } satisfies SettingsView,
+};
+
 const fetchMock = vi.fn();
+
+let settingsGate: Promise<SettingsView>;
 
 vi.mock("sonner", () => ({
   toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
@@ -66,6 +73,24 @@ vi.mock("sonner", () => ({
 
 function amountInput(currency: string) {
   return screen.getByLabelText(`Бюджет, ${currency}`);
+}
+
+function budgetDialog({
+  open,
+  overview,
+}: {
+  open: boolean;
+  overview: BookBudgetOverview | undefined;
+}) {
+  return <StatisticsBudgetDialog onOpenChange={vi.fn()} open={open} overview={overview} />;
+}
+
+function holdProfileSettings(): (settings: SettingsView) => void {
+  let release: (settings: SettingsView) => void = () => undefined;
+  settingsGate = new Promise((resolve) => {
+    release = resolve;
+  });
+  return release;
 }
 
 function jsonResponse(body: unknown): Response {
@@ -113,12 +138,12 @@ afterAll(() => {
 
 beforeEach(() => {
   vi.setSystemTime(TODAY);
+  settingsGate = Promise.resolve(defaultUserProfileSettings);
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
-    if (url.includes("/api/profile/settings"))
-      return Promise.resolve(jsonResponse(defaultUserProfileSettings));
+    if (url.includes("/api/profile/settings")) return settingsGate.then(jsonResponse);
     if (url.includes("/api/delivery/budgets") && method === "POST")
       return Promise.resolve(jsonResponse(OVERVIEW));
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
@@ -203,6 +228,18 @@ describe("StatisticsBudgetDialog month", () => {
 
     expect(amountInput("UAH")).toHaveValue(12000);
   });
+
+  it("starts the budget month from the profile's current month", async () => {
+    vi.setSystemTime("2026-08-31T22:30:00.000Z");
+    renderDialog();
+
+    expect(monthField()).toHaveTextContent("вересень 2026");
+
+    await userEvent.click(monthField());
+
+    expect(screen.getByRole("button", { name: "серпень" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "вересень" })).toBeEnabled();
+  });
 });
 
 describe("StatisticsBudgetDialog stopping a currency", () => {
@@ -273,5 +310,92 @@ describe("StatisticsBudgetDialog stopping a currency", () => {
     expect(amountInput("UAH")).toHaveValue(9000);
     expect(amountInput("EUR")).toHaveValue(null);
     expect(screen.getByText("Не вказуйте суму для валют без бюджету.")).toBeInTheDocument();
+  });
+});
+
+describe("StatisticsBudgetDialog opening", () => {
+  it("fills the amounts that loaded while it was still closed", () => {
+    const { rerender } = renderWithProviders(budgetDialog({ open: false, overview: undefined }));
+
+    rerender(budgetDialog({ open: true, overview: OVERVIEW }));
+
+    expect(amountInput("UAH")).toHaveValue(9000);
+    expect(amountInput("USD")).toHaveValue(80);
+  });
+
+  it("shows the amounts current at the moment it opens again", () => {
+    const raised: BookBudgetOverview = {
+      budgets: [
+        {
+          currency: "UAH",
+          currentMonth: { ...PROGRESS, budget: 12500, remaining: 12500, remainingSigned: 12500 },
+          spendCoverage: EMPTY_COVERAGE,
+          upcomingChanges: [],
+        },
+      ],
+      month: "2026-08-01",
+    };
+    const { rerender } = renderWithProviders(budgetDialog({ open: true, overview: OVERVIEW }));
+    expect(amountInput("UAH")).toHaveValue(9000);
+
+    rerender(budgetDialog({ open: false, overview: OVERVIEW }));
+    rerender(budgetDialog({ open: false, overview: raised }));
+    rerender(budgetDialog({ open: true, overview: raised }));
+
+    expect(amountInput("UAH")).toHaveValue(12500);
+  });
+});
+
+describe("StatisticsBudgetDialog profile time zone arriving after it opens", () => {
+  it("opens on the profile's current month once the profile time zone arrives", async () => {
+    vi.setSystemTime(TOKYO_PROFILE.now);
+    const releaseSettings = holdProfileSettings();
+    renderDialog();
+    expect(monthField()).toHaveTextContent("серпень 2026");
+
+    releaseSettings(TOKYO_PROFILE.settings);
+
+    await waitFor(() => expect(monthField()).toHaveTextContent("вересень 2026"));
+    await save();
+    await waitFor(() => expect(postPayload("/api/delivery/budgets")).toBeDefined());
+    expect(postPayload("/api/delivery/budgets")).toMatchObject({
+      effectiveFromMonth: "2026-09-01",
+    });
+  });
+
+  it("keeps the month the reader picked when the profile time zone arrives", async () => {
+    vi.setSystemTime(TOKYO_PROFILE.now);
+    const releaseSettings = holdProfileSettings();
+    renderDialog();
+    await pickMonth("жовтень");
+
+    releaseSettings(TOKYO_PROFILE.settings);
+    await userEvent.click(monthField());
+    await waitFor(() => expect(screen.getByRole("button", { name: "серпень" })).toBeDisabled());
+
+    expect(monthField()).toHaveTextContent("жовтень 2026");
+  });
+
+  it("shows the budget covering the profile month for currencies the reader has not typed", async () => {
+    vi.setSystemTime(TOKYO_PROFILE.now);
+    const releaseSettings = holdProfileSettings();
+    renderDialog({
+      budgets: [
+        {
+          currency: "UAH",
+          currentMonth: { ...PROGRESS, validToMonth: "2026-09-01" },
+          spendCoverage: EMPTY_COVERAGE,
+          upcomingChanges: [
+            { effectiveFromMonth: "2026-09-01", kind: "change", monthlyAmount: 12000 },
+          ],
+        },
+      ],
+      month: "2026-08-01",
+    });
+    expect(amountInput("UAH")).toHaveValue(9000);
+
+    releaseSettings(TOKYO_PROFILE.settings);
+
+    await waitFor(() => expect(amountInput("UAH")).toHaveValue(12000));
   });
 });

@@ -37,16 +37,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type metricsControllerGetMetricsResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type metricsControllerGetMetricsResponseSuccess = metricsControllerGetMetricsResponse200 & {
-  headers: Headers;
-};
-export type metricsControllerGetMetricsResponse = metricsControllerGetMetricsResponseSuccess;
-
 export const getMetricsControllerGetMetricsUrl = () => {
   return `/api/metrics`;
 };
@@ -56,8 +46,8 @@ export const getMetricsControllerGetMetricsUrl = () => {
  */
 export const metricsControllerGetMetrics = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<metricsControllerGetMetricsResponse> => {
-  return customInstance<metricsControllerGetMetricsResponse>(getMetricsControllerGetMetricsUrl(), {
+): Promise<void> => {
+  return customInstance<void>(getMetricsControllerGetMetricsUrl(), {
     ...options,
     method: "GET",
   });

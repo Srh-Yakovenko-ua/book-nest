@@ -14,6 +14,5 @@ export function useTimelineSummary(bookId: string) {
       return TimelineSummaryViewSchema.parse(response);
     },
     queryKey: timelineKeys.summary(bookId),
-    retry: false,
   });
 }

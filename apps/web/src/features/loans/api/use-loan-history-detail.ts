@@ -13,6 +13,5 @@ export function useLoanHistoryDetail(loanId: Nullable<string>) {
     queryFn: async (): Promise<LoanHistoryDetailView> =>
       LoanHistoryDetailViewSchema.parse(await loanHistoryControllerDetail(loanId ?? "")),
     queryKey: loanKeys.history.detail(loanId ?? ""),
-    retry: false,
   });
 }

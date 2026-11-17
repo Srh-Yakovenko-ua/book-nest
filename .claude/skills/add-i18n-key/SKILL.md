@@ -24,7 +24,7 @@ There is no `ru.json`. Russian was dropped as a shipping locale; the user writes
 
    If the user supplied the text in Russian, translate it into both — do not paste the Russian in as a placeholder. If you are not confident in a translation, add it and flag it in your report rather than leaving the key absent.
 
-3. **No placeholders left untranslated.** Every locale gets a real string. Keep ICU/interpolation syntax (`{name}`, plurals) identical across locales.
+3. **No placeholders left untranslated.** Every locale gets a real string. Keep ICU/interpolation syntax (`{name}`, plurals) identical across locales. Then read uk and en side by side, line by line: every qualifier, number and condition in one is in the other. A translation that reads naturally but drops a clause ("for interaction") is the common miss, and only a reviewer catches it later.
 
 4. **Verify parity and format:**
 

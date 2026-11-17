@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { collapseSpaces, createPaginatedSchema, paginationQueryFields } from "./common.js";
-import { CountSchema, NoHtmlString } from "./internal.js";
+import { CountSchema, NoHtmlString, queryStringArray } from "./internal.js";
 import { CatalogLocaleSchema } from "./taxonomy.js";
 
 export const SPECIES_SEARCH = {
@@ -66,6 +66,9 @@ export const SpeciesLocaleQuerySchema = z.object({
 export type SpeciesLocaleQuery = z.infer<typeof SpeciesLocaleQuerySchema>;
 
 export const SpeciesSearchQuerySchema = SpeciesLocaleQuerySchema.extend({
+  ids: queryStringArray(z.uuid()).describe(
+    "Only these species, so a filter restored from a URL can show each species with its name. Takes precedence over q",
+  ),
   q: z.string().trim().max(SPECIES_SEARCH.nameMax).optional(),
 });
 

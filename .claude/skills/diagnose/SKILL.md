@@ -23,7 +23,7 @@ A bug goes through a fixed chain: a read-only hunter finds the mechanism, the pa
    - The matching test engineer gets the hunter's drafted repro (path, `it(...)` body, the assertion that must go red).
 6. **Prove it red, then green.** Run that one test file locally. This is the one local test run the repo allows on a bug.
    - api: `cd apps/api && VITEST_MAX_WORKERS=1 pnpm exec vitest run <file>`
-   - web: `cd apps/web && VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run <file>`
+   - web: `cd apps/web && VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit --project unit-tz run <file>` (a `*.tz.test.*` file pins the process time zone and runs only in `unit-tz`, which uses forks because a worker thread ignores `process.env.TZ`)
      It must be green with the fix. Then `git stash push -- <fixed source files>`, run it again (it must be red), and `git stash pop`. A test that passes without the fix proves nothing; send it back to the test engineer.
 7. **Review and gates.** `code-reviewer` on the fix diff, `/fix-loop` if it finds something, `/blast-radius` if the fix touched a contract, `/check` at commit. Commit and push only when the user asked.
 
@@ -39,7 +39,7 @@ Spend disproportionate effort here. Be aggressive, be creative, refuse to give u
 
 Ways to build one, roughly in order of preference in this repo:
 
-1. **A failing test** at whatever seam reaches the bug, one file, run from the app's directory with the commands in step 6 of the chain, never from the repo root. This is the one local test run the repo allows (tests otherwise run only in CI); the guard hook allows a single test file when the user's message reports a bug or asks for a repro, and asks otherwise.
+1. **A failing test** at whatever seam reaches the bug, one file, run from the app's directory with the commands in step 6 of the chain, never from the repo root. This is the one local test run the repo allows (tests otherwise run only in CI); the guard hook allows a single test file when the user's message reports a bug or asks for a repro, and denies it otherwise.
 2. **A curl against the running dev server.** `pnpm dev:api`, then hit the endpoint. Capture the full response including `x-request-id`, and grep the server log for that id.
 3. **A direct Prisma query** in a throwaway script, to separate "the query is wrong" from "the service is wrong".
 4. **Direct SQL** via `docker exec booknest-local-db psql -U <user> -d booknest_dev -c "..."` — the only way to see what the database actually holds versus what Prisma reports.

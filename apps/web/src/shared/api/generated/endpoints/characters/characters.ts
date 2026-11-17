@@ -30,6 +30,7 @@ import type {
   CharacterDeletionResultDto,
   CharacterDetailsViewDto,
   CharacterDuplicateCandidatesDto,
+  CharacterFacetsDto,
   CharacterFactViewDto,
   CharacterFactsControllerListParams,
   CharacterImportBundleDto,
@@ -42,7 +43,9 @@ import type {
   CharacterSeriesProfileViewDto,
   CharacterSuggestionsDto,
   CharactersControllerDuplicateCandidatesParams,
+  CharactersControllerFacetsParams,
   CharactersControllerGetByIdParams,
+  CharactersControllerListBooksParams,
   CharactersControllerListParams,
   CharactersControllerSoftDeleteParams,
   CreateCharacterFactInputDto,
@@ -50,8 +53,9 @@ import type {
   CreateCharacterInputDto,
   MergeCharacterInputDto,
   PaginatedBookCharacterRosterDto,
+  PaginatedCharacterBooksDto,
+  PaginatedCharacterCatalogDto,
   PaginatedCharacterFactsDto,
-  PaginatedCharacterGlobalSummaryDto,
   PaginatedCharactersDto,
   SeriesCharacterSummaryControllerGetParams,
   SeriesCharacterSummaryViewDto,
@@ -82,29 +86,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type characterPortabilityControllerExportBundleResponse200 = {
-  data: CharacterBundleDto;
-  status: 200;
-};
-
-export type characterPortabilityControllerExportBundleResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterPortabilityControllerExportBundleResponseSuccess =
-  characterPortabilityControllerExportBundleResponse200 & {
-    headers: Headers;
-  };
-export type characterPortabilityControllerExportBundleResponseError =
-  characterPortabilityControllerExportBundleResponse401 & {
-    headers: Headers;
-  };
-
-export type characterPortabilityControllerExportBundleResponse =
-  | characterPortabilityControllerExportBundleResponseSuccess
-  | characterPortabilityControllerExportBundleResponseError;
-
 export const getCharacterPortabilityControllerExportBundleUrl = (
   params?: CharacterPortabilityControllerExportBundleParams,
 ) => {
@@ -129,8 +110,8 @@ export const getCharacterPortabilityControllerExportBundleUrl = (
 export const characterPortabilityControllerExportBundle = async (
   params?: CharacterPortabilityControllerExportBundleParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterPortabilityControllerExportBundleResponse> => {
-  return customInstance<characterPortabilityControllerExportBundleResponse>(
+): Promise<CharacterBundleDto> => {
+  return customInstance<CharacterBundleDto>(
     getCharacterPortabilityControllerExportBundleUrl(params),
     {
       ...options,
@@ -280,42 +261,6 @@ export function useCharacterPortabilityControllerExportBundle<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterPortabilityControllerImportBundleResponse200 = {
-  data: CharacterImportResultDto;
-  status: 200;
-};
-
-export type characterPortabilityControllerImportBundleResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterPortabilityControllerImportBundleResponse413 = {
-  data: void;
-  status: 413;
-};
-
-export type characterPortabilityControllerImportBundleResponse422 = {
-  data: void;
-  status: 422;
-};
-
-export type characterPortabilityControllerImportBundleResponseSuccess =
-  characterPortabilityControllerImportBundleResponse200 & {
-    headers: Headers;
-  };
-export type characterPortabilityControllerImportBundleResponseError = (
-  | characterPortabilityControllerImportBundleResponse401
-  | characterPortabilityControllerImportBundleResponse413
-  | characterPortabilityControllerImportBundleResponse422
-) & {
-  headers: Headers;
-};
-
-export type characterPortabilityControllerImportBundleResponse =
-  | characterPortabilityControllerImportBundleResponseSuccess
-  | characterPortabilityControllerImportBundleResponseError;
-
 export const getCharacterPortabilityControllerImportBundleUrl = () => {
   return `/api/characters/import`;
 };
@@ -326,8 +271,8 @@ export const getCharacterPortabilityControllerImportBundleUrl = () => {
 export const characterPortabilityControllerImportBundle = async (
   characterImportBundleDto: CharacterImportBundleDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterPortabilityControllerImportBundleResponse> => {
-  return customInstance<characterPortabilityControllerImportBundleResponse>(
+): Promise<CharacterImportResultDto> => {
+  return customInstance<CharacterImportResultDto>(
     getCharacterPortabilityControllerImportBundleUrl(),
     {
       ...options,
@@ -486,40 +431,6 @@ export function useCharacterPortabilityControllerImportBundle<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type charactersControllerCreateResponse201 = {
-  data: CharacterDetailsViewDto;
-  status: 201;
-};
-
-export type charactersControllerCreateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type charactersControllerCreateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type charactersControllerCreateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type charactersControllerCreateResponseSuccess = charactersControllerCreateResponse201 & {
-  headers: Headers;
-};
-export type charactersControllerCreateResponseError = (
-  | charactersControllerCreateResponse400
-  | charactersControllerCreateResponse401
-  | charactersControllerCreateResponse404
-) & {
-  headers: Headers;
-};
-
-export type charactersControllerCreateResponse =
-  charactersControllerCreateResponseSuccess | charactersControllerCreateResponseError;
-
 export const getCharactersControllerCreateUrl = () => {
   return `/api/characters`;
 };
@@ -530,8 +441,8 @@ export const getCharactersControllerCreateUrl = () => {
 export const charactersControllerCreate = async (
   createCharacterInputDto: CreateCharacterInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<charactersControllerCreateResponse> => {
-  return customInstance<charactersControllerCreateResponse>(getCharactersControllerCreateUrl(), {
+): Promise<CharacterDetailsViewDto> => {
+  return customInstance<CharacterDetailsViewDto>(getCharactersControllerCreateUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -659,26 +570,6 @@ export function useCharactersControllerCreate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type charactersControllerListResponse200 = {
-  data: PaginatedCharacterGlobalSummaryDto;
-  status: 200;
-};
-
-export type charactersControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type charactersControllerListResponseSuccess = charactersControllerListResponse200 & {
-  headers: Headers;
-};
-export type charactersControllerListResponseError = charactersControllerListResponse401 & {
-  headers: Headers;
-};
-
-export type charactersControllerListResponse =
-  charactersControllerListResponseSuccess | charactersControllerListResponseError;
-
 export const getCharactersControllerListUrl = (params?: CharactersControllerListParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -716,8 +607,8 @@ export const getCharactersControllerListUrl = (params?: CharactersControllerList
 export const charactersControllerList = async (
   params?: CharactersControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<charactersControllerListResponse> => {
-  return customInstance<charactersControllerListResponse>(getCharactersControllerListUrl(params), {
+): Promise<PaginatedCharacterCatalogDto> => {
+  return customInstance<PaginatedCharacterCatalogDto>(getCharactersControllerListUrl(params), {
     ...options,
     method: "GET",
   });
@@ -840,29 +731,6 @@ export function useCharactersControllerList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type charactersControllerDuplicateCandidatesResponse200 = {
-  data: CharacterDuplicateCandidatesDto;
-  status: 200;
-};
-
-export type charactersControllerDuplicateCandidatesResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type charactersControllerDuplicateCandidatesResponseSuccess =
-  charactersControllerDuplicateCandidatesResponse200 & {
-    headers: Headers;
-  };
-export type charactersControllerDuplicateCandidatesResponseError =
-  charactersControllerDuplicateCandidatesResponse401 & {
-    headers: Headers;
-  };
-
-export type charactersControllerDuplicateCandidatesResponse =
-  | charactersControllerDuplicateCandidatesResponseSuccess
-  | charactersControllerDuplicateCandidatesResponseError;
-
 export const getCharactersControllerDuplicateCandidatesUrl = (
   params?: CharactersControllerDuplicateCandidatesParams,
 ) => {
@@ -896,8 +764,8 @@ export const getCharactersControllerDuplicateCandidatesUrl = (
 export const charactersControllerDuplicateCandidates = async (
   params?: CharactersControllerDuplicateCandidatesParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<charactersControllerDuplicateCandidatesResponse> => {
-  return customInstance<charactersControllerDuplicateCandidatesResponse>(
+): Promise<CharacterDuplicateCandidatesDto> => {
+  return customInstance<CharacterDuplicateCandidatesDto>(
     getCharactersControllerDuplicateCandidatesUrl(params),
     {
       ...options,
@@ -1047,27 +915,6 @@ export function useCharactersControllerDuplicateCandidates<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type charactersControllerOverviewResponse200 = {
-  data: CharacterOverviewDto;
-  status: 200;
-};
-
-export type charactersControllerOverviewResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type charactersControllerOverviewResponseSuccess =
-  charactersControllerOverviewResponse200 & {
-    headers: Headers;
-  };
-export type charactersControllerOverviewResponseError = charactersControllerOverviewResponse401 & {
-  headers: Headers;
-};
-
-export type charactersControllerOverviewResponse =
-  charactersControllerOverviewResponseSuccess | charactersControllerOverviewResponseError;
-
 export const getCharactersControllerOverviewUrl = () => {
   return `/api/characters/overview`;
 };
@@ -1077,14 +924,11 @@ export const getCharactersControllerOverviewUrl = () => {
  */
 export const charactersControllerOverview = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<charactersControllerOverviewResponse> => {
-  return customInstance<charactersControllerOverviewResponse>(
-    getCharactersControllerOverviewUrl(),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<CharacterOverviewDto> => {
+  return customInstance<CharacterOverviewDto>(getCharactersControllerOverviewUrl(), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getCharactersControllerOverviewQueryKey = () => {
@@ -1197,39 +1041,170 @@ export function useCharactersControllerOverview<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type charactersControllerGetByIdResponse200 = {
-  data: CharacterDetailsViewDto;
-  status: 200;
+export const getCharactersControllerFacetsUrl = (params?: CharactersControllerFacetsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = [
+      "attitude",
+      "gender",
+      "groupId",
+      "importance",
+      "role",
+      "speciesId",
+      "tagId",
+    ];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/characters/facets?${stringifiedParams}`
+    : `/api/characters/facets`;
 };
 
-export type charactersControllerGetByIdResponse400 = {
-  data: void;
-  status: 400;
+/**
+ * @summary Count the characters catalog per filter option
+ */
+export const charactersControllerFacets = async (
+  params?: CharactersControllerFacetsParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<CharacterFacetsDto> => {
+  return customInstance<CharacterFacetsDto>(getCharactersControllerFacetsUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
-export type charactersControllerGetByIdResponse401 = {
-  data: void;
-  status: 401;
+export const getCharactersControllerFacetsQueryKey = (
+  params?: CharactersControllerFacetsParams,
+) => {
+  return [`/api/characters/facets`, ...(params ? [params] : [])] as const;
 };
 
-export type charactersControllerGetByIdResponse404 = {
-  data: void;
-  status: 404;
+export const getCharactersControllerFacetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof charactersControllerFacets>>,
+  TError = void,
+>(
+  params?: CharactersControllerFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCharactersControllerFacetsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof charactersControllerFacets>>> = ({
+    signal,
+  }) => charactersControllerFacets(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof charactersControllerFacets>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
-export type charactersControllerGetByIdResponseSuccess = charactersControllerGetByIdResponse200 & {
-  headers: Headers;
-};
-export type charactersControllerGetByIdResponseError = (
-  | charactersControllerGetByIdResponse400
-  | charactersControllerGetByIdResponse401
-  | charactersControllerGetByIdResponse404
-) & {
-  headers: Headers;
-};
+export type CharactersControllerFacetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof charactersControllerFacets>>
+>;
+export type CharactersControllerFacetsQueryError = void;
 
-export type charactersControllerGetByIdResponse =
-  charactersControllerGetByIdResponseSuccess | charactersControllerGetByIdResponseError;
+export function useCharactersControllerFacets<
+  TData = Awaited<ReturnType<typeof charactersControllerFacets>>,
+  TError = void,
+>(
+  params: undefined | CharactersControllerFacetsParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerFacets>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof charactersControllerFacets>>,
+          TError,
+          Awaited<ReturnType<typeof charactersControllerFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharactersControllerFacets<
+  TData = Awaited<ReturnType<typeof charactersControllerFacets>>,
+  TError = void,
+>(
+  params?: CharactersControllerFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerFacets>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof charactersControllerFacets>>,
+          TError,
+          Awaited<ReturnType<typeof charactersControllerFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharactersControllerFacets<
+  TData = Awaited<ReturnType<typeof charactersControllerFacets>>,
+  TError = void,
+>(
+  params?: CharactersControllerFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Count the characters catalog per filter option
+ */
+
+export function useCharactersControllerFacets<
+  TData = Awaited<ReturnType<typeof charactersControllerFacets>>,
+  TError = void,
+>(
+  params?: CharactersControllerFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getCharactersControllerFacetsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export const getCharactersControllerGetByIdUrl = (
   characterId: string,
@@ -1266,8 +1241,8 @@ export const charactersControllerGetById = async (
   characterId: string,
   params?: CharactersControllerGetByIdParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<charactersControllerGetByIdResponse> => {
-  return customInstance<charactersControllerGetByIdResponse>(
+): Promise<CharacterDetailsViewDto> => {
+  return customInstance<CharacterDetailsViewDto>(
     getCharactersControllerGetByIdUrl(characterId, params),
     {
       ...options,
@@ -1405,41 +1380,6 @@ export function useCharactersControllerGetById<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type charactersControllerUpdateGlobalResponse200 = {
-  data: CharacterDetailsViewDto;
-  status: 200;
-};
-
-export type charactersControllerUpdateGlobalResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type charactersControllerUpdateGlobalResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type charactersControllerUpdateGlobalResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type charactersControllerUpdateGlobalResponseSuccess =
-  charactersControllerUpdateGlobalResponse200 & {
-    headers: Headers;
-  };
-export type charactersControllerUpdateGlobalResponseError = (
-  | charactersControllerUpdateGlobalResponse400
-  | charactersControllerUpdateGlobalResponse401
-  | charactersControllerUpdateGlobalResponse404
-) & {
-  headers: Headers;
-};
-
-export type charactersControllerUpdateGlobalResponse =
-  charactersControllerUpdateGlobalResponseSuccess | charactersControllerUpdateGlobalResponseError;
-
 export const getCharactersControllerUpdateGlobalUrl = (characterId: string) => {
   return `/api/characters/${characterId}`;
 };
@@ -1451,8 +1391,8 @@ export const charactersControllerUpdateGlobal = async (
   characterId: string,
   updateCharacterInputDto: UpdateCharacterInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<charactersControllerUpdateGlobalResponse> => {
-  return customInstance<charactersControllerUpdateGlobalResponse>(
+): Promise<CharacterDetailsViewDto> => {
+  return customInstance<CharacterDetailsViewDto>(
     getCharactersControllerUpdateGlobalUrl(characterId),
     {
       ...options,
@@ -1603,41 +1543,6 @@ export function useCharactersControllerUpdateGlobal<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type charactersControllerSoftDeleteResponse200 = {
-  data: CharacterDeletionResultDto;
-  status: 200;
-};
-
-export type charactersControllerSoftDeleteResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type charactersControllerSoftDeleteResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type charactersControllerSoftDeleteResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type charactersControllerSoftDeleteResponseSuccess =
-  charactersControllerSoftDeleteResponse200 & {
-    headers: Headers;
-  };
-export type charactersControllerSoftDeleteResponseError = (
-  | charactersControllerSoftDeleteResponse400
-  | charactersControllerSoftDeleteResponse401
-  | charactersControllerSoftDeleteResponse404
-) & {
-  headers: Headers;
-};
-
-export type charactersControllerSoftDeleteResponse =
-  charactersControllerSoftDeleteResponseSuccess | charactersControllerSoftDeleteResponseError;
-
 export const getCharactersControllerSoftDeleteUrl = (
   characterId: string,
   params: CharactersControllerSoftDeleteParams,
@@ -1664,8 +1569,8 @@ export const charactersControllerSoftDelete = async (
   characterId: string,
   params: CharactersControllerSoftDeleteParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<charactersControllerSoftDeleteResponse> => {
-  return customInstance<charactersControllerSoftDeleteResponse>(
+): Promise<CharacterDeletionResultDto> => {
+  return customInstance<CharacterDeletionResultDto>(
     getCharactersControllerSoftDeleteUrl(characterId, params),
     {
       ...options,
@@ -1805,35 +1710,6 @@ export function useCharactersControllerSoftDelete<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type charactersControllerDeletionPreviewResponse200 = {
-  data: CharacterDeletionPreviewDto;
-  status: 200;
-};
-
-export type charactersControllerDeletionPreviewResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type charactersControllerDeletionPreviewResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type charactersControllerDeletionPreviewResponseSuccess =
-  charactersControllerDeletionPreviewResponse200 & {
-    headers: Headers;
-  };
-export type charactersControllerDeletionPreviewResponseError = (
-  charactersControllerDeletionPreviewResponse401 | charactersControllerDeletionPreviewResponse404
-) & {
-  headers: Headers;
-};
-
-export type charactersControllerDeletionPreviewResponse =
-  | charactersControllerDeletionPreviewResponseSuccess
-  | charactersControllerDeletionPreviewResponseError;
-
 export const getCharactersControllerDeletionPreviewUrl = (characterId: string) => {
   return `/api/characters/${characterId}/deletion-preview`;
 };
@@ -1844,8 +1720,8 @@ export const getCharactersControllerDeletionPreviewUrl = (characterId: string) =
 export const charactersControllerDeletionPreview = async (
   characterId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<charactersControllerDeletionPreviewResponse> => {
-  return customInstance<charactersControllerDeletionPreviewResponse>(
+): Promise<CharacterDeletionPreviewDto> => {
+  return customInstance<CharacterDeletionPreviewDto>(
     getCharactersControllerDeletionPreviewUrl(characterId),
     {
       ...options,
@@ -1997,32 +1873,170 @@ export function useCharactersControllerDeletionPreview<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type charactersControllerRestoreResponse200 = {
-  data: CharacterDetailsViewDto;
-  status: 200;
+export const getCharactersControllerListBooksUrl = (
+  characterId: string,
+  params?: CharactersControllerListBooksParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/characters/${characterId}/books?${stringifiedParams}`
+    : `/api/characters/${characterId}/books`;
 };
 
-export type charactersControllerRestoreResponse401 = {
-  data: void;
-  status: 401;
+/**
+ * @summary List every active book a character appears in
+ */
+export const charactersControllerListBooks = async (
+  characterId: string,
+  params?: CharactersControllerListBooksParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<PaginatedCharacterBooksDto> => {
+  return customInstance<PaginatedCharacterBooksDto>(
+    getCharactersControllerListBooksUrl(characterId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
 };
 
-export type charactersControllerRestoreResponse404 = {
-  data: void;
-  status: 404;
+export const getCharactersControllerListBooksQueryKey = (
+  characterId: string,
+  params?: CharactersControllerListBooksParams,
+) => {
+  return [`/api/characters/${characterId}/books`, ...(params ? [params] : [])] as const;
 };
 
-export type charactersControllerRestoreResponseSuccess = charactersControllerRestoreResponse200 & {
-  headers: Headers;
-};
-export type charactersControllerRestoreResponseError = (
-  charactersControllerRestoreResponse401 | charactersControllerRestoreResponse404
-) & {
-  headers: Headers;
+export const getCharactersControllerListBooksQueryOptions = <
+  TData = Awaited<ReturnType<typeof charactersControllerListBooks>>,
+  TError = void,
+>(
+  characterId: string,
+  params?: CharactersControllerListBooksParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerListBooks>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCharactersControllerListBooksQueryKey(characterId, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof charactersControllerListBooks>>> = ({
+    signal,
+  }) => charactersControllerListBooks(characterId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: characterId !== null && characterId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof charactersControllerListBooks>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 };
 
-export type charactersControllerRestoreResponse =
-  charactersControllerRestoreResponseSuccess | charactersControllerRestoreResponseError;
+export type CharactersControllerListBooksQueryResult = NonNullable<
+  Awaited<ReturnType<typeof charactersControllerListBooks>>
+>;
+export type CharactersControllerListBooksQueryError = void;
+
+export function useCharactersControllerListBooks<
+  TData = Awaited<ReturnType<typeof charactersControllerListBooks>>,
+  TError = void,
+>(
+  characterId: string,
+  params: undefined | CharactersControllerListBooksParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerListBooks>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof charactersControllerListBooks>>,
+          TError,
+          Awaited<ReturnType<typeof charactersControllerListBooks>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharactersControllerListBooks<
+  TData = Awaited<ReturnType<typeof charactersControllerListBooks>>,
+  TError = void,
+>(
+  characterId: string,
+  params?: CharactersControllerListBooksParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerListBooks>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof charactersControllerListBooks>>,
+          TError,
+          Awaited<ReturnType<typeof charactersControllerListBooks>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharactersControllerListBooks<
+  TData = Awaited<ReturnType<typeof charactersControllerListBooks>>,
+  TError = void,
+>(
+  characterId: string,
+  params?: CharactersControllerListBooksParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerListBooks>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List every active book a character appears in
+ */
+
+export function useCharactersControllerListBooks<
+  TData = Awaited<ReturnType<typeof charactersControllerListBooks>>,
+  TError = void,
+>(
+  characterId: string,
+  params?: CharactersControllerListBooksParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerListBooks>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getCharactersControllerListBooksQueryOptions(characterId, params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export const getCharactersControllerRestoreUrl = (characterId: string) => {
   return `/api/characters/${characterId}/restore`;
@@ -2034,14 +2048,11 @@ export const getCharactersControllerRestoreUrl = (characterId: string) => {
 export const charactersControllerRestore = async (
   characterId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<charactersControllerRestoreResponse> => {
-  return customInstance<charactersControllerRestoreResponse>(
-    getCharactersControllerRestoreUrl(characterId),
-    {
-      ...options,
-      method: "POST",
-    },
-  );
+): Promise<CharacterDetailsViewDto> => {
+  return customInstance<CharacterDetailsViewDto>(getCharactersControllerRestoreUrl(characterId), {
+    ...options,
+    method: "POST",
+  });
 };
 
 export const getCharactersControllerRestoreQueryKey = (characterId: string) => {
@@ -2164,41 +2175,6 @@ export function useCharactersControllerRestore<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterMergeControllerPreviewResponse200 = {
-  data: CharacterMergePreviewDto;
-  status: 200;
-};
-
-export type characterMergeControllerPreviewResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterMergeControllerPreviewResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterMergeControllerPreviewResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterMergeControllerPreviewResponseSuccess =
-  characterMergeControllerPreviewResponse200 & {
-    headers: Headers;
-  };
-export type characterMergeControllerPreviewResponseError = (
-  | characterMergeControllerPreviewResponse400
-  | characterMergeControllerPreviewResponse401
-  | characterMergeControllerPreviewResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterMergeControllerPreviewResponse =
-  characterMergeControllerPreviewResponseSuccess | characterMergeControllerPreviewResponseError;
-
 export const getCharacterMergeControllerPreviewUrl = (
   characterId: string,
   params: CharacterMergeControllerPreviewParams,
@@ -2225,8 +2201,8 @@ export const characterMergeControllerPreview = async (
   characterId: string,
   params: CharacterMergeControllerPreviewParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterMergeControllerPreviewResponse> => {
-  return customInstance<characterMergeControllerPreviewResponse>(
+): Promise<CharacterMergePreviewDto> => {
+  return customInstance<CharacterMergePreviewDto>(
     getCharacterMergeControllerPreviewUrl(characterId, params),
     {
       ...options,
@@ -2366,47 +2342,6 @@ export function useCharacterMergeControllerPreview<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterMergeControllerMergeResponse200 = {
-  data: CharacterMergeResultDto;
-  status: 200;
-};
-
-export type characterMergeControllerMergeResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterMergeControllerMergeResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterMergeControllerMergeResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterMergeControllerMergeResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type characterMergeControllerMergeResponseSuccess =
-  characterMergeControllerMergeResponse200 & {
-    headers: Headers;
-  };
-export type characterMergeControllerMergeResponseError = (
-  | characterMergeControllerMergeResponse400
-  | characterMergeControllerMergeResponse401
-  | characterMergeControllerMergeResponse404
-  | characterMergeControllerMergeResponse409
-) & {
-  headers: Headers;
-};
-
-export type characterMergeControllerMergeResponse =
-  characterMergeControllerMergeResponseSuccess | characterMergeControllerMergeResponseError;
-
 export const getCharacterMergeControllerMergeUrl = (characterId: string) => {
   return `/api/characters/${characterId}/merge`;
 };
@@ -2418,16 +2353,13 @@ export const characterMergeControllerMerge = async (
   characterId: string,
   mergeCharacterInputDto: MergeCharacterInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterMergeControllerMergeResponse> => {
-  return customInstance<characterMergeControllerMergeResponse>(
-    getCharacterMergeControllerMergeUrl(characterId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(mergeCharacterInputDto),
-    },
-  );
+): Promise<CharacterMergeResultDto> => {
+  return customInstance<CharacterMergeResultDto>(getCharacterMergeControllerMergeUrl(characterId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(mergeCharacterInputDto),
+  });
 };
 
 export const getCharacterMergeControllerMergeQueryKey = (
@@ -2568,41 +2500,6 @@ export function useCharacterMergeControllerMerge<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterFactsControllerListResponse200 = {
-  data: PaginatedCharacterFactsDto;
-  status: 200;
-};
-
-export type characterFactsControllerListResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterFactsControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterFactsControllerListResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterFactsControllerListResponseSuccess =
-  characterFactsControllerListResponse200 & {
-    headers: Headers;
-  };
-export type characterFactsControllerListResponseError = (
-  | characterFactsControllerListResponse400
-  | characterFactsControllerListResponse401
-  | characterFactsControllerListResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterFactsControllerListResponse =
-  characterFactsControllerListResponseSuccess | characterFactsControllerListResponseError;
-
 export const getCharacterFactsControllerListUrl = (
   bookId: string,
   characterId: string,
@@ -2631,8 +2528,8 @@ export const characterFactsControllerList = async (
   characterId: string,
   params?: CharacterFactsControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterFactsControllerListResponse> => {
-  return customInstance<characterFactsControllerListResponse>(
+): Promise<PaginatedCharacterFactsDto> => {
+  return customInstance<PaginatedCharacterFactsDto>(
     getCharacterFactsControllerListUrl(bookId, characterId, params),
     {
       ...options,
@@ -2785,47 +2682,6 @@ export function useCharacterFactsControllerList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterFactsControllerCreateResponse201 = {
-  data: CharacterFactViewDto;
-  status: 201;
-};
-
-export type characterFactsControllerCreateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterFactsControllerCreateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterFactsControllerCreateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterFactsControllerCreateResponse422 = {
-  data: void;
-  status: 422;
-};
-
-export type characterFactsControllerCreateResponseSuccess =
-  characterFactsControllerCreateResponse201 & {
-    headers: Headers;
-  };
-export type characterFactsControllerCreateResponseError = (
-  | characterFactsControllerCreateResponse400
-  | characterFactsControllerCreateResponse401
-  | characterFactsControllerCreateResponse404
-  | characterFactsControllerCreateResponse422
-) & {
-  headers: Headers;
-};
-
-export type characterFactsControllerCreateResponse =
-  characterFactsControllerCreateResponseSuccess | characterFactsControllerCreateResponseError;
-
 export const getCharacterFactsControllerCreateUrl = (bookId: string, characterId: string) => {
   return `/api/books/${bookId}/characters/${characterId}/facts`;
 };
@@ -2838,8 +2694,8 @@ export const characterFactsControllerCreate = async (
   characterId: string,
   createCharacterFactInputDto: CreateCharacterFactInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterFactsControllerCreateResponse> => {
-  return customInstance<characterFactsControllerCreateResponse>(
+): Promise<CharacterFactViewDto> => {
+  return customInstance<CharacterFactViewDto>(
     getCharacterFactsControllerCreateUrl(bookId, characterId),
     {
       ...options,
@@ -3002,47 +2858,6 @@ export function useCharacterFactsControllerCreate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterFactsControllerUpdateResponse200 = {
-  data: CharacterFactViewDto;
-  status: 200;
-};
-
-export type characterFactsControllerUpdateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterFactsControllerUpdateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterFactsControllerUpdateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterFactsControllerUpdateResponse422 = {
-  data: void;
-  status: 422;
-};
-
-export type characterFactsControllerUpdateResponseSuccess =
-  characterFactsControllerUpdateResponse200 & {
-    headers: Headers;
-  };
-export type characterFactsControllerUpdateResponseError = (
-  | characterFactsControllerUpdateResponse400
-  | characterFactsControllerUpdateResponse401
-  | characterFactsControllerUpdateResponse404
-  | characterFactsControllerUpdateResponse422
-) & {
-  headers: Headers;
-};
-
-export type characterFactsControllerUpdateResponse =
-  characterFactsControllerUpdateResponseSuccess | characterFactsControllerUpdateResponseError;
-
 export const getCharacterFactsControllerUpdateUrl = (
   bookId: string,
   characterId: string,
@@ -3060,8 +2875,8 @@ export const characterFactsControllerUpdate = async (
   factId: string,
   updateCharacterFactInputDto: UpdateCharacterFactInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterFactsControllerUpdateResponse> => {
-  return customInstance<characterFactsControllerUpdateResponse>(
+): Promise<CharacterFactViewDto> => {
+  return customInstance<CharacterFactViewDto>(
     getCharacterFactsControllerUpdateUrl(bookId, characterId, factId),
     {
       ...options,
@@ -3241,41 +3056,6 @@ export function useCharacterFactsControllerUpdate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterFactsControllerRemoveResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type characterFactsControllerRemoveResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type characterFactsControllerRemoveResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterFactsControllerRemoveResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type characterFactsControllerRemoveResponseSuccess =
-  characterFactsControllerRemoveResponse204 & {
-    headers: Headers;
-  };
-export type characterFactsControllerRemoveResponseError = (
-  | characterFactsControllerRemoveResponse400
-  | characterFactsControllerRemoveResponse401
-  | characterFactsControllerRemoveResponse404
-) & {
-  headers: Headers;
-};
-
-export type characterFactsControllerRemoveResponse =
-  characterFactsControllerRemoveResponseSuccess | characterFactsControllerRemoveResponseError;
-
 export const getCharacterFactsControllerRemoveUrl = (
   bookId: string,
   characterId: string,
@@ -3292,14 +3072,11 @@ export const characterFactsControllerRemove = async (
   characterId: string,
   factId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterFactsControllerRemoveResponse> => {
-  return customInstance<characterFactsControllerRemoveResponse>(
-    getCharacterFactsControllerRemoveUrl(bookId, characterId, factId),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getCharacterFactsControllerRemoveUrl(bookId, characterId, factId), {
+    ...options,
+    method: "DELETE",
+  });
 };
 
 export const getCharacterFactsControllerRemoveQueryKey = (
@@ -3451,29 +3228,6 @@ export function useCharacterFactsControllerRemove<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type characterCustomLabelsControllerListResponse200 = {
-  data: CharacterCustomLabelsViewDto;
-  status: 200;
-};
-
-export type characterCustomLabelsControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type characterCustomLabelsControllerListResponseSuccess =
-  characterCustomLabelsControllerListResponse200 & {
-    headers: Headers;
-  };
-export type characterCustomLabelsControllerListResponseError =
-  characterCustomLabelsControllerListResponse401 & {
-    headers: Headers;
-  };
-
-export type characterCustomLabelsControllerListResponse =
-  | characterCustomLabelsControllerListResponseSuccess
-  | characterCustomLabelsControllerListResponseError;
-
 export const getCharacterCustomLabelsControllerListUrl = () => {
   return `/api/character-custom-labels`;
 };
@@ -3483,14 +3237,11 @@ export const getCharacterCustomLabelsControllerListUrl = () => {
  */
 export const characterCustomLabelsControllerList = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<characterCustomLabelsControllerListResponse> => {
-  return customInstance<characterCustomLabelsControllerListResponse>(
-    getCharacterCustomLabelsControllerListUrl(),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<CharacterCustomLabelsViewDto> => {
+  return customInstance<CharacterCustomLabelsViewDto>(getCharacterCustomLabelsControllerListUrl(), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getCharacterCustomLabelsControllerListQueryKey = () => {
@@ -3619,34 +3370,6 @@ export function useCharacterCustomLabelsControllerList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookCharactersControllerListResponse200 = {
-  data: PaginatedBookCharacterRosterDto;
-  status: 200;
-};
-
-export type bookCharactersControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookCharactersControllerListResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookCharactersControllerListResponseSuccess =
-  bookCharactersControllerListResponse200 & {
-    headers: Headers;
-  };
-export type bookCharactersControllerListResponseError = (
-  bookCharactersControllerListResponse401 | bookCharactersControllerListResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookCharactersControllerListResponse =
-  bookCharactersControllerListResponseSuccess | bookCharactersControllerListResponseError;
-
 export const getBookCharactersControllerListUrl = (
   bookId: string,
   params?: BookCharactersControllerListParams,
@@ -3682,8 +3405,8 @@ export const bookCharactersControllerList = async (
   bookId: string,
   params?: BookCharactersControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookCharactersControllerListResponse> => {
-  return customInstance<bookCharactersControllerListResponse>(
+): Promise<PaginatedBookCharacterRosterDto> => {
+  return customInstance<PaginatedBookCharacterRosterDto>(
     getBookCharactersControllerListUrl(bookId, params),
     {
       ...options,
@@ -3821,47 +3544,6 @@ export function useBookCharactersControllerList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookCharactersControllerCreateResponse201 = {
-  data: CharacterDetailsViewDto;
-  status: 201;
-};
-
-export type bookCharactersControllerCreateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookCharactersControllerCreateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookCharactersControllerCreateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookCharactersControllerCreateResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type bookCharactersControllerCreateResponseSuccess =
-  bookCharactersControllerCreateResponse201 & {
-    headers: Headers;
-  };
-export type bookCharactersControllerCreateResponseError = (
-  | bookCharactersControllerCreateResponse400
-  | bookCharactersControllerCreateResponse401
-  | bookCharactersControllerCreateResponse404
-  | bookCharactersControllerCreateResponse409
-) & {
-  headers: Headers;
-};
-
-export type bookCharactersControllerCreateResponse =
-  bookCharactersControllerCreateResponseSuccess | bookCharactersControllerCreateResponseError;
-
 export const getBookCharactersControllerCreateUrl = (bookId: string) => {
   return `/api/books/${bookId}/characters`;
 };
@@ -3873,16 +3555,13 @@ export const bookCharactersControllerCreate = async (
   bookId: string,
   createCharacterInBookDto: CreateCharacterInBookDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookCharactersControllerCreateResponse> => {
-  return customInstance<bookCharactersControllerCreateResponse>(
-    getBookCharactersControllerCreateUrl(bookId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(createCharacterInBookDto),
-    },
-  );
+): Promise<CharacterDetailsViewDto> => {
+  return customInstance<CharacterDetailsViewDto>(getBookCharactersControllerCreateUrl(bookId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createCharacterInBookDto),
+  });
 };
 
 export const getBookCharactersControllerCreateQueryKey = (
@@ -4022,41 +3701,6 @@ export function useBookCharactersControllerCreate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookCharactersControllerGetByIdResponse200 = {
-  data: CharacterDetailsViewDto;
-  status: 200;
-};
-
-export type bookCharactersControllerGetByIdResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookCharactersControllerGetByIdResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookCharactersControllerGetByIdResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookCharactersControllerGetByIdResponseSuccess =
-  bookCharactersControllerGetByIdResponse200 & {
-    headers: Headers;
-  };
-export type bookCharactersControllerGetByIdResponseError = (
-  | bookCharactersControllerGetByIdResponse400
-  | bookCharactersControllerGetByIdResponse401
-  | bookCharactersControllerGetByIdResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookCharactersControllerGetByIdResponse =
-  bookCharactersControllerGetByIdResponseSuccess | bookCharactersControllerGetByIdResponseError;
-
 export const getBookCharactersControllerGetByIdUrl = (
   bookId: string,
   characterId: string,
@@ -4090,8 +3734,8 @@ export const bookCharactersControllerGetById = async (
   characterId: string,
   params?: BookCharactersControllerGetByIdParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookCharactersControllerGetByIdResponse> => {
-  return customInstance<bookCharactersControllerGetByIdResponse>(
+): Promise<CharacterDetailsViewDto> => {
+  return customInstance<CharacterDetailsViewDto>(
     getBookCharactersControllerGetByIdUrl(bookId, characterId, params),
     {
       ...options,
@@ -4244,42 +3888,6 @@ export function useBookCharactersControllerGetById<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookCharactersControllerUpdateInBookResponse200 = {
-  data: CharacterDetailsViewDto;
-  status: 200;
-};
-
-export type bookCharactersControllerUpdateInBookResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookCharactersControllerUpdateInBookResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookCharactersControllerUpdateInBookResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookCharactersControllerUpdateInBookResponseSuccess =
-  bookCharactersControllerUpdateInBookResponse200 & {
-    headers: Headers;
-  };
-export type bookCharactersControllerUpdateInBookResponseError = (
-  | bookCharactersControllerUpdateInBookResponse400
-  | bookCharactersControllerUpdateInBookResponse401
-  | bookCharactersControllerUpdateInBookResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookCharactersControllerUpdateInBookResponse =
-  | bookCharactersControllerUpdateInBookResponseSuccess
-  | bookCharactersControllerUpdateInBookResponseError;
-
 export const getBookCharactersControllerUpdateInBookUrl = (bookId: string, characterId: string) => {
   return `/api/books/${bookId}/characters/${characterId}`;
 };
@@ -4292,8 +3900,8 @@ export const bookCharactersControllerUpdateInBook = async (
   characterId: string,
   updateBookCharacterInputDto: UpdateBookCharacterInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookCharactersControllerUpdateInBookResponse> => {
-  return customInstance<bookCharactersControllerUpdateInBookResponse>(
+): Promise<CharacterDetailsViewDto> => {
+  return customInstance<CharacterDetailsViewDto>(
     getBookCharactersControllerUpdateInBookUrl(bookId, characterId),
     {
       ...options,
@@ -4480,34 +4088,6 @@ export function useBookCharactersControllerUpdateInBook<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookCharactersControllerUnlinkResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type bookCharactersControllerUnlinkResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookCharactersControllerUnlinkResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookCharactersControllerUnlinkResponseSuccess =
-  bookCharactersControllerUnlinkResponse204 & {
-    headers: Headers;
-  };
-export type bookCharactersControllerUnlinkResponseError = (
-  bookCharactersControllerUnlinkResponse401 | bookCharactersControllerUnlinkResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookCharactersControllerUnlinkResponse =
-  bookCharactersControllerUnlinkResponseSuccess | bookCharactersControllerUnlinkResponseError;
-
 export const getBookCharactersControllerUnlinkUrl = (bookId: string, characterId: string) => {
   return `/api/books/${bookId}/characters/${characterId}`;
 };
@@ -4519,14 +4099,11 @@ export const bookCharactersControllerUnlink = async (
   bookId: string,
   characterId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookCharactersControllerUnlinkResponse> => {
-  return customInstance<bookCharactersControllerUnlinkResponse>(
-    getBookCharactersControllerUnlinkUrl(bookId, characterId),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getBookCharactersControllerUnlinkUrl(bookId, characterId), {
+    ...options,
+    method: "DELETE",
+  });
 };
 
 export const getBookCharactersControllerUnlinkQueryKey = (bookId: string, characterId: string) => {
@@ -4658,36 +4235,6 @@ export function useBookCharactersControllerUnlink<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookCharacterSuggestionsControllerListResponse200 = {
-  data: CharacterSuggestionsDto;
-  status: 200;
-};
-
-export type bookCharacterSuggestionsControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookCharacterSuggestionsControllerListResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookCharacterSuggestionsControllerListResponseSuccess =
-  bookCharacterSuggestionsControllerListResponse200 & {
-    headers: Headers;
-  };
-export type bookCharacterSuggestionsControllerListResponseError = (
-  | bookCharacterSuggestionsControllerListResponse401
-  | bookCharacterSuggestionsControllerListResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookCharacterSuggestionsControllerListResponse =
-  | bookCharacterSuggestionsControllerListResponseSuccess
-  | bookCharacterSuggestionsControllerListResponseError;
-
 export const getBookCharacterSuggestionsControllerListUrl = (
   bookId: string,
   params?: BookCharacterSuggestionsControllerListParams,
@@ -4714,8 +4261,8 @@ export const bookCharacterSuggestionsControllerList = async (
   bookId: string,
   params?: BookCharacterSuggestionsControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookCharacterSuggestionsControllerListResponse> => {
-  return customInstance<bookCharacterSuggestionsControllerListResponse>(
+): Promise<CharacterSuggestionsDto> => {
+  return customInstance<CharacterSuggestionsDto>(
     getBookCharacterSuggestionsControllerListUrl(bookId, params),
     {
       ...options,
@@ -4880,34 +4427,6 @@ export function useBookCharacterSuggestionsControllerList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookCharacterSummaryControllerGetResponse200 = {
-  data: BookCharacterSummaryViewDto;
-  status: 200;
-};
-
-export type bookCharacterSummaryControllerGetResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookCharacterSummaryControllerGetResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookCharacterSummaryControllerGetResponseSuccess =
-  bookCharacterSummaryControllerGetResponse200 & {
-    headers: Headers;
-  };
-export type bookCharacterSummaryControllerGetResponseError = (
-  bookCharacterSummaryControllerGetResponse401 | bookCharacterSummaryControllerGetResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookCharacterSummaryControllerGetResponse =
-  bookCharacterSummaryControllerGetResponseSuccess | bookCharacterSummaryControllerGetResponseError;
-
 export const getBookCharacterSummaryControllerGetUrl = (
   bookId: string,
   params?: BookCharacterSummaryControllerGetParams,
@@ -4934,8 +4453,8 @@ export const bookCharacterSummaryControllerGet = async (
   bookId: string,
   params?: BookCharacterSummaryControllerGetParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookCharacterSummaryControllerGetResponse> => {
-  return customInstance<bookCharacterSummaryControllerGetResponse>(
+): Promise<BookCharacterSummaryViewDto> => {
+  return customInstance<BookCharacterSummaryViewDto>(
     getBookCharacterSummaryControllerGetUrl(bookId, params),
     {
       ...options,
@@ -5075,34 +4594,6 @@ export function useBookCharacterSummaryControllerGet<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type seriesCharactersControllerListResponse200 = {
-  data: PaginatedCharactersDto;
-  status: 200;
-};
-
-export type seriesCharactersControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type seriesCharactersControllerListResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type seriesCharactersControllerListResponseSuccess =
-  seriesCharactersControllerListResponse200 & {
-    headers: Headers;
-  };
-export type seriesCharactersControllerListResponseError = (
-  seriesCharactersControllerListResponse401 | seriesCharactersControllerListResponse404
-) & {
-  headers: Headers;
-};
-
-export type seriesCharactersControllerListResponse =
-  seriesCharactersControllerListResponseSuccess | seriesCharactersControllerListResponseError;
-
 export const getSeriesCharactersControllerListUrl = (
   seriesId: string,
   params?: SeriesCharactersControllerListParams,
@@ -5129,8 +4620,8 @@ export const seriesCharactersControllerList = async (
   seriesId: string,
   params?: SeriesCharactersControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<seriesCharactersControllerListResponse> => {
-  return customInstance<seriesCharactersControllerListResponse>(
+): Promise<PaginatedCharactersDto> => {
+  return customInstance<PaginatedCharactersDto>(
     getSeriesCharactersControllerListUrl(seriesId, params),
     {
       ...options,
@@ -5270,34 +4761,6 @@ export function useSeriesCharactersControllerList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type seriesCharactersControllerProfileResponse200 = {
-  data: CharacterSeriesProfileViewDto;
-  status: 200;
-};
-
-export type seriesCharactersControllerProfileResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type seriesCharactersControllerProfileResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type seriesCharactersControllerProfileResponseSuccess =
-  seriesCharactersControllerProfileResponse200 & {
-    headers: Headers;
-  };
-export type seriesCharactersControllerProfileResponseError = (
-  seriesCharactersControllerProfileResponse401 | seriesCharactersControllerProfileResponse404
-) & {
-  headers: Headers;
-};
-
-export type seriesCharactersControllerProfileResponse =
-  seriesCharactersControllerProfileResponseSuccess | seriesCharactersControllerProfileResponseError;
-
 export const getSeriesCharactersControllerProfileUrl = (
   seriesId: string,
   characterId: string,
@@ -5326,8 +4789,8 @@ export const seriesCharactersControllerProfile = async (
   characterId: string,
   params?: SeriesCharactersControllerProfileParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<seriesCharactersControllerProfileResponse> => {
-  return customInstance<seriesCharactersControllerProfileResponse>(
+): Promise<CharacterSeriesProfileViewDto> => {
+  return customInstance<CharacterSeriesProfileViewDto>(
     getSeriesCharactersControllerProfileUrl(seriesId, characterId, params),
     {
       ...options,
@@ -5487,35 +4950,6 @@ export function useSeriesCharactersControllerProfile<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type seriesCharacterSummaryControllerGetResponse200 = {
-  data: SeriesCharacterSummaryViewDto;
-  status: 200;
-};
-
-export type seriesCharacterSummaryControllerGetResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type seriesCharacterSummaryControllerGetResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type seriesCharacterSummaryControllerGetResponseSuccess =
-  seriesCharacterSummaryControllerGetResponse200 & {
-    headers: Headers;
-  };
-export type seriesCharacterSummaryControllerGetResponseError = (
-  seriesCharacterSummaryControllerGetResponse401 | seriesCharacterSummaryControllerGetResponse404
-) & {
-  headers: Headers;
-};
-
-export type seriesCharacterSummaryControllerGetResponse =
-  | seriesCharacterSummaryControllerGetResponseSuccess
-  | seriesCharacterSummaryControllerGetResponseError;
-
 export const getSeriesCharacterSummaryControllerGetUrl = (
   seriesId: string,
   params?: SeriesCharacterSummaryControllerGetParams,
@@ -5542,8 +4976,8 @@ export const seriesCharacterSummaryControllerGet = async (
   seriesId: string,
   params?: SeriesCharacterSummaryControllerGetParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<seriesCharacterSummaryControllerGetResponse> => {
-  return customInstance<seriesCharacterSummaryControllerGetResponse>(
+): Promise<SeriesCharacterSummaryViewDto> => {
+  return customInstance<SeriesCharacterSummaryViewDto>(
     getSeriesCharacterSummaryControllerGetUrl(seriesId, params),
     {
       ...options,
@@ -5707,36 +5141,6 @@ export function useSeriesCharacterSummaryControllerGet<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type seriesReadingContextControllerGetDefaultResponse200 = {
-  data: SeriesReadingContextDefaultViewDto;
-  status: 200;
-};
-
-export type seriesReadingContextControllerGetDefaultResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type seriesReadingContextControllerGetDefaultResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type seriesReadingContextControllerGetDefaultResponseSuccess =
-  seriesReadingContextControllerGetDefaultResponse200 & {
-    headers: Headers;
-  };
-export type seriesReadingContextControllerGetDefaultResponseError = (
-  | seriesReadingContextControllerGetDefaultResponse401
-  | seriesReadingContextControllerGetDefaultResponse404
-) & {
-  headers: Headers;
-};
-
-export type seriesReadingContextControllerGetDefaultResponse =
-  | seriesReadingContextControllerGetDefaultResponseSuccess
-  | seriesReadingContextControllerGetDefaultResponseError;
-
 export const getSeriesReadingContextControllerGetDefaultUrl = (seriesId: string) => {
   return `/api/series/${seriesId}/reading-context/default`;
 };
@@ -5747,8 +5151,8 @@ export const getSeriesReadingContextControllerGetDefaultUrl = (seriesId: string)
 export const seriesReadingContextControllerGetDefault = async (
   seriesId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<seriesReadingContextControllerGetDefaultResponse> => {
-  return customInstance<seriesReadingContextControllerGetDefaultResponse>(
+): Promise<SeriesReadingContextDefaultViewDto> => {
+  return customInstance<SeriesReadingContextDefaultViewDto>(
     getSeriesReadingContextControllerGetDefaultUrl(seriesId),
     {
       ...options,

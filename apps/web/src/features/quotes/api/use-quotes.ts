@@ -11,16 +11,11 @@ import { quoteKeys } from "./quote-keys";
 
 export type QuotesPage = z.infer<typeof PaginatedQuotesSchema>;
 
-const MAX_PAGES = 10;
-
 export function useQuotes(params: QuotesListParams) {
   return useInfiniteQuery({
     getNextPageParam: (lastPage: QuotesPage) =>
       lastPage.page < lastPage.pagesCount ? lastPage.page + 1 : undefined,
-    getPreviousPageParam: (firstPage: QuotesPage) =>
-      firstPage.page > 1 ? firstPage.page - 1 : undefined,
     initialPageParam: 1,
-    maxPages: MAX_PAGES,
     placeholderData: keepPreviousData,
     queryFn: async ({ pageParam, signal }): Promise<QuotesPage> =>
       PaginatedQuotesSchema.parse(

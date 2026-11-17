@@ -18,7 +18,6 @@ export function useNotesOverview(params: NotesOverviewParams) {
     placeholderData: keepPreviousData,
     queryFn: ({ signal }) => fetchNotesOverview(params, signal),
     queryKey: overviewKey(params),
-    retry: false,
   });
 }
 

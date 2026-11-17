@@ -11,6 +11,7 @@ import type { OnUrlUpdateFunction, UrlUpdateEvent } from "nuqs/adapters/testing"
 import type { ReactNode } from "react";
 
 import { defaultUserProfileSettings } from "@app/shared";
+import { parseISO } from "date-fns";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { toast } from "sonner";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -65,6 +66,7 @@ const requests: RecordedRequest[] = [];
 const server = {
   correctionError: null as Nullable<{ body: unknown; status: number }>,
   listPending: false,
+  listReply: null as Nullable<Promise<Response>>,
   listStatus: null as Nullable<number>,
 };
 
@@ -126,6 +128,7 @@ beforeEach(() => {
   vi.setSystemTime(TODAY);
   server.correctionError = null;
   server.listPending = false;
+  server.listReply = null;
   server.listStatus = null;
 });
 
@@ -199,6 +202,45 @@ describe("LoanHistoryView states", () => {
 
     expect(await screen.findByText("Дюна")).toBeInTheDocument();
     expect(screen.queryByText(copy.states.error.title)).not.toBeInTheDocument();
+  });
+
+  it("moves focus to the new retry button when the history retry fails again", async () => {
+    const { error } = copy.states;
+    server.listStatus = 500;
+    mockHistory([historyItem()]);
+    renderHistory();
+    (await screen.findByRole("button", { name: error.retry })).focus();
+
+    let failRetry = () => {};
+    server.listReply = new Promise<Response>((resolve) => {
+      failRetry = () => resolve(jsonResponse({ message: "boom" }, 500));
+    });
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: error.retry })).not.toBeInTheDocument(),
+    );
+    expect(document.body).not.toHaveFocus();
+    expect(
+      screen.getByRole("region", { name: messages.loans.pages.history.listHeading }),
+    ).toHaveFocus();
+    failRetry();
+
+    expect(await screen.findByRole("button", { name: error.retry })).toHaveFocus();
+  });
+
+  it("keeps focus off the page body when the history retry loads the loans", async () => {
+    server.listStatus = 500;
+    mockHistory([historyItem()]);
+    renderHistory();
+    const retry = await screen.findByRole("button", { name: copy.states.error.retry });
+    retry.focus();
+
+    server.listStatus = null;
+    await userEvent.keyboard("{Enter}");
+
+    expect(await screen.findByText("Дюна")).toBeInTheDocument();
+    expect(retry).not.toBeInTheDocument();
+    expect(document.body).not.toHaveFocus();
   });
 
   it("hides the toolbar and the sidebar while the history cannot be loaded", async () => {
@@ -886,9 +928,9 @@ describe("LoanHistoryView row", () => {
     renderHistory();
 
     const period = await findPeriod("Дюна");
-    expect(period).toHaveTextContent(`${copy.loanPeriod.lent} 12.06.2026`);
-    expect(period).toHaveTextContent(`${copy.loanPeriod.returned} 04.07.2026`);
-    expect(period).toHaveTextContent(plannedOn("10.07.2026"));
+    expect(period).toHaveTextContent(`${copy.loanPeriod.lent} ${formatUkDate("2026-06-12")}`);
+    expect(period).toHaveTextContent(`${copy.loanPeriod.returned} ${formatUkDate("2026-07-04")}`);
+    expect(period).toHaveTextContent(plannedOn(formatUkDate("2026-07-10")));
   });
 
   it("calls the start of a borrowed loan a borrowing, not a handover", async () => {
@@ -897,7 +939,7 @@ describe("LoanHistoryView row", () => {
     renderHistory();
 
     const period = await findPeriod("Дюна");
-    expect(period).toHaveTextContent(`${copy.loanPeriod.borrowed} 14.02.2026`);
+    expect(period).toHaveTextContent(`${copy.loanPeriod.borrowed} ${formatUkDate("2026-02-14")}`);
     expect(period).not.toHaveTextContent(copy.loanPeriod.lent);
     expect(
       within(await findRow("Дюна")).getByText(copy.direction.borrowed_from_someone),
@@ -910,7 +952,7 @@ describe("LoanHistoryView row", () => {
     renderHistory();
 
     const period = await findPeriod("Дюна");
-    const [start, returned] = ["12.06.2026", "04.07.2026"].map(
+    const [start, returned] = [formatUkDate("2026-06-12"), formatUkDate("2026-07-04")].map(
       (date) => within(period).getByText(date).className,
     );
     expect(start).toBe(returned);
@@ -936,7 +978,7 @@ describe("LoanHistoryView row", () => {
     for (const { returnedDate, title } of returns) {
       const period = await findPeriod(title);
       expect(period).toHaveTextContent(`${copy.loanPeriod.returned} ${formatUkDate(returnedDate)}`);
-      expect(within(period).getByText(plannedOn("10.07.2026"))).toBeInTheDocument();
+      expect(within(period).getByText(plannedOn(formatUkDate("2026-07-10")))).toBeInTheDocument();
     }
   });
 
@@ -953,8 +995,8 @@ describe("LoanHistoryView row", () => {
     renderHistory();
 
     const period = await findPeriod("Дюна");
-    expect(period).toHaveTextContent(`${copy.loanPeriod.lent} 23.08.2026`);
-    expect(period).toHaveTextContent(`${copy.loanPeriod.returned} 23.08.2026`);
+    expect(period).toHaveTextContent(`${copy.loanPeriod.lent} ${formatUkDate("2026-08-23")}`);
+    expect(period).toHaveTextContent(`${copy.loanPeriod.returned} ${formatUkDate("2026-08-23")}`);
   });
 
   it("drops the arrow and says so when the loan never got a start date", async () => {
@@ -966,7 +1008,7 @@ describe("LoanHistoryView row", () => {
 
     const period = await findPeriod("Дюна");
     expect(period).toHaveTextContent(copy.loanPeriod.startUnknown);
-    expect(period).toHaveTextContent(plannedOn("30.08.2026"));
+    expect(period).toHaveTextContent(plannedOn(formatUkDate("2026-08-30")));
     expect(period).not.toHaveTextContent(copy.loanPeriod.lent);
     expect(period).not.toHaveTextContent("\u2192");
   });
@@ -986,7 +1028,7 @@ describe("LoanHistoryView row", () => {
     const period = await findPeriod("Дюна");
     expect(period).toHaveTextContent(copy.loanPeriod.startUnknown);
     expect(period).toHaveTextContent(copy.loanPeriod.noTerm);
-    expect(period).toHaveTextContent(`${copy.loanPeriod.returned} 04.07.2026`);
+    expect(period).toHaveTextContent(`${copy.loanPeriod.returned} ${formatUkDate("2026-07-04")}`);
     expect(period).not.toHaveTextContent(plannedOn("").trim());
   });
 
@@ -1796,8 +1838,9 @@ function firstListUrl(): string {
 }
 
 function formatUkDate(isoDate: string): string {
-  const [year, month, day] = isoDate.split("-");
-  return `${day}.${month}.${year}`;
+  return new Intl.DateTimeFormat("uk", { day: "numeric", month: "short", year: "numeric" })
+    .format(parseISO(isoDate))
+    .replace(/\s+/g, " ");
 }
 
 function historyItem(overrides: Partial<HistoryFixture> = {}): HistoryFixture {
@@ -1914,6 +1957,7 @@ function mockHistory(items: HistoryFixture[], options: MockOptions = {}) {
       }
 
       if (isListRequest(url)) {
+        if (server.listReply !== null) return server.listReply;
         if (server.listPending) return new Promise<Response>(() => undefined);
         if (server.listStatus !== null) {
           return Promise.resolve(jsonResponse({ message: "boom" }, server.listStatus));

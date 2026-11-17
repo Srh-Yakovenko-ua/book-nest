@@ -5,6 +5,7 @@ import type { FavoriteSeriesContinuationItem, SeriesContinuationRankReason } fro
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useId, useState } from "react";
+import { toast } from "sonner";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,9 @@ import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-pan
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { assertNever } from "@/lib/assert-never";
 import {
+  FALLBACK_READING_STATUS,
   ownershipStatuses,
   readingStatuses,
   type StatusDefinition,
@@ -20,10 +23,7 @@ import {
 } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
 
-import {
-  useFavoriteSeriesContinuations,
-  useInvalidateFavoriteSeriesContinuations,
-} from "../api/use-favorite-series-continuations";
+import { useFavoriteSeriesContinuations } from "../api/use-favorite-series-continuations";
 import { useWantToBuy } from "../api/use-ownership";
 import { useAddToReadingQueue } from "../api/use-reading-queue";
 
@@ -138,10 +138,11 @@ function ContinuationRow({
   const t = useTranslations("favorites.seriesContinuations");
   const tReading = useTranslations("books.readingStatus.options");
   const tOwnership = useTranslations("books.ownershipStatus.options");
+  const tQueueAdd = useTranslations("readingQueue.add");
+  const tLibraryToast = useTranslations("books.library.toast");
 
   const addToQueue = useAddToReadingQueue();
   const wantToBuy = useWantToBuy();
-  const invalidateContinuations = useInvalidateFavoriteSeriesContinuations();
 
   const { nextBook, progress, rankReason, series } = item;
   const bookHref = `/books/${nextBook.id}`;
@@ -166,17 +167,17 @@ function ContinuationRow({
 
   const cta = resolveCta(rankReason, nextBook.queue !== null, bookHref);
 
-  const handleAddToQueue = () =>
-    addToQueue.mutate(
-      { bookId: nextBook.id, placement: "end" },
-      { onSuccess: () => invalidateContinuations() },
-    );
+  const handleAddToQueue = () => {
+    void addToQueue
+      .mutateAsync({ bookId: nextBook.id, placement: "end" })
+      .catch(() => toast.error(tQueueAdd("errorToast")));
+  };
 
-  const handleWantToBuy = () =>
-    wantToBuy.mutate(
-      { id: nextBook.id, payload: {} },
-      { onSuccess: () => invalidateContinuations() },
-    );
+  const handleWantToBuy = () => {
+    void wantToBuy
+      .mutateAsync({ id: nextBook.id, payload: {} })
+      .catch(() => toast.error(tLibraryToast("error")));
+  };
 
   return (
     <li
@@ -348,15 +349,8 @@ function resolveCta(
   }
 }
 
-const FALLBACK_READING_STATUS: StatusDefinition =
-  readingStatuses.find((entry) => entry.value === "not_started") ?? readingStatuses[0];
-
 const FALLBACK_OWNERSHIP_STATUS: StatusDefinition =
   ownershipStatuses.find((entry) => entry.value === "none") ?? ownershipStatuses[0];
-
-function assertNever(value: never): never {
-  throw new Error(`Unhandled continuation rank reason: ${String(value)}`);
-}
 
 function buildStatusEntry({
   entries,

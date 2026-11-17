@@ -5,18 +5,20 @@ import type { ReactNode } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
-import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
+import { SummaryCards } from "@/components/catalog/summary-cards";
+import { SummaryError } from "@/components/summary-error";
 import { formatNumber } from "@/lib/format";
 
 type QuotesSummaryCardKey = "averagePerBook" | "quotedBooks" | "topAuthor" | "topBook";
 
 type QuotesSummaryCardsProps = {
-  cards: LibrarySummaryCard[];
+  cards: SummaryCard[];
   isError: boolean;
   isLoading: boolean;
   mobileAction?: ReactNode;
+  onRetry: () => void;
 };
 
 const AVERAGE = {
@@ -40,23 +42,24 @@ export function QuotesSummaryCards({
   isError,
   isLoading,
   mobileAction,
+  onRetry,
 }: QuotesSummaryCardsProps) {
-  if (isError) {
-    if (mobileAction === undefined) return null;
-    return <div className="sm:hidden">{mobileAction}</div>;
-  }
-
   return (
-    <LibrarySummaryCards
-      cards={cards}
-      isLoading={isLoading}
-      mobileAction={mobileAction}
-      mobileLayout="compact"
-    />
+    <div className="flex flex-col gap-2.5">
+      <SummaryError state={isError ? { onRetry } : null}>
+        <SummaryCards
+          cards={cards}
+          isLoading={isLoading}
+          mobileAction={mobileAction}
+          mobileLayout="compact"
+        />
+      </SummaryError>
+      {isError ? <div className="empty:hidden sm:hidden">{mobileAction}</div> : null}
+    </div>
   );
 }
 
-export function useQuotesSummaryCards(summary?: QuotesSummaryView): LibrarySummaryCard[] {
+export function useQuotesSummaryCards(summary?: QuotesSummaryView): SummaryCard[] {
   const t = useTranslations("quotes.summary");
   const locale = useLocale();
 
@@ -86,7 +89,7 @@ export function useQuotesSummaryCards(summary?: QuotesSummaryView): LibrarySumma
     return t("topAuthorLeaders", { count: topAuthor.leadersCount });
   };
 
-  const quotedBooksCard: LibrarySummaryCard = {
+  const quotedBooksCard: SummaryCard = {
     icon: "library-big",
     iconTone: "primary",
     label: t("quotedBooks"),
@@ -100,7 +103,7 @@ export function useQuotesSummaryCards(summary?: QuotesSummaryView): LibrarySumma
     value: stats.quotedBooksCount,
   };
 
-  const averageCard: LibrarySummaryCard = {
+  const averageCard: SummaryCard = {
     icon: "chart",
     iconTone: "info",
     label: t("averagePerBook"),
@@ -119,7 +122,7 @@ export function useQuotesSummaryCards(summary?: QuotesSummaryView): LibrarySumma
           }),
   };
 
-  const topBookCard: LibrarySummaryCard = {
+  const topBookCard: SummaryCard = {
     icon: "book-open-text",
     iconTone: "ink",
     label: t("topBook"),
@@ -129,7 +132,7 @@ export function useQuotesSummaryCards(summary?: QuotesSummaryView): LibrarySumma
     value: topBook === null ? t("empty") : topBook.quotesCount,
   };
 
-  const topAuthorCard: LibrarySummaryCard = {
+  const topAuthorCard: SummaryCard = {
     icon: "user-round",
     iconTone: "genre",
     label: t("topAuthor"),

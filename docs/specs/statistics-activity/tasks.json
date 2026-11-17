@@ -1,0 +1,575 @@
+{
+  "spec": "docs/specs/statistics-activity/spec.md",
+  "source": "D:\\IT\\book-docs\\new\\10__BOOK_NEST_STATISTICS_ACTIVITY_CLAUDE_CODE_v5_ULTRA_OPTIMIZED",
+  "generatedAt": "2026-10-19T11:20:36Z",
+  "base": "origin/dev 014e254f",
+  "scope": {
+    "included": ["P1 Habits", "P2 Calendar", "P3 Context-only insights (comparison insight only)"],
+    "excluded": [
+      {
+        "item": "apps/api/** (backend)",
+        "reason": "spec L18, L31: no new DTO, endpoint, SQL. GET /api/statistics/reading-activity already returns booksCount + historyQuality for the whole [from,to] (reading-interval-details.service.ts:78-90)"
+      },
+      {
+        "item": "packages/shared/**",
+        "reason": "spec L31; ReadingStatisticsActivityPageSchema already has every field needed (reading-statistics-intervals.ts:77-87)"
+      },
+      {
+        "item": "apps/web/src/shared/api/generated/**",
+        "reason": "spec L18, L31; statisticsControllerGetReadingActivity already generated (statistics.ts:486-497)"
+      },
+      {
+        "item": "apps/api/prisma/** (DB, migrations)",
+        "reason": "spec L18, L31"
+      },
+      {
+        "item": ".claude/**, CLAUDE.md, hooks",
+        "reason": "spec L31"
+      },
+      {
+        "item": "chart/heatmap/grid internals: reading-dynamics-chart.tsx, reading-heatmap.tsx, reading-books-month-grid.tsx, reading-books-diary.tsx, reading-day-preview.tsx, details/**",
+        "reason": "spec L11, L22, L28: preserve, no redesign; month grid/diary/day popover already done"
+      },
+      {
+        "item": "Overview/Tastes/Progress refactor",
+        "reason": "spec L31; only STATISTICS_KPI_DESTINATIONS.activeDays changes"
+      },
+      {
+        "item": "P3 second activity-specific insight",
+        "reason": "not applicable: the only activity codes in the server pools are longest_streak_in_period and most_active_weekday (insight-engine.ts:43), both built from calendar.section.longestStreak / mostActiveWeekday (statistics-overview.service.ts:163,165), i.e. the same values Habits shows (reading-calendar-summary.tsx:51-75). Reads pool non-comparison codes are taste/series/discovery (insight-engine.ts:44-52), not activity"
+      },
+      {
+        "item": "monthBooks label rename",
+        "reason": "spec only names the mode label (L11); monthBooks 'Книги'/'Books' (uk.json:9414, en.json:9414) stays"
+      }
+    ]
+  },
+  "assumptions": [
+    {
+      "id": "AS1",
+      "text": "Canonical URL for 'latest visible month' is calendarMonth absent. A stale/invalid/out-of-range calendarMonth is canonicalized by exactly one setCalendarMonth(null) with history replace; the effect depends on the stale value only, so after the write the month is null and the effect cannot refire."
+    },
+    {
+      "id": "AS2",
+      "text": "calendarMonth parser is a plain nullable string parser (no default). Shape and range are validated together by membership in listCalendarMonths(calendar.displayRange), which only yields yyyy-MM (statistics-calendar.ts:102-113); malformed values ('2026-13', '2026-3', 'abc') fail membership."
+    },
+    {
+      "id": "AS3",
+      "text": "Canonicalization lives in ReadingCalendarCard (mounted in both modes), not in ReadingBooksCalendar, so a stale month is cleaned in activity mode too. Radix Tabs.Content unmounts inactive panels (page-tabs.tsx:86), so nothing runs off the activity tab."
+    },
+    {
+      "id": "AS4",
+      "text": "Server range historyQuality is legacy iff from < reliableFrom (activity-history-quality.ts:9-17); a calendar day is legacy iff date < reliableFrom (activity-history-quality.ts:37-45); days[] is dense over displayRange (reading-calendar.ts:45). So 'any day in the clipped month has historyQuality legacy_observed_only' is the client-side equivalent of the server historyQuality for that month. It drives the books lower-bound marker on the no-fetch path ('complete previews and legacy days coexist', spec L17). Active days / pages markers keep the shipped hasUnknownDays rule."
+    },
+    {
+      "id": "AS5",
+      "text": "New hook file apps/web/src/features/statistics/api/use-reading-month-books.ts; query key literally ['/api/statistics/reading-month-summary', from, to] (spec L16)."
+    },
+    {
+      "id": "AS6",
+      "text": "Habits description shows the metricRange label (schema: 'metricRange is what the summary numbers describe', reading-statistics-calendar.ts:110). The calendar card keeps its current description and displayRange/legacy notes unchanged."
+    },
+    {
+      "id": "AS7",
+      "text": "P3 slot is an optional ReactNode prop on ReadingDynamicsCard rendered only for variant 'full'. Selection is an inline filter of overview.overviewInsights[view.metric] to the two *_vs_comparison codes; no new model helper."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "phase": "P1",
+      "layer": "model",
+      "title": "Add habits section and retarget activeDays KPI",
+      "specRef": "L8",
+      "files": ["apps/web/src/features/statistics/model/statistics-view.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "STATISTICS_VIEW.sections contains 'habits' and still contains 'dynamics', 'calendar', 'ratings'",
+        "StatisticsDestination union has a { section: 'habits'; tab: 'activity' } member; the calendar member stays",
+        "STATISTICS_KPI_DESTINATIONS.activeDays === { section: 'habits', tab: 'activity' }; completedReads, pagesRead, averageRating unchanged"
+      ],
+      "status": "done",
+      "proof": "statistics-view.ts:14 sections incl. habits; :30 habits destination, :29 calendar kept; :40 activeDays -> habits, :41-43 unchanged",
+      "runVerified": false
+    },
+    {
+      "id": "T2",
+      "phase": "P1",
+      "layer": "component",
+      "title": "ReadingHabitsSection wrapping ReadingCalendarSummary",
+      "specRef": "L6, L8",
+      "files": ["apps/web/src/features/statistics/components/reading/reading-habits-section.tsx"],
+      "dependsOn": ["T5"],
+      "mandatory": true,
+      "doneWhen": [
+        "new component renders StatisticsSection titled t('statistics.habits.title')",
+        "calendar.availability === 'available' renders <ReadingCalendarSummary calendar isLowerBound /> unchanged (4 stats, 2-col / sm 4-col, current streak only when available)",
+        "calendar.availability === 'unavailable' renders StatisticsSectionState kind='unavailable' with the calendar reason and does NOT render ReadingCalendarSummary (no zero-filled stats)",
+        "no new calculation: every value comes from calendar.* fields; no new hook, no fetch"
+      ],
+      "status": "done",
+      "proof": "reading-habits-section.tsx:48 habits.title; :50 ReadingCalendarSummary calendar isLowerBound; :29-38 unavailable state with calendar.reason, no summary; no hook/fetch in file",
+      "runVerified": false
+    },
+    {
+      "id": "T3",
+      "phase": "P1",
+      "layer": "component",
+      "title": "Remove inline summary from ReadingCalendarCard",
+      "specRef": "L7",
+      "files": ["apps/web/src/features/statistics/components/reading/reading-calendar-card.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "ReadingCalendarSummary import (L12) and render (L81) are gone from reading-calendar-card.tsx",
+        "unavailable branch (L45-55), displayRange note (L73-75), legacyNote (L76), metricRange description (L68-70) still present"
+      ],
+      "status": "done",
+      "proof": "reading-calendar-card.tsx: no ReadingCalendarSummary import/render; unavailable :65-75, metricRange :88-90, displayRange note :93-95, legacyNote :96",
+      "runVerified": false
+    },
+    {
+      "id": "T4",
+      "phase": "P1",
+      "layer": "wiring",
+      "title": "Insert Habits between dynamics and calendar on the Activity tab",
+      "specRef": "L6, L8",
+      "files": ["apps/web/src/features/statistics/components/overview/statistics-overview.tsx"],
+      "dependsOn": ["T1", "T2", "T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "activity panel order is: dynamics FocusTarget, then <StatisticsFocusTarget isTarget={view.section === 'habits'}><ReadingHabitsSection .../></StatisticsFocusTarget>, then calendar FocusTarget",
+        "ReadingDynamicsCard props in the activity panel unchanged except the P3 slot (T22)",
+        "no fourth primary card added to the activity panel besides dynamics, habits, calendar"
+      ],
+      "status": "done",
+      "proof": "statistics-overview.tsx:163-193 activity panel: dynamics :164 -> habits :180-182 -> calendar :183-192; dynamics props unchanged except insight :168-172",
+      "runVerified": false
+    },
+    {
+      "id": "T5",
+      "phase": "P1",
+      "layer": "i18n",
+      "title": "Habits strings uk/en",
+      "specRef": "L5, L18, L28",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "statistics.habits.title = 'Читацькі звички' (uk) / 'Reading habits' (en)",
+        "every statistics.habits.* key used by T2 (title, description/metricRange, unavailable) exists in both files with identical key sets",
+        "statistics.calendar.summary.* keys untouched (ReadingCalendarSummary still reads them)"
+      ],
+      "status": "done",
+      "proof": "uk/en statistics.habits {title, description, metricRange, unavailable} identical key sets; uk title 'Читацькі звички', en 'Reading habits'; calendar.summary untouched",
+      "runVerified": false
+    },
+    {
+      "id": "T6",
+      "phase": "P1",
+      "layer": "test",
+      "title": "Habits section tests; move summary cases out of calendar card test",
+      "specRef": "L6-L8, L27",
+      "files": [
+        "apps/web/src/features/statistics/components/reading/reading-habits-section.test.tsx",
+        "apps/web/src/features/statistics/components/reading/reading-calendar-card.test.tsx"
+      ],
+      "dependsOn": ["T2", "T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "cases now at reading-calendar-card.test.tsx:66-123 (hidden current streak for closed period, clipped '7+ днів' streak, unavailable weekday hint) live in reading-habits-section.test.tsx and are removed from the calendar card test",
+        "new case: unavailable calendar renders the unavailable state and no 'Активні дні' stat / no '0 днів'",
+        "calendar card test asserts the summary stats ('Найдовша серія') are no longer rendered by ReadingCalendarCard"
+      ],
+      "status": "done",
+      "proof": "reading-habits-section.test.tsx:45,59,82 moved cases; :100 unavailable no 'Активні дні' / '0 днів'; reading-calendar-card.test.tsx:152 no 'Найдовша серія'",
+      "runVerified": false
+    },
+    {
+      "id": "T7",
+      "phase": "P1",
+      "layer": "test",
+      "title": "KPI and deep-link tests for habits",
+      "specRef": "L8",
+      "files": [
+        "apps/web/src/features/statistics/components/overview/statistics-kpi-grid.test.tsx",
+        "apps/web/src/features/statistics/components/overview/statistics-overview.test.tsx"
+      ],
+      "dependsOn": ["T1", "T4"],
+      "mandatory": true,
+      "doneWhen": [
+        "statistics-kpi-grid.test.tsx:219 expects '/statistics?section=habits&tab=activity'",
+        "statistics-overview.test.tsx it.each at L295-302 gains ['?tab=activity&section=habits', habits title] and keeps the calendar and ratings rows",
+        "a case clicks the active-days KPI and asserts URL section=habits&tab=activity with history 'push' and focus on the Habits section"
+      ],
+      "status": "done",
+      "proof": "statistics-kpi-grid.test.tsx:219 section=habits; statistics-overview.test.tsx:355-358 it.each habits/calendar/ratings; :332 KPI click push + focus on habits",
+      "runVerified": false
+    },
+    {
+      "id": "T8",
+      "phase": "P2",
+      "layer": "model",
+      "title": "calendarMode / calendarMonth in statisticsViewParsers",
+      "specRef": "L12",
+      "files": ["apps/web/src/features/statistics/model/statistics-view.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "calendar modes ['activity','books'] are defined once in the model (grouped into STATISTICS_VIEW, e.g. calendarModes + defaultCalendarMode) with an exported CalendarMode type; the local CALENDAR_MODES/CalendarMode in reading-calendar-card.tsx:15-17 are deleted",
+        "statisticsViewParsers.calendarMode = parseAsStringLiteral(modes).withDefault('activity')",
+        "statisticsViewParsers.calendarMonth is a nullable string parser with no default (AS2)",
+        "statisticsParsers (period/compare/from/to/year) untouched"
+      ],
+      "status": "done",
+      "proof": "statistics-view.ts:10-11 calendarModes/defaultCalendarMode, :25 CalendarMode; :47-50 parsers; local CALENDAR_MODES gone from reading-calendar-card.tsx; statistics-period.ts not in diff",
+      "runVerified": false
+    },
+    {
+      "id": "T9",
+      "phase": "P2",
+      "layer": "model",
+      "title": "useStatisticsView exposes calendar state with replace history",
+      "specRef": "L12",
+      "files": ["apps/web/src/features/statistics/model/use-statistics-view.ts"],
+      "dependsOn": ["T8"],
+      "mandatory": true,
+      "doneWhen": [
+        "UseStatisticsViewResult adds calendarMode: CalendarMode, calendarMonth: Nullable<string>, setCalendarMode, setCalendarMonth(month: Nullable<string>)",
+        "setCalendarMode and setCalendarMonth call setView with { history: 'replace' }",
+        "setTab and open keep the hook default history 'push' (use-statistics-view.ts:36,46,49); setMetric keeps replace",
+        "setTab still writes only { section: null, tab } so calendarMode/calendarMonth survive tab changes"
+      ],
+      "status": "done",
+      "proof": "use-statistics-view.ts:20-27 result fields; :55-56 replace; :41 default push, :57 setMetric replace; :58 setTab { section: null, tab }",
+      "runVerified": false
+    },
+    {
+      "id": "T10",
+      "phase": "P2",
+      "layer": "model",
+      "title": "Month helpers: resolve, clip, legacy flag",
+      "specRef": "L13, L14, L17, L26",
+      "files": ["apps/web/src/features/statistics/model/statistics-calendar.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "resolveMonth (reading-books-calendar.tsx:121-130) moves to the model as an exported pure function: requested in months -> requested, else months.at(-1) ?? null",
+        "new exported pure clip function returns { from, to } = [startOfMonth, endOfMonth] of monthKey intersected with displayRange, built with date-fns + parseIsoDay/format (no getTime, no ms literals, no mutators)",
+        "CalendarMonthSummary gains hasLegacyHistory: days.some(day => day.historyQuality === 'legacy_observed_only') (AS4); existing activeDays/books/hasUnknownDays/pagesRead semantics unchanged",
+        "summarizeCalendarMonth still never sums daily booksCount for the month books figure"
+      ],
+      "status": "done",
+      "proof": "statistics-calendar.ts:136-145 resolveCalendarMonth; :100-113 clipCalendarMonth (date-fns max/min/startOfMonth/endOfMonth, format); :159 hasLegacyHistory; :147-163 summarize, books count = Set of preview bookIds (:151), no booksCount sum",
+      "runVerified": false
+    },
+    {
+      "id": "T11",
+      "phase": "P2",
+      "layer": "api",
+      "title": "Exact month books query hook",
+      "specRef": "L15, L16",
+      "files": ["apps/web/src/features/statistics/api/use-reading-month-books.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "useQuery (not useInfiniteQuery) with queryKey ['/api/statistics/reading-month-summary', from, to]",
+        "queryFn = ReadingStatisticsActivityPageSchema.parse(await statisticsControllerGetReadingActivity({ from, to, limit: 1 }, { signal })) using the generated client, no fetch",
+        "accepts an enabled flag passed straight to useQuery; no refetchInterval, no prefetchQuery, no cursor/next page",
+        "key root starts with '/api/statistics/' so matchesStatisticsKey (statistics-keys.ts:9-13) invalidates it; never equals '/api/statistics/reading-activity'"
+      ],
+      "status": "done",
+      "proof": "use-reading-month-books.ts:23 useQuery; :29 key [`/api/statistics/reading-month-summary`, from, to]; :25-28 schema parse of generated client with limit 1 + signal; :24 enabled; statistics-keys.ts:12 prefix match",
+      "runVerified": false
+    },
+    {
+      "id": "T12",
+      "phase": "P2",
+      "layer": "component",
+      "title": "ReadingCalendarCard: controlled mode/month + URL canonicalization",
+      "specRef": "L12, L13",
+      "files": ["apps/web/src/features/statistics/components/reading/reading-calendar-card.tsx"],
+      "dependsOn": ["T3", "T8", "T10"],
+      "mandatory": true,
+      "doneWhen": [
+        "useState import (L6) and const [mode, setMode] (L28) removed; props add mode: CalendarMode, onModeChange, month: Nullable<string>, onMonthChange",
+        "StatisticsMetricTabs value={mode} onChange={onModeChange}; month/onMonthChange passed to ReadingBooksCalendar",
+        "when calendar is available and month !== null and month is not in listCalendarMonths(calendar.displayRange), onMonthChange(null) is called exactly once (AS1, AS3); valid or null month triggers no call"
+      ],
+      "status": "done",
+      "proof": "reading-calendar-card.tsx:10 no useState; :32-35 props; :80-86 tabs controlled; :108 month passed; :41-48 stale effect; test reading-calendar-card.test.tsx:365,379",
+      "runVerified": false
+    },
+    {
+      "id": "T13",
+      "phase": "P2",
+      "layer": "component",
+      "title": "ReadingBooksCalendar: controlled month",
+      "specRef": "L12, L13",
+      "files": ["apps/web/src/features/statistics/components/reading/reading-books-calendar.tsx"],
+      "dependsOn": ["T10"],
+      "mandatory": true,
+      "doneWhen": [
+        "useState import (L6) and requestedMonth state (L35) removed; props add month: Nullable<string>, onMonthChange",
+        "monthKey resolved by the model resolver from T10 against listCalendarMonths(calendar.displayRange)",
+        "previous/next buttons call onMonthChange(months[index -/+ 1]); aria-disabled bounds unchanged",
+        "month grid on desktop / diary on mobile (L100-104) unchanged"
+      ],
+      "status": "done",
+      "proof": "reading-books-calendar.tsx:11 no useState; :42-43 props; :51 resolveCalendarMonth; :94,:114 onMonthChange; :90,:110 aria-disabled; :163-167 grid/diary",
+      "runVerified": false
+    },
+    {
+      "id": "T14",
+      "phase": "P2",
+      "layer": "component",
+      "title": "Month books stat: observed vs exact with honest states",
+      "specRef": "L14, L15, L17",
+      "files": ["apps/web/src/features/statistics/components/reading/reading-books-calendar.tsx"],
+      "dependsOn": ["T10", "T11", "T13", "T16"],
+      "mandatory": true,
+      "doneWhen": [
+        "the T11 hook is called unconditionally before the monthKey === null early return (L38-40), with from/to from the T10 clip function and enabled = monthKey !== null && summary.books.isLowerBound",
+        "no day has remainingBooksCount > 0: no request is issued; value = observed distinct count, prefixed '≥' when summary.hasLegacyHistory",
+        "some day has remainingBooksCount > 0 and the query is pending: '≥ observed' plus a localized loading text",
+        "query errored: '≥ observed' plus a localized error text and a retry Button calling refetch",
+        "query succeeded: value = data.booksCount, prefixed '≥' when data.historyQuality === 'legacy_observed_only' or summary.hasLegacyHistory",
+        "active days and pages stats and the grid/diary render in every query state, including error",
+        "a month with zero activity shows '0', distinguishable from the calendar unavailable state"
+      ],
+      "status": "done",
+      "proof": "reading-books-calendar.tsx:59-63 hook before :65 early return, clip :55-58; :184-201 monthBooksCount; :138-160 status + retry; :124-137,:163-167 unconditional",
+      "runVerified": false,
+      "resolvedGap": "G1 closed: reading-books-calendar.tsx:74-76 derives exactMonthBooks = isError ? undefined : data, so a refetch error after a success falls back to the observed lower bound with error text and retry; regression test reading-calendar-card.test.tsx:324 (falls back to the observed lower bound with a retry when a refetch of a loaded count fails)."
+    },
+    {
+      "id": "T15",
+      "phase": "P2",
+      "layer": "wiring",
+      "title": "Wire calendar state from useStatisticsView into ReadingCalendarCard",
+      "specRef": "L12",
+      "files": ["apps/web/src/features/statistics/components/overview/statistics-overview.tsx"],
+      "dependsOn": ["T9", "T12"],
+      "mandatory": true,
+      "doneWhen": [
+        "ReadingCalendarCard at statistics-overview.tsx:165 receives mode={view.calendarMode} onModeChange={view.setCalendarMode} month={view.calendarMonth} onMonthChange={view.setCalendarMonth}",
+        "useReadingStatisticsOverview still receives only params.queryParams (L48-50); calendar state never reaches the overview query"
+      ],
+      "status": "done",
+      "proof": "statistics-overview.tsx:184-191 four props; :55-57 overview query takes params.queryParams only",
+      "runVerified": false
+    },
+    {
+      "id": "T16",
+      "phase": "P2",
+      "layer": "i18n",
+      "title": "Calendar mode label and month-books states uk/en",
+      "specRef": "L11, L17, L18",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "statistics.calendar.modes.books = 'Книги за днями' (uk.json:9366) / 'Books by day' (en.json:9366); modes.activity unchanged",
+        "new statistics.calendar.books.* keys for the month-books loading text, error text and retry label exist in both files",
+        "any new legacy-quality note key used by T14 exists in both files"
+      ],
+      "status": "done",
+      "proof": "uk/en modes.books 'Книги за днями' / 'Books by day'; books.monthBooksLoading/Error/Retry in both; no new legacy key used (atLeast reused)",
+      "runVerified": false
+    },
+    {
+      "id": "T17",
+      "phase": "P2",
+      "layer": "test",
+      "title": "Model tests for month helpers",
+      "specRef": "L13, L14, L26",
+      "files": ["apps/web/src/features/statistics/model/statistics-calendar.test.ts"],
+      "dependsOn": ["T10"],
+      "mandatory": true,
+      "doneWhen": [
+        "resolver: valid month kept; '2026-13', '2026-3', 'abc', out-of-range month and null resolve to the last listed month; empty months -> null",
+        "clip: full month inside range; displayRange starting mid-month (from clipped); displayRange ending mid-month / today (to clipped)",
+        "hasLegacyHistory true when any day is legacy_observed_only, including a legacy day with pagesRead > 0; false for all-exact days"
+      ],
+      "status": "done",
+      "proof": "statistics-calendar.test.ts describe resolveCalendarMonth (valid, 2026-13, 2026-3, abc, 1999-01, null, empty), clipCalendarMonth (3 cases), hasLegacyHistory (3 cases incl. pagesRead 20 legacy)",
+      "runVerified": false
+    },
+    {
+      "id": "T18",
+      "phase": "P2",
+      "layer": "test",
+      "title": "Calendar card tests for controlled state and month books",
+      "specRef": "L12-L17",
+      "files": [
+        "apps/web/src/features/statistics/components/reading/reading-calendar-card.test.tsx"
+      ],
+      "dependsOn": ["T12", "T13", "T14", "T16"],
+      "mandatory": true,
+      "doneWhen": [
+        "renders pass mode/month/handlers as props; the 'Книги' radio lookup (L49) uses 'Книги за днями'; the click asserts onModeChange('books')",
+        "fetch mock answers /api/statistics/reading-activity with a ReadingStatisticsActivityPage body",
+        "books mode on a month whose days all have remainingBooksCount 0: zero reading-activity requests",
+        "books mode on the default fixture (a day with remainingBooksCount 3, statistics.fixtures.ts:91): exactly one request containing from=2026-03-01, to=2026-03-31, limit=1 and the server booksCount is shown",
+        "request fails: '≥' observed value, error text and a retry that issues a second request; active days and pages still shown",
+        "server historyQuality legacy_observed_only: books value carries '≥'",
+        "activity mode: zero reading-activity requests",
+        "out-of-range month prop: onMonthChange(null) called exactly once; valid month: not called"
+      ],
+      "status": "done",
+      "proof": "reading-calendar-card.test.tsx:133,:113-115,:229,:249,:283+:297,:324,:332,:365/:379",
+      "runVerified": false
+    },
+    {
+      "id": "T19",
+      "phase": "P2",
+      "layer": "test",
+      "title": "URL integration tests for calendar state",
+      "specRef": "L12, L13",
+      "files": [
+        "apps/web/src/features/statistics/components/overview/statistics-overview.test.tsx"
+      ],
+      "dependsOn": ["T15"],
+      "mandatory": true,
+      "doneWhen": [
+        "switching calendar mode emits calendarMode=books with options.history 'replace'; period, year, compare, metric, section unchanged; overviewRequests() stays 1",
+        "month navigation emits calendarMonth=<yyyy-MM> with history 'replace'",
+        "deep link with an invalid calendarMonth produces exactly one URL update, with replace, that removes calendarMonth",
+        "switching tab away and back keeps calendarMode and calendarMonth; the tab switch itself is 'push'"
+      ],
+      "status": "done",
+      "proof": "statistics-overview.test.tsx:496 mode replace + overviewRequests 1; :518 month replace; :533 single replace dropping calendarMonth; :543 tab round trip push",
+      "runVerified": false
+    },
+    {
+      "id": "T20",
+      "phase": "P3",
+      "layer": "component",
+      "title": "Export StatisticsInsightBody",
+      "specRef": "L22",
+      "files": ["apps/web/src/features/statistics/components/overview/statistics-insights.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "StatisticsInsightBody (statistics-insights.tsx:52) is exported with an unchanged signature and markup; StatisticsInsights unchanged"
+      ],
+      "status": "done",
+      "proof": "statistics-insights.tsx:52 export added, signature and body unchanged",
+      "runVerified": false
+    },
+    {
+      "id": "T21",
+      "phase": "P3",
+      "layer": "component",
+      "title": "Optional full-only insight slot in ReadingDynamicsCard",
+      "specRef": "L22",
+      "files": ["apps/web/src/features/statistics/components/reading/reading-dynamics-card.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "one optional ReactNode prop added (AS7); rendered only when variant === 'full' and the prop is provided",
+        "no new StatisticsSection/Card; chart, ReadingBucketDetails, peak note (L83-89), comparisonLowerBound note (L90-92), metric tabs unchanged",
+        "compact variant output identical to before"
+      ],
+      "status": "done",
+      "proof": "reading-dynamics-card.tsx:44 insight?: ReactNode; :96 rendered only when variant full; no other change",
+      "runVerified": false
+    },
+    {
+      "id": "T22",
+      "phase": "P3",
+      "layer": "wiring",
+      "title": "Render the metric's comparison insight on the Activity tab",
+      "specRef": "L21, L22",
+      "files": ["apps/web/src/features/statistics/components/overview/statistics-overview.tsx"],
+      "dependsOn": ["T20", "T21", "T4"],
+      "mandatory": true,
+      "doneWhen": [
+        "activity-panel ReadingDynamicsCard receives the slot only when overview.overviewInsights[view.metric] contains code 'completed_reads_vs_comparison' (reads) or 'pages_read_vs_comparison' (pages); at most one rendered via StatisticsInsightBody",
+        "longest_streak_in_period, most_active_weekday and taste codes are never rendered on the Activity tab",
+        "no client recomputation of deltas; values come from insight.params only",
+        "StatisticsOverviewTab (compact) untouched"
+      ],
+      "status": "done",
+      "proof": "statistics-overview.tsx:48-51 code map; :139-141 find (max one); :168-172 StatisticsInsightBody slot; statistics-overview-tab.tsx not in diff",
+      "runVerified": false
+    },
+    {
+      "id": "T23",
+      "phase": "P3",
+      "layer": "test",
+      "title": "Activity insight tests",
+      "specRef": "L21, L22",
+      "files": [
+        "apps/web/src/features/statistics/components/overview/statistics-overview.test.tsx"
+      ],
+      "dependsOn": ["T22"],
+      "mandatory": true,
+      "doneWhen": [
+        "fixture with pages_read_vs_comparison in overviewInsights.pages: activity tab on metric pages shows its text",
+        "default fixture (pages pool = only most_active_weekday, statistics.fixtures.ts:317-326): activity tab shows no insight",
+        "existing compact case at statistics-overview.test.tsx:304-315 still passes unchanged"
+      ],
+      "status": "done",
+      "proof": "statistics-overview.test.tsx:602 pages comparison; :614 reads; :623 default fixture no insight; :368 compact case unchanged (no hunk)",
+      "runVerified": false
+    }
+  ],
+  "alreadyDone": [
+    {
+      "req": "Full ReadingDynamicsCard at top of Activity",
+      "evidence": "statistics-overview.tsx:152-163"
+    },
+    {
+      "req": "4 metrics + optional current streak + 2/4-col layout",
+      "evidence": "reading-calendar-summary.tsx:25-26,30,78"
+    },
+    {
+      "req": "section=calendar|dynamics|ratings deep links with focus/scroll",
+      "evidence": "statistics-view.ts:12; statistics-overview.tsx:153,164,170; statistics-focus-target.tsx:15-20"
+    },
+    {
+      "req": "Segmented activity/books calendar in one card",
+      "evidence": "reading-calendar-card.tsx:60-66,85-89"
+    },
+    {
+      "req": "Month grid desktop / diary mobile",
+      "evidence": "reading-books-calendar.tsx:100-104"
+    },
+    {
+      "req": "Per-day lazy detail via StatisticsDetailSurface",
+      "evidence": "reading-books-month-grid.tsx:116-117; reading-books-diary.tsx:69-70; use-reading-day-details.ts:13-18"
+    },
+    {
+      "req": "Week start / heatmap",
+      "evidence": "statistics-calendar.ts:132-135,163-171; reading-calendar-card.tsx:86"
+    },
+    {
+      "req": "Invalid month resolves to latest (in memory)",
+      "evidence": "reading-books-calendar.tsx:121-130"
+    },
+    {
+      "req": "Month active days/pages from calendar.days in clipped month",
+      "evidence": "reading-books-calendar.tsx:43-44 over dense days (api reading-calendar.ts:45); statistics-calendar.ts:118,122,128"
+    },
+    {
+      "req": "Observed distinct books from booksPreview + lower-bound flag",
+      "evidence": "statistics-calendar.ts:119,125; reading-books-calendar.tsx:87-93"
+    },
+    {
+      "req": "Unknown legacy day markers",
+      "evidence": "statistics-calendar.ts:98-100,127; reading-books-calendar.tsx:106-116"
+    },
+    {
+      "req": "Prefix invalidation covers new key",
+      "evidence": "statistics-keys.ts:9-13"
+    }
+  ],
+  "openDecisions": [],
+  "verifiedAt": "2026-10-19T11:48:27Z",
+  "verifyNotes": [
+    "Statuses reflect static diff review only; no test, typecheck, lint or format run was observed for this diff (runVerified false).",
+    "Accepted drift in reading-books-calendar.tsx (T14 file): persistent aria-live status wrapper, retry Button kept mounted with aria-disabled during refetch once errorUpdateCount > 0, focus moves to month label (tabIndex -1) after successful retry, underlined retry; books lower bound on success/no-fetch uses summary.hasLegacyHistory (superset of hasUnknownDays per statistics-calendar.ts:119-121)."
+  ]
+}

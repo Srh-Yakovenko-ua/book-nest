@@ -72,7 +72,7 @@ export function ListBookCard({
       <BookCard
         authors={authors}
         className={cn(
-          drag?.isDropTarget === true && "border-primary ring-3 ring-ring/50",
+          drag?.isDropTarget === true && "border-primary ring-3 ring-primary/50",
           drag?.isDragged === true && "opacity-50",
           isPending && "opacity-60",
         )}

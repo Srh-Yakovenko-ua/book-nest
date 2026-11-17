@@ -2,6 +2,7 @@
 set -u
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+WIN_ROOT="$(cygpath -m "$ROOT" 2>/dev/null || printf '%s' "$ROOT")"
 HOOKS="$ROOT/.claude/hooks"
 SID="hooktest-$$"
 STATE="$ROOT/.claude/state/$SID"
@@ -62,9 +63,9 @@ grep_case() {
   check "$want" "$(decision_of "$out" 0)" "Grep: $path"
 }
 
-edit_case() {
+edit_path_case() {
   local want="$1" path="$2" old="$3" new="$4"
-  jq -n --arg p "$ROOT/$path" --arg o "$old" --arg n "$new" --arg s "$SID" \
+  MSYS_NO_PATHCONV=1 jq -n --arg p "$path" --arg o "$old" --arg n "$new" --arg s "$SID" \
     '{tool_name:"Edit",tool_input:{file_path:$p,old_string:$o,new_string:$n},session_id:$s}' \
     | node "$HOOKS/post-edit-check.mjs" 2>/dev/null
   local code=$?
@@ -72,6 +73,10 @@ edit_case() {
   [ "$code" = 2 ] && got=flag
   check "$want" "$got" "post-edit: $path :: $new"
 }
+
+edit_case() { edit_path_case "$1" "$WIN_ROOT/$2" "$3" "$4"; }
+
+backslashed() { printf '%s' "$1" | tr '/' '\\'; }
 
 AGENT='{"agent_id":"a1","agent_type":"frontend-engineer"}'
 RELEASE='{"agent_id":"a2","agent_type":"release-manager"}'
@@ -119,9 +124,9 @@ bash_case ask   "redis-cli FLUSHALL"
 bash_case ask   'docker exec booknest-local-db psql -U booknest -c "TRUNCATE users"'
 bash_case ask   "gh pr merge 12 --squash"
 bash_case ask   "git stash drop"
-bash_case ask   "pnpm typecheck"
+bash_case deny  "pnpm typecheck"
 bash_case allow "cd apps/api && pnpm exec vitest run src/modules/books/books.service.test.ts"
-bash_case ask   "pnpm --filter @app/api exec vitest run"
+bash_case deny  "pnpm --filter @app/api exec vitest run"
 
 bash_case allow "APP_ENV=prodcopy pnpm --filter @app/api db:migrate:deploy"
 bash_case allow "pnpm db:copy:prod"
@@ -134,6 +139,40 @@ bash_case allow 'git commit -m "feat(api): add thing"'
 bash_case allow "git commit -m \"\$(cat <<'EOF'${NL}fix(web): handle an empty list${NL}${NL}The list rendered a stray divider.${NL}EOF${NL})\""
 bash_case allow 'git commit -m "docs: explain why reset --hard is denied"'
 bash_case allow 'git commit-tree "origin/dev^{tree}" -p origin/prod -m "Release to prod: lists"'
+
+printf 'chore(agents): tighten the hooks\n\nThe file guard now reads Windows paths.\n' > "$STATE/msg-ok.txt"
+printf 'chore(agents): tighten the hooks\n\nEdits .claude/hooks/guard-files.sh.\n' > "$STATE/msg-named.txt"
+printf 'update\n' > "$STATE/msg-bad.txt"
+bash_case deny  'git commit -m "chore(claude): tighten the hooks"'
+bash_case deny  'git commit -m "chore(agents): tighten the hooks" -m "See CLAUDE.md"'
+bash_case allow "git commit -F \"$STATE/msg-ok.txt\""
+bash_case deny  "git commit -F \"$STATE/msg-named.txt\""
+bash_case deny  "git commit -F \"$STATE/msg-bad.txt\""
+bash_case allow "gh pr create --title \"chore(agents): tighten the hooks\" --body-file \"$STATE/msg-ok.txt\""
+bash_case deny  "gh pr create --title \"chore(claude): tighten the hooks\" --body-file \"$STATE/msg-ok.txt\""
+bash_case deny  "gh pr create --title \"chore(agents): tighten the hooks\" --body-file \"$STATE/msg-named.txt\""
+bash_case deny  "gh pr edit 12 --title \"Anthropic tooling\""
+bash_case deny  'git commit --author="Claude <noreply@example.com>" -m "feat(web): x"'
+bash_case deny  'git -c user.name=Claude commit -m "feat(web): x"'
+bash_case deny  "git switch -c chore/claude-notes"
+bash_case deny  "git checkout -b claude/notes"
+bash_case deny  "git push -u origin claude/notes"
+bash_case deny  "git tag claude-v1"
+bash_case allow "git -C $ROOT/.claude/worktrees/notes push -u origin chore/agents-notes"
+bash_case allow "git worktree add .claude/worktrees/notes -b chore/agents-notes origin/dev"
+bash_case allow "git branch -m claude/old chore/agents-old"
+bash_case deny  "git commit -m \"\$(cat <<'EOF'${NL}chore(claude): tighten the hooks${NL}EOF${NL})\""
+bash_case deny  'gh pr create -t "chore(claude): tighten the hooks" -b "y"'
+bash_case deny  'git commit -m "feat(web): x" --trailer "Assisted-by: Claude"'
+bash_case deny  'git commit-tree "origin/dev^{tree}" -p origin/prod -m "Release to prod: claude notes"'
+bash_case deny  'git switch -c "claude/notes"'
+bash_case deny  "git branch -m old claude/new 2>&1"
+bash_case deny  "git switch -c claude/notes && git branch -m a b"
+bash_case deny  "git push origin a:claude/notes"
+bash_case allow "git checkout -- CLAUDE.md"
+bash_case allow "git branch -d claude/old"
+bash_case allow "git push origin --delete claude/old"
+bash_case allow 'git commit -m "feat(books): track philanthropic donations"'
 bash_case allow "git log --oneline -5"
 bash_case allow "git restore --staged ."
 bash_case allow 'echo "git reset --hard"'
@@ -143,47 +182,70 @@ bash_case allow "docker compose down"
 
 user_said "прогони гейты и закоммить"
 bash_case allow "pnpm typecheck"
-bash_case ask   "pnpm --filter @app/api exec vitest run src/x.test.ts"
-bash_case ask   "bash .claude/scripts/gates.sh --with-tests"
-bash_case ask   "pnpm --filter @app/web test:storybook"
+bash_case deny  "pnpm --filter @app/api exec vitest run src/x.test.ts"
+bash_case deny  "bash .claude/scripts/gates.sh --with-tests"
+bash_case deny  "pnpm --filter @app/web test:storybook"
 user_said "прогони тест books.service"
 bash_case allow "pnpm --filter @app/api exec vitest run src/x.test.ts"
 bash_case allow "bash .claude/scripts/gates.sh --with-tests"
-bash_case ask   "pnpm test"
+bash_case deny  "pnpm test"
 user_said "CI красный, воспроизведи"
 bash_case allow "VITEST_MAX_WORKERS=1 pnpm exec vitest run src/a.test.ts"
 user_said "прогони гейты и закоммить"
-bash_case ask   "pnpm test"
+bash_case deny  "pnpm test"
 user_said "прогони полный тест перед релизом"
 bash_case allow "pnpm test"
 bash_case allow "VITEST_MAX_WORKERS=2 pnpm test"
 user_said "$TASK_PROMPT"
 bash_case allow "pnpm exec eslint apps/web/src/a.tsx"
-bash_case ask   "pnpm typecheck"
-bash_case ask   "pnpm --filter @app/web exec vitest run src/a.test.tsx"
-bash_case ask   "bash .claude/scripts/gates.sh"
+bash_case deny  "pnpm typecheck"
+bash_case deny  "pnpm --filter @app/web exec vitest run src/a.test.tsx"
+bash_case deny  "bash .claude/scripts/gates.sh"
 bash_case allow "git add apps/web/src/a.tsx"
 user_said "не забудь прогнать typecheck и закоммить"
 bash_case allow "pnpm typecheck"
 user_said "не надо тесты, просто закоммить"
-bash_case ask   "pnpm exec vitest run src/a.test.ts"
+bash_case deny  "pnpm exec vitest run src/a.test.ts"
 bash_case allow "pnpm lint"
 user_said "на странице книги не работает кнопка сохранить, падает 500"
 bash_case allow "cd apps/api && VITEST_MAX_WORKERS=1 pnpm exec vitest run src/modules/books/a.test.ts"
 bash_case allow "cd apps/web && VITEST_MAX_WORKERS=1 pnpm exec vitest --project unit run src/a.test.tsx"
-bash_case ask   "pnpm --filter @app/web exec vitest run"
-bash_case ask   "pnpm test"
+bash_case deny  "pnpm --filter @app/web exec vitest run"
+bash_case deny  "pnpm test"
 bash_case allow "curl -sS -i http://localhost:4000/api/health"
 bash_case allow "gh run view 123 --log-failed"
 user_said "/blast-radius"
-bash_case ask   "pnpm exec vitest run src/a.test.ts"
+bash_case deny  "pnpm exec vitest run src/a.test.ts"
 bash_case allow "bash .claude/scripts/gates.sh"
 user_said "почини баг в списке"
-bash_case ask   "bash .claude/scripts/gates.sh"
-bash_case ask   ".claude/scripts/gates.sh origin/dev"
+bash_case deny  "bash .claude/scripts/gates.sh"
+bash_case deny  ".claude/scripts/gates.sh origin/dev"
 bash_case allow "cat .claude/scripts/gates.sh"
 bash_case deny  "bash .claude/scripts/gates.sh" "$AGENT"
 bash_case allow "cat .claude/scripts/gates.sh" "$AGENT"
+bash_case allow "cd apps/web && TZ=UTC node -e 'const { addDays, formatISO, parseISO } = require(\"date-fns\"); console.log(formatISO(addDays(parseISO(\"2024-01-01\"), 1)))'" "$AGENT"
+bash_case allow "cd apps/api && TZ=UTC node -e 'console.log(require(\"date-fns\").isMonday(new Date(\"2026-02-23\")))'" "$AGENT"
+bash_case allow "node --no-warnings -e 'console.log(/a(b)/.exec(\"ab\")[1])'" "$AGENT"
+bash_case deny  "node -e 'require(\"child_process\").execSync(\"pnpm vitest run\")'" "$AGENT"
+bash_case deny  "cd apps/api && node -e \"require('child_process').spawnSync('npx', ['vitest'])\"" "$AGENT"
+bash_case deny  "bash -c 'pnpm typecheck'" "$AGENT"
+bash_case deny  "sh -c \"cd apps/web && pnpm exec eslint src\"" "$AGENT"
+bash_case deny  "bash -c 'git commit -m \"feat(web): x\"'" "$AGENT"
+bash_case deny  "bash -lc 'pnpm typecheck'" "$AGENT"
+bash_case deny  "sh -ec 'pnpm lint'" "$AGENT"
+bash_case deny  "node -pe 'require(\"child_process\").execSync(\"pnpm test\")'" "$AGENT"
+bash_case deny  "cmd //c \"pnpm typecheck\"" "$AGENT"
+bash_case deny  "cmd /c pnpm typecheck" "$AGENT"
+bash_case deny  "powershell -Command pnpm lint" "$AGENT"
+bash_case deny  "pwsh -EncodedCommand cABuAHAAbQAgAHQAZQBzAHQA" "$AGENT"
+bash_case deny  "python -c \"import subprocess; subprocess.run(['pnpm', 'test'])\"" "$AGENT"
+bash_case deny  "perl -e 'system(\"pnpm\", \"test\")'" "$AGENT"
+bash_case deny  "echo 'require(\"child_process\").execSync(\"pnpm test\")' | node" "$AGENT"
+bash_case deny  "/usr/bin/node -e \"require('child_process').execSync('pnpm test')\"" "$AGENT"
+bash_case allow "python -c \"print(1 + 1)\"" "$AGENT"
+bash_case allow "sh -x scripts/check.sh" "$AGENT"
+bash_case allow "cat report.json | python3 -m json.tool" "$AGENT"
+bash_case allow "bash -c 'echo hi'"
 
 bash_case deny  "pnpm typecheck" "$AGENT"
 bash_case deny  "pnpm --filter @app/web exec vitest run src/x.test.tsx" "$AGENT"
@@ -223,6 +285,12 @@ file_case allow Read  "$ROOT/apps/api/.env.local"
 file_case allow Read  "$ROOT/apps/api/.env.prod.example"
 file_case allow Edit  "$ROOT/apps/api/.env.prod.example"
 file_case allow Edit  "$ROOT/apps/api/src/modules/books/application/books.service.ts"
+file_case deny  Write "$(backslashed "$WIN_ROOT/apps/api/.env")"
+file_case deny  Read  "$(backslashed "$HOME/.ssh/config")"
+file_case deny  Edit  "$(backslashed "$WIN_ROOT/apps/web/src/shared/api/generated/books.ts")"
+file_case deny  Edit  "$(backslashed "$WIN_ROOT/pnpm-lock.yaml")"
+[ -n "$COMMITTED_MIGRATION" ] && file_case deny Edit "$(backslashed "$WIN_ROOT/$COMMITTED_MIGRATION")"
+file_case allow Edit  "$(backslashed "$WIN_ROOT/apps/api/src/modules/books/application/books.service.ts")"
 
 SVC="apps/api/src/modules/books/application/hooktest.service.ts"
 WEB="apps/web/src/features/books/components/hooktest-card.tsx"
@@ -243,6 +311,9 @@ edit_case allow "$SVC" "" "// eslint-disable-next-line no-restricted-syntax"
 edit_case allow "$SVC" "" 'throw new NotFoundError("as any other book");'
 edit_case allow "$SVC" "" "if (!book) return null;"
 edit_case allow "$SVC" "" "const isSame = a !== b;"
+edit_path_case flag  "$(backslashed "$WIN_ROOT/$SVC")" "" "const row = payload as any;"
+edit_path_case flag  "$(backslashed "$WIN_ROOT/$WEB")" "" "<p>Книги</p>"
+edit_path_case allow "$(backslashed "$WIN_ROOT/$SVC")" "" "if (!book) return null;"
 edit_case allow "$WEB" "" '<p className="text-sm text-muted-foreground">{t("empty")}</p>'
 edit_case allow "$WEB" "" '<div className="max-w-[65ch] grid-cols-[1fr_auto]">'
 edit_case allow "$WEB" '<p className="text-[10px] uppercase">' '<p className="text-[10px] uppercase tracking-[0.22em]">'
@@ -269,6 +340,8 @@ stop_case() {
 
 WEB_EDIT="$(t_call e1 Edit "{\"file_path\":\"$ROOT/apps/web/src/features/x.tsx\"}")"
 DOC_EDIT="$(t_call e2 Edit "{\"file_path\":\"$ROOT/docs/x.md\"}")"
+WIN_WEB_EDIT="$(t_call e3 Edit "$(jq -nc --arg p "$(backslashed "$WIN_ROOT/apps/web/src/features/x.tsx")" '{file_path:$p}')")"
+WIN_STATE_EDIT="$(t_call e4 Edit "$(jq -nc --arg p "$(backslashed "$WIN_ROOT/.claude/state/s1/notes.txt")" '{file_path:$p}')")"
 ESLINT_RUN="$(t_call b1 Bash '{"command":"cd apps/web && pnpm exec eslint src/features/x.tsx"}')"
 CHROME_SHOT="$(t_call c1 mcp__claude-in-chrome__computer '{"action":"screenshot"}')"
 ENGINEER="$(t_call a1 Agent '{"subagent_type":"backend-engineer","description":"Fix loan reminder"}')"
@@ -284,6 +357,8 @@ stop_case allow "Готово. NOT_VERIFIED: CI: x.test.tsx" "code edit with spl
 stop_case allow "Готово, eslint чистый." "code edit with eslint" "" "$(t_prompt 'почини')" "$WEB_EDIT" "$ESLINT_RUN"
 stop_case allow "Готово, на 375 и 1280 ок." "code edit with chrome pass" "" "$(t_prompt 'почини')" "$WEB_EDIT" "$CHROME_SHOT"
 stop_case allow "Готово." "docs-only edit" "" "$(t_prompt 'обнови доку')" "$DOC_EDIT"
+stop_case block "Готово." "backslash code edit counts" "" "$(t_prompt 'почини')" "$WIN_WEB_EDIT"
+stop_case allow "Готово." "backslash state edit is not code" "" "$(t_prompt 'почини')" "$WIN_STATE_EDIT"
 stop_case allow "Готово." "edit in previous turn" "" "$(t_prompt 'почини')" "$WEB_EDIT" "$(t_prompt 'что дальше?')"
 stop_case block "Готово." "meta text keeps the turn" "" "$(t_prompt 'почини')" "$WEB_EDIT" "$(t_meta 'Base directory for this skill')"
 stop_case block "Готово, сервис исправлен." "agent NOT_VERIFIED dropped" "" "$(t_prompt 'почини')" "$ENGINEER" "$ENGINEER_DONE"
@@ -348,6 +423,12 @@ sec_commit_case ask 'git commit -am "fix(deploy): x"' "commit -a takes the unrev
 sec_git add deploy/Caddyfile
 sec_commit_case ask 'git commit -m "fix(deploy): x"' "edited after the review"
 sec_commit_case deny 'git commit -m "update"' "a commitlint deny still wins"
+
+NO_JQ_START="$(PATH=/nonexistent CLAUDE_PROJECT_DIR="$SEC_REPO" "$BASH" "$HOOKS/session-start.sh" < /dev/null 2>/dev/null)"
+check yes "$(printf '%s' "$NO_JQ_START" | grep -q "jq is not on PATH" && echo yes || echo no)" "session-start: warns when jq is missing"
+JQ_START="$(printf '{}' | CLAUDE_PROJECT_DIR="$SEC_REPO" "$HOOKS/session-start.sh" 2>/dev/null)"
+JQ_START_CODE=$?
+check "no 0" "$(printf '%s' "$JQ_START" | grep -q "jq is not on PATH" && echo yes || echo no) $JQ_START_CODE" "session-start: silent when jq is present"
 
 echo "hooks: $PASS passed, $FAIL failed"
 [ "$FAIL" = 0 ]

@@ -32,24 +32,36 @@ type AddTagDialogProps = {
 
 export function AddTagDialog({ onOpenChange, open }: AddTagDialogProps) {
   const t = useTranslations("tags.tagDialog");
+  const createTag = useCreateTag();
 
   return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
+    <Dialog
+      onOpenChange={(next) => {
+        if (!next && createTag.isPending) return;
+        onOpenChange(next);
+      }}
+      open={open}
+    >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t("addTitle")}</DialogTitle>
           <DialogDescription>{t("addSubtitle")}</DialogDescription>
         </DialogHeader>
-        {open ? <AddTagForm onDone={() => onOpenChange(false)} /> : null}
+        {open ? <AddTagForm createTag={createTag} onDone={() => onOpenChange(false)} /> : null}
       </DialogContent>
     </Dialog>
   );
 }
 
-function AddTagForm({ onDone }: { onDone: () => void }) {
+function AddTagForm({
+  createTag,
+  onDone,
+}: {
+  createTag: ReturnType<typeof useCreateTag>;
+  onDone: () => void;
+}) {
   const t = useTranslations("tags.tagDialog");
   const tErrors = useTranslations("tags.errors");
-  const createTag = useCreateTag();
   const [formError, setFormError] = useState<Nullable<string>>(null);
 
   const {
@@ -117,7 +129,7 @@ function AddTagForm({ onDone }: { onDone: () => void }) {
       )}
 
       <DialogFooter>
-        <Button onClick={onDone} type="button" variant="secondary">
+        <Button disabled={createTag.isPending} onClick={onDone} type="button" variant="secondary">
           {t("cancel")}
         </Button>
         <Button disabled={createTag.isPending} loading={createTag.isPending} type="submit">

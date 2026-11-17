@@ -60,6 +60,7 @@ type CharacterCardProps = Omit<React.ComponentProps<"article">, "role" | "title"
   bookTitle?: string;
   density?: CharacterCardDensity;
   description?: string;
+  descriptionLines?: CharacterCardDescriptionLines;
   footer?: React.ReactNode;
   href?: string;
   linkComponent?: CharacterCardLinkComponent;
@@ -67,8 +68,16 @@ type CharacterCardProps = Omit<React.ComponentProps<"article">, "role" | "title"
   name: string;
   role?: CharacterRole;
   secondaryName?: string;
+  subtitle?: string;
   traits?: readonly string[];
 };
+
+const COMPACT_DESCRIPTION_CLAMP = {
+  2: "line-clamp-2",
+  3: "line-clamp-3",
+} as const;
+
+type CharacterCardDescriptionLines = keyof typeof COMPACT_DESCRIPTION_CLAMP;
 
 type CharacterRole = {
   label: string;
@@ -102,6 +111,7 @@ function CharacterCard({
   className,
   density = "default",
   description,
+  descriptionLines = 3,
   footer,
   href,
   linkComponent,
@@ -109,6 +119,7 @@ function CharacterCard({
   name,
   role,
   secondaryName,
+  subtitle,
   traits,
   ...props
 }: CharacterCardProps) {
@@ -150,6 +161,12 @@ function CharacterCard({
             </p>
           )}
 
+          {subtitle === undefined ? null : (
+            <p className="mt-0.5 line-clamp-1 text-[0.8125rem] leading-snug wrap-anywhere text-muted-foreground">
+              {subtitle}
+            </p>
+          )}
+
           {density === "default" && role !== undefined ? (
             <Badge className="mt-1.5" variant={role.variant ?? "secondary"}>
               {role.label}
@@ -185,7 +202,8 @@ function CharacterCard({
         <p
           className={cn(
             "mt-3 text-sm leading-relaxed text-foreground",
-            density === "compact" && "line-clamp-3 wrap-anywhere",
+            density === "compact" && COMPACT_DESCRIPTION_CLAMP[descriptionLines],
+            density === "compact" && "wrap-anywhere",
           )}
         >
           {description}

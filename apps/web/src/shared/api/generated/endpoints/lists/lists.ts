@@ -59,26 +59,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type listsControllerListTrashResponse200 = {
-  data: PaginatedTrashedListsDto;
-  status: 200;
-};
-
-export type listsControllerListTrashResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type listsControllerListTrashResponseSuccess = listsControllerListTrashResponse200 & {
-  headers: Headers;
-};
-export type listsControllerListTrashResponseError = listsControllerListTrashResponse401 & {
-  headers: Headers;
-};
-
-export type listsControllerListTrashResponse =
-  listsControllerListTrashResponseSuccess | listsControllerListTrashResponseError;
-
 export const getListsControllerListTrashUrl = (params?: ListsControllerListTrashParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -101,8 +81,8 @@ export const getListsControllerListTrashUrl = (params?: ListsControllerListTrash
 export const listsControllerListTrash = async (
   params?: ListsControllerListTrashParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<listsControllerListTrashResponse> => {
-  return customInstance<listsControllerListTrashResponse>(getListsControllerListTrashUrl(params), {
+): Promise<PaginatedTrashedListsDto> => {
+  return customInstance<PaginatedTrashedListsDto>(getListsControllerListTrashUrl(params), {
     ...options,
     method: "GET",
   });
@@ -225,26 +205,6 @@ export function useListsControllerListTrash<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type listsControllerSummaryResponse200 = {
-  data: ListsSummaryViewDto;
-  status: 200;
-};
-
-export type listsControllerSummaryResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type listsControllerSummaryResponseSuccess = listsControllerSummaryResponse200 & {
-  headers: Headers;
-};
-export type listsControllerSummaryResponseError = listsControllerSummaryResponse401 & {
-  headers: Headers;
-};
-
-export type listsControllerSummaryResponse =
-  listsControllerSummaryResponseSuccess | listsControllerSummaryResponseError;
-
 export const getListsControllerSummaryUrl = () => {
   return `/api/lists/summary`;
 };
@@ -254,8 +214,8 @@ export const getListsControllerSummaryUrl = () => {
  */
 export const listsControllerSummary = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<listsControllerSummaryResponse> => {
-  return customInstance<listsControllerSummaryResponse>(getListsControllerSummaryUrl(), {
+): Promise<ListsSummaryViewDto> => {
+  return customInstance<ListsSummaryViewDto>(getListsControllerSummaryUrl(), {
     ...options,
     method: "GET",
   });
@@ -370,40 +330,6 @@ export function useListsControllerSummary<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type listsControllerDuplicateResponse201 = {
-  data: CustomListCardDto;
-  status: 201;
-};
-
-export type listsControllerDuplicateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type listsControllerDuplicateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type listsControllerDuplicateResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type listsControllerDuplicateResponseSuccess = listsControllerDuplicateResponse201 & {
-  headers: Headers;
-};
-export type listsControllerDuplicateResponseError = (
-  | listsControllerDuplicateResponse401
-  | listsControllerDuplicateResponse404
-  | listsControllerDuplicateResponse409
-) & {
-  headers: Headers;
-};
-
-export type listsControllerDuplicateResponse =
-  listsControllerDuplicateResponseSuccess | listsControllerDuplicateResponseError;
-
 export const getListsControllerDuplicateUrl = (listId: string) => {
   return `/api/lists/${listId}/duplicate`;
 };
@@ -414,8 +340,8 @@ export const getListsControllerDuplicateUrl = (listId: string) => {
 export const listsControllerDuplicate = async (
   listId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<listsControllerDuplicateResponse> => {
-  return customInstance<listsControllerDuplicateResponse>(getListsControllerDuplicateUrl(listId), {
+): Promise<CustomListCardDto> => {
+  return customInstance<CustomListCardDto>(getListsControllerDuplicateUrl(listId), {
     ...options,
     method: "POST",
   });
@@ -541,33 +467,6 @@ export function useListsControllerDuplicate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type listsControllerRestoreResponse200 = {
-  data: CustomListCardDto;
-  status: 200;
-};
-
-export type listsControllerRestoreResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type listsControllerRestoreResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type listsControllerRestoreResponseSuccess = listsControllerRestoreResponse200 & {
-  headers: Headers;
-};
-export type listsControllerRestoreResponseError = (
-  listsControllerRestoreResponse401 | listsControllerRestoreResponse404
-) & {
-  headers: Headers;
-};
-
-export type listsControllerRestoreResponse =
-  listsControllerRestoreResponseSuccess | listsControllerRestoreResponseError;
-
 export const getListsControllerRestoreUrl = (listId: string) => {
   return `/api/lists/${listId}/restore`;
 };
@@ -578,8 +477,8 @@ export const getListsControllerRestoreUrl = (listId: string) => {
 export const listsControllerRestore = async (
   listId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<listsControllerRestoreResponse> => {
-  return customInstance<listsControllerRestoreResponse>(getListsControllerRestoreUrl(listId), {
+): Promise<CustomListCardDto> => {
+  return customInstance<CustomListCardDto>(getListsControllerRestoreUrl(listId), {
     ...options,
     method: "POST",
   });
@@ -704,40 +603,6 @@ export function useListsControllerRestore<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type listsControllerCreateResponse201 = {
-  data: CustomListCardDto;
-  status: 201;
-};
-
-export type listsControllerCreateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type listsControllerCreateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type listsControllerCreateResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type listsControllerCreateResponseSuccess = listsControllerCreateResponse201 & {
-  headers: Headers;
-};
-export type listsControllerCreateResponseError = (
-  | listsControllerCreateResponse400
-  | listsControllerCreateResponse401
-  | listsControllerCreateResponse409
-) & {
-  headers: Headers;
-};
-
-export type listsControllerCreateResponse =
-  listsControllerCreateResponseSuccess | listsControllerCreateResponseError;
-
 export const getListsControllerCreateUrl = () => {
   return `/api/lists`;
 };
@@ -748,8 +613,8 @@ export const getListsControllerCreateUrl = () => {
 export const listsControllerCreate = async (
   newListInputDto: NewListInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<listsControllerCreateResponse> => {
-  return customInstance<listsControllerCreateResponse>(getListsControllerCreateUrl(), {
+): Promise<CustomListCardDto> => {
+  return customInstance<CustomListCardDto>(getListsControllerCreateUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -873,26 +738,6 @@ export function useListsControllerCreate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type listsControllerSearchResponse200 = {
-  data: PaginatedCustomListsDto;
-  status: 200;
-};
-
-export type listsControllerSearchResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type listsControllerSearchResponseSuccess = listsControllerSearchResponse200 & {
-  headers: Headers;
-};
-export type listsControllerSearchResponseError = listsControllerSearchResponse401 & {
-  headers: Headers;
-};
-
-export type listsControllerSearchResponse =
-  listsControllerSearchResponseSuccess | listsControllerSearchResponseError;
-
 export const getListsControllerSearchUrl = (params?: ListsControllerSearchParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -922,8 +767,8 @@ export const getListsControllerSearchUrl = (params?: ListsControllerSearchParams
 export const listsControllerSearch = async (
   params?: ListsControllerSearchParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<listsControllerSearchResponse> => {
-  return customInstance<listsControllerSearchResponse>(getListsControllerSearchUrl(params), {
+): Promise<PaginatedCustomListsDto> => {
+  return customInstance<PaginatedCustomListsDto>(getListsControllerSearchUrl(params), {
     ...options,
     method: "GET",
   });
@@ -1045,46 +890,6 @@ export function useListsControllerSearch<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type listsControllerUpdateResponse200 = {
-  data: CustomListCardDto;
-  status: 200;
-};
-
-export type listsControllerUpdateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type listsControllerUpdateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type listsControllerUpdateResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type listsControllerUpdateResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type listsControllerUpdateResponseSuccess = listsControllerUpdateResponse200 & {
-  headers: Headers;
-};
-export type listsControllerUpdateResponseError = (
-  | listsControllerUpdateResponse400
-  | listsControllerUpdateResponse401
-  | listsControllerUpdateResponse404
-  | listsControllerUpdateResponse409
-) & {
-  headers: Headers;
-};
-
-export type listsControllerUpdateResponse =
-  listsControllerUpdateResponseSuccess | listsControllerUpdateResponseError;
-
 export const getListsControllerUpdateUrl = (listId: string) => {
   return `/api/lists/${listId}`;
 };
@@ -1096,8 +901,8 @@ export const listsControllerUpdate = async (
   listId: string,
   updateListInputDto: UpdateListInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<listsControllerUpdateResponse> => {
-  return customInstance<listsControllerUpdateResponse>(getListsControllerUpdateUrl(listId), {
+): Promise<CustomListCardDto> => {
+  return customInstance<CustomListCardDto>(getListsControllerUpdateUrl(listId), {
     ...options,
     method: "PATCH",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -1233,33 +1038,6 @@ export function useListsControllerUpdate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type listsControllerDeleteResponse200 = {
-  data: ListDeletionResultDto;
-  status: 200;
-};
-
-export type listsControllerDeleteResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type listsControllerDeleteResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type listsControllerDeleteResponseSuccess = listsControllerDeleteResponse200 & {
-  headers: Headers;
-};
-export type listsControllerDeleteResponseError = (
-  listsControllerDeleteResponse401 | listsControllerDeleteResponse404
-) & {
-  headers: Headers;
-};
-
-export type listsControllerDeleteResponse =
-  listsControllerDeleteResponseSuccess | listsControllerDeleteResponseError;
-
 export const getListsControllerDeleteUrl = (listId: string) => {
   return `/api/lists/${listId}`;
 };
@@ -1270,8 +1048,8 @@ export const getListsControllerDeleteUrl = (listId: string) => {
 export const listsControllerDelete = async (
   listId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<listsControllerDeleteResponse> => {
-  return customInstance<listsControllerDeleteResponse>(getListsControllerDeleteUrl(listId), {
+): Promise<ListDeletionResultDto> => {
+  return customInstance<ListDeletionResultDto>(getListsControllerDeleteUrl(listId), {
     ...options,
     method: "DELETE",
   });
@@ -1396,33 +1174,6 @@ export function useListsControllerDelete<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type listDetailsControllerDetailResponse200 = {
-  data: CustomListDetailDto;
-  status: 200;
-};
-
-export type listDetailsControllerDetailResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type listDetailsControllerDetailResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type listDetailsControllerDetailResponseSuccess = listDetailsControllerDetailResponse200 & {
-  headers: Headers;
-};
-export type listDetailsControllerDetailResponseError = (
-  listDetailsControllerDetailResponse401 | listDetailsControllerDetailResponse404
-) & {
-  headers: Headers;
-};
-
-export type listDetailsControllerDetailResponse =
-  listDetailsControllerDetailResponseSuccess | listDetailsControllerDetailResponseError;
-
 export const getListDetailsControllerDetailUrl = (
   listId: string,
   params?: ListDetailsControllerDetailParams,
@@ -1458,14 +1209,11 @@ export const listDetailsControllerDetail = async (
   listId: string,
   params?: ListDetailsControllerDetailParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<listDetailsControllerDetailResponse> => {
-  return customInstance<listDetailsControllerDetailResponse>(
-    getListDetailsControllerDetailUrl(listId, params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<CustomListDetailDto> => {
+  return customInstance<CustomListDetailDto>(getListDetailsControllerDetailUrl(listId, params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getListDetailsControllerDetailQueryKey = (
@@ -1596,33 +1344,6 @@ export function useListDetailsControllerDetail<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type listDetailsControllerFacetsResponse200 = {
-  data: ListFacetsViewDto;
-  status: 200;
-};
-
-export type listDetailsControllerFacetsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type listDetailsControllerFacetsResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type listDetailsControllerFacetsResponseSuccess = listDetailsControllerFacetsResponse200 & {
-  headers: Headers;
-};
-export type listDetailsControllerFacetsResponseError = (
-  listDetailsControllerFacetsResponse401 | listDetailsControllerFacetsResponse404
-) & {
-  headers: Headers;
-};
-
-export type listDetailsControllerFacetsResponse =
-  listDetailsControllerFacetsResponseSuccess | listDetailsControllerFacetsResponseError;
-
 export const getListDetailsControllerFacetsUrl = (listId: string) => {
   return `/api/lists/${listId}/facets`;
 };
@@ -1633,14 +1354,11 @@ export const getListDetailsControllerFacetsUrl = (listId: string) => {
 export const listDetailsControllerFacets = async (
   listId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<listDetailsControllerFacetsResponse> => {
-  return customInstance<listDetailsControllerFacetsResponse>(
-    getListDetailsControllerFacetsUrl(listId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<ListFacetsViewDto> => {
+  return customInstance<ListFacetsViewDto>(getListDetailsControllerFacetsUrl(listId), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getListDetailsControllerFacetsQueryKey = (listId: string) => {
@@ -1763,34 +1481,6 @@ export function useListDetailsControllerFacets<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type listDetailsControllerOverviewResponse200 = {
-  data: ListOverviewViewDto;
-  status: 200;
-};
-
-export type listDetailsControllerOverviewResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type listDetailsControllerOverviewResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type listDetailsControllerOverviewResponseSuccess =
-  listDetailsControllerOverviewResponse200 & {
-    headers: Headers;
-  };
-export type listDetailsControllerOverviewResponseError = (
-  listDetailsControllerOverviewResponse401 | listDetailsControllerOverviewResponse404
-) & {
-  headers: Headers;
-};
-
-export type listDetailsControllerOverviewResponse =
-  listDetailsControllerOverviewResponseSuccess | listDetailsControllerOverviewResponseError;
-
 export const getListDetailsControllerOverviewUrl = (listId: string) => {
   return `/api/lists/${listId}/overview`;
 };
@@ -1801,14 +1491,11 @@ export const getListDetailsControllerOverviewUrl = (listId: string) => {
 export const listDetailsControllerOverview = async (
   listId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<listDetailsControllerOverviewResponse> => {
-  return customInstance<listDetailsControllerOverviewResponse>(
-    getListDetailsControllerOverviewUrl(listId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<ListOverviewViewDto> => {
+  return customInstance<ListOverviewViewDto>(getListDetailsControllerOverviewUrl(listId), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getListDetailsControllerOverviewQueryKey = (listId: string) => {
@@ -1931,34 +1618,6 @@ export function useListDetailsControllerOverview<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type listDetailsControllerRelatedResponse200 = {
-  data: ListRelatedViewDto;
-  status: 200;
-};
-
-export type listDetailsControllerRelatedResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type listDetailsControllerRelatedResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type listDetailsControllerRelatedResponseSuccess =
-  listDetailsControllerRelatedResponse200 & {
-    headers: Headers;
-  };
-export type listDetailsControllerRelatedResponseError = (
-  listDetailsControllerRelatedResponse401 | listDetailsControllerRelatedResponse404
-) & {
-  headers: Headers;
-};
-
-export type listDetailsControllerRelatedResponse =
-  listDetailsControllerRelatedResponseSuccess | listDetailsControllerRelatedResponseError;
-
 export const getListDetailsControllerRelatedUrl = (listId: string) => {
   return `/api/lists/${listId}/related`;
 };
@@ -1969,14 +1628,11 @@ export const getListDetailsControllerRelatedUrl = (listId: string) => {
 export const listDetailsControllerRelated = async (
   listId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<listDetailsControllerRelatedResponse> => {
-  return customInstance<listDetailsControllerRelatedResponse>(
-    getListDetailsControllerRelatedUrl(listId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<ListRelatedViewDto> => {
+  return customInstance<ListRelatedViewDto>(getListDetailsControllerRelatedUrl(listId), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getListDetailsControllerRelatedQueryKey = (listId: string) => {
@@ -2099,41 +1755,6 @@ export function useListDetailsControllerRelated<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type listMembershipControllerAddBooksResponse200 = {
-  data: AddBooksToListResultDto;
-  status: 200;
-};
-
-export type listMembershipControllerAddBooksResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type listMembershipControllerAddBooksResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type listMembershipControllerAddBooksResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type listMembershipControllerAddBooksResponseSuccess =
-  listMembershipControllerAddBooksResponse200 & {
-    headers: Headers;
-  };
-export type listMembershipControllerAddBooksResponseError = (
-  | listMembershipControllerAddBooksResponse400
-  | listMembershipControllerAddBooksResponse401
-  | listMembershipControllerAddBooksResponse404
-) & {
-  headers: Headers;
-};
-
-export type listMembershipControllerAddBooksResponse =
-  listMembershipControllerAddBooksResponseSuccess | listMembershipControllerAddBooksResponseError;
-
 export const getListMembershipControllerAddBooksUrl = (listId: string) => {
   return `/api/lists/${listId}/books`;
 };
@@ -2145,16 +1766,13 @@ export const listMembershipControllerAddBooks = async (
   listId: string,
   addBooksToListInputDto: AddBooksToListInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<listMembershipControllerAddBooksResponse> => {
-  return customInstance<listMembershipControllerAddBooksResponse>(
-    getListMembershipControllerAddBooksUrl(listId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(addBooksToListInputDto),
-    },
-  );
+): Promise<AddBooksToListResultDto> => {
+  return customInstance<AddBooksToListResultDto>(getListMembershipControllerAddBooksUrl(listId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(addBooksToListInputDto),
+  });
 };
 
 export const getListMembershipControllerAddBooksQueryKey = (
@@ -2294,42 +1912,6 @@ export function useListMembershipControllerAddBooks<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type listMembershipControllerRemoveBooksResponse200 = {
-  data: RemoveBooksFromListResultDto;
-  status: 200;
-};
-
-export type listMembershipControllerRemoveBooksResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type listMembershipControllerRemoveBooksResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type listMembershipControllerRemoveBooksResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type listMembershipControllerRemoveBooksResponseSuccess =
-  listMembershipControllerRemoveBooksResponse200 & {
-    headers: Headers;
-  };
-export type listMembershipControllerRemoveBooksResponseError = (
-  | listMembershipControllerRemoveBooksResponse400
-  | listMembershipControllerRemoveBooksResponse401
-  | listMembershipControllerRemoveBooksResponse404
-) & {
-  headers: Headers;
-};
-
-export type listMembershipControllerRemoveBooksResponse =
-  | listMembershipControllerRemoveBooksResponseSuccess
-  | listMembershipControllerRemoveBooksResponseError;
-
 export const getListMembershipControllerRemoveBooksUrl = (listId: string) => {
   return `/api/lists/${listId}/books/remove`;
 };
@@ -2341,8 +1923,8 @@ export const listMembershipControllerRemoveBooks = async (
   listId: string,
   removeBooksFromListInputDto: RemoveBooksFromListInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<listMembershipControllerRemoveBooksResponse> => {
-  return customInstance<listMembershipControllerRemoveBooksResponse>(
+): Promise<RemoveBooksFromListResultDto> => {
+  return customInstance<RemoveBooksFromListResultDto>(
     getListMembershipControllerRemoveBooksUrl(listId),
     {
       ...options,
@@ -2513,35 +2095,6 @@ export function useListMembershipControllerRemoveBooks<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type listMembershipControllerRemoveBookResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type listMembershipControllerRemoveBookResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type listMembershipControllerRemoveBookResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type listMembershipControllerRemoveBookResponseSuccess =
-  listMembershipControllerRemoveBookResponse204 & {
-    headers: Headers;
-  };
-export type listMembershipControllerRemoveBookResponseError = (
-  listMembershipControllerRemoveBookResponse401 | listMembershipControllerRemoveBookResponse404
-) & {
-  headers: Headers;
-};
-
-export type listMembershipControllerRemoveBookResponse =
-  | listMembershipControllerRemoveBookResponseSuccess
-  | listMembershipControllerRemoveBookResponseError;
-
 export const getListMembershipControllerRemoveBookUrl = (listId: string, bookId: string) => {
   return `/api/lists/${listId}/books/${bookId}`;
 };
@@ -2553,14 +2106,11 @@ export const listMembershipControllerRemoveBook = async (
   listId: string,
   bookId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<listMembershipControllerRemoveBookResponse> => {
-  return customInstance<listMembershipControllerRemoveBookResponse>(
-    getListMembershipControllerRemoveBookUrl(listId, bookId),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getListMembershipControllerRemoveBookUrl(listId, bookId), {
+    ...options,
+    method: "DELETE",
+  });
 };
 
 export const getListMembershipControllerRemoveBookQueryKey = (listId: string, bookId: string) => {
@@ -2691,41 +2241,6 @@ export function useListMembershipControllerRemoveBook<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type listMembershipControllerMoveBookResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type listMembershipControllerMoveBookResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type listMembershipControllerMoveBookResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type listMembershipControllerMoveBookResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type listMembershipControllerMoveBookResponseSuccess =
-  listMembershipControllerMoveBookResponse204 & {
-    headers: Headers;
-  };
-export type listMembershipControllerMoveBookResponseError = (
-  | listMembershipControllerMoveBookResponse400
-  | listMembershipControllerMoveBookResponse401
-  | listMembershipControllerMoveBookResponse404
-) & {
-  headers: Headers;
-};
-
-export type listMembershipControllerMoveBookResponse =
-  listMembershipControllerMoveBookResponseSuccess | listMembershipControllerMoveBookResponseError;
-
 export const getListMembershipControllerMoveBookUrl = (listId: string, bookId: string) => {
   return `/api/lists/${listId}/books/${bookId}/position`;
 };
@@ -2738,16 +2253,13 @@ export const listMembershipControllerMoveBook = async (
   bookId: string,
   moveListBookInputDto: MoveListBookInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<listMembershipControllerMoveBookResponse> => {
-  return customInstance<listMembershipControllerMoveBookResponse>(
-    getListMembershipControllerMoveBookUrl(listId, bookId),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(moveListBookInputDto),
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getListMembershipControllerMoveBookUrl(listId, bookId), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(moveListBookInputDto),
+  });
 };
 
 export const getListMembershipControllerMoveBookQueryKey = (

@@ -1,5 +1,6 @@
 import type { Nullable, QuoteSearchScope, QuotesFacetsQuery, QuotesQuery } from "@app/shared";
 
+import { QUOTE_INPUT_LIMITS } from "@app/shared";
 import {
   type inferParserType,
   parseAsArrayOf,
@@ -7,7 +8,7 @@ import {
   parseAsStringLiteral,
 } from "nuqs/server";
 
-import { isInvertedDayRange, storableDay } from "@/features/books/model/filter-chips";
+import { isInvertedDayRange, storableDay } from "@/lib/filter-chips";
 
 import { QUOTE_FILTER_VALUES, QUOTE_SORT_VALUES } from "./quote-options";
 
@@ -100,7 +101,7 @@ export function quotesListIdentity(params: QuotesListParams): string {
 }
 
 export function toQuotesFacetsParams(state: QuotesQueryState): QuotesFacetsParams {
-  const search = state.q.trim();
+  const search = toQuotesSearch(state.q);
   const books = quoteBookIds(state);
   const range = quoteCreatedRange(state);
   const from = range === null ? null : range.from;
@@ -122,4 +123,9 @@ export function toQuotesListParams(state: QuotesQueryState): QuotesListParams {
     pageSize: QUOTES_PAGE_SIZE,
     sort: state.sort,
   };
+}
+
+export function toQuotesSearch(q: string): string {
+  const search = q.trim();
+  return search.length > QUOTE_INPUT_LIMITS.searchMax ? "" : search;
 }

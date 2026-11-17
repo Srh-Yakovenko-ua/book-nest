@@ -51,6 +51,7 @@ export function PublishersSection({
               value={formatNumber(publishers.totalPublishers, locale)}
             />
             <StatisticsStat
+              hint={t("concentrationHint")}
               label={t("concentrationLabel")}
               value={
                 publishers.topThreeConcentration === null
@@ -62,6 +63,7 @@ export function PublishersSection({
           <TasteRankingList
             rows={publishers.items.map((entry) => ({
               contextActions: entry.contextActions,
+              drilldown: entry.drilldown,
               key: entry.publisherId,
               label: entry.name,
               secondary:

@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
-import type { ActiveFilterChip } from "@/features/books";
+import type { ActiveFilterChip } from "@/components/catalog/active-filters";
 
 import type { DeliveryStatisticsQueryState } from "./statistics-params";
 import type { StatisticsFilterPatch } from "./use-statistics-params";

@@ -6,35 +6,39 @@ import { CountSchema, isoDay, queryStringArray } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
 import { TRASH_PAGE_SIZE_DEFAULT, TrashDeletionResultSchema } from "./trash.js";
 
-const QUOTE_TEXT_MAX = 1000;
-const QUOTE_CHAPTER_MAX = 80;
-const QUOTE_COMMENT_MAX = 500;
-const QUOTE_PAGE_MIN = 1;
-export const QUOTE_PAGE_MAX = 10000;
-const QUOTE_SEARCH_MAX = 100;
+export const QUOTE_INPUT_LIMITS = {
+  chapterMax: 80,
+  commentMax: 500,
+  pageMax: 10000,
+  pageMin: 1,
+  searchMax: 100,
+  textMax: 1000,
+} as const;
+
+export const QUOTE_PAGE_MAX = QUOTE_INPUT_LIMITS.pageMax;
 const QUOTES_DEFAULT_PAGE_SIZE = 12;
 
 export const QuoteTextSchema = z
   .string()
   .trim()
   .min(1, "Quote text is required")
-  .max(QUOTE_TEXT_MAX, "Quote text must be at most 1000 characters long");
+  .max(QUOTE_INPUT_LIMITS.textMax, "Quote text must be at most 1000 characters long");
 
 export const QuoteChapterSchema = z
   .string()
   .trim()
-  .max(QUOTE_CHAPTER_MAX, "Chapter must be at most 80 characters long");
+  .max(QUOTE_INPUT_LIMITS.chapterMax, "Chapter must be at most 80 characters long");
 
 export const QuoteCommentSchema = z
   .string()
   .trim()
-  .max(QUOTE_COMMENT_MAX, "Comment must be at most 500 characters long");
+  .max(QUOTE_INPUT_LIMITS.commentMax, "Comment must be at most 500 characters long");
 
 export const QuotePageSchema = z.coerce
   .number()
   .int("Page must be a whole number")
-  .min(QUOTE_PAGE_MIN, "Page must be greater than 0")
-  .max(QUOTE_PAGE_MAX, "Page must be at most 10000");
+  .min(QUOTE_INPUT_LIMITS.pageMin, "Page must be greater than 0")
+  .max(QUOTE_INPUT_LIMITS.pageMax, "Page must be at most 10000");
 
 export const CreateQuoteInputSchema = z.object({
   chapter: QuoteChapterSchema.nullish(),
@@ -94,7 +98,7 @@ const quotesDatasetQueryFields = {
   bookId: z.uuid().optional(),
   createdFrom: isoDay().optional(),
   createdTo: isoDay().optional(),
-  q: z.string().trim().max(QUOTE_SEARCH_MAX).optional(),
+  q: z.string().trim().max(QUOTE_INPUT_LIMITS.searchMax).optional(),
   searchIn: QuoteSearchScopeSchema.default(QuoteSearchScopeSchema.enum.quotes_and_book),
 };
 

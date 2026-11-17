@@ -21,16 +21,22 @@ import { MediaViewSchema } from "./media.js";
 import { TaxonomySearchPaginationQuerySchema } from "./taxonomy.js";
 import { TRASH_PAGE_SIZE_DEFAULT, TrashDeletionResultSchema } from "./trash.js";
 
-const LIST_NAME_MIN = 2;
-export const LIST_NAME_MAX = 80;
-const LIST_DESCRIPTION_MAX = 300;
+export const LIST_INPUT_LIMITS = {
+  bulkBookIdsMax: LIST_PAGE_SIZE_MAX,
+  descriptionMax: 300,
+  nameMax: 80,
+  nameMin: 2,
+  newListsMax: 20,
+} as const;
+
+export const LIST_NAME_MAX = LIST_INPUT_LIMITS.nameMax;
 
 export const ListNameSchema = z
   .string()
   .transform(collapseSpaces)
   .pipe(
-    NoHtmlString.min(LIST_NAME_MIN, "List name must be at least 2 characters long").max(
-      LIST_NAME_MAX,
+    NoHtmlString.min(LIST_INPUT_LIMITS.nameMin, "List name must be at least 2 characters long").max(
+      LIST_INPUT_LIMITS.nameMax,
       "List name must be at most 80 characters long",
     ),
   );
@@ -38,7 +44,12 @@ export const ListNameSchema = z
 export const ListDescriptionSchema = z
   .string()
   .transform(collapseHorizontalSpaces)
-  .pipe(NoHtmlString.max(LIST_DESCRIPTION_MAX, "Description must be at most 300 characters long"));
+  .pipe(
+    NoHtmlString.max(
+      LIST_INPUT_LIMITS.descriptionMax,
+      "Description must be at most 300 characters long",
+    ),
+  );
 
 export const NewListInputSchema = z.object({
   description: ListDescriptionSchema.optional(),
@@ -243,10 +254,8 @@ export const ListRelatedViewSchema = z.object({
 
 export type ListRelatedView = z.infer<typeof ListRelatedViewSchema>;
 
-const ADD_BOOKS_TO_LIST_MAX = LIST_PAGE_SIZE_MAX;
-
 export const RemoveBooksFromListInputSchema = z.object({
-  bookIds: z.array(z.uuid()).min(1).max(ADD_BOOKS_TO_LIST_MAX),
+  bookIds: z.array(z.uuid()).min(1).max(LIST_INPUT_LIMITS.bulkBookIdsMax),
 });
 
 export type RemoveBooksFromListInput = z.infer<typeof RemoveBooksFromListInputSchema>;
@@ -258,9 +267,45 @@ export const RemoveBooksFromListResultSchema = z.object({
 
 export type RemoveBooksFromListResult = z.infer<typeof RemoveBooksFromListResultSchema>;
 
-export const AddBooksToListInputSchema = z.object({
-  bookIds: z.array(z.uuid()).min(1).max(ADD_BOOKS_TO_LIST_MAX),
+export const ListBookRestorePositionSchema = z.object({
+  bookId: z.uuid(),
+  position: z.number().int().positive(),
 });
+
+export type ListBookRestorePosition = z.infer<typeof ListBookRestorePositionSchema>;
+
+export const AddBooksToListInputSchema = z
+  .object({
+    bookIds: z.array(z.uuid()).min(1).max(LIST_INPUT_LIMITS.bulkBookIdsMax),
+    positions: z
+      .array(ListBookRestorePositionSchema)
+      .max(LIST_INPUT_LIMITS.bulkBookIdsMax)
+      .describe(
+        "Former 1-based manual-order positions to restore books from bookIds at, clamped to the list size; books without one are appended",
+      )
+      .optional(),
+  })
+  .superRefine((value, context) => {
+    const requestedIds = new Set(value.bookIds);
+    const positionedIds = new Set<string>();
+    for (const [index, restorePosition] of (value.positions ?? []).entries()) {
+      if (!requestedIds.has(restorePosition.bookId)) {
+        context.addIssue({
+          code: "custom",
+          message: "A restored position must belong to one of the added books",
+          path: ["positions", index, "bookId"],
+        });
+      }
+      if (positionedIds.has(restorePosition.bookId)) {
+        context.addIssue({
+          code: "custom",
+          message: "A book can have only one restored position",
+          path: ["positions", index, "bookId"],
+        });
+      }
+      positionedIds.add(restorePosition.bookId);
+    }
+  });
 
 export type AddBooksToListInput = z.infer<typeof AddBooksToListInputSchema>;
 
@@ -311,6 +356,7 @@ const SET_BOOK_LISTS_MAX = LIST_PAGE_SIZE_MAX;
 
 export const SetBookListsInputSchema = z.object({
   listIds: z.array(z.uuid()).max(SET_BOOK_LISTS_MAX),
+  newLists: z.array(NewListInputSchema).max(LIST_INPUT_LIMITS.newListsMax).optional(),
 });
 
 export type SetBookListsInput = z.infer<typeof SetBookListsInputSchema>;

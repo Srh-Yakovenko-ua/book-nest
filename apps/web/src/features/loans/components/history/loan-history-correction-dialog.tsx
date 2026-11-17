@@ -9,6 +9,7 @@ import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { DateField } from "@/components/date-field";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,9 +24,9 @@ import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { BookDateField } from "@/features/books/components/book-date-field";
-import { ISO_DATE_PATTERN, todayIso } from "@/features/books/model/reading-progress";
+import { useProfileTimeZone } from "@/features/settings";
 import { applyFieldErrors, getErrorMessage } from "@/lib/api-errors";
+import { ISO_DAY, todayIsoDay } from "@/lib/iso-day";
 
 import { useCorrectLoanHistory } from "../../api/use-correct-loan-history";
 import { useLoanHistoryDetail } from "../../api/use-loan-history-detail";
@@ -103,12 +104,20 @@ export function LoanHistoryCorrectionDialog({
   );
 }
 
-function buildReturnedDateSchema(messages: ReturnedDateMessages, loanDate: null | string) {
+function buildReturnedDateSchema({
+  loanDate,
+  messages,
+  today,
+}: {
+  loanDate: null | string;
+  messages: ReturnedDateMessages;
+  today: string;
+}) {
   return z.object({
     returnedDate: z
       .string()
-      .refine((value) => ISO_DATE_PATTERN.test(value), messages.required)
-      .refine((value) => !isAfter(parseISO(value), parseISO(todayIso())), messages.inFuture)
+      .refine((value) => ISO_DAY.pattern.test(value), messages.required)
+      .refine((value) => !isAfter(parseISO(value), parseISO(today)), messages.inFuture)
       .refine(
         (value) => loanDate === null || !isBefore(parseISO(value), parseISO(loanDate)),
         messages.beforeLoanDate,
@@ -214,19 +223,21 @@ function NoteForm({ loan, onDone }: { loan: LoanHistoryDetailView; onDone: () =>
 function ReturnedDateForm({ loan, onDone }: { loan: LoanHistoryDetailView; onDone: () => void }) {
   const t = useTranslations("loans.history.correctDate");
   const correct = useCorrectLoanHistory();
+  const today = todayIsoDay(useProfileTimeZone());
 
   const form = useForm<{ returnedDate: string }>({
     defaultValues: { returnedDate: loan.returnedDate },
     mode: "onTouched",
     resolver: zodResolver(
-      buildReturnedDateSchema(
-        {
+      buildReturnedDateSchema({
+        loanDate: loan.loanDate,
+        messages: {
           beforeLoanDate: t("beforeLoanDate"),
           inFuture: t("inFuture"),
           required: t("required"),
         },
-        loan.loanDate,
-      ),
+        today,
+      }),
     ),
   });
 
@@ -261,13 +272,14 @@ function ReturnedDateForm({ loan, onDone }: { loan: LoanHistoryDetailView; onDon
           control={control}
           name="returnedDate"
           render={({ field }) => (
-            <BookDateField
+            <DateField
               ariaLabel={t("label")}
               describedBy={errors.returnedDate ? "loan-history-returned-date-error" : undefined}
               id="loan-history-returned-date"
               invalid={errors.returnedDate !== undefined}
               onChange={(next) => field.onChange(next ?? "")}
               required
+              today={today}
               value={field.value}
             />
           )}

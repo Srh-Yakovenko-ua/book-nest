@@ -3,6 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import type { LibraryPublisherDetail, PublisherDuplicateCandidate } from "@app/shared";
 import type { ReactNode } from "react";
 
+import { PUBLISHER_NAME_ERROR_CODES } from "@app/shared";
 import { useState } from "react";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -35,7 +36,7 @@ const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promis
 
 let duplicateCandidates: PublisherDuplicateCandidate[];
 let respondToCandidates: () => Response;
-let respondToUpdate: () => Response;
+let respondToUpdate: () => Promise<Response> | Response;
 
 function EditHarness({ details }: { details: LibraryPublisherDetail }) {
   const [open, setOpen] = useState(true);
@@ -107,7 +108,8 @@ describe("EditPublisherDialog", () => {
   });
 
   it("surfaces a duplicate name as a field error on a 409", async () => {
-    respondToUpdate = () => jsonResponse({ message: "duplicate" }, 409);
+    respondToUpdate = () =>
+      jsonResponse({ code: PUBLISHER_NAME_ERROR_CODES.duplicateName, message: "duplicate" }, 409);
 
     renderDialog();
 
@@ -301,6 +303,31 @@ describe("EditPublisherDialog", () => {
     expect(screen.getByRole("button", { name: "Так, вийти" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Продовжити редагування" })).toBeInTheDocument();
   });
+
+  it("cannot be dismissed while the save is pending and closes once it lands", async () => {
+    let releaseUpdate: (response: Response) => void = () => undefined;
+    respondToUpdate = () =>
+      new Promise<Response>((resolve) => {
+        releaseUpdate = resolve;
+      });
+    renderDialog();
+
+    await userEvent.type(screen.getByLabelText("Назва"), "!");
+    await userEvent.click(screen.getByRole("button", { name: "Зберегти" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Зберегти" })).toBeDisabled());
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(screen.queryByText("Відхилити зміни?")).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Редагувати видавництво" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Скасувати" })).toBeDisabled();
+
+    releaseUpdate(jsonResponse(makePublisherDetail({ isCustom: true, name: "Vivat!" })));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Видавництво оновлено"));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
   it("omits an unchanged legacy country code from the payload", async () => {
     renderDialog(makePublisherDetail({ countryCode: "XX", name: "Vivat" }));
 

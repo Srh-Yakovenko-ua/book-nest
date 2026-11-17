@@ -20,6 +20,7 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import type { NotesArchiveScope } from "../model/notes-archive-config";
@@ -39,6 +40,7 @@ vi.mock("sonner", () => ({
 
 type ArchiveReplies = {
   impression?: Reply;
+  list?: (url: string) => Promise<Response>;
   overview?: Reply;
   review?: Reply;
   summary?: Reply;
@@ -708,14 +710,49 @@ describe("NotesArchiveView summary cards", () => {
     expect(await summaryMicrofact("Найбільше в одній серії")).toContain("2 серії мають максимум");
   });
 
-  it("shows no cards but keeps the archive when the summary fails", async () => {
+  it("shows the summary error card but keeps the archive when the summary fails", async () => {
     mockArchive("books", { summary: failure(500) });
 
     renderArchive("books");
 
     expect(await screen.findByText(ARCHIVE_NOTE_TEXT.books)).toBeInTheDocument();
-    await waitFor(() => expect(requestsTo("/api/notes/books/summary")).toHaveLength(1));
-    await waitFor(() => expect(summaryCards()).toHaveLength(0));
+    expect(await screen.findByText(messages.common.summaryError.title)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: messages.common.summaryError.retry }),
+    ).toBeInTheDocument();
+    expect(requestsTo("/api/notes/books/summary")).toHaveLength(1);
+    expect(summaryCards()).toHaveLength(0);
+  });
+
+  it("requests the summary again when retry is clicked on the summary error card", async () => {
+    mockArchive("books", { summary: failure(500) });
+    renderArchive("books");
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: messages.common.summaryError.retry }),
+    );
+
+    await waitFor(() => expect(requestsTo("/api/notes/books/summary")).toHaveLength(2));
+  });
+});
+
+describe("NotesArchiveView counter", () => {
+  it("swaps the counter for the updating label while another quick filter loads", async () => {
+    const loadedList = json(notesPage([archiveBookNote()]));
+    mockArchive("books", {
+      list: (url) =>
+        url.includes("filter=pinned") ? new Promise<Response>(() => undefined) : loadedList(),
+    });
+    renderArchive("books");
+    expect(await screen.findByText("Показано 1 із 1")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("radio", { name: /^Закріплені/ }));
+    await waitFor(() =>
+      expect(requestsTo("/api/notes/books").at(-1)?.url).toContain("filter=pinned"),
+    );
+
+    expect(await screen.findByText("Оновлюємо…")).toHaveAttribute("aria-live", "polite");
+    expect(screen.queryByText("Показано 1 із 1")).not.toBeInTheDocument();
   });
 });
 
@@ -770,6 +807,7 @@ function mockArchive(scope: NotesArchiveScope, replies: ArchiveReplies = {}) {
   };
   const {
     impression = noContent,
+    list = json(notesPage([defaults.note])),
     overview = json(defaults.overview),
     review = noContent,
     summary = json(defaults.summary),
@@ -788,7 +826,7 @@ function mockArchive(scope: NotesArchiveScope, replies: ArchiveReplies = {}) {
       if (path === `/api/notes/${scope}/summary`) return summary();
       if (path === `/api/notes/${scope}/overview`) return overview();
       if (path === `/api/notes/${scope}/facets`) return json(defaults.facets)();
-      if (path === `/api/notes/${scope}`) return json(notesPage([defaults.note]))();
+      if (path === `/api/notes/${scope}`) return list(url);
       if (path === "/api/books" || path === "/api/series") return json(notesPage([]))();
       return Promise.reject(new Error(`unexpected ${method} ${url}`));
     }),

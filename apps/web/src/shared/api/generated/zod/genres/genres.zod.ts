@@ -10,7 +10,19 @@ import * as zod from "zod";
 /**
  * @summary List the predefined system genre catalog
  */
-export const GenresControllerListResponse = zod.unknown();
+export const genresControllerListResponseGroupKeyMax = 64;
+
+export const genresControllerListResponseKeyMax = 64;
+
+export const GenresControllerListResponseItem = zod.object({
+  groupKey: zod.string().min(1).max(genresControllerListResponseGroupKeyMax),
+  groupName: zod.string(),
+  id: zod.string(),
+  isDefault: zod.boolean(),
+  key: zod.string().min(1).max(genresControllerListResponseKeyMax),
+  name: zod.string(),
+});
+export const GenresControllerListResponse = zod.array(GenresControllerListResponseItem);
 
 /**
  * @summary List recently used system genres for the current user
@@ -26,7 +38,19 @@ export const GenresControllerRecentQueryParams = zod.object({
     .default(genresControllerRecentQueryLimitDefault),
 });
 
-export const GenresControllerRecentResponse = zod.unknown();
+export const genresControllerRecentResponseGroupKeyMax = 64;
+
+export const genresControllerRecentResponseKeyMax = 64;
+
+export const GenresControllerRecentResponseItem = zod.object({
+  groupKey: zod.string().min(1).max(genresControllerRecentResponseGroupKeyMax),
+  groupName: zod.string(),
+  id: zod.string(),
+  isDefault: zod.boolean(),
+  key: zod.string().min(1).max(genresControllerRecentResponseKeyMax),
+  name: zod.string(),
+});
+export const GenresControllerRecentResponse = zod.array(GenresControllerRecentResponseItem);
 
 /**
  * @summary List the current user's genres with search, advanced filters, a quick filter, sort and pagination
@@ -656,7 +680,7 @@ export const genresControllerOverviewResponseDormantGenresItemBooksCountMax = 90
 
 export const genresControllerOverviewResponseDormantGenresItemLastReadingActivityAtRegExp =
   new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
   );
 export const genresControllerOverviewResponseDormantGenresItemReadCountMin = 0;
 export const genresControllerOverviewResponseDormantGenresItemReadCountMax = 9007199254740991;
@@ -669,7 +693,7 @@ export const genresControllerOverviewResponseNewForYouGenresItemFirstAddedAtRegE
 );
 export const genresControllerOverviewResponseUnratedFinishedGenresItemLatestUnratedFinishedAtRegExp =
   new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
   );
 export const genresControllerOverviewResponseUnratedFinishedGenresItemUnratedFinishedCountMin = 0;
 export const genresControllerOverviewResponseUnratedFinishedGenresItemUnratedFinishedCountMax = 9007199254740991;
@@ -684,7 +708,7 @@ export const GenresControllerOverviewResponse = zod.object({
       key: zod.string(),
       label: zod.string(),
       lastReadingActivityAt: zod.iso
-        .datetime({ offset: true })
+        .date()
         .regex(genresControllerOverviewResponseDormantGenresItemLastReadingActivityAtRegExp),
       readCount: zod
         .int()
@@ -710,7 +734,7 @@ export const GenresControllerOverviewResponse = zod.object({
       key: zod.string(),
       label: zod.string(),
       latestUnratedFinishedAt: zod.iso
-        .datetime({ offset: true })
+        .date()
         .regex(
           genresControllerOverviewResponseUnratedFinishedGenresItemLatestUnratedFinishedAtRegExp,
         )

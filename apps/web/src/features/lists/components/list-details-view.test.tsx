@@ -36,6 +36,7 @@ let respondToRemove: () => Response;
 let respondToOverview: () => Response;
 let respondToRelated: () => Response;
 let respondToMove: () => Response;
+let respondToAddBooks: () => Response;
 
 type RenderQuickFilterListOptions = RenderViewOptions & {
   counts?: Partial<CustomListDetail["quickCounts"]>;
@@ -50,6 +51,15 @@ type RenderViewOptions = {
 
 type ViewProps = Parameters<typeof ListDetailsView>[0];
 
+function isClickable(value: unknown): value is { onClick: () => void } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "onClick" in value &&
+    typeof value.onClick === "function"
+  );
+}
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
@@ -61,6 +71,12 @@ function lastSearchParams(events: UrlUpdateEvent[]): URLSearchParams {
   const last = events.at(-1);
   if (last === undefined) throw new Error("no url update was recorded");
   return last.searchParams;
+}
+
+function pressUndoOnLastToast() {
+  const undo: unknown = vi.mocked(toast).mock.lastCall?.[1]?.action;
+  if (!isClickable(undo)) throw new Error("the removed toast offers no undo");
+  undo.onClick();
 }
 
 function quickCounts(
@@ -140,6 +156,7 @@ function renderView(pages: CustomListDetail[], options: RenderViewOptions = {}) 
   const props: ViewProps = {
     id: "list-1",
     isFetching: false,
+    isRefreshing: false,
     loadMoreState: "none",
     onLoadMore: vi.fn(),
     pages,
@@ -154,6 +171,15 @@ function renderView(pages: CustomListDetail[], options: RenderViewOptions = {}) 
       <ListDetailsView {...props} />
     </NuqsTestingAdapter>,
   );
+}
+
+function restoreRequestBodies(): unknown[] {
+  return fetchMock.mock.calls
+    .filter(
+      ([input, init]) =>
+        String(input).endsWith("/api/lists/list-1/books") && init?.method === "POST",
+    )
+    .map(([, init]) => JSON.parse(String(init?.body)));
 }
 
 function sidebar() {
@@ -181,6 +207,7 @@ beforeEach(() => {
   respondToMove = () => new Response(null, { status: 204 });
   respondToOverview = () => jsonResponse(makeListOverviewView());
   respondToRelated = () => jsonResponse({ lists: [] });
+  respondToAddBooks = () => jsonResponse({ added: 2, bookCount: 2 });
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
@@ -191,6 +218,10 @@ beforeEach(() => {
     if (url.includes("/related")) return Promise.resolve(respondToRelated());
     if (url.includes("/goal")) return Promise.resolve(new Response(null, { status: 204 }));
     if (url.includes("/position") && method === "PATCH") return Promise.resolve(respondToMove());
+    if (url.endsWith("/api/lists/list-1/books/remove") && method === "POST")
+      return Promise.resolve(jsonResponse({ bookCount: 0, removed: 2 }));
+    if (url.endsWith("/api/lists/list-1/books") && method === "POST")
+      return Promise.resolve(respondToAddBooks());
     if (url.includes("/api/lists") && method === "DELETE")
       return Promise.resolve(respondToRemove());
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
@@ -712,6 +743,108 @@ describe("ListDetailsView bulk selection", () => {
 
     await waitFor(() =>
       expect(screen.queryByText("Вибрано 1 із 2 завантажених")).not.toBeInTheDocument(),
+    );
+  });
+
+  it("reports a failed undo after the bulk remove has closed the selection bar", async () => {
+    respondToAddBooks = () => jsonResponse({ message: "boom" }, 500);
+    renderTwoBookList({ hasMemory: true });
+
+    await enterSelection();
+    await userEvent.click(screen.getByRole("checkbox", { name: "Вибрати книгу «Перша»" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Вибрати книгу «Друга»" }));
+    await userEvent.click(
+      within(screen.getByRole("region", { name: "Масові дії" })).getByRole("button", {
+        name: "Прибрати зі списку",
+      }),
+    );
+
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith(
+        "2 книги прибрано зі списку",
+        expect.objectContaining({ action: expect.objectContaining({ label: "Скасувати" }) }),
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("region", { name: "Масові дії" })).not.toBeInTheDocument(),
+    );
+    expect(toast.error).not.toHaveBeenCalled();
+
+    pressUndoOnLastToast();
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Щось пішло не так"));
+  });
+});
+
+describe("ListDetailsView undo after removal", () => {
+  function renderThreeBookList() {
+    return renderView(
+      [
+        makeCustomListDetail({
+          bookCount: 3,
+          books: {
+            items: [
+              makeListBookView({ id: "b1", position: 1, title: "Перша" }),
+              makeListBookView({ id: "b2", position: 2, title: "Друга" }),
+              makeListBookView({ id: "b3", position: 3, title: "Третя" }),
+            ],
+            totalCount: 3,
+          },
+          quickCounts: quickCounts({ all: 3, not_started: 3 }),
+        }),
+      ],
+      { hasMemory: true },
+    );
+  }
+
+  async function waitForUndoToast() {
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ action: expect.objectContaining({ label: "Скасувати" }) }),
+      ),
+    );
+  }
+
+  it("puts a removed book back at the position it held", async () => {
+    renderThreeBookList();
+
+    await userEvent.click(screen.getByRole("button", { name: "Дії з книгою: Друга" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Прибрати зі списку" }));
+    await waitForUndoToast();
+    pressUndoOnLastToast();
+
+    await waitFor(() =>
+      expect(restoreRequestBodies()).toEqual([
+        { bookIds: ["b2"], positions: [{ bookId: "b2", position: 2 }] },
+      ]),
+    );
+  });
+
+  it("puts every bulk-removed book back at the position it held", async () => {
+    renderThreeBookList();
+
+    await userEvent.click(screen.getByRole("button", { name: "Вибрати" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Вибрати книгу «Перша»" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Вибрати книгу «Третя»" }));
+    await userEvent.click(
+      within(screen.getByRole("region", { name: "Масові дії" })).getByRole("button", {
+        name: "Прибрати зі списку",
+      }),
+    );
+    await waitForUndoToast();
+    pressUndoOnLastToast();
+
+    await waitFor(() =>
+      expect(restoreRequestBodies()).toEqual([
+        {
+          bookIds: ["b1", "b3"],
+          positions: [
+            { bookId: "b1", position: 1 },
+            { bookId: "b3", position: 3 },
+          ],
+        },
+      ]),
     );
   });
 });

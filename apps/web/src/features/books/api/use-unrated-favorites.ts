@@ -10,6 +10,8 @@ import {
   BooksControllerListStatusItem,
 } from "@/shared/api/generated/model";
 
+import { bookKeys } from "./book-keys";
+
 type UnratedFavoritesPage = z.infer<typeof PaginatedBooksSchema>;
 
 const UNRATED_FAVORITES_PREVIEW_SIZE = 3;
@@ -36,6 +38,6 @@ export function useUnratedFavorites() {
       const response = await booksControllerList(UNRATED_FAVORITES_PARAMS, { signal });
       return PaginatedBooksSchema.parse(response);
     },
-    queryKey: ["/api/books", "favorites-unrated-preview"],
+    queryKey: bookKeys.unratedFavorites,
   });
 }

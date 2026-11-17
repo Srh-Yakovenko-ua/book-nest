@@ -168,3 +168,30 @@ describe("useRelationshipAuthoring with the relationship list", () => {
     expect(await screen.findByRole("dialog", { name: editor.editTitle })).toBeInTheDocument();
   });
 });
+
+describe("useRelationshipAuthoring orphaned draft guard entry", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    window.history.replaceState(null, "");
+  });
+
+  it("steps back once when it mounts on an entry carrying the draft guard marker", async () => {
+    window.history.replaceState({ closeGuard: true }, "");
+    const historyBack = vi.spyOn(window.history, "back").mockImplementation(() => undefined);
+
+    renderWithProviders(<RelationshipsPanel />);
+
+    expect(await screen.findByRole("button", { name: MENU_LABEL })).toBeInTheDocument();
+    expect(historyBack).toHaveBeenCalledOnce();
+  });
+
+  it("stays when it mounts on an entry without the draft guard marker", async () => {
+    window.history.replaceState(null, "");
+    const historyBack = vi.spyOn(window.history, "back").mockImplementation(() => undefined);
+
+    renderWithProviders(<RelationshipsPanel />);
+
+    expect(await screen.findByRole("button", { name: MENU_LABEL })).toBeInTheDocument();
+    expect(historyBack).not.toHaveBeenCalled();
+  });
+});

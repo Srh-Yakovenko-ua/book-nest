@@ -33,7 +33,6 @@ export function characterDetailsQueryOptions({
     queryFn: async (): Promise<CharacterDetailsView> =>
       CharacterDetailsViewSchema.parse(await charactersControllerGetById(characterId, params)),
     queryKey: characterKeys.details(characterId, params),
-    retry: false,
   });
 }
 

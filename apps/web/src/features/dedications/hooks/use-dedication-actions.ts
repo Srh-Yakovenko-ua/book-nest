@@ -15,7 +15,13 @@ export type DedicationActions = {
   toggleFavorite: (book: BookView) => void;
 };
 
-export function useDedicationActions(): DedicationActions {
+type UseDedicationActionsOptions = {
+  onFavoriteChanged?: (updated: BookView) => void;
+};
+
+export function useDedicationActions({
+  onFavoriteChanged,
+}: UseDedicationActionsOptions = {}): DedicationActions {
   const t = useTranslations("dedications");
   const favorite = useToggleFavoriteDedication();
 
@@ -30,16 +36,18 @@ export function useDedicationActions(): DedicationActions {
       return false;
     },
     isTogglingFavorite: favorite.isPending,
-    toggleFavorite: (book) =>
-      favorite.mutate(
-        { id: book.id, isFavoriteDedication: !book.isFavoriteDedication },
-        {
-          onError: () => toast.error(t("favorite.error")),
-          onSuccess: (updated) =>
+    toggleFavorite: (book) => {
+      void favorite
+        .mutateAsync({ id: book.id, isFavoriteDedication: !book.isFavoriteDedication })
+        .then(
+          (updated) => {
+            onFavoriteChanged?.(updated);
             toast.success(
               updated.isFavoriteDedication ? t("favorite.added") : t("favorite.removed"),
-            ),
-        },
-      ),
+            );
+          },
+          () => toast.error(t("favorite.error")),
+        );
+    },
   };
 }

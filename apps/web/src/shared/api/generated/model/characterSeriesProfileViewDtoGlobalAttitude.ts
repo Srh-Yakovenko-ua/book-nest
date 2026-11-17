@@ -14,7 +14,6 @@ export type CharacterSeriesProfileViewDtoGlobalAttitude =
   | null;
 
 export const CharacterSeriesProfileViewDtoGlobalAttitude = {
-  favorite: "favorite",
   like: "like",
   neutral: "neutral",
   distrust: "distrust",

@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { useUpdateBook } from "@/features/books/api/use-update-book";
+import { useUpdateBook } from "@/features/books";
 import { BookRow } from "@/features/books/components/book-row";
 import { Link } from "@/i18n/navigation";
 import { formatDate, formatDateLong } from "@/lib/format";

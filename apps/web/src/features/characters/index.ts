@@ -7,6 +7,7 @@ export { CharacterSummaryCard } from "./components/character-summary-card";
 export { CharactersCatalogView } from "./components/characters-catalog-view";
 export { CharactersErrorState } from "./components/characters-error-state";
 export { CharactersViewModes } from "./components/characters-view-modes";
+export { getCharacterDetailsPath } from "./model/character-routes";
 export { toCharacterBookContext } from "./model/characters-roster-query";
 export type { CharactersViewMode } from "./model/characters-view-mode";
 export { useCharactersViewMode } from "./model/use-characters-view-mode";

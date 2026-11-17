@@ -235,6 +235,7 @@ function serveRoster(roster: BookCharacterRosterItem[]): () => void {
           makeBookCharacterSummary({
             bookId: ROSTER.bookId,
             favoritesCount: served.roster.filter((character) => character.isFavorite).length,
+            totalVisibleCharacters: served.roster.length,
           }),
         ),
       );

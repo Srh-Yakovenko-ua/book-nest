@@ -40,17 +40,18 @@ export class DedicationsService {
     const base = await this.resolveBaseFilter({ query, userId });
     const filter: DedicationsFilter = { ...base, filter: query.filter };
 
-    const [books, totalCount] = await Promise.all([
+    const [books, totalCount, toBookView] = await Promise.all([
       this.booksRepository.listDedicationsForQuery({
         filter,
         sort,
         ...pageSlice({ pageNumber, pageSize }),
       }),
       this.booksRepository.countDedicationsForQuery({ filter }),
+      this.bookViewAssembler.forUser(userId),
     ]);
 
     return buildPaginator({
-      items: books.map((book) => this.bookViewAssembler.viewOf(book)),
+      items: books.map((book) => toBookView(book)),
       pageNumber,
       pageSize,
       totalCount,

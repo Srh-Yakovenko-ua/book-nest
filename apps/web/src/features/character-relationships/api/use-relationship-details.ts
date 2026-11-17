@@ -46,6 +46,5 @@ export function useRelationshipDetails({
       reveal,
       scopeKey: toRelationshipScopeKey(scope),
     }),
-    retry: false,
   });
 }

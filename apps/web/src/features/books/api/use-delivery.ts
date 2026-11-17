@@ -53,7 +53,6 @@ export function useDeliveryHistory(id: string, enabled: boolean) {
     queryFn: async (): Promise<DeliveryView[]> =>
       z.array(DeliveryViewSchema).parse(await bookDeliveryControllerListHistory(id)),
     queryKey: bookKeys.deliveryHistory(id),
-    retry: false,
   });
 }
 

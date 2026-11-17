@@ -3,10 +3,9 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import type { BookReadingControllerGetReadingHistoryParams } from "@/shared/api/generated/model/bookReadingControllerGetReadingHistoryParams";
 
-import {
-  bookReadingControllerGetReadingHistory,
-  getBookReadingControllerGetReadingHistoryQueryKey,
-} from "@/shared/api/generated/endpoints/books/books";
+import { bookReadingControllerGetReadingHistory } from "@/shared/api/generated/endpoints/books/books";
+
+import { bookKeys } from "./book-keys";
 
 export function useReadingHistory(
   bookId: string,
@@ -18,6 +17,6 @@ export function useReadingHistory(
     placeholderData: keepPreviousData,
     queryFn: async () =>
       ReadingHistoryViewSchema.parse(await bookReadingControllerGetReadingHistory(bookId, params)),
-    queryKey: getBookReadingControllerGetReadingHistoryQueryKey(bookId, params),
+    queryKey: bookKeys.readingHistory(bookId, params),
   });
 }

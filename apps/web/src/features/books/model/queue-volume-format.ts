@@ -1,5 +1,7 @@
 import type { ReadingQueueVolumeSummaryView } from "@app/shared";
 
+import { assertNever } from "@/lib/assert-never";
+
 const DAYS_UNIT_CEILING = 14;
 const WEEKS_UNIT_CEILING = 60;
 const MONTHS_UNIT_CEILING = 365;
@@ -64,10 +66,6 @@ export function toQueueVolumeForecast(
     default:
       return assertNever(reasonUnavailable);
   }
-}
-
-function assertNever(value: never): never {
-  throw new Error(`Unexpected reading queue volume reason: ${String(value)}`);
 }
 
 function divisorOf(unit: QueueEstimateUnit): number {

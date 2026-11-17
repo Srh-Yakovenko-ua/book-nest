@@ -1,16 +1,19 @@
 "use client";
 
 import type { BookOrderStatisticsView, Currency, Nullable } from "@app/shared";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
 import { resolveStatisticsDisplayCurrency } from "@app/shared";
 import { useLocale, useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 
 import type { StatisticsDrilldownContext } from "../model/statistics-drilldown";
 import type { DynamicsMetric } from "../model/statistics-dynamics";
@@ -46,7 +49,6 @@ import {
   StatisticsAllTimeEmpty,
   StatisticsError,
   StatisticsPeriodEmpty,
-  StatisticsRefetchError,
   StatisticsRefreshingNote,
   StatisticsSectionState,
   StatisticsSkeleton,
@@ -80,8 +82,10 @@ type StatisticsBodyProps = {
   drilldown: StatisticsDrilldownContext;
   metric: DynamicsMetric;
   onMetricChange: (metric: DynamicsMetric) => void;
+  onRetry: () => void;
   params: UseStatisticsParamsResult;
   period: StatisticsScopeState<BookOrderStatisticsView>;
+  retryButtonRef: Ref<HTMLButtonElement>;
 };
 
 export function DeliveryStatistics() {
@@ -89,6 +93,8 @@ export function DeliveryStatistics() {
   const locale = useLocale();
   const params = useStatisticsParams();
   const [metric, setMetric] = useState<DynamicsMetric>("spend");
+  const statisticsBodyRef = useRef<HTMLElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(statisticsBodyRef);
 
   const statistics = useStatistics(params.queryParams);
   const view = statistics.data;
@@ -159,7 +165,11 @@ export function DeliveryStatistics() {
 
       {period.isRefreshing ? <StatisticsRefreshingNote /> : null}
 
-      {period.isRefetchError ? <StatisticsRefetchError onRetry={period.retry} /> : null}
+      <RefetchErrorBanner
+        state={
+          period.isRefetchError ? { isRetrying: period.isRefreshing, onRetry: period.retry } : null
+        }
+      />
 
       {currentSource !== null && currentSource.isTruncated && currentSource.maxOrders !== null ? (
         <StatisticsTruncationNotice
@@ -168,24 +178,33 @@ export function DeliveryStatistics() {
         />
       ) : null}
 
-      <StatisticsBody
-        activeAgeCard={<StatisticsActiveAge drilldown={currentDrilldown} scope={activeAge} />}
-        budgetCard={
-          <StatisticsBudget
-            currency={params.budgetCurrency}
-            onCurrencyChange={params.setBudgetCurrency}
-            scope={budgetScope}
-          />
-        }
-        comparisonLabel={comparisonLabel}
-        currentLabel={currentLabel}
-        displayCurrency={displayCurrency}
-        drilldown={drilldown}
-        metric={metric}
-        onMetricChange={setMetric}
-        params={params}
-        period={period}
-      />
+      <section
+        aria-label={t("resultsLabel")}
+        className={RETRY_FOCUS_RING.onTarget}
+        ref={statisticsBodyRef}
+        tabIndex={-1}
+      >
+        <StatisticsBody
+          activeAgeCard={<StatisticsActiveAge drilldown={currentDrilldown} scope={activeAge} />}
+          budgetCard={
+            <StatisticsBudget
+              currency={params.budgetCurrency}
+              onCurrencyChange={params.setBudgetCurrency}
+              scope={budgetScope}
+            />
+          }
+          comparisonLabel={comparisonLabel}
+          currentLabel={currentLabel}
+          displayCurrency={displayCurrency}
+          drilldown={drilldown}
+          metric={metric}
+          onMetricChange={setMetric}
+          onRetry={withRetryFocus(period.retry)}
+          params={params}
+          period={period}
+          retryButtonRef={retryButtonRef}
+        />
+      </section>
     </div>
   );
 }
@@ -199,8 +218,10 @@ function StatisticsBody({
   drilldown,
   metric,
   onMetricChange: setMetric,
+  onRetry,
   params,
   period,
+  retryButtonRef,
 }: StatisticsBodyProps) {
   const t = useTranslations("delivery.statistics");
   const [highlightedBucketKey, setHighlightedBucketKey] = useState<Nullable<string>>(null);
@@ -211,7 +232,7 @@ function StatisticsBody({
   if (period.isInitialError) {
     return (
       <div className="flex flex-col gap-6">
-        <StatisticsError onRetry={period.retry} />
+        <StatisticsError onRetry={onRetry} retryButtonRef={retryButtonRef} />
         {budgetCard}
         {activeAgeCard}
       </div>
@@ -268,9 +289,10 @@ function StatisticsBody({
   }
 
   return (
-    <div
+    <RefreshingRegion
       aria-busy={period.isRefreshing}
-      className={cn("flex flex-col gap-6 transition-opacity", period.isRefreshing && "opacity-70")}
+      className="flex flex-col gap-6"
+      isRefreshing={period.isPlaceholderData}
     >
       <StatisticsKpi currency={displayCurrency} snapshot={view.snapshot} view={view} />
 
@@ -377,7 +399,7 @@ function StatisticsBody({
           />
         </div>
       </div>
-    </div>
+    </RefreshingRegion>
   );
 }
 

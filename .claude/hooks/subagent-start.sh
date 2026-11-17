@@ -16,7 +16,7 @@ then these sections, each left out when empty:
 CHANGED: files you wrote, one path per line
 VERIFIED: what you observed yourself, with the file:line or output that proves it
 NOT_VERIFIED: every check you did not run, one per line: `MAIN: <exact command>` for a non-test gate the main loop runs, `CI: <test file>` for each test you wrote or that covers your change (tests run only in CI, never on this machine), `EXTERNAL: <what>` for anything that needs a human, a browser or a server
-FINDINGS: for reviews and audits, one line each: `<severity> <file:line> <claim> (basis: doc|rule|smell|bug)`
+FINDINGS: for reviews and audits, one line each: `<severity> <file:line> <claim> (basis: doc|rule|smell|bug|measured)`; problems that predate the diff go in your Not introduced here section. An engineer lists here any defect it noticed outside its brief, and adds `introduced` to the basis when its own change caused it
 QUESTION: only with NEEDS_DECISION: one decision, its options, your recommendation
 NEXT: one line, only for PARTIAL or BLOCKED
 
@@ -29,6 +29,7 @@ RULES="$(cat <<'TEXT'
 - Do not run typecheck, lint, format, vitest, build, knip, prisma, codegen, dev servers or package installs. A hook denies them, so do not route around it through npx, node_modules/.bin or a script. Record each one as a MAIN: line instead.
 - Never commit, push, stage, switch branches, or create, edit or merge a PR.
 - Do not drive a browser. The main loop checks the UI once through Chrome MCP; list it as `EXTERNAL: browser <route>, <state>, 375 and 1280 wide`.
+- If the Context7 tools are missing or fail, do not retry them: read the installed package instead (its `.d.ts` and source under `apps/<app>/node_modules/<pkg>`, the exact version the code runs against) and say so under VERIFIED. You may not see the notice that the server failed, so a failed call is your signal.
 - Before you report that something does not exist, run the same search for a string you know exists. An empty result from a broken search reads exactly like absence.
 - Before you report DONE on code you wrote, re-read your own diff once as its reviewer and fix what you find: a state left unhandled (loading, error, empty, pending, null), a caller of a changed signature you did not open, a key missing from one locale, a test that would still pass with your change reverted. The first plausible version is where defects hide; the reviewer after you costs a full round. Do not polish beyond the brief.
 - Where your agent definition contradicts this block or CLAUDE.md (old stack names, "run all gates" checklists), this block and CLAUDE.md win.

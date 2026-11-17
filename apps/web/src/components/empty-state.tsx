@@ -2,9 +2,10 @@ import type { Ref } from "react";
 
 import Image from "next/image";
 
+import type { EmptyStateEntry } from "@/lib/empty-states";
+
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { EMPTY_STATES, type EmptyStateEntry, type EmptyStateKey } from "@/lib/empty-states";
 import { cn } from "@/lib/utils";
 
 const ILLU_SIZE = {
@@ -18,7 +19,8 @@ type EmptyStateProps = {
   onPrimary?: () => void;
   onSecondary?: () => void;
   primaryRef?: Ref<HTMLButtonElement>;
-} & ({ state: EmptyStateEntry; stateKey?: never } | { state?: never; stateKey: EmptyStateKey });
+  state: EmptyStateEntry;
+};
 
 export function EmptyState({
   className,
@@ -26,10 +28,8 @@ export function EmptyState({
   onSecondary,
   primaryRef,
   state,
-  stateKey,
 }: EmptyStateProps) {
-  const entry: EmptyStateEntry = state ?? EMPTY_STATES[stateKey];
-  const illuSizeClass = ILLU_SIZE[entry.illuSize ?? "lg"];
+  const illuSizeClass = ILLU_SIZE[state.illuSize ?? "lg"];
 
   return (
     <div className={cn("mx-auto flex flex-col items-center px-6 py-6 text-center", className)}>
@@ -37,51 +37,29 @@ export function EmptyState({
         alt=""
         className={cn("select-none", illuSizeClass)}
         height={352}
-        priority={false}
-        src={`/illustrations/${entry.illu}.png`}
+        loading="eager"
+        src={`/illustrations/${state.illu}.png`}
         width={352}
       />
 
-      <h2 className="mt-6 font-heading text-xl font-medium text-ink">{entry.title}</h2>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{entry.desc}</p>
+      <h2 className="mt-6 font-heading text-xl font-medium text-ink">{state.title}</h2>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{state.desc}</p>
 
-      {(entry.primary ?? entry.secondary) ? (
+      {(state.primary ?? state.secondary) ? (
         <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-          {entry.primary ? (
+          {state.primary ? (
             <Button onClick={onPrimary} ref={primaryRef}>
-              <UiIcon name={entry.primary.icon} />
-              {entry.primary.label}
+              <UiIcon name={state.primary.icon} />
+              {state.primary.label}
             </Button>
           ) : null}
-          {entry.secondary ? (
+          {state.secondary ? (
             <Button onClick={onSecondary} variant="secondary">
-              <UiIcon name={entry.secondary.icon} />
-              {entry.secondary.label}
+              <UiIcon name={state.secondary.icon} />
+              {state.secondary.label}
             </Button>
           ) : null}
         </div>
-      ) : null}
-
-      {entry.chips ? (
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-          {entry.chips.map((chip) => (
-            <span
-              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground"
-              key={chip.label}
-            >
-              <UiIcon className="text-icon" name={chip.icon} size={14} />
-              {chip.label}
-            </span>
-          ))}
-        </div>
-      ) : null}
-
-      {entry.tip ? (
-        <p className="mt-6 text-xs leading-relaxed text-muted-foreground/80">{entry.tip}</p>
-      ) : null}
-
-      {entry.footer ? (
-        <p className="mt-4 text-xs text-muted-foreground/80">{entry.footer}</p>
       ) : null}
     </div>
   );

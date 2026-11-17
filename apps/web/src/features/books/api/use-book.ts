@@ -7,8 +7,12 @@ import { booksControllerGetById } from "@/shared/api/generated/endpoints/books/b
 
 import { bookKeys } from "./book-keys";
 
-export function useBook(id: string) {
-  return useQuery(bookQueryOptions(id));
+type UseBookOptions = {
+  enabled?: boolean;
+};
+
+export function useBook(id: string, options: UseBookOptions = {}) {
+  return useQuery({ ...bookQueryOptions(id), enabled: options.enabled ?? true });
 }
 
 export function useBookPagesCount(bookId: Nullable<string>): Nullable<number> {
@@ -27,6 +31,5 @@ function bookQueryOptions(id: string) {
       return BookDetailsViewSchema.parse(response);
     },
     queryKey: bookKeys.detail(id),
-    retry: false,
   });
 }

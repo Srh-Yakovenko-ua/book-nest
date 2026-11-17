@@ -1,11 +1,15 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
+import { pinProcessTimezone } from "../test/process-timezone.js";
 import {
   addDaysToIsoDate,
+  addDaysToUtcDay,
   daysBetweenIsoDates,
+  daysBetweenUtcDays,
   parseIsoDate,
   toIsoDate,
   toIsoDateFromIsoString,
+  toZonedCalendarDay,
 } from "./iso-date.js";
 
 describe("iso-date", () => {
@@ -33,15 +37,7 @@ describe("iso-date", () => {
   });
 
   describe("with a server timezone west of UTC", () => {
-    const originalTimezone = process.env.TZ;
-
-    beforeEach(() => {
-      process.env.TZ = "America/Los_Angeles";
-    });
-
-    afterEach(() => {
-      process.env.TZ = originalTimezone;
-    });
+    pinProcessTimezone("America/Los_Angeles");
 
     it("does not shift the calendar day when round-tripping", () => {
       expect(toIsoDate(parseIsoDate("2000-05-15"))).toBe("2000-05-15");
@@ -62,6 +58,26 @@ describe("iso-date", () => {
     });
   });
 
+  describe("reading the calendar day an instant falls on in a time zone", () => {
+    it("moves to the next day when the zone east of UTC has already passed midnight", () => {
+      const day = toZonedCalendarDay({
+        instant: new Date("2026-11-15T22:30:00.000Z"),
+        timeZone: "Europe/Kyiv",
+      });
+
+      expect(day.toISOString()).toBe("2026-11-16T00:00:00.000Z");
+    });
+
+    it("stays on the previous day when the zone west of UTC has not reached midnight", () => {
+      const day = toZonedCalendarDay({
+        instant: new Date("2026-11-16T02:00:00.000Z"),
+        timeZone: "America/New_York",
+      });
+
+      expect(day.toISOString()).toBe("2026-11-15T00:00:00.000Z");
+    });
+  });
+
   describe("calendar-day arithmetic on ISO date strings", () => {
     it("shifts a date forward and backward without touching the clock", () => {
       expect(addDaysToIsoDate("2026-07-30", 3)).toBe("2026-08-02");
@@ -76,6 +92,53 @@ describe("iso-date", () => {
       expect(daysBetweenIsoDates({ endIsoDate: "2026-07-30", startIsoDate: "2026-08-02" })).toBe(
         -3,
       );
+    });
+  });
+
+  describe("calendar-day arithmetic on UTC days", () => {
+    const utc = (value: string): Date => new Date(`${value}T00:00:00.000Z`);
+
+    describe("Europe/Kyiv", () => {
+      pinProcessTimezone("Europe/Kyiv");
+
+      it("adds days to a UTC day across the spring clock change without leaving 00:00 UTC", () => {
+        expect(addDaysToUtcDay({ day: utc("2026-03-25"), days: 7 }).toISOString()).toBe(
+          "2026-04-01T00:00:00.000Z",
+        );
+      });
+
+      it("subtracts days from a UTC day across the autumn clock change", () => {
+        expect(addDaysToUtcDay({ day: utc("2026-11-10"), days: -30 }).toISOString()).toBe(
+          "2026-10-11T00:00:00.000Z",
+        );
+      });
+
+      it("snaps an instant to its UTC day before adding days", () => {
+        const lateMorning = new Date("2026-03-29T10:00:00.000Z");
+
+        expect(addDaysToUtcDay({ day: lateMorning, days: 1 }).toISOString()).toBe(
+          "2026-03-30T00:00:00.000Z",
+        );
+      });
+    });
+
+    describe("Atlantic/Azores", () => {
+      pinProcessTimezone("Atlantic/Azores");
+
+      it("counts UTC days when the zone offset crosses zero", () => {
+        expect(daysBetweenUtcDays({ end: utc("2026-04-01"), start: utc("2026-03-25") })).toBe(7);
+        expect(daysBetweenUtcDays({ end: utc("2026-10-28"), start: utc("2026-10-20") })).toBe(8);
+      });
+    });
+
+    describe("America/New_York", () => {
+      pinProcessTimezone("America/New_York");
+
+      it("counts an evening instant on its UTC day", () => {
+        const eveningInstant = new Date("2026-11-15T22:30:00.000Z");
+
+        expect(daysBetweenUtcDays({ end: eveningInstant, start: utc("2026-11-15") })).toBe(0);
+      });
     });
   });
 });

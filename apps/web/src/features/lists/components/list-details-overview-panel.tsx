@@ -4,15 +4,15 @@ import type { ListOverviewView, Nullable, RelatedListView } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 import type { MobilePageOverviewTab } from "@/components/ui/mobile-page-overview-panel";
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
+import { SummaryDetails } from "@/components/catalog/summary-mobile";
 import {
   MobilePageOverviewPanel,
   MobilePageOverviewTrigger,
   useMobilePageOverviewPanel,
 } from "@/components/ui/mobile-page-overview-panel";
-import { LibrarySummaryDetails } from "@/features/books/components/library-summary-mobile";
 import { ListGoalCard } from "@/features/reading-goals";
 
 import { ListAboutCard } from "./list-about-card";
@@ -26,7 +26,7 @@ type ListDetailsOverviewPanelProps = {
   listName: string;
   overview: Nullable<ListOverviewView>;
   relatedLists: RelatedListView[];
-  summaryCards: LibrarySummaryCard[];
+  summaryCards: SummaryCard[];
 };
 
 export function ListDetailsOverviewPanel({
@@ -48,7 +48,7 @@ export function ListDetailsOverviewPanel({
     tabs.push({
       content: (
         <div className="flex flex-col gap-4">
-          <LibrarySummaryDetails cards={summaryCards} title={tStats("title")} />
+          <SummaryDetails cards={summaryCards} title={tStats("title")} />
           <ListAboutCard overview={overview} />
         </div>
       ),

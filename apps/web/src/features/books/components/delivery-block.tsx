@@ -1,7 +1,8 @@
 "use client";
 
-import type { BookView, Currency, DeliveryView, ShipmentStatus } from "@app/shared";
+import type { BookView, Currency, DeliveryView, Nullable, ShipmentStatus } from "@app/shared";
 
+import { isBefore, parseISO } from "date-fns";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -10,13 +11,14 @@ import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useProfileTimeZone } from "@/features/settings";
 import { deliveryStatuses } from "@/lib/book-status";
 import { formatDate } from "@/lib/format";
-import { ApiError } from "@/lib/http-client";
 import { isHttpsUrl } from "@/lib/is-https-url";
+import { instantToIsoDay, todayIsoDay } from "@/lib/iso-day";
 
 import { useDeliveryHistory, useReceiveDelivery } from "../api/use-delivery";
-import { todayIso } from "../model/reading-progress";
+import { toDeliveryErrorKey } from "../model/delivery-error";
 import { CancelDeliveryDialog } from "./cancel-delivery-dialog";
 import { DeliveryDialog } from "./delivery-dialog";
 
@@ -40,8 +42,10 @@ export function DeliveryBlock({ book }: DeliveryBlockProps) {
     receiveDelivery.mutate(
       { deliveryId, id: book.id },
       {
-        onError: (error) =>
-          toast.error(error instanceof ApiError ? error.message : t("toast.error")),
+        onError: (error) => {
+          const errorKey = toDeliveryErrorKey(error);
+          toast.error(errorKey === "generic" ? t("toast.error") : t(`errors.${errorKey}`));
+        },
         onSuccess: () => toast.success(t("toast.received")),
       },
     );
@@ -109,9 +113,11 @@ function ActiveDelivery({
   receivePending: boolean;
 }) {
   const t = useTranslations("books.details.delivery");
+  const today = todayIsoDay(useProfileTimeZone());
 
   const delayed =
-    delivery.expectedDeliveryDate !== null && delivery.expectedDeliveryDate < todayIso();
+    delivery.expectedDeliveryDate !== null &&
+    isBefore(parseISO(delivery.expectedDeliveryDate), parseISO(today));
   const noExpectedDate = delivery.expectedDeliveryDate === null;
 
   return (
@@ -237,10 +243,11 @@ function HistoryPreview({
 }) {
   const t = useTranslations("books.details.delivery");
   const locale = useLocale();
+  const timeZone = useProfileTimeZone();
   const [expanded, setExpanded] = useState(false);
   const history = useDeliveryHistory(bookId, expanded);
 
-  const previewDate = terminalDate(latest) ?? latest.orderDate;
+  const previewDate = terminalDay({ delivery: latest, timeZone }) ?? latest.orderDate;
   const previewLabel =
     latest.receivedAt !== null
       ? t("fields.receivedAt")
@@ -282,7 +289,7 @@ function HistoryPreview({
         ) : (
           <ul className="flex flex-col gap-3">
             {history.data.map((entry) => (
-              <HistoryRow entry={entry} key={entry.id} locale={locale} />
+              <HistoryRow entry={entry} key={entry.id} locale={locale} timeZone={timeZone} />
             ))}
           </ul>
         )
@@ -291,8 +298,16 @@ function HistoryPreview({
   );
 }
 
-function HistoryRow({ entry, locale }: { entry: DeliveryView; locale: string }) {
-  const terminal = terminalDate(entry);
+function HistoryRow({
+  entry,
+  locale,
+  timeZone,
+}: {
+  entry: DeliveryView;
+  locale: string;
+  timeZone: string;
+}) {
+  const terminal = terminalDay({ delivery: entry, timeZone });
 
   return (
     <li className="flex flex-col gap-1.5 border-t border-border pt-3 first:border-t-0 first:pt-0">
@@ -333,6 +348,13 @@ function RepairState({ onAdd }: { onAdd: () => void }) {
   );
 }
 
-function terminalDate(delivery: DeliveryView): null | string {
-  return delivery.receivedAt ?? delivery.cancelledAt;
+function terminalDay({
+  delivery,
+  timeZone,
+}: {
+  delivery: DeliveryView;
+  timeZone: string;
+}): Nullable<string> {
+  const instant = delivery.receivedAt ?? delivery.cancelledAt;
+  return instant === null ? null : instantToIsoDay({ instant, timeZone });
 }

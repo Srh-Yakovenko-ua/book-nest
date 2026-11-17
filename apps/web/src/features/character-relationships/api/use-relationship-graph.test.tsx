@@ -1,10 +1,9 @@
 import type { Nullable } from "@app/shared";
-import type { ReactNode } from "react";
 
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { queryClientWrapper } from "@/test-query-cache";
 import { createTestQueryClient } from "@/test-utils";
 
 import type { RelationshipGraphCriteria } from "../model/relationship-graph-criteria";
@@ -52,12 +51,6 @@ function graphRequests(): URL[] {
   return fetchMock.mock.calls.map(([input]) => new URL(String(input), "http://localhost"));
 }
 
-function makeWrapper(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
-}
-
 function onlyRequest(): URL {
   const requests = graphRequests();
   expect(requests).toHaveLength(1);
@@ -73,7 +66,7 @@ function pendingForever(): Promise<Response> {
 function renderGraph(initialProps: GraphHookProps) {
   return renderHook((props: GraphHookProps) => useRelationshipGraph(props), {
     initialProps,
-    wrapper: makeWrapper(createTestQueryClient()),
+    wrapper: queryClientWrapper(createTestQueryClient()),
   });
 }
 

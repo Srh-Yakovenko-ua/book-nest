@@ -1,8 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
-import { useId, useState } from "react";
+import { createContext, use, useId, useState } from "react";
+import { Drawer as DrawerPrimitive } from "vaul";
 
 import {
   Drawer,
@@ -26,41 +27,51 @@ type StatisticsDetailSurfaceProps = {
   contentClassName?: string;
   detail: (context: { close: () => void }) => ReactNode;
   label?: string;
+  onCloseAutoFocus?: (event: Event) => void;
   title: string;
   triggerClassName?: string;
+  triggerRef?: Ref<HTMLButtonElement>;
 };
+
+const InsideDrawerContext = createContext(false);
 
 export function StatisticsDetailSurface({
   children,
   contentClassName,
   detail,
   label,
+  onCloseAutoFocus,
   title,
   triggerClassName,
+  triggerRef,
 }: StatisticsDetailSurfaceProps) {
-  const isMobile = useIsMobile();
+  const isInsideDrawer = use(InsideDrawerContext);
+  const isMobile = useIsMobile() || isInsideDrawer;
   const [open, setOpen] = useState(false);
   const titleId = useId();
   const close = () => setOpen(false);
 
   if (isMobile) {
+    const DrawerRoot = isInsideDrawer ? DrawerPrimitive.NestedRoot : Drawer;
+
     return (
-      <Drawer autoFocus onOpenChange={setOpen} open={open}>
+      <DrawerRoot autoFocus onOpenChange={setOpen} open={open}>
         <DrawerTrigger
           aria-label={label}
           className={cn("cursor-pointer text-left", triggerClassName)}
+          ref={triggerRef}
         >
           {children}
         </DrawerTrigger>
-        <DrawerContent>
+        <DrawerContent onCloseAutoFocus={onCloseAutoFocus}>
           <DrawerHeader>
             <DrawerTitle>{title}</DrawerTitle>
           </DrawerHeader>
           <div className={cn("overflow-y-auto px-5 py-4", contentClassName)}>
-            {open ? detail({ close }) : null}
+            <InsideDrawerContext value>{open ? detail({ close }) : null}</InsideDrawerContext>
           </div>
         </DrawerContent>
-      </Drawer>
+      </DrawerRoot>
     );
   }
 
@@ -69,6 +80,7 @@ export function StatisticsDetailSurface({
       <PopoverTrigger
         aria-label={label}
         className={cn("cursor-pointer text-left", triggerClassName)}
+        ref={triggerRef}
       >
         {children}
       </PopoverTrigger>
@@ -76,6 +88,7 @@ export function StatisticsDetailSurface({
         align="start"
         aria-labelledby={titleId}
         className={cn("w-80", contentClassName)}
+        onCloseAutoFocus={onCloseAutoFocus}
       >
         <PopoverHeader>
           <PopoverTitle id={titleId}>{title}</PopoverTitle>

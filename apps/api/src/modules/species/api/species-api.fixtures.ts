@@ -164,7 +164,7 @@ export function speciesApi({ accessToken, app }: { accessToken: string; app: INe
         .query({ locale })
         .set("Authorization", authorization)
         .send({ name }),
-    search: (query: { locale?: CatalogLocale; q?: string }) =>
+    search: (query: { ids?: readonly string[] | string; locale?: CatalogLocale; q?: string }) =>
       request(server).get("/api/species").query(query).set("Authorization", authorization),
   };
 }

@@ -7,7 +7,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { io } from "socket.io-client";
 
-import { useAuthStore } from "@/features/auth/model/auth-store";
+import { useAuthStore } from "@/features/auth";
+import { assertNever } from "@/lib/assert-never";
 import { getAuthBridge } from "@/lib/auth-bridge";
 import { env } from "@/lib/env";
 import { ApiError } from "@/lib/http-client";
@@ -158,10 +159,6 @@ export function useRealtimeConnection(): void {
       socket.removeAllListeners();
     };
   }, [queryClient, status]);
-}
-
-function assertNever(value: never): never {
-  throw new Error(`unhandled realtime connect error action: ${JSON.stringify(value)}`);
 }
 
 function isRealtimeErrorCode(value: string): value is RealtimeErrorCode {

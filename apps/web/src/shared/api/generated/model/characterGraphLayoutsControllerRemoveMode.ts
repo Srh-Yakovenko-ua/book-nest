@@ -12,4 +12,7 @@ export type CharacterGraphLayoutsControllerRemoveMode =
 export const CharacterGraphLayoutsControllerRemoveMode = {
   family: "family",
   all: "all",
+  person: "person",
+  tree: "tree",
+  network: "network",
 } as const;

@@ -2,11 +2,32 @@ import "@testing-library/jest-dom/vitest";
 
 import type { InTransitAttention } from "@app/shared";
 
-import { describe, expect, it, vi } from "vitest";
+import { defaultUserProfileSettings } from "@app/shared";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithProviders, screen, userEvent } from "@/test-utils";
 
 import { DeliveryAttentionBlock } from "./delivery-attention-block";
+
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((input: RequestInfo | URL) =>
+      String(input).includes("/api/profile/settings")
+        ? Promise.resolve(
+            new Response(JSON.stringify(defaultUserProfileSettings), {
+              headers: { "Content-Type": "application/json" },
+              status: 200,
+            }),
+          )
+        : Promise.reject(new Error(`unexpected fetch: ${String(input)}`)),
+    ),
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 const ALL_SIX: InTransitAttention[] = [
   { count: 2, expiredCount: 0, nearestPickupUntil: null, reason: "pickup_expiring" },

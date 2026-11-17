@@ -9,11 +9,10 @@ import {
   ActiveMoneyAgeBucketSchema,
   isActiveShipmentStatus,
 } from "@app/shared";
-import { differenceInCalendarDays } from "date-fns";
 
 import type { AmountAccumulator, ClassifiedOrder } from "./statistics-scope.js";
 
-import { startOfUtcDay } from "../../../core/iso-date.js";
+import { daysBetweenIsoDates, toIsoDate } from "../../../core/iso-date.js";
 import { addOrderAmount, isActiveItem, totalsFromAmounts } from "./statistics-scope.js";
 
 const AGE_BUCKET_ORDER: readonly ActiveMoneyAgeBucket[] = ActiveMoneyAgeBucketSchema.options;
@@ -33,9 +32,11 @@ type AgeBucketAccumulator = {
 export function buildActiveMoneyAge({
   now,
   orders,
+  today,
 }: {
   now: Date;
   orders: readonly ClassifiedOrder[];
+  today: string;
 }): Omit<ActiveMoneyAgeResponse, "source"> {
   const buckets = new Map<ActiveMoneyAgeBucket, AgeBucketAccumulator>();
 
@@ -45,7 +46,7 @@ export function buildActiveMoneyAge({
       continue;
     }
 
-    const key = ageBucketOf({ now, orderDate: order.record.orderDate });
+    const key = ageBucketOf({ orderDate: order.record.orderDate, today });
     const bucket = buckets.get(key) ?? emptyAccumulator();
     bucket.booksCount += activeItems.length;
     bucket.ordersCount += 1;
@@ -64,11 +65,11 @@ export function buildActiveMoneyAge({
 }
 
 function ageBucketOf({
-  now,
   orderDate,
+  today,
 }: {
-  now: Date;
   orderDate: ClassifiedOrder["record"]["orderDate"];
+  today: string;
 }): ActiveMoneyAgeBucket {
   if (orderDate === null) {
     return ActiveMoneyAgeBucketSchema.enum.unknown_date;
@@ -76,7 +77,7 @@ function ageBucketOf({
 
   const ageInDays = Math.max(
     0,
-    differenceInCalendarDays(startOfUtcDay(now), startOfUtcDay(orderDate)),
+    daysBetweenIsoDates({ endIsoDate: today, startIsoDate: toIsoDate(orderDate) }),
   );
   const matched = DATED_AGE_BUCKETS.find(
     ([, bounds]) =>

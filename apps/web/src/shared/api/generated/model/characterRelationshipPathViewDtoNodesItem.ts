@@ -5,6 +5,7 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { CharacterRelationshipPathViewDtoNodesItemDisplayMedia } from "./characterRelationshipPathViewDtoNodesItemDisplayMedia";
 import type { CharacterRelationshipPathViewDtoNodesItemEntityKind } from "./characterRelationshipPathViewDtoNodesItemEntityKind";
 import type { CharacterRelationshipPathViewDtoNodesItemImportance } from "./characterRelationshipPathViewDtoNodesItemImportance";
 
@@ -16,6 +17,9 @@ export type CharacterRelationshipPathViewDtoNodesItem = {
    * @maximum 9007199254740991
    */
   degree: number;
+  /** @nullable */
+  displayMedia: CharacterRelationshipPathViewDtoNodesItemDisplayMedia;
+  displayName: string;
   entityKind: CharacterRelationshipPathViewDtoNodesItemEntityKind;
   id: string;
   /** @nullable */

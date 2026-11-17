@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
 import { GenreIcon, isGenreIconName, UiIcon } from "@/components/icons";
+import { TagChip } from "@/components/tag-chip";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,8 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useGenres } from "@/features/books/api/use-genres";
-import { TagChip } from "@/features/tags/components/tag-chip";
+import { useGenres } from "@/features/genres";
 import { Link } from "@/i18n/navigation";
 
 import { useDedicationActions } from "../hooks/use-dedication-actions";
@@ -27,16 +27,22 @@ import { DedicationCover } from "./dedication-cover";
 
 type DedicationModalProps = {
   book: BookView;
+  onFavoriteChanged: (updated: BookView) => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 };
 
 const visibleTagCount = 3;
 
-export function DedicationModal({ book, onOpenChange, open }: DedicationModalProps) {
+export function DedicationModal({
+  book,
+  onFavoriteChanged,
+  onOpenChange,
+  open,
+}: DedicationModalProps) {
   const t = useTranslations("dedications");
   const genres = useGenres();
-  const { copy, isTogglingFavorite, toggleFavorite } = useDedicationActions();
+  const { copy, isTogglingFavorite, toggleFavorite } = useDedicationActions({ onFavoriteChanged });
   const contentRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
   const copyResetRef = useRef<ReturnType<typeof setTimeout>>(undefined);

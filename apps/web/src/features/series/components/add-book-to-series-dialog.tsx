@@ -3,12 +3,16 @@
 import type { BookView } from "@app/shared";
 
 import {
-  BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
+  BOOK_SERIES_ERROR_CODES,
   BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
+  BookPartNumberSchema,
 } from "@app/shared";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -20,12 +24,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NumberStepper } from "@/components/ui/number-stepper";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { useUpdateBook } from "@/features/books/api/use-update-book";
+import { useUpdateBook } from "@/features/books";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { Link } from "@/i18n/navigation";
@@ -36,8 +41,13 @@ import { cn } from "@/lib/utils";
 import { useSoloBooks } from "../api/use-solo-books";
 
 const SEARCH_DEBOUNCE_MS = 250;
-const PART_NUMBER_MIN = 1;
-const PART_NUMBER_MAX = 999;
+
+const addBookFormSchema = z.object({
+  partNumber: BookPartNumberSchema.optional(),
+  selectedBookId: z.string().min(1),
+});
+
+type AddBookFormValues = z.infer<typeof addBookFormSchema>;
 
 type AddBookToSeriesDialogProps = {
   defaultPartNumber: number;
@@ -55,13 +65,22 @@ export function AddBookToSeriesDialog({
   open,
   seriesId,
 }: AddBookToSeriesDialogProps) {
+  const [isPending, setIsPending] = useState(false);
+
   return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
+    <Dialog
+      onOpenChange={(next) => {
+        if (!next && isPending) return;
+        onOpenChange(next);
+      }}
+      open={open}
+    >
       <DialogContent className="sm:max-w-lg">
         {open ? (
           <AddBookFlow
             defaultPartNumber={defaultPartNumber}
             onDone={() => onOpenChange(false)}
+            onPendingChange={setIsPending}
             seriesId={seriesId}
           />
         ) : null}
@@ -73,10 +92,12 @@ export function AddBookToSeriesDialog({
 function AddBookFlow({
   defaultPartNumber,
   onDone,
+  onPendingChange,
   seriesId,
 }: {
   defaultPartNumber: number;
   onDone: () => void;
+  onPendingChange: (isPending: boolean) => void;
   seriesId: string;
 }) {
   const [step, setStep] = useState<"choose" | "search">("choose");
@@ -96,6 +117,7 @@ function AddBookFlow({
       defaultPartNumber={defaultPartNumber}
       onBack={() => setStep("choose")}
       onDone={onDone}
+      onPendingChange={onPendingChange}
       seriesId={seriesId}
     />
   );
@@ -105,11 +127,13 @@ function AddBookForm({
   defaultPartNumber,
   onBack,
   onDone,
+  onPendingChange,
   seriesId,
 }: {
   defaultPartNumber: number;
   onBack: () => void;
   onDone: () => void;
+  onPendingChange: (isPending: boolean) => void;
   seriesId: string;
 }) {
   const t = useTranslations("series.addBookDialog");
@@ -117,11 +141,20 @@ function AddBookForm({
   const tToast = useTranslations("series.toast");
 
   const [search, setSearch] = useState("");
-  const [selectedBookId, setSelectedBookId] = useState<null | string>(null);
-  const [partNumber, setPartNumber] = useState(defaultPartNumber);
-  const [partError, setPartError] = useState<null | string>(null);
-  const [serverError, setServerError] = useState<null | string>(null);
   const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS);
+
+  const {
+    control,
+    formState: { errors },
+    handleSubmit,
+    setError,
+  } = useForm<AddBookFormValues>({
+    defaultValues: { partNumber: defaultPartNumber, selectedBookId: "" },
+    resolver: zodResolver(addBookFormSchema),
+  });
+  const selectedBookId = useWatch({ control, name: "selectedBookId" });
+  const partNumber = useWatch({ control, name: "partNumber" }) ?? defaultPartNumber;
+  const serverError = errors.root?.server?.message;
 
   const {
     data: books,
@@ -130,7 +163,7 @@ function AddBookForm({
     isFetchingNextPage,
     isPending,
   } = useSoloBooks(debouncedSearch);
-  const linkBook = useUpdateBook(selectedBookId ?? "");
+  const linkBook = useUpdateBook(selectedBookId);
 
   const results = books ?? [];
   const createHref = `/books/new?seriesId=${seriesId}&partNumber=${partNumber}`;
@@ -141,48 +174,43 @@ function AddBookForm({
     onLoadMore: fetchNextPage,
   });
 
-  function onSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    if (selectedBookId === null) return;
-    setPartError(null);
-    setServerError(null);
-    linkBook.mutate(
-      { bookType: "series_part", partNumber, seriesId },
-      {
-        onError: (error) => {
-          if (error instanceof ApiError && error.fieldErrors) {
-            const taken = error.fieldErrors.find(
-              (field) => field.code === BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
-            );
-            if (taken) {
-              setPartError(t("partNumberTaken"));
-              return;
-            }
-            const exceeds = error.fieldErrors.find(
-              (field) =>
-                field.field === "partNumber" &&
-                field.message === BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
-            );
-            if (exceeds) {
-              setPartError(t("partNumberExceedsTotal"));
-              return;
-            }
-          }
-          setServerError(t("genericError"));
-        },
-        onSuccess: () => {
-          toast.success(tToast("bookAdded"));
-          onDone();
-        },
-      },
-    );
+  function reportLinkError(error: unknown) {
+    const fieldErrors = error instanceof ApiError ? (error.fieldErrors ?? []) : [];
+    const codes = new Set(fieldErrors.map((fieldError) => fieldError.code));
+    if (codes.has(BOOK_SERIES_PART_NUMBER_TAKEN_CODE)) {
+      setError("partNumber", { message: t("partNumberTaken") });
+      return;
+    }
+    if (codes.has(BOOK_SERIES_ERROR_CODES.partNumberExceedsTotal)) {
+      setError("partNumber", { message: t("partNumberExceedsTotal") });
+      return;
+    }
+    setError("root.server", { message: t("genericError") });
   }
+
+  const onSubmit = handleSubmit(async (values) => {
+    onPendingChange(true);
+    try {
+      await linkBook.mutateAsync({
+        bookType: "series_part",
+        partNumber: values.partNumber,
+        seriesId,
+      });
+      toast.success(tToast("bookAdded"));
+      onDone();
+    } catch (error) {
+      reportLinkError(error);
+    } finally {
+      onPendingChange(false);
+    }
+  });
 
   return (
     <>
       <DialogHeader>
         <button
-          className="inline-flex w-fit cursor-pointer items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+          className="inline-flex w-fit cursor-pointer items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+          disabled={linkBook.isPending}
           onClick={onBack}
           type="button"
         >
@@ -214,37 +242,45 @@ function AddBookForm({
           </div>
         </div>
 
-        <BookResults
-          emptyHref={createHref}
-          isFetchingNextPage={isFetchingNextPage}
-          isPending={isPending}
-          onScroll={onScroll}
-          onSelect={setSelectedBookId}
-          readingLabel={(status) => tReading(status)}
-          results={results}
-          scrollRef={scrollRef}
-          selectedBookId={selectedBookId}
+        <Controller
+          control={control}
+          name="selectedBookId"
+          render={({ field }) => (
+            <BookResults
+              emptyHref={createHref}
+              isFetchingNextPage={isFetchingNextPage}
+              isPending={isPending}
+              onScroll={onScroll}
+              onSelect={field.onChange}
+              readingLabel={(status) => tReading(status)}
+              results={results}
+              scrollRef={scrollRef}
+              selectedBookId={field.value}
+            />
+          )}
         />
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="add-book-part-number">{t("partNumber")}</Label>
-          <NumberStepper
-            describedBy={partError ? "add-book-part-number-error" : undefined}
-            id="add-book-part-number"
-            max={PART_NUMBER_MAX}
-            min={PART_NUMBER_MIN}
-            onValueChange={setPartNumber}
-            size="sm"
-            value={partNumber}
+          <Controller
+            control={control}
+            name="partNumber"
+            render={({ field }) => (
+              <NumberStepper
+                describedBy={errors.partNumber?.message ? "add-book-part-number-error" : undefined}
+                id="add-book-part-number"
+                max={BookPartNumberSchema.maxValue ?? undefined}
+                min={BookPartNumberSchema.minValue ?? undefined}
+                onValueChange={field.onChange}
+                size="sm"
+                value={field.value ?? defaultPartNumber}
+              />
+            )}
           />
-          {partError === null ? null : (
-            <p className="text-xs text-destructive" id="add-book-part-number-error" role="alert">
-              {partError}
-            </p>
-          )}
+          <FieldError error={errors.partNumber} id="add-book-part-number-error" />
         </div>
 
-        {serverError === null ? null : (
+        {serverError === undefined ? null : (
           <p
             className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
             role="alert"
@@ -254,11 +290,11 @@ function AddBookForm({
         )}
 
         <DialogFooter>
-          <Button onClick={onDone} type="button" variant="secondary">
+          <Button disabled={linkBook.isPending} onClick={onDone} type="button" variant="secondary">
             {t("cancel")}
           </Button>
           <Button
-            disabled={selectedBookId === null || linkBook.isPending}
+            disabled={selectedBookId === "" || linkBook.isPending}
             loading={linkBook.isPending}
             type="submit"
           >
@@ -289,7 +325,7 @@ function BookResults({
   readingLabel: (status: BookView["readingStatus"]) => string;
   results: BookView[];
   scrollRef: (el: HTMLDivElement | null) => void;
-  selectedBookId: null | string;
+  selectedBookId: string;
 }) {
   const t = useTranslations("series.addBookDialog");
 
@@ -320,7 +356,7 @@ function BookResults({
         aria-label={t("selectBook")}
         className="gap-2"
         onValueChange={onSelect}
-        value={selectedBookId ?? ""}
+        value={selectedBookId}
       >
         {results.map((book) => {
           const readingBase = readingStatuses.find((entry) => entry.value === book.readingStatus);

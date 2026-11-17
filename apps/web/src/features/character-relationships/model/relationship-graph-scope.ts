@@ -2,6 +2,7 @@ import type {
   CharacterGraphLayoutScopeType,
   CharacterGraphMode,
   CharacterGraphNodeView,
+  CharacterGraphStorageMode,
   Nullable,
 } from "@app/shared";
 
@@ -11,7 +12,7 @@ import type { RelationshipScope } from "./relationship-scope";
 
 export type RelationshipGraphLayoutKey = {
   contextBookId: Nullable<string>;
-  mode: CharacterGraphMode;
+  mode: CharacterGraphStorageMode;
   scopeId: string;
   scopeType: Extract<CharacterGraphLayoutScopeType, "book" | "series">;
 };

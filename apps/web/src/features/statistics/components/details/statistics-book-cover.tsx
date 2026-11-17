@@ -12,12 +12,31 @@ const COVER_SIZE = { height: 96, width: 64 } as const;
 export function StatisticsBookCover({
   className,
   coverThumbUrl,
+  placeholder = "icon",
   title,
 }: {
   className?: string;
   coverThumbUrl: Nullable<string>;
+  placeholder?: "icon" | "titled";
   title: string;
 }) {
+  if (coverThumbUrl === null && placeholder === "titled") {
+    return (
+      <span
+        aria-hidden
+        className={cn(
+          "flex aspect-2/3 w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-md bg-accent p-3 text-center text-accent-foreground",
+          className,
+        )}
+      >
+        <UiIcon className="text-accent-foreground/70" name="book" size={20} />
+        <span className="line-clamp-4 w-full font-heading text-xs leading-snug font-semibold break-words">
+          {title}
+        </span>
+      </span>
+    );
+  }
+
   if (coverThumbUrl === null) {
     return (
       <span

@@ -14,6 +14,5 @@ export function useBookCharacterSummary(bookId: string, bookContext: BookCharact
         await bookCharacterSummaryControllerGet(bookId, bookContext),
       ),
     queryKey: characterKeys.bookSummary(bookId, bookContext),
-    retry: false,
   });
 }

@@ -1,16 +1,10 @@
-import type { NotificationUnreadCount, Nullable, RealtimeEvent } from "@app/shared";
-import type { QueryClient, QueryKey } from "@tanstack/react-query";
+import type { Nullable, RealtimeEvent } from "@app/shared";
+import type { QueryClient } from "@tanstack/react-query";
 
 import { REALTIME_CONTRACT, RealtimeEventSchema } from "@app/shared";
 
-import { bookKeys } from "@/features/books/api/book-keys";
-import { notificationKeys } from "@/features/notifications/api/notification-keys";
-
-const REALTIME_QUERY_TARGETS = {
-  booksRoot: bookKeys.root,
-  notificationsList: notificationKeys.list,
-  notificationsUnreadCount: notificationKeys.unreadCount,
-} as const satisfies Record<string, QueryKey>;
+import { bookChangeEffects } from "@/features/books/api/book-change-effects";
+import { notificationChangeEffects } from "@/features/notifications/api/notification-change-effects";
 
 export function applyRealtimeEvent({
   event,
@@ -21,14 +15,10 @@ export function applyRealtimeEvent({
 }): void {
   switch (event.type) {
     case REALTIME_CONTRACT.events.mediaThumbnailReady:
-      void queryClient.invalidateQueries({ queryKey: REALTIME_QUERY_TARGETS.booksRoot });
+      void bookChangeEffects.booksChanged(queryClient, { changes: ["thumbnailReady"] });
       return;
     case REALTIME_CONTRACT.events.notificationsChanged:
-      queryClient.setQueryData<NotificationUnreadCount>(
-        REALTIME_QUERY_TARGETS.notificationsUnreadCount,
-        { unreadCount: event.unreadCount },
-      );
-      void queryClient.invalidateQueries({ queryKey: REALTIME_QUERY_TARGETS.notificationsList });
+      void notificationChangeEffects.unreadCountChanged(queryClient, event.unreadCount);
       return;
     default:
       return assertNever(event);

@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { buildSeriesSlots, useSeriesDetails } from "@/features/series";
 import { Link } from "@/i18n/navigation";
+import { assertNever } from "@/lib/assert-never";
 import { readingStatuses } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
 
@@ -108,10 +109,6 @@ function AddedSlot({
       </Link>
     </li>
   );
-}
-
-function assertNever(value: never): never {
-  throw new Error(`Unhandled series-sequence slot: ${String(value)}`);
 }
 
 function bookLink(book: SeriesBookView) {

@@ -68,6 +68,7 @@ describe("ReadingGoalSnapshotService.seed", () => {
         { bookId: bookId(1), position: 1 },
       ],
       goal: goal(),
+      timeZone: "UTC",
       tx: TX,
     });
 
@@ -96,7 +97,7 @@ describe("ReadingGoalSnapshotService.seed", () => {
   it("writes nothing for a goal whose list holds no books", async () => {
     const { repository, snapshotService } = buildSnapshotService();
 
-    await snapshotService.seed({ candidates: [], goal: goal(), tx: TX });
+    await snapshotService.seed({ candidates: [], goal: goal(), timeZone: "UTC", tx: TX });
 
     expect(repository.createMany).not.toHaveBeenCalled();
   });
@@ -116,6 +117,7 @@ describe("ReadingGoalSnapshotService.resync", () => {
 
     const changes = await snapshotService.resync({
       goal: goal({ deadline: parseIsoDate("2026-08-10") }),
+      timeZone: "UTC",
       tx: TX,
     });
 
@@ -151,6 +153,7 @@ describe("ReadingGoalSnapshotService.resync", () => {
 
     const changes = await snapshotService.resync({
       goal: goal({ deadline: parseIsoDate("2026-10-01") }),
+      timeZone: "UTC",
       tx: TX,
     });
 
@@ -181,7 +184,7 @@ describe("ReadingGoalSnapshotService.resync", () => {
       },
     ]);
 
-    const changes = await snapshotService.resync({ goal: goal(), tx: TX });
+    const changes = await snapshotService.resync({ goal: goal(), timeZone: "UTC", tx: TX });
 
     expect(repository.updateQualifiedFinishedAt).not.toHaveBeenCalled();
     expect(changes).toEqual([]);
@@ -201,6 +204,7 @@ describe("ReadingGoalSnapshotService.resync", () => {
 
     const changes = await snapshotService.resync({
       goal: goal({ deadline: parseIsoDate("2026-08-10") }),
+      timeZone: "UTC",
       tx: TX,
     });
 
@@ -221,6 +225,7 @@ describe("ReadingGoalSnapshotService.resync", () => {
 
     const changes = await snapshotService.resync({
       goal: goal({ deadline: parseIsoDate("2026-10-01") }),
+      timeZone: "UTC",
       tx: TX,
     });
 

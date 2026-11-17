@@ -52,28 +52,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type readingQueueControllerGetQueueResponse200 = {
-  data: ReadingQueueViewDto;
-  status: 200;
-};
-
-export type readingQueueControllerGetQueueResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type readingQueueControllerGetQueueResponseSuccess =
-  readingQueueControllerGetQueueResponse200 & {
-    headers: Headers;
-  };
-export type readingQueueControllerGetQueueResponseError =
-  readingQueueControllerGetQueueResponse401 & {
-    headers: Headers;
-  };
-
-export type readingQueueControllerGetQueueResponse =
-  readingQueueControllerGetQueueResponseSuccess | readingQueueControllerGetQueueResponseError;
-
 export const getReadingQueueControllerGetQueueUrl = (
   params?: ReadingQueueControllerGetQueueParams,
 ) => {
@@ -118,14 +96,11 @@ export const getReadingQueueControllerGetQueueUrl = (
 export const readingQueueControllerGetQueue = async (
   params?: ReadingQueueControllerGetQueueParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<readingQueueControllerGetQueueResponse> => {
-  return customInstance<readingQueueControllerGetQueueResponse>(
-    getReadingQueueControllerGetQueueUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<ReadingQueueViewDto> => {
+  return customInstance<ReadingQueueViewDto>(getReadingQueueControllerGetQueueUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getReadingQueueControllerGetQueueQueryKey = (
@@ -247,53 +222,6 @@ export function useReadingQueueControllerGetQueue<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type readingQueueControllerAddToQueueResponse200 = {
-  data: ReadingQueueViewDto;
-  status: 200;
-};
-
-export type readingQueueControllerAddToQueueResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type readingQueueControllerAddToQueueResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type readingQueueControllerAddToQueueResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type readingQueueControllerAddToQueueResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type readingQueueControllerAddToQueueResponse422 = {
-  data: void;
-  status: 422;
-};
-
-export type readingQueueControllerAddToQueueResponseSuccess =
-  readingQueueControllerAddToQueueResponse200 & {
-    headers: Headers;
-  };
-export type readingQueueControllerAddToQueueResponseError = (
-  | readingQueueControllerAddToQueueResponse400
-  | readingQueueControllerAddToQueueResponse401
-  | readingQueueControllerAddToQueueResponse404
-  | readingQueueControllerAddToQueueResponse409
-  | readingQueueControllerAddToQueueResponse422
-) & {
-  headers: Headers;
-};
-
-export type readingQueueControllerAddToQueueResponse =
-  readingQueueControllerAddToQueueResponseSuccess | readingQueueControllerAddToQueueResponseError;
-
 export const getReadingQueueControllerAddToQueueUrl = () => {
   return `/api/reading-queue`;
 };
@@ -304,16 +232,13 @@ export const getReadingQueueControllerAddToQueueUrl = () => {
 export const readingQueueControllerAddToQueue = async (
   addToReadingQueueInputDto: AddToReadingQueueInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<readingQueueControllerAddToQueueResponse> => {
-  return customInstance<readingQueueControllerAddToQueueResponse>(
-    getReadingQueueControllerAddToQueueUrl(),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(addToReadingQueueInputDto),
-    },
-  );
+): Promise<ReadingQueueViewDto> => {
+  return customInstance<ReadingQueueViewDto>(getReadingQueueControllerAddToQueueUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(addToReadingQueueInputDto),
+  });
 };
 
 export const getReadingQueueControllerAddToQueueQueryKey = (
@@ -440,28 +365,6 @@ export function useReadingQueueControllerAddToQueue<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type readingQueueControllerSummaryResponse200 = {
-  data: ReadingQueueSummaryViewDto;
-  status: 200;
-};
-
-export type readingQueueControllerSummaryResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type readingQueueControllerSummaryResponseSuccess =
-  readingQueueControllerSummaryResponse200 & {
-    headers: Headers;
-  };
-export type readingQueueControllerSummaryResponseError =
-  readingQueueControllerSummaryResponse401 & {
-    headers: Headers;
-  };
-
-export type readingQueueControllerSummaryResponse =
-  readingQueueControllerSummaryResponseSuccess | readingQueueControllerSummaryResponseError;
-
 export const getReadingQueueControllerSummaryUrl = () => {
   return `/api/reading-queue/summary`;
 };
@@ -471,14 +374,11 @@ export const getReadingQueueControllerSummaryUrl = () => {
  */
 export const readingQueueControllerSummary = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<readingQueueControllerSummaryResponse> => {
-  return customInstance<readingQueueControllerSummaryResponse>(
-    getReadingQueueControllerSummaryUrl(),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<ReadingQueueSummaryViewDto> => {
+  return customInstance<ReadingQueueSummaryViewDto>(getReadingQueueControllerSummaryUrl(), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getReadingQueueControllerSummaryQueryKey = () => {
@@ -591,29 +491,6 @@ export function useReadingQueueControllerSummary<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type readingQueueControllerVolumeSummaryResponse200 = {
-  data: ReadingQueueVolumeSummaryViewDto;
-  status: 200;
-};
-
-export type readingQueueControllerVolumeSummaryResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type readingQueueControllerVolumeSummaryResponseSuccess =
-  readingQueueControllerVolumeSummaryResponse200 & {
-    headers: Headers;
-  };
-export type readingQueueControllerVolumeSummaryResponseError =
-  readingQueueControllerVolumeSummaryResponse401 & {
-    headers: Headers;
-  };
-
-export type readingQueueControllerVolumeSummaryResponse =
-  | readingQueueControllerVolumeSummaryResponseSuccess
-  | readingQueueControllerVolumeSummaryResponseError;
-
 export const getReadingQueueControllerVolumeSummaryUrl = () => {
   return `/api/reading-queue/volume-summary`;
 };
@@ -623,8 +500,8 @@ export const getReadingQueueControllerVolumeSummaryUrl = () => {
  */
 export const readingQueueControllerVolumeSummary = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<readingQueueControllerVolumeSummaryResponse> => {
-  return customInstance<readingQueueControllerVolumeSummaryResponse>(
+): Promise<ReadingQueueVolumeSummaryViewDto> => {
+  return customInstance<ReadingQueueVolumeSummaryViewDto>(
     getReadingQueueControllerVolumeSummaryUrl(),
     {
       ...options,
@@ -759,34 +636,6 @@ export function useReadingQueueControllerVolumeSummary<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type readingQueueControllerReorderResponse200 = {
-  data: ReadingQueueViewDto;
-  status: 200;
-};
-
-export type readingQueueControllerReorderResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type readingQueueControllerReorderResponse422 = {
-  data: void;
-  status: 422;
-};
-
-export type readingQueueControllerReorderResponseSuccess =
-  readingQueueControllerReorderResponse200 & {
-    headers: Headers;
-  };
-export type readingQueueControllerReorderResponseError = (
-  readingQueueControllerReorderResponse401 | readingQueueControllerReorderResponse422
-) & {
-  headers: Headers;
-};
-
-export type readingQueueControllerReorderResponse =
-  readingQueueControllerReorderResponseSuccess | readingQueueControllerReorderResponseError;
-
 export const getReadingQueueControllerReorderUrl = () => {
   return `/api/reading-queue/reorder`;
 };
@@ -797,16 +646,13 @@ export const getReadingQueueControllerReorderUrl = () => {
 export const readingQueueControllerReorder = async (
   reorderReadingQueueInputDto: ReorderReadingQueueInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<readingQueueControllerReorderResponse> => {
-  return customInstance<readingQueueControllerReorderResponse>(
-    getReadingQueueControllerReorderUrl(),
-    {
-      ...options,
-      method: "PUT",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(reorderReadingQueueInputDto),
-    },
-  );
+): Promise<ReadingQueueViewDto> => {
+  return customInstance<ReadingQueueViewDto>(getReadingQueueControllerReorderUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(reorderReadingQueueInputDto),
+  });
 };
 
 export const getReadingQueueControllerReorderQueryKey = (
@@ -932,42 +778,6 @@ export function useReadingQueueControllerReorder<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type readingQueueControllerStartReadingResponse200 = {
-  data: ReadingQueueViewDto;
-  status: 200;
-};
-
-export type readingQueueControllerStartReadingResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type readingQueueControllerStartReadingResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type readingQueueControllerStartReadingResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type readingQueueControllerStartReadingResponseSuccess =
-  readingQueueControllerStartReadingResponse200 & {
-    headers: Headers;
-  };
-export type readingQueueControllerStartReadingResponseError = (
-  | readingQueueControllerStartReadingResponse400
-  | readingQueueControllerStartReadingResponse401
-  | readingQueueControllerStartReadingResponse404
-) & {
-  headers: Headers;
-};
-
-export type readingQueueControllerStartReadingResponse =
-  | readingQueueControllerStartReadingResponseSuccess
-  | readingQueueControllerStartReadingResponseError;
-
 export const getReadingQueueControllerStartReadingUrl = (bookId: string) => {
   return `/api/reading-queue/${bookId}/start-reading`;
 };
@@ -979,16 +789,13 @@ export const readingQueueControllerStartReading = async (
   bookId: string,
   startReadingFromQueueInputDto: StartReadingFromQueueInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<readingQueueControllerStartReadingResponse> => {
-  return customInstance<readingQueueControllerStartReadingResponse>(
-    getReadingQueueControllerStartReadingUrl(bookId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(startReadingFromQueueInputDto),
-    },
-  );
+): Promise<ReadingQueueViewDto> => {
+  return customInstance<ReadingQueueViewDto>(getReadingQueueControllerStartReadingUrl(bookId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(startReadingFromQueueInputDto),
+  });
 };
 
 export const getReadingQueueControllerStartReadingQueryKey = (
@@ -1135,36 +942,6 @@ export function useReadingQueueControllerStartReading<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type readingQueueControllerRemoveFromQueueResponse200 = {
-  data: ReadingQueueViewDto;
-  status: 200;
-};
-
-export type readingQueueControllerRemoveFromQueueResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type readingQueueControllerRemoveFromQueueResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type readingQueueControllerRemoveFromQueueResponseSuccess =
-  readingQueueControllerRemoveFromQueueResponse200 & {
-    headers: Headers;
-  };
-export type readingQueueControllerRemoveFromQueueResponseError = (
-  | readingQueueControllerRemoveFromQueueResponse401
-  | readingQueueControllerRemoveFromQueueResponse404
-) & {
-  headers: Headers;
-};
-
-export type readingQueueControllerRemoveFromQueueResponse =
-  | readingQueueControllerRemoveFromQueueResponseSuccess
-  | readingQueueControllerRemoveFromQueueResponseError;
-
 export const getReadingQueueControllerRemoveFromQueueUrl = (bookId: string) => {
   return `/api/reading-queue/${bookId}`;
 };
@@ -1175,14 +952,11 @@ export const getReadingQueueControllerRemoveFromQueueUrl = (bookId: string) => {
 export const readingQueueControllerRemoveFromQueue = async (
   bookId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<readingQueueControllerRemoveFromQueueResponse> => {
-  return customInstance<readingQueueControllerRemoveFromQueueResponse>(
-    getReadingQueueControllerRemoveFromQueueUrl(bookId),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
+): Promise<ReadingQueueViewDto> => {
+  return customInstance<ReadingQueueViewDto>(getReadingQueueControllerRemoveFromQueueUrl(bookId), {
+    ...options,
+    method: "DELETE",
+  });
 };
 
 export const getReadingQueueControllerRemoveFromQueueQueryKey = (bookId: string) => {
@@ -1328,29 +1102,6 @@ export function useReadingQueueControllerRemoveFromQueue<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type seriesOrderCheckControllerListIssuesResponse200 = {
-  data: SeriesOrderIssuesViewDto;
-  status: 200;
-};
-
-export type seriesOrderCheckControllerListIssuesResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type seriesOrderCheckControllerListIssuesResponseSuccess =
-  seriesOrderCheckControllerListIssuesResponse200 & {
-    headers: Headers;
-  };
-export type seriesOrderCheckControllerListIssuesResponseError =
-  seriesOrderCheckControllerListIssuesResponse401 & {
-    headers: Headers;
-  };
-
-export type seriesOrderCheckControllerListIssuesResponse =
-  | seriesOrderCheckControllerListIssuesResponseSuccess
-  | seriesOrderCheckControllerListIssuesResponseError;
-
 export const getSeriesOrderCheckControllerListIssuesUrl = (
   params?: SeriesOrderCheckControllerListIssuesParams,
 ) => {
@@ -1375,8 +1126,8 @@ export const getSeriesOrderCheckControllerListIssuesUrl = (
 export const seriesOrderCheckControllerListIssues = async (
   params?: SeriesOrderCheckControllerListIssuesParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<seriesOrderCheckControllerListIssuesResponse> => {
-  return customInstance<seriesOrderCheckControllerListIssuesResponse>(
+): Promise<SeriesOrderIssuesViewDto> => {
+  return customInstance<SeriesOrderIssuesViewDto>(
     getSeriesOrderCheckControllerListIssuesUrl(params),
     {
       ...options,
@@ -1525,42 +1276,6 @@ export function useSeriesOrderCheckControllerListIssues<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type seriesOrderCheckControllerPreviewFixResponse200 = {
-  data: SeriesOrderFixPreviewViewDto;
-  status: 200;
-};
-
-export type seriesOrderCheckControllerPreviewFixResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type seriesOrderCheckControllerPreviewFixResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type seriesOrderCheckControllerPreviewFixResponse422 = {
-  data: void;
-  status: 422;
-};
-
-export type seriesOrderCheckControllerPreviewFixResponseSuccess =
-  seriesOrderCheckControllerPreviewFixResponse200 & {
-    headers: Headers;
-  };
-export type seriesOrderCheckControllerPreviewFixResponseError = (
-  | seriesOrderCheckControllerPreviewFixResponse401
-  | seriesOrderCheckControllerPreviewFixResponse409
-  | seriesOrderCheckControllerPreviewFixResponse422
-) & {
-  headers: Headers;
-};
-
-export type seriesOrderCheckControllerPreviewFixResponse =
-  | seriesOrderCheckControllerPreviewFixResponseSuccess
-  | seriesOrderCheckControllerPreviewFixResponseError;
-
 export const getSeriesOrderCheckControllerPreviewFixUrl = (fingerprint: string) => {
   return `/api/reading-queue/series-order-issues/${fingerprint}/preview`;
 };
@@ -1572,8 +1287,8 @@ export const seriesOrderCheckControllerPreviewFix = async (
   fingerprint: string,
   seriesOrderFixInputDto: SeriesOrderFixInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<seriesOrderCheckControllerPreviewFixResponse> => {
-  return customInstance<seriesOrderCheckControllerPreviewFixResponse>(
+): Promise<SeriesOrderFixPreviewViewDto> => {
+  return customInstance<SeriesOrderFixPreviewViewDto>(
     getSeriesOrderCheckControllerPreviewFixUrl(fingerprint),
     {
       ...options,
@@ -1748,42 +1463,6 @@ export function useSeriesOrderCheckControllerPreviewFix<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type seriesOrderCheckControllerApplyFixResponse200 = {
-  data: ApplySeriesOrderFixResponseDto;
-  status: 200;
-};
-
-export type seriesOrderCheckControllerApplyFixResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type seriesOrderCheckControllerApplyFixResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type seriesOrderCheckControllerApplyFixResponse422 = {
-  data: void;
-  status: 422;
-};
-
-export type seriesOrderCheckControllerApplyFixResponseSuccess =
-  seriesOrderCheckControllerApplyFixResponse200 & {
-    headers: Headers;
-  };
-export type seriesOrderCheckControllerApplyFixResponseError = (
-  | seriesOrderCheckControllerApplyFixResponse401
-  | seriesOrderCheckControllerApplyFixResponse409
-  | seriesOrderCheckControllerApplyFixResponse422
-) & {
-  headers: Headers;
-};
-
-export type seriesOrderCheckControllerApplyFixResponse =
-  | seriesOrderCheckControllerApplyFixResponseSuccess
-  | seriesOrderCheckControllerApplyFixResponseError;
-
 export const getSeriesOrderCheckControllerApplyFixUrl = (fingerprint: string) => {
   return `/api/reading-queue/series-order-issues/${fingerprint}/apply`;
 };
@@ -1795,8 +1474,8 @@ export const seriesOrderCheckControllerApplyFix = async (
   fingerprint: string,
   seriesOrderFixInputDto: SeriesOrderFixInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<seriesOrderCheckControllerApplyFixResponse> => {
-  return customInstance<seriesOrderCheckControllerApplyFixResponse>(
+): Promise<ApplySeriesOrderFixResponseDto> => {
+  return customInstance<ApplySeriesOrderFixResponseDto>(
     getSeriesOrderCheckControllerApplyFixUrl(fingerprint),
     {
       ...options,
@@ -1951,36 +1630,6 @@ export function useSeriesOrderCheckControllerApplyFix<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type seriesOrderCheckControllerIgnoreIssueResponse200 = {
-  data: SeriesOrderIssuesViewDto;
-  status: 200;
-};
-
-export type seriesOrderCheckControllerIgnoreIssueResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type seriesOrderCheckControllerIgnoreIssueResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type seriesOrderCheckControllerIgnoreIssueResponseSuccess =
-  seriesOrderCheckControllerIgnoreIssueResponse200 & {
-    headers: Headers;
-  };
-export type seriesOrderCheckControllerIgnoreIssueResponseError = (
-  | seriesOrderCheckControllerIgnoreIssueResponse401
-  | seriesOrderCheckControllerIgnoreIssueResponse409
-) & {
-  headers: Headers;
-};
-
-export type seriesOrderCheckControllerIgnoreIssueResponse =
-  | seriesOrderCheckControllerIgnoreIssueResponseSuccess
-  | seriesOrderCheckControllerIgnoreIssueResponseError;
-
 export const getSeriesOrderCheckControllerIgnoreIssueUrl = (fingerprint: string) => {
   return `/api/reading-queue/series-order-issues/${fingerprint}/ignore`;
 };
@@ -1991,8 +1640,8 @@ export const getSeriesOrderCheckControllerIgnoreIssueUrl = (fingerprint: string)
 export const seriesOrderCheckControllerIgnoreIssue = async (
   fingerprint: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<seriesOrderCheckControllerIgnoreIssueResponse> => {
-  return customInstance<seriesOrderCheckControllerIgnoreIssueResponse>(
+): Promise<SeriesOrderIssuesViewDto> => {
+  return customInstance<SeriesOrderIssuesViewDto>(
     getSeriesOrderCheckControllerIgnoreIssueUrl(fingerprint),
     {
       ...options,

@@ -1,8 +1,6 @@
 import type { Nullable, ReadingGoalPace, ReadingGoalStatus } from "@app/shared";
 
-import { differenceInCalendarDays } from "date-fns";
-
-import { startOfUtcDay } from "../../../core/iso-date.js";
+import { daysBetweenUtcDays } from "../../../core/iso-date.js";
 import { resolveReadingGoalObservationEnd } from "./reading-goal-window.js";
 import {
   INCLUSIVE_DAY,
@@ -40,16 +38,16 @@ type ElapsedDaysInput = {
 };
 
 type PaceInput = {
-  archivedAt: Nullable<Date>;
+  archivedDay: Nullable<Date>;
   completedAt: Nullable<Date>;
   completedCount: number;
   daysLeft: Nullable<number>;
   deadline: Date;
   goalStartDate: Date;
-  now: Date;
   remainingCount: number;
   status: ReadingGoalStatus;
   targetCount: number;
+  today: Date;
 };
 
 type TotalDaysInput = {
@@ -58,26 +56,26 @@ type TotalDaysInput = {
 };
 
 export function calculateReadingGoalPace({
-  archivedAt,
+  archivedDay,
   completedAt,
   completedCount,
   daysLeft,
   deadline,
   goalStartDate,
-  now,
   remainingCount,
   status,
   targetCount,
+  today,
 }: PaceInput): ReadingGoalPaceMetrics {
   const totalDays = calculateTotalDays({ deadline, goalStartDate });
   const elapsedDays = calculateElapsedDays({
     goalStartDate,
     observationEndsAt: resolveReadingGoalObservationEnd({
-      archivedAt,
+      archivedDay,
       completedAt,
       deadline,
-      now,
       status,
+      today,
     }),
     totalDays,
   });
@@ -119,15 +117,12 @@ function calculateElapsedDays({
   totalDays,
 }: ElapsedDaysInput): number {
   const elapsedDays =
-    differenceInCalendarDays(observationEndsAt, startOfUtcDay(goalStartDate)) + INCLUSIVE_DAY;
+    daysBetweenUtcDays({ end: observationEndsAt, start: goalStartDate }) + INCLUSIVE_DAY;
   return clamp({ lowerBound: 0, upperBound: totalDays, value: elapsedDays });
 }
 
 function calculateTotalDays({ deadline, goalStartDate }: TotalDaysInput): number {
-  return Math.max(
-    1,
-    differenceInCalendarDays(startOfUtcDay(deadline), startOfUtcDay(goalStartDate)) + INCLUSIVE_DAY,
-  );
+  return Math.max(1, daysBetweenUtcDays({ end: deadline, start: goalStartDate }) + INCLUSIVE_DAY);
 }
 
 function clamp({

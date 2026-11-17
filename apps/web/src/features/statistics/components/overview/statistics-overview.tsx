@@ -1,14 +1,21 @@
 "use client";
 
-import type { ReadingStatisticsOverview } from "@app/shared";
+import type { ReadingStatisticsInsightCode, ReadingStatisticsOverview } from "@app/shared";
+import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
+import { useRef } from "react";
 
 import type { PageTabsItem } from "@/components/page-tabs";
 
 import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 
+import type { DynamicsMetric } from "../../model/statistics-dynamics";
 import type { StatisticsScopeState } from "../../model/statistics-scope-state";
 import type { UseStatisticsParamsResult } from "../../model/use-statistics-params";
 
@@ -23,13 +30,14 @@ import { LibraryBalanceSection } from "../progress/library-balance-section";
 import { ReadingGoalCard } from "../progress/reading-goal-card";
 import { RecordsSection } from "../progress/records-section";
 import { SeriesSection } from "../progress/series-section";
-import { ReadingCalendarCard } from "../reading/reading-calendar-card";
+import { ReadingCalendarLink } from "../reading/reading-calendar-link";
 import { ReadingDynamicsCard } from "../reading/reading-dynamics-card";
+import { ReadingHabitsSection } from "../reading/reading-habits-section";
+import { ReadingWeekdayActivity } from "../reading/reading-weekday-activity";
 import { StatisticsFocusTarget } from "../statistics-focus-target";
 import {
   StatisticsError,
   StatisticsNote,
-  StatisticsRefetchError,
   StatisticsRefreshingNote,
   StatisticsSectionState,
   StatisticsSkeleton,
@@ -42,6 +50,11 @@ import { PublishersSection } from "../tastes/publishers-section";
 import { RatingsSection } from "../tastes/ratings-section";
 import { StatisticsOverviewTab } from "./statistics-overview-tab";
 
+const ACTIVITY_COMPARISON_INSIGHT_CODE = {
+  pages: "pages_read_vs_comparison",
+  reads: "completed_reads_vs_comparison",
+} as const satisfies Record<DynamicsMetric, ReadingStatisticsInsightCode>;
+
 export function StatisticsOverview() {
   const t = useTranslations("statistics");
   const params = useStatisticsParams();
@@ -49,6 +62,15 @@ export function StatisticsOverview() {
     enabled: params.isRequestable,
   });
   const scope = toStatisticsScopeState(query);
+  const currentOverview = scope.isPlaceholderData ? undefined : scope.data;
+  const periodTriggerRef = useRef<HTMLButtonElement>(null);
+  const statisticsBodyRef = useRef<HTMLElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(statisticsBodyRef);
+
+  const showAllTime = () => {
+    periodTriggerRef.current?.focus();
+    params.setPeriod("all_time");
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -63,31 +85,59 @@ export function StatisticsOverview() {
       </header>
 
       <StatisticsPeriodControls
-        comparison={scope.data?.comparison ?? null}
+        comparison={currentOverview?.comparison ?? null}
         params={params}
-        period={scope.data?.period ?? null}
+        period={currentOverview?.period ?? null}
+        periodTriggerRef={periodTriggerRef}
       />
 
-      {scope.isRefreshing ? <StatisticsRefreshingNote /> : null}
-      {scope.isRefetchError ? <StatisticsRefetchError onRetry={scope.retry} /> : null}
+      {scope.isPlaceholderData ? (
+        <StatisticsRefreshingNote reason="periodChange" />
+      ) : scope.isRefreshing ? (
+        <StatisticsRefreshingNote />
+      ) : null}
+      <RefetchErrorBanner
+        state={
+          scope.isRefetchError ? { isRetrying: scope.isRefreshing, onRetry: scope.retry } : null
+        }
+      />
 
-      <StatisticsBody params={params} scope={scope} />
+      <section
+        aria-label={t("resultsLabel")}
+        className={RETRY_FOCUS_RING.onTarget}
+        ref={statisticsBodyRef}
+        tabIndex={-1}
+      >
+        <StatisticsBody
+          onRetry={withRetryFocus(scope.retry)}
+          onShowAllTime={showAllTime}
+          params={params}
+          retryButtonRef={retryButtonRef}
+          scope={scope}
+        />
+      </section>
     </div>
   );
 }
 
 function StatisticsBody({
+  onRetry,
+  onShowAllTime,
   params,
+  retryButtonRef,
   scope,
 }: {
+  onRetry: () => void;
+  onShowAllTime: () => void;
   params: UseStatisticsParamsResult;
+  retryButtonRef: Ref<HTMLButtonElement>;
   scope: StatisticsScopeState<ReadingStatisticsOverview>;
 }) {
   const t = useTranslations("statistics");
   const overview = scope.data;
 
   if (scope.isInitialError) {
-    return <StatisticsError onRetry={scope.retry} />;
+    return <StatisticsError onRetry={onRetry} retryButtonRef={retryButtonRef} />;
   }
 
   if (overview === undefined) {
@@ -105,20 +155,31 @@ function StatisticsBody({
   const isLowerBound = overview.meta.activityHistory.selectedPeriodQuality === "legacy_lower_bound";
 
   return (
-    <div aria-busy={scope.isRefreshing} className="flex flex-col gap-6">
+    <RefreshingRegion
+      aria-busy={scope.isRefreshing}
+      className="flex flex-col gap-6"
+      isRefreshing={scope.isPlaceholderData}
+    >
       {isLowerBound ? <StatisticsNote>{t("states.lowerBound")}</StatisticsNote> : null}
 
-      <StatisticsTabs isLowerBound={isLowerBound} overview={overview} params={params} />
-    </div>
+      <StatisticsTabs
+        isLowerBound={isLowerBound}
+        onShowAllTime={onShowAllTime}
+        overview={overview}
+        params={params}
+      />
+    </RefreshingRegion>
   );
 }
 
 function StatisticsTabs({
   isLowerBound,
+  onShowAllTime,
   overview,
   params,
 }: {
   isLowerBound: boolean;
+  onShowAllTime: () => void;
   overview: ReadingStatisticsOverview;
   params: UseStatisticsParamsResult;
 }) {
@@ -128,6 +189,14 @@ function StatisticsTabs({
     comparison: overview.comparison,
     reliableFrom: overview.meta.activityHistory.reliableFrom,
   });
+  const comparisonInsight = overview.overviewInsights[view.metric].find(
+    (insight) => insight.code === ACTIVITY_COMPARISON_INSIGHT_CODE[view.metric],
+  );
+  const comparisonResult =
+    comparisonInsight?.code === "completed_reads_vs_comparison" ||
+    comparisonInsight?.code === "pages_read_vs_comparison"
+      ? comparisonInsight.params
+      : undefined;
 
   const items: PageTabsItem[] = STATISTICS_VIEW.tabs.map((value) => ({ label: t(value), value }));
 
@@ -142,7 +211,7 @@ function StatisticsTabs({
         <StatisticsOverviewTab
           isComparisonLowerBound={isComparisonLowerBound}
           isLowerBound={isLowerBound}
-          onShowAllTime={() => params.setPeriod("all_time")}
+          onShowAllTime={onShowAllTime}
           overview={overview}
           today={params.today}
           view={view}
@@ -150,20 +219,35 @@ function StatisticsTabs({
       </PageTabsPanel>
 
       <PageTabsPanel className="flex flex-col gap-6" value="activity">
-        <StatisticsFocusTarget isTarget={view.section === "dynamics"}>
-          <ReadingDynamicsCard
-            comparison={overview.comparison}
-            dynamics={overview.dynamics}
-            isComparisonLowerBound={isComparisonLowerBound}
-            metric={view.metric}
-            onMetricChange={view.setMetric}
-            period={overview.period}
-            variant="full"
-          />
-        </StatisticsFocusTarget>
-        <StatisticsFocusTarget isTarget={view.section === "calendar"}>
-          <ReadingCalendarCard calendar={overview.calendar} meta={overview.meta} />
-        </StatisticsFocusTarget>
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-20 xl:items-start">
+          <StatisticsFocusTarget
+            className="min-w-0 xl:col-span-11"
+            isTarget={view.section === "dynamics"}
+          >
+            <ReadingDynamicsCard
+              comparison={overview.comparison}
+              comparisonResult={comparisonResult}
+              dynamics={overview.dynamics}
+              isComparisonLowerBound={isComparisonLowerBound}
+              metric={view.metric}
+              onMetricChange={view.setMetric}
+              period={overview.period}
+              variant="full"
+            />
+          </StatisticsFocusTarget>
+          <StatisticsFocusTarget
+            className="min-w-0 xl:col-span-9"
+            isTarget={view.section === "habits"}
+          >
+            <ReadingHabitsSection calendar={overview.calendar} meta={overview.meta} />
+          </StatisticsFocusTarget>
+        </div>
+        <ReadingWeekdayActivity
+          calendar={overview.calendar}
+          key={[overview.period.from, overview.period.to].join(":")}
+          weekStartDay={overview.meta.weekStartDay}
+        />
+        <ReadingCalendarLink />
       </PageTabsPanel>
 
       <PageTabsPanel className="flex flex-col gap-6" value="tastes">

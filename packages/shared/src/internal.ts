@@ -86,12 +86,12 @@ export const QueryBooleanWithDefaultSchema = z
   .transform((value) => value === "true");
 
 export const OWNERSHIP_STORE_NAME_MAX = 100;
-const OWNERSHIP_STORE_URL_MAX = 300;
-const OWNERSHIP_ORDER_NUMBER_MAX = 100;
-const OWNERSHIP_NOTE_MAX = 300;
-const OWNERSHIP_PRICE_MIN = 0;
-const OWNERSHIP_PRICE_MAX = 99999999.99;
-const TRACKING_NUMBER_MAX = 100;
+export const OWNERSHIP_STORE_URL_MAX = 300;
+export const OWNERSHIP_ORDER_NUMBER_MAX = 100;
+export const OWNERSHIP_NOTE_MAX = 300;
+export const OWNERSHIP_PRICE_MIN = 0;
+export const OWNERSHIP_PRICE_MAX = 99999999.99;
+export const TRACKING_NUMBER_MAX = 100;
 const CANCEL_REASON_MAX = 500;
 
 export const OwnershipStoreNameSchema = z

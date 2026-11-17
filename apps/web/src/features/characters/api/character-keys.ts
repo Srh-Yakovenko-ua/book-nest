@@ -5,6 +5,7 @@ import type {
   BookCharacterSuggestionsControllerListParams,
   CharacterGroupsControllerListParams,
   CharactersControllerDuplicateCandidatesParams,
+  CharactersControllerFacetsParams,
   CharactersControllerGetByIdParams,
   CharactersControllerListParams,
 } from "@/shared/api/generated/model";
@@ -14,8 +15,8 @@ export type CharacterFactsScope = {
   characterId: string;
 };
 
-const CHARACTERS_ROOT = "characters";
-const CHARACTER_GROUPS_ROOT = "character-groups";
+const CHARACTERS_ROOT = "/api/characters";
+const CHARACTER_GROUPS_ROOT = "/api/character-groups";
 
 const BOOK_ROSTER = {
   finite: "page",
@@ -31,6 +32,8 @@ const FACTS = {
 
 export const characterKeys = {
   all: [CHARACTERS_ROOT] as const,
+  allBookRostersScope: () => [CHARACTERS_ROOT, BOOK_ROSTER.root] as const,
+  allBookSummariesScope: () => [CHARACTERS_ROOT, "book-summary"] as const,
   bookRoster: (bookId: string, params: BookCharactersControllerListParams) =>
     [CHARACTERS_ROOT, BOOK_ROSTER.root, bookId, BOOK_ROSTER.finite, params] as const,
   bookRosterFiniteScope: (bookId: string) =>
@@ -40,8 +43,10 @@ export const characterKeys = {
   bookRosterInfiniteScope: (bookId: string) =>
     [CHARACTERS_ROOT, BOOK_ROSTER.root, bookId, BOOK_ROSTER.infinite] as const,
   bookRosterScope: (bookId: string) => [CHARACTERS_ROOT, BOOK_ROSTER.root, bookId] as const,
+  books: (characterId: string) => [CHARACTERS_ROOT, "books", characterId] as const,
   bookSummary: (bookId: string, bookContext: BookCharacterSummaryQuery) =>
-    [CHARACTERS_ROOT, "book-summary", bookId, bookContext] as const,
+    [...characterKeys.bookSummaryScope(bookId), bookContext] as const,
+  bookSummaryScope: (bookId: string) => [...characterKeys.allBookSummariesScope(), bookId] as const,
   customLabels: () => [CHARACTERS_ROOT, "custom-labels"] as const,
   deletionPreview: (characterId: string) =>
     [CHARACTERS_ROOT, "deletion-preview", characterId] as const,
@@ -50,6 +55,9 @@ export const characterKeys = {
   detailsScope: (characterId: string) => [CHARACTERS_ROOT, "details", characterId] as const,
   duplicates: (params: CharactersControllerDuplicateCandidatesParams) =>
     [CHARACTERS_ROOT, "duplicates", params] as const,
+  facets: (params: CharactersControllerFacetsParams) =>
+    [...characterKeys.facetsScope(), params] as const,
+  facetsScope: () => [CHARACTERS_ROOT, "facets"] as const,
   factsInfinite: ({ bookId, characterId, q }: CharacterFactsScope & { q: string }) =>
     [CHARACTERS_ROOT, FACTS.root, characterId, bookId, FACTS.infinite, q] as const,
   factsScope: ({ bookId, characterId }: CharacterFactsScope) =>
@@ -60,6 +68,8 @@ export const characterKeys = {
     [CHARACTER_GROUPS_ROOT, "options", params] as const,
   overview: () => [CHARACTERS_ROOT, "overview"] as const,
   search: (params: CharactersControllerListParams) => [CHARACTERS_ROOT, "search", params] as const,
+  searchScope: () => [CHARACTERS_ROOT, "search"] as const,
   suggestions: (bookId: string, params: BookCharacterSuggestionsControllerListParams) =>
-    [CHARACTERS_ROOT, "suggestions", bookId, params] as const,
+    [...characterKeys.suggestionsScope(bookId), params] as const,
+  suggestionsScope: (bookId: string) => [CHARACTERS_ROOT, "suggestions", bookId] as const,
 };

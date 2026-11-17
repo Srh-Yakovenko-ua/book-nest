@@ -1,0 +1,1229 @@
+{
+  "spec": "docs/specs/statistics-final-audit/spec.md",
+  "generatedAt": "2026-10-20T12:21:45Z",
+  "mode": "VERIFY",
+  "base": {
+    "ref": "origin/dev",
+    "sha": "af00c4fe1317b6e5102c7f03f7a7e90e972266a1",
+    "branch": "feat/statistics-final-audit",
+    "worktree": "D:\\IT\\book-nest\\.claude\\worktrees\\statistics-progress",
+    "note": "git log -1 = af00c4fe (merge PR #298), equal to the SHA in spec line 5. git status --short shows only ?? docs/specs/statistics-final-audit/. origin/dev equality is the caller's statement; this audit did not fetch."
+  },
+  "scope": {
+    "included": [
+      "§2 preflight (F0)",
+      "§3 keep-as-is list: verified as claims, no tasks beyond regression audit",
+      "§4 P1 snapshot vs subset SQL parity: diagnostic test, conditional fix",
+      "§5 S01-S12 audit matrix, conditional micro-patches",
+      "§6 P2 accessibility / responsive audit (NOT_VERIFIED without a browser)",
+      "§7 P2 backend performance: record measurements, conditional bucket optimization",
+      "§8 P2 subset / interval compatibility and security",
+      "§9 F3 final gate once, F4 verify-report.md",
+      "§7 countPriorExposure rewrite, admitted by D3 = A (main-loop decision, see verify-report.md)"
+    ],
+    "excluded": [
+      {
+        "item": "New tabs, charts, redesign, new analytics, new filters, API extension for other ranking categories, architecture move, new cache/queues/materialized views, delivery statistics, characters, book features outside statistics",
+        "reason": "spec §1 Out of scope"
+      },
+      {
+        "item": "Prisma migrations, new tables, new indexes, Redis, overview split into endpoints, disabling sections for latency",
+        "reason": "spec §1 (migrations without a proven blocker), §7.4"
+      },
+      {
+        "item": "Changes to ReadingCompletionSnapshotSchema, loading all reads into JS for the subset, rewriting statistics",
+        "reason": "spec §4 fix constraints"
+      },
+      {
+        "item": "Edits to existing positive tests in completed-reads-subset.controller.test.ts (year/all_time/700 days/cursor/ownership/trash/multi-author/multi-genre)",
+        "reason": "spec §4 Не чіпати; only additive cases"
+      },
+      {
+        "item": "Exact drilldowns for rated rankings, returning authors, discoveries",
+        "reason": "spec §8 last bullet, §3 stage 03"
+      },
+      {
+        "item": "Rework of stages 01-03, URL parser rewrites, tab structure changes",
+        "reason": "spec §2.4, §5 Дія"
+      },
+      {
+        "item": "Global eslint/typecheck/test/build/knip/e2e/format before or between edits; new E2E framework",
+        "reason": "spec §2.5, §6, §9; CLAUDE.md §9"
+      },
+      {
+        "item": "OpenAPI regeneration / pnpm gen:api",
+        "reason": "spec §9 F3: only if the API contract actually changes; base scope does not"
+      },
+      {
+        "item": "Push, merge into dev, empty commit",
+        "reason": "spec §9 F4"
+      },
+      {
+        "item": "JIT setting change (SET LOCAL jit) for countPriorExposure",
+        "reason": "D3 picked A (rewrite) over B"
+      }
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T00",
+      "title": "F0 preflight: branch, base SHA, foreign changes",
+      "specRef": "§2.1-2.4, §9 F0",
+      "layer": "audit",
+      "files": [],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "HEAD and base SHA recorded (af00c4fe)",
+        "git status --short recorded; no foreign uncommitted changes overwritten",
+        "stages 01-03 presence confirmed against code (see verifiedAssertions A1-A15)"
+      ],
+      "status": "done",
+      "evidence": "git log -1: af00c4fe Merge pull request #298; git status --short: ?? docs/specs/statistics-final-audit/",
+      "verify": {
+        "proof": [
+          "git rev-parse HEAD = af00c4fe; branch feat/statistics-final-audit; origin/dev moved to 36ef3e48 (PR #299, no statistics/api/shared files) per evidence log"
+        ]
+      }
+    },
+    {
+      "id": "T01",
+      "title": "S01 period chain year -> last_12_months -> custom -> all_time",
+      "specRef": "§5 S01",
+      "layer": "audit",
+      "files": [
+        "apps/web/src/features/statistics/model/use-statistics-params.ts",
+        "apps/web/src/features/statistics/components/overview/statistics-overview.tsx",
+        "apps/web/src/features/statistics/components/overview/statistics-overview.test.tsx",
+        "apps/web/src/features/statistics/model/use-statistics-params.test.tsx"
+      ],
+      "dependsOn": ["T00"],
+      "mandatory": true,
+      "doneWhen": [
+        "verdict PASS / DEFECT_CONFIRMED / RISK_UNVERIFIED recorded with file:line and covering test",
+        "patch plus 1-2 regression tests only if DEFECT_CONFIRMED"
+      ],
+      "firstPass": {
+        "verdict": "PASS-by-code",
+        "proof": [
+          "statistics-overview.tsx:62 currentOverview is undefined while isPlaceholderData, so controls drop the old period caption (:83-86)",
+          "statistics-overview.tsx:138 inert on the stale body",
+          "use-statistics-params.ts:63-70 setPeriod clears from/to/year and drops compare when unsupported",
+          "tests: statistics-overview.test.tsx:693, :706, :715; use-statistics-params.test.tsx:98, :107, :130"
+        ],
+        "gap": "no single test walks the full four-step chain; covered pairwise"
+      },
+      "status": "done",
+      "verify": {
+        "verdict": "PASS",
+        "proof": [
+          "statistics-overview.tsx:62 currentOverview undefined while placeholder; :83-87 controls get null period/comparison; :138 inert",
+          "use-statistics-params.ts:63-70 setPeriod clears from/to/year and drops compare",
+          "tests statistics-overview.test.tsx:693, :706, :715; use-statistics-params.test.tsx:98, :107, :130; statistics suite 396/396 locally per evidence log"
+        ],
+        "notVerified": "the four-step chain was not walked as one browser sequence; S02, S05 and S09 browser runs cover its parts",
+        "browser": "controls walk year 2025 -> last_12_months -> custom (no dates, no request) -> all_time with 2.5 s delayed responses: previous result inert with the updating status during each load; KPI equals API after (121, 63, 400)"
+      }
+    },
+    {
+      "id": "T02",
+      "title": "S02 change year or custom range while loading",
+      "specRef": "§5 S02",
+      "layer": "audit",
+      "files": [
+        "apps/web/src/features/statistics/components/overview/statistics-overview.tsx",
+        "apps/web/src/features/statistics/components/overview/statistics-overview.test.tsx"
+      ],
+      "dependsOn": ["T00"],
+      "mandatory": true,
+      "doneWhen": [
+        "verdict recorded with file:line and covering test",
+        "patch plus 1-2 regression tests only if DEFECT_CONFIRMED"
+      ],
+      "firstPass": {
+        "verdict": "PASS-by-code",
+        "proof": [
+          "statistics-overview.tsx:82-87 period controls render outside the inert container (:132-138)",
+          "test statistics-overview.test.tsx:693 asserts the tablist is inside [inert] and the year control is enabled outside it"
+        ],
+        "gap": "portaled detail content escapes inert, see T08"
+      },
+      "status": "done",
+      "verify": {
+        "verdict": "PASS",
+        "proof": [
+          "browser: overview delayed 5 s, one [inert] around the tab panel, controls not inert, aria-busy, status text, forced click on a ranking row opened nothing, inert removed after the response (evidence S02)"
+        ]
+      }
+    },
+    {
+      "id": "T03",
+      "title": "S03 Back/Forward and deep link ?tab=activity&section=calendar&calendarMode=books&calendarMonth=",
+      "specRef": "§5 S03",
+      "layer": "audit",
+      "files": [
+        "apps/web/src/features/statistics/components/reading/reading-calendar-card.tsx",
+        "apps/web/src/features/statistics/model/use-statistics-view.ts",
+        "apps/web/src/features/statistics/model/use-statistics-params.ts",
+        "apps/web/src/features/statistics/components/reading/reading-calendar-card.test.tsx"
+      ],
+      "dependsOn": ["T00"],
+      "mandatory": true,
+      "doneWhen": [
+        "verdict recorded with file:line and covering test",
+        "Back/Forward behaviour for period changes recorded against D2",
+        "patch plus 1-2 regression tests only if DEFECT_CONFIRMED"
+      ],
+      "firstPass": {
+        "verdict": "PASS-by-code (deep link, normalization); observation on period history",
+        "proof": [
+          "reading-calendar-card.tsx:42-51 stale month dropped only when !suspendMonthNormalization; statistics-overview.tsx:224 passes isPlaceholderData",
+          "tests: statistics-overview.test.tsx:538 (deep-link drop with replace), reading-calendar-card.test.tsx ~:451 and ~:473 (hold while suspended, drop once after)",
+          "use-statistics-view.ts:41 tab/section push; :55-57 calendarMode/calendarMonth/metric replace"
+        ],
+        "observation": "use-statistics-params.ts:45 useQueryStates(statisticsParsers) has no history option, so period changes use the nuqs default (replace per nuqs docs, not verified this run); Back does not step through periods. See D2."
+      },
+      "status": "done",
+      "verify": {
+        "verdict": "PASS",
+        "proof": [
+          "browser: calendarMonth=2019-05 dropped after the response, 2025-03 kept, Back restores it (evidence S03)",
+          "reading-calendar-card.tsx:42-51 drop only when !suspendMonthNormalization; statistics-overview.tsx:224",
+          "use-statistics-view.ts:41 push for tab/section, :55-57 replace; period changes keep the nuqs default (D2 = A)"
+        ]
+      }
+    },
+    {
+      "id": "T04",
+      "title": "S04 KPI -> Activity/Tastes keeps tab/section/metric, period/compare, focus and return",
+      "specRef": "§5 S04",
+      "layer": "audit",
+      "files": [
+        "apps/web/src/features/statistics/model/use-statistics-view.ts",
+        "apps/web/src/features/statistics/components/overview/statistics-overview-tab.tsx"
+      ],
+      "dependsOn": ["T00"],
+      "mandatory": true,
+      "doneWhen": [
+        "verdict recorded with file:line and covering test",
+        "focus/scroll on Back recorded as NOT_VERIFIED unless checked in a browser",
+        "patch plus 1-2 regression tests only if DEFECT_CONFIRMED"
+      ],
+      "firstPass": {
+        "verdict": "PASS-by-code",
+        "proof": [
+          "use-statistics-view.ts:46-51 destinationHref serializes periodState plus metric",
+          "statistics-overview-tab.tsx:57-60 KPI grid gets destinationHref and view.open",
+          "tests: statistics-overview.test.tsx:312, :337, :360, :189"
+        ],
+        "unverified": "focus/scroll restore after Back (browser)"
+      },
+      "status": "done",
+      "verify": {
+        "verdict": "PASS",
+        "proof": [
+          "browser: KPI hrefs keep compare=previous_period&year=2025 plus tab/section/metric, focus on the target section, section top at 33 px, Back/Forward restore the URL (evidence S04)",
+          "observation: after Back focus is on body and scroll stays at 374 px, browser default for a shallow navigation, not a defect"
+        ]
+      }
+    },
+    {
+      "id": "T05",
+      "title": "S05 compare previous_period / same_period_last_year and all_time",
+      "specRef": "§5 S05",
+      "layer": "audit",
+      "files": [
+        "apps/api/src/modules/statistics/domain/statistics-delta.ts",
+        "apps/api/src/modules/statistics/domain/statistics-period.ts",
+        "apps/web/src/features/statistics/model/use-statistics-params.ts"
+      ],
+      "dependsOn": ["T00"],
+      "mandatory": true,
+      "doneWhen": [
+        "verdict recorded with file:line and covering test",
+        "patch plus 1-2 regression tests only if DEFECT_CONFIRMED"
+      ],
+      "firstPass": {
+        "verdict": "PASS-by-code",
+        "proof": [
+          "statistics-delta.ts:19 percentDelta null when previous is 0",
+          "api statistics-period.ts:135 rejects all_time comparison",
+          "use-statistics-params.ts:65 setPeriod drops compare for periods that cannot compare",
+          "tests: statistics-delta.test.ts:22, :30; api statistics-period.test.ts:175; web use-statistics-params.test.tsx:89, :98; web statistics-period.test.ts:109"
+        ]
+      },
+      "status": "done",
+      "verify": {
+        "verdict": "DEFECT_CONFIRMED -> fixed in T15c, T15d",
+        "proof": [
+          "browser: all_time disables the compare switch, ?period=all_time&compare=previous_period shows no deltas, 2023 vs empty 2022 reads 'з 0 до 118 читань' (evidence S05)",
+          "defects: direction only in an aria-hidden icon (T15c); a score that rounds to 0,0 shown with a down arrow (T15d)"
+        ]
+      }
+    },
+    {
+      "id": "T06",
+      "title": "S06 historical year -> Progress: goal and library balance current, series and records scoped",
+      "specRef": "§5 S06, §3 Прогрес",
+      "layer": "audit",
+      "files": [
+        "apps/web/src/features/statistics/components/progress/reading-goal-card.tsx",
+        "apps/web/src/features/statistics/components/progress/library-balance-section.tsx",
+        "apps/web/src/features/statistics/components/progress/series-section.tsx",
+        "apps/web/src/features/statistics/components/progress/records-section.tsx",
+        "apps/web/src/features/statistics/components/overview/statistics-overview-tab.tsx"
+      ],
+      "dependsOn": ["T00"],
+      "mandatory": true,
+      "doneWhen": [
+        "verdict recorded with file:line and covering test",
+        "patch plus 1-2 regression tests only if DEFECT_CONFIRMED"
+      ],
+      "firstPass": {
+        "verdict": "PASS-by-code",
+        "proof": [
+          "en.json:9597 goal currentTitle 'Current goal'; en.json:9652 libraryBalance description 'The current state ... The selected period does not change it.'",
+          "series description 'in the selected period', records description 'from the selected period' (statistics.series.description, statistics.records.description)",
+          "statistics-overview-tab.tsx:38 compact goal only when isPeriodIncludingDay(today)",
+          "tests: statistics-overview.test.tsx:447, :455, :468; stage statistics-progress tests (reading-goal-card, library-balance-section, series-section, records-section)"
+        ]
+      },
+      "status": "done",
+      "verify": {
+        "verdict": "PASS",
+        "proof": [
+          "browser: goal and library balance 'Вибраний період на нього не впливає', series and records 'за вибраний період' (evidence S06); uk.json:9602, :9656"
+        ]
+      }
+    },
+    {
+      "id": "T07",
+      "title": "S07 historical year -> Tastes: frequency subset uses the selected period, returning labelled all time",
+      "specRef": "§5 S07",
+      "layer": "audit",
+      "files": [
+        "apps/api/src/modules/statistics/application/statistics-tastes.composer.ts",
+        "apps/web/src/features/statistics/components/tastes/authors-section.tsx"
+      ],
+      "dependsOn": ["T00"],
+      "mandatory": true,
+      "doneWhen": [
+        "verdict recorded with file:line and covering test",
+        "patch plus 1-2 regression tests only if DEFECT_CONFIRMED"
+      ],
+      "firstPass": {
+        "verdict": "PASS-by-code",
+        "proof": [
+          "statistics-tastes.composer.ts:71-74 drilldown carries periodScope, the same scope loadReads uses (statistics-overview.service.ts:84, :98)",
+          "statistics-completion.repository.ts:281-310 findReturningAuthors has no period predicate; en.json:9543 returningMeta starts 'All time'",
+          "tests: authors-section.test.tsx:54, :81; completed-reads-subset.controller.test.ts:392-501"
+        ]
+      },
+      "status": "done",
+      "verify": {
+        "verdict": "PASS",
+        "proof": [
+          "browser: subset requests carry periodFrom=2025-01-01, periodTo=2025-12-31 (evidence S07)",
+          "statistics-tastes.composer.ts:71-74 drilldown period = periodScope; uk.json:9547 returningMeta starts 'За весь час'; authors-section.test.tsx:54"
+        ],
+        "notVerified": "returning author card not visible in the browser for the synthetic data (no author across two years); covered by the unit test only"
+      }
+    },
+    {
+      "id": "T08",
+      "title": "S08 open subset Popover/Drawer then change period",
+      "specRef": "§5 S08",
+      "layer": "audit",
+      "files": [
+        "apps/web/src/features/statistics/components/details/statistics-detail-surface.tsx",
+        "apps/web/src/features/statistics/components/tastes/taste-ranking-list.tsx",
+        "apps/web/src/features/statistics/api/use-completed-reads-subset.ts"
+      ],
+      "dependsOn": ["T00"],
+      "mandatory": true,
+      "doneWhen": [
+        "verdict recorded: either old details close/isolate (PASS) or a reproduced mixed or stale-active detail (DEFECT_CONFIRMED)",
+        "reproduction is an RTL test or a browser check, not reasoning",
+        "patch plus 1-2 regression tests only if DEFECT_CONFIRMED"
+      ],
+      "firstPass": {
+        "verdict": "SUSPECT (isolation), PASS-by-code (no mixed request)",
+        "proof": [
+          "taste-ranking-list.tsx:139-145 filter and period come from one backend drilldown, surface keyed on field|value|from|to; use-completed-reads-subset.ts:69-78 query key built from both",
+          "statistics-detail-surface.tsx:74-91 Popover content and :54-69 Drawer content are portaled out of the inert container at statistics-overview.tsx:138"
+        ],
+        "mechanism": "a period change that does not dismiss the popover (Back/Forward, URL edit) leaves the old-period subset open and interactive during placeholder; it closes when the fresh response changes the key and remounts the surface. Requests stay self-consistent (old filter with old period). Desktop click on period controls should dismiss the non-modal Popover via outside pointerdown; mobile Drawer is modal. Radix/vaul dismissal behaviour not verified this run.",
+        "gap": "no test covers an open detail during a period change"
+      },
+      "status": "done",
+      "verify": {
+        "verdict": "PASS",
+        "proof": [
+          "browser: Popover closes on outside interaction (year button) and on Back to another tab; every subset request carried the row's genre and period (evidence S08, T15)",
+          "the PLAN mechanism (period change without dismissal) is not reachable by Back, because period changes replace history (D2 = A)"
+        ]
+      }
+    },
+    {
+      "id": "T09",
+      "title": "S09 Activity: custom > 1 year and all_time heatmap windows vs metricRange",
+      "specRef": "§5 S09",
+      "layer": "audit",
+      "files": [
+        "apps/web/src/features/statistics/model/statistics-calendar.ts",
+        "apps/web/src/features/statistics/components/reading/reading-calendar-card.tsx",
+        "apps/api/src/modules/statistics/application/statistics-calendar.composer.ts"
+      ],
+      "dependsOn": ["T00"],
+      "mandatory": true,
+      "doneWhen": [
+        "verdict recorded with file:line and covering test",
+        "patch plus 1-2 regression tests only if DEFECT_CONFIRMED"
+      ],
+      "firstPass": {
+        "verdict": "PASS-by-code",
+        "proof": [
+          "statistics-calendar.ts:20 HEATMAP_WINDOW months 12; :155-160 listHeatmapWindows",
+          "reading-calendar-card.tsx:54-66 metric vs display range, :92-98 metricRange description and displayRange note",
+          "statistics-calendar.composer.ts:71-75 aggregateDays over metricRange; :115-118 weekdayActivity from that activity",
+          "tests: statistics-overview.test.tsx:797, :809, :821; statistics-calendar.test.ts"
+        ]
+      },
+      "status": "done",
+      "verify": {
+        "verdict": "DEFECT_CONFIRMED -> fixed in T15e; all_time window paging DEFERRED",
+        "proof": [
+          "browser custom 2023-01-01..2026-04-30: heatmap window 1 May 2025 - 30 Apr 2026, previous enabled, next disabled, habits/weekday/calendar described over the metric range, lower bounds with ≥ (evidence S09)",
+          "all_time shows a rolling 12 months by server design (statistics-calendar.composer.ts resolveRanges), named by the displayRange note; paging it would be new behaviour",
+          "defect: uk note ended in 'рр..' and the marathon line in 'квіт..' (T15e)"
+        ]
+      }
+    },
+    {
+      "id": "T10",
+      "title": "S10 partial / unavailable / legacy / empty / error states",
+      "specRef": "§5 S10",
+      "layer": "audit",
+      "files": [
+        "apps/web/src/features/statistics/components/overview/statistics-kpi-grid.tsx",
+        "apps/web/src/features/statistics/components/progress/records-section.tsx",
+        "apps/web/src/features/statistics/components/reading/reading-books-calendar.tsx",
+        "apps/web/src/features/statistics/components/reading/reading-calendar-summary.tsx",
+        "apps/web/src/features/statistics/components/details/statistics-subset-details.tsx"
+      ],
+      "dependsOn": ["T00"],
+      "mandatory": true,
+      "doneWhen": [
+        "verdict recorded per state kind with file:line and covering test",
+        "patch plus 1-2 regression tests only if DEFECT_CONFIRMED"
+      ],
+      "firstPass": {
+        "verdict": "PASS-by-code (partial review)",
+        "proof": [
+          "statistics-kpi-grid.tsx:43, :83-119 lower-bound values; records-section.tsx:112 streakDaysAtLeast; reading-books-calendar.tsx:70-72 atLeast; reading-calendar-summary.tsx:22",
+          "statistics-overview.tsx:94 refetch error with retry, :113-114 first-load error with retry; statistics-subset-details.tsx:15-18 loading and error with retry",
+          "tests: statistics-overview.test.tsx:273, :294, :302, :746"
+        ],
+        "unverified": "per-section unavailable/insufficient copy in tastes and progress sections not opened this run"
+      },
+      "status": "done",
+      "verify": {
+        "verdict": "PASS",
+        "proof": [
+          "browser: lower-bound '≥ ... Мінімальне відоме значення', unavailable publishers with reason, empty 2019 shows 0 reads and a dash placeholder for the rating, forced 500 shows the alert with 'Спробувати ще раз' and recovers (evidence S10)"
+        ]
+      }
+    },
+    {
+      "id": "T11",
+      "title": "S11 time zone and week start (Sunday vs Monday)",
+      "specRef": "§5 S11",
+      "layer": "audit",
+      "files": [
+        "apps/web/src/features/statistics/model/use-statistics-params.ts",
+        "apps/web/src/features/statistics/model/statistics-calendar.ts",
+        "apps/api/src/modules/statistics/application/statistics-overview.service.ts"
+      ],
+      "dependsOn": ["T00"],
+      "mandatory": true,
+      "doneWhen": [
+        "verdict recorded with file:line and covering test",
+        "patch plus 1-2 regression tests only if DEFECT_CONFIRMED"
+      ],
+      "firstPass": {
+        "verdict": "PASS-by-code (partial review)",
+        "proof": [
+          "use-statistics-params.ts:46-47 today from profile time zone; statistics-overview.service.ts:77-78 toZonedIsoDate with settings.timezone",
+          "reading-calendar-card.tsx:111, :118 meta.weekStartDay to both calendars; statistics-calendar.ts:209 weekdayOrder(weekStartDay)",
+          "tests: use-statistics-params.test.tsx:71; web statistics-period.test.ts:66"
+        ],
+        "unverified": "buildWeekdayActivity ordering and statistics-buckets.test.ts week boundaries not opened this run"
+      },
+      "status": "done",
+      "verify": {
+        "verdict": "PASS",
+        "proof": [
+          "browser on the scratch DB with sunday + Pacific/Kiritimati: current-year label to 21 Oct 2026 while UTC was the 20th, weekly buckets Sun-Sat, weekday list starts with неділя, first heatmap cell a Sunday; settings restored (evidence S11)"
+        ]
+      }
+    },
+    {
+      "id": "T12",
+      "title": "S12 frequency row count equals subset totalCount; rated/returning/discoveries stay non-drillable",
+      "specRef": "§5 S12, §4",
+      "layer": "audit",
+      "files": [
+        "apps/web/src/features/statistics/components/tastes/taste-ranking-list.tsx",
+        "apps/web/src/features/statistics/components/tastes/authors-section.tsx",
+        "apps/web/src/features/statistics/components/tastes/genres-section.tsx",
+        "apps/api/src/modules/statistics/application/statistics-tastes.composer.ts"
+      ],
+      "dependsOn": ["T13"],
+      "mandatory": true,
+      "doneWhen": [
+        "verdict takes the T13 result for malformed snapshots",
+        "rated rows, returning author and discovery cards confirmed without a subset trigger, file:line",
+        "patch plus 1-2 regression tests only if DEFECT_CONFIRMED"
+      ],
+      "firstPass": {
+        "verdict": "PASS for valid snapshots, SUSPECT for malformed ones (see T13)",
+        "proof": [
+          "test completed-reads-subset.controller.test.ts:392-501 year and all_time, all four attributes, rereads, duplicate keys, trash, other user, abandoned, no snapshot, other version",
+          "authors-section.tsx:79-90 and genres-section.tsx:79-90 rated rows without drilldown; authors-section.tsx:93-107 returning is a static card; taste-ranking-list.tsx:135-137 plain label without a subset target",
+          "statistics-tastes.composer.ts:299 discovery cards still carry a completed_reads_subset drilldown in the API payload; discoveries-section.tsx does not consume drilldown (grep, no match)"
+        ]
+      },
+      "status": "done",
+      "verify": {
+        "verdict": "PASS (UI); malformed-snapshot parity DEFECT_FIXED via T14",
+        "proof": [
+          "browser: row 121 = subset totalCount 121 = 121 unique listed items (evidence S12)",
+          "authors-section.tsx:79-90 rated rows carry no drilldown; :93-107 returning is a static card; taste-ranking-list.tsx:135-137 plain label without a subset target"
+        ]
+      }
+    },
+    {
+      "id": "T13",
+      "title": "P1 diagnostic: overview frequency count vs subset totalCount with malformed snapshots",
+      "specRef": "§4 Діагностика",
+      "layer": "test",
+      "files": ["apps/api/src/modules/statistics/api/completed-reads-subset.controller.test.ts"],
+      "dependsOn": ["T00"],
+      "mandatory": true,
+      "doneWhen": [
+        "new cases added next to the existing 'snapshots the ranking cannot read' block (:504-559), existing tests unchanged",
+        "each case seeds one valid read plus one read whose filter key is valid but one other field breaks ReadingCompletionSnapshotSchema, then compares ranked vs total vs listed via the existing drillInto/agreeingCounts helpers",
+        "shapes covered at minimum: provenance outside the enum, series object with a missing or wrong-typed field, authors element with a non-RFC authorId or missing name, publisher missing name, book.genres null, book.title non-string, book.pagesCount non-integer",
+        "each shape exercised for the attributes it does not break (author, genre, language, publisher) plus one mixed valid+invalid set",
+        "result recorded per shape: agreeing or diverging counts; static prediction is ranked < total for every listed shape"
+      ],
+      "status": "done",
+      "verify": {
+        "proof": [
+          "completed-reads-subset.controller.test.ts:561-670 new describe, 8 shapes (:571-601) run by it.each at :651, plus the mixed case :660; diff has 111 additions, 0 deletions",
+          "every case drills all four attributes through drillInto/agreeingCounts (:603-621)",
+          "on the base repository the 9 cases failed (assertion {author:{listed:2}} vs {listed:1}); every shape diverged as predicted (evidence P1)"
+        ]
+      }
+    },
+    {
+      "id": "T14",
+      "title": "P1 conditional fix: align buildCompletedReadsSubsetCondition with the parse schema",
+      "specRef": "§4 Тільки якщо тест довів проблему",
+      "layer": "repository",
+      "files": [
+        "apps/api/src/modules/statistics/infrastructure/statistics-completion.repository.ts"
+      ],
+      "dependsOn": ["T13"],
+      "blockedBy": ["D1"],
+      "mandatory": true,
+      "doneWhen": [
+        "verdict recorded; patch only if T13 shows diverging counts",
+        "change confined to buildCompletedReadsSubsetCondition (:313-342), DB-side only, no reads loaded into JS, ReadingCompletionSnapshotSchema untouched",
+        "row.completedReadCount === subset.totalCount for every T13 shape, pages list exactly totalCount in stable keyset order",
+        "user, finished state and period predicates (:320-324) kept; soft-deleted books still included and marked",
+        "existing tests in completed-reads-subset.controller.test.ts still pass unchanged",
+        "if full parity needs a migration or large rewrite: risk, evidence and a separate proposal recorded instead of a patch"
+      ],
+      "status": "done",
+      "verify": {
+        "proof": [
+          "statistics-completion.repository.ts:350 parseableSnapshotCondition() replaces the version/language/pagesCount predicates inside buildCompletedReadsSubsetCondition (:338-353); helpers :355-449 in the same file, DB-side, no reads loaded into JS",
+          ":416-449 mirrors ReadingCompletionSnapshotSchema field by field with satisfies JsonShapeOf<...> on every object; :68 UUID pattern taken from z.regexes.uuid(), not copied",
+          ":345-349 user, state, finished_at and period predicates unchanged; books/index.ts:10, :14 export the type and READING_CYCLE_METADATA_PROVENANCE; reading-completion-snapshot.ts not in the diff",
+          "subset test file 48/48 locally after the fix (evidence P1); 426/426 local snapshots accepted by both SQL and Zod"
+        ],
+        "residual": "8 double-rounding divergences for numbers with more than 17 significant digits (backend-engineer, 354 synthetic shapes); subset count query 1.5 -> 8.6 ms (121 rows) and 3.6 -> 19.2 ms (400 rows), no JIT"
+      }
+    },
+    {
+      "id": "T15",
+      "title": "P2 UX: a11y, responsive, states at 375/768/1280, uk/en, light/dark for problem components",
+      "specRef": "§6",
+      "layer": "audit",
+      "files": [
+        "apps/web/src/features/statistics/components/details/statistics-detail-surface.tsx",
+        "apps/web/src/features/statistics/components/tastes/taste-ranking-list.tsx",
+        "apps/web/src/features/statistics/components/details/completed-reads-list.tsx"
+      ],
+      "dependsOn": ["T00"],
+      "mandatory": true,
+      "doneWhen": [
+        "each §6 bullet gets PASS / DEFECT_CONFIRMED / NOT_VERIFIED with evidence (screenshot or RTL test)",
+        "without a browser: NOT_VERIFIED plus the exact manual checks, no new E2E framework",
+        "style changes only for a reproduced problem, local to the component"
+      ],
+      "firstPass": {
+        "verdict": "unverified",
+        "staticNotes": [
+          "taste-ranking-list.tsx:143 contentClassName max-h-(--radix-popover-content-available-height) is also applied inside the mobile Drawer body (statistics-detail-surface.tsx:65), where that variable is undefined, so max-height falls back to none; harmless by CSS rules, check visually",
+          "statistics-detail-surface.tsx:54 Drawer autoFocus, :51 NestedRoot inside a drawer; nested close and focus return need a device check"
+        ]
+      },
+      "status": "done",
+      "verify": {
+        "verdict": "DEFECT_CONFIRMED -> fixed in T15a-T15e; parts NOT_VERIFIED",
+        "proof": [
+          "overflow 0 px at 375/768/1280 uk and 375 en on all four tabs (evidence UX)",
+          "desktop Popover: dialog name, focus inside, Escape returns focus to the row, Tab reaches 'Усі книги автора', outside click and Back close it",
+          "mobile nested Drawer: Escape closes only the nested drawer, focus returns to 'Деталі читання: ...', second Escape closes the outer one"
+        ],
+        "notVerified": "long-name stress data, dark theme, layout shift on locale/period change, Popover internal scroll height, browser Back with the mobile Drawer open, touch target sizes, a real screen reader"
+      }
+    },
+    {
+      "id": "T15a",
+      "title": "LoadMore keeps focus while loading and hands it to the first appended item",
+      "specRef": "§6 focus, Tab order; found in T15",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/components/details/details-states.tsx",
+        "apps/web/src/features/statistics/hooks/use-appended-page-focus.ts",
+        "apps/web/src/features/statistics/components/details/completed-reads-list.tsx",
+        "apps/web/src/features/statistics/components/details/reading-bucket-details.tsx",
+        "apps/web/src/features/statistics/components/details/statistics-detail-surface.tsx",
+        "apps/web/src/features/statistics/components/details/completed-reads-list.test.tsx",
+        "apps/web/src/features/statistics/components/details/reading-bucket-details.test.tsx"
+      ],
+      "dependsOn": ["T15"],
+      "mandatory": true,
+      "doneWhen": [
+        "observed defect: native disabled on LoadMore moved activeElement to body after every page (6/6) and Tab left the Popover",
+        "LoadMore uses aria-disabled and ignores clicks while loading",
+        "focus lands on the first item of the page that just arrived, in the subset list and in the bucket activity list",
+        "regression tests red on base, green with the fix"
+      ],
+      "status": "done",
+      "proof": [
+        "details-states.tsx:57-61 aria-disabled plus guarded onClick",
+        "use-appended-page-focus.ts:7-31; completed-reads-list.tsx:36, :56, :81; reading-bucket-details.tsx:158-161, :208-212, :241; statistics-detail-surface.tsx:32, :60, :81 triggerRef",
+        "tests completed-reads-list.test.tsx:74, :92, :110, :126 (3 failed / 1 passed on base); reading-bucket-details.test.tsx:266, :286 (2 failed / 7 passed on base)",
+        "browser after fix: focus on the first new read on every page in the Popover; bucket list focus on the new li with :focus-visible on 5 pages at 1280 and 375"
+      ],
+      "note": "the bucket activity list is the second consumer of the shared LoadMore; its focus loss was reproduced by the RTL test on base, not separately in the browser before the fix"
+    },
+    {
+      "id": "T15b",
+      "title": "A detail surface inside a Drawer stays a Drawer from the first render",
+      "specRef": "§6 mobile nested Drawer, focus return; found in T15",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/components/details/statistics-detail-surface.tsx",
+        "apps/web/src/features/statistics/components/details/statistics-subset-details.test.tsx"
+      ],
+      "dependsOn": ["T15a"],
+      "mandatory": true,
+      "doneWhen": [
+        "observed defect: inside the mobile Drawer focus went to the drawer container, because useIsMobile starts false and the new read mounted as a Popover trigger first",
+        "isMobile is true whenever the surface is inside a Drawer",
+        "regression test red with the old line, green with the fix"
+      ],
+      "status": "done",
+      "proof": [
+        "statistics-detail-surface.tsx:46-47 const isMobile = useIsMobile() || isInsideDrawer",
+        "trace: focus() at 195 ms, focusout related=null at 294 ms, Radix FocusScope refocused the container (evidence UX)",
+        "test statistics-subset-details.test.tsx:207 (1 failed / 7 passed with the old line)",
+        "browser after fix: focus on the first new read inside the Drawer, fully visible (750-812 px of 812)"
+      ]
+    },
+    {
+      "id": "T15c",
+      "title": "Delta direction is spoken, not only drawn",
+      "specRef": "§6 screen reader semantics, comparisons; §5 S05",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/components/statistics-delta.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json",
+        "apps/web/src/features/statistics/components/statistics-delta.test.tsx"
+      ],
+      "dependsOn": ["T05"],
+      "mandatory": true,
+      "doneWhen": [
+        "observed defect: the accessible text read '0,8% проти 122 читання' with the direction only in an aria-hidden icon",
+        "count, rate and score deltas carry an sr-only direction word",
+        "uk and en keys statistics.delta.direction.up/down exist",
+        "regression tests red on base, green with the fix"
+      ],
+      "status": "done",
+      "proof": [
+        "statistics-delta.tsx:130-139 DeltaValue with sr-only t(direction); used by all three deltas",
+        "uk.json:9268-9271 'зростання на' / 'спад на'; en.json:9268-9271 'up' / 'down'",
+        "test statistics-delta.test.tsx:92 mirrored count/rate/score (part of 5 failed / 70 passed on base, 75/75 with the fix)",
+        "browser after fix: 'спад на 0,8% проти 122 читання'"
+      ]
+    },
+    {
+      "id": "T15d",
+      "title": "Rate and score deltas that round to zero read as unchanged",
+      "specRef": "§5 S05 no invented percentages; found in T05",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/model/statistics-format.ts",
+        "apps/web/src/features/statistics/components/statistics-delta.tsx",
+        "apps/web/src/features/statistics/components/statistics-delta.test.tsx"
+      ],
+      "dependsOn": ["T15c"],
+      "mandatory": true,
+      "doneWhen": [
+        "observed defect: average rating 6.54 vs 6.58, both shown as 6,5, rendered '0,0' with a down arrow",
+        "rate and score deltas use the shown precision for the unchanged check; counts keep the exact-zero rule",
+        "regression tests red on direction-only code, green with the fix"
+      ],
+      "status": "done",
+      "proof": [
+        "statistics-format.ts:75-81, :97-105 isZeroAtPercentPrecision / isZeroAtRatingPrecision from SHARE_FRACTION / RATING_FRACTION",
+        "statistics-delta.tsx:77, :105; count path :43 unchanged",
+        "tests statistics-delta.test.tsx:110, :117, :126 (3 failed / 7 passed on direction-only code, 79/79 over 4 files with the fix)",
+        "browser after fix: 'Без змін'"
+      ],
+      "note": "a count whose percent rounds to 0 still shows a direction and '0%' by design (test :126)"
+    },
+    {
+      "id": "T15e",
+      "title": "uk calendar note and marathon line end with one period",
+      "specRef": "§6 informative boundary texts; §5 S09",
+      "layer": "web",
+      "files": [
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/features/statistics/components/reading/reading-calendar-card.test.tsx",
+        "apps/web/src/features/statistics/components/progress/series-section.test.tsx"
+      ],
+      "dependsOn": ["T09"],
+      "mandatory": true,
+      "doneWhen": [
+        "observed defect: '...2026 рр..' in the calendar note and '... квіт..' in the marathon line",
+        "uk displayRange and series.marathon drop their own trailing period; en unchanged",
+        "regression tests assert no '..' and a single trailing period"
+      ],
+      "status": "done",
+      "proof": [
+        "uk.json:9389 displayRange, :9652 marathon without the trailing period; en.json:9389, :9652 keep theirs",
+        "tests reading-calendar-card.test.tsx:179, series-section.test.tsx:222 (part of 5 failed / 70 passed on base)",
+        "browser after fix: 'Календар показує 21 жовтня 2025 – 20 жовтня 2026 рр.'; the marathon line after the fix is covered by the test only"
+      ],
+      "note": "the uk sentences now rely on Intl putting the period ('р.', 'рр.', abbreviated month); the tests pin one year range and one month"
+    },
+    {
+      "id": "T16",
+      "title": "P2 performance: record getOverview measurements, decide on bucket optimization",
+      "specRef": "§7",
+      "layer": "application",
+      "files": [
+        "apps/api/src/modules/statistics/application/statistics-overview.service.ts",
+        "apps/api/src/modules/statistics/application/reading-core.composer.ts",
+        "apps/api/src/modules/statistics/infrastructure/statistics-completion.repository.ts"
+      ],
+      "dependsOn": ["T00"],
+      "blockedBy": ["D3"],
+      "mandatory": true,
+      "doneWhen": [
+        "measurement, dataset size and environment recorded in verify-report.md",
+        "bucket functions verdict: DEFERRED, since they are under 3% of getOverview",
+        "countPriorExposure finding recorded with evidence and routed per D3",
+        "no code change unless D3 says otherwise; any change shows before/after time and byte-identical payloads on the same dataset"
+      ],
+      "measured": {
+        "by": "main loop, 2026-10-20, not re-measured here",
+        "dataset": "synthetic user, 400 finished cycles",
+        "getOverview": "~290-420 ms for year and last_12_months",
+        "countPriorExposure": "245-320 ms (statistics-completion.repository.ts:99-130); planner estimates 100 rows per jsonb_array_elements LATERAL (259 x 100 x 100 = 2.59M estimated, 480 actual) so Postgres JIT compiles the query",
+        "jitOff": "same calls 60-100 ms, payloads byte-identical",
+        "bucketFunctions": "toBuckets / toMonthlyBuckets 0.2-4.8 ms, under 3% of total"
+      },
+      "staticObservations": [
+        "statistics-overview.service.ts:86-109 Promise.all of 10 loads, then loadComparison (:111) and calendarComposer.compose (:112-117) run sequentially",
+        "statistics-calendar.composer.ts:71-75 runs aggregateDays again over metricRange after statistics-overview.service.ts:101 already ran it over the period",
+        "statistics-overview.service.ts:319 and :330 filter reads twice per monthly bucket"
+      ],
+      "status": "done",
+      "verify": {
+        "verdict": "OPTIMIZED (countPriorExposure); bucket functions DEFERRED",
+        "proof": [
+          "bucket functions 0.2-4.8 ms, under 3% of getOverview -> DEFERRED (evidence P2 performance)",
+          "statistics-completion.repository.ts:119-150 CTE plus three scalar subqueries replaces the double LATERAL cross join; EXPLAIN cost 1,801,804 -> 5,222, 400.6 ms -> 1.7 ms, no JIT",
+          "A/B getOverview, 8 scenarios, 7 runs median, byte-identical payloads except meta.generatedAt, same query counts: year 2025 412.3 -> 104.9 ms, last_12_months 316.4 -> 72.7 ms",
+          "statistics.controller.test.ts:816-1014 four discovery pin tests green on base and on new code (evidence)"
+        ],
+        "notVerified": "prod JIT setting (no server access)"
+      }
+    },
+    {
+      "id": "T17",
+      "title": "§8 compatibility and security after PR #298",
+      "specRef": "§8",
+      "layer": "contract",
+      "files": [
+        "packages/shared/src/reading-statistics-intervals.ts",
+        "apps/api/src/modules/statistics/api/statistics.controller.ts",
+        "apps/api/src/modules/statistics/application/reading-interval-details.service.ts",
+        "apps/web/src/shared/api/generated/zod/statistics/statistics.zod.ts"
+      ],
+      "dependsOn": ["T00"],
+      "mandatory": true,
+      "doneWhen": [
+        "subset and interval routes confirmed independent, each with its own ZodQueryPipe, file:line",
+        "subset strictObject: unknown param, two filters, bad cursor, cursor from another scope -> 400, with covering test lines",
+        "old interval cursor schema unchanged since before PR #298 (git show 435a61a5)",
+        "generated Orval subset params / page models match the shared schema field by field",
+        "StatisticsDetailSurface reuse leaves chart bucket, day details and records details behaviour unchanged, with covering tests",
+        "patch only if DEFECT_CONFIRMED"
+      ],
+      "firstPass": {
+        "verdict": "PASS-by-code except Orval parity (unverified)",
+        "proof": [
+          "statistics.controller.ts:62-67 completed-reads with ReadingStatisticsIntervalQuerySchema; :90-99 completed-reads/subset with ReadingStatisticsCompletedReadsSubsetQuerySchema",
+          "reading-statistics-intervals.ts:109-110 strictObject, :125-131 exactly one filter, :147 1830-day bound, :20-21 page size 20/50",
+          "reading-interval-details.service.ts:33 CompletedReadsCursorSchema; git show 435a61a5 touches only added lines on cursor code; :101-104 subset cursor requires scope fingerprint",
+          "statistics-completion.repository.ts:320-324 user, finished, finished_at, bounds; :268 second fetch also filtered by userId; :246 keyset id tie-break",
+          "tests: completed-reads-subset.controller.test.ts:767-883 rejections and cross-query cursor, :884-974 ownership, trash, states, :685-766 paging"
+        ],
+        "unverified": "Orval model parity; StatisticsDetailSurface consumers (completed-read-card.tsx, records-section.tsx, reading-heatmap.tsx, reading-books-diary.tsx, reading-books-month-grid.tsx) and their tests not opened"
+      },
+      "status": "done",
+      "verify": {
+        "verdict": "PASS",
+        "proof": [
+          "curl against :4100: subset rejects unknown key, no filter, two filters, limit 51, garbage cursor, 1831 days, foreign cursor with 400 and anonymous with 401; interval route 200 with own cursor, strips unknown keys as before (evidence §8)",
+          "generated statisticsControllerGetCompletedReadsSubsetParams.ts has the 8 fields of reading-statistics-intervals.ts:109-123 with only periodTo required; readingStatisticsCompletedReadsSubsetPageDto.ts items/nextCursor nullable/totalCount match :163-168 (opened this run)",
+          "StatisticsDetailSurface change limited to triggerRef and isInsideDrawer (statistics-detail-surface.tsx:32, :47); statistics suite 396/396 locally per evidence log"
+        ]
+      }
+    },
+    {
+      "id": "T18",
+      "title": "F3 final gate, once",
+      "specRef": "§9 F3",
+      "layer": "test",
+      "files": [],
+      "dependsOn": [
+        "T01",
+        "T02",
+        "T03",
+        "T04",
+        "T05",
+        "T06",
+        "T07",
+        "T08",
+        "T09",
+        "T10",
+        "T11",
+        "T12",
+        "T13",
+        "T14",
+        "T15",
+        "T16",
+        "T17"
+      ],
+      "mandatory": true,
+      "doneWhen": [
+        "git diff --check clean",
+        "targeted tests for changed files only (at minimum completed-reads-subset.controller.test.ts after T13), run by the main loop or CI",
+        "typecheck of touched workspaces only; eslint and prettier on changed files only",
+        "no gen:api unless the API contract changed",
+        "any check that could not run is NOT_VERIFIED with the reason, never PASS"
+      ],
+      "status": "done",
+      "verify": {
+        "verdict": "done",
+        "proof": "git diff --check HEAD clean; gates.sh second run exit 0 (typecheck, lint-web, lint, format ok) after autofix and test lint fixes; first run failed lint-web (8) and format (1)"
+      }
+    },
+    {
+      "id": "T19",
+      "title": "F4 verify-report.md and closure",
+      "specRef": "§9 F4, Мінімальний звіт",
+      "layer": "audit",
+      "files": ["docs/specs/statistics-final-audit/verify-report.md"],
+      "dependsOn": ["T18"],
+      "mandatory": true,
+      "doneWhen": [
+        "table rows S01-S12, P1 snapshot, P2 UX, P2 performance with verdict, proof, changes, what is left",
+        "list of commands actually run with their results",
+        "conclusion READY / READY_WITH_NOT_VERIFIED / BLOCKED with reason",
+        "one conventional commit only if code or needed docs changed; no empty commit, no push, no merge"
+      ],
+      "status": "done",
+      "verify": {
+        "verdict": "done",
+        "proof": "verify-report.md complete; one local commit, no push"
+      }
+    }
+  ],
+  "openDecisions": [
+    {
+      "id": "D1",
+      "question": "If T13 shows ranked < total for malformed snapshots, how far should the SQL predicate mirror ReadingCompletionSnapshotSchema?",
+      "options": [
+        "A: full structural mirror in buildCompletedReadsSubsetCondition: provenance enum, book.title string, book.genres array of strings, pagesCount integer, authors array of {authorId uuid-shaped string, name string}, publisher null or {publisherId uuid-shaped, name string}, series null or the six typed fields; via jsonb_typeof and jsonb_path_exists",
+        "B: only the shapes current writers can actually produce wrong (genres null from the nullable books.genres column through the backfill migration, non-RFC UUIDs from explicit-id inserts), record the rest as RISK",
+        "C: no patch; record RISK_UNVERIFIED with the T13 evidence and a separate proposal, since no app code path writes such snapshots"
+      ],
+      "codebaseCost": "A is one SQL helper of about 20 predicates, no migration, no schema change; B is 2-4 predicates; C is zero code. The UUID check in SQL must copy the Zod 4.4.3 regex (node_modules/.pnpm/zod@4.4.3/node_modules/zod/v4/core/regexes.js:24), which is a second source of truth.",
+      "recommendation": "A. The invariant row.completedReadCount === totalCount is the stated contract (reading-statistics-intervals.ts:166-170 describe text) and B leaves it conditional on data history. Keep it DB-side in the one helper and add a lockstep test that enumerates every schema field.",
+      "specRef": "§4",
+      "blocks": ["T14"],
+      "answer": "A, conditional on T13 going red",
+      "decidedBy": "main loop under the spec rule \"phases run without approvals\" (§9)",
+      "rationale": "row.completedReadCount === totalCount is the published contract; a partial mirror keeps it conditional on data history. One helper, no migration, no schema change; the copied UUID regex is pinned by a parity test case."
+    },
+    {
+      "id": "D2",
+      "question": "Should Back/Forward step through period changes?",
+      "options": [
+        "A: keep as is: tab/section push (use-statistics-view.ts:41), period setters use the nuqs default history (use-statistics-params.ts:45, no option)",
+        "B: pass { history: 'push' } to the period setters"
+      ],
+      "codebaseCost": "B is a one-line option, but spec §5 forbids rewriting URL parsers and §3 lists Back/Forward as already working",
+      "recommendation": "A, record as PASS for tab/section/calendar history with a note that period changes do not create history entries",
+      "specRef": "§5 S03, §3",
+      "blocks": ["T03"],
+      "answer": "A, keep as is",
+      "decidedBy": "main loop",
+      "rationale": "§5 forbids rewriting URL parsers and §3 counts Back/Forward as working; recorded as a note in S03."
+    },
+    {
+      "id": "D3",
+      "question": "The measured hotspot is countPriorExposure (245-320 ms of 290-420 ms, JIT triggered by a 2.59M-row estimate), not the bucket functions (<3%). Fix it in stage 04 or route it to a separate optimization package?",
+      "options": [
+        "A: stage 04: rewrite countPriorExposure (statistics-completion.repository.ts:99-130) so authors and genres are not cross-joined per cycle (separate subqueries / unions), proving before/after time and byte-identical payloads",
+        "B: stage 04: disable JIT for that query (SET LOCAL jit = off inside a transaction)",
+        "C: DEFERRED: record the measurement and propose a separate package"
+      ],
+      "codebaseCost": "A touches one repository method plus a parity test; B needs a transaction around one raw query and is a session-setting change; C costs nothing now",
+      "recommendation": "C. Spec §7.2 limits stage 04 changes to the bucket functions and §11 names a separate, measured optimization package as the next step; the measurement already gives that package its evidence. If the user wants it now, A over B, because A removes the misestimate instead of hiding it.",
+      "specRef": "§7.2, §7.4, §11",
+      "blocks": ["T16"],
+      "answer": "A, rewrite countPriorExposure in stage 04",
+      "decidedBy": "main loop",
+      "rationale": "§1.4 allows changing a confirmed getOverview bottleneck with proof of gain and stable contract results; §7.4 bans only endpoint splits, Redis, tables, indexes and caches, none of which this touches. Measured on booknest_dev (synthetic user, 240 eligible cycles): original 400.6 ms with JIT (cost 1,801,804), rewrite with three scalar subqueries over one CTE 1.7 ms, cost 5,222, no JIT, identical author/genre/publisher arrays. Prod runs the same postgres:17-alpine image with default JIT thresholds (deploy/docker-compose.yml:32); prod JIT setting itself NOT_VERIFIED (no server access)."
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "id": "A0",
+      "claim": "Verified dev HEAD is af00c4fe (merge PR #298)",
+      "specRef": "header line 5",
+      "verdict": "CONFIRMED",
+      "evidence": "git log -1: af00c4fe Merge pull request #298"
+    },
+    {
+      "id": "A1",
+      "claim": "Four tabs and URL state tab, section, metric, calendarMode, calendarMonth",
+      "specRef": "§3 bullet 1",
+      "verdict": "CONFIRMED",
+      "evidence": "model/statistics-view.ts:47-53; model/use-statistics-view.ts:41, :55-58"
+    },
+    {
+      "id": "A2",
+      "claim": "keepPreviousData and isPlaceholderData in StatisticsOverview / StatisticsScopeState",
+      "specRef": "§3 stage 01",
+      "verdict": "MOVED",
+      "evidence": "keepPreviousData lives in api/use-reading-statistics-overview.ts:23; isPlaceholderData passed through model/statistics-scope-state.ts:28; consumed in components/overview/statistics-overview.tsx:62, :89, :136, :138"
+    },
+    {
+      "id": "A3",
+      "claim": "Placeholder blocks the stale screen with inert plus a visual note, controls stay usable",
+      "specRef": "§3 stage 01",
+      "verdict": "CONFIRMED",
+      "evidence": "statistics-overview.tsx:82-93 (controls and note outside), :132-138 (opacity-60, inert); test statistics-overview.test.tsx:693"
+    },
+    {
+      "id": "A4",
+      "claim": "suspendMonthNormalization in the calendar",
+      "specRef": "§3 stage 01",
+      "verdict": "CONFIRMED",
+      "evidence": "statistics-overview.tsx:224; reading-calendar-card.tsx:29, :37, :42-51"
+    },
+    {
+      "id": "A5",
+      "claim": "weekdayActivity with server aggregation, ReadingWeekdayActivity",
+      "specRef": "§3 stage 02",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/reading-statistics-calendar.ts:128; statistics-calendar.composer.ts:115-118; components/reading/reading-weekday-activity.tsx exists, used by reading-habits-section.tsx"
+    },
+    {
+      "id": "A6",
+      "claim": "12-month heatmap windows for long custom",
+      "specRef": "§3 stage 02",
+      "verdict": "CONFIRMED",
+      "evidence": "model/statistics-calendar.ts:20, :155-160"
+    },
+    {
+      "id": "A7",
+      "claim": "Displayed range vs metricRange labels",
+      "specRef": "§3 stage 02",
+      "verdict": "CONFIRMED",
+      "evidence": "reading-calendar-card.tsx:54-66, :92-98"
+    },
+    {
+      "id": "A8",
+      "claim": "GET /api/statistics/completed-reads/subset exists",
+      "specRef": "§3 stage 03",
+      "verdict": "CONFIRMED",
+      "evidence": "api/statistics.controller.ts:90-99"
+    },
+    {
+      "id": "A9",
+      "claim": "Cursor carries a fingerprint of user/period/filter",
+      "specRef": "§3 stage 03",
+      "verdict": "CONFIRMED",
+      "evidence": "reading-interval-details.service.ts:100-104, :119-124, :179-187 (sha256 of [userId, from, to, field, value])"
+    },
+    {
+      "id": "A10",
+      "claim": "20 records per page",
+      "specRef": "§3 stage 03, §8",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/reading-statistics-intervals.ts:20-21 (default 20, max 50); apps/web/.../api/use-completed-reads-subset.ts:34"
+    },
+    {
+      "id": "A11",
+      "claim": "No duplicates on rereads",
+      "specRef": "§3 stage 03",
+      "verdict": "CONFIRMED",
+      "evidence": "row-level WHERE predicate statistics-completion.repository.ts:340, :344-361; tests completed-reads-subset.controller.test.ts:232, :751"
+    },
+    {
+      "id": "A12",
+      "claim": "Shared CompletedReadsList, StatisticsDetailSurface, nested mobile Drawer",
+      "specRef": "§3 stage 03",
+      "verdict": "CONFIRMED",
+      "evidence": "details/completed-reads-list.tsx:37, :45, :49; details/statistics-detail-surface.tsx:34, :45, :51"
+    },
+    {
+      "id": "A13",
+      "claim": "Only frequency taste rankings are clickable; rated, returning, discoveries are not",
+      "specRef": "§3 stage 03",
+      "verdict": "CONFIRMED",
+      "evidence": "taste-ranking-list.tsx:131-137; authors-section.tsx:61-70 vs :79-90, :93-107; genres-section.tsx:79-90. Note: API still emits a completed_reads_subset drilldown on discovery cards (statistics-tastes.composer.ts:299), unused by discoveries-section.tsx"
+    },
+    {
+      "id": "A14",
+      "claim": "Goal and library balance read as current state; compact goal only when the period includes today",
+      "specRef": "§3 Прогрес",
+      "verdict": "CONFIRMED",
+      "evidence": "en.json:9597, :9652; statistics-overview-tab.tsx:38"
+    },
+    {
+      "id": "B1",
+      "claim": "CompletedReadMapper.toCompletedRead uses parseReadingCompletionSnapshot",
+      "specRef": "§4",
+      "verdict": "CONFIRMED",
+      "evidence": "application/completed-read.mapper.ts:21"
+    },
+    {
+      "id": "B2",
+      "claim": "On an invalid snapshot the mapper discards its metadata",
+      "specRef": "§4",
+      "verdict": "CONFIRMED",
+      "evidence": "completed-read.mapper.ts:23-40: the read is kept with authors [], genres [], language null, publisher null, series null, pagesCount null, title from the book row; it still counts in reads.length (coverage eligibleCount, statistics-tastes.composer.ts:59, :135) but in no frequency bucket"
+    },
+    {
+      "id": "B3",
+      "claim": "ReadingCompletionSnapshotSchema at apps/api/src/modules/books/domain/reading-completion-snapshot.ts",
+      "specRef": "§4",
+      "verdict": "CONFIRMED",
+      "evidence": "reading-completion-snapshot.ts:23-47"
+    },
+    {
+      "id": "B4",
+      "claim": "buildCompletedReadsSubsetCondition checks only version, book.language, book.pagesCount and the searched attribute",
+      "specRef": "§4",
+      "verdict": "CONFIRMED",
+      "evidence": "statistics-completion.repository.ts:313-342 (plus user, state, finished_at, period at :320-324); attribute conditions :344-361"
+    },
+    {
+      "id": "B5",
+      "claim": "Overview frequency rankings count from the parsed snapshot",
+      "specRef": "§4 (implied)",
+      "verdict": "CONFIRMED",
+      "evidence": "statistics-overview.service.ts:98, :292-302 -> mapper; domain/reading-tastes.ts:69-91 group from read.authors/genres/language/publisher, :97-120 collect dedups keys per read"
+    },
+    {
+      "id": "C1",
+      "claim": "getOverview loads every finished cycle of the period via findCompletedReads",
+      "specRef": "§7",
+      "verdict": "CONFIRMED",
+      "evidence": "statistics-overview.service.ts:98, :301; statistics-completion.repository.ts:183-197 (no take)"
+    },
+    {
+      "id": "C2",
+      "claim": "getOverview collects many independent sections in parallel",
+      "specRef": "§7",
+      "verdict": "CONFIRMED",
+      "evidence": "statistics-overview.service.ts:86-109 Promise.all of 10; note: loadComparison :111 and calendarComposer.compose :112-117 then run sequentially"
+    },
+    {
+      "id": "C3",
+      "claim": "ReadingCoreComposer.toBuckets filters per bucket",
+      "specRef": "§7",
+      "verdict": "CONFIRMED",
+      "evidence": "reading-core.composer.ts:210-216"
+    },
+    {
+      "id": "C4",
+      "claim": "StatisticsOverviewService.toMonthlyBuckets filters per bucket",
+      "specRef": "§7",
+      "verdict": "CONFIRMED",
+      "evidence": "statistics-overview.service.ts:317-332 (reads filtered twice per bucket, :319 and :330)"
+    },
+    {
+      "id": "D1",
+      "claim": "ReadingStatisticsCompletedReadsSubsetQuerySchema is a strictObject",
+      "specRef": "§8",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/reading-statistics-intervals.ts:109-110"
+    },
+    {
+      "id": "D2",
+      "claim": "Old interval endpoint cursor stays compatible",
+      "specRef": "§8",
+      "verdict": "CONFIRMED",
+      "evidence": "reading-interval-details.service.ts:33, :63-66, :78; git show 435a61a5 on that file adds only subset cursor lines; old route statistics.controller.ts:62-67, non-strict schema reading-statistics-intervals.ts:25-36"
+    },
+    {
+      "id": "D3",
+      "claim": "Custom period up to 1830 days",
+      "specRef": "§8",
+      "verdict": "CONFIRMED",
+      "evidence": "reading-statistics-common.ts:31-34; subset reading-statistics-intervals.ts:147; overview api domain/statistics-period.ts:99 (inclusiveDays > 1830 is the same bound)"
+    },
+    {
+      "id": "D4",
+      "claim": "Soft-deleted book handling",
+      "specRef": "§8",
+      "verdict": "CONFIRMED",
+      "evidence": "neither the subset predicate (:313-342) nor findCompletedReads (:183-197) filters deleted books; mapper marks bookState soft_deleted (completed-read.mapper.ts:26); test completed-reads-subset.controller.test.ts:917"
+    },
+    {
+      "id": "D5",
+      "claim": "New Zod/Orval models match the current shared schema",
+      "specRef": "§8",
+      "verdict": "CONFIRMED",
+      "evidence": "VERIFY run: generated model/statisticsControllerGetCompletedReadsSubsetParams.ts has authorId, cursor, genre, language, limit, periodFrom optional and periodTo required, as reading-statistics-intervals.ts:109-123; readingStatisticsCompletedReadsSubsetPageDto.ts items, nextCursor nullable, totalCount as :163-168. No generated, shared or openapi file in the diff."
+    },
+    {
+      "id": "E1",
+      "claim": "§10 entry-point paths",
+      "specRef": "§10",
+      "verdict": "CONFIRMED",
+      "evidence": "all 38 listed paths exist (statistics-overview.tsx 257 lines ... reading-statistics-tastes.ts 181 lines); none missing"
+    }
+  ],
+  "snapshotParity": {
+    "conclusion": "overview count <= subset totalCount for every row; the reverse cannot happen, because every snapshot that passes ReadingCompletionSnapshotSchema also passes every SQL predicate. Equality breaks (ranked < total) for any finished cycle whose snapshot has version 1, a valid or null book.language, a null or non-negative numeric book.pagesCount and the searched attribute, but fails Zod on another field.",
+    "fields": [
+      {
+        "field": "version",
+        "zod": "literal 1",
+        "sql": "-> 'version' = to_jsonb(1) (:325)",
+        "parity": "match"
+      },
+      {
+        "field": "book.language",
+        "zod": "BookLanguageSchema.nullable(), key required",
+        "sql": "jsonb null or string in BookLanguageSchema.options (:326-332); missing key fails jsonb_typeof",
+        "parity": "match"
+      },
+      {
+        "field": "book.pagesCount",
+        "zod": "int, nonnegative, nullable, key required (int = safe integer range in zod 4.4.3, checks.js:148)",
+        "sql": "jsonb null or number >= 0 (:333-339)",
+        "parity": "gap: 12.5 or > MAX_SAFE_INTEGER pass SQL, fail Zod"
+      },
+      {
+        "field": "book.title",
+        "zod": "string",
+        "sql": "not checked",
+        "parity": "gap"
+      },
+      {
+        "field": "book.genres",
+        "zod": "array of strings",
+        "sql": "only for the genre filter: @> [value] (:353); element types never checked",
+        "parity": "gap: null/missing for author, language, publisher filters; a non-string element even for the genre filter"
+      },
+      {
+        "field": "provenance",
+        "zod": "enum tracked_at_completion | legacy_current_metadata (reading-cycle.ts:22-25)",
+        "sql": "not checked",
+        "parity": "gap"
+      },
+      {
+        "field": "authors",
+        "zod": "array of {authorId: z.uuid() RFC regex, name: string}",
+        "sql": "only for the author filter: @> [{authorId: value}] (:347-350)",
+        "parity": "gap: missing/null/non-array for other filters; another element or the matching element with a bad name or non-RFC authorId even for the author filter"
+      },
+      {
+        "field": "publisher",
+        "zod": "null or {name: string, publisherId: z.uuid()}",
+        "sql": "only for the publisher filter: #>> '{publisher,publisherId}' = value (:358)",
+        "parity": "gap: missing name passes for the publisher filter; anything goes for other filters"
+      },
+      {
+        "field": "series",
+        "zod": "null or {knownBooksCount int>=0, name string, partNumber int|null, seriesId uuid, status string, totalBooks int|null}",
+        "sql": "not checked",
+        "parity": "gap"
+      },
+      {
+        "field": "unknown extra keys",
+        "zod": "z.object strips",
+        "sql": "ignored",
+        "parity": "match"
+      }
+    ],
+    "writers": [
+      "reading-lifecycle.coordinator.ts:129 buildReadingCompletionSnapshot (reading-completion-snapshot.ts:51-88) from Prisma rows: Zod-valid as long as ids are Prisma uuid() v4 and pagesCount is non-negative (negative fails both sides equally)",
+      "migration 20260902210000_backfill_reading_history_provenance/migration.sql:50-89 jsonb_build_object: language raw (both sides drop unknown values equally), genres to_jsonb(b.genres) where books.genres is TEXT[] without NOT NULL (20260610192249_book_classification/migration.sql:3), so a NULL genres column yields JSON null, which fails Zod and passes SQL for author/language/publisher filters"
+    ],
+    "reachability": "no app code path writes a diverging shape; reachable through NULL books.genres or NULL array elements written by raw SQL before the backfill, ids inserted explicitly with a non-RFC variant/version nibble (zod regexes.js:24 rejects, Postgres uuid accepts), or hand-edited JSON",
+    "existingCoverage": "completed-reads-subset.controller.test.ts:504-559 unknown language, negative pagesCount, null language and pagesCount; :655 missing snapshot and other version. No case for provenance, series, authors element, publisher, title, genres.",
+    "secondaryRisk": "GenreKeySchema trims and caps length (packages/shared/src/genres.ts:23) on both the FE filter pick (statistics-drilldown.ts:94) and the subset query, while overview genre keys come untrimmed from z.array(z.string()); a legacy genre with surrounding whitespace gives a ranked row whose subset total is 0, an empty or over-long genre makes the row non-clickable. Writers go through BookGenresSchema (genres.ts:27-30), so legacy data only."
+  },
+  "unverified": [
+    "browser: long-name stress, dark theme, layout shift, Popover internal scroll height, browser Back with the mobile Drawer open, touch targets, real screen reader",
+    "prod Postgres JIT setting",
+    "F3 gates and CI"
+  ],
+  "verifiedAt": "2026-10-20T13:46:01Z",
+  "verifyReport": "docs/specs/statistics-final-audit/verify-report.md",
+  "verify": {
+    "at": "2026-10-20T13:46:01Z",
+    "base": "af00c4fe",
+    "diffSource": "git status --short, git diff HEAD --numstat, git ls-files --others --exclude-standard",
+    "evidence": "main loop evidence log, scratchpad/evidence.md (2026-10-20), not re-run by the auditor",
+    "summary": {
+      "done": 23,
+      "partial": 1,
+      "missing": 0,
+      "todo": 1
+    },
+    "drift": [],
+    "decisionsToRatify": [
+      "D3 = A was taken by the main loop; PLAN recommended C, spec §7.2 limits changes to the bucket functions and §11 routes other optimizations to a separate package"
+    ]
+  }
+}

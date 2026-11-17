@@ -1,12 +1,12 @@
 import type { NicknameAvailabilityView } from "@app/shared";
 
-import { NicknameSchema } from "@app/shared";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { NicknameAvailabilityViewSchema, NicknameSchema } from "@app/shared";
+import { keepPreviousData, skipToken, useQuery } from "@tanstack/react-query";
 
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { request } from "@/lib/http-client";
+import { authControllerCheckNicknameAvailability } from "@/shared/api/generated/endpoints/auth/auth";
 
-import { NicknameAvailabilitySchema } from "./schemas";
+import { authKeys } from "./auth-keys";
 
 const DEBOUNCE_MS = 400;
 
@@ -16,17 +16,18 @@ export function useNicknameAvailability(nickname: string) {
   const validNickname = parsed.success ? parsed.data : null;
 
   const query = useQuery({
-    enabled: validNickname !== null,
     placeholderData: keepPreviousData,
-    queryFn: async ({ signal }): Promise<NicknameAvailabilityView> => {
-      const search = new URLSearchParams({ nickname: validNickname ?? "" });
-      const body = await request<unknown>(`/api/auth/nickname-available?${search.toString()}`, {
-        method: "GET",
-        signal,
-      });
-      return NicknameAvailabilitySchema.parse(body);
-    },
-    queryKey: ["auth", "nickname-available", validNickname],
+    queryFn:
+      validNickname === null
+        ? skipToken
+        : async ({ signal }): Promise<NicknameAvailabilityView> =>
+            NicknameAvailabilityViewSchema.parse(
+              await authControllerCheckNicknameAvailability(
+                { nickname: validNickname },
+                { signal },
+              ),
+            ),
+    queryKey: authKeys.nicknameAvailability(validNickname),
   });
 
   return {

@@ -31,6 +31,7 @@ import {
 } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
+import type { DeliveryDateBounds } from "../domain/delivery-ui-status.js";
 import type {
   BookOrderItemRow,
   DeliveryBookPreviewRow,
@@ -45,6 +46,7 @@ import type {
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
 import { MediaService } from "../../media/index.js";
+import { UserSettingsContextService } from "../../profile/index.js";
 import { buildInTransitSummaryView } from "../domain/delivery-summary.js";
 import { deliveryDateBounds } from "../domain/delivery-ui-status.js";
 import { buildInTransitBaseFilter } from "../domain/in-transit-base-filter.js";
@@ -59,6 +61,11 @@ import { DeliveryImpactRepository } from "../infrastructure/delivery-impact.repo
 import { DeliveryReadRepository } from "../infrastructure/delivery-read.repository.js";
 import { HistoryOutcomeRepository } from "../infrastructure/history-outcome.repository.js";
 
+type ReaderDeliveryCalendar = {
+  bounds: DeliveryDateBounds;
+  timeZone: string;
+};
+
 @Injectable()
 export class DeliveryReadService {
   constructor(
@@ -66,6 +73,7 @@ export class DeliveryReadService {
     private readonly deliveryReadRepository: DeliveryReadRepository,
     private readonly historyOutcomeRepository: HistoryOutcomeRepository,
     private readonly mediaService: MediaService,
+    private readonly userSettingsContextService: UserSettingsContextService,
   ) {}
 
   async historyFacets({
@@ -90,7 +98,7 @@ export class DeliveryReadService {
     query: BookOrderHistoryQuery;
     userId: string;
   }): Promise<PaginatedOrderHistoryGroups> {
-    const { today } = deliveryDateBounds(new Date());
+    const { bounds, timeZone } = await this.readerCalendar(userId);
     const filter = {
       booksMax: query.booksMax,
       booksMin: query.booksMin,
@@ -109,6 +117,7 @@ export class DeliveryReadService {
       service: query.service,
       store: query.store,
       tab: query.tab,
+      timeZone,
       to: query.to,
       userId,
     };
@@ -124,7 +133,9 @@ export class DeliveryReadService {
 
     return {
       ...buildPaginator({
-        items: toOrderHistoryGroups(rows.map((row) => this.toRowView({ row, today }))),
+        items: toOrderHistoryGroups(
+          rows.map((row) => this.toRowView({ row, today: bounds.today })),
+        ),
         pageNumber: query.pageNumber,
         pageSize: query.pageSize,
         totalCount: counts.totalCount,
@@ -147,10 +158,12 @@ export class DeliveryReadService {
   }
 
   async historySummary(userId: string): Promise<BookOrderHistorySummaryView> {
+    const { timeZone } = await this.readerCalendar(userId);
     const [data, latestReceipt] = await Promise.all([
       this.deliveryReadRepository.historySummary(userId),
       this.deliveryReadRepository.latestReceipt({
         bookPreviewsMax: HISTORY_RECEIPT_LIMITS.bookPreviewsMax,
+        timeZone,
         userId,
       }),
     ]);
@@ -171,12 +184,12 @@ export class DeliveryReadService {
   }
 
   async inTransitImpact({ userId }: { userId: string }): Promise<InTransitImpactView> {
-    const { today } = deliveryDateBounds(new Date());
+    const { bounds } = await this.readerCalendar(userId);
 
     const [seriesRows, queueRows, goalRows] = await Promise.all([
       this.deliveryImpactRepository.listSeriesRows(userId),
       this.deliveryImpactRepository.listQueueRows(userId),
-      this.deliveryImpactRepository.listGoalRows({ today, userId }),
+      this.deliveryImpactRepository.listGoalRows({ today: bounds.today, userId }),
     ]);
 
     return { items: buildInTransitImpact({ goalRows, queueRows, seriesRows }) };
@@ -189,9 +202,9 @@ export class DeliveryReadService {
     query: InTransitQuery;
     userId: string;
   }): Promise<Paginator<BookOrderItemRowView>> {
-    const bounds = deliveryDateBounds(new Date());
+    const { bounds, timeZone } = await this.readerCalendar(userId);
     const filter = {
-      ...buildInTransitBaseFilter({ bounds, query, userId }),
+      ...buildInTransitBaseFilter({ bounds, query, timeZone, userId }),
       filter: query.filter,
     };
 
@@ -212,24 +225,24 @@ export class DeliveryReadService {
     });
   }
 
-  inTransitQuickCounts({
+  async inTransitQuickCounts({
     query,
     userId,
   }: {
     query: InTransitQuickCountsQuery;
     userId: string;
   }): Promise<InTransitQuickCounts> {
-    const bounds = deliveryDateBounds(new Date());
+    const { bounds, timeZone } = await this.readerCalendar(userId);
     return this.deliveryReadRepository.countInTransitQuickFilters(
-      buildInTransitBaseFilter({ bounds, query, userId }),
+      buildInTransitBaseFilter({ bounds, query, timeZone, userId }),
     );
   }
 
   async inTransitSummary({ userId }: { userId: string }): Promise<InTransitSummaryView> {
-    const bounds = deliveryDateBounds(new Date());
+    const { bounds, timeZone } = await this.readerCalendar(userId);
 
     const [data, nextShipment] = await Promise.all([
-      this.deliveryReadRepository.inTransitSummary({ bounds, userId }),
+      this.deliveryReadRepository.inTransitSummary({ bounds, timeZone, userId }),
       this.deliveryReadRepository.nextShipment({
         bookPreviewsMax: NEXT_SHIPMENT_LIMITS.bookPreviewsMax,
         today: bounds.today,
@@ -242,6 +255,14 @@ export class DeliveryReadService {
       nextShipment: nextShipment === null ? null : this.toNextShipmentView(nextShipment),
       today: bounds.today,
     });
+  }
+
+  private async readerCalendar(userId: string): Promise<ReaderDeliveryCalendar> {
+    const { timeZone, today, weekStartDay } = await this.userSettingsContextService.calendar({
+      now: new Date(),
+      userId,
+    });
+    return { bounds: deliveryDateBounds({ today, weekStartDay }), timeZone };
   }
 
   private toBookPreview(book: BookOrderItemRow["book"]): BookPreview {

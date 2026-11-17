@@ -4,6 +4,8 @@ import { z } from "zod";
 
 import { booksControllerFavoritesSummary } from "@/shared/api/generated/endpoints/books/books";
 
+import { bookKeys } from "./book-keys";
+
 export type FavoritesSummary = z.infer<typeof FavoritesSummaryViewSchema>;
 
 export function useFavoritesSummary() {
@@ -12,6 +14,6 @@ export function useFavoritesSummary() {
       const response = await booksControllerFavoritesSummary({ signal });
       return FavoritesSummaryViewSchema.parse(response);
     },
-    queryKey: ["/api/books", "favorites-summary"],
+    queryKey: bookKeys.favoritesSummary,
   });
 }

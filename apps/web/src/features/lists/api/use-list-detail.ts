@@ -20,6 +20,5 @@ export function useListDetail(id: string, params: ListDetailBooksParams) {
       return CustomListDetailSchema.parse(response);
     },
     queryKey: [...listKeys.detail(id), params],
-    retry: false,
   });
 }

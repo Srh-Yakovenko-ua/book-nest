@@ -8,16 +8,16 @@ const goalStartDate = new Date("2026-08-01T09:15:00.000Z");
 const deadline = new Date("2026-08-20T00:00:00.000Z");
 
 const baseInput = {
-  archivedAt: null,
+  archivedDay: null,
   completedAt: null,
   completedCount: 0,
   daysLeft: 19,
   deadline,
   goalStartDate,
-  now: new Date("2026-08-01T18:00:00.000Z"),
   remainingCount: 5,
   status: "active",
   targetCount: 5,
+  today: new Date("2026-08-01T18:00:00.000Z"),
 } satisfies PaceInput;
 
 function calculatePace(overrides: Partial<PaceInput>) {
@@ -50,9 +50,9 @@ describe("calculateReadingGoalPace schedule window", () => {
     const metrics = calculatePace({
       completedCount: 2,
       daysLeft: null,
-      now: new Date("2026-09-01T12:00:00.000Z"),
       remainingCount: 3,
       status: "expired",
+      today: new Date("2026-09-01T12:00:00.000Z"),
     });
 
     expect(metrics.elapsedDays).toBe(20);
@@ -69,11 +69,11 @@ describe("calculateReadingGoalPace schedule window", () => {
     } as const;
     const onCompletionDay = calculatePace({
       ...finishedInput,
-      now: new Date("2026-08-05T20:00:00.000Z"),
+      today: new Date("2026-08-05T20:00:00.000Z"),
     });
     const twoWeeksLater = calculatePace({
       ...finishedInput,
-      now: new Date("2026-08-19T20:00:00.000Z"),
+      today: new Date("2026-08-19T20:00:00.000Z"),
     });
 
     expect(onCompletionDay.elapsedDays).toBe(5);
@@ -82,7 +82,7 @@ describe("calculateReadingGoalPace schedule window", () => {
 
   it("freezes the elapsed window on the archiving day of an archived goal", () => {
     const archivedInput = {
-      archivedAt: new Date("2026-08-06T09:00:00.000Z"),
+      archivedDay: new Date("2026-08-06T00:00:00.000Z"),
       completedCount: 2,
       daysLeft: null,
       remainingCount: 3,
@@ -90,11 +90,11 @@ describe("calculateReadingGoalPace schedule window", () => {
     } as const;
     const dayAfterArchiving = calculatePace({
       ...archivedInput,
-      now: new Date("2026-08-07T09:00:00.000Z"),
+      today: new Date("2026-08-07T09:00:00.000Z"),
     });
     const monthsLater = calculatePace({
       ...archivedInput,
-      now: new Date("2026-11-07T09:00:00.000Z"),
+      today: new Date("2026-11-07T09:00:00.000Z"),
     });
 
     expect(dayAfterArchiving.elapsedDays).toBe(6);
@@ -110,11 +110,11 @@ describe("calculateReadingGoalPace schedule window", () => {
     } as const;
     const dayAfterTheDeadline = calculatePace({
       ...expiredInput,
-      now: new Date("2026-08-21T09:00:00.000Z"),
+      today: new Date("2026-08-21T09:00:00.000Z"),
     });
     const monthsLater = calculatePace({
       ...expiredInput,
-      now: new Date("2026-11-21T09:00:00.000Z"),
+      today: new Date("2026-11-21T09:00:00.000Z"),
     });
 
     expect(dayAfterTheDeadline.elapsedDays).toBe(20);
@@ -122,8 +122,8 @@ describe("calculateReadingGoalPace schedule window", () => {
   });
 
   it("derives elapsedDays from the UTC day boundary rather than the moment of day", () => {
-    const earlyMorning = calculatePace({ now: new Date("2026-08-10T00:00:01.000Z") });
-    const lateEvening = calculatePace({ now: new Date("2026-08-10T23:59:59.000Z") });
+    const earlyMorning = calculatePace({ today: new Date("2026-08-10T00:00:01.000Z") });
+    const lateEvening = calculatePace({ today: new Date("2026-08-10T23:59:59.000Z") });
 
     expect(earlyMorning.elapsedDays).toBe(lateEvening.elapsedDays);
   });
@@ -149,9 +149,9 @@ describe("calculateReadingGoalPace classification", () => {
     const metrics = calculatePace({
       completedCount: 5,
       daysLeft: 10,
-      now: new Date("2026-08-10T08:00:00.000Z"),
       remainingCount: 5,
       targetCount: 10,
+      today: new Date("2026-08-10T08:00:00.000Z"),
     });
 
     expect(metrics.pace).toBe("on_track");
@@ -164,9 +164,9 @@ describe("calculateReadingGoalPace classification", () => {
     const metrics = calculatePace({
       completedCount: 6,
       daysLeft: 10,
-      now: new Date("2026-08-10T08:00:00.000Z"),
       remainingCount: 4,
       targetCount: 10,
+      today: new Date("2026-08-10T08:00:00.000Z"),
     });
 
     expect(metrics.pace).toBe("ahead");
@@ -178,9 +178,9 @@ describe("calculateReadingGoalPace classification", () => {
     const metrics = calculatePace({
       completedCount: 4,
       daysLeft: 10,
-      now: new Date("2026-08-10T08:00:00.000Z"),
       remainingCount: 6,
       targetCount: 10,
+      today: new Date("2026-08-10T08:00:00.000Z"),
     });
 
     expect(metrics.pace).toBe("behind");
@@ -193,9 +193,9 @@ describe("calculateReadingGoalPace classification", () => {
       completedCount: 4,
       daysLeft: 16,
       goalStartDate: new Date("2026-06-01T07:00:00.000Z"),
-      now: new Date("2026-08-04T08:00:00.000Z"),
       remainingCount: 6,
       targetCount: 10,
+      today: new Date("2026-08-04T08:00:00.000Z"),
     });
 
     expect(metrics.elapsedPercent).toBe(80.2);
@@ -207,9 +207,9 @@ describe("calculateReadingGoalPace classification", () => {
     const metrics = calculatePace({
       completedCount: 8,
       daysLeft: 7,
-      now: new Date("2026-08-13T08:00:00.000Z"),
       remainingCount: 2,
       targetCount: 10,
+      today: new Date("2026-08-13T08:00:00.000Z"),
     });
 
     expect(metrics.paceDeltaBooks).toBe(1.5);
@@ -220,9 +220,9 @@ describe("calculateReadingGoalPace classification", () => {
     const metrics = calculatePace({
       completedCount: 9,
       daysLeft: 7,
-      now: new Date("2026-08-13T08:00:00.000Z"),
       remainingCount: 1,
       targetCount: 10,
+      today: new Date("2026-08-13T08:00:00.000Z"),
     });
 
     expect(metrics.pace).toBe("ahead");
@@ -230,30 +230,30 @@ describe("calculateReadingGoalPace classification", () => {
 
   it.each([
     {
-      archivedAt: new Date("2026-08-10T08:00:00.000Z"),
+      archivedDay: new Date("2026-08-10T00:00:00.000Z"),
       completedAt: null,
       elapsedDays: 10,
       status: "archived",
     },
     {
-      archivedAt: null,
+      archivedDay: null,
       completedAt: new Date("2026-08-10T08:00:00.000Z"),
       elapsedDays: 10,
       status: "completed",
     },
-    { archivedAt: null, completedAt: null, elapsedDays: 20, status: "expired" },
+    { archivedDay: null, completedAt: null, elapsedDays: 20, status: "expired" },
   ] as const)(
     "reports no pace for a $status goal and stops its window at $elapsedDays days",
-    ({ archivedAt, completedAt, elapsedDays, status }) => {
+    ({ archivedDay, completedAt, elapsedDays, status }) => {
       const metrics = calculatePace({
-        archivedAt,
+        archivedDay,
         completedAt,
         completedCount: 4,
         daysLeft: null,
-        now: new Date("2026-08-25T08:00:00.000Z"),
         remainingCount: 6,
         status,
         targetCount: 10,
+        today: new Date("2026-08-25T08:00:00.000Z"),
       });
 
       expect(metrics.pace).toBeNull();
@@ -269,8 +269,8 @@ describe("calculateReadingGoalPace critical threshold", () => {
   const longWindow = {
     daysLeft: 20,
     deadline: new Date("2026-11-08T00:00:00.000Z"),
-    now: new Date("2026-10-19T08:00:00.000Z"),
     targetCount: 1000,
+    today: new Date("2026-10-19T08:00:00.000Z"),
   } as const;
 
   it("turns critical exactly at a twenty point gap between elapsed and progress", () => {
@@ -295,9 +295,9 @@ describe("calculateReadingGoalPace rounding", () => {
     const metrics = calculatePace({
       completedCount: 4,
       daysLeft: 13,
-      now: new Date("2026-08-07T08:00:00.000Z"),
       remainingCount: 6,
       targetCount: 10,
+      today: new Date("2026-08-07T08:00:00.000Z"),
     });
 
     expect(metrics.expectedCompletedCount).toBe(3.5);
@@ -310,9 +310,9 @@ describe("calculateReadingGoalPace rounding", () => {
       completedCount: 4,
       daysLeft: 16,
       goalStartDate: new Date("2026-06-01T07:00:00.000Z"),
-      now: new Date("2026-08-04T08:00:00.000Z"),
       remainingCount: 6,
       targetCount: 10,
+      today: new Date("2026-08-04T08:00:00.000Z"),
     });
 
     expect(metrics.expectedCompletedCount).toBe(8.02);
@@ -325,10 +325,10 @@ describe("calculateReadingGoalPace rounding", () => {
     const metrics = calculatePace({
       completedCount: 12,
       daysLeft: null,
-      now: new Date("2026-08-10T08:00:00.000Z"),
       remainingCount: 0,
       status: "completed",
       targetCount: 10,
+      today: new Date("2026-08-10T08:00:00.000Z"),
     });
 
     expect(metrics.progressPercent).toBe(100);
@@ -338,9 +338,9 @@ describe("calculateReadingGoalPace rounding", () => {
     const metrics = calculatePace({
       completedCount: 1,
       daysLeft: null,
-      now: new Date("2027-01-01T08:00:00.000Z"),
       remainingCount: 4,
       status: "expired",
+      today: new Date("2027-01-01T08:00:00.000Z"),
     });
 
     expect(metrics.elapsedPercent).toBe(100);

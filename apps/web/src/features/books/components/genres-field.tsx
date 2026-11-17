@@ -3,8 +3,8 @@
 import { useTranslations } from "next-intl";
 
 import { Multiselect, type MultiselectOption } from "@/components/ui/multiselect";
+import { useGenres } from "@/features/genres";
 
-import { useGenres } from "../api/use-genres";
 import { useRecentGenres } from "../api/use-recent-genres";
 import { BOOK_GENRES_MAX } from "../model/book-classification-fields";
 

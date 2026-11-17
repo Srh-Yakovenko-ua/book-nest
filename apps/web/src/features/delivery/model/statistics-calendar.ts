@@ -8,6 +8,8 @@ import type {
 
 import { eachDayOfInterval, endOfWeek, format, getDate, parseISO, startOfWeek } from "date-fns";
 
+import type { WeekStartsOn } from "@/features/settings";
+
 import { STATISTICS_PERIOD } from "./statistics-period";
 
 export const CALENDAR_METRICS = ["orders", "books"] as const;
@@ -27,7 +29,6 @@ export const CALENDAR = {
   levelClass: CALENDAR_LEVEL_CLASS,
   levelQuantiles: [0.25, 0.5, 0.75],
   levels: CALENDAR_LEVEL_CLASS.length - 1,
-  weekStartsOn: 1,
 } as const;
 
 export type CalendarCell = {
@@ -69,11 +70,13 @@ export function calendarGrid({
   daily,
   metric,
   scope,
+  weekStartsOn,
   year,
 }: {
   daily: readonly BookOrderStatisticsDay[];
   metric: CalendarMetric;
   scope: CalendarScope;
+  weekStartsOn: WeekStartsOn;
   year: number;
 }): CalendarGrid {
   const from = laterDay(scope.from, `${year}-01-01`);
@@ -90,8 +93,8 @@ export function calendarGrid({
   let week: Nullable<CalendarCell>[] = [];
 
   const days = eachDayOfInterval({
-    end: endOfWeek(parseISO(to), { weekStartsOn: CALENDAR.weekStartsOn }),
-    start: startOfWeek(parseISO(from), { weekStartsOn: CALENDAR.weekStartsOn }),
+    end: endOfWeek(parseISO(to), { weekStartsOn }),
+    start: startOfWeek(parseISO(from), { weekStartsOn }),
   });
 
   for (const date of days) {

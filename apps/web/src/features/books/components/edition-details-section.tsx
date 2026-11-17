@@ -23,10 +23,10 @@ import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
+import { emptyToNull } from "@/lib/empty-to-null";
 
 import type { CreateBookFormValues } from "../model/create-book-form";
 
-import { emptyToNull } from "../model/empty-to-null";
 import { EDITION_DETAILS_FIELDS } from "../model/section-completeness";
 import { FormSection } from "./form-section";
 import { useSectionCompletion } from "./use-section-completion";

@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { timelinesControllerReorderTimelines } from "@/shared/api/generated/endpoints/timelines/timelines";
 
-import { invalidateTimelineQueries } from "./timeline-keys";
+import { invalidateTimelineEventQueries, timelineKeys } from "./timeline-keys";
 
 type ReorderTimelinesVariables = {
   bookId: string;
@@ -20,6 +20,13 @@ export function useReorderTimelines() {
       const response = await timelinesControllerReorderTimelines(bookId, input);
       return TimelineListViewSchema.parse(response);
     },
-    onSuccess: (_list, { bookId }) => invalidateTimelineQueries(queryClient, { bookId }),
+    onSuccess: (list, { bookId }) => {
+      queryClient.setQueryData(timelineKeys.timelines(bookId), list);
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: timelineKeys.summary(bookId) }),
+        queryClient.invalidateQueries({ queryKey: timelineKeys.overview(bookId) }),
+        invalidateTimelineEventQueries(queryClient, { bookId }),
+      ]);
+    },
   });
 }

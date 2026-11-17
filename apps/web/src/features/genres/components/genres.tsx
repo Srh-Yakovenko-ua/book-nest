@@ -7,8 +7,11 @@ import { useRef } from "react";
 
 import { TitleLeaf } from "@/components/title-leaf";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
 import { assertNever } from "@/lib/assert-never";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import type { GenresEmptyReason, GenresListState } from "../model/genres-list-state";
 
@@ -45,6 +48,7 @@ export function Genres() {
   const tGenres = useTranslations("genres");
   const toolbarRef = useRef<HTMLDivElement>(null);
   const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsHeadingRef);
   const router = useRouter();
   const query = useGenresQuery();
   const list = useGenresList(query.listParams);
@@ -52,6 +56,7 @@ export function Genres() {
   const summary = useGenreSummary();
   const overview = useGenresOverview();
   const summaryCards = useGenreSummaryCards(summary.data);
+  const summaryError = summary.isLoadingError ? { onRetry: () => void summary.refetch() } : null;
 
   const listState = genresListState({
     hasActiveFilters: query.hasActiveFilters,
@@ -75,14 +80,14 @@ export function Genres() {
         </p>
       </header>
 
-      {summary.isError ? null : (
-        <GenresSummaryCards cards={summaryCards} isLoading={summary.isPending} />
-      )}
+      <GenresSummaryCards cards={summaryCards} error={summaryError} isLoading={summary.isPending} />
 
       <div className="flex flex-col gap-2.5 empty:hidden sm:hidden">
-        {summary.isError ? null : (
-          <GenresSummaryPanel cards={summaryCards} isLoading={summary.isPending} />
-        )}
+        <GenresSummaryPanel
+          cards={summaryCards}
+          error={summaryError}
+          isLoading={summary.isPending}
+        />
         {overview.isPending ? <Skeleton className="h-11 w-full rounded-xl" /> : null}
         {insights === null ? null : <GenresInsightsPanel overview={insights} />}
       </div>
@@ -96,7 +101,9 @@ export function Genres() {
       </p>
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
+        <div
+          className={cn("flex min-w-0 flex-1 flex-col gap-6", RETRY_FOCUS_RING.aroundHiddenHeading)}
+        >
           <h2 className="sr-only" ref={resultsHeadingRef} tabIndex={-1}>
             {t("resultsTitle")}
           </h2>
@@ -111,7 +118,8 @@ export function Genres() {
               query.resetFilters();
               resultsHeadingRef.current?.focus();
             }}
-            onRetry={() => void list.refetch()}
+            onRetry={withRetryFocus(() => void list.refetch())}
+            retryButtonRef={retryButtonRef}
             state={listState}
           />
         </div>

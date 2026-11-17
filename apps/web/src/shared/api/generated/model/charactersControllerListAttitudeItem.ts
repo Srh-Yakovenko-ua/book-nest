@@ -10,7 +10,6 @@ export type CharactersControllerListAttitudeItem =
   (typeof CharactersControllerListAttitudeItem)[keyof typeof CharactersControllerListAttitudeItem];
 
 export const CharactersControllerListAttitudeItem = {
-  favorite: "favorite",
   like: "like",
   neutral: "neutral",
   distrust: "distrust",

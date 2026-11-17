@@ -8,6 +8,7 @@ import Image from "next/image";
 
 import { AttentionBlock } from "@/components/attention-block";
 import { UiIcon, type UiIconName } from "@/components/icons";
+import { SummaryError } from "@/components/summary-error";
 import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,7 +19,6 @@ import { cn } from "@/lib/utils";
 import type { SeriesAttentionFilter, SeriesAttentionReason } from "../model/series-derive";
 
 import { SERIES_ATTENTION_REASONS, seriesProgress } from "../model/series-derive";
-import { SeriesOverviewError } from "./series-overview-error";
 
 type SeriesProgressSectionsProps = {
   almostReadSeries: SeriesView[];
@@ -45,10 +45,8 @@ export function SeriesProgressSections({
   const t = useTranslations("series.sidebar");
   const continueSeries = (overview?.topUnfinished ?? [])[0];
 
-  if (isError) return <SeriesOverviewError onRetry={onRetry} />;
-
   return (
-    <>
+    <SummaryError className="flex flex-col gap-4" state={isError ? { onRetry } : null}>
       <SidebarBlock title={t("continueTitle")}>
         {isLoading ? (
           <RowSkeleton rows={1} />
@@ -72,7 +70,7 @@ export function SeriesProgressSections({
           </ul>
         )}
       </SidebarBlock>
-    </>
+    </SummaryError>
   );
 }
 

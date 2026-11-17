@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { Spinner } from "@/components/spinner";
 import { CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -225,11 +226,7 @@ export function SeriesAutocomplete({
                   onSelect={() => void fetchNextPage()}
                   value="__load_more__"
                 >
-                  <UiIcon
-                    className={isFetchingNextPage ? "animate-spin" : undefined}
-                    name={isFetchingNextPage ? "refresh" : "chevron-down"}
-                    size={16}
-                  />
+                  {isFetchingNextPage ? <Spinner /> : <UiIcon name="chevron-down" size={16} />}
                   {isFetchingNextPage ? t("series.searching") : t("series.loadMore")}
                 </CommandItem>
               </CommandGroup>

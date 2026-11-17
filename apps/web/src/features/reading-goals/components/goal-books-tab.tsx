@@ -1,8 +1,10 @@
 "use client";
 
 import type { ReadingGoalBookView } from "@app/shared";
+import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
+import { useRef } from "react";
 
 import type { EmptyStateAction, EmptyStateEntry } from "@/lib/empty-states";
 
@@ -10,7 +12,10 @@ import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { ChipGroup } from "@/components/ui/chip-group";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { assertNever } from "@/lib/assert-never";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import type { GoalCursorContent } from "../model/goal-cursor-content";
 import type { GoalBooksScope } from "../model/goal-detail-query";
@@ -30,6 +35,7 @@ type GoalBooksContentProps = {
   onLoadMore: () => void;
   onRetry: () => void;
   onShowAll: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
   scope: GoalBooksScope;
 };
 
@@ -42,6 +48,8 @@ type GoalBooksTabProps = {
 export function GoalBooksTab({ goalId, onScopeChange, scope }: GoalBooksTabProps) {
   const t = useTranslations("goals.detail.books");
   const books = useGoalBooks({ goalId, scope });
+  const listRegionRef = useRef<HTMLElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(listRegionRef);
 
   const content = resolveGoalCursorContent({
     hasNextPage: books.hasNextPage,
@@ -82,12 +90,18 @@ export function GoalBooksTab({ goalId, onScopeChange, scope }: GoalBooksTabProps
         {t("snapshotHint")}
       </p>
 
-      <section aria-label={t("listLabel")} className="flex min-w-0 flex-col gap-4">
+      <section
+        aria-label={t("listLabel")}
+        className={cn("flex min-w-0 flex-col gap-4", RETRY_FOCUS_RING.onTarget)}
+        ref={listRegionRef}
+        tabIndex={-1}
+      >
         <GoalBooksContent
           content={content}
           onLoadMore={loadNextPage}
-          onRetry={() => void books.refetch()}
+          onRetry={withRetryFocus(() => void books.refetch())}
           onShowAll={() => onScopeChange("all")}
+          retryButtonRef={retryButtonRef}
           scope={scope}
         />
       </section>
@@ -100,6 +114,7 @@ function GoalBooksContent({
   onLoadMore,
   onRetry,
   onShowAll,
+  retryButtonRef,
   scope,
 }: GoalBooksContentProps) {
   const t = useTranslations("goals.detail");
@@ -117,7 +132,7 @@ function GoalBooksContent({
       };
       return (
         <div aria-live="assertive" role="alert">
-          <EmptyState onPrimary={onRetry} state={errorState} />
+          <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
         </div>
       );
     }

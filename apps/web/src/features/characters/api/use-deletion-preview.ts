@@ -13,6 +13,5 @@ export function useDeletionPreview(characterId: string, enabled: boolean) {
     queryFn: async (): Promise<CharacterDeletionPreview> =>
       CharacterDeletionPreviewSchema.parse(await charactersControllerDeletionPreview(characterId)),
     queryKey: characterKeys.deletionPreview(characterId),
-    retry: false,
   });
 }

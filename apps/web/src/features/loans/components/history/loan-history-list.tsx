@@ -1,12 +1,14 @@
 "use client";
 
 import type { LoanHistoryListItemView } from "@app/shared";
+import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
+import { RefreshingRegion } from "@/components/refreshing-region";
 
 import { LoansListSkeleton } from "../loans-skeleton";
 import { LoanHistoryRow } from "./loan-history-row";
@@ -15,6 +17,7 @@ type LoanHistoryListProps = {
   hasQuery: boolean;
   isError: boolean;
   isPending: boolean;
+  isRefreshing: boolean;
   items: LoanHistoryListItemView[];
   onClearFilters: () => void;
   onCorrectDate: (loanId: string) => void;
@@ -22,12 +25,14 @@ type LoanHistoryListProps = {
   onOpenContact: (contactId: string) => void;
   onOpenDetails: (loanId: string) => void;
   onRetry: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
 };
 
 export function LoanHistoryList({
   hasQuery,
   isError,
   isPending,
+  isRefreshing,
   items,
   onClearFilters,
   onCorrectDate,
@@ -35,6 +40,7 @@ export function LoanHistoryList({
   onOpenContact,
   onOpenDetails,
   onRetry,
+  retryButtonRef,
 }: LoanHistoryListProps) {
   const t = useTranslations("loans.history.states");
   const tPage = useTranslations("loans.pages.history");
@@ -49,7 +55,7 @@ export function LoanHistoryList({
 
     return (
       <div aria-live="assertive" role="alert">
-        <EmptyState onPrimary={onRetry} state={errorState} />
+        <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
       </div>
     );
   }
@@ -74,7 +80,11 @@ export function LoanHistoryList({
         title: t("noResults.title"),
       };
 
-      return <EmptyState onPrimary={onClearFilters} state={noResults} />;
+      return (
+        <RefreshingRegion isRefreshing={isRefreshing}>
+          <EmptyState onPrimary={onClearFilters} state={noResults} />
+        </RefreshingRegion>
+      );
     }
 
     const empty: EmptyStateEntry = {
@@ -89,19 +99,21 @@ export function LoanHistoryList({
   return (
     <>
       <h2 className="sr-only">{tPage("listHeading")}</h2>
-      <ul className="flex flex-col gap-3">
-        {items.map((loan) => (
-          <li key={loan.id}>
-            <LoanHistoryRow
-              loan={loan}
-              onCorrectDate={() => onCorrectDate(loan.id)}
-              onEditNote={() => onEditNote(loan.id)}
-              onOpenContact={() => onOpenContact(loan.loanContactId)}
-              onOpenDetails={() => onOpenDetails(loan.id)}
-            />
-          </li>
-        ))}
-      </ul>
+      <RefreshingRegion isRefreshing={isRefreshing}>
+        <ul className="flex flex-col gap-3">
+          {items.map((loan) => (
+            <li key={loan.id}>
+              <LoanHistoryRow
+                loan={loan}
+                onCorrectDate={() => onCorrectDate(loan.id)}
+                onEditNote={() => onEditNote(loan.id)}
+                onOpenContact={() => onOpenContact(loan.loanContactId)}
+                onOpenDetails={() => onOpenDetails(loan.id)}
+              />
+            </li>
+          ))}
+        </ul>
+      </RefreshingRegion>
     </>
   );
 }

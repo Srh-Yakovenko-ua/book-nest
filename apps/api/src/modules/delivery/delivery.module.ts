@@ -3,6 +3,7 @@ import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/index.js";
 import { DeliveryServicesModule } from "../delivery-services/index.js";
 import { MediaModule } from "../media/index.js";
+import { ProfileModule } from "../profile/index.js";
 import { ReadingGoalsModule } from "../reading-goals/index.js";
 import { BookBudgetsController } from "./api/book-budgets.controller.js";
 import { BookOrderItemsController } from "./api/book-order-items.controller.js";
@@ -46,7 +47,7 @@ import { ShipmentsRepository } from "./infrastructure/shipments.repository.js";
     BookOrderItemsRepository,
     SingleBookOrderService,
   ],
-  imports: [AuthModule, MediaModule, DeliveryServicesModule, ReadingGoalsModule],
+  imports: [AuthModule, MediaModule, DeliveryServicesModule, ProfileModule, ReadingGoalsModule],
   providers: [
     BookBudgetService,
     BookBudgetsRepository,

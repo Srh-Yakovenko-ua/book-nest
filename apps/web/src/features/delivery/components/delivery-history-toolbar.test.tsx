@@ -77,6 +77,7 @@ function renderToolbar(overrides: Partial<ComponentProps<typeof DeliveryHistoryT
       canSortByPrice={false}
       counterLabel="6 замовлень"
       isPending={false}
+      isRefreshing={false}
       loadingLabel="Завантаження"
       onApplyAdvanced={onApplyAdvanced}
       onClearAdvanced={onClearAdvanced}

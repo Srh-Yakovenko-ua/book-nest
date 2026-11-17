@@ -1,15 +1,18 @@
 import type { AuthResultView, LogoutResultView } from "@app/shared";
 
-import { request } from "@/lib/http-client";
+import { AuthResultViewSchema, LogoutResultViewSchema } from "@app/shared";
 
-import { AuthResultSchema, LogoutResultSchema } from "./schemas";
+import {
+  authControllerLogout,
+  authControllerRefresh,
+} from "@/shared/api/generated/endpoints/auth/auth";
 
 export async function logout(): Promise<LogoutResultView> {
-  const body = await request<unknown>("/api/auth/logout", { method: "POST" });
-  return LogoutResultSchema.parse(body);
+  const body = await authControllerLogout();
+  return LogoutResultViewSchema.parse(body);
 }
 
 export async function refreshSession(): Promise<AuthResultView> {
-  const body = await request<unknown>("/api/auth/refresh", { method: "POST" });
-  return AuthResultSchema.parse(body);
+  const body = await authControllerRefresh();
+  return AuthResultViewSchema.parse(body);
 }

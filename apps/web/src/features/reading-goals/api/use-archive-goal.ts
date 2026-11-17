@@ -3,10 +3,9 @@ import type { ReadingGoalView } from "@app/shared";
 import { ReadingGoalViewSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { invalidateStatisticsQueries } from "@/features/statistics/api/statistics-keys";
 import { readingGoalsControllerArchive } from "@/shared/api/generated/endpoints/reading-goals/reading-goals";
 
-import { invalidateGoalQueries } from "./goal-keys";
+import { goalChangeEffects } from "./goal-change-effects";
 
 type ArchiveGoalVariables = {
   goalId: string;
@@ -21,8 +20,7 @@ export function useArchiveGoal() {
       return ReadingGoalViewSchema.parse(response);
     },
     onSuccess: () => {
-      void invalidateGoalQueries(queryClient);
-      void invalidateStatisticsQueries(queryClient);
+      void goalChangeEffects.goalsChanged(queryClient, { change: "archived" });
     },
   });
 }

@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 
 import type { AuthenticatedUser, AuthTestContext } from "../../../test/auth-test-context.js";
 
+import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
@@ -18,6 +19,7 @@ import {
   createOrder,
   getJson,
   isoDay,
+  itemOf,
   ORDER_ROUTES,
   postJson,
   shipmentOf,
@@ -69,6 +71,37 @@ function requestHistory(query: string) {
     app,
     path: `${ORDER_ROUTES.history}?${query}`,
   });
+}
+
+async function restampItem({
+  data,
+  itemId,
+}: {
+  data: { cancelledAt: Date } | { receivedAt: Date };
+  itemId: string;
+}): Promise<void> {
+  await app.get(PrismaService).bookOrderItem.update({ data, where: { id: itemId } });
+}
+
+async function seedOneBookParcel(title: string): Promise<{ itemId: string; shipmentId: string }> {
+  const accessToken = reader.accessToken;
+  const bookId = await createBook({ accessToken, app, title });
+  const order = await createOrder({
+    accessToken,
+    app,
+    input: {
+      items: [{ bookId, price: 100 }],
+      orderDate: "2026-01-20",
+      shipments: [{ bookIds: [bookId], deliveryService: "Nova Poshta" }],
+      storeName: "Yakaboo",
+      totalAmount: 100,
+    },
+  });
+
+  return {
+    itemId: itemOf({ bookId, view: order }).id,
+    shipmentId: shipmentOf({ bookId, view: order }).id,
+  };
 }
 
 async function seedSplitOrder() {
@@ -496,5 +529,57 @@ describe("history exact order navigation", () => {
     const page = await history("tab=all&orderState=cancelled");
 
     expect(page.items).toEqual([]);
+  });
+});
+
+describe("history date ranges on the reader's calendar", () => {
+  it("finds a receipt typed for a day under that day and not under the day before", async () => {
+    const { shipmentId } = await seedOneBookParcel("Typed day");
+    await postJson({
+      accessToken: reader.accessToken,
+      app,
+      body: { receivedAt: "2026-02-10" },
+      path: ORDER_ROUTES.receiveShipment(shipmentId),
+    });
+
+    const typedDay = await history("tab=received&receivedFrom=2026-02-10&receivedTo=2026-02-10");
+    const dayBefore = await history("tab=received&receivedFrom=2026-02-09&receivedTo=2026-02-09");
+
+    expect(booksOf(typedDay.items[0])).toEqual(["Typed day"]);
+    expect(dayBefore.totalCount).toBe(0);
+  });
+
+  it("files a receipt made just after Kyiv midnight under the Kyiv day", async () => {
+    const { itemId, shipmentId } = await seedOneBookParcel("Small hours");
+    await postJson({
+      accessToken: reader.accessToken,
+      app,
+      body: {},
+      path: ORDER_ROUTES.receiveShipment(shipmentId),
+    });
+    await restampItem({ data: { receivedAt: new Date("2026-07-14T21:30:00.000Z") }, itemId });
+
+    const kyivDay = await history("tab=received&receivedFrom=2026-07-15&receivedTo=2026-07-15");
+    const utcDay = await history("tab=received&receivedFrom=2026-07-14&receivedTo=2026-07-14");
+
+    expect(booksOf(kyivDay.items[0])).toEqual(["Small hours"]);
+    expect(utcDay.totalCount).toBe(0);
+  });
+
+  it("files a cancellation made just after Kyiv midnight under the Kyiv day", async () => {
+    const { itemId } = await seedOneBookParcel("Cancelled overnight");
+    await postJson({
+      accessToken: reader.accessToken,
+      app,
+      body: { cancelReason: "Found it cheaper", keepAsWantToBuy: true },
+      path: ORDER_ROUTES.cancelItem(itemId),
+    });
+    await restampItem({ data: { cancelledAt: new Date("2026-07-14T21:30:00.000Z") }, itemId });
+
+    const kyivDay = await history("tab=cancelled&cancelledFrom=2026-07-15&cancelledTo=2026-07-15");
+    const utcDay = await history("tab=cancelled&cancelledFrom=2026-07-14&cancelledTo=2026-07-14");
+
+    expect(booksOf(kyivDay.items[0])).toEqual(["Cancelled overnight"]);
+    expect(utcDay.totalCount).toBe(0);
   });
 });

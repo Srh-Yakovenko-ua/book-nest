@@ -10,6 +10,10 @@ export function addDaysToIsoDate(isoDate: string, days: number): string {
   return format(addDays(parseISO(isoDate), days), ISO_DATE_FORMAT);
 }
 
+export function addDaysToUtcDay({ day, days }: { day: Date; days: number }): Date {
+  return parseIsoDate(addDaysToIsoDate(toIsoDate(day), days));
+}
+
 export function daysBetweenIsoDates({
   endIsoDate,
   startIsoDate,
@@ -18,6 +22,10 @@ export function daysBetweenIsoDates({
   startIsoDate: string;
 }): number {
   return differenceInCalendarDays(parseISO(endIsoDate), parseISO(startIsoDate));
+}
+
+export function daysBetweenUtcDays({ end, start }: { end: Date; start: Date }): number {
+  return daysBetweenIsoDates({ endIsoDate: toIsoDate(end), startIsoDate: toIsoDate(start) });
 }
 
 export function parseIsoDate(value: string): Date {
@@ -50,6 +58,16 @@ export function toNullableIsoDateTime(value: Nullable<Date>): Nullable<string> {
 
 export function toUpdateDate(value: Nullable<string> | undefined): Nullable<Date> | undefined {
   return value === undefined || value === null ? value : parseIsoDate(value);
+}
+
+export function toZonedCalendarDay({
+  instant,
+  timeZone,
+}: {
+  instant: Date;
+  timeZone: string;
+}): Date {
+  return parseIsoDate(toZonedIsoDate({ instant, timeZone }));
 }
 
 export function toZonedDayStart({

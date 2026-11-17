@@ -1,3 +1,4 @@
+import type { AddBooksToListInput } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import { randomUUID } from "node:crypto";
@@ -14,6 +15,13 @@ import { ListsModule } from "../../lists/lists.module.js";
 import { BooksModule } from "../books.module.js";
 
 const MISSING_UUID = "00000000-0000-4000-8000-000000000000";
+
+type ListOfFive = {
+  books: { a: string; b: string; c: string; d: string; e: string };
+  listId: string;
+};
+
+type RankedBook = { id: string; position: number };
 
 let context: AuthTestContext;
 let app: INestApplication;
@@ -42,6 +50,17 @@ function addBooks(accessToken: string, listId: string, bookIds: string[]): reque
     .post(`/api/lists/${listId}/books`)
     .set("Authorization", `Bearer ${accessToken}`)
     .send({ bookIds });
+}
+
+function addBooksWith(
+  accessToken: string,
+  listId: string,
+  body: AddBooksToListInput,
+): request.Test {
+  return request(app.getHttpServer())
+    .post(`/api/lists/${listId}/books`)
+    .set("Authorization", `Bearer ${accessToken}`)
+    .send(body);
 }
 
 async function createBook(userId: string, title?: string): Promise<string> {
@@ -89,6 +108,16 @@ async function positionsOf(listId: string): Promise<Array<{ bookId: string; posi
   return items;
 }
 
+async function rankedBooksOf(accessToken: string, listId: string): Promise<RankedBook[]> {
+  const res = await request(app.getHttpServer())
+    .get(`/api/lists/${listId}`)
+    .query({ sort: "position" })
+    .set("Authorization", `Bearer ${accessToken}`)
+    .expect(200);
+  const items: RankedBook[] = res.body.books.items;
+  return items.map(({ id, position }) => ({ id, position }));
+}
+
 function removeBook(accessToken: string, listId: string, bookId: string): request.Test {
   return request(app.getHttpServer())
     .delete(`/api/lists/${listId}/books/${bookId}`)
@@ -97,6 +126,23 @@ function removeBook(accessToken: string, listId: string, bookId: string): reques
 
 async function seedItem(listId: string, bookId: string, position: number): Promise<void> {
   await prisma.bookListItem.create({ data: { bookId, listId, position } });
+}
+
+async function seedListOfFive(userId: string): Promise<ListOfFive> {
+  const listId = await createList(userId);
+  const books = {
+    a: await createBook(userId, "A"),
+    b: await createBook(userId, "B"),
+    c: await createBook(userId, "C"),
+    d: await createBook(userId, "D"),
+    e: await createBook(userId, "E"),
+  };
+  await seedItem(listId, books.a, 1);
+  await seedItem(listId, books.b, 2);
+  await seedItem(listId, books.c, 3);
+  await seedItem(listId, books.d, 4);
+  await seedItem(listId, books.e, 5);
+  return { books, listId };
 }
 
 async function stampOldUpdatedAt(listId: string): Promise<Date> {
@@ -483,5 +529,101 @@ describe("PATCH /api/lists/:listId/books/:bookId/position", () => {
 
     const after = await updatedAtOf(listId);
     expect(after.getTime()).toBeGreaterThan(before.getTime());
+  });
+});
+
+describe("POST /api/lists/:listId/books restoring positions", () => {
+  it("puts a removed book back at its old position when re-added with that position", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const { books, listId } = await seedListOfFive(userId);
+    await removeBook(accessToken, listId, books.b).expect(204);
+
+    const res = await addBooksWith(accessToken, listId, {
+      bookIds: [books.b],
+      positions: [{ bookId: books.b, position: 2 }],
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ added: 1, bookCount: 5 });
+    expect(await rankedBooksOf(accessToken, listId)).toEqual<RankedBook[]>([
+      { id: books.a, position: 1 },
+      { id: books.b, position: 2 },
+      { id: books.c, position: 3 },
+      { id: books.d, position: 4 },
+      { id: books.e, position: 5 },
+    ]);
+  });
+
+  it("stores gapless positions 1..n after restoring a book", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const { books, listId } = await seedListOfFive(userId);
+    await removeBook(accessToken, listId, books.b).expect(204);
+
+    await addBooksWith(accessToken, listId, {
+      bookIds: [books.b],
+      positions: [{ bookId: books.b, position: 2 }],
+    }).expect(200);
+
+    expect(await positionsOf(listId)).toEqual([
+      { bookId: books.a, position: 1 },
+      { bookId: books.b, position: 2 },
+      { bookId: books.c, position: 3 },
+      { bookId: books.d, position: 4 },
+      { bookId: books.e, position: 5 },
+    ]);
+  });
+
+  it("appends a re-added book at the end when no positions are sent", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const { books, listId } = await seedListOfFive(userId);
+    await removeBook(accessToken, listId, books.b).expect(204);
+
+    const res = await addBooksWith(accessToken, listId, { bookIds: [books.b] });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ added: 1, bookCount: 5 });
+    expect(await rankedBooksOf(accessToken, listId)).toEqual<RankedBook[]>([
+      { id: books.a, position: 1 },
+      { id: books.c, position: 2 },
+      { id: books.d, position: 3 },
+      { id: books.e, position: 4 },
+      { id: books.b, position: 5 },
+    ]);
+  });
+
+  it("returns 400 when a positions entry names a book that is not in bookIds", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createList(userId);
+    const added = await createBook(userId, "Added");
+    const stray = await createBook(userId, "Stray");
+
+    const res = await addBooksWith(accessToken, listId, {
+      bookIds: [added],
+      positions: [{ bookId: stray, position: 1 }],
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "positions.0.bookId" })]),
+    );
+  });
+
+  it("returns 400 when two positions entries name the same book", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createList(userId);
+    const added = await createBook(userId, "Added");
+
+    const res = await addBooksWith(accessToken, listId, {
+      bookIds: [added],
+      positions: [
+        { bookId: added, position: 1 },
+        { bookId: added, position: 2 },
+      ],
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "positions.1.bookId" })]),
+    );
   });
 });

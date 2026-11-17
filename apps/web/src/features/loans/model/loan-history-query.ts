@@ -1,6 +1,6 @@
 import type { Nullable } from "@app/shared";
 
-import { endOfYear, format, startOfYear, subYears } from "date-fns";
+import { endOfYear, startOfYear, subYears } from "date-fns";
 import { type inferParserType, parseAsString, parseAsStringLiteral } from "nuqs/server";
 
 import type {
@@ -9,8 +9,8 @@ import type {
   LoanHistoryControllerPeopleParams,
 } from "@/shared/api/generated/model";
 
-import { isInvertedDayRange, isStorableDay } from "@/features/books/model/filter-chips";
-import { ISO_DATE_FORMAT } from "@/features/books/model/reading-progress";
+import { isInvertedDayRange, isStorableDay } from "@/lib/filter-chips";
+import { dateToIsoDay } from "@/lib/iso-day";
 import {
   LoanHistoryControllerListResult,
   LoanHistoryControllerListSort,
@@ -203,7 +203,7 @@ function dayBound(
 
 function yearPeriod(reference: Date): LoanHistoryPeriod {
   return {
-    from: format(startOfYear(reference), ISO_DATE_FORMAT),
-    to: format(endOfYear(reference), ISO_DATE_FORMAT),
+    from: dateToIsoDay(startOfYear(reference)),
+    to: dateToIsoDay(endOfYear(reference)),
   };
 }

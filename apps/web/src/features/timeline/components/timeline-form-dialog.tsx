@@ -5,10 +5,11 @@ import type { TimelineView } from "@app/shared";
 import { pickAvailablePaletteColor, TIMELINE_ERROR_CODES } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
+import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,7 +23,8 @@ import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiError } from "@/lib/http-client";
+import { useCloseGuard } from "@/hooks/use-close-guard";
+import { isApiErrorCode } from "@/lib/api-errors";
 
 import type { TimelineFormValues } from "../model/timeline-form-schema";
 
@@ -51,57 +53,79 @@ export function TimelineFormDialog({
 }: TimelineFormDialogProps) {
   const t = useTranslations("timeline.manage");
   const isEdit = timeline !== undefined;
+  const createTimeline = useCreateTimeline();
+  const updateTimeline = useUpdateTimeline();
+  const isPending = createTimeline.isPending || updateTimeline.isPending;
+  const [isDraftDirty, setDraftDirty] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const guard = useCloseGuard({
+    focusFallback: () => contentRef.current?.focus(),
+    isDirty: isDraftDirty,
+    isOpen: true,
+    isPending,
+    onClose,
+  });
 
   return (
-    <Dialog
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-      open
-    >
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? t("editTitle") : t("createTitle")}</DialogTitle>
-          <DialogDescription>
-            {isEdit ? t("editDescription") : t("createDescription")}
-          </DialogDescription>
-        </DialogHeader>
-        <TimelineForm
-          bookId={bookId}
-          onCancel={onClose}
-          onSaved={onClose}
-          timeline={timeline}
-          timelines={timelines}
-        />
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog
+        onOpenChange={(open) => {
+          if (!open) guard.requestClose();
+        }}
+        open
+      >
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-md" ref={contentRef}>
+          <DialogHeader>
+            <DialogTitle>{isEdit ? t("editTitle") : t("createTitle")}</DialogTitle>
+            <DialogDescription>
+              {isEdit ? t("editDescription") : t("createDescription")}
+            </DialogDescription>
+          </DialogHeader>
+          <TimelineForm
+            bookId={bookId}
+            createTimeline={createTimeline}
+            onCancel={guard.requestClose}
+            onDirtyChange={setDraftDirty}
+            onSaved={onClose}
+            timeline={timeline}
+            timelines={timelines}
+            updateTimeline={updateTimeline}
+          />
+        </DialogContent>
+      </Dialog>
+
+      <DiscardChangesDialog {...guard.discardDialog} />
+    </>
   );
 }
 
 function TimelineForm({
   bookId,
+  createTimeline,
   onCancel,
+  onDirtyChange,
   onSaved,
   timeline,
   timelines,
+  updateTimeline,
 }: {
   bookId: string;
+  createTimeline: ReturnType<typeof useCreateTimeline>;
   onCancel: () => void;
+  onDirtyChange: (isDirty: boolean) => void;
   onSaved: () => void;
   timeline?: TimelineView;
   timelines: TimelineView[];
+  updateTimeline: ReturnType<typeof useUpdateTimeline>;
 }) {
   const t = useTranslations("timeline.manage");
   const tStates = useTranslations("timeline.states");
   const tErrors = useTranslations("timeline.errors");
   const tToast = useTranslations("timeline.toast");
 
-  const createTimeline = useCreateTimeline();
-  const updateTimeline = useUpdateTimeline();
-
   const {
     control,
-    formState: { errors },
+    formState: { errors, isDirty },
     handleSubmit,
     register,
     setError,
@@ -127,6 +151,10 @@ function TimelineForm({
     setFocus("name");
   }, [setFocus]);
 
+  useEffect(() => {
+    onDirtyChange(isDirty);
+  }, [isDirty, onDirtyChange]);
+
   const description = useWatch({ control, name: "description" });
   const name = useWatch({ control, name: "name" });
   const isPending = createTimeline.isPending || updateTimeline.isPending;
@@ -136,10 +164,7 @@ function TimelineForm({
     const input = timelineFormValuesToInput(values);
 
     const onError = (error: unknown) => {
-      if (
-        error instanceof ApiError &&
-        (error.code === TIMELINE_ERROR_CODES.duplicateName || error.status === 409)
-      ) {
+      if (isApiErrorCode(error, TIMELINE_ERROR_CODES.duplicateName)) {
         setError("name", { message: t("duplicateName") }, { shouldFocus: true });
         return;
       }

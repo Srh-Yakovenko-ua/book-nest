@@ -9,6 +9,7 @@ import type {
 
 import {
   BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
+  BOOK_SERIES_ERROR_CODES,
   BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
   isClosedReadingStatus,
   QueuePriorityReasonSchema,
@@ -461,7 +462,13 @@ export class BookRelationsResolver {
     }
     if (partNumber > totalBooks) {
       throw new BadRequestError(BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE, {
-        fields: [{ field: "partNumber", message: BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE }],
+        fields: [
+          {
+            code: BOOK_SERIES_ERROR_CODES.partNumberExceedsTotal,
+            field: "partNumber",
+            message: BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
+          },
+        ],
       });
     }
   }

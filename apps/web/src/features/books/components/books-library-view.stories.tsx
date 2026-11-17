@@ -2,12 +2,13 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 
+import type { SummaryCard } from "@/components/catalog/summary-cards";
+
 import { ownershipStatuses, readingStatuses } from "@/lib/book-status";
 import { statusEntry } from "@/lib/book-status.fixtures";
 
 import type { LibraryActions } from "../model/book-card-actions";
 import type { LibraryBook } from "../model/library-book";
-import type { LibrarySummaryCard } from "./library-summary-cards";
 
 import { BooksLibraryView } from "./books-library-view";
 import { LibrarySummarySidebar } from "./library-summary-sidebar";
@@ -94,7 +95,7 @@ const books: LibraryBook[] = [
   },
 ];
 
-const summaryCards: LibrarySummaryCard[] = [
+const summaryCards: SummaryCard[] = [
   { icon: "library", label: "Усього книг", value: 128 },
   { icon: "book", label: "Читаю", value: 4 },
   { icon: "check-circle", label: "Прочитано", value: 86 },
@@ -189,10 +190,12 @@ const meta = {
     hasActiveFilters: false,
     hasActiveSearch: false,
     hasNextPage: false,
+    invalidRange: null,
     isError: false,
     isFetchingNextPage: false,
     isLoadMoreError: false,
     isPending: false,
+    isRefreshing: false,
     libraryTotal: 128,
     loadingLabel: "Завантаження книг…",
     loadMoreErrorLabel: "Не вдалося завантажити ще книги",
@@ -206,12 +209,14 @@ const meta = {
     onRetry: () => {},
     onSortChange: () => {},
     onViewChange: () => {},
+    refetchError: null,
     sidebar,
     sort: "created_desc",
     sortLabel: "Сортування",
     sortOptions,
     subtitle: "Усі твої книги в одному затишному просторі",
     summaryCards,
+    summaryError: null,
     summaryLoading: false,
     title: "Моя бібліотека",
     view: "grid",

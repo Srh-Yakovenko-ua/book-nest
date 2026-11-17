@@ -1,13 +1,13 @@
 import "@testing-library/jest-dom/vitest";
 
 import type { LoanContactView } from "@app/shared";
-import type { ReactNode } from "react";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { bookKeys } from "@/features/books/api/book-keys";
+import { queryClientWrapper } from "@/test-query-cache";
 
 import { loanKeys } from "./loan-keys";
 import { useArchiveLoanContact } from "./use-archive-loan-contact";
@@ -52,12 +52,6 @@ function lastCall() {
   return fetchMock.mock.calls.at(-1);
 }
 
-function makeWrapper(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
-}
-
 async function seedQuery(client: QueryClient, queryKey: readonly unknown[]): Promise<void> {
   await client.fetchQuery({ queryFn: () => Promise.resolve({ items: [] }), queryKey });
   expect(client.getQueryState(queryKey)?.isInvalidated).toBe(false);
@@ -77,7 +71,7 @@ afterEach(() => {
 describe("useLoanContact", () => {
   it("reads one contact by its id", async () => {
     const { result } = renderHook(() => useLoanContact(CONTACT_ID), {
-      wrapper: makeWrapper(cachingQueryClient()),
+      wrapper: queryClientWrapper(cachingQueryClient()),
     });
 
     await waitFor(() => expect(result.current.data).toEqual(contactView()));
@@ -85,7 +79,7 @@ describe("useLoanContact", () => {
   });
 
   it("asks for nothing until a contact is chosen", () => {
-    renderHook(() => useLoanContact(null), { wrapper: makeWrapper(cachingQueryClient()) });
+    renderHook(() => useLoanContact(null), { wrapper: queryClientWrapper(cachingQueryClient()) });
 
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -103,7 +97,9 @@ describe("useUpdateLoanContact", () => {
     ] as const;
     for (const queryKey of seeded) await seedQuery(client, queryKey);
 
-    const { result } = renderHook(() => useUpdateLoanContact(), { wrapper: makeWrapper(client) });
+    const { result } = renderHook(() => useUpdateLoanContact(), {
+      wrapper: queryClientWrapper(client),
+    });
     await act(async () => {
       await result.current.mutateAsync({
         contactId: CONTACT_ID,
@@ -121,7 +117,9 @@ describe("useUpdateLoanContact", () => {
     const updated = contactView({ contact: "+380001112233" });
     fetchMock.mockImplementation(() => Promise.resolve(jsonResponse(updated)));
 
-    const { result } = renderHook(() => useUpdateLoanContact(), { wrapper: makeWrapper(client) });
+    const { result } = renderHook(() => useUpdateLoanContact(), {
+      wrapper: queryClientWrapper(client),
+    });
     await act(async () => {
       await result.current.mutateAsync({ contactId: CONTACT_ID, payload: { name: "Ігор" } });
     });
@@ -139,7 +137,9 @@ describe("useArchiveLoanContact", () => {
       Promise.resolve(jsonResponse(contactView({ archivedAt: "2026-08-21T10:00:00.000Z" }))),
     );
 
-    const { result } = renderHook(() => useArchiveLoanContact(), { wrapper: makeWrapper(client) });
+    const { result } = renderHook(() => useArchiveLoanContact(), {
+      wrapper: queryClientWrapper(client),
+    });
     await act(async () => {
       await result.current.mutateAsync(CONTACT_ID);
     });
@@ -158,7 +158,9 @@ describe("useArchiveLoanContact and the book caches", () => {
       Promise.resolve(jsonResponse(contactView({ archivedAt: "2026-08-21T10:00:00.000Z" }))),
     );
 
-    const { result } = renderHook(() => useArchiveLoanContact(), { wrapper: makeWrapper(client) });
+    const { result } = renderHook(() => useArchiveLoanContact(), {
+      wrapper: queryClientWrapper(client),
+    });
     await act(async () => {
       await result.current.mutateAsync(CONTACT_ID);
     });
@@ -173,7 +175,9 @@ describe("useRestoreLoanContact", () => {
     const listKey = loanKeys.contacts.search("");
     await seedQuery(client, listKey);
 
-    const { result } = renderHook(() => useRestoreLoanContact(), { wrapper: makeWrapper(client) });
+    const { result } = renderHook(() => useRestoreLoanContact(), {
+      wrapper: queryClientWrapper(client),
+    });
     await act(async () => {
       await result.current.mutateAsync(CONTACT_ID);
     });

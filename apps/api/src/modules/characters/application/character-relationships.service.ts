@@ -5,18 +5,22 @@ import type {
   CreateCharacterRelationship,
   Nullable,
   RelationshipCategory,
+  RelationshipDirectionality,
   RelationshipType,
   UpdateCharacterRelationship,
 } from "@app/shared";
 
 import {
+  CHARACTER_RELATIONSHIP_CUSTOM_TYPE_LIMITS,
   CHARACTER_RELATIONSHIP_ERROR_CODES,
+  collapseSpaces,
   normalizeName,
   RelationshipTypeSchema,
 } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
+import type { CharacterRelationshipModel } from "../../../generated/prisma/models.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
@@ -31,9 +35,13 @@ import {
   buildUpdateData,
   dedupeBookStates,
   resolveDirectionality,
+  resolvePatchedCustomType,
+  resolvePatchedRoleLabels,
 } from "../domain/character-relationship-write.js";
 import { toRelationshipDetailsView } from "../domain/character-relationship.mapper.js";
 import { CharacterRelationshipsRepository } from "../infrastructure/character-relationships.repository.js";
+import { RelationshipCustomTypesRepository } from "../infrastructure/relationship-custom-types.repository.js";
+import { RelationshipRoleSuggestionsRepository } from "../infrastructure/relationship-role-suggestions.repository.js";
 import { CharacterAccessAsserter } from "./character-access.asserter.js";
 import { RelationshipContextService } from "./relationship-context.service.js";
 
@@ -44,6 +52,8 @@ export class CharacterRelationshipsService {
     private readonly accessAsserter: CharacterAccessAsserter,
     private readonly contextService: RelationshipContextService,
     private readonly transactionRunner: TransactionRunner,
+    private readonly customTypesRepository: RelationshipCustomTypesRepository,
+    private readonly roleSuggestionsRepository: RelationshipRoleSuggestionsRepository,
   ) {}
 
   async create({
@@ -58,6 +68,7 @@ export class CharacterRelationshipsService {
         code: CHARACTER_RELATIONSHIP_ERROR_CODES.selfReference,
       });
     }
+    const now = new Date();
     const directionality = resolveDirectionality({
       directionality: input.directionality,
       type: input.type,
@@ -85,6 +96,14 @@ export class CharacterRelationshipsService {
         tx,
         userId,
       });
+      await this.accessAsserter.assertCharactersLinkedToBooks(
+        {
+          bookIds: bookStates.map((state) => state.bookId),
+          characterIds: [canonical.sourceCharacterId, canonical.targetCharacterId],
+          invalidCode: CHARACTER_RELATIONSHIP_ERROR_CODES.bookContextInvalid,
+        },
+        tx,
+      );
       await this.relationshipsRepository.acquireRelationshipLock(
         {
           key: buildRelationshipLockKey({
@@ -141,6 +160,9 @@ export class CharacterRelationshipsService {
         })),
         tx,
       );
+      if (customType !== null) {
+        await this.recordCustomTypeUse({ directionality, name: customType, now, tx, userId });
+      }
       const row = await this.contextService.loadDetails(
         { relationshipId: relationship.id, userId },
         tx,
@@ -190,6 +212,7 @@ export class CharacterRelationshipsService {
     relationshipId: string;
     userId: string;
   }): Promise<CharacterRelationshipDetailsView> {
+    const now = new Date();
     const result = await this.transactionRunner.run(async (tx) => {
       const existing = await this.relationshipsRepository.findOwnedRelationshipBare(
         { relationshipId, userId },
@@ -273,6 +296,16 @@ export class CharacterRelationshipsService {
               userId,
             });
       await this.relationshipsRepository.updateRelationship({ data, relationshipId, userId }, tx);
+      await this.recordPatchDictionaryUsage({
+        effectiveCustomType,
+        effectiveDirectionality,
+        effectiveType,
+        existing,
+        input,
+        now,
+        tx,
+        userId,
+      });
       const row = await this.contextService.loadDetails({ relationshipId, userId }, tx);
       return { diagnostics, row };
     });
@@ -338,6 +371,85 @@ export class CharacterRelationshipsService {
       throw new ConflictError("This relationship already exists", {
         code: CHARACTER_RELATIONSHIP_ERROR_CODES.duplicate,
       });
+    }
+  }
+
+  private async recordCustomTypeUse({
+    directionality,
+    name,
+    now,
+    tx,
+    userId,
+  }: {
+    directionality: RelationshipDirectionality;
+    name: string;
+    now: Date;
+    tx: Prisma.TransactionClient;
+    userId: string;
+  }): Promise<void> {
+    const displayName = collapseSpaces(name);
+    if (
+      displayName.length === 0 ||
+      displayName.length > CHARACTER_RELATIONSHIP_CUSTOM_TYPE_LIMITS.nameMax
+    ) {
+      return;
+    }
+    await this.customTypesRepository.upsertUsage(
+      {
+        directionality,
+        name: displayName,
+        normalizedName: normalizeName(displayName),
+        usedAt: now,
+        userId,
+      },
+      tx,
+    );
+  }
+
+  private async recordPatchDictionaryUsage({
+    effectiveCustomType,
+    effectiveDirectionality,
+    effectiveType,
+    existing,
+    input,
+    now,
+    tx,
+    userId,
+  }: {
+    effectiveCustomType: Nullable<string>;
+    effectiveDirectionality: RelationshipDirectionality;
+    effectiveType: RelationshipType;
+    existing: CharacterRelationshipModel;
+    input: UpdateCharacterRelationship;
+    now: Date;
+    tx: Prisma.TransactionClient;
+    userId: string;
+  }): Promise<void> {
+    const patchedCustomType = resolvePatchedCustomType({
+      effectiveCustomType,
+      effectiveType,
+      existing,
+      input,
+    });
+    if (patchedCustomType !== null) {
+      await this.recordCustomTypeUse({
+        directionality: effectiveDirectionality,
+        name: patchedCustomType,
+        now,
+        tx,
+        userId,
+      });
+    }
+    for (const roleLabel of resolvePatchedRoleLabels({ existing, input })) {
+      await this.roleSuggestionsRepository.upsertUsage(
+        {
+          label: roleLabel.label,
+          normalizedLabel: roleLabel.normalizedLabel,
+          usedAt: now,
+          userId,
+        },
+        tx,
+      );
     }
   }
 

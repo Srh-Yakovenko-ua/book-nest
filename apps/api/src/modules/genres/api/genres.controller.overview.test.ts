@@ -150,7 +150,7 @@ describe("GET /api/genres/overview", () => {
         booksCount: 2,
         key: "fantasy",
         label: "Фентезі",
-        lastReadingActivityAt: daysAgo(200).toISOString(),
+        lastReadingActivityAt: toIsoDate(daysAgo(200)),
         readCount: 1,
       },
     ]);
@@ -219,13 +219,13 @@ describe("GET /api/genres/overview", () => {
       {
         key: "thriller",
         label: "Трилер",
-        latestUnratedFinishedAt: daysAgo(3).toISOString(),
+        latestUnratedFinishedAt: toIsoDate(daysAgo(3)),
         unratedFinishedCount: 2,
       },
       {
         key: "mystery",
         label: "Містика",
-        latestUnratedFinishedAt: daysAgo(3).toISOString(),
+        latestUnratedFinishedAt: toIsoDate(daysAgo(3)),
         unratedFinishedCount: 1,
       },
     ]);

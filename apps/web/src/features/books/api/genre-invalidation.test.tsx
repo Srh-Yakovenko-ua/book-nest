@@ -1,26 +1,23 @@
 import "@testing-library/jest-dom/vitest";
-
-import type { ReactNode } from "react";
-
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { genresKeys } from "@/features/genres/api/genres-keys";
+import { queryClientWrapper } from "@/test-query-cache";
 
 import { makeBookView } from "../components/book-details.fixtures";
 import { useBulkReadingStatus, useDeleteBook, useToggleFavorite } from "./use-book-actions";
 import { useChangeReadingStatus } from "./use-reading-progress";
-import { RECENT_GENRES_KEY } from "./use-recent-genres";
 import { useUpdateBook } from "./use-update-book";
 
 const BOOK_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 
 const GENRE_KEYS = {
-  catalog: ["genres"],
+  catalog: genresKeys.catalog,
   facets: genresKeys.facets({}),
   overview: genresKeys.overview,
-  recent: RECENT_GENRES_KEY,
+  recent: genresKeys.recent,
   stats: genresKeys.stats({ filter: "all", sort: "books_count_desc" }),
   summary: genresKeys.summary,
 } as const;
@@ -47,7 +44,9 @@ describe("book mutations and the Genres page", () => {
   it("refreshes Genre analytics and recent usage after a book edit", async () => {
     replyWith({});
     const client = seededClient();
-    const { result } = renderHook(() => useUpdateBook(BOOK_ID), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useUpdateBook(BOOK_ID), {
+      wrapper: queryClientWrapper(client),
+    });
 
     await act(() => result.current.mutateAsync({ genres: ["fantasy"] }));
 
@@ -59,7 +58,7 @@ describe("book mutations and the Genres page", () => {
   it("refreshes Genre analytics and recent usage after deleting a book", async () => {
     replyWith({});
     const client = seededClient();
-    const { result } = renderHook(() => useDeleteBook(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useDeleteBook(), { wrapper: queryClientWrapper(client) });
 
     await act(() => result.current.mutateAsync(BOOK_ID));
 
@@ -71,7 +70,7 @@ describe("book mutations and the Genres page", () => {
     replyWith(makeBookView({ id: BOOK_ID }));
     const client = seededClient();
     const { result } = renderHook(() => useChangeReadingStatus(), {
-      wrapper: wrapperFor(client),
+      wrapper: queryClientWrapper(client),
     });
 
     await act(() => result.current.mutateAsync({ id: BOOK_ID, payload: { status: "finished" } }));
@@ -84,7 +83,9 @@ describe("book mutations and the Genres page", () => {
   it("refreshes Genre analytics after a bulk reading-status change", async () => {
     replyWith({ affected: 2 });
     const client = seededClient();
-    const { result } = renderHook(() => useBulkReadingStatus(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useBulkReadingStatus(), {
+      wrapper: queryClientWrapper(client),
+    });
 
     await act(() => result.current.mutateAsync({ bookIds: [BOOK_ID], readingStatus: "finished" }));
 
@@ -94,7 +95,9 @@ describe("book mutations and the Genres page", () => {
   it("leaves Genre analytics alone when only a favorite changes", async () => {
     replyWith({});
     const client = seededClient();
-    const { result } = renderHook(() => useToggleFavorite(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useToggleFavorite(), {
+      wrapper: queryClientWrapper(client),
+    });
 
     await act(() => result.current.mutateAsync({ id: BOOK_ID, isFavorite: true }));
 
@@ -125,10 +128,4 @@ function seededClient(): QueryClient {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
   for (const key of Object.values(GENRE_KEYS)) client.setQueryData(key, {});
   return client;
-}
-
-function wrapperFor(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
 }

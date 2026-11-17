@@ -12,6 +12,5 @@ export function useGenresOverview() {
     queryFn: async ({ signal }): Promise<GenresOverviewView> =>
       GenresOverviewViewSchema.parse(await genresControllerOverview({ signal })),
     queryKey: genresKeys.overview,
-    retry: false,
   });
 }

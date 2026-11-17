@@ -3,17 +3,22 @@
 import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
+import { ActiveFilters } from "@/components/catalog/active-filters";
+import { SummaryCards } from "@/components/catalog/summary-cards";
 import { UiIcon } from "@/components/icons";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
-import { LibraryActiveFilters, useGenres } from "@/features/books";
 import { useSelectedTags } from "@/features/books/api/use-tags-search";
-import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
+import { useGenres } from "@/features/genres";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import { useWishlist } from "../api/use-wishlist";
 import { useWishlistFacets } from "../api/use-wishlist-facets";
@@ -30,13 +35,24 @@ type WishlistSummaryKey = "books" | "missingFromSeries" | "nextInSeries" | "wait
 export function BooksToBuyView() {
   const t = useTranslations("booksToBuy");
   const tUnit = useTranslations("books.library.summary");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const wishlist = useWishlistQuery();
-  const { data, isError, isPending, refetch } = useWishlist(wishlist.listParams);
+  const {
+    data,
+    isLoadingError,
+    isPending,
+    isPlaceholderData,
+    isRefetchError,
+    isRefetching,
+    refetch,
+  } = useWishlist(wishlist.listParams);
   const facets = useWishlistFacets();
   const genres = useGenres();
   const selectedTags = useSelectedTags(wishlist.state.tag);
   const [entityLabels, setEntityLabels] = useState<Record<string, string>>({});
+  const resultsRegionRef = useRef<HTMLElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsRegionRef);
 
   const allBooks = data?.books ?? [];
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
@@ -62,8 +78,9 @@ export function BooksToBuyView() {
   });
 
   const onAddBook = () => router.push("/books/new");
-  const showOverview = !isError && (isPending || allBooks.length > 0);
+  const showOverview = !isLoadingError && (isPending || allBooks.length > 0);
   const hasAnyBooks = allBooks.length > 0 || wishlist.hasActiveFilters || wishlist.hasActiveSearch;
+  const isLoadingResults = isPending || (isPlaceholderData && !hasAnyBooks);
 
   const bestOffers = deriveWishlistBestOffers(allBooks);
   const summary = data?.summary;
@@ -83,7 +100,7 @@ export function BooksToBuyView() {
   const nextCount = counts?.nextInSeries.booksCount ?? 0;
   const waitingCount = counts?.waitingOverSixMonths ?? 0;
 
-  const countCards: LibrarySummaryCard[] = [
+  const countCards: SummaryCard[] = [
     {
       ...summaryLabels("books"),
       icon: "cart",
@@ -143,7 +160,7 @@ export function BooksToBuyView() {
       </header>
 
       {showOverview ? (
-        <LibrarySummaryCards
+        <SummaryCards
           cards={countCards}
           isLoading={isPending}
           mobileAction={
@@ -158,19 +175,21 @@ export function BooksToBuyView() {
       ) : null}
 
       <ToolbarSlot
-        hasAnyBooks={hasAnyBooks}
-        isError={isError}
+        hasAnyBooks={hasAnyBooks || isPlaceholderData}
+        isError={isLoadingError}
         isPending={isPending}
         toolbar={
           <BooksToBuyToolbar
             activeFilterCount={wishlist.activeFilterCount}
-            activeFilters={
-              <LibraryActiveFilters chips={filterChips} onClearAll={wishlist.clearAll} />
+            activeFilters={<ActiveFilters chips={filterChips} onClearAll={wishlist.clearAll} />}
+            counterLabel={
+              isPlaceholderData
+                ? tCommon("updating")
+                : t("counter", {
+                    shown: allBooks.length,
+                    total: data?.totalBooksCount ?? allBooks.length,
+                  })
             }
-            counterLabel={t("counter", {
-              shown: allBooks.length,
-              total: data?.totalBooksCount ?? allBooks.length,
-            })}
             onRememberEntity={rememberEntity}
             onSearchChange={wishlist.setSearch}
             onSortChange={wishlist.setSort}
@@ -186,19 +205,31 @@ export function BooksToBuyView() {
       />
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
+        <section
+          aria-label={t("listLabel")}
+          className={cn("flex min-w-0 flex-1 flex-col gap-6", RETRY_FOCUS_RING.onTarget)}
+          ref={resultsRegionRef}
+          tabIndex={-1}
+        >
+          <RefetchErrorBanner
+            state={
+              isRefetchError ? { isRetrying: isRefetching, onRetry: () => void refetch() } : null
+            }
+          />
           <BooksToBuyContent
             books={allBooks}
             hasAnyBooks={hasAnyBooks}
-            isError={isError}
-            isPending={isPending}
+            isError={isLoadingError}
+            isPending={isLoadingResults}
+            isRefreshing={isPlaceholderData}
             onAddBook={onAddBook}
             onClearFilters={wishlist.clearAll}
             onOpenLibrary={() => router.push("/books")}
-            onRetry={() => void refetch()}
+            onRetry={withRetryFocus(() => void refetch())}
+            retryButtonRef={retryButtonRef}
             view={wishlist.view}
           />
-        </div>
+        </section>
         {showOverview ? <BooksToBuySidebar bestOffers={bestOffers} isLoading={isPending} /> : null}
       </div>
     </div>

@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useGenres } from "@/features/books/api/use-genres";
+import { useGenres } from "@/features/genres";
 
 import type { DedicationView } from "../model/dedications-query";
 
@@ -201,11 +201,9 @@ export function DedicationsToolbar({
         />
       </div>
 
-      {counter === undefined ? null : (
-        <p aria-live="polite" className="mt-1 text-sm text-muted-foreground">
-          {counter}
-        </p>
-      )}
+      <p aria-live="polite" className="mt-1 text-sm text-muted-foreground empty:-mt-3">
+        {counter}
+      </p>
     </div>
   );
 }

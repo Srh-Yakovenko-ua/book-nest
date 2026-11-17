@@ -1,0 +1,1113 @@
+{
+  "spec": "docs/specs/statistics-tastes/spec.md",
+  "source": "D:\\IT\\book-docs\\new\\11__BOOK_NEST_STATISTICS_TASTES_CLAUDE_CODE_v3_OPTIMIZED\\BOOK_NEST_STATISTICS_TASTES_CLAUDE_CODE_v3_OPTIMIZED\\SPEC.md",
+  "generatedAt": "2026-10-19T13:53:51Z",
+  "base": {
+    "ref": "origin/dev",
+    "sha": "13351f42b9f75126ad4bbc1f4a639de8930d8c31",
+    "branch": "feat/statistics-tastes-refactor",
+    "worktree": "D:\\IT\\book-nest\\.claude\\worktrees\\statistics-tastes",
+    "note": "HEAD and the local origin/dev ref both equal the spec baseline. This audit did not run git fetch; the P0 fetch belongs to the main loop."
+  },
+  "scope": {
+    "included": [
+      "P1 Ratings: topRated date with year via showFinishedAt, coverage note without duplicated numbers, 8+ hint",
+      "P2 TasteRankingList: optional scaleMax (rated genres/authors use 10, valueLabel with / 10), full wrapped names",
+      "P3 Publishers concentration hint, Languages compact single KPI plus known-denominator description, Discoveries afterDiscovery copy (i18n only)",
+      "P4 narrow tests for the P1-P3 changes, written, not run"
+    ],
+    "excluded": [
+      {
+        "item": "Re-implementing any ALREADY_DONE item",
+        "reason": "spec §1 EXCLUDED; see alreadyDone with proofs"
+      },
+      {
+        "item": "Any product-scope extension, new CTA, new transitions from ratings",
+        "reason": "spec §1 EXCLUDED, §2 last bullet, decision #11"
+      },
+      {
+        "item": "rating-distribution.tsx edits",
+        "reason": "spec P1 allows edits only on a confirmed overflow/density problem; static read shows every received bucket rendered with fixed-width label (w-10, :24) and count (w-8, :42) around a flex-1 bar (:32), no overflow source. Browser density check is NOT_VERIFIED, not a confirmed problem."
+      },
+      {
+        "item": "discoveries-section.tsx edits",
+        "reason": "spec P3: do not touch if i18n suffices; it does (discoveries-section.tsx:120 reads t(\"afterDiscovery\", { count }))"
+      },
+      {
+        "item": "apps/api/**, packages/shared/**, Prisma, generated/Orval, deps/lockfile, components/ui/**, global styles, navigation/URL model, components/reading/**, components/progress/**, components/overview/statistics-overview.tsx, model/statistics.fixtures.ts",
+        "reason": "spec §6 forbidden list; no required change needs any of them"
+      },
+      {
+        "item": "Truncation outside TasteRankingList rows: returning-author name truncate (authors-section.tsx:97), discovery card name line-clamp-2 (discoveries-section.tsx:113), CompletedReadCard title line-clamp-2 (completed-read-card.tsx:32)",
+        "reason": "spec P2 limits the wrap requirement to rating rows; P3 forbids touching discoveries-section.tsx; P1 limits completed-read-card.tsx to the date prop"
+      },
+      {
+        "item": "Publishers test",
+        "reason": "spec P4 table lists no publishers scenario and A19 asks for only the necessary tests; T8 is verified statically"
+      },
+      {
+        "item": "overview/statistics-overview.test.tsx edits",
+        "reason": "spec P4: no integration behavior changes; it asserts only section titles (:50-57) and recent-card short dates (:401-431), none of which change"
+      },
+      {
+        "item": "P0 fetch/worktree setup, gates (typecheck, lint, prettier, vitest), commit/push",
+        "reason": "spec §6 Gates and CLAUDE.md §9: main loop only, on the user's explicit command; Stage 7 DEFERRED / CI-only"
+      },
+      {
+        "item": "Accessibility low finding: the CompletedReadCard trigger aria-label (details/statistics-detail-surface.tsx:50 and :70, label from completed-read-card.tsx:52) overrides the visible date and rating",
+        "reason": "pre-existing; spec §4 P1 forbids changing details/popover/drawer/keyboard/focus"
+      }
+    ]
+  },
+  "alreadyDone": [
+    {
+      "id": "AD01",
+      "requirement": "Six sections in fixed order, paired sections two columns on lg+, one column on mobile",
+      "specRef": "§1, decision #1",
+      "proof": [
+        "apps/web/src/features/statistics/components/overview/statistics-overview.tsx:195-213",
+        "statistics-overview.tsx:200 and :205 grid-cols-1 lg:grid-cols-2"
+      ]
+    },
+    {
+      "id": "AD02",
+      "requirement": "Discoveries hidden for all_time",
+      "specRef": "§1, A01",
+      "proof": ["statistics-overview.tsx:210-212", "overview/statistics-overview.test.tsx:220-232"]
+    },
+    {
+      "id": "AD03",
+      "requirement": "Four tabs and URL state (tab, section, calendarMode, calendarMonth, section=habits)",
+      "specRef": "§1, decision #12, A16",
+      "proof": [
+        "apps/web/src/features/statistics/model/statistics-view.ts:10,14,15,27-31",
+        "statistics-overview.tsx:188-190"
+      ]
+    },
+    {
+      "id": "AD04",
+      "requirement": "KPI average rating deep link to tab=tastes&section=ratings",
+      "specRef": "§1, A16",
+      "proof": [
+        "model/statistics-view.ts:41",
+        "statistics-overview.tsx:196",
+        "overview/statistics-overview.test.tsx:358"
+      ]
+    },
+    {
+      "id": "AD05",
+      "requirement": "Single shared overview query",
+      "specRef": "§1, A18",
+      "proof": [
+        "statistics-overview.tsx:56 is the only useReadingStatisticsOverview( call outside tests"
+      ]
+    },
+    {
+      "id": "AD06",
+      "requirement": "StatisticsSection, StatisticsStat (with hint prop), StatisticsMetricTabs, TasteRankingList exist",
+      "specRef": "§1",
+      "proof": [
+        "components/statistics-section.tsx:19,45",
+        "components/statistics-stat.tsx:3-20 (hint prop :4, rendered :16-18)",
+        "components/tastes/taste-ranking-list.tsx:27"
+      ]
+    },
+    {
+      "id": "AD07",
+      "requirement": "Genres and authors modes are independent local useState, no URL, no refetch",
+      "specRef": "§1, P2 bullet 4, decision #12",
+      "proof": ["tastes/genres-section.tsx:23,41-47", "tastes/authors-section.tsx:23,43-49"]
+    },
+    {
+      "id": "AD08",
+      "requirement": "useGenreName -> useGenres kept (not a new API)",
+      "specRef": "P2 bullet 4, A18",
+      "proof": [
+        "model/use-genre-name.ts:3-9",
+        "features/books/api/use-genres.ts:21-27 (queryKey [\"genres\"])"
+      ]
+    },
+    {
+      "id": "AD09",
+      "requirement": "Top-4 rated cycles, reread as its own row keyed by readingCycleId",
+      "specRef": "§1, §2, decision #4",
+      "proof": [
+        "apps/api/src/modules/statistics/application/statistics-tastes.composer.ts:44,233-244",
+        "tastes/ratings-section.tsx:87-91",
+        "tastes/ratings-section.test.tsx:59-74"
+      ]
+    },
+    {
+      "id": "AD10",
+      "requirement": "StatisticsDetailSurface / CompletedReadDetails wiring for reading_cycle",
+      "specRef": "§1, P1 bullet 3",
+      "proof": [
+        "components/completed-read-card.tsx:11-13,42-55",
+        "details/completed-read-details.tsx:35 already shows formatDayLong in the detail"
+      ]
+    },
+    {
+      "id": "AD11",
+      "requirement": "uk/en localizations of all tastes sections",
+      "specRef": "§1",
+      "proof": [
+        "apps/web/src/messages/uk.json:9465-9571",
+        "apps/web/src/messages/en.json:9465-9571"
+      ]
+    },
+    {
+      "id": "AD12",
+      "requirement": "Honest states partial/insufficient/unavailable/empty; null never shown as 0",
+      "specRef": "§1, decision #13, A15",
+      "proof": [
+        "components/statistics-states.tsx:16,123-149",
+        "tastes/ratings-section.tsx:22-32,46-48,54-55",
+        "tastes/publishers-section.tsx:56-58",
+        "tastes/genres-section.tsx:69-74",
+        "tastes/authors-section.tsx:69-74",
+        "tastes/discoveries-section.tsx:44-63",
+        "tests: ratings-section.test.tsx:34-57, genres-section.test.tsx:99-114, languages-section.test.tsx:53-69"
+      ]
+    },
+    {
+      "id": "AD13",
+      "requirement": "Mobile 3->N with aria-expanded and Show more/Show less, all N on lg+",
+      "specRef": "§1, P2 bullet 3, decision #7",
+      "proof": [
+        "tastes/taste-ranking-list.tsx:16,31,40,73-83",
+        "uk.json:9276-9277, en.json:9276-9277"
+      ]
+    },
+    {
+      "id": "AD14",
+      "requirement": "No frontend slice/sort; languages render all N",
+      "specRef": "§2, P2 bullet 3, A07, A08",
+      "proof": [
+        "grep slice(|.sort(|toSorted|Math.round in components/tastes/: no matches",
+        "tastes/languages-section.tsx:55-63 maps languages.items whole",
+        "statistics-tastes.composer.ts:170 (languages not sliced)"
+      ]
+    },
+    {
+      "id": "AD15",
+      "requirement": "Exact context actions only; unsupported subset not clickable",
+      "specRef": "§2, decision #11, A10",
+      "proof": [
+        "tastes/taste-ranking-list.tsx:88-108",
+        "tastes/authors-section.tsx:61 (frequency only)",
+        "tastes/publishers-section.tsx:64",
+        "model/statistics-drilldown.ts:17-19,25-26,56-69",
+        "statistics-tastes.composer.ts:70,202",
+        "genres-section.test.tsx:90-97"
+      ]
+    },
+    {
+      "id": "AD16",
+      "requirement": "RatingDistribution renders every received bucket incl. zeros with exact counts and role=img + aria-label; unavailable shows no chart",
+      "specRef": "P1 bullet 2, decision #3, A03",
+      "proof": [
+        "tastes/rating-distribution.tsx:18-47 (no filter; role=img :33; aria-label with rating and count :28-31; count :42-44)",
+        "tastes/ratings-section.tsx:22-32 (unavailable returns before RatingDistribution)",
+        "apps/api/src/modules/statistics/domain/reading-ratings.ts:54-58 (20 buckets 10 -> 0.5, zeros via ?? 0)"
+      ]
+    },
+    {
+      "id": "AD17",
+      "requirement": "Coverage note absent at full coverage",
+      "specRef": "P1 bullet 1",
+      "proof": ["model/statistics-availability.ts:13 returns null when knownCount >= eligibleCount"]
+    },
+    {
+      "id": "AD18",
+      "requirement": "Publisher average shown only when backend provides it (threshold 2 on BE)",
+      "specRef": "P3 Publishers",
+      "proof": [
+        "apps/api/src/modules/statistics/domain/reading-tastes.ts:11,63-66",
+        "tastes/publishers-section.tsx:67-73"
+      ]
+    },
+    {
+      "id": "AD19",
+      "requirement": "Discoveries: 3 KPI, up to 3 cards, partial/unavailable, local snap-scroll",
+      "specRef": "P3 Discoveries, decision #10, #14",
+      "proof": ["tastes/discoveries-section.tsx:66-79,129-153,44-63,84-97"]
+    },
+    {
+      "id": "AD20",
+      "requirement": "Languages sourceHint (edition language) and coverage note, no artificial Unknown row",
+      "specRef": "P3 Languages",
+      "proof": ["tastes/languages-section.tsx:37-42", "languages-section.test.tsx:28-51"]
+    },
+    {
+      "id": "AD21",
+      "requirement": "statistics.ratings.scale key exists",
+      "specRef": "P2 bullet 1",
+      "proof": ["uk.json:9474 \"{value} / 10\"", "en.json:9474 \"{value} / 10\""]
+    }
+  ],
+  "assertions": [
+    {
+      "id": "S01",
+      "claim": "Six sections in order Ratings / Genres|Authors / Publishers|Languages / Discoveries",
+      "specRef": "§1",
+      "verdict": "ALREADY_DONE",
+      "evidence": "statistics-overview.tsx:195-213"
+    },
+    {
+      "id": "S02",
+      "claim": "Activity tab after PR #294 has chart, habits, calendar, calendarMode/calendarMonth, section=habits",
+      "specRef": "§1",
+      "verdict": "CONFIRMED",
+      "evidence": "model/statistics-view.ts:10,14,30; statistics-overview.tsx:188-190"
+    },
+    {
+      "id": "S03",
+      "claim": "Backend builds 20 rating distribution buckets",
+      "specRef": "§1, §2",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/statistics/domain/reading-ratings.ts:54-58 loops BOOK_RATING.max (10) down to min (0.5) by step (0.5), zero counts kept; order is descending"
+    },
+    {
+      "id": "S04",
+      "claim": "Shared overviewFixture has only 2 demo buckets",
+      "specRef": "§1",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/statistics/model/statistics.fixtures.ts:354-357"
+    },
+    {
+      "id": "S05",
+      "claim": "Unit is the completed reading cycle; reread is a separate row",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/reading-statistics-tastes.ts:15-27; tastes/ratings-section.tsx:88"
+    },
+    {
+      "id": "S06",
+      "claim": "Rating scale 0.5-10 step 0.5",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/internal.ts:16-23; BOOK_RATING exported at packages/shared/src/index.ts:26"
+    },
+    {
+      "id": "S07",
+      "claim": "Rated genre/author ranking needs >=3 rated cycles",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "domain/reading-tastes.ts:9; statistics-tastes.composer.ts:256-263"
+    },
+    {
+      "id": "S08",
+      "claim": "Publisher average shown at >=2 rated",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "domain/reading-tastes.ts:11,63-66; composer:200"
+    },
+    {
+      "id": "S09",
+      "claim": "topRated has <=4 cycles",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "statistics-tastes.composer.ts:44,233-235"
+    },
+    {
+      "id": "S10",
+      "claim": "Genres, authors, publishers limited to 5 by backend",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "domain/reading-tastes.ts:7; composer:66 (authors), :142 (genres), :199 (publishers), :269 (rated rankings)"
+    },
+    {
+      "id": "S11",
+      "claim": "Languages not limited to 5; BookLanguage allows 7 values",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "composer:170 (no slice); packages/shared/src/book-enums.ts:134-142 (7 values)"
+    },
+    {
+      "id": "S12",
+      "claim": "No frontend slice(0,5) anywhere",
+      "specRef": "§2",
+      "verdict": "ALREADY_DONE",
+      "evidence": "grep slice(|.sort( in components/tastes/: no matches"
+    },
+    {
+      "id": "S13",
+      "claim": "highRatedShare = >=8 among rated only",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "domain/reading-ratings.ts:7,32-34,40"
+    },
+    {
+      "id": "S14",
+      "claim": "topThreeConcentration = top-3 reads among reads with a known publisher",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "composer:190-194,210"
+    },
+    {
+      "id": "S15",
+      "claim": "Language shareOfKnown among reads with a known language",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "composer:164,177"
+    },
+    {
+      "id": "S16",
+      "claim": "Language is the edition-language snapshot, not original language",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/reading-statistics-tastes.ts:144-146"
+    },
+    {
+      "id": "S17",
+      "claim": "completedReadsAfterDiscovery counts related period cycles including the first",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "domain/reading-discoveries.ts:103-114 (related = every periodRead carrying the entity; no firstFinishedAt filter); composer:298"
+    },
+    {
+      "id": "S18",
+      "claim": "completed_reads_subset may be unsupported in the UI",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "model/statistics-drilldown.ts:17-19,25-26,68"
+    },
+    {
+      "id": "S19",
+      "claim": "Ratings has 3 KPI: average /10, 8+ count/share, rated/total",
+      "specRef": "P1 bullet 1",
+      "verdict": "CONFIRMED",
+      "evidence": "tastes/ratings-section.tsx:42-69"
+    },
+    {
+      "id": "S20",
+      "claim": "Incomplete coverage duplicates rated/total in StatisticsNote",
+      "specRef": "P1 bullet 1",
+      "verdict": "CONFIRMED",
+      "evidence": "ratings-section.tsx:37 renders statistics.ratings.coverage (uk.json:9479 \"{knownCount} із {eligibleCount} читань оцінено\") while KPI :62-68 renders ratedReadsValue (uk.json:9478 \"{rated} із {total}\"). REQUIRED -> T2"
+    },
+    {
+      "id": "S21",
+      "claim": "8+ KPI has no hint",
+      "specRef": "P1 bullet 1",
+      "verdict": "CONFIRMED",
+      "evidence": "ratings-section.tsx:51-61 passes no hint. REQUIRED -> T2"
+    },
+    {
+      "id": "S22",
+      "claim": "CompletedReadCard shows date only for recent or unrated",
+      "specRef": "P1 bullet 3",
+      "verdict": "CONFIRMED",
+      "evidence": "completed-read-card.tsx:27; showFinishedAt absent. REQUIRED -> T1"
+    },
+    {
+      "id": "S23",
+      "claim": "CompletedReadCard has 'default' and 'recent' previews",
+      "specRef": "P1 bullet 3",
+      "verdict": "MOVED",
+      "evidence": "completed-read-card.tsx:15,19: the union is \"ranking\" | \"recent\" with default \"ranking\"; spec 'default' = variant=\"ranking\""
+    },
+    {
+      "id": "S24",
+      "claim": "Existing formatDayLong helper gives the date with year",
+      "specRef": "P1 bullet 3",
+      "verdict": "CONFIRMED",
+      "evidence": "features/statistics/model/statistics-format.ts:7,25-27. A second formatDayLong exists in features/delivery/model/statistics-format.ts:9 and must not be imported"
+    },
+    {
+      "id": "S25",
+      "claim": "TasteRankingList scales to peak = max(rows.value)",
+      "specRef": "P2 bullet 1",
+      "verdict": "CONFIRMED",
+      "evidence": "taste-ranking-list.tsx:30,66; scaleMax absent. REQUIRED -> T4"
+    },
+    {
+      "id": "S26",
+      "claim": "Rated valueLabel lacks / 10",
+      "specRef": "P2 bullet 1",
+      "verdict": "CONFIRMED",
+      "evidence": "genres-section.tsx:82 and authors-section.tsx:82 use bare formatRatingScore. REQUIRED -> T5"
+    },
+    {
+      "id": "S27",
+      "claim": "Ranking names are truncated",
+      "specRef": "P2 bullet 2",
+      "verdict": "CONFIRMED",
+      "evidence": "taste-ranking-list.tsx:49 className=\"truncate text-sm font-medium text-foreground\". REQUIRED -> T4"
+    },
+    {
+      "id": "S28",
+      "claim": "TasteRankingList callers are the tastes sections",
+      "specRef": "P2 file list, §6",
+      "verdict": "CONFIRMED",
+      "evidence": "genres-section.tsx:57,76; authors-section.tsx:59,76; publishers-section.tsx:62; languages-section.tsx:55. The spec does not mention the extra caller progress/series-section.tsx:58,75 (Progress tab), which inherits the T4 wrap without being edited; see crossCuttingNotes N1"
+    },
+    {
+      "id": "S29",
+      "claim": "Publishers concentration KPI has no base hint",
+      "specRef": "P3 Publishers",
+      "verdict": "CONFIRMED",
+      "evidence": "publishers-section.tsx:53-60. REQUIRED -> T8"
+    },
+    {
+      "id": "S30",
+      "claim": "Languages wraps ONE KPI in a multi-column grid",
+      "specRef": "P3 Languages",
+      "verdict": "CONFIRMED",
+      "evidence": "languages-section.tsx:49-54 <dl className=\"grid grid-cols-2 gap-3 sm:grid-cols-3\"> with a single StatisticsStat. REQUIRED -> T9"
+    },
+    {
+      "id": "S31",
+      "claim": "shareOfKnown is not described as 'among reads with a known language'",
+      "specRef": "P3 Languages",
+      "verdict": "CONFIRMED",
+      "evidence": "languages-section.tsx:59 renders statistics.languages.share uk.json:9542 \"{percent}% відомих\" / en.json:9542 \"{percent}% of the known ones\": names no denominator. REQUIRED -> T9"
+    },
+    {
+      "id": "S32",
+      "claim": "afterDiscovery copy is wrong for the backend count",
+      "specRef": "P3 Discoveries",
+      "verdict": "CONFIRMED",
+      "evidence": "uk.json:9564 / en.json:9564 say 'after the discovery' while reading-discoveries.ts:104-114 counts the first read too. REQUIRED -> T11"
+    },
+    {
+      "id": "S33",
+      "claim": "discoveries-section.tsx needs no edit if i18n suffices",
+      "specRef": "P3",
+      "verdict": "CONFIRMED",
+      "evidence": "discoveries-section.tsx:120 t(\"afterDiscovery\", { count: card.completedReadsAfterDiscovery })"
+    },
+    {
+      "id": "S34",
+      "claim": "ratings-section.test.tsx, genres-section.test.tsx, languages-section.test.tsx exist",
+      "specRef": "P4",
+      "verdict": "CONFIRMED",
+      "evidence": "components/tastes/ (75, 115, 92 lines)"
+    },
+    {
+      "id": "S35",
+      "claim": "taste-ranking-list.test.tsx only if no analogous test",
+      "specRef": "P4",
+      "verdict": "CONFIRMED",
+      "evidence": "no taste-ranking-list or series ranking test among the 19 statistics test files -> create (T6)"
+    },
+    {
+      "id": "S36",
+      "claim": "A narrow existing test for discoveries may exist",
+      "specRef": "P4",
+      "verdict": "FALSE",
+      "evidence": "no discoveries-section.test.tsx; grep 'після відкриття|after the discovery' in *.test.tsx: no matches -> create (T12)"
+    },
+    {
+      "id": "S37",
+      "claim": "Old tests need no rewrite beyond the changed scenarios",
+      "specRef": "P4",
+      "verdict": "STALE",
+      "evidence": "ratings-section.test.tsx:27-32 asserts the duplicated note \"28 із 37 читань оцінено\" (:30); T2 removes that text, so this test must be rewritten in T3. It is not one of the protected NO_RATINGS/all_time/URL/calendar/habits tests"
+    },
+    {
+      "id": "S38",
+      "claim": "Allowed-diff files exist at the stated paths",
+      "specRef": "§6",
+      "verdict": "CONFIRMED",
+      "evidence": "all 8 components/tastes/*.tsx and components/completed-read-card.tsx present"
+    }
+  ],
+  "openDecisions": [],
+  "implementationChoices": [
+    {
+      "id": "IC1",
+      "choice": "Rewrite the value of statistics.ratings.coverage to number-free text and call t(\"coverage\") without arguments; no new key",
+      "reason": "single caller ratings-section.tsx:37 (KPI grid uses statistics.kpi.averageRating.coverage, statistics-kpi-grid.tsx:136)",
+      "alternative": "new key ratings.coverageNote, delete ratings.coverage"
+    },
+    {
+      "id": "IC2",
+      "choice": "New keys: statistics.ratings.highRatedHint, statistics.publishers.concentrationHint, statistics.languages.shareHint",
+      "reason": "spec names no key; one key per hint, inside the namespace each section already uses"
+    },
+    {
+      "id": "IC3",
+      "choice": "The languages known-denominator text is a section-level StatisticsNote (statistics.languages.shareHint), rendered only when languages.items.length > 0; the row share text stays \"{percent}% відомих\"; the KPI carries no hint",
+      "reason": "Revised after the accessibility review: as a StatisticsStat hint it became a dd of the language-count KPI while describing the per-row shares, a structure/relationship mismatch (WCAG 1.3.1). A note of the section describes the rows it qualifies. Row secondary text stays short for the shrink-0 right side (taste-ranking-list.tsx:61).",
+      "alternative": "rewrite statistics.languages.share value (layout risk on mobile)",
+      "previousChoice": "StatisticsStat.hint on the single languages KPI",
+      "revisedOn": "2026-10-19"
+    },
+    {
+      "id": "IC4",
+      "choice": "scaleMax={BOOK_RATING.max} from @app/shared (value 10) rather than the literal 10",
+      "reason": "CLAUDE.md §8.7 single source for the rating scale; already used in web at features/genres/model/genres-query.ts:63-68"
+    },
+    {
+      "id": "IC5",
+      "choice": "CompletedReadCard meta row gets flex-wrap unconditionally",
+      "reason": "recent card is w-28 (statistics-recent-reads.tsx:28); short date plus 'N/10' fits one line, so recent/default output is unchanged; a conditional class adds branching for no visible difference",
+      "alternative": "cn(..., showFinishedAt && \"flex-wrap\")"
+    },
+    {
+      "id": "IC6",
+      "choice": "Accept that the T4 wrap also applies to Progress series lists without editing progress/**",
+      "reason": "no file in components/progress/** changes, no logic changes (series rows pass no scaleMax so their bars keep the peak scale); the spec requires full names in all rating rows; an opt-in prop would add API for the same gain",
+      "alternative": "opt-in prop on TasteRankingList, passed only by tastes sections",
+      "acceptedOn": "2026-10-19",
+      "outcome": "Accepted and recorded: components/progress/series-section.tsx is not in the diff; Progress series names now wrap. Visual check of the Progress tab is NOT_VERIFIED."
+    }
+  ],
+  "crossCuttingNotes": [
+    {
+      "id": "N1",
+      "note": "TasteRankingList is also rendered by components/progress/series-section.tsx:58-66 and :75-82 (Progress tab). After T4 those series names wrap instead of truncating. The file stays untouched; UI review should look at the Progress tab too."
+    },
+    {
+      "id": "N2",
+      "note": "Message types come from en.json (apps/web/src/env.d.ts:4,9); every new key must exist in both en.json and uk.json with the same path. Catalogs are line-aligned: the tastes namespaces sit at uk.json/en.json:9465-9571, rankings at :9275-9278."
+    },
+    {
+      "id": "N3",
+      "note": "renderWithProviders hardcodes locale uk (apps/web/src/test-utils.tsx:21,126). For en assertions use NextIntlClientProvider locale=\"en\" with @/messages/en.json, as features/series/components/series-stats-card.test.tsx:5-32 does, plus a QueryClientProvider (createTestQueryClient, test-utils.tsx:39) when the component calls useGenreName."
+    },
+    {
+      "id": "N4",
+      "note": "Editing completed-read-card.tsx:33 re-emits the existing text-[0.6875rem], which the post-edit hook flags as an arbitrary Tailwind value (.claude/hooks/post-edit-check.mjs:109-116). The value predates this change and is also used at statistics-stat.tsx:17; text-xs is 12px. Keep it and answer the finding in one line."
+    },
+    {
+      "id": "N5",
+      "note": "useGenreName calls useGenres (fetch /api/genres). Tests that render GenresSection or DiscoveriesSection should stub fetch as genres-section.test.tsx:43-59 does."
+    },
+    {
+      "id": "N6",
+      "note": "RatingScore renders text 'N/10' inside aria-hidden with role=img aria-label 'N/10' (components/ui/rating-score.tsx:17-31) inside a trigger whose aria-label is the open-title label (completed-read-card.tsx:49). In tests, assert the rating with toHaveTextContent on the list item, not getByRole img."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "CompletedReadCard: optional showFinishedAt shows the finished date with year next to the rating",
+      "specRef": "§4 P1 bullet 3; decision #4; A04, A05",
+      "layer": "web",
+      "files": ["apps/web/src/features/statistics/components/completed-read-card.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "currentState": [
+        "props at :17-23: { read, variant = \"ranking\" }: { read: CompletedReadRef; variant?: CompletedReadCardVariant }; union at :15 is \"ranking\" | \"recent\"",
+        ":27 const isDateShown = variant === \"recent\" || read.rating === null;",
+        ":33 <span className=\"flex items-center gap-1.5 text-[0.6875rem] text-muted-foreground\"> (no wrap)",
+        ":34-36 <time dateTime={read.finishedAt}>{formatDayShort(read.finishedAt, locale)}</time>; import formatDayShort at :10",
+        ":37 RatingScore renders 'N/10'",
+        "formatDayLong lives at features/statistics/model/statistics-format.ts:25-27 (DAY_LONG with year at :7)",
+        "callers: tastes/ratings-section.tsx:89 (ranking/default), overview/statistics-recent-reads.tsx:31 (variant=\"recent\"); no others"
+      ],
+      "doneWhen": [
+        "CompletedReadCard accepts showFinishedAt?: boolean with default false; CompletedReadCardVariant union unchanged",
+        "isDateShown is exactly variant === \"recent\" || showFinishedAt || read.rating === null",
+        "with showFinishedAt the <time> text is formatDayLong(read.finishedAt, locale) imported from ../model/statistics-format; without it formatDayShort as before",
+        "<time dateTime={read.finishedAt}> attribute kept",
+        "meta row at :33 can wrap (flex-wrap plus a row gap); a rated read with showFinishedAt renders both the date and RatingScore",
+        "title (:32), cover (:31), buildStatisticsDrilldownTarget and the StatisticsDetailSurface block (:42-55: detail, label, title, triggerClassName) unchanged",
+        "overview/statistics-recent-reads.tsx not in the diff"
+      ],
+      "status": "done",
+      "proof": [
+        "completed-read-card.tsx:19 showFinishedAt = false, :23 showFinishedAt?: boolean; :15 union \"ranking\" | \"recent\" unchanged",
+        "completed-read-card.tsx:29 const isDateShown = variant === \"recent\" || showFinishedAt || read.rating === null;",
+        "completed-read-card.tsx:10 import { formatDayLong, formatDayShort } from \"../model/statistics-format\"; :30-32 formatDayLong when showFinishedAt, else formatDayShort",
+        "completed-read-card.tsx:39 <time dateTime={read.finishedAt}>{finishedAtLabel}</time>",
+        "completed-read-card.tsx:38 flex flex-wrap items-center gap-x-1.5 gap-y-0.5; :40 RatingScore still rendered for rated reads",
+        "completed-read-card.tsx:28 target, :36 cover, :37 title, :45-58 StatisticsDetailSurface block: no hunk in git diff",
+        "overview/statistics-recent-reads.tsx absent from git diff --name-only"
+      ]
+    },
+    {
+      "id": "T2",
+      "title": "RatingsSection: enable showFinishedAt, add the 8+ hint, make the coverage note number-free",
+      "specRef": "§4 P1 bullets 1 and 3; decision #2, #4; A04, A11, A12",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/components/tastes/ratings-section.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "currentState": [
+        ":88-90 <li key={read.readingCycleId}><CompletedReadCard read={read} /></li>",
+        ":37 note={coverage === null ? null : <StatisticsNote>{t(\"coverage\", coverage)}</StatisticsNote>}",
+        "uk.json:9479 \"coverage\": \"{knownCount} із {eligibleCount} читань оцінено\"; en.json:9479 \"{knownCount} of {eligibleCount} reads rated\"",
+        "duplicate of KPI :62-68 ratedReadsValue uk.json:9478 \"{rated} із {total}\" / en.json:9478 \"{rated} of {total}\"",
+        ":51-61 8+ StatisticsStat without hint; label uk.json:9475 \"Оцінки 8,0 і вище\" / en.json:9475 \"Rated 8.0 and above\"; value highRatedValue :9476 \"{count} · {percent}%\"",
+        "StatisticsStat hint prop exists (statistics-stat.tsx:4,16-18)",
+        "statistics.ratings.coverage has no other caller (KPI grid uses statistics.kpi.averageRating.coverage at statistics-kpi-grid.tsx:136)"
+      ],
+      "doneWhen": [
+        "topRated map renders <CompletedReadCard read={read} showFinishedAt />, li key still read.readingCycleId",
+        "8+ StatisticsStat has hint={t(\"highRatedHint\")}; statistics.ratings.highRatedHint added in uk.json (\"серед оцінених читань\") and en.json (e.g. \"among rated reads\")",
+        "coverage note still renders only when coverageCaption(ratings.coverage) !== null; its text contains no {knownCount}/{eligibleCount} and states that the average uses rated reads only (IC1: rewrite statistics.ratings.coverage in both catalogs, e.g. uk \"Середню оцінку розраховано лише за оціненими читаннями.\", en \"The average is based on rated reads only.\"; call t(\"coverage\") without args)",
+        "the three KPI keep order, labels and values; null still renders \"—\" (:46-48, :54-55)",
+        "unavailable branch :22-32 and RatingDistribution usage :75 unchanged",
+        "no other statistics.ratings key changed; uk and en have identical key paths"
+      ],
+      "status": "done",
+      "proof": [
+        "ratings-section.tsx:88-91 <li key={read.readingCycleId}><CompletedReadCard read={read} showFinishedAt /></li>",
+        "ratings-section.tsx:52 hint={t(\"highRatedHint\")}; uk.json:9477 \"серед оцінених читань\"; en.json:9477 \"among rated reads\"",
+        "ratings-section.tsx:20,37 note only when coverageCaption(...) !== null, t(\"coverage\") without args; uk.json:9480 / en.json:9480 number-free text about the average using rated reads only",
+        "ratings-section.tsx:43-69 three KPI in the same order; \"—\" for null at :46-47 and :55-56",
+        "ratings-section.tsx:22-32 unavailable branch and :76 RatingDistribution: no hunk",
+        "statistics.ratings diff: highRatedHint added, coverage value rewritten, same lines in uk.json and en.json; no other ratings key touched"
+      ]
+    },
+    {
+      "id": "T3",
+      "title": "ratings-section.test.tsx: year + rating on topRated, same-day rereads, number-free note, default card unchanged",
+      "specRef": "§4 P4 row 1; A04, A05, A12",
+      "layer": "test",
+      "files": ["apps/web/src/features/statistics/components/tastes/ratings-section.test.tsx"],
+      "dependsOn": ["T1", "T2"],
+      "mandatory": true,
+      "currentState": [
+        ":27-32 'shows partial coverage next to the value it qualifies' asserts \"28 із 37 читань оцінено\" (:30) and \"28 із 37\" (:31); :30 breaks under T2",
+        ":59-74 reread test uses different dates (fixture 2026-03-14 vs 2026-02-01); no same-date case",
+        "completedReadFixture at model/statistics.fixtures.ts:105-121 (finishedAt 2026-03-14, rating 9); overviewFixture ratings :349-362 (partial 28/37)",
+        "recent variant already covered by overview/statistics-overview.test.tsx:401-431 (\"14 бер.\", \"20 січ.\")"
+      ],
+      "doneWhen": [
+        "the :27-32 test is rewritten: the new note text is present, \"28 із 37\" appears exactly once (the KPI), \"28 із 37 читань оцінено\" is absent, and \"серед оцінених читань\" is present",
+        "a full-coverage case (knownCount === eligibleCount) renders no coverage note",
+        "a topRated item shows a year (e.g. toHaveTextContent(/2026/)) and \"9/10\"",
+        "two topRated reads with different readingCycleId and identical finishedAt render two list items, each with the year date",
+        "a narrow default check renders CompletedReadCard without showFinishedAt: rated read -> no time element; rating null -> short date without year (may live in a narrow neighbour completed-read-card.test.tsx)",
+        "tests :20-25 and :34-57 unchanged; statistics.fixtures.ts and overview/statistics-overview.test.tsx not in the diff",
+        "not run locally (CI only)"
+      ],
+      "status": "done",
+      "proof": [
+        "ratings-section.test.tsx:37-45 rewritten: COVERAGE_NOTE present, getAllByText(/28 із 37/) length 1, \"28 із 37 читань оцінено\" absent, HIGH_RATED_HINT present",
+        "ratings-section.test.tsx:47-62 full coverage 37/37: no note, no role=status",
+        "ratings-section.test.tsx:106-117 topRated item has formatDayLong(...,\"uk\"), /2026/ and \"9/10\"",
+        "ratings-section.test.tsx:119-143 two readingCycleId with the same finishedAt: two listitems, each with the long date",
+        "ratings-section.test.tsx:145-166 CompletedReadCard without showFinishedAt: rated card has no short date and no year (asserted through text, equivalent to no time element); unrated card has the short date without year",
+        "ratings-section.test.tsx:30-35 and :64-104 carry no hunk; statistics.fixtures.ts and overview/statistics-overview.test.tsx absent from the diff",
+        "not run (CI only)"
+      ]
+    },
+    {
+      "id": "T4",
+      "title": "TasteRankingList: optional scaleMax and full wrapped names",
+      "specRef": "§4 P2 bullets 1-3; decision #7, #14; A06, A09",
+      "layer": "web",
+      "files": ["apps/web/src/features/statistics/components/tastes/taste-ranking-list.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "currentState": [
+        ":27 export function TasteRankingList({ rows }: { rows: readonly TasteRankingRow[] })",
+        ":30 const peak = rows.reduce((max, row) => Math.max(max, row.value), 0);",
+        ":66 style={{ width: `${peak <= 0 ? 0 : (row.value / peak) * 100}%` }}",
+        ":49 <span className=\"truncate text-sm font-medium text-foreground\">{row.label}</span>",
+        ":44 header flex items-baseline justify-between gap-3; :45 label group flex min-w-0 items-center gap-1.5; :52 right side flex shrink-0 items-baseline gap-2",
+        ":16 COLLAPSED_ROWS = 3; :40 hidden lg:flex; :73-83 Button aria-expanded, lg:hidden, showMore/showLess",
+        ":88-108 TasteContextActions (Link, aria-label, size-9)",
+        "repo wrap convention: features/books/components/authors-field.tsx:130 \"min-w-0 break-words whitespace-normal\"",
+        "callers: tastes genres :57,:76; authors :59,:76; publishers :62; languages :55; progress/series-section.tsx :58,:75"
+      ],
+      "doneWhen": [
+        "TasteRankingList accepts scaleMax?: number; bar denominator is scaleMax ?? peak, width 0 when the denominator <= 0",
+        "value 8 with scaleMax 10 gives width 80%; without scaleMax the max row gives 100% and the others value/peak (formula unchanged)",
+        "label span has no truncate and has min-w-0, whitespace-normal and break-words (or wrap-break-word); full row.label rendered as text, not only in a title/tooltip",
+        "no new focusable element, no onClick or role=button on the row or label; TasteContextActions unchanged",
+        "right side (secondary + valueLabel) still shrink-0 and unchanged",
+        "ordinal :46-48, key :42, COLLAPSED_ROWS, hidden lg:flex, Button aria-expanded and showMore/showLess unchanged; rows not sliced or sorted",
+        "TasteRankingRow type unchanged; components/progress/series-section.tsx not in the diff"
+      ],
+      "status": "done",
+      "proof": [
+        "taste-ranking-list.tsx:27-33 scaleMax?: number; :37 barScale = scaleMax ?? peak; :75 width 0 when barScale <= 0, else row.value / barScale * 100",
+        "taste-ranking-list.tsx:36 peak formula unchanged",
+        "taste-ranking-list.tsx:56-58 label span min-w-0 break-words whitespace-normal, no truncate, row.label rendered as text",
+        "taste-ranking-list.tsx:43-79 no onClick or role on li or label; :97-117 TasteContextActions has no hunk",
+        "taste-ranking-list.tsx:61-70 right side shrink-0, no hunk",
+        "taste-ranking-list.tsx:16 COLLAPSED_ROWS, :47 hidden lg:flex, :49 key, :53-55 ordinal, :82-92 Button aria-expanded showMore/showLess: no hunk; no slice/sort",
+        "taste-ranking-list.tsx:18-25 TasteRankingRow no hunk; components/progress/** absent from the diff"
+      ]
+    },
+    {
+      "id": "T5",
+      "title": "Genres and authors rated mode: scaleMax 10 and valueLabel through statistics.ratings.scale",
+      "specRef": "§4 P2 bullet 1; decision #5, #6; A06",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/components/tastes/genres-section.tsx",
+        "apps/web/src/features/statistics/components/tastes/authors-section.tsx"
+      ],
+      "dependsOn": ["T4"],
+      "mandatory": true,
+      "currentState": [
+        "genres-section.tsx:76-84 rated rows: value: entry.averageRating, valueLabel: formatRatingScore(entry.averageRating, locale); no scaleMax; translator statistics.genres at :21",
+        "authors-section.tsx:76-84 identical shape; translator statistics.authors at :22",
+        "frequency lists: genres :57-67, authors :59-67",
+        "statistics.ratings.scale = \"{value} / 10\" (uk.json:9474, en.json:9474)",
+        "BOOK_RATING { max: 10 } exported from @app/shared (packages/shared/src/index.ts:26, internal.ts:16-20); used in web at features/genres/model/genres-query.ts:63-68"
+      ],
+      "doneWhen": [
+        "both rated TasteRankingList calls pass scaleMax={BOOK_RATING.max} (IC4; value 10)",
+        "both rated valueLabels come from useTranslations(\"statistics.ratings\")(\"scale\", { value: formatRatingScore(entry.averageRating, locale) }) and render e.g. \"8,0 / 10\"; no hardcoded \"/ 10\"",
+        "frequency TasteRankingList calls pass no scaleMax and their rows are unchanged",
+        "mode useState, StatisticsMetricTabs, insufficient branches (:69-74), coverage notes, authors returning card (:87-107) and useGenreName unchanged",
+        "no new hook or query; no messages change"
+      ],
+      "status": "done",
+      "proof": [
+        "genres-section.tsx:5 and authors-section.tsx:5 import { BOOK_RATING } from \"@app/shared\"; genres-section.tsx:88 and authors-section.tsx:88 scaleMax={BOOK_RATING.max}",
+        "genres-section.tsx:23,84-86 and authors-section.tsx:24,84-86 valueLabel = useTranslations(\"statistics.ratings\")(\"scale\", { value: formatRatingScore(...) }); no literal \"/ 10\" in either file",
+        "frequency lists genres-section.tsx:59-69, authors-section.tsx:61-69 pass no scaleMax, no hunk",
+        "mode useState, StatisticsMetricTabs, insufficient branches (:71-76), coverage notes, authors returning card (:92-112), useGenreName (genres-section.tsx:24): no hunk",
+        "the only new hook call is the translator required by criterion 2; no data hook or query; T5 adds no message key"
+      ]
+    },
+    {
+      "id": "T6",
+      "title": "New taste-ranking-list.test.tsx: scale, 3->N, long names",
+      "specRef": "§4 P4 row 2; A06, A08, A09",
+      "layer": "test",
+      "files": ["apps/web/src/features/statistics/components/tastes/taste-ranking-list.test.tsx"],
+      "dependsOn": ["T4"],
+      "mandatory": true,
+      "currentState": ["file does not exist; no analogous test in the 19 statistics test files"],
+      "doneWhen": [
+        "scaleMax 10: a row with value 8 has bar width 80%, a row with value 10 has 100%",
+        "no scaleMax with values 4 and 2: widths 100% and 50%",
+        "7 rows: all 7 labels and ordinals 1-7 in the DOM; button \"Показати ще 4\" with aria-expanded=\"false\"; after a click aria-expanded=\"true\" and \"Згорнути\"",
+        "an 80+ character label is rendered in full as text; inside the list the only button is show-more and links come only from contextActions",
+        "mocks @/i18n/navigation as ratings-section.test.tsx:5-10 does; uses renderWithProviders; makes no responsive claim from CSS classes",
+        "not run locally (CI only)"
+      ],
+      "status": "done",
+      "proof": [
+        "taste-ranking-list.test.tsx:50-59 scaleMax 10: 8 -> 80%, 6 -> 60%; :61-70 10 -> 100%, 8 -> 80%",
+        "taste-ranking-list.test.tsx:72-78 no scaleMax, 4 and 2 -> 100% and 50%",
+        "taste-ranking-list.test.tsx:80-88 seven labels and ordinals 1-7 in the DOM; :90-102 \"Показати ще 4\" aria-expanded false, after click showLess (\"Згорнути\") aria-expanded true",
+        "taste-ranking-list.test.tsx:110-116 98-character label found as text; :118-132 one button (show-more) and one link, from contextActions",
+        "taste-ranking-list.test.tsx:5-10 mocks @/i18n/navigation; :13 renderWithProviders; no CSS class assertion",
+        "not run (CI only)"
+      ]
+    },
+    {
+      "id": "T7",
+      "title": "Rated-mode tests: genres scaleMax/'/ 10' and one narrow author case",
+      "specRef": "§4 P4 row 3; A06",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/statistics/components/tastes/genres-section.test.tsx",
+        "apps/web/src/features/statistics/components/tastes/authors-section.test.tsx"
+      ],
+      "dependsOn": ["T5"],
+      "mandatory": true,
+      "currentState": [
+        "genres-section.test.tsx: fixture topRated is unavailable (statistics.fixtures.ts:214); no available rated case; radio name \"Найвище оцінюю\" (uk.json:9491); fetch stub :43-59",
+        "authors-section.test.tsx does not exist; authors fixture topRated unavailable (statistics.fixtures.ts:155)"
+      ],
+      "doneWhen": [
+        "genres: topRated { availability: \"available\", items: [{ genreKey: \"fantasy\", averageRating: 8, ratedReadCount: 3 }] }; after clicking \"Найвище оцінюю\" the text \"8,0 / 10\" is visible and the bar width is 80%",
+        "authors: one case with an available rated item (averageRating 8) shows \"8,0 / 10\" and 80%",
+        "existing genres tests :62-114 unchanged",
+        "not run locally (CI only)"
+      ],
+      "status": "done",
+      "proof": [
+        "genres-section.test.tsx:116-134 topRated available { averageRating 8, genreKey fantasy, ratedReadCount 3 }, radio \"Найвище оцінюю\", \"8,0 / 10\" and bar width 80%",
+        "authors-section.test.tsx:21-48 rated author averageRating 8: \"8,0 / 10\" and 80%",
+        "genres-section.test.tsx: the only hunk appends after :114; tests :62-114 unchanged",
+        "not run (CI only)"
+      ]
+    },
+    {
+      "id": "T8",
+      "title": "Publishers: localized hint under the top-3 concentration KPI",
+      "specRef": "§4 P3 Publishers; decision #8; A11",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/components/tastes/publishers-section.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "currentState": [
+        ":53-60 concentration StatisticsStat (label concentrationLabel uk.json:9535 \"Частка топ-3\" / en.json:9535 \"Top 3 share\"; value `${formatShare(...)}%` or \"—\"), no hint",
+        "backend: topThreeReads / knownCount (composer:190-194,210)"
+      ],
+      "doneWhen": [
+        "concentration StatisticsStat has hint={t(\"concentrationHint\")}; statistics.publishers.concentrationHint added in uk.json (\"серед читань із відомим видавництвом\") and en.json (e.g. \"among reads with a known publisher\")",
+        "totalPublishers KPI, ranking rows, averageRating secondary (:67-73), empty and unavailable branches unchanged; no frontend rating threshold"
+      ],
+      "status": "done",
+      "proof": [
+        "publishers-section.tsx:54 hint={t(\"concentrationHint\")}; uk.json:9537 \"серед читань із відомим видавництвом\"; en.json:9537 \"among reads with a known publisher\"",
+        "publishers-section.tsx diff is that single line; KPI, rows, averageRating secondary and state branches untouched"
+      ]
+    },
+    {
+      "id": "T9",
+      "title": "Languages: one width-bounded KPI and a known-denominator description",
+      "specRef": "§4 P3 Languages; decision #9; A11, A13",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/components/tastes/languages-section.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "currentState": [
+        ":49 <dl className=\"grid grid-cols-2 gap-3 sm:grid-cols-3\"> wrapping the single StatisticsStat :50-53 (countLabel uk.json:9547 \"Мов\" / en.json:9547 \"Languages\")",
+        ":55-63 rows, secondary t(\"share\") uk.json:9542 \"{percent}% відомих\" / en.json:9542 \"{percent}% of the known ones\"",
+        ":37-42 notes: sourceHint (uk.json:9544) and coverage (uk.json:9541)",
+        "backend shareOfKnown = count / knownCount (composer:164,177); items not sliced (composer:170)"
+      ],
+      "doneWhen": [
+        "the KPI dl is a single width-bounded block (e.g. className=\"w-full sm:max-w-xs\"), no grid-cols-*",
+        "the languages KPI has hint={t(\"shareHint\")}; statistics.languages.shareHint added in uk.json and en.json, naming the known-language denominator (e.g. uk \"частки рахуються серед читань із відомою мовою\", en \"shares are of reads with a known language\") (IC3)",
+        "rows still map languages.items without slice/sort/filter; share text, valueLabel, sourceHint and coverage notes unchanged; no Unknown row",
+        "unavailable and empty branches unchanged"
+      ],
+      "status": "done",
+      "proof": [
+        "languages-section.tsx:50 <dl className=\"w-full sm:max-w-xs\">, no grid-cols",
+        "languages-section.tsx:40 StatisticsNote {t(\"shareHint\")} rendered only when languages.items.length > 0; uk.json:9550 \"Частки рахуються серед читань із відомою мовою.\"; en.json:9550 \"Shares are counted among reads with a known language.\"",
+        "languages-section.tsx:56-64 rows map languages.items whole; :60 share, :62 valueLabel, :39 sourceHint, :41 coverage: no hunk; no Unknown row",
+        "languages-section.tsx:22-32 unavailable and :46-47 empty branches: no hunk"
+      ],
+      "deviation": "doneWhen criterion 2 (hint on the KPI, per the original IC3) is superseded by the revised IC3: after an accessibility finding (WCAG 1.3.1, a dd of the language-count KPI described per-row shares) the explanation is a section StatisticsNote. Judged against spec §4 P3 (shareOfKnown described, localized, as a share among reads with a known language): met."
+    },
+    {
+      "id": "T10",
+      "title": "languages-section.test.tsx: all N>5 languages and the known denominator",
+      "specRef": "§4 P4 row 4; A08, A11, A13",
+      "layer": "test",
+      "files": ["apps/web/src/features/statistics/components/tastes/languages-section.test.tsx"],
+      "dependsOn": ["T9"],
+      "mandatory": true,
+      "currentState": [
+        "5 tests :20-91; none covers N>5 or the denominator; sourceHint exact-text assertion at :31-33",
+        "uk labels books.classification.languageLabels uk.json:1243-1249 (Українська, Англійська, Польська, Німецька, Французька, Іспанська, Інша)"
+      ],
+      "doneWhen": [
+        "7 items (all BookLanguage values) render all 7 localized labels and the button \"Показати ще 4\"",
+        "the shareHint text is present and a row share such as \"66,7% відомих\" is present",
+        "existing tests :20-91 unchanged and still consistent with T9 (sourceHint untouched)",
+        "not run locally (CI only)"
+      ],
+      "status": "done",
+      "proof": [
+        "languages-section.test.tsx:101-123 seven BookLanguageSchema.options rows, all seven uk labels, button \"Показати ще 4\"",
+        "languages-section.test.tsx:125-134 SHARE_NOTE present, not inside any dd, \"66,7% відомих\" present; :136-142 note absent with no languages",
+        "languages-section.test.tsx existing tests :28-99 carry no hunk; only imports and constants added at :3, :13, :21-25",
+        "not run (CI only)"
+      ]
+    },
+    {
+      "id": "T11",
+      "title": "Discoveries: truthful afterDiscovery copy in uk/en (i18n only)",
+      "specRef": "§4 P3 Discoveries; decision #10; A14",
+      "layer": "web",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": [],
+      "mandatory": true,
+      "currentState": [
+        "uk.json:9564 \"afterDiscovery\": \"{count, plural, one {# читання після відкриття} few {# читання після відкриття} many {# читань після відкриття} other {# читання після відкриття}}\"",
+        "en.json:9564 \"afterDiscovery\": \"{count, plural, one {# read after the discovery} other {# reads after the discovery}}\"",
+        "rendered at discoveries-section.tsx:120 with the \" · {averageRating}\" suffix :121-123 in the same span"
+      ],
+      "doneWhen": [
+        "uk renders 1 -> \"1 читання за період (включно з першим)\", 2 -> \"2 читання за період (включно з першим)\", 5 -> \"5 читань за період (включно з першим)\" (ICU plural on count with one/few/many/other)",
+        "en renders 1 -> \"1 read in this period (including the first)\", 2 -> \"2 reads in this period (including the first)\" (one/other)",
+        "only statistics.discoveries.afterDiscovery changes in each catalog; discoveries-section.tsx not in the diff"
+      ],
+      "status": "done",
+      "proof": [
+        "uk.json:9567 one/few/other \"# читання за період (включно з першим)\", many \"# читань за період (включно з першим)\"",
+        "en.json:9567 one \"# read in this period (including the first)\", other \"# reads in this period (including the first)\"",
+        "statistics.discoveries diff: afterDiscovery only; discoveries-section.tsx absent from the diff, it reads the key at :120"
+      ]
+    },
+    {
+      "id": "T12",
+      "title": "New discoveries-section.test.tsx: uk/en plurals of the new copy, values unchanged",
+      "specRef": "§4 P4 row 5; A14",
+      "layer": "test",
+      "files": ["apps/web/src/features/statistics/components/tastes/discoveries-section.test.tsx"],
+      "dependsOn": ["T11"],
+      "mandatory": true,
+      "currentState": [
+        "file does not exist; fixture discoveries at statistics.fixtures.ts:159-179 (author card, completedReadsAfterDiscovery 2, averageRating 9)"
+      ],
+      "doneWhen": [
+        "uk: counts 1, 2, 5 render the T11 strings (set averageRating null or match with toHaveTextContent, because the ' · середня оцінка' suffix shares the span)",
+        "en: counts 1 and 2 render the T11 en strings under NextIntlClientProvider locale=\"en\" plus a QueryClientProvider (N3)",
+        "fetch for /api/genres stubbed (N5); the count shown equals completedReadsAfterDiscovery passed in",
+        "not run locally (CI only)"
+      ],
+      "status": "done",
+      "proof": [
+        "discoveries-section.test.tsx:45-53 uk counts 1, 2, 5 with averageRating null",
+        "discoveries-section.test.tsx:55-68 en counts 1, 2 under NextIntlClientProvider locale=en plus QueryClientProvider(createTestQueryClient())",
+        "discoveries-section.test.tsx:23-42 fetch stub for /api/genres; :15-21 the count rendered is the completedReadsAfterDiscovery passed in; :70-76 fixture value 2 and average 9,0 kept",
+        "not run (CI only)"
+      ]
+    }
+  ],
+  "acceptance": {
+    "A01": {
+      "coveredBy": ["ALREADY_DONE"],
+      "proof": "AD01, AD02: statistics-overview.tsx:195-213; statistics-overview.test.tsx:50-57,220-232",
+      "verdict": "ALREADY_DONE",
+      "verifyProof": "statistics-overview.tsx:195-213 order; :200,:205 grid-cols-1 lg:grid-cols-2; :210-212 all_time hides DiscoveriesSection; file not in the diff",
+      "runtimeNotVerified": "statistics-overview.test.tsx:220-232 not re-run (CI)"
+    },
+    "A02": {
+      "coveredBy": ["ALREADY_DONE"],
+      "proof": "S05, S06: reading-statistics-tastes.ts:15-27; internal.ts:16-23; ratings-section.tsx:88",
+      "verdict": "ALREADY_DONE",
+      "verifyProof": "ratings-section.tsx:89 key readingCycleId; internal.ts:16-25 BOOK_RATING 0.5-10; reading-ratings.ts:54-56 bucket loop",
+      "runtimeNotVerified": ""
+    },
+    "A03": {
+      "coveredBy": ["ALREADY_DONE"],
+      "proof": "AD16: rating-distribution.tsx:18-47; ratings-section.tsx:22-32; reading-ratings.ts:54-58. Renderer unchanged, so no 20-bucket test (spec P4)",
+      "verdict": "ALREADY_DONE",
+      "verifyProof": "rating-distribution.tsx:21-33 maps every bucket, aria-label :28-31, role=img :33; ratings-section.tsx:22-32 unavailable returns before :76; reading-ratings.ts:54-56 20 buckets with ?? 0; renderer not in the diff",
+      "runtimeNotVerified": "browser density at 375px"
+    },
+    "A04": {
+      "coveredBy": ["T1", "T2", "T3"],
+      "verdict": "DONE",
+      "verifyProof": "completed-read-card.tsx:29-32,39; ratings-section.tsx:88-91; tests ratings-section.test.tsx:106-143",
+      "runtimeNotVerified": "tests not run; topRated card visual at 375/1280"
+    },
+    "A05": {
+      "coveredBy": ["T1", "T3"],
+      "proof": "recent: existing statistics-overview.test.tsx:401-431",
+      "verdict": "DONE",
+      "verifyProof": "completed-read-card.tsx:29 condition keeps recent and unrated dates; :30-32 short format without showFinishedAt; :45-58 detail surface no hunk; tests ratings-section.test.tsx:145-166; existing statistics-overview.test.tsx:401-431",
+      "runtimeNotVerified": "keyboard/focus/popover/drawer in browser; recent card with flex-wrap (IC5) visual"
+    },
+    "A06": {
+      "coveredBy": ["T4", "T5", "T6", "T7"],
+      "verdict": "DONE",
+      "verifyProof": "taste-ranking-list.tsx:37,75; genres-section.tsx:84-88; authors-section.tsx:84-88; tests taste-ranking-list.test.tsx:50-78, genres-section.test.tsx:116-134, authors-section.test.tsx:21-48",
+      "runtimeNotVerified": "tests not run"
+    },
+    "A07": {
+      "coveredBy": ["ALREADY_DONE"],
+      "proof": "S07-S12: reading-tastes.ts:7,9,11; composer:44,66,142,199,233-235,256-269; no FE slice/sort",
+      "verdict": "ALREADY_DONE",
+      "verifyProof": "reading-tastes.ts:7,9,11; statistics-tastes.composer.ts:44,66,142,199,235,269; no slice(/.sort(/toSorted/.filter( in components/tastes/*.tsx",
+      "runtimeNotVerified": ""
+    },
+    "A08": {
+      "coveredBy": ["ALREADY_DONE", "T6", "T10"],
+      "proof": "AD13, AD14: taste-ranking-list.tsx:16,40,73-83; languages-section.tsx:55-63; composer:170",
+      "verdict": "ALREADY_DONE",
+      "verifyProof": "taste-ranking-list.tsx:16,47,82-92 no hunk; languages-section.tsx:56-64 maps all items; composer:164-177 no slice; new tests taste-ranking-list.test.tsx:80-102, languages-section.test.tsx:101-123",
+      "runtimeNotVerified": "mobile 3->N and desktop all N in a browser; tests not run"
+    },
+    "A09": {
+      "coveredBy": ["T4", "T6"],
+      "verdict": "DONE",
+      "verifyProof": "taste-ranking-list.tsx:56-58 wrap classes, label as text, no new focusable element; tests taste-ranking-list.test.tsx:110-132",
+      "runtimeNotVerified": "touch, keyboard, screen reader; ordinal/icon alignment on wrapped names (:52 items-center)"
+    },
+    "A10": {
+      "coveredBy": ["ALREADY_DONE"],
+      "proof": "AD15; T4 doneWhen keeps TasteContextActions and adds no focusable element",
+      "verdict": "ALREADY_DONE",
+      "verifyProof": "taste-ranking-list.tsx:97-117 no hunk; statistics-drilldown.ts:17,25,68; authors-section.tsx:63 actions on frequency rows only; test taste-ranking-list.test.tsx:118-132",
+      "runtimeNotVerified": ""
+    },
+    "A11": {
+      "coveredBy": ["T2", "T8", "T9"],
+      "proof": "backend denominators S13-S15",
+      "verdict": "DONE",
+      "verifyProof": "ratings-section.tsx:52 + uk/en.json:9477; publishers-section.tsx:54 + uk/en.json:9537; languages-section.tsx:40 + uk/en.json:9550; backend reading-ratings.ts:40, composer:177, :210",
+      "runtimeNotVerified": ""
+    },
+    "A12": {
+      "coveredBy": ["T2", "T3"],
+      "verdict": "DONE",
+      "verifyProof": "ratings-section.tsx:37; uk/en.json:9480 number-free; tests ratings-section.test.tsx:37-62",
+      "runtimeNotVerified": "tests not run"
+    },
+    "A13": {
+      "coveredBy": ["T9", "T10"],
+      "verdict": "DONE",
+      "verifyProof": "languages-section.tsx:50 single dl w-full sm:max-w-xs; :39 sourceHint, :41 coverage kept; tests languages-section.test.tsx:125-142 plus existing :36-59",
+      "runtimeNotVerified": "KPI width at 375/1280"
+    },
+    "A14": {
+      "coveredBy": ["T11", "T12"],
+      "verdict": "DONE",
+      "verifyProof": "uk/en.json:9567; discoveries-section.tsx:120 unchanged; tests discoveries-section.test.tsx:45-76",
+      "runtimeNotVerified": "tests not run"
+    },
+    "A15": {
+      "coveredBy": ["ALREADY_DONE"],
+      "proof": "AD12; T2 and T9 doneWhen keep the \"—\" and state branches",
+      "verdict": "ALREADY_DONE",
+      "verifyProof": "ratings-section.tsx:22-32,46-47,55-56; genres-section.tsx:71-76; authors-section.tsx:71-76; languages-section.tsx:22-32,46-47; discoveries-section.tsx:44-50,60-61; new shareHint note hidden without items (languages-section.tsx:40)",
+      "runtimeNotVerified": ""
+    },
+    "A16": {
+      "coveredBy": ["ALREADY_DONE"],
+      "proof": "AD03, AD04; no task touches model/statistics-view.ts, use-statistics-*, controls/** or statistics-overview.tsx",
+      "verdict": "ALREADY_DONE",
+      "verifyProof": "statistics-view.ts:10,14,30-31,40-41,47-50; statistics-overview.tsx:196; no model/, controls/, overview/ file in the diff",
+      "runtimeNotVerified": "existing overview tests not re-run (CI)"
+    },
+    "A17": {
+      "coveredBy": ["T2", "T4", "T8", "T9", "T11"],
+      "proof": "uk+en keys in each i18n task, semantic tokens only; runtime light/dark/responsive check is NOT_VERIFIED until UI review",
+      "verdict": "DONE",
+      "verifyProof": "static part only: every new key exists at the same path in uk.json and en.json (:9477, :9480, :9537, :9550, :9567); new classes are layout utilities with semantic tokens only; no ARIA attribute changed",
+      "runtimeNotVerified": "responsive 375/1280, light/dark, CLS of genre labels, Progress tab wrap"
+    },
+    "A18": {
+      "coveredBy": ["ALREADY_DONE"],
+      "proof": "AD05, AD08; no task file outside apps/web/src/features/statistics/components/{tastes,completed-read-card.tsx} and apps/web/src/messages/*.json",
+      "verdict": "ALREADY_DONE",
+      "verifyProof": "diff has no apps/api, packages/shared, prisma, generated, lockfile file; single query statistics-overview.tsx:56; useGenreName genres-section.tsx:24 kept; only translator hooks added",
+      "runtimeNotVerified": ""
+    },
+    "A19": {
+      "coveredBy": ["T3", "T6", "T7", "T10", "T12"],
+      "proof": "tests written only; gates DEFERRED to the main loop on the user's command; no commit/push",
+      "verdict": "DONE",
+      "verifyProof": "3 new + 3 updated test files, each traced to a P4 row; HEAD == origin/dev == 13351f42, nothing committed, nothing pushed",
+      "runtimeNotVerified": "gates and CI tests DEFERRED to the user command"
+    }
+  },
+  "verify": {
+    "verifiedAt": "2026-10-19T14:27:07.502Z",
+    "verifiedOn": "2026-10-19",
+    "base": "origin/dev 13351f42b9f75126ad4bbc1f4a639de8930d8c31",
+    "branch": "feat/statistics-tastes-refactor",
+    "headEqualsBase": true,
+    "blocks": "12/12 tasks done",
+    "acceptanceCounts": {
+      "DONE": 10,
+      "ALREADY_DONE": 9,
+      "DEFERRED": 0,
+      "BLOCKED": 0
+    },
+    "drift": "none in production code; every changed file is in the spec §6 allowed list. Extra test cases beyond doneWhen, each traced to the spec: taste-ranking-list.test.tsx:104-108 (no show-more for <=3 rows), languages-section.test.tsx:136-142 (no share note without languages, IC3 revision), discoveries-section.test.tsx:70-76 (average suffix kept)",
+    "notVerified": [
+      "gates: typecheck, eslint, prettier (bash .claude/scripts/gates.sh)",
+      "CI run of the 6 touched test files and the unchanged statistics suite",
+      "browser Tastes tab at 375 and 1280, light and dark",
+      "CLS: genre labels swap from key to localized name after /api/genres and may wrap at 375px (live measurement)",
+      "taste-ranking-list.tsx:52 items-center: a wrapped two-line name centres the ordinal and the action icon",
+      "Progress tab series names wrap (IC6)",
+      "P0 git fetch origin dev: local origin/dev equals the baseline, no fetch evidence in this audit"
+    ],
+    "report": "docs/specs/statistics-tastes/verify-report.md"
+  }
+}

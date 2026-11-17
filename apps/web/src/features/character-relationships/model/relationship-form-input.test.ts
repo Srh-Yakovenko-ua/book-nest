@@ -9,9 +9,12 @@ import type {
 } from "./relationship-form-schema";
 
 import {
+  toCreateRelationshipRequest,
+  toRelationshipCreateSemantics,
+} from "./relationship-create-semantics";
+import {
   relationshipBookStateDefaults,
   relationshipCreateDefaults,
-  toCreateRelationshipInput,
   toRelationshipBookStateInput,
 } from "./relationship-form-input";
 import { RELATIONSHIP_FIXTURE } from "./relationships.fixtures";
@@ -40,16 +43,18 @@ function bookStateInput(
 }
 
 function createInput(overrides: Partial<RelationshipFormValues>): CreateCharacterRelationship {
-  return toCreateRelationshipInput({
-    allowFamilyCycle: false,
-    source: GERALT,
+  const values: RelationshipFormValues = {
+    ...relationshipCreateDefaults({ bookId: RELATIONSHIP_FIXTURE.book.id, focusCharacter: GERALT }),
     target: CIRI,
-    values: {
-      ...relationshipCreateDefaults({ bookId: null, focusCharacter: GERALT }),
-      target: CIRI,
-      type: "guardian_of",
-      ...overrides,
-    },
+    type: "guardian_of",
+    ...overrides,
+  };
+  const semantics = toRelationshipCreateSemantics({ draft: values, orientation: "forward" });
+  if (semantics === null) throw new Error("The create draft is incomplete");
+  return toCreateRelationshipRequest({
+    allowFamilyCycle: false,
+    bookState: values.bookState,
+    semantics,
   });
 }
 

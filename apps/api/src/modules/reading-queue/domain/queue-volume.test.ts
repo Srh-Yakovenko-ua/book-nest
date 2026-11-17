@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { QueueVolumePaceRow, QueueVolumeRow, VolumeReasonInput } from "./queue-volume.js";
 
+import { pinProcessTimezone } from "../../../test/process-timezone.js";
 import {
   computeQueueVolume,
   MIN_HISTORY_DAYS,
@@ -342,5 +343,33 @@ describe("computeQueueVolume estimate", () => {
     );
 
     expect(result.pace.sourcePeriodDays).toBe(PACE_WINDOW_DAYS);
+  });
+});
+
+describe("queue volume in a server time zone that left summer time before today", () => {
+  pinProcessTimezone("Atlantic/Azores");
+
+  it("counts the source period in UTC days from the first event to today inclusive", () => {
+    const result = computeQueueVolume({
+      paceRow: pace({
+        firstEventDate: new Date("2026-10-20T00:00:00.000Z"),
+        lastEventDate: new Date("2026-11-02T00:00:00.000Z"),
+      }),
+      rows: [],
+      today: new Date("2026-11-03T00:00:00.000Z"),
+    });
+
+    expect(result.pace.sourcePeriodDays).toBe(15);
+  });
+
+  it("reports stale activity when the last event is 22 UTC days before today", () => {
+    const result = resolveVolumeReason(
+      reasonInput({
+        lastEventDate: new Date("2026-10-12T00:00:00.000Z"),
+        today: new Date("2026-11-03T00:00:00.000Z"),
+      }),
+    );
+
+    expect(result.reasonUnavailable).toBe("stale_activity");
   });
 });

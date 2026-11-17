@@ -10,8 +10,11 @@ import type {
 
 import {
   CHARACTER_RELATIONSHIP_ERROR_CODES,
+  CHARACTER_RELATIONSHIP_ROLE_SUGGESTION_LIMITS,
+  collapseSpaces,
   getRelationshipTypeCategory,
   getRelationshipTypeDirectionality,
+  normalizeName,
   RelationshipCategorySchema,
   RelationshipDirectionalitySchema,
   RelationshipTypeSchema,
@@ -19,6 +22,11 @@ import {
 
 import { BadRequestError } from "../../../core/exceptions/errors.js";
 import { emptyToNull } from "./character-fields.js";
+
+export type PatchedRoleLabel = {
+  label: string;
+  normalizedLabel: string;
+};
 
 export type UpdateBookStateData = {
   description: Nullable<string>;
@@ -169,6 +177,46 @@ export function resolveDirectionality({
   return expected;
 }
 
+export function resolvePatchedCustomType({
+  effectiveCustomType,
+  effectiveType,
+  existing,
+  input,
+}: {
+  effectiveCustomType: Nullable<string>;
+  effectiveType: RelationshipType;
+  existing: { customType: Nullable<string>; type: string };
+  input: UpdateCharacterRelationship;
+}): Nullable<string> {
+  if (effectiveType !== "custom" || effectiveCustomType === null) {
+    return null;
+  }
+  const switchedToCustom = existing.type !== "custom";
+  const renamed = input.customType !== undefined && effectiveCustomType !== existing.customType;
+  return switchedToCustom || renamed ? effectiveCustomType : null;
+}
+
+export function resolvePatchedRoleLabels({
+  existing,
+  input,
+}: {
+  existing: { sourceLabel: Nullable<string>; targetLabel: Nullable<string> };
+  input: Pick<UpdateCharacterRelationship, "sourceLabel" | "targetLabel">;
+}): PatchedRoleLabel[] {
+  const patchedLabels = [
+    resolvePatchedRoleLabel({ sent: input.sourceLabel, stored: existing.sourceLabel }),
+    resolvePatchedRoleLabel({ sent: input.targetLabel, stored: existing.targetLabel }),
+  ].filter((patched) => patched !== null);
+  return patchedLabels
+    .filter(
+      (patched, index) =>
+        patchedLabels.findIndex(
+          (candidate) => candidate.normalizedLabel === patched.normalizedLabel,
+        ) === index,
+    )
+    .sort((left, right) => left.normalizedLabel.localeCompare(right.normalizedLabel));
+}
+
 function applyCustomUpdate({
   data,
   input,
@@ -200,4 +248,24 @@ function applyCustomUpdate({
     });
   }
   return "custom";
+}
+
+function resolvePatchedRoleLabel({
+  sent,
+  stored,
+}: {
+  sent: Nullable<string> | undefined;
+  stored: Nullable<string>;
+}): Nullable<PatchedRoleLabel> {
+  if (sent === undefined || sent === null) {
+    return null;
+  }
+  const label = collapseSpaces(sent);
+  if (label.length === 0 || label.length > CHARACTER_RELATIONSHIP_ROLE_SUGGESTION_LIMITS.labelMax) {
+    return null;
+  }
+  if (label === collapseSpaces(stored ?? "")) {
+    return null;
+  }
+  return { label, normalizedLabel: normalizeName(label) };
 }

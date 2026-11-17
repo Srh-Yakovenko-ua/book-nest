@@ -21,6 +21,7 @@ import type {
 import type {
   GenreFacetsViewDto,
   GenreSummaryViewDto,
+  GenreViewDto,
   GenresControllerFacetsParams,
   GenresControllerRecentParams,
   GenresControllerStatsParams,
@@ -47,26 +48,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type genresControllerListResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type genresControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type genresControllerListResponseSuccess = genresControllerListResponse200 & {
-  headers: Headers;
-};
-export type genresControllerListResponseError = genresControllerListResponse401 & {
-  headers: Headers;
-};
-
-export type genresControllerListResponse =
-  genresControllerListResponseSuccess | genresControllerListResponseError;
-
 export const getGenresControllerListUrl = () => {
   return `/api/genres`;
 };
@@ -76,8 +57,8 @@ export const getGenresControllerListUrl = () => {
  */
 export const genresControllerList = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<genresControllerListResponse> => {
-  return customInstance<genresControllerListResponse>(getGenresControllerListUrl(), {
+): Promise<GenreViewDto[]> => {
+  return customInstance<GenreViewDto[]>(getGenresControllerListUrl(), {
     ...options,
     method: "GET",
   });
@@ -190,26 +171,6 @@ export function useGenresControllerList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type genresControllerRecentResponse200 = {
-  data: void;
-  status: 200;
-};
-
-export type genresControllerRecentResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type genresControllerRecentResponseSuccess = genresControllerRecentResponse200 & {
-  headers: Headers;
-};
-export type genresControllerRecentResponseError = genresControllerRecentResponse401 & {
-  headers: Headers;
-};
-
-export type genresControllerRecentResponse =
-  genresControllerRecentResponseSuccess | genresControllerRecentResponseError;
-
 export const getGenresControllerRecentUrl = (params?: GenresControllerRecentParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -232,8 +193,8 @@ export const getGenresControllerRecentUrl = (params?: GenresControllerRecentPara
 export const genresControllerRecent = async (
   params?: GenresControllerRecentParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<genresControllerRecentResponse> => {
-  return customInstance<genresControllerRecentResponse>(getGenresControllerRecentUrl(params), {
+): Promise<GenreViewDto[]> => {
+  return customInstance<GenreViewDto[]>(getGenresControllerRecentUrl(params), {
     ...options,
     method: "GET",
   });
@@ -355,33 +316,6 @@ export function useGenresControllerRecent<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type genresControllerStatsResponse200 = {
-  data: PaginatedGenreStatsDto;
-  status: 200;
-};
-
-export type genresControllerStatsResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type genresControllerStatsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type genresControllerStatsResponseSuccess = genresControllerStatsResponse200 & {
-  headers: Headers;
-};
-export type genresControllerStatsResponseError = (
-  genresControllerStatsResponse400 | genresControllerStatsResponse401
-) & {
-  headers: Headers;
-};
-
-export type genresControllerStatsResponse =
-  genresControllerStatsResponseSuccess | genresControllerStatsResponseError;
-
 export const getGenresControllerStatsUrl = (params?: GenresControllerStatsParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -413,8 +347,8 @@ export const getGenresControllerStatsUrl = (params?: GenresControllerStatsParams
 export const genresControllerStats = async (
   params?: GenresControllerStatsParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<genresControllerStatsResponse> => {
-  return customInstance<genresControllerStatsResponse>(getGenresControllerStatsUrl(params), {
+): Promise<PaginatedGenreStatsDto> => {
+  return customInstance<PaginatedGenreStatsDto>(getGenresControllerStatsUrl(params), {
     ...options,
     method: "GET",
   });
@@ -536,33 +470,6 @@ export function useGenresControllerStats<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type genresControllerFacetsResponse200 = {
-  data: GenreFacetsViewDto;
-  status: 200;
-};
-
-export type genresControllerFacetsResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type genresControllerFacetsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type genresControllerFacetsResponseSuccess = genresControllerFacetsResponse200 & {
-  headers: Headers;
-};
-export type genresControllerFacetsResponseError = (
-  genresControllerFacetsResponse400 | genresControllerFacetsResponse401
-) & {
-  headers: Headers;
-};
-
-export type genresControllerFacetsResponse =
-  genresControllerFacetsResponseSuccess | genresControllerFacetsResponseError;
-
 export const getGenresControllerFacetsUrl = (params?: GenresControllerFacetsParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -594,8 +501,8 @@ export const getGenresControllerFacetsUrl = (params?: GenresControllerFacetsPara
 export const genresControllerFacets = async (
   params?: GenresControllerFacetsParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<genresControllerFacetsResponse> => {
-  return customInstance<genresControllerFacetsResponse>(getGenresControllerFacetsUrl(params), {
+): Promise<GenreFacetsViewDto> => {
+  return customInstance<GenreFacetsViewDto>(getGenresControllerFacetsUrl(params), {
     ...options,
     method: "GET",
   });
@@ -717,26 +624,6 @@ export function useGenresControllerFacets<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type genresControllerSummaryResponse200 = {
-  data: GenreSummaryViewDto;
-  status: 200;
-};
-
-export type genresControllerSummaryResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type genresControllerSummaryResponseSuccess = genresControllerSummaryResponse200 & {
-  headers: Headers;
-};
-export type genresControllerSummaryResponseError = genresControllerSummaryResponse401 & {
-  headers: Headers;
-};
-
-export type genresControllerSummaryResponse =
-  genresControllerSummaryResponseSuccess | genresControllerSummaryResponseError;
-
 export const getGenresControllerSummaryUrl = () => {
   return `/api/genres/summary`;
 };
@@ -746,8 +633,8 @@ export const getGenresControllerSummaryUrl = () => {
  */
 export const genresControllerSummary = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<genresControllerSummaryResponse> => {
-  return customInstance<genresControllerSummaryResponse>(getGenresControllerSummaryUrl(), {
+): Promise<GenreSummaryViewDto> => {
+  return customInstance<GenreSummaryViewDto>(getGenresControllerSummaryUrl(), {
     ...options,
     method: "GET",
   });
@@ -863,26 +750,6 @@ export function useGenresControllerSummary<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type genresControllerOverviewResponse200 = {
-  data: GenresOverviewViewDto;
-  status: 200;
-};
-
-export type genresControllerOverviewResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type genresControllerOverviewResponseSuccess = genresControllerOverviewResponse200 & {
-  headers: Headers;
-};
-export type genresControllerOverviewResponseError = genresControllerOverviewResponse401 & {
-  headers: Headers;
-};
-
-export type genresControllerOverviewResponse =
-  genresControllerOverviewResponseSuccess | genresControllerOverviewResponseError;
-
 export const getGenresControllerOverviewUrl = () => {
   return `/api/genres/overview`;
 };
@@ -892,8 +759,8 @@ export const getGenresControllerOverviewUrl = () => {
  */
 export const genresControllerOverview = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<genresControllerOverviewResponse> => {
-  return customInstance<genresControllerOverviewResponse>(getGenresControllerOverviewUrl(), {
+): Promise<GenresOverviewViewDto> => {
+  return customInstance<GenresOverviewViewDto>(getGenresControllerOverviewUrl(), {
     ...options,
     method: "GET",
   });

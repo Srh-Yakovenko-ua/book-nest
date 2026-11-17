@@ -34,7 +34,7 @@ export function RatingsSection({ ratings }: { ratings: ReadingStatisticsRatingsS
   return (
     <StatisticsSection
       description={t("description")}
-      note={coverage === null ? null : <StatisticsNote>{t("coverage", coverage)}</StatisticsNote>}
+      note={coverage === null ? null : <StatisticsNote>{t("coverage")}</StatisticsNote>}
       title={t("title")}
     >
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
@@ -49,6 +49,7 @@ export function RatingsSection({ ratings }: { ratings: ReadingStatisticsRatingsS
               }
             />
             <StatisticsStat
+              hint={t("highRatedHint")}
               label={t("highRated")}
               value={
                 ratings.highRatedShare === null
@@ -86,7 +87,7 @@ export function RatingsSection({ ratings }: { ratings: ReadingStatisticsRatingsS
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
               {ratings.topRated.map((read) => (
                 <li key={read.readingCycleId}>
-                  <CompletedReadCard read={read} />
+                  <CompletedReadCard read={read} showFinishedAt />
                 </li>
               ))}
             </ul>

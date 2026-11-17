@@ -2,7 +2,7 @@
 
 import type { LoanListItemView, LoanType } from "@app/shared";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -68,6 +68,7 @@ function LoansPreview({
   items: LoanListItemView[];
 }) {
   const t = useTranslations("loans.contactDrawer");
+  const locale = useLocale();
 
   if (isError) {
     return (
@@ -91,7 +92,8 @@ function LoansPreview({
             <>
               <LoanStatusBadge status={loan.loanUiStatus} />
               <span className="tabular-nums">
-                {formatLoanDate(loan.expectedReturnDate) ?? t("active.noReturnDate")}
+                {formatLoanDate({ iso: loan.expectedReturnDate, locale }) ??
+                  t("active.noReturnDate")}
               </span>
             </>
           }

@@ -2,15 +2,17 @@
 
 import type { ReactNode } from "react";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
-import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
+import { SummaryCards } from "@/components/catalog/summary-cards";
+import { SummaryError } from "@/components/summary-error";
 
 type NotesSummaryCardsProps = {
-  cards: LibrarySummaryCard[];
+  cards: SummaryCard[];
   isError: boolean;
   isLoading: boolean;
   mobileAction: ReactNode;
+  onRetry: () => void;
 };
 
 export function NotesSummaryCards({
@@ -18,15 +20,19 @@ export function NotesSummaryCards({
   isError,
   isLoading,
   mobileAction,
+  onRetry,
 }: NotesSummaryCardsProps) {
-  if (isError) return <div className="empty:hidden sm:hidden">{mobileAction}</div>;
-
   return (
-    <LibrarySummaryCards
-      cards={cards}
-      isLoading={isLoading}
-      mobileAction={mobileAction}
-      mobileLayout="compact"
-    />
+    <div className="flex flex-col gap-2.5">
+      <SummaryError state={isError ? { onRetry } : null}>
+        <SummaryCards
+          cards={cards}
+          isLoading={isLoading}
+          mobileAction={mobileAction}
+          mobileLayout="compact"
+        />
+      </SummaryError>
+      {isError ? <div className="empty:hidden sm:hidden">{mobileAction}</div> : null}
+    </div>
   );
 }

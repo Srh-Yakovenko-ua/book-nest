@@ -5,15 +5,15 @@ import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
 
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 import type { MobilePageOverviewTab } from "@/components/ui/mobile-page-overview-panel";
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
+import { SummaryDetails } from "@/components/catalog/summary-mobile";
 import {
   MobilePageOverviewPanel,
   MobilePageOverviewTrigger,
   useMobilePageOverviewPanel,
 } from "@/components/ui/mobile-page-overview-panel";
-import { LibrarySummaryDetails } from "@/features/books/components/library-summary-mobile";
 
 import { DeliveryAttentionBlock } from "./delivery-attention-block";
 
@@ -28,7 +28,7 @@ type DeliveryOverviewPanelProps = {
   detailsTitle: string;
   isLoading: boolean;
   sidebar?: DeliveryOverviewSidebar;
-  summaryCards: LibrarySummaryCard[];
+  summaryCards: SummaryCard[];
 };
 
 type DeliveryOverviewSidebar = {
@@ -48,7 +48,7 @@ export function DeliveryOverviewPanel({
 
   const tabs: MobilePageOverviewTab[] = [
     {
-      content: <LibrarySummaryDetails cards={summaryCards} title={detailsTitle} />,
+      content: <SummaryDetails cards={summaryCards} title={detailsTitle} />,
       id: "overview",
       label: t("tabs.overview"),
     },

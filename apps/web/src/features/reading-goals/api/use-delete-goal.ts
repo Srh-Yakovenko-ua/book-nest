@@ -1,9 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { invalidateStatisticsQueries } from "@/features/statistics/api/statistics-keys";
 import { readingGoalsControllerDelete } from "@/shared/api/generated/endpoints/reading-goals/reading-goals";
 
-import { goalKeys, invalidateGoalQueries } from "./goal-keys";
+import { goalChangeEffects } from "./goal-change-effects";
 
 type DeleteGoalVariables = {
   goalId: string;
@@ -17,9 +16,7 @@ export function useDeleteGoal() {
       await readingGoalsControllerDelete(goalId);
     },
     onSuccess: (_result, { goalId }) => {
-      queryClient.removeQueries({ queryKey: goalKeys.scope(goalId) });
-      void invalidateGoalQueries(queryClient);
-      void invalidateStatisticsQueries(queryClient);
+      void goalChangeEffects.goalRemoved(queryClient, goalId);
     },
   });
 }

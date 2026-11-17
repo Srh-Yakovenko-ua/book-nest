@@ -12,6 +12,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { Spinner } from "@/components/spinner";
 import { SpoilerGate } from "@/components/spoiler-gate";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -143,11 +144,11 @@ function DialogPlaceholder({
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
       <DialogTitle className="sr-only">{title}</DialogTitle>
-      <UiIcon
-        className={isError ? "text-destructive" : "animate-spin text-muted-foreground"}
-        name={isError ? "alert-circle" : "refresh"}
-        size={24}
-      />
+      {isError ? (
+        <UiIcon className="text-destructive" name="alert-circle" size={24} />
+      ) : (
+        <Spinner className="text-muted-foreground" size="lg" />
+      )}
       <p className="text-sm text-muted-foreground">{title}</p>
       {isError ? (
         <Button onClick={onRetry} size="sm" variant="secondary">

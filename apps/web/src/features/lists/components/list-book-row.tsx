@@ -45,7 +45,7 @@ export function ListBookRow({
       className={cn(
         "group/list-row relative flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-card transition-[box-shadow,border-color,opacity] duration-200 ease-out hover:border-accent-border hover:shadow-hover motion-reduce:transition-none",
         selection?.isSelected === true && "border-primary shadow-[0_0_0_1px_var(--primary)]",
-        drag?.isDropTarget === true && "border-primary ring-3 ring-ring/50",
+        drag?.isDropTarget === true && "border-primary ring-3 ring-primary/50",
         drag?.isDragged === true && "opacity-50",
         isPending && "opacity-60",
       )}

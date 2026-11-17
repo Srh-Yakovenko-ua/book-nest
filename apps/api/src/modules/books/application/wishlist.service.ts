@@ -1,4 +1,5 @@
 import type {
+  BookView,
   Nullable,
   WishlistBookView,
   WishlistFacetsView,
@@ -42,11 +43,12 @@ export class WishlistService {
     userId: string;
   }): Promise<WishlistView> {
     const now = new Date();
-    const [rows, totalBooksCount] = await Promise.all([
+    const [rows, totalBooksCount, toBookView] = await Promise.all([
       this.booksRepository.listWishlistBooks({ now, query, userId }),
       this.booksRepository.countWishlistBooks(userId),
+      this.bookViewAssembler.forUser(userId),
     ]);
-    const books = rows.map((row) => this.toWishlistBookView(row));
+    const books = rows.map((row) => toWishlistBookView({ bookView: toBookView(row), row }));
 
     const anchorRows = await this.booksRepository.listSeriesWishlistAnchors({
       seriesIds: [...new Set(rows.flatMap((row) => (row.seriesId === null ? [] : [row.seriesId])))],
@@ -63,14 +65,6 @@ export class WishlistService {
       totalBooksCount,
     };
   }
-
-  private toWishlistBookView(row: WishlistBookRow): WishlistBookView {
-    return {
-      ...this.bookViewAssembler.viewOf(row),
-      bestOffer: computeBestOffer({ links: row.storeLinks }),
-      storeLinks: row.storeLinks.map(toBookStoreLinkView),
-    };
-  }
 }
 
 function toAnchor(row: SeriesWishlistAnchorRow): Nullable<SeriesWishlistAnchor> {
@@ -85,4 +79,18 @@ function toAnchor(row: SeriesWishlistAnchorRow): Nullable<SeriesWishlistAnchor> 
 
 function toAnchors(rows: SeriesWishlistAnchorRow[]): SeriesWishlistAnchor[] {
   return rows.flatMap((row) => toAnchor(row) ?? []);
+}
+
+function toWishlistBookView({
+  bookView,
+  row,
+}: {
+  bookView: BookView;
+  row: WishlistBookRow;
+}): WishlistBookView {
+  return {
+    ...bookView,
+    bestOffer: computeBestOffer({ links: row.storeLinks }),
+    storeLinks: row.storeLinks.map(toBookStoreLinkView),
+  };
 }

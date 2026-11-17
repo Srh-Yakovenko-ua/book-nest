@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import type { FavoritesSummaryView, GenreView } from "@app/shared";
+import type { ReactNode } from "react";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -7,6 +8,13 @@ import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import { FavoriteTopGenresBlock } from "./favorite-top-genres-block";
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
 
 const tg = messages.favorites.topGenres;
 

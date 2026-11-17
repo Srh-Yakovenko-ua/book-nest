@@ -3,12 +3,16 @@
 import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import { useQuotes } from "../api/use-quotes";
 import { useQuotesFacets } from "../api/use-quotes-facets";
@@ -27,8 +31,11 @@ import { QuotesToolbar, QuotesToolbarSkeleton } from "./quotes-toolbar";
 export function QuotesView() {
   const t = useTranslations("quotes");
   const tActions = useTranslations("quotes.actions");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
+  const resultsRegionRef = useRef<HTMLElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsRegionRef);
 
   const {
     activeFilterCount,
@@ -50,15 +57,15 @@ export function QuotesView() {
 
   const quoteItems = (quotes.data?.pages ?? []).flatMap((page) => page.items);
 
-  const hasQuotesError = quotes.isError && !quotes.isFetchNextPageError;
-
-  const showSidebar = !hasQuotesError;
+  const showSidebar = !quotes.isLoadingError;
 
   const filterCounts = facets.data === undefined ? undefined : quoteFilterCounts(facets.data);
   const counter =
     filterCounts === undefined
       ? undefined
-      : t("counter", { shown: filterCounts[state.filter], total: filterCounts.all });
+      : facets.isPlaceholderData
+        ? tCommon("updating")
+        : t("counter", { shown: filterCounts[state.filter], total: filterCounts.all });
 
   const filterChips = useQuotesFilterChips({
     facets: facets.data,
@@ -76,7 +83,7 @@ export function QuotesView() {
       onShowFavorites={() => setFilter("favorites")}
       onShowRecent={() => setSort("newest")}
       onShowWithComment={() => setFilter("with_comment")}
-      summaryCards={summaryCards}
+      summaryCards={summary.isLoadingError ? null : summaryCards}
     />
   );
 
@@ -105,14 +112,15 @@ export function QuotesView() {
       {showSidebar ? (
         <QuotesSummaryCards
           cards={summaryCards}
-          isError={summary.isError}
+          isError={summary.isLoadingError}
           isLoading={summary.isPending}
           mobileAction={overviewPanel}
+          onRetry={() => void summary.refetch()}
         />
       ) : null}
 
       <ToolbarSlot
-        isError={hasQuotesError}
+        isError={quotes.isLoadingError}
         isPending={quotes.isPending}
         toolbar={
           <QuotesToolbar
@@ -138,24 +146,38 @@ export function QuotesView() {
       />
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
+        <section
+          aria-label={t("listLabel")}
+          className={cn("flex min-w-0 flex-1 flex-col gap-6", RETRY_FOCUS_RING.onTarget)}
+          ref={resultsRegionRef}
+          tabIndex={-1}
+        >
+          <RefetchErrorBanner
+            state={
+              quotes.isRefetchError
+                ? { isRetrying: quotes.isRefetching, onRetry: () => void quotes.refetch() }
+                : null
+            }
+          />
           <QuotesContent
             hasActiveFilters={hasActiveFilters}
             hasNextPage={quotes.hasNextPage}
-            isError={hasQuotesError}
+            isError={quotes.isLoadingError}
             isFetchingNextPage={quotes.isFetchingNextPage}
             isLoadMoreError={quotes.isFetchNextPageError}
             isPending={quotes.isPending}
+            isRefreshing={quotes.isPlaceholderData}
             listIdentity={quotesListIdentity(listParams)}
             onAddQuote={() => setAddOpen(true)}
             onClearFilters={clearFilters}
             onLoadMore={() => void quotes.fetchNextPage()}
             onOpenBooks={() => router.push("/books")}
-            onRetry={() => void quotes.refetch()}
+            onRetry={withRetryFocus(() => void quotes.refetch())}
             quotes={quoteItems}
+            retryButtonRef={retryButtonRef}
             view={state.view}
           />
-        </div>
+        </section>
 
         {showSidebar ? <QuotesSidebar /> : null}
       </div>

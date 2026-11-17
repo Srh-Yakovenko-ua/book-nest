@@ -97,10 +97,6 @@ export function resolveStatisticsPeriod({
   }
 }
 
-export function todayIsoDay(): string {
-  return dateToIsoDay(new Date());
-}
-
 function rollingStart(now: Date, months: number): string {
   return dateToIsoDay(addDays(subMonths(now, months), 1));
 }

@@ -29,6 +29,7 @@ export const CharacterRelationshipPathViewSchema = z.object({
   found: z.boolean(),
   fromId: z.uuid(),
   nodes: z.array(CharacterGraphNodeViewSchema),
+  searchLimited: z.boolean().optional(),
   toId: z.uuid(),
 });
 

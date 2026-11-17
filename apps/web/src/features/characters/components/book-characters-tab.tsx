@@ -2,21 +2,19 @@
 
 import type { BookCharacterRosterItem, BookView, Nullable } from "@app/shared";
 
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
-import { Badge } from "@/components/ui/badge";
 import { useRouter } from "@/i18n/navigation";
-import { formatNumber } from "@/lib/format";
 
 import { useBookCharacterSummary } from "../api/use-book-character-summary";
 import { useBookCharactersInfinite } from "../api/use-book-characters-infinite";
 import { useUnlinkCharacter } from "../api/use-unlink-character";
-import { getCharacterDetailsPath } from "../model/character-routes";
+import { getCharacterDetailsPath, getCharacterEditPath } from "../model/character-routes";
 import { toCharacterBookContext } from "../model/characters-roster-query";
 import { useCharactersRosterQuery } from "../model/use-characters-roster-query";
 import { AddCharacterDialog } from "./add-character-dialog";
@@ -54,8 +52,6 @@ type UnlinkTarget = {
 
 export function BookCharactersTab({ book }: BookCharactersTabProps) {
   const bookId = book.id;
-  const locale = useLocale();
-  const t = useTranslations("characters");
   const tToast = useTranslations("characters.toast");
 
   const bookContext = toCharacterBookContext(book);
@@ -108,6 +104,10 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
     router.push(getCharacterDetailsPath({ bookId, characterId }));
   }
 
+  function openEdit(characterId: string) {
+    router.push(getCharacterEditPath({ bookId, characterId }));
+  }
+
   function requestUnlink(characterId: string, trigger: Nullable<HTMLElement>) {
     unlinkTriggerRef.current = trigger;
     setUnlinkTarget({ characterId, open: true });
@@ -142,22 +142,13 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
 
   return (
     <div className="@container/roster flex scroll-mt-4 flex-col gap-5" ref={rosterStartRef}>
-      {showControls && summary.data !== undefined ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary">
-            {t("summary.favorites", { count: formatNumber(summary.data.favoritesCount, locale) })}
-          </Badge>
-          <Badge variant="secondary">
-            {t("summary.pov", { count: formatNumber(summary.data.povCount, locale) })}
-          </Badge>
-        </div>
-      ) : null}
-
       {showControls ? (
         <CharactersToolbar
           addButtonRef={addButtonRef}
           onAdd={() => setAddOpen(true)}
           roster={roster}
+          summary={summary.data}
+          summaryPending={summary.isPending}
         />
       ) : null}
 
@@ -177,6 +168,7 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
         bookContext={bookContext}
         onOpenChange={setAddOpen}
         onOpenDetails={openDetails}
+        onOpenEdit={openEdit}
         open={addOpen}
       />
 

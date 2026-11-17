@@ -14,7 +14,6 @@ export type CharacterSuggestionsDtoSuggestionsItemGlobalAttitude =
   | null;
 
 export const CharacterSuggestionsDtoSuggestionsItemGlobalAttitude = {
-  favorite: "favorite",
   like: "like",
   neutral: "neutral",
   distrust: "distrust",

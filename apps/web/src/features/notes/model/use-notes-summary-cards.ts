@@ -2,7 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
 import { formatNumber } from "@/lib/format";
 
@@ -21,7 +21,7 @@ const EMPTY_NOTES_SUMMARY: NotesArchiveSummary = {
 export function useNotesSummaryCards(
   scope: NotesArchiveScope,
   summary: NotesArchiveSummary | undefined,
-): LibrarySummaryCard[] {
+): SummaryCard[] {
   const t = useTranslations(`notes.archive.${scope}.summary`);
   const tFacts = useTranslations("notes.archive.summaryFacts");
   const locale = useLocale();

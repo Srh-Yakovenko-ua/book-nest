@@ -5,6 +5,8 @@ INPUT="$(cat)"
 TOOL="$(printf '%s' "$INPUT" | jq -r '.tool_name // empty')"
 FILE="$(printf '%s' "$INPUT" | jq -r '.tool_input.file_path // .tool_input.notebook_path // .tool_input.path // empty')"
 GLOB="$(printf '%s' "$INPUT" | jq -r '.tool_input.glob // empty')"
+FILE="${FILE//\\//}"
+GLOB="${GLOB//\\//}"
 [ -z "$FILE" ] && [ -z "$GLOB" ] && exit 0
 
 deny() {

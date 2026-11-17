@@ -4,11 +4,13 @@ import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 
-import { StatisticsOverview } from "@/features/statistics";
+import { legacyReadingCalendarHref, StatisticsOverview } from "@/features/statistics";
+import { redirect } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 
 type Props = {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -18,9 +20,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: t("metaTitle") };
 }
 
-export default async function StatisticsPage({ params }: Props) {
+export default async function StatisticsPage({ params, searchParams }: Props) {
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) notFound();
+
+  const readingCalendarHref = legacyReadingCalendarHref(await searchParams);
+  if (readingCalendarHref !== null) redirect({ href: readingCalendarHref, locale });
   setRequestLocale(locale);
 
   return (

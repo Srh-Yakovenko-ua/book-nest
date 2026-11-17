@@ -3,7 +3,7 @@
 import type { Nullable, PublisherView } from "@app/shared";
 import type { RefObject } from "react";
 
-import { PUBLISHER_MERGE_ERROR_CODES } from "@app/shared";
+import { PUBLISHER_ERROR_CODES, PUBLISHER_MERGE_ERROR_CODES } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
@@ -31,14 +31,11 @@ import { usePublishersSearch } from "@/features/books/api/use-publishers-search"
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { useRouter } from "@/i18n/navigation";
-import { ApiError } from "@/lib/http-client";
+import { HTTP_STATUS, isApiErrorCode, isApiErrorStatus } from "@/lib/api-errors";
 
 import { useMergePublisher } from "../api/use-merge-publisher";
 
 const MERGE_DIALOG = {
-  forbiddenStatus: 403,
-  linkedBooksStatus: 409,
-  notFoundStatus: 404,
   searchDebounceMs: 250,
   searchInputId: "merge-publisher-search",
 } as const;
@@ -207,11 +204,10 @@ export function MergePublisherDialog({
 }
 
 function mergeFailureReason(error: unknown): MergeFailureReason {
-  if (!(error instanceof ApiError)) return "generic";
-  if (error.code === PUBLISHER_MERGE_ERROR_CODES.samePublisher) return "samePublisher";
-  if (error.status === MERGE_DIALOG.forbiddenStatus) return "globalSource";
-  if (error.status === MERGE_DIALOG.notFoundStatus) return "notFound";
-  if (error.status === MERGE_DIALOG.linkedBooksStatus) return "linkedBooks";
+  if (isApiErrorCode(error, PUBLISHER_MERGE_ERROR_CODES.samePublisher)) return "samePublisher";
+  if (isApiErrorStatus(error, HTTP_STATUS.forbidden)) return "globalSource";
+  if (isApiErrorStatus(error, HTTP_STATUS.notFound)) return "notFound";
+  if (isApiErrorCode(error, PUBLISHER_ERROR_CODES.hasBooks)) return "linkedBooks";
   return "generic";
 }
 

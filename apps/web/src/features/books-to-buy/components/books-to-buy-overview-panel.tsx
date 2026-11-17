@@ -2,15 +2,15 @@
 
 import { useTranslations } from "next-intl";
 
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 import type { MobilePageOverviewTab } from "@/components/ui/mobile-page-overview-panel";
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
+import { SummaryDetails } from "@/components/catalog/summary-mobile";
 import {
   MobilePageOverviewPanel,
   MobilePageOverviewTrigger,
   useMobilePageOverviewPanel,
 } from "@/components/ui/mobile-page-overview-panel";
-import { LibrarySummaryDetails } from "@/features/books/components/library-summary-mobile";
 
 import type { WishlistBestOffer } from "../model/books-to-buy-derive";
 
@@ -19,7 +19,7 @@ import { WishlistBestOffersBlock, WishlistUnsetOwnershipBlock } from "./books-to
 type BooksToBuyOverviewPanelProps = {
   bestOffers: WishlistBestOffer[];
   isLoading: boolean;
-  summaryCards: LibrarySummaryCard[];
+  summaryCards: SummaryCard[];
 };
 
 export function BooksToBuyOverviewPanel({
@@ -33,7 +33,7 @@ export function BooksToBuyOverviewPanel({
 
   const tabs: MobilePageOverviewTab[] = [
     {
-      content: <LibrarySummaryDetails cards={summaryCards} title={tDetails("title")} />,
+      content: <SummaryDetails cards={summaryCards} title={tDetails("title")} />,
       id: "overview",
       label: t("tabs.overview"),
     },

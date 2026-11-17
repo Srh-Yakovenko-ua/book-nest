@@ -1,10 +1,9 @@
-import type { ReactNode } from "react";
-
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { bookKeys } from "@/features/books/api/book-keys";
+import { queryClientWrapper } from "@/test-query-cache";
 
 import { makeCharacterDetails, makeDeletionResult } from "../model/characters.fixtures";
 import { useRestoreCharacter } from "./use-restore-character";
@@ -36,7 +35,9 @@ describe("character mutations refresh the chapter suggestions", () => {
   it("refreshes only the chapters of the book a character was removed from", async () => {
     fetchMock.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
     const client = seededClient();
-    const { result } = renderHook(() => useUnlinkCharacter(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useUnlinkCharacter(), {
+      wrapper: queryClientWrapper(client),
+    });
 
     await act(() => result.current.mutateAsync({ bookId: BOOK_ID, characterId: CHARACTER_ID }));
 
@@ -51,7 +52,7 @@ describe("character mutations refresh the chapter suggestions", () => {
     replyWith(makeDeletionResult({ characterId: CHARACTER_ID }));
     const client = seededClient();
     const { result } = renderHook(() => useSoftDeleteCharacter(), {
-      wrapper: wrapperFor(client),
+      wrapper: queryClientWrapper(client),
     });
 
     await act(() => result.current.mutateAsync(CHARACTER_ID));
@@ -66,7 +67,9 @@ describe("character mutations refresh the chapter suggestions", () => {
   it("refreshes the chapters of every book after a deleted character is restored", async () => {
     replyWith(makeCharacterDetails({ id: CHARACTER_ID }));
     const client = seededClient();
-    const { result } = renderHook(() => useRestoreCharacter(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useRestoreCharacter(), {
+      wrapper: queryClientWrapper(client),
+    });
 
     await act(() => result.current.mutateAsync(CHARACTER_ID));
 
@@ -102,10 +105,4 @@ function seededClient(): QueryClient {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
   for (const key of Object.values(SEEDED_KEYS)) client.setQueryData(key, {});
   return client;
-}
-
-function wrapperFor(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
 }

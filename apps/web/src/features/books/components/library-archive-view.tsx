@@ -1,28 +1,35 @@
 "use client";
 
-import type { MediaView } from "@app/shared";
-import type { ReactNode } from "react";
+import type { MediaView, Nullable } from "@app/shared";
+import type { ReactNode, Ref } from "react";
 
 import { LayoutGrid, List, SquareCheckBig } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
+import type { RefetchErrorState } from "@/components/refetch-error-banner";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 import type { BooksControllerListSort } from "@/shared/api/generated/model";
 
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { BookCard } from "@/components/ui/book-card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Segmented } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
+import { infiniteScrollStateOf } from "@/hooks/use-infinite-scroll-sentinel";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import type { LibraryActions, PendingBookAction } from "../model/book-card-actions";
 import type { LibraryBook, LibraryBookLinkComponent } from "../model/library-book";
 import type { LibraryViewMode } from "../model/library-query";
+import type { LibraryInvalidRange } from "../model/use-library-query";
 import type { LibrarySortOption } from "./library-sort-select";
 
 import { useLibrarySelectionStore } from "../model/selection-store";
@@ -31,6 +38,7 @@ import { BookCardActions } from "./book-card-actions";
 import { BookRow } from "./book-row";
 import { LibraryBulkBar } from "./library-bulk-bar";
 import { LibraryCoverViewer } from "./library-cover-viewer";
+import { LibraryInvalidRangeState } from "./library-invalid-range-state";
 import { LibrarySortSelect } from "./library-sort-select";
 
 export type LibraryArchiveViewProps = {
@@ -47,10 +55,12 @@ export type LibraryArchiveViewProps = {
   hasActiveSearch: boolean;
   hasNextPage: boolean;
   header?: ReactNode;
+  invalidRange: Nullable<LibraryInvalidRange>;
   isError: boolean;
   isFetchingNextPage: boolean;
   isLoadMoreError: boolean;
   isPending: boolean;
+  isRefreshing: boolean;
   libraryTotal: number;
   libraryTotalLoading: boolean;
   linkComponent?: LibraryBookLinkComponent;
@@ -68,6 +78,7 @@ export type LibraryArchiveViewProps = {
   onSortChange: (value: BooksControllerListSort) => void;
   onViewChange: (value: LibraryViewMode) => void;
   quickFilters?: ReactNode;
+  refetchError: Nullable<RefetchErrorState>;
   searchControl?: ReactNode;
   showPublisher?: boolean;
   sidebar?: ReactNode;
@@ -101,10 +112,23 @@ const STAGGER_MAX_MS = 360;
 const GRID_CLASS = "grid grid-cols-2 gap-5 max-sm:gap-3 xl:grid-cols-3";
 
 export function LibraryArchiveView(props: LibraryArchiveViewProps) {
-  const { actions, books, hasActiveFilters, hasActiveSearch, header, isError, isPending, sidebar } =
-    props;
+  const {
+    actions,
+    books,
+    hasActiveFilters,
+    hasActiveSearch,
+    header,
+    invalidRange,
+    isError,
+    isPending,
+    onRetry,
+    refetchError,
+    sidebar,
+  } = props;
 
   const t = useTranslations("books.library");
+  const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsHeadingRef);
   const [pending, setPending] = useState<null | PendingBookAction>(null);
   const clearSelection = useLibrarySelectionStore((state) => state.clear);
   const selectionMode = useLibrarySelectionStore((state) => state.selectionMode);
@@ -132,6 +156,16 @@ export function LibraryArchiveView(props: LibraryArchiveViewProps) {
     <BookCardActions actions={actions} book={book} compact={compact} onOpenDialog={setPending} />
   );
   const selectBookLabel = (title: string) => t("bulk.selectBook", { title });
+  const invalidRangeFocusingResults =
+    invalidRange === null
+      ? null
+      : {
+          ...invalidRange,
+          onClear: () => {
+            invalidRange.onClear();
+            resultsHeadingRef.current?.focus();
+          },
+        };
 
   const showToolbar =
     !isError && (isPending || books.length > 0 || hasActiveSearch || hasActiveFilters);
@@ -143,11 +177,19 @@ export function LibraryArchiveView(props: LibraryArchiveViewProps) {
       {showToolbar ? <LibraryToolbar {...props} /> : null}
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
-          <h2 className="sr-only">{t("resultsTitle")}</h2>
+        <div
+          className={cn("flex min-w-0 flex-1 flex-col gap-6", RETRY_FOCUS_RING.aroundHiddenHeading)}
+        >
+          <h2 className="sr-only" ref={resultsHeadingRef} tabIndex={-1}>
+            {t("resultsTitle")}
+          </h2>
+          <RefetchErrorBanner state={refetchError} />
           <LibraryContent
             {...props}
+            invalidRange={invalidRangeFocusingResults}
+            onRetry={withRetryFocus(onRetry)}
             renderActions={renderActions}
+            retryButtonRef={retryButtonRef}
             selectBookLabel={selectBookLabel}
           />
         </div>
@@ -245,10 +287,12 @@ function LibraryContent({
   hasActiveFilters,
   hasActiveSearch,
   hasNextPage,
+  invalidRange,
   isError,
   isFetchingNextPage,
   isLoadMoreError,
   isPending,
+  isRefreshing,
   libraryTotal,
   libraryTotalLoading,
   linkComponent,
@@ -263,16 +307,26 @@ function LibraryContent({
   onLoadMore,
   onRetry,
   renderActions,
+  retryButtonRef,
   selectBookLabel,
   showPublisher = true,
   view,
-}: CardRenderProps & LibraryArchiveViewProps) {
+}: CardRenderProps & LibraryArchiveViewProps & { retryButtonRef: Ref<HTMLButtonElement> }) {
   const [activeCover, setActiveCover] = useState<ActiveCover | null>(null);
+
+  if (invalidRange) {
+    return <LibraryInvalidRangeState {...invalidRange} />;
+  }
 
   if (isError) {
     return (
       <div aria-live="assertive" role="alert">
-        <EmptyState onPrimary={onRetry} onSecondary={onAddBook} state={errorState} />
+        <EmptyState
+          onPrimary={onRetry}
+          onSecondary={onAddBook}
+          primaryRef={retryButtonRef}
+          state={errorState}
+        />
       </div>
     );
   }
@@ -286,15 +340,21 @@ function LibraryContent({
       return <EmptyState onPrimary={onAddBook} onSecondary={onEmptySecondary} state={emptyState} />;
     }
     if (hasActiveSearch && !hasActiveFilters) {
-      return <EmptyState onPrimary={onClearSearch} state={noSearchResultsState} />;
+      return (
+        <RefreshingRegion isRefreshing={isRefreshing}>
+          <EmptyState onPrimary={onClearSearch} state={noSearchResultsState} />
+        </RefreshingRegion>
+      );
     }
     if (hasActiveFilters) {
       return (
-        <EmptyState
-          onPrimary={onClearFilters}
-          onSecondary={onClearAll}
-          state={noFilteredResultsState}
-        />
+        <RefreshingRegion isRefreshing={isRefreshing}>
+          <EmptyState
+            onPrimary={onClearFilters}
+            onSecondary={onClearAll}
+            state={noFilteredResultsState}
+          />
+        </RefreshingRegion>
       );
     }
     return <EmptyState onPrimary={onAddBook} onSecondary={onEmptySecondary} state={emptyState} />;
@@ -302,37 +362,43 @@ function LibraryContent({
 
   return (
     <div className="flex flex-col gap-6">
-      {view === "list" ? (
-        <div className="flex flex-col gap-2.5">
-          {books.map((book) => (
-            <LibraryListRow
-              book={book}
-              key={book.id}
-              linkComponent={linkComponent}
-              renderActions={renderActions}
-              selectBookLabel={selectBookLabel}
-              showPublisher={showPublisher}
-            />
-          ))}
-        </div>
-      ) : (
-        <BooksGrid
-          books={books}
-          coverViewLabel={coverViewLabel}
-          linkComponent={linkComponent}
-          onActivateCover={setActiveCover}
-          renderActions={renderActions}
-          selectBookLabel={selectBookLabel}
-          showPublisher={showPublisher}
-        />
-      )}
+      <RefreshingRegion isRefreshing={isRefreshing}>
+        {view === "list" ? (
+          <div className="flex flex-col gap-2.5">
+            {books.map((book) => (
+              <LibraryListRow
+                book={book}
+                key={book.id}
+                linkComponent={linkComponent}
+                renderActions={renderActions}
+                selectBookLabel={selectBookLabel}
+                showPublisher={showPublisher}
+              />
+            ))}
+          </div>
+        ) : (
+          <BooksGrid
+            books={books}
+            coverViewLabel={coverViewLabel}
+            linkComponent={linkComponent}
+            onActivateCover={setActiveCover}
+            renderActions={renderActions}
+            selectBookLabel={selectBookLabel}
+            showPublisher={showPublisher}
+          />
+        )}
+      </RefreshingRegion>
 
       <div className="flex flex-col items-center gap-2 pt-2">
         <InfiniteScrollFooter
           allShownLabel={allShownLabel}
           errorLabel={loadMoreErrorLabel}
           onLoadMore={onLoadMore}
-          state={nextPageState({ hasNextPage, isFetchingNextPage, isLoadMoreError })}
+          state={infiniteScrollStateOf({
+            hasNextPage,
+            isFetchingNextPage,
+            isFetchNextPageError: isLoadMoreError,
+          })}
         />
       </div>
 
@@ -536,7 +602,9 @@ function LibraryToolbar({
   activeFilters,
   advancedFilters,
   counterLabel,
+  invalidRange,
   isPending,
+  isRefreshing,
   loadingLabel,
   onSortChange,
   onViewChange,
@@ -599,25 +667,25 @@ function LibraryToolbar({
       {quickFilters}
       {activeFilters}
 
-      <p aria-live="polite" className="text-sm text-muted-foreground">
-        {isPending ? loadingLabel : counterLabel}
+      <p aria-live="polite" className="text-sm text-muted-foreground empty:sr-only">
+        {resultsStatusLabel({ counterLabel, invalidRange, isPending, isRefreshing, loadingLabel })}
       </p>
     </div>
   );
 }
 
-function nextPageState({
-  hasNextPage,
-  isFetchingNextPage,
-  isLoadMoreError,
-}: {
-  hasNextPage: boolean;
-  isFetchingNextPage: boolean;
-  isLoadMoreError: boolean;
-}): InfiniteScrollState {
-  if (isFetchingNextPage) return "loading";
-  if (isLoadMoreError) return "error";
-  return hasNextPage ? "idle" : "none";
+function resultsStatusLabel({
+  counterLabel,
+  invalidRange,
+  isPending,
+  isRefreshing,
+  loadingLabel,
+}: Pick<
+  LibraryArchiveViewProps,
+  "counterLabel" | "invalidRange" | "isPending" | "isRefreshing" | "loadingLabel"
+>): Nullable<string> {
+  if (invalidRange) return null;
+  return isPending || isRefreshing ? loadingLabel : counterLabel;
 }
 
 function SelectionCheckbox({

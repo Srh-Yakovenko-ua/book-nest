@@ -1,8 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-
-import type { ReactNode } from "react";
-
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -15,6 +12,7 @@ import {
   makeDeletionResult,
 } from "@/features/characters/model/characters.fixtures";
 import { genresKeys } from "@/features/genres/api/genres-keys";
+import { queryClientWrapper } from "@/test-query-cache";
 
 import { tagsKeys } from "./tags-keys";
 import { useCreateTag } from "./use-create-tag";
@@ -72,7 +70,7 @@ describe("relationship mutations refresh the Tags page but not the picker", () =
   it("refreshes catalog, facets and summary after deleting a book", async () => {
     replyWith({});
     const client = seededClient();
-    const { result } = renderHook(() => useDeleteBook(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useDeleteBook(), { wrapper: queryClientWrapper(client) });
 
     await act(() => result.current.mutateAsync(BOOK_ID));
 
@@ -83,7 +81,7 @@ describe("relationship mutations refresh the Tags page but not the picker", () =
     replyWith(makeCharacterDetails({ id: CHARACTER_ID }));
     const client = seededClient();
     const { result } = renderHook(() => useUpdateBookCharacter(), {
-      wrapper: wrapperFor(client),
+      wrapper: queryClientWrapper(client),
     });
 
     await act(() =>
@@ -101,7 +99,7 @@ describe("relationship mutations refresh the Tags page but not the picker", () =
     replyWith(makeDeletionResult({ characterId: CHARACTER_ID }));
     const client = seededClient();
     const { result } = renderHook(() => useSoftDeleteCharacter(), {
-      wrapper: wrapperFor(client),
+      wrapper: queryClientWrapper(client),
     });
 
     await act(() => result.current.mutateAsync(CHARACTER_ID));
@@ -114,7 +112,7 @@ describe("book tagging by name can create tags, so the picker refreshes too", ()
   it("refreshes aggregates and the picker after a bulk tag assignment", async () => {
     replyWith({ affected: 2 });
     const client = seededClient();
-    const { result } = renderHook(() => useBulkAddTags(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useBulkAddTags(), { wrapper: queryClientWrapper(client) });
 
     await act(() => result.current.mutateAsync({ bookIds: [BOOK_ID], tags: ["found family"] }));
 
@@ -124,7 +122,9 @@ describe("book tagging by name can create tags, so the picker refreshes too", ()
   it("refreshes aggregates and the picker after a book edit", async () => {
     replyWith({});
     const client = seededClient();
-    const { result } = renderHook(() => useUpdateBook(BOOK_ID), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useUpdateBook(BOOK_ID), {
+      wrapper: queryClientWrapper(client),
+    });
 
     await act(() => result.current.mutateAsync({ tags: ["found family"] }));
 
@@ -136,7 +136,9 @@ describe("book edits without tags leave the Tags page alone", () => {
   it("does not refresh tag aggregates or the picker after a tagless book edit", async () => {
     replyWith({});
     const client = seededClient();
-    const { result } = renderHook(() => useUpdateBook(BOOK_ID), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useUpdateBook(BOOK_ID), {
+      wrapper: queryClientWrapper(client),
+    });
 
     await act(() => result.current.mutateAsync({ title: "Renamed" }));
 
@@ -148,7 +150,7 @@ describe("Tag metadata mutations", () => {
   it("refresh the picker and aggregates but never Genres after a create", async () => {
     replyWith(CREATED_TAG, 201);
     const client = seededClient();
-    const { result } = renderHook(() => useCreateTag(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useCreateTag(), { wrapper: queryClientWrapper(client) });
 
     await act(() =>
       result.current.mutateAsync({ color: "parchment", name: "found family", type: "custom" }),
@@ -161,7 +163,7 @@ describe("Tag metadata mutations", () => {
   it("refresh the picker and aggregates but never Genres after a rename", async () => {
     replyWith(CREATED_TAG);
     const client = seededClient();
-    const { result } = renderHook(() => useUpdateTag(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useUpdateTag(), { wrapper: queryClientWrapper(client) });
 
     await act(() => result.current.mutateAsync({ id: TAG_ID, input: { name: "found family" } }));
 
@@ -172,7 +174,7 @@ describe("Tag metadata mutations", () => {
   it("refresh the picker and aggregates but never Genres after a delete", async () => {
     fetchMock.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
     const client = seededClient();
-    const { result } = renderHook(() => useDeleteTag(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useDeleteTag(), { wrapper: queryClientWrapper(client) });
 
     await act(() => result.current.mutateAsync(TAG_ID));
 
@@ -212,11 +214,5 @@ function tagInvalidation(client: QueryClient) {
     facets: isInvalidated(client, TAG_KEYS.facets),
     picker: isInvalidated(client, TAG_KEYS.picker),
     summary: isInvalidated(client, TAG_KEYS.summary),
-  };
-}
-
-function wrapperFor(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
   };
 }

@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
@@ -29,6 +30,26 @@ const SECOND_LINE = makeTimelineView({
 });
 
 const LINES = [DEFAULT_LINE, SECOND_LINE];
+
+const THIRD_LINE = makeTimelineView({
+  eventsCount: 0,
+  id: "line-3",
+  isDefault: false,
+  name: "Спогади",
+  position: 2,
+});
+
+const MOVED_AT = "2026-03-02T10:00:00.000Z";
+
+const AFTER_FIRST_MOVE = makeTimelineListView({
+  timelines: [
+    DEFAULT_LINE,
+    { ...THIRD_LINE, position: 1, updatedAt: MOVED_AT },
+    { ...SECOND_LINE, position: 2, updatedAt: MOVED_AT },
+  ],
+});
+
+const REORDER_REQUEST = z.object({ expectedUpdatedAt: z.string() });
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -61,6 +82,10 @@ function mountDialog(handlers: Partial<Parameters<typeof ManageTimelinesDialog>[
 async function openRowMenu(name: string) {
   await userEvent.click(await screen.findByRole("button", { name: `Дії лінії «${name}»` }));
   return screen.findByRole("menu");
+}
+
+function reorderCalls() {
+  return fetchMock.mock.calls.filter(([url]) => String(url).includes("/timelines/reorder"));
 }
 
 beforeEach(() => {
@@ -177,6 +202,26 @@ describe("ManageTimelinesDialog", () => {
       ),
     );
     await waitFor(() => expect(listCalls().length).toBeGreaterThan(1));
+  });
+
+  it("toasts the generic line error instead of a conflict on a 409 without the conflict code", async () => {
+    fetchMock.mockImplementation((input) => {
+      if (String(input).includes("/timelines/reorder")) {
+        return Promise.resolve(jsonResponse({ message: "conflict" }, 409));
+      }
+      return Promise.resolve(jsonResponse(makeTimelineListView({ timelines: LINES })));
+    });
+
+    mountDialog();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Перемістити «Флешбеки» вище" }),
+    );
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Не вдалося змінити лінію"));
+    expect(toast.error).not.toHaveBeenCalledWith(
+      "Порядок уже змінився. Онови сторінку та спробуй ще раз.",
+    );
   });
 
   it("hides Make default and disables delete on the default line", async () => {
@@ -359,5 +404,50 @@ describe("ManageTimelinesDialog with a pending line mutation", () => {
     expect(
       fetchMock.mock.calls.filter(([url]) => String(url).includes("/timelines/line-2/set-default")),
     ).toHaveLength(1);
+  });
+});
+
+describe("ManageTimelinesDialog right after a reorder succeeds", () => {
+  it("sends the next move with the updatedAt the previous move returned", async () => {
+    let serverUpdatedAt = THIRD_LINE.updatedAt;
+    let listLoads = 0;
+    fetchMock.mockImplementation((input, init) => {
+      if (String(input).includes("/timelines/reorder")) {
+        const { expectedUpdatedAt } = REORDER_REQUEST.parse(JSON.parse(String(init?.body)));
+        if (expectedUpdatedAt !== serverUpdatedAt) {
+          return Promise.resolve(
+            jsonResponse({ code: "timeline_reorder_conflict", message: "conflict" }, 409),
+          );
+        }
+        serverUpdatedAt = MOVED_AT;
+        return Promise.resolve(jsonResponse(AFTER_FIRST_MOVE));
+      }
+      listLoads += 1;
+      return listLoads === 1
+        ? Promise.resolve(jsonResponse(makeTimelineListView({ timelines: [...LINES, THIRD_LINE] })))
+        : new Promise<Response>(() => {});
+    });
+
+    mountDialog();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Перемістити «Спогади» вище" }),
+    );
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Порядок оновлено"));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Нова часова лінія" })).toBeEnabled(),
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Перемістити «Спогади» вище" }));
+
+    await waitFor(() => expect(reorderCalls()).toHaveLength(2));
+    const [, secondMove] = reorderCalls();
+    expect(JSON.parse(String(secondMove?.[1]?.body))).toEqual({
+      beforeTimelineId: "line-1",
+      expectedUpdatedAt: MOVED_AT,
+      timelineId: "line-3",
+    });
+    await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(2));
+    expect(toast.error).not.toHaveBeenCalled();
   });
 });

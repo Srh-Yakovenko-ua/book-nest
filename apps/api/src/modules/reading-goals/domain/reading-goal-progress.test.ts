@@ -10,7 +10,7 @@ import {
   selectQualifyingReadingGoalBooks,
 } from "./reading-goal-progress.js";
 
-const now = new Date("2026-08-08T18:30:00.000Z");
+const today = new Date("2026-08-08T18:30:00.000Z");
 const goalStartDate = new Date("2026-08-01T00:00:00.000Z");
 
 function book(bookId: string, finishedAt: null | string): ReadingGoalCandidateBook {
@@ -21,11 +21,11 @@ describe("resolveReadingGoalStatus", () => {
   it("is active while the target is unmet and the deadline is still ahead", () => {
     expect(
       resolveReadingGoalStatus({
-        archivedAt: null,
+        archivedDay: null,
         completedCount: 1,
         deadline: new Date("2026-08-20T00:00:00.000Z"),
-        now,
         targetCount: 3,
+        today,
       }),
     ).toBe("active");
   });
@@ -33,11 +33,11 @@ describe("resolveReadingGoalStatus", () => {
   it("is active when the deadline falls exactly on the current UTC day", () => {
     expect(
       resolveReadingGoalStatus({
-        archivedAt: null,
+        archivedDay: null,
         completedCount: 1,
         deadline: new Date("2026-08-08T00:00:00.000Z"),
-        now,
         targetCount: 3,
+        today,
       }),
     ).toBe("active");
   });
@@ -45,11 +45,11 @@ describe("resolveReadingGoalStatus", () => {
   it("is completed once the counted books exactly meet the target", () => {
     expect(
       resolveReadingGoalStatus({
-        archivedAt: null,
+        archivedDay: null,
         completedCount: 3,
         deadline: new Date("2026-08-20T00:00:00.000Z"),
-        now,
         targetCount: 3,
+        today,
       }),
     ).toBe("completed");
   });
@@ -57,23 +57,23 @@ describe("resolveReadingGoalStatus", () => {
   it("is expired when the deadline is before the current UTC day and the target is unmet", () => {
     expect(
       resolveReadingGoalStatus({
-        archivedAt: null,
+        archivedDay: null,
         completedCount: 2,
         deadline: new Date("2026-08-07T00:00:00.000Z"),
-        now,
         targetCount: 3,
+        today,
       }),
     ).toBe("expired");
   });
 
-  it("is archived when archivedAt is set", () => {
+  it("is archived when archivedDay is set", () => {
     expect(
       resolveReadingGoalStatus({
-        archivedAt: new Date("2026-08-05T09:00:00.000Z"),
+        archivedDay: new Date("2026-08-05T00:00:00.000Z"),
         completedCount: 1,
         deadline: new Date("2026-08-20T00:00:00.000Z"),
-        now,
         targetCount: 3,
+        today,
       }),
     ).toBe("archived");
   });
@@ -81,11 +81,11 @@ describe("resolveReadingGoalStatus", () => {
   it("prefers completed over expired when the target was met after the deadline passed", () => {
     expect(
       resolveReadingGoalStatus({
-        archivedAt: null,
+        archivedDay: null,
         completedCount: 3,
         deadline: new Date("2026-08-01T00:00:00.000Z"),
-        now,
         targetCount: 3,
+        today,
       }),
     ).toBe("completed");
   });
@@ -93,11 +93,11 @@ describe("resolveReadingGoalStatus", () => {
   it("prefers archived over completed when an archived goal has met its target", () => {
     expect(
       resolveReadingGoalStatus({
-        archivedAt: new Date("2026-08-05T09:00:00.000Z"),
+        archivedDay: new Date("2026-08-05T00:00:00.000Z"),
         completedCount: 4,
         deadline: new Date("2026-08-20T00:00:00.000Z"),
-        now,
         targetCount: 3,
+        today,
       }),
     ).toBe("archived");
   });
@@ -105,11 +105,11 @@ describe("resolveReadingGoalStatus", () => {
   it("prefers archived over expired when an archived goal is past its deadline", () => {
     expect(
       resolveReadingGoalStatus({
-        archivedAt: new Date("2026-08-05T09:00:00.000Z"),
+        archivedDay: new Date("2026-08-05T00:00:00.000Z"),
         completedCount: 0,
         deadline: new Date("2026-08-01T00:00:00.000Z"),
-        now,
         targetCount: 3,
+        today,
       }),
     ).toBe("archived");
   });
@@ -183,12 +183,12 @@ describe("calculateReadingGoalProgress hard deadline boundaries", () => {
 
   it("counts a book finished on the goal creation date", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt: null,
+      archivedDay: null,
       books: [book("book-1", "2026-08-01T22:00:00.000Z")],
       deadline,
       goalStartDate,
-      now,
       targetCount: 3,
+      today,
     });
 
     expect(progress.completedCount).toBe(1);
@@ -196,12 +196,12 @@ describe("calculateReadingGoalProgress hard deadline boundaries", () => {
 
   it("counts a book finished on the deadline itself", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt: null,
+      archivedDay: null,
       books: [book("book-1", "2026-08-20T23:59:00.000Z")],
       deadline,
       goalStartDate,
-      now: new Date("2026-08-21T09:00:00.000Z"),
       targetCount: 3,
+      today: new Date("2026-08-21T09:00:00.000Z"),
     });
 
     expect(progress.completedCount).toBe(1);
@@ -209,12 +209,12 @@ describe("calculateReadingGoalProgress hard deadline boundaries", () => {
 
   it("does not count a book finished the day after the deadline", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt: null,
+      archivedDay: null,
       books: [book("book-1", "2026-08-21T00:00:00.000Z")],
       deadline,
       goalStartDate,
-      now: new Date("2026-08-22T09:00:00.000Z"),
       targetCount: 3,
+      today: new Date("2026-08-22T09:00:00.000Z"),
     });
 
     expect(progress.completedCount).toBe(0);
@@ -222,15 +222,15 @@ describe("calculateReadingGoalProgress hard deadline boundaries", () => {
 
   it("completes the goal when the target is reached exactly on the deadline", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt: null,
+      archivedDay: null,
       books: [
         book("book-1", "2026-08-10T10:00:00.000Z"),
         book("book-2", "2026-08-20T18:00:00.000Z"),
       ],
       deadline,
       goalStartDate,
-      now: new Date("2026-08-20T20:00:00.000Z"),
       targetCount: 2,
+      today: new Date("2026-08-20T20:00:00.000Z"),
     });
 
     expect(progress.status).toBe("completed");
@@ -239,12 +239,12 @@ describe("calculateReadingGoalProgress hard deadline boundaries", () => {
 
   it("expires the goal the day after an unreached deadline", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt: null,
+      archivedDay: null,
       books: [book("book-1", "2026-08-10T10:00:00.000Z")],
       deadline,
       goalStartDate,
-      now: new Date("2026-08-21T00:30:00.000Z"),
       targetCount: 2,
+      today: new Date("2026-08-21T00:30:00.000Z"),
     });
 
     expect(progress.status).toBe("expired");
@@ -252,15 +252,15 @@ describe("calculateReadingGoalProgress hard deadline boundaries", () => {
 
   it("leaves an expired goal expired when another book is finished after the deadline", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt: null,
+      archivedDay: null,
       books: [
         book("book-1", "2026-08-10T10:00:00.000Z"),
         book("book-2", "2026-08-25T10:00:00.000Z"),
       ],
       deadline,
       goalStartDate,
-      now: new Date("2026-08-26T09:00:00.000Z"),
       targetCount: 2,
+      today: new Date("2026-08-26T09:00:00.000Z"),
     });
 
     expect(progress.status).toBe("expired");
@@ -271,16 +271,16 @@ describe("calculateReadingGoalProgress hard deadline boundaries", () => {
 
 describe("calculateReadingGoalProgress archived window", () => {
   const deadline = new Date("2026-08-20T00:00:00.000Z");
-  const archivedAt = new Date("2026-08-10T09:00:00.000Z");
+  const archivedDay = new Date("2026-08-10T00:00:00.000Z");
 
   it("counts a book finished on the archiving day itself", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt,
+      archivedDay,
       books: [book("book-1", "2026-08-10T21:00:00.000Z")],
       deadline,
       goalStartDate,
-      now: new Date("2026-08-15T09:00:00.000Z"),
       targetCount: 3,
+      today: new Date("2026-08-15T09:00:00.000Z"),
     });
 
     expect(progress.completedCount).toBe(1);
@@ -288,15 +288,15 @@ describe("calculateReadingGoalProgress archived window", () => {
 
   it("does not count a book finished after the goal was archived", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt,
+      archivedDay,
       books: [
         book("counted", "2026-08-05T10:00:00.000Z"),
         book("after-archiving", "2026-08-12T10:00:00.000Z"),
       ],
       deadline,
       goalStartDate,
-      now: new Date("2026-08-15T09:00:00.000Z"),
       targetCount: 3,
+      today: new Date("2026-08-15T09:00:00.000Z"),
     });
 
     expect(progress.completedCount).toBe(1);
@@ -304,15 +304,15 @@ describe("calculateReadingGoalProgress archived window", () => {
 
   it("keeps an archived goal's result frozen when the reader finishes the rest of the list later", () => {
     const beforeTheRest = calculateReadingGoalProgress({
-      archivedAt,
+      archivedDay,
       books: [book("book-1", "2026-08-05T10:00:00.000Z")],
       deadline,
       goalStartDate,
-      now: new Date("2026-08-11T09:00:00.000Z"),
       targetCount: 3,
+      today: new Date("2026-08-11T09:00:00.000Z"),
     });
     const afterTheRest = calculateReadingGoalProgress({
-      archivedAt,
+      archivedDay,
       books: [
         book("book-1", "2026-08-05T10:00:00.000Z"),
         book("book-2", "2026-08-12T10:00:00.000Z"),
@@ -320,8 +320,8 @@ describe("calculateReadingGoalProgress archived window", () => {
       ],
       deadline,
       goalStartDate,
-      now: new Date("2026-08-16T09:00:00.000Z"),
       targetCount: 3,
+      today: new Date("2026-08-16T09:00:00.000Z"),
     });
 
     expect(afterTheRest.completedCount).toBe(beforeTheRest.completedCount);
@@ -331,15 +331,31 @@ describe("calculateReadingGoalProgress archived window", () => {
 
   it("still stops counting at the deadline for a goal archived after it had passed", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt: new Date("2026-08-25T09:00:00.000Z"),
+      archivedDay: new Date("2026-08-25T00:00:00.000Z"),
       books: [
         book("counted", "2026-08-18T10:00:00.000Z"),
         book("after-deadline", "2026-08-22T10:00:00.000Z"),
       ],
       deadline,
       goalStartDate,
-      now: new Date("2026-08-26T09:00:00.000Z"),
       targetCount: 3,
+      today: new Date("2026-08-26T09:00:00.000Z"),
+    });
+
+    expect(progress.completedCount).toBe(1);
+  });
+
+  it("counts a book finished on the local archive day of a goal archived before its deadline", () => {
+    const progress = calculateReadingGoalProgress({
+      archivedDay: new Date("2026-11-16T00:00:00.000Z"),
+      books: [
+        book("finished-on-archive-day", "2026-11-16T00:00:00.000Z"),
+        book("finished-after-archiving", "2026-11-17T00:00:00.000Z"),
+      ],
+      deadline: new Date("2026-11-20T00:00:00.000Z"),
+      goalStartDate,
+      targetCount: 3,
+      today: new Date("2026-11-18T00:00:00.000Z"),
     });
 
     expect(progress.completedCount).toBe(1);
@@ -349,7 +365,7 @@ describe("calculateReadingGoalProgress archived window", () => {
 describe("calculateReadingGoalProgress", () => {
   it("reports completedAt as the finish date of the target-th book, not the last one", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt: null,
+      archivedDay: null,
       books: [
         book("book-1", "2026-08-01T10:00:00.000Z"),
         book("book-2", "2026-08-02T10:00:00.000Z"),
@@ -359,8 +375,8 @@ describe("calculateReadingGoalProgress", () => {
       ],
       deadline: new Date("2026-08-20T00:00:00.000Z"),
       goalStartDate,
-      now,
       targetCount: 3,
+      today,
     });
 
     expect(progress.completedAt).toEqual(new Date("2026-08-03T10:00:00.000Z"));
@@ -368,15 +384,15 @@ describe("calculateReadingGoalProgress", () => {
 
   it("resolves completedAt through the tie-broken order rather than the input order", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt: null,
+      archivedDay: null,
       books: [
         book("book-z", "2026-08-05T10:00:00.000Z"),
         book("book-a", "2026-08-02T10:00:00.000Z"),
       ],
       deadline: new Date("2026-08-20T00:00:00.000Z"),
       goalStartDate,
-      now,
       targetCount: 1,
+      today,
     });
 
     expect(progress.completedAt).toEqual(new Date("2026-08-02T10:00:00.000Z"));
@@ -384,12 +400,12 @@ describe("calculateReadingGoalProgress", () => {
 
   it("leaves completedAt null while fewer books than the target are counted", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt: null,
+      archivedDay: null,
       books: [book("book-1", "2026-08-01T10:00:00.000Z")],
       deadline: new Date("2026-08-20T00:00:00.000Z"),
       goalStartDate,
-      now,
       targetCount: 3,
+      today,
     });
 
     expect(progress.completedAt).toBeNull();
@@ -397,15 +413,15 @@ describe("calculateReadingGoalProgress", () => {
 
   it("counts only the books inside the window, so a book finished before the start never lands in completedCount", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt: null,
+      archivedDay: null,
       books: [
         book("before", "2026-07-20T09:00:00.000Z"),
         book("inside", "2026-08-08T09:00:00.000Z"),
       ],
       deadline: new Date("2026-08-20T00:00:00.000Z"),
       goalStartDate,
-      now,
       targetCount: 3,
+      today,
     });
 
     expect(progress.completedCount).toBe(1);
@@ -413,7 +429,7 @@ describe("calculateReadingGoalProgress", () => {
 
   it("returns remainingCount zero rather than a negative number when the target is exceeded", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt: null,
+      archivedDay: null,
       books: [
         book("book-1", "2026-08-01T10:00:00.000Z"),
         book("book-2", "2026-08-02T10:00:00.000Z"),
@@ -422,8 +438,8 @@ describe("calculateReadingGoalProgress", () => {
       ],
       deadline: new Date("2026-08-20T00:00:00.000Z"),
       goalStartDate,
-      now,
       targetCount: 2,
+      today,
     });
 
     expect(progress.remainingCount).toBe(0);
@@ -431,12 +447,12 @@ describe("calculateReadingGoalProgress", () => {
 
   it("counts the books still owed while the goal is active", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt: null,
+      archivedDay: null,
       books: [book("book-1", "2026-08-01T10:00:00.000Z")],
       deadline: new Date("2026-08-20T00:00:00.000Z"),
       goalStartDate,
-      now,
       targetCount: 4,
+      today,
     });
 
     expect(progress.remainingCount).toBe(3);
@@ -444,12 +460,12 @@ describe("calculateReadingGoalProgress", () => {
 
   it("reports daysLeft as zero when the deadline is the current UTC day", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt: null,
+      archivedDay: null,
       books: [],
       deadline: new Date("2026-08-08T00:00:00.000Z"),
       goalStartDate,
-      now,
       targetCount: 3,
+      today,
     });
 
     expect(progress.daysLeft).toBe(0);
@@ -457,12 +473,12 @@ describe("calculateReadingGoalProgress", () => {
 
   it("stops counting daysLeft once the goal is expired", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt: null,
+      archivedDay: null,
       books: [],
       deadline: new Date("2026-08-05T00:00:00.000Z"),
       goalStartDate,
-      now,
       targetCount: 3,
+      today,
     });
 
     expect(progress.status).toBe("expired");
@@ -471,15 +487,15 @@ describe("calculateReadingGoalProgress", () => {
 
   it("stops counting daysLeft once the goal is completed", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt: null,
+      archivedDay: null,
       books: [
         book("book-1", "2026-08-01T10:00:00.000Z"),
         book("book-2", "2026-08-02T10:00:00.000Z"),
       ],
       deadline: new Date("2026-08-20T00:00:00.000Z"),
       goalStartDate,
-      now,
       targetCount: 2,
+      today,
     });
 
     expect(progress.status).toBe("completed");
@@ -488,12 +504,12 @@ describe("calculateReadingGoalProgress", () => {
 
   it("stops counting daysLeft once the goal is archived", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt: new Date("2026-08-06T12:00:00.000Z"),
+      archivedDay: new Date("2026-08-06T00:00:00.000Z"),
       books: [],
       deadline: new Date("2026-08-20T00:00:00.000Z"),
       goalStartDate,
-      now,
       targetCount: 3,
+      today,
     });
 
     expect(progress.status).toBe("archived");
@@ -502,20 +518,20 @@ describe("calculateReadingGoalProgress", () => {
 
   it("never reaches the negative branch of daysLeft, because the deadline day is the last active day", () => {
     const onTheDeadline = calculateReadingGoalProgress({
-      archivedAt: null,
+      archivedDay: null,
       books: [],
       deadline: new Date("2026-08-08T00:00:00.000Z"),
       goalStartDate,
-      now,
       targetCount: 3,
+      today,
     });
     const dayAfterTheDeadline = calculateReadingGoalProgress({
-      archivedAt: null,
+      archivedDay: null,
       books: [],
       deadline: new Date("2026-08-08T00:00:00.000Z"),
       goalStartDate,
-      now: new Date("2026-08-09T00:30:00.000Z"),
       targetCount: 3,
+      today: new Date("2026-08-09T00:30:00.000Z"),
     });
 
     expect(onTheDeadline).toMatchObject({ daysLeft: 0, status: "active" });
@@ -524,20 +540,20 @@ describe("calculateReadingGoalProgress", () => {
 
   it("derives daysLeft from the UTC day boundary rather than the moment of day", () => {
     const earlyMorning = calculateReadingGoalProgress({
-      archivedAt: null,
+      archivedDay: null,
       books: [],
       deadline: new Date("2026-08-12T00:00:00.000Z"),
       goalStartDate,
-      now: new Date("2026-08-08T00:00:01.000Z"),
       targetCount: 3,
+      today: new Date("2026-08-08T00:00:01.000Z"),
     });
     const lateEvening = calculateReadingGoalProgress({
-      archivedAt: null,
+      archivedDay: null,
       books: [],
       deadline: new Date("2026-08-12T00:00:00.000Z"),
       goalStartDate,
-      now: new Date("2026-08-08T23:59:59.000Z"),
       targetCount: 3,
+      today: new Date("2026-08-08T23:59:59.000Z"),
     });
 
     expect(earlyMorning.daysLeft).toBe(lateEvening.daysLeft);
@@ -550,11 +566,11 @@ describe("resolveReadingGoalResult", () => {
   it("is null while the goal is still active", () => {
     expect(
       resolveReadingGoalResult({
-        archivedAt: null,
+        archivedDay: null,
         completedCount: 1,
         deadline,
-        now,
         targetCount: 3,
+        today,
       }),
     ).toBeNull();
   });
@@ -562,11 +578,11 @@ describe("resolveReadingGoalResult", () => {
   it("is completed once the qualifying count reaches the target", () => {
     expect(
       resolveReadingGoalResult({
-        archivedAt: null,
+        archivedDay: null,
         completedCount: 3,
         deadline,
-        now,
         targetCount: 3,
+        today,
       }),
     ).toBe("completed");
   });
@@ -574,11 +590,11 @@ describe("resolveReadingGoalResult", () => {
   it("is expired when the target is unmet and the deadline has passed", () => {
     expect(
       resolveReadingGoalResult({
-        archivedAt: null,
+        archivedDay: null,
         completedCount: 2,
         deadline,
-        now: new Date("2026-08-21T09:00:00.000Z"),
         targetCount: 3,
+        today: new Date("2026-08-21T09:00:00.000Z"),
       }),
     ).toBe("expired");
   });
@@ -586,23 +602,23 @@ describe("resolveReadingGoalResult", () => {
   it("is completed for an archived goal that met its target", () => {
     expect(
       resolveReadingGoalResult({
-        archivedAt: new Date("2026-08-10T09:00:00.000Z"),
+        archivedDay: new Date("2026-08-10T00:00:00.000Z"),
         completedCount: 3,
         deadline,
-        now: new Date("2026-09-30T09:00:00.000Z"),
         targetCount: 3,
+        today: new Date("2026-09-30T09:00:00.000Z"),
       }),
     ).toBe("completed");
   });
 
-  it("freezes at archivedAt, so a goal archived incomplete before its deadline stays null", () => {
+  it("freezes at archivedDay, so a goal archived incomplete before its deadline stays null", () => {
     expect(
       resolveReadingGoalResult({
-        archivedAt: new Date("2026-08-10T09:00:00.000Z"),
+        archivedDay: new Date("2026-08-10T00:00:00.000Z"),
         completedCount: 1,
         deadline,
-        now: new Date("2026-09-30T09:00:00.000Z"),
         targetCount: 3,
+        today: new Date("2026-09-30T09:00:00.000Z"),
       }),
     ).toBeNull();
   });
@@ -610,11 +626,23 @@ describe("resolveReadingGoalResult", () => {
   it("is expired for a goal archived after its deadline had already passed", () => {
     expect(
       resolveReadingGoalResult({
-        archivedAt: new Date("2026-08-25T09:00:00.000Z"),
+        archivedDay: new Date("2026-08-25T00:00:00.000Z"),
         completedCount: 1,
         deadline,
-        now: new Date("2026-09-30T09:00:00.000Z"),
         targetCount: 3,
+        today: new Date("2026-09-30T09:00:00.000Z"),
+      }),
+    ).toBe("expired");
+  });
+
+  it("is expired for a goal archived on the local day after its deadline, though the archive instant shares the deadline's UTC date", () => {
+    expect(
+      resolveReadingGoalResult({
+        archivedDay: new Date("2026-11-16T00:00:00.000Z"),
+        completedCount: 1,
+        deadline: new Date("2026-11-15T00:00:00.000Z"),
+        targetCount: 3,
+        today: new Date("2026-11-16T00:00:00.000Z"),
       }),
     ).toBe("expired");
   });
@@ -623,15 +651,15 @@ describe("resolveReadingGoalResult", () => {
 describe("calculateReadingGoalProgress result", () => {
   it("reports an archived goal that met its target as archived with a completed result", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt: new Date("2026-08-10T09:00:00.000Z"),
+      archivedDay: new Date("2026-08-10T00:00:00.000Z"),
       books: [
         book("book-1", "2026-08-02T10:00:00.000Z"),
         book("book-2", "2026-08-03T10:00:00.000Z"),
       ],
       deadline: new Date("2026-08-20T00:00:00.000Z"),
       goalStartDate,
-      now: new Date("2026-09-30T09:00:00.000Z"),
       targetCount: 2,
+      today: new Date("2026-09-30T09:00:00.000Z"),
     });
 
     expect(progress.status).toBe("archived");
@@ -640,12 +668,12 @@ describe("calculateReadingGoalProgress result", () => {
 
   it("reports an active goal with no result yet", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt: null,
+      archivedDay: null,
       books: [book("book-1", "2026-08-02T10:00:00.000Z")],
       deadline: new Date("2026-08-20T00:00:00.000Z"),
       goalStartDate,
-      now,
       targetCount: 3,
+      today,
     });
 
     expect(progress.status).toBe("active");
@@ -654,12 +682,12 @@ describe("calculateReadingGoalProgress result", () => {
 
   it("reports an expired goal with an expired result", () => {
     const progress = calculateReadingGoalProgress({
-      archivedAt: null,
+      archivedDay: null,
       books: [book("book-1", "2026-08-02T10:00:00.000Z")],
       deadline: new Date("2026-08-20T00:00:00.000Z"),
       goalStartDate,
-      now: new Date("2026-08-21T09:00:00.000Z"),
       targetCount: 3,
+      today: new Date("2026-08-21T09:00:00.000Z"),
     });
 
     expect(progress.status).toBe("expired");

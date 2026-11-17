@@ -1,3 +1,6 @@
+import { AUTH_ERROR_CODES } from "@app/shared";
+
+import { HTTP_STATUS } from "@/lib/api-errors";
 import { ApiError } from "@/lib/http-client";
 
 const AUTH_ERROR_KEY_LIST = [
@@ -68,11 +71,19 @@ type ServerFormError = {
 };
 
 export function isEmailNotVerified(error: unknown): boolean {
-  return error instanceof ApiError && error.status === 403 && error.code === "email_not_verified";
+  return (
+    error instanceof ApiError &&
+    error.status === HTTP_STATUS.forbidden &&
+    error.code === AUTH_ERROR_CODES.emailNotVerified
+  );
 }
 
 export function isInvalidToken(error: unknown): boolean {
-  return error instanceof ApiError && error.status === 400 && error.fieldErrors === undefined;
+  return (
+    error instanceof ApiError &&
+    error.status === HTTP_STATUS.badRequest &&
+    error.fieldErrors === undefined
+  );
 }
 
 export function resolveFieldMessage(field: string, message: string | undefined): ResolvedMessage {
@@ -119,11 +130,11 @@ function mapFieldErrors(error: ApiError): ServerFieldError[] {
 }
 
 function mapFormMessageKey(error: ApiError): AuthErrorKey {
-  if (error.status === 401) return "errors.invalidCredentials";
-  if (error.status === 403 && error.code === "email_not_verified") {
+  if (error.status === HTTP_STATUS.unauthorized) return "errors.invalidCredentials";
+  if (error.status === HTTP_STATUS.forbidden && error.code === AUTH_ERROR_CODES.emailNotVerified) {
     return "errors.emailNotVerified";
   }
-  if (error.status === 429) return "errors.tooManyAttempts";
-  if (error.status === 400) return "errors.invalidToken";
+  if (error.status === HTTP_STATUS.tooManyRequests) return "errors.tooManyAttempts";
+  if (error.status === HTTP_STATUS.badRequest) return "errors.invalidToken";
   return "errors.serviceUnavailable";
 }

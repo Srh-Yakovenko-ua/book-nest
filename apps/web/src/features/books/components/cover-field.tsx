@@ -10,6 +10,7 @@ import { type RefObject, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { UiIcon } from "@/components/icons";
+import { Spinner } from "@/components/spinner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -260,7 +261,7 @@ export function CoverField({
           className="flex items-center gap-1.5 text-sm text-muted-foreground motion-safe:animate-in motion-safe:duration-300 motion-safe:fade-in"
           role="status"
         >
-          <UiIcon className="animate-spin" name="refresh" size={16} />
+          <Spinner />
           {t("converting")}
         </p>
       )}

@@ -72,8 +72,10 @@ import { LibraryPublisherOverviewDto } from "./view-dto/library-publisher-overvi
 import { LibraryPublishersPageDto } from "./view-dto/library-publishers-page.view-dto.js";
 import { LibraryPublishersQuickCountsDto } from "./view-dto/library-publishers-quick-counts.view-dto.js";
 import { LibraryPublishersSummaryDto } from "./view-dto/library-publishers-summary.view-dto.js";
+import { PaginatedPublishersDto } from "./view-dto/paginated-publishers.view-dto.js";
 import { PublisherDuplicateCandidateDto } from "./view-dto/publisher-duplicate-candidate.view-dto.js";
 import { PublisherMergeResultDto } from "./view-dto/publisher-merge-result.view-dto.js";
+import { PublisherViewDto } from "./view-dto/publisher.view-dto.js";
 
 @ApiTags("publishers")
 @Controller("api/publishers")
@@ -168,7 +170,11 @@ export class PublishersController {
       userId: user.id,
     });
   }
-  @ApiOkResponse({ description: "Publishers the current user recently used in their own books" })
+  @ApiOkResponse({
+    description: "Publishers the current user recently used in their own books",
+    isArray: true,
+    type: PublisherViewDto,
+  })
   @ApiOperation({ summary: "List recently used publishers for the current user" })
   @ApiQuery({ name: "limit", required: false })
   @ApiQuery({ enum: CatalogLocaleSchema.options, name: "locale", required: false })
@@ -184,7 +190,10 @@ export class PublishersController {
       userId: user.id,
     });
   }
-  @ApiOkResponse({ description: "A page of publishers visible to the current user" })
+  @ApiOkResponse({
+    description: "A page of publishers visible to the current user",
+    type: PaginatedPublishersDto,
+  })
   @ApiOperation({ summary: "Search publishers (global seeds + own custom)" })
   @ApiQuery({ name: "search", required: false })
   @ApiQuery({ name: "pageNumber", required: false })

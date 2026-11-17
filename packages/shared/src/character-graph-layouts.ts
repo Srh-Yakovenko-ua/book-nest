@@ -1,11 +1,16 @@
 import { z } from "zod";
 
-import { CHARACTER_GRAPH_NODE_LIMIT, CharacterGraphModeSchema } from "./character-graph.js";
+import { CHARACTER_GRAPH_NODE_LIMIT } from "./character-graph.js";
 
 const LAYOUT_VERSION_MAX = 200;
 const LAYOUT_COORDINATE_ABS_MAX = 1_000_000;
 const LAYOUT_ZOOM_MIN = 0.01;
 const LAYOUT_ZOOM_MAX = 100;
+
+const LAYOUT_VIRTUAL_NODE_KEY = {
+  maxLength: 128,
+  pattern: /^cluster:(?:group|components|importance):[a-z0-9_-]{1,96}$/,
+} as const;
 
 export const CHARACTER_GRAPH_LAYOUT_POSITIONS_MAX = CHARACTER_GRAPH_NODE_LIMIT;
 
@@ -20,6 +25,22 @@ export const CharacterGraphLayoutScopeTypeSchema = z.enum(["book", "series", "gl
 
 export type CharacterGraphLayoutScopeType = z.infer<typeof CharacterGraphLayoutScopeTypeSchema>;
 
+export const CharacterGraphStorageModeSchema = z.enum([
+  "family",
+  "all",
+  "person",
+  "tree",
+  "network",
+]);
+
+export type CharacterGraphStorageMode = z.infer<typeof CharacterGraphStorageModeSchema>;
+
+const GRAPH_WORKSPACE_STORAGE_MODES: readonly CharacterGraphStorageMode[] = [
+  "person",
+  "tree",
+  "network",
+];
+
 const coordinate = z
   .number()
   .finite()
@@ -30,8 +51,13 @@ export const CharacterGraphNodePositionSchema = z.object({ x: coordinate, y: coo
 
 export type CharacterGraphNodePosition = z.infer<typeof CharacterGraphNodePositionSchema>;
 
+const CharacterGraphPositionKeySchema = z.union([
+  z.uuid(),
+  z.string().max(LAYOUT_VIRTUAL_NODE_KEY.maxLength).regex(LAYOUT_VIRTUAL_NODE_KEY.pattern),
+]);
+
 export const CharacterGraphPositionsSchema = z
-  .record(z.uuid(), CharacterGraphNodePositionSchema)
+  .record(CharacterGraphPositionKeySchema, CharacterGraphNodePositionSchema)
   .refine((positions) => Object.keys(positions).length <= CHARACTER_GRAPH_LAYOUT_POSITIONS_MAX, {
     message: `positions may not exceed ${CHARACTER_GRAPH_LAYOUT_POSITIONS_MAX} entries`,
   });
@@ -50,15 +76,29 @@ export type CharacterGraphViewport = z.infer<typeof CharacterGraphViewportSchema
 
 const layoutKeyFields = {
   contextBookId: z.uuid().nullish(),
-  mode: CharacterGraphModeSchema,
+  mode: CharacterGraphStorageModeSchema,
   scopeId: z.uuid().nullish(),
   scopeType: CharacterGraphLayoutScopeTypeSchema,
 };
 
 const requireScopeConsistency = (
-  value: { scopeId?: null | string; scopeType: CharacterGraphLayoutScopeType },
+  value: {
+    contextBookId?: null | string;
+    mode: CharacterGraphStorageMode;
+    scopeId?: null | string;
+    scopeType: CharacterGraphLayoutScopeType;
+  },
   ctx: z.RefinementCtx,
 ): void => {
+  const isWorkspaceMode = GRAPH_WORKSPACE_STORAGE_MODES.includes(value.mode);
+  const hasContextBookId = value.contextBookId !== null && value.contextBookId !== undefined;
+  if (isWorkspaceMode && (value.scopeType !== "book" || hasContextBookId)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "person, tree and network layouts belong to a book scope without contextBookId",
+      path: ["mode"],
+    });
+  }
   const hasScopeId = value.scopeId !== null && value.scopeId !== undefined;
   if (value.scopeType === "global") {
     if (hasScopeId) {
@@ -103,7 +143,7 @@ export const CharacterGraphLayoutViewSchema = z.object({
   createdAt: z.string(),
   id: z.string(),
   layoutVersion: z.string(),
-  mode: CharacterGraphModeSchema,
+  mode: CharacterGraphStorageModeSchema,
   positions: CharacterGraphPositionsSchema,
   scopeId: z.string().nullable(),
   scopeType: CharacterGraphLayoutScopeTypeSchema,

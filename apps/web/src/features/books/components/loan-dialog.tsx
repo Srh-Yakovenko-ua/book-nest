@@ -9,14 +9,18 @@ import type {
 } from "@app/shared";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { isAfter, isBefore, parseISO } from "date-fns";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, type UseFormReturn, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import type { LoanContactSelection } from "@/features/loans/model/loan-contact-selection";
+import type { LoanContactSelection } from "@/features/loans";
 
+import { BookThumb } from "@/components/book-thumb";
+import { DateField } from "@/components/date-field";
+import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,16 +35,19 @@ import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { CreateLoanContactStep } from "@/features/loans/components/contact/create-loan-contact-step";
-import { LoanContactPicker } from "@/features/loans/components/loan-contact-picker";
+import { CreateLoanContactStep, LoanContactPicker, toLoanErrorKey } from "@/features/loans";
+import { useProfileTimeZone } from "@/features/settings";
+import {
+  CLEAN_CLOSE_GUARD_DRAFT,
+  type CloseGuardDraft,
+  useCloseGuard,
+} from "@/hooks/use-close-guard";
+import { emptyToNull } from "@/lib/empty-to-null";
+import { ISO_DAY, todayIsoDay } from "@/lib/iso-day";
 
 import { useCreateLoansBatch } from "../api/use-create-loans-batch";
 import { useCreateLoan } from "../api/use-loan";
 import { toLoanBatchConflicts } from "../model/loan-batch-error";
-import { toLoanErrorKey } from "../model/loan-error";
-import { ISO_DATE_PATTERN, todayIso } from "../model/reading-progress";
-import { BookDateField } from "./book-date-field";
-import { BookThumb } from "./book-picker";
 import { LoanBooksStep } from "./loan-books-step";
 
 const NOTE_MAX = 300;
@@ -80,22 +87,44 @@ type LoanValues = {
 };
 
 export function LoanDialog({ context, direction, onOpenChange, open }: LoanDialogProps) {
+  const [draft, setDraft] = useState<CloseGuardDraft>(CLEAN_CLOSE_GUARD_DRAFT);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const guard = useCloseGuard({
+    focusFallback: () => contentRef.current?.focus(),
+    isDirty: draft.isDirty,
+    isOpen: open,
+    isPending: draft.isPending,
+    onClose: () => onOpenChange(false),
+  });
+
   return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent
-        className={
-          context.kind === "contact" ? "max-h-[92vh] overflow-y-auto sm:max-w-3xl" : "sm:max-w-md"
-        }
+    <>
+      <Dialog
+        onOpenChange={(next) => {
+          if (!next) guard.requestClose();
+        }}
+        open={open}
       >
-        {open ? (
-          <LoanDialogBody
-            context={context}
-            direction={direction}
-            onDone={() => onOpenChange(false)}
-          />
-        ) : null}
-      </DialogContent>
-    </Dialog>
+        <DialogContent
+          className={
+            context.kind === "contact" ? "max-h-[92vh] overflow-y-auto sm:max-w-3xl" : "sm:max-w-md"
+          }
+          ref={contentRef}
+        >
+          {open ? (
+            <LoanDialogBody
+              context={context}
+              direction={direction}
+              onCancel={guard.requestClose}
+              onDone={() => onOpenChange(false)}
+              onDraftChange={setDraft}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <DiscardChangesDialog {...guard.discardDialog} />
+    </>
   );
 }
 
@@ -110,10 +139,10 @@ function buildBatchPayload(
     loanContactId: values.loanContactId,
     loanDate: values.loanDate,
   };
-  const note = values.note.trim();
+  const note = emptyToNull(values.note);
 
   if (values.expectedReturnDate.length > 0) payload.expectedReturnDate = values.expectedReturnDate;
-  if (note.length > 0) payload.note = note;
+  if (note !== null) payload.note = note;
   if (values.remindToReturn) payload.remindToReturn = true;
 
   return payload;
@@ -125,37 +154,40 @@ function buildPayload(direction: LoanDirection, values: LoanValues): CreateLoanI
     loanContactId: values.loanContactId,
     loanDate: values.loanDate,
   };
-  const note = values.note.trim();
+  const note = emptyToNull(values.note);
 
   if (values.expectedReturnDate.length > 0) payload.expectedReturnDate = values.expectedReturnDate;
-  if (note.length > 0) payload.note = note;
+  if (note !== null) payload.note = note;
   if (values.remindToReturn) payload.remindToReturn = true;
 
   return payload;
 }
 
-function buildSchema(messages: LoanMessages) {
+function buildSchema({ messages, today }: { messages: LoanMessages; today: string }) {
   return z
     .object({
       expectedReturnDate: z
         .string()
-        .refine(
-          (value) => value.length === 0 || ISO_DATE_PATTERN.test(value),
-          messages.dateInvalid,
-        ),
+        .refine((value) => value.length === 0 || ISO_DAY.pattern.test(value), messages.dateInvalid),
       loanContactId: z.string().min(1, messages.contactRequired),
       loanContactName: z.string(),
       loanDate: z
         .string()
-        .refine((value) => ISO_DATE_PATTERN.test(value), messages.dateInvalid)
-        .refine((value) => value.length === 0 || value <= todayIso(), messages.loanDateFuture),
+        .refine((value) => ISO_DAY.pattern.test(value), messages.dateInvalid)
+        .refine(
+          (value) => value.length === 0 || !isAfter(parseISO(value), parseISO(today)),
+          messages.loanDateFuture,
+        ),
       note: z.string().max(NOTE_MAX, messages.noteMax),
       remindToReturn: z.boolean(),
     })
     .refine(
       (value) =>
         value.expectedReturnDate.length === 0 ||
-        value.expectedReturnDate >= (value.loanDate.length > 0 ? value.loanDate : todayIso()),
+        !isBefore(
+          parseISO(value.expectedReturnDate),
+          parseISO(value.loanDate.length > 0 ? value.loanDate : today),
+        ),
       { message: messages.returnBeforeLoan, path: ["expectedReturnDate"] },
     )
     .refine((value) => !value.remindToReturn || value.expectedReturnDate.length > 0, {
@@ -167,11 +199,15 @@ function buildSchema(messages: LoanMessages) {
 function LoanDialogBody({
   context,
   direction,
+  onCancel,
   onDone,
+  onDraftChange,
 }: {
   context: LoanDialogContext;
   direction: LoanDirection;
+  onCancel: () => void;
   onDone: () => void;
+  onDraftChange: (draft: CloseGuardDraft) => void;
 }) {
   const tErrors = useTranslations("books.details.loan.errors");
   const tContact = useTranslations("loans.contactPicker");
@@ -179,37 +215,50 @@ function LoanDialogBody({
   const [selected, setSelected] = useState<BookView[]>([]);
   const [createName, setCreateName] = useState("");
   const [step, setStep] = useState<LoanStep>(fixedContact === null ? "form" : "books");
+  const today = todayIsoDay(useProfileTimeZone());
+  const createLoan = useCreateLoan();
+  const createLoansBatch = useCreateLoansBatch();
 
   const form = useForm<LoanValues>({
     defaultValues: {
       expectedReturnDate: "",
       loanContactId: fixedContact?.id ?? "",
       loanContactName: fixedContact?.name ?? "",
-      loanDate: todayIso(),
+      loanDate: today,
       note: "",
       remindToReturn: false,
     },
     mode: "onTouched",
     resolver: zodResolver(
       buildSchema({
-        contactRequired: tContact("required"),
-        dateInvalid: tErrors("dateInvalid"),
-        loanDateFuture: tErrors("loanDateFuture"),
-        noteMax: tErrors("noteMax", { max: NOTE_MAX }),
-        reminderNeedsDate: tErrors("reminderNeedsDate"),
-        returnBeforeLoan: tErrors("returnBeforeLoan"),
+        messages: {
+          contactRequired: tContact("required"),
+          dateInvalid: tErrors("dateInvalid"),
+          loanDateFuture: tErrors("loanDateFuture"),
+          noteMax: tErrors("noteMax", { max: NOTE_MAX }),
+          reminderNeedsDate: tErrors("reminderNeedsDate"),
+          returnBeforeLoan: tErrors("returnBeforeLoan"),
+        },
+        today,
       }),
     ),
   });
+
+  const isDirty = form.formState.isDirty || selected.length > 0;
+  const isPending = createLoan.isPending || createLoansBatch.isPending;
+
+  useEffect(() => {
+    onDraftChange({ isDirty, isPending });
+  }, [isDirty, isPending, onDraftChange]);
 
   if (step === "create-contact") {
     return (
       <CreateLoanContactStep
         initialName={createName}
         onBack={() => setStep("form")}
-        onCancel={onDone}
+        onCancel={onCancel}
         onResolved={({ contact }) => {
-          form.setValue("loanContactId", contact.id, { shouldValidate: true });
+          form.setValue("loanContactId", contact.id, { shouldDirty: true, shouldValidate: true });
           form.setValue("loanContactName", contact.name);
           setStep("form");
         }}
@@ -221,7 +270,7 @@ function LoanDialogBody({
     return (
       <LoanBooksStep
         direction={direction}
-        onCancel={onDone}
+        onCancel={onCancel}
         onNext={() => setStep("form")}
         onSelectedChange={setSelected}
         personName={context.contact.name}
@@ -232,8 +281,11 @@ function LoanDialogBody({
 
   return (
     <LoanForm
+      createLoan={createLoan}
+      createLoansBatch={createLoansBatch}
       direction={direction}
       form={form}
+      onCancel={onCancel}
       onDone={onDone}
       onRequestCreate={(name) => {
         setCreateName(name);
@@ -249,29 +301,36 @@ function LoanDialogBody({
             }
           : { book: context.book, kind: "book" }
       }
+      today={today}
     />
   );
 }
 
 function LoanForm({
+  createLoan,
+  createLoansBatch,
   direction,
   form,
+  onCancel,
   onDone,
   onRequestCreate,
   target,
+  today,
 }: {
+  createLoan: ReturnType<typeof useCreateLoan>;
+  createLoansBatch: ReturnType<typeof useCreateLoansBatch>;
   direction: LoanDirection;
   form: UseFormReturn<LoanValues>;
+  onCancel: () => void;
   onDone: () => void;
   onRequestCreate: (name: string) => void;
   target: LoanFormTarget;
+  today: string;
 }) {
   const t = useTranslations("books.details.loan");
   const tErrors = useTranslations("books.details.loan.errors");
   const tActions = useTranslations("books.actions");
   const tBatch = useTranslations("books.details.loan.batch");
-  const createLoan = useCreateLoan();
-  const createLoansBatch = useCreateLoansBatch();
   const [serverError, setServerError] = useState<null | string>(null);
   const [blockedBooks, setBlockedBooks] = useState<BookView[]>([]);
 
@@ -281,9 +340,17 @@ function LoanForm({
   const {
     control,
     formState: { errors },
+    getFieldState,
+    getValues,
     handleSubmit,
+    resetField,
     setValue,
   } = form;
+
+  useEffect(() => {
+    if (getFieldState("loanDate").isDirty || getValues("loanDate") === today) return;
+    resetField("loanDate", { defaultValue: today });
+  }, [getFieldState, getValues, resetField, today]);
 
   const loanContactId = useWatch({ control, name: "loanContactId" });
   const loanContactName = useWatch({ control, name: "loanContactName" });
@@ -294,6 +361,7 @@ function LoanForm({
 
   function handleContactChange(selection: LoanContactSelection | null) {
     setValue("loanContactId", selection?.kind === "picked" ? selection.contactId : "", {
+      shouldDirty: true,
       shouldValidate: true,
     });
     setValue("loanContactName", selection?.name ?? "");
@@ -403,7 +471,7 @@ function LoanForm({
             control={control}
             name="loanDate"
             render={({ field }) => (
-              <BookDateField
+              <DateField
                 ariaLabel={t(`${variant}.loanDate`)}
                 describedBy={errors.loanDate ? "loan-date-error" : undefined}
                 id="loan-date"
@@ -411,6 +479,7 @@ function LoanForm({
                 onChange={(next) => field.onChange(next ?? "")}
                 placeholder={t("fields.datePlaceholder")}
                 required
+                today={today}
                 value={field.value}
               />
             )}
@@ -424,7 +493,7 @@ function LoanForm({
             control={control}
             name="expectedReturnDate"
             render={({ field }) => (
-              <BookDateField
+              <DateField
                 allowFuture
                 ariaLabel={t("fields.returnDate")}
                 describedBy={errors.expectedReturnDate ? "loan-return-date-error" : undefined}
@@ -432,6 +501,7 @@ function LoanForm({
                 invalid={errors.expectedReturnDate !== undefined}
                 onChange={(next) => field.onChange(next ?? "")}
                 placeholder={t("fields.datePlaceholder")}
+                today={today}
                 value={field.value}
               />
             )}
@@ -505,7 +575,7 @@ function LoanForm({
       )}
 
       <DialogFooter>
-        <Button onClick={onDone} type="button" variant="secondary">
+        <Button onClick={onCancel} type="button" variant="secondary">
           {tActions("cancel")}
         </Button>
         <Button disabled={isPending} loading={isPending} type="submit">

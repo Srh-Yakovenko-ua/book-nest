@@ -39,6 +39,14 @@ const FIRST_ALTERNATIVE = makeTimelineView({
   position: 0,
 });
 
+function deferredResponse() {
+  let resolve: (response: Response) => void = () => undefined;
+  const promise = new Promise<Response>((settle) => {
+    resolve = settle;
+  });
+  return { promise, resolve };
+}
+
 function deleteCall() {
   return fetchMock.mock.calls.find(
     ([, init]) => (init?.method ?? "GET").toUpperCase() === "DELETE",
@@ -162,5 +170,29 @@ describe("DeleteTimelineDialog", () => {
 
     expect(props.onClose).toHaveBeenCalled();
     expect(props.onDeleted).not.toHaveBeenCalled();
+  });
+
+  it("stays open on Escape while deleting and reports the deletion once it lands", async () => {
+    const deleting = deferredResponse();
+    fetchMock.mockImplementation((_input, init) =>
+      (init?.method ?? "GET").toUpperCase() === "DELETE"
+        ? deleting.promise
+        : Promise.resolve(new Response(null, { status: 204 })),
+    );
+    const props = mountDialog();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Видалити" }));
+    expect(await screen.findByRole("button", { name: "Видалення…" })).toBeDisabled();
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(screen.getByRole("dialog", { name: "Видалити часову лінію?" })).toBeInTheDocument();
+    expect(props.onClose).not.toHaveBeenCalled();
+
+    deleting.resolve(new Response(null, { status: 204 }));
+
+    await waitFor(() => expect(props.onDeleted).toHaveBeenCalledWith("line-3"));
+    expect(toast.success).toHaveBeenCalledWith("Лінію видалено");
+    expect(props.onClose).not.toHaveBeenCalled();
   });
 });
