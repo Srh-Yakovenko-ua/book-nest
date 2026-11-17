@@ -13,6 +13,5 @@ export function useLoanContact(contactId: Nullable<string>) {
     queryFn: async (): Promise<LoanContactView> =>
       LoanContactViewSchema.parse(await loanContactsControllerDetail(contactId ?? "")),
     queryKey: loanKeys.contacts.detail(contactId ?? ""),
-    retry: false,
   });
 }

@@ -2,9 +2,8 @@
 
 import type { ReactNode } from "react";
 
-import { Loader2 } from "lucide-react";
-
 import { UiIcon } from "@/components/icons";
+import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
 
 type SpoilerRevealButtonProps = {
@@ -29,11 +28,7 @@ export function SpoilerRevealButton({
       size="sm"
       variant="secondary"
     >
-      {revealing ? (
-        <Loader2 aria-hidden className="size-3.5 animate-spin" />
-      ) : (
-        <UiIcon name="eye" size={14} />
-      )}
+      {revealing ? <Spinner size="sm" /> : <UiIcon name="eye" size={14} />}
       {children}
     </Button>
   );

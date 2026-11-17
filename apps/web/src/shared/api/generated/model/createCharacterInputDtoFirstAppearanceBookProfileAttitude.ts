@@ -14,7 +14,6 @@ export type CreateCharacterInputDtoFirstAppearanceBookProfileAttitude =
   | null;
 
 export const CreateCharacterInputDtoFirstAppearanceBookProfileAttitude = {
-  favorite: "favorite",
   like: "like",
   neutral: "neutral",
   distrust: "distrust",

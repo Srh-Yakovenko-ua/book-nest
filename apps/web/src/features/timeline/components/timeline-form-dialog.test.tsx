@@ -210,6 +210,24 @@ describe("TimelineFormDialog", () => {
     expect(props.onClose).not.toHaveBeenCalled();
   });
 
+  it("toasts the generic error instead of a duplicate name on a 409 without the duplicate code", async () => {
+    fetchMock.mockImplementation((_input, init) =>
+      Promise.resolve(
+        (init?.method ?? "GET").toUpperCase() === "POST"
+          ? jsonResponse({ message: "conflict" }, 409)
+          : jsonResponse(makeTimelineView()),
+      ),
+    );
+
+    mountDialog();
+
+    await userEvent.type(screen.getByLabelText(/Назва лінії/), "Спогади");
+    await userEvent.click(screen.getByRole("button", { name: "Створити" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Не вдалося змінити лінію"));
+    expect(screen.queryByText("Лінія з такою назвою вже існує")).not.toBeInTheDocument();
+  });
+
   it("requires a name before submitting", async () => {
     mountDialog();
 

@@ -18,6 +18,7 @@ import {
 import type { UiIconName } from "@/components/icons";
 import type { StatusEntry, StatusTone } from "@/lib/book-status";
 
+import { HTTP_STATUS } from "@/lib/api-errors";
 import { ApiError } from "@/lib/http-client";
 
 export type SeriesOrderActionLabelKey =
@@ -71,9 +72,6 @@ type DescribedProblemType =
   | "previous_book_not_owned"
   | "previous_book_paused"
   | "previous_book_want_to_buy";
-
-const HTTP_FORBIDDEN = 403;
-const HTTP_NOT_FOUND = 404;
 
 const MENU_ACTIONS: readonly SeriesOrderActionCode[] = ["IGNORE_ISSUE", "DISABLE_SERIES_CHECK"];
 
@@ -221,8 +219,8 @@ export function toSeriesOrderErrorKey(error: unknown): SeriesOrderErrorKey {
       break;
   }
 
-  if (error.status === HTTP_FORBIDDEN) return "forbidden";
-  if (error.status === HTTP_NOT_FOUND) return "notFound";
+  if (error.status === HTTP_STATUS.forbidden) return "forbidden";
+  if (error.status === HTTP_STATUS.notFound) return "notFound";
   return "generic";
 }
 

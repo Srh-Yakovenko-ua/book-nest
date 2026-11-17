@@ -3,13 +3,13 @@
 import type { LibraryPublisherListItem, Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
-import { type RefObject, useEffect, useRef } from "react";
-
-import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
+import { type Ref, type RefObject, useEffect, useRef } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { Skeleton } from "@/components/ui/skeleton";
+import { infiniteScrollStateOf } from "@/hooks/use-infinite-scroll-sentinel";
 import { cn } from "@/lib/utils";
 
 import type { PublishersArchiveState } from "../model/publisher-archive-state";
@@ -40,6 +40,7 @@ type PublishersContentProps = {
   onClearSearch: () => void;
   onResetFilters: () => void;
   onRetry: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
   state: PublishersArchiveState;
   view: PublishersViewMode;
 };
@@ -52,6 +53,7 @@ export function PublishersContent({
   onClearSearch,
   onResetFilters,
   onRetry,
+  retryButtonRef,
   state,
   view,
 }: PublishersContentProps) {
@@ -76,6 +78,7 @@ export function PublishersContent({
         <div aria-live="assertive" role="alert">
           <EmptyState
             onPrimary={onRetry}
+            primaryRef={retryButtonRef}
             state={{
               desc: t("error.description"),
               illu: "error-generic",
@@ -117,6 +120,7 @@ export function PublishersContent({
       return (
         <PublishersResultsSection
           gridColumns={gridColumns}
+          isRefreshing={state.isRefreshing}
           loadMore={loadMore}
           publishers={state.items}
           view={view}
@@ -127,17 +131,6 @@ export function PublishersContent({
 
 function focusWasLost(): boolean {
   return document.activeElement === null || document.activeElement === document.body;
-}
-
-function nextPageState({
-  hasNextPage,
-  isError,
-  isFetching,
-}: PublishersLoadMore): InfiniteScrollState {
-  if (isFetching) return "loading";
-  if (isError) return "error";
-  if (hasNextPage) return "idle";
-  return "none";
 }
 
 function PublishersResults({
@@ -178,11 +171,13 @@ function PublishersResults({
 
 function PublishersResultsSection({
   gridColumns,
+  isRefreshing,
   loadMore,
   publishers,
   view,
 }: {
   gridColumns: string;
+  isRefreshing: boolean;
   loadMore: PublishersLoadMore;
   publishers: LibraryPublisherListItem[];
   view: PublishersViewMode;
@@ -212,17 +207,23 @@ function PublishersResultsSection({
 
   return (
     <div className="flex flex-col gap-6">
-      <PublishersResults
-        gridColumns={gridColumns}
-        listRef={listRef}
-        publishers={publishers}
-        view={view}
-      />
+      <RefreshingRegion isRefreshing={isRefreshing}>
+        <PublishersResults
+          gridColumns={gridColumns}
+          listRef={listRef}
+          publishers={publishers}
+          view={view}
+        />
+      </RefreshingRegion>
       <InfiniteScrollFooter
         errorLabel={t("loadMoreError")}
         onLoadMore={requestNextPage}
         retryLabel={t("loadMoreRetry")}
-        state={nextPageState(loadMore)}
+        state={infiniteScrollStateOf({
+          hasNextPage: loadMore.hasNextPage,
+          isFetchingNextPage: loadMore.isFetching,
+          isFetchNextPageError: loadMore.isError,
+        })}
       />
     </div>
   );

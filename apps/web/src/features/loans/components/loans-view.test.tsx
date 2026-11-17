@@ -12,10 +12,12 @@ import type {
 import type { OnUrlUpdateFunction, UrlUpdateEvent } from "nuqs/adapters/testing";
 import type { ReactNode } from "react";
 
+import { defaultUserProfileSettings } from "@app/shared";
 import { addDays, format } from "date-fns";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { act } from "react";
 import { toast } from "sonner";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
 import messages from "@/messages/uk.json";
@@ -28,6 +30,7 @@ import {
   within,
 } from "@/test-utils";
 
+import { matchesLoans } from "../api/loan-keys";
 import { LOANS_PAGE_SIZE } from "../model/loans-query";
 import { LoansView } from "./loans-view";
 
@@ -66,6 +69,14 @@ const row = messages.loans.row;
 const sort = messages.loans.sort;
 const upcoming = messages.loans.sidebar.upcoming;
 const requestedUrls: string[] = [];
+const PINNED_CLOCK = {
+  kyivPastMidnight: "2026-11-15T22:30:00.000Z",
+  midday: "2026-11-15T12:00:00.000Z",
+  timeZone: "UTC",
+} as const;
+
+let listStatus = 200;
+let profileTimeZone: string = PINNED_CLOCK.timeZone;
 
 const EMPTY_DIRECTION_SUMMARY: LoanDirectionSummary = {
   earliestLoanDate: null,
@@ -86,9 +97,23 @@ const EMPTY_DIRECTION_SUMMARY: LoanDirectionSummary = {
 
 const viewport = mockIntersectionObserver();
 
+beforeAll(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+});
+
+afterAll(() => {
+  vi.useRealTimers();
+});
+
+beforeEach(() => {
+  vi.setSystemTime(PINNED_CLOCK.midday);
+});
+
 afterEach(() => {
   vi.unstubAllGlobals();
   requestedUrls.length = 0;
+  listStatus = 200;
+  profileTimeZone = PINNED_CLOCK.timeZone;
   push.mockClear();
 });
 
@@ -116,6 +141,19 @@ describe("LoansView", () => {
     ).toBeInTheDocument();
     expect(await screen.findByText("Дюна")).toBeInTheDocument();
     expect(listUrl()).toContain("type=lent_to_someone");
+  });
+
+  it("keeps the loaded loans and shows the refresh banner when a refetch fails", async () => {
+    mockLoans([loanItem("lent_to_someone", "Дюна")]);
+    const { queryClient } = renderLoans("lent_to_someone");
+    expect(await screen.findByText("Дюна")).toBeInTheDocument();
+
+    listStatus = 500;
+    await act(() => queryClient.invalidateQueries({ predicate: matchesLoans }));
+
+    expect(await screen.findByText(messages.common.refetchError)).toBeInTheDocument();
+    expect(screen.getByText("Дюна")).toBeInTheDocument();
+    expect(screen.queryByText(copy.states.error.title)).not.toBeInTheDocument();
   });
 
   it("opens the person card from the name in a row", async () => {
@@ -1280,6 +1318,42 @@ describe("LoansView advanced filters", () => {
   });
 });
 
+describe("LoansView in the profile time zone", () => {
+  beforeEach(() => {
+    vi.setSystemTime(PINNED_CLOCK.kyivPastMidnight);
+  });
+
+  it("counts a loan as overdue once the Kyiv day has moved past its due date", async () => {
+    profileTimeZone = "Europe/Kyiv";
+    mockLoans([
+      loanItem("lent_to_someone", "Дюна", {
+        expectedReturnDate: "2026-11-15",
+        loanUiStatus: "overdue",
+      }),
+    ]);
+
+    renderLoans("lent_to_someone");
+
+    const card = await findLoanCard("Дюна");
+    expect(within(card).getByText("Прострочено на 1 день")).toBeInTheDocument();
+  });
+
+  it("reads the same loan as due today for a reader whose profile is on UTC", async () => {
+    profileTimeZone = "UTC";
+    mockLoans([
+      loanItem("lent_to_someone", "Дюна", {
+        expectedReturnDate: "2026-11-15",
+        loanUiStatus: "return_soon",
+      }),
+    ]);
+
+    renderLoans("lent_to_someone");
+
+    const card = await findLoanCard("Дюна");
+    expect(await within(card).findByText(row.term.today)).toBeInTheDocument();
+  });
+});
+
 function chip(label: string): HTMLElement {
   return screen.getByRole("radio", { name: chipName(label) });
 }
@@ -1342,7 +1416,10 @@ function countedStats(items: LoanListItemView[], type: LoanType): LoanDirectionS
 
 function dueIn(offset: number): { display: string; iso: string } {
   const date = addDays(new Date(), offset);
-  return { display: format(date, "dd.MM.yyyy"), iso: format(date, "yyyy-MM-dd") };
+  const display = new Intl.DateTimeFormat("uk", { day: "numeric", month: "short", year: "numeric" })
+    .format(date)
+    .replace(/\s+/g, " ");
+  return { display, iso: format(date, "yyyy-MM-dd") };
 }
 
 function extendedBookView() {
@@ -1419,10 +1496,10 @@ function isoDaysFromToday(offset: number): string {
   return format(addDays(new Date(), offset), "yyyy-MM-dd");
 }
 
-function jsonResponse(body: unknown): Response {
+function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
-    status: 200,
+    status,
   });
 }
 
@@ -1556,6 +1633,11 @@ function stubLoansApi({
     vi.fn((input: RequestInfo | URL) => {
       const url = String(input);
       requestedUrls.push(url);
+      if (url.includes("/api/profile/settings")) {
+        return Promise.resolve(
+          jsonResponse({ ...defaultUserProfileSettings, timezone: profileTimeZone }),
+        );
+      }
       if (url.includes("/api/loans/summary")) return Promise.resolve(jsonResponse(summary));
       if (url.includes("/api/loans/quick-counts")) {
         return quickCounts(new URL(url, "http://localhost"));
@@ -1569,7 +1651,11 @@ function stubLoansApi({
       if (url.includes("/api/loans/history/overview")) {
         return Promise.resolve(jsonResponse(historyOverview()));
       }
-      if (url.includes("/api/loans")) return Promise.resolve(jsonResponse(loansPage(items, url)));
+      if (url.includes("/api/loans")) {
+        return Promise.resolve(
+          listStatus === 200 ? jsonResponse(loansPage(items, url)) : jsonResponse({}, listStatus),
+        );
+      }
       if (url.includes("/loan/extend") || url.includes("/loan/reminder")) {
         return Promise.resolve(jsonResponse(extendedBookView()));
       }

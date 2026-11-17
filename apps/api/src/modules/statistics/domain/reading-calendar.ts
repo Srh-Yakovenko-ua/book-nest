@@ -1,7 +1,13 @@
-import type { Nullable, StatisticsCalendarBookPreview, StatisticsCalendarDay } from "@app/shared";
+import type {
+  Nullable,
+  StatisticsCalendarBookPreview,
+  StatisticsCalendarDay,
+  StatisticsWeekdayActivityItem,
+} from "@app/shared";
 
 import { CALENDAR_BOOKS_PREVIEW_LIMIT } from "@app/shared";
 import { addDays, differenceInCalendarDays, format, getDay, parseISO } from "date-fns";
+import { daysInWeek } from "date-fns/constants";
 
 import { resolveDayHistoryQuality } from "./activity-history-quality.js";
 import { toReadingDayDrilldown } from "./statistics-drilldown.js";
@@ -64,6 +70,30 @@ export function buildCalendarDays({
   }
 
   return days;
+}
+
+export function buildWeekdayActivity(
+  activity: readonly DayActivity[],
+): StatisticsWeekdayActivityItem[] {
+  const buckets = Array.from({ length: daysInWeek }, (_unused, weekday) => ({
+    activeDays: 0,
+    pagesRead: 0,
+    weekday,
+  }));
+
+  for (const day of activity) {
+    if (day.pagesRead <= 0) {
+      continue;
+    }
+    const bucket = buckets[getDay(parseISO(day.date))];
+    if (bucket === undefined) {
+      continue;
+    }
+    bucket.activeDays += 1;
+    bucket.pagesRead += day.pagesRead;
+  }
+
+  return buckets;
 }
 
 export function countEligibleDays({ from, to }: { from: string; to: string }): number {

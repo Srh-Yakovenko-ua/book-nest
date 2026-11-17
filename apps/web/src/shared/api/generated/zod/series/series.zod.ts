@@ -1273,12 +1273,25 @@ export const seriesControllerGetByIdResponseOwnershipTotalMin = -900719925474099
 export const seriesControllerGetByIdResponseOwnershipTotalMax = 9007199254740991;
 
 export const seriesControllerGetByIdResponseTagsDefault = [];
+export const seriesControllerGetByIdResponseBooksItemFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const seriesControllerGetByIdResponseBooksItemLoanInfoRemindBeforeDaysMin =
   -9007199254740991;
 export const seriesControllerGetByIdResponseBooksItemLoanInfoRemindBeforeDaysMax = 9007199254740991;
 
+export const seriesControllerGetByIdResponseBooksItemStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const seriesControllerGetByIdResponsePublishersItemBookCountMin = -9007199254740991;
 export const seriesControllerGetByIdResponsePublishersItemBookCountMax = 9007199254740991;
+
+export const seriesControllerGetByIdResponseStatsLastFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const seriesControllerGetByIdResponseStatsStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 
 export const SeriesControllerGetByIdResponse = zod.object({
   ageCategories: zod
@@ -1479,7 +1492,10 @@ export const SeriesControllerGetByIdResponse = zod.object({
         .nullish(),
       createdAt: zod.string(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(seriesControllerGetByIdResponseBooksItemFinishedAtRegExp)
+        .nullable(),
       formats: zod.array(zod.enum(["paper", "ebook", "audiobook"])),
       genres: zod.array(zod.string()),
       id: zod.string(),
@@ -1531,7 +1547,10 @@ export const SeriesControllerGetByIdResponse = zod.object({
         "dnf",
         "rereading",
       ]),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(seriesControllerGetByIdResponseBooksItemStartedAtRegExp)
+        .nullable(),
       tags: zod.array(
         zod.object({
           color: zod
@@ -1565,13 +1584,16 @@ export const SeriesControllerGetByIdResponse = zod.object({
       })
       .nullable(),
     finishedCount: zod.number(),
-    lastFinishedAt: zod.string().nullable(),
+    lastFinishedAt: zod.iso
+      .date()
+      .regex(seriesControllerGetByIdResponseStatsLastFinishedAtRegExp)
+      .nullable(),
     pagesCount: zod.number().nullable(),
     readingCount: zod.number(),
     readingDurationDays: zod.number().nullable(),
     readPagesCount: zod.number().nullable(),
     readPagesPartial: zod.boolean(),
-    startedAt: zod.string().nullable(),
+    startedAt: zod.iso.date().regex(seriesControllerGetByIdResponseStatsStartedAtRegExp).nullable(),
     unreadCount: zod.number(),
   }),
 });
@@ -1837,12 +1859,25 @@ export const seriesControllerRestoreResponseOwnershipTotalMin = -900719925474099
 export const seriesControllerRestoreResponseOwnershipTotalMax = 9007199254740991;
 
 export const seriesControllerRestoreResponseTagsDefault = [];
+export const seriesControllerRestoreResponseBooksItemFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const seriesControllerRestoreResponseBooksItemLoanInfoRemindBeforeDaysMin =
   -9007199254740991;
 export const seriesControllerRestoreResponseBooksItemLoanInfoRemindBeforeDaysMax = 9007199254740991;
 
+export const seriesControllerRestoreResponseBooksItemStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const seriesControllerRestoreResponsePublishersItemBookCountMin = -9007199254740991;
 export const seriesControllerRestoreResponsePublishersItemBookCountMax = 9007199254740991;
+
+export const seriesControllerRestoreResponseStatsLastFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const seriesControllerRestoreResponseStatsStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 
 export const SeriesControllerRestoreResponse = zod.object({
   ageCategories: zod
@@ -2043,7 +2078,10 @@ export const SeriesControllerRestoreResponse = zod.object({
         .nullish(),
       createdAt: zod.string(),
       currentPage: zod.number().nullable(),
-      finishedAt: zod.string().nullable(),
+      finishedAt: zod.iso
+        .date()
+        .regex(seriesControllerRestoreResponseBooksItemFinishedAtRegExp)
+        .nullable(),
       formats: zod.array(zod.enum(["paper", "ebook", "audiobook"])),
       genres: zod.array(zod.string()),
       id: zod.string(),
@@ -2095,7 +2133,10 @@ export const SeriesControllerRestoreResponse = zod.object({
         "dnf",
         "rereading",
       ]),
-      startedAt: zod.string().nullable(),
+      startedAt: zod.iso
+        .date()
+        .regex(seriesControllerRestoreResponseBooksItemStartedAtRegExp)
+        .nullable(),
       tags: zod.array(
         zod.object({
           color: zod
@@ -2129,13 +2170,16 @@ export const SeriesControllerRestoreResponse = zod.object({
       })
       .nullable(),
     finishedCount: zod.number(),
-    lastFinishedAt: zod.string().nullable(),
+    lastFinishedAt: zod.iso
+      .date()
+      .regex(seriesControllerRestoreResponseStatsLastFinishedAtRegExp)
+      .nullable(),
     pagesCount: zod.number().nullable(),
     readingCount: zod.number(),
     readingDurationDays: zod.number().nullable(),
     readPagesCount: zod.number().nullable(),
     readPagesPartial: zod.boolean(),
-    startedAt: zod.string().nullable(),
+    startedAt: zod.iso.date().regex(seriesControllerRestoreResponseStatsStartedAtRegExp).nullable(),
     unreadCount: zod.number(),
   }),
 });

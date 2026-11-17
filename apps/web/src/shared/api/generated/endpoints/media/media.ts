@@ -39,40 +39,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type mediaControllerDeleteResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type mediaControllerDeleteResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type mediaControllerDeleteResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type mediaControllerDeleteResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type mediaControllerDeleteResponseSuccess = mediaControllerDeleteResponse204 & {
-  headers: Headers;
-};
-export type mediaControllerDeleteResponseError = (
-  | mediaControllerDeleteResponse401
-  | mediaControllerDeleteResponse404
-  | mediaControllerDeleteResponse409
-) & {
-  headers: Headers;
-};
-
-export type mediaControllerDeleteResponse =
-  mediaControllerDeleteResponseSuccess | mediaControllerDeleteResponseError;
-
 export const getMediaControllerDeleteUrl = (id: string) => {
   return `/api/media/${id}`;
 };
@@ -83,8 +49,8 @@ export const getMediaControllerDeleteUrl = (id: string) => {
 export const mediaControllerDelete = async (
   id: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<mediaControllerDeleteResponse> => {
-  return customInstance<mediaControllerDeleteResponse>(getMediaControllerDeleteUrl(id), {
+): Promise<void> => {
+  return customInstance<void>(getMediaControllerDeleteUrl(id), {
     ...options,
     method: "DELETE",
   });
@@ -209,33 +175,6 @@ export function useMediaControllerDelete<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type mediaControllerUploadResponse201 = {
-  data: MediaViewDto;
-  status: 201;
-};
-
-export type mediaControllerUploadResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type mediaControllerUploadResponse503 = {
-  data: void;
-  status: 503;
-};
-
-export type mediaControllerUploadResponseSuccess = mediaControllerUploadResponse201 & {
-  headers: Headers;
-};
-export type mediaControllerUploadResponseError = (
-  mediaControllerUploadResponse401 | mediaControllerUploadResponse503
-) & {
-  headers: Headers;
-};
-
-export type mediaControllerUploadResponse =
-  mediaControllerUploadResponseSuccess | mediaControllerUploadResponseError;
-
 export const getMediaControllerUploadUrl = () => {
   return `/api/media`;
 };
@@ -246,7 +185,7 @@ export const getMediaControllerUploadUrl = () => {
 export const mediaControllerUpload = async (
   mediaControllerUploadBody: MediaControllerUploadBody,
   options?: Parameters<typeof customInstance>[1],
-): Promise<mediaControllerUploadResponse> => {
+): Promise<MediaViewDto> => {
   const formData = new FormData();
   if (mediaControllerUploadBody.crop !== undefined) {
     formData.append(`crop`, mediaControllerUploadBody.crop);
@@ -256,7 +195,7 @@ export const mediaControllerUpload = async (
     formData.append(`kind`, mediaControllerUploadBody.kind);
   }
 
-  return customInstance<mediaControllerUploadResponse>(getMediaControllerUploadUrl(), {
+  return customInstance<MediaViewDto>(getMediaControllerUploadUrl(), {
     ...options,
     method: "POST",
     body: formData,

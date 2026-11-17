@@ -39,6 +39,14 @@ function createCall() {
   );
 }
 
+function deferredResponse() {
+  let resolve: (response: Response) => void = () => undefined;
+  const promise = new Promise<Response>((settle) => {
+    resolve = settle;
+  });
+  return { promise, resolve };
+}
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
@@ -278,6 +286,33 @@ describe("EventFormDialog create", () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Не вдалося додати подію"));
     expect(titleField()).toHaveValue("Помилкова подія");
     expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("ignores Escape without offering to discard while saving and closes once saved", async () => {
+    const saving = deferredResponse();
+    fetchMock.mockImplementation((input, init) => {
+      if (String(input).includes("/timeline-events") && init?.method === "POST") {
+        return saving.promise;
+      }
+      return Promise.reject(new Error(`unexpected fetch: ${String(input)}`));
+    });
+    const onOpenChange = vi.fn();
+    renderForm({ onOpenChange });
+
+    await userEvent.type(titleField(), "Геральт приймає замовлення");
+    await userEvent.click(screen.getByRole("button", { name: "Зберегти подію" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Скасувати" })).toBeDisabled());
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Нова подія" })).toBeInTheDocument();
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    saving.resolve(jsonResponse(makeTimelineEventView()));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Подію додано"));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
   it("clears the form for another entry after save-and-add-another", async () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { NewListInputSchema } from "@app/shared";
+import { LIST_INPUT_LIMITS, NewListInputSchema } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { type FormEvent, useState } from "react";
 
@@ -17,11 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-import {
-  LIST_DESCRIPTION_MAX,
-  LIST_NAME_MAX,
-  type ListDraft,
-} from "../model/book-organization-fields";
+import type { ListDraft } from "../model/book-organization-fields";
 
 type CreateListDialogProps = {
   onConfirm: (draft: ListDraft) => void;
@@ -91,7 +87,7 @@ function CreateListForm({ onCancel, onConfirm }: CreateListFormProps) {
           className="h-10"
           id="new-list-name"
           isClearable
-          maxLength={LIST_NAME_MAX}
+          maxLength={LIST_INPUT_LIMITS.nameMax}
           onChange={(event) => {
             setName(event.target.value);
             if (nameError) setNameError(undefined);
@@ -118,7 +114,7 @@ function CreateListForm({ onCancel, onConfirm }: CreateListFormProps) {
         <Textarea
           aria-describedby="new-list-description-counter"
           id="new-list-description"
-          maxLength={LIST_DESCRIPTION_MAX}
+          maxLength={LIST_INPUT_LIMITS.descriptionMax}
           onChange={(event) => setDescription(event.target.value)}
           placeholder={t("list.create.descriptionPlaceholder")}
           value={description}
@@ -127,7 +123,7 @@ function CreateListForm({ onCancel, onConfirm }: CreateListFormProps) {
           className="ml-auto text-xs text-muted-foreground tabular-nums"
           id="new-list-description-counter"
         >
-          {description.length}/{LIST_DESCRIPTION_MAX}
+          {description.length}/{LIST_INPUT_LIMITS.descriptionMax}
         </span>
       </div>
 

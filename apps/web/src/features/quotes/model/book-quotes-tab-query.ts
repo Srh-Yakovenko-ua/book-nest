@@ -5,7 +5,7 @@ import { type inferParserType, parseAsStringLiteral } from "nuqs/server";
 
 import type { QuotesFacetsParams, QuotesListParams } from "./quotes-query";
 
-import { QUOTES_FILTER_DEFAULT, quotesQueryParsers } from "./quotes-query";
+import { QUOTES_FILTER_DEFAULT, quotesQueryParsers, toQuotesSearch } from "./quotes-query";
 
 export const BOOK_QUOTES_TAB = {
   pageSize: 20,
@@ -34,7 +34,7 @@ export const BOOK_QUOTES_TAB_RESET = {
 } satisfies Record<string, BookQuotesTabResetPatch>;
 
 export function committedBookQuotesSearch(state: BookQuotesTabState): string {
-  return state.quoteQ.trim();
+  return toQuotesSearch(state.quoteQ);
 }
 
 export function hasActiveBookQuotesFilters(state: BookQuotesTabState): boolean {

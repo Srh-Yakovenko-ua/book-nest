@@ -14,6 +14,5 @@ export function useGoalDetail(goalId: string) {
       return ReadingGoalDetailSchema.parse(response);
     },
     queryKey: goalKeys.detail(goalId),
-    retry: false,
   });
 }

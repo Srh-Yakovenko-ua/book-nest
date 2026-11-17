@@ -1,15 +1,15 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { type ReactNode, useEffect } from "react";
+import { Fragment, type ReactNode, useEffect } from "react";
 
 import { usePathname, useRouter } from "@/i18n/navigation";
 
+import { useGuardedSession } from "../hooks/use-guarded-session";
 import { GuardFallback } from "./guard-fallback";
-import { useSession } from "./session-provider";
 
 export function AuthGuard({ children }: { children: ReactNode }) {
-  const { status } = useSession();
+  const session = useGuardedSession();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -18,11 +18,11 @@ export function AuthGuard({ children }: { children: ReactNode }) {
   const from = query === "" ? pathname : `${pathname}?${query}`;
 
   useEffect(() => {
-    if (status !== "unauthenticated") return;
+    if (session.kind !== "signed-out") return;
     router.replace(`/login?from=${encodeURIComponent(from)}`);
-  }, [status, router, from]);
+  }, [session.kind, router, from]);
 
-  if (status === "authenticated") return children;
+  if (session.kind !== "signed-in") return <GuardFallback />;
 
-  return <GuardFallback />;
+  return <Fragment key={session.userId}>{children}</Fragment>;
 }

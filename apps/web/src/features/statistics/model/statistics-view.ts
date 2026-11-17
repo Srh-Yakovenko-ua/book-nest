@@ -9,7 +9,7 @@ import { DYNAMICS_METRICS } from "./statistics-dynamics";
 export const STATISTICS_VIEW = {
   defaultMetric: "reads",
   defaultTab: "overview",
-  sections: ["dynamics", "calendar", "ratings"],
+  sections: ["dynamics", "habits", "ratings"],
   tabs: ["overview", "activity", "tastes", "progress"],
 } as const satisfies {
   defaultMetric: DynamicsMetric;
@@ -20,7 +20,7 @@ export const STATISTICS_VIEW = {
 
 export type StatisticsDestination =
   | { metric: DynamicsMetric; section: "dynamics"; tab: "activity" }
-  | { section: "calendar"; tab: "activity" }
+  | { section: "habits"; tab: "activity" }
   | { section: "ratings"; tab: "tastes" };
 
 export type StatisticsKpiKey = Exclude<keyof ReadingStatisticsKpis, "uniqueBooksCompleted">;
@@ -30,7 +30,7 @@ export type StatisticsSectionAnchor = (typeof STATISTICS_VIEW.sections)[number];
 export type StatisticsTab = (typeof STATISTICS_VIEW.tabs)[number];
 
 export const STATISTICS_KPI_DESTINATIONS = {
-  activeDays: { section: "calendar", tab: "activity" },
+  activeDays: { section: "habits", tab: "activity" },
   averageRating: { section: "ratings", tab: "tastes" },
   completedReads: { metric: "reads", section: "dynamics", tab: "activity" },
   pagesRead: { metric: "pages", section: "dynamics", tab: "activity" },

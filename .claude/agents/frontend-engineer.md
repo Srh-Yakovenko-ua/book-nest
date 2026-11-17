@@ -65,11 +65,14 @@ The canonical, framework-agnostic statement of these levers is `docs/code-princi
 
 - **Router**: Next.js App Router (file-based under `src/app/`). Use `Link`/`usePathname`/`useRouter` from `@/i18n/navigation` (locale-aware), not `next/link` directly.
 - **i18n**: next-intl, locales `uk` (default) and `en` only. `useTranslations(ns)` works in both server and client components; `getTranslations` in async server code / `generateMetadata`. Locale comes from the URL (`[locale]`, resolved by `src/proxy.ts`), never localStorage. Add every string to both `src/messages/uk.json` and `src/messages/en.json` (the `/add-i18n-key` skill keeps them in sync).
-- **Server state**: TanStack Query v5 through the Orval-generated client in `src/shared/api/generated/**`, called from the feature's `api/` hooks inside `"use client"` components. Invalidate after mutations. Never hand-edit the generated folder (the main loop regenerates it with `pnpm gen:api`), and never hand-roll `fetch`/Zod against `@app/shared`: the generated client is the one contract both sides are checked against.
+- **Server state**: TanStack Query v5 through the feature's `api/` hooks inside `"use client"` components.
+  - **Hook shape:** each hook calls a generated fetcher from `src/shared/api/generated/**`, parses the response with the `@app/shared` Zod schema, and keys the query from the feature's `api/*-keys.ts` factory, whose first element is an `/api/<resource>` root.
+  - **No generated hooks:** do not use the generated `useXxxController…` hooks.
+  - **Invalidation after mutations:** go through the domain's effects module (e.g. `features/books/api/book-change-effects.ts`, `features/notes/api/note-mutation-effects.ts`) or the feature's own `invalidateXxxQueries` built on `matchesApiRoot` (`src/lib/query-keys.ts`). Never hand-list another feature's keys. Never hand-edit the generated folder (the main loop regenerates it with `pnpm gen:api`), and never hand-roll `fetch`/Zod against `@app/shared`: the generated client is the one contract both sides are checked against.
 - **UI state**: Zustand when needed (rare). Otherwise just `useState`.
 - **Styling**: Tailwind v4, Terracotta theme: `--primary: oklch(0.551 0.124 40.1)` (dark `oklch(0.66 0.095 52)`), background `oklch(0.976 0.018 78.2)`; fonts `--font-sans` Manrope Variable, `--font-display`/`--font-heading` Playfair Display Variable, `--font-mono` Geist Mono Variable. Tokens live in `src/styles/globals.css` (PostCSS via `@tailwindcss/postcss`). Use semantic classes (`bg-background`, `text-foreground`, `text-primary`, `text-muted-foreground`, `text-error`), never raw colors, so light/dark both follow the tokens. Use Tailwind scale steps (`mb-4`, `text-sm`, `rounded-md`), never arbitrary values like `[18px]`; snap a reference px to the nearest step. Mobile-first: base classes target the small screen, `sm:`/`md:`/`lg:` layer upward.
 - **Theme**: next-themes (`ThemeProvider` in `components/theme-provider.tsx`, no-flash on SSR). Read/set via `useTheme()` from `next-themes`.
-- **Components**: shadcn/ui primitives from `@/components/ui/*`. Do not hand-edit `components/ui/**` — use `pnpm dlx shadcn@latest add <name>`.
+- **Components**: shadcn/ui primitives from `@/components/ui/*`. The shadcn-origin primitives listed in CLAUDE.md §7 are restyled and locally extended. Change one only when the task needs it, keep its structure, and never run `shadcn add` over an existing file; a new primitive comes in through `pnpm dlx shadcn@latest add <name>`. The other files in `components/ui/` are the project's own components: edit them like any shared component.
 - **Forms**: `react-hook-form` + `zod` + `@hookform/resolvers` + shadcn primitives **directly**. No Form wrapper libraries.
 - **HTTP**: the generated client. `request<T>()` in `@/lib/http-client` is its Orval mutator (`src/shared/api/mutator.ts`) and throws `ApiError` on non-2xx; catch `ApiError`, but do not add new direct `request()` or `fetch` calls.
 - **Logging**: `createLogger(scope)` from `@/lib/logger`. Never raw `console.log`.
@@ -127,7 +130,7 @@ The canonical, framework-agnostic statement of these levers is `docs/code-princi
 
 # When not to touch
 
-- `components/ui/**` — shadcn vendored, use the CLI
+- The shadcn-origin primitives in `components/ui/` (listed in CLAUDE.md §7), unless the task needs a change there. Never re-add an existing one with the CLI.
 - `packages/shared/` — coordinate with backend (types must match both sides)
 - `lib/http-client.ts` — changes here affect every API call
 - `proxy.ts`, `i18n/*` — locale routing; changes affect every route

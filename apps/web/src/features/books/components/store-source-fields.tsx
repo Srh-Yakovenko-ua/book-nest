@@ -16,11 +16,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatStorePrice } from "@/features/books-to-buy/model/format-store-price";
 import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
+import { formatStorePrice } from "@/lib/format-price";
 import { cn } from "@/lib/utils";
 
 import {

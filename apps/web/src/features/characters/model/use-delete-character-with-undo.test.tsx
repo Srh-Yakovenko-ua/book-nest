@@ -103,4 +103,35 @@ describe("useDeleteCharacterWithUndo", () => {
     );
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith(copy.restored));
   });
+
+  it("confirms the restore when the undo is used after the hook unmounted", async () => {
+    const { result, unmount } = setup();
+
+    act(() => result.current.deleteWithUndo("char-1"));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(copy.deleted, expect.anything()));
+    unmount();
+
+    act(() => lastUndoAction()?.onClick());
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith(copy.restored));
+  });
+
+  it("reports a failed restore when the undo is used after the hook unmounted", async () => {
+    fetchMock.mockImplementation((input: RequestInfo | URL) =>
+      Promise.resolve(
+        String(input).includes("/restore")
+          ? jsonResponse({ message: "Internal server error" }, 500)
+          : jsonResponse(makeDeletionResult()),
+      ),
+    );
+    const { result, unmount } = setup();
+
+    act(() => result.current.deleteWithUndo("char-1"));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(copy.deleted, expect.anything()));
+    unmount();
+
+    act(() => lastUndoAction()?.onClick());
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(copy.restoreError));
+  });
 });

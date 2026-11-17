@@ -9,6 +9,8 @@ description: Carry a multi-step task to the end - blocks whose checks run what t
 
 Finish the whole task, every part of it, at exactly the scope asked; a change of scope is said out loud with its reason. Report completion only when every block is done. When a part cannot be finished, finish the rest and state plainly what is missing and why.
 
+A defect the change itself introduces is in scope, even when its fix needs a file outside the spec's list or the brief: fix it in the same pass and say why the scope grew. An engineer's FINDINGS line marked `introduced`, or a reviewer finding outside its Not introduced here section, is such a defect once it survives `/fix-loop` triage (step 3: severity, basis, one confirming Read). Problems that predate the diff go to the report, not into it. Carrying an introduced defect as a residual risk cost a full fix round once: an engineer flagged a focus drop outside its brief, and the accessibility audit then rated it MAJOR.
+
 ## Blocks
 
 Before the first edit, split the work into blocks: one per outcome the request names, and one per constraint that changes what counts as done. A block whose text joins two deliverables (push the branch and open the PR) is two blocks. List them as a numbered checklist in the first reply, one line per block with its check.

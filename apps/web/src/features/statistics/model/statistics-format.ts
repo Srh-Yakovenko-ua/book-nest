@@ -72,6 +72,14 @@ export function formatShare(ratio: number, locale: string): string {
   return formatNumber(ratio * 100, locale, SHARE_FRACTION);
 }
 
+export function isZeroAtPercentPrecision(percent: number): boolean {
+  return roundsToZero({ fraction: SHARE_FRACTION, value: percent });
+}
+
+export function isZeroAtRatingPrecision(score: number): boolean {
+  return roundsToZero({ fraction: RATING_FRACTION, value: score });
+}
+
 export function weekdayLabel({
   locale,
   weekday,
@@ -84,4 +92,14 @@ export function weekdayLabel({
   return new Intl.DateTimeFormat(locale, { weekday: width }).format(
     addDays(parseIsoDay(WEEKDAY_ANCHOR_SUNDAY), weekday),
   );
+}
+
+function roundsToZero({
+  fraction,
+  value,
+}: {
+  fraction: { maximumFractionDigits: number };
+  value: number;
+}): boolean {
+  return Math.round(Math.abs(value) * 10 ** fraction.maximumFractionDigits) === 0;
 }

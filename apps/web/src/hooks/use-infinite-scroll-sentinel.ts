@@ -11,10 +11,26 @@ const SENTINEL = {
 
 export type InfiniteScrollState = "error" | "idle" | "loading" | "none";
 
+type InfiniteScrollPagination = {
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  isFetchNextPageError: boolean;
+};
+
 type UseInfiniteScrollSentinelParams = {
   enabled: boolean;
   onLoadMore: () => void;
 };
+
+export function infiniteScrollStateOf({
+  hasNextPage,
+  isFetchingNextPage,
+  isFetchNextPageError,
+}: InfiniteScrollPagination): InfiniteScrollState {
+  if (isFetchingNextPage) return "loading";
+  if (isFetchNextPageError) return "error";
+  return hasNextPage ? "idle" : "none";
+}
 
 export function useInfiniteScrollSentinel({
   enabled,

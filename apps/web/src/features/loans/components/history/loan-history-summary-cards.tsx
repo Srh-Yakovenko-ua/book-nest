@@ -5,19 +5,17 @@ import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
-import { UiIcon } from "@/components/icons";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
+import { SummaryCards } from "@/components/catalog/summary-cards";
+import { SummaryError } from "@/components/summary-error";
 
 type HistoryCardKey = "duration" | "late" | "onTime" | "total";
 
 const EMPTY_VALUE = "—";
 
 type LoanHistorySummaryCardsProps = {
-  cards: LibrarySummaryCard[];
+  cards: SummaryCard[];
   isError: boolean;
   isLoading: boolean;
   mobileAction?: ReactNode;
@@ -29,7 +27,7 @@ const HISTORY_CARD_LOOK = {
   late: { icon: "clock", iconTone: "tag" },
   onTime: { icon: "check-circle", iconTone: "success" },
   total: { icon: "book-copy", iconTone: "primary" },
-} as const satisfies Record<HistoryCardKey, Pick<LibrarySummaryCard, "icon" | "iconTone">>;
+} as const satisfies Record<HistoryCardKey, Pick<SummaryCard, "icon" | "iconTone">>;
 
 export function LoanHistorySummaryCards({
   cards,
@@ -38,37 +36,21 @@ export function LoanHistorySummaryCards({
   mobileAction,
   onRetry,
 }: LoanHistorySummaryCardsProps) {
-  const t = useTranslations("loans.summary");
-
-  if (isError) {
-    return (
-      <Card
-        aria-live="assertive"
-        className="flex flex-col items-start gap-2 border border-border bg-card p-4 shadow-card sm:flex-row sm:items-center sm:justify-between"
-        role="alert"
-      >
-        <p className="text-sm text-muted-foreground">{t("error.description")}</p>
-        <Button onClick={onRetry} size="sm" variant="secondary">
-          <UiIcon name="refresh" size={16} />
-          {t("error.retry")}
-        </Button>
-      </Card>
-    );
-  }
-
   return (
-    <LibrarySummaryCards
-      cards={cards}
-      isLoading={isLoading}
-      mobileAction={mobileAction}
-      mobileLayout="compact"
-    />
+    <SummaryError state={isError ? { onRetry } : null}>
+      <SummaryCards
+        cards={cards}
+        isLoading={isLoading}
+        mobileAction={mobileAction}
+        mobileLayout="compact"
+      />
+    </SummaryError>
   );
 }
 
 export function useLoanHistorySummaryCards(
   overview: LoanHistoryOverviewView | undefined,
-): LibrarySummaryCard[] {
+): SummaryCard[] {
   const t = useTranslations("loans.history.cards");
 
   const summary = overview?.summary;

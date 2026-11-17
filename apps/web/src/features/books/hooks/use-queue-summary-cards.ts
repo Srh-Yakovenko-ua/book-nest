@@ -4,7 +4,7 @@ import type { Nullable, ReadingQueueSummaryView } from "@app/shared";
 
 import { useFormatter, useTranslations } from "next-intl";
 
-import type { LibrarySummaryCard } from "../components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
 const CAPTION_SEPARATOR = " · ";
 
@@ -16,7 +16,7 @@ export function useQueueSummaryCards({
 }: {
   seriesWithIssuesCount: number;
   summary: Nullable<ReadingQueueSummaryView>;
-}): LibrarySummaryCard[] {
+}): SummaryCard[] {
   const t = useTranslations("readingQueue.stats");
   const tMobile = useTranslations("readingQueue.stats.mobile");
   const tUnit = useTranslations("books.library.summary");

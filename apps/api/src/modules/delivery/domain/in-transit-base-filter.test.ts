@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 
+import { parseIsoDate } from "../../../core/iso-date.js";
 import { deliveryDateBounds } from "./delivery-ui-status.js";
 import { buildInTransitBaseFilter } from "./in-transit-base-filter.js";
 
-const BOUNDS = deliveryDateBounds(new Date("2026-08-18T09:00:00.000Z"));
+const BOUNDS = deliveryDateBounds({ today: parseIsoDate("2026-08-18"), weekStartDay: "monday" });
 
 describe("buildInTransitBaseFilter", () => {
-  it("carries every advanced filter and the owner but never a quick filter", () => {
+  it("carries every advanced filter, the owner and the time zone, never a quick filter", () => {
     const base = buildInTransitBaseFilter({
       bounds: BOUNDS,
       query: {
@@ -28,6 +29,7 @@ describe("buildInTransitBaseFilter", () => {
         store: ["Yakaboo"],
         structure: ["single_shipment"],
       },
+      timeZone: "Europe/Kyiv",
       userId: "user-1",
     });
 
@@ -50,6 +52,7 @@ describe("buildInTransitBaseFilter", () => {
       service: ["Nova Poshta"],
       store: ["Yakaboo"],
       structure: ["single_shipment"],
+      timeZone: "Europe/Kyiv",
       userId: "user-1",
     });
     expect(base).not.toHaveProperty("filter");
@@ -59,6 +62,7 @@ describe("buildInTransitBaseFilter", () => {
     const base = buildInTransitBaseFilter({
       bounds: BOUNDS,
       query: { search: "   " },
+      timeZone: "Europe/Kyiv",
       userId: "u",
     });
 

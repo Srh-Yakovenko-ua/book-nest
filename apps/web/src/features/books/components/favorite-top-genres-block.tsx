@@ -5,9 +5,9 @@ import { useTranslations } from "next-intl";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useGenres } from "@/features/genres";
 
 import { useFavoritesSummary } from "../api/use-favorites-summary";
-import { useGenres } from "../api/use-genres";
 import { LibraryGenresPie } from "./library-genres-pie";
 
 type GenreSlice = {

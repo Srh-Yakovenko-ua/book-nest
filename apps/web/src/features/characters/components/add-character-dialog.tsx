@@ -9,6 +9,7 @@ import type {
 import type { ReactNode } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { milliseconds } from "date-fns";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -50,10 +51,14 @@ type AddCharacterDialogProps = {
   bookContext: BookCharacterSummaryQuery;
   onOpenChange: (open: boolean) => void;
   onOpenDetails: (characterId: string) => void;
+  onOpenEdit: (characterId: string) => void;
   open: boolean;
 };
 
+type CreateIntent = "details" | "quick";
+
 type DuplicateWarning = {
+  intent: CreateIntent;
   query: string;
   unmatched: CharacterGlobalSummaryView[];
 };
@@ -63,6 +68,7 @@ export function AddCharacterDialog({
   bookContext,
   onOpenChange,
   onOpenDetails,
+  onOpenEdit,
   open,
 }: AddCharacterDialogProps) {
   const t = useTranslations("characters.add");
@@ -81,6 +87,7 @@ export function AddCharacterDialog({
             bookContext={bookContext}
             onClose={() => onOpenChange(false)}
             onOpenDetails={onOpenDetails}
+            onOpenEdit={onOpenEdit}
           />
         ) : null}
       </DialogContent>
@@ -93,11 +100,13 @@ function AddCharacterPicker({
   bookContext,
   onClose,
   onOpenDetails,
+  onOpenEdit,
 }: {
   book: BookView;
   bookContext: BookCharacterSummaryQuery;
   onClose: () => void;
   onOpenDetails: (characterId: string) => void;
+  onOpenEdit: (characterId: string) => void;
 }) {
   const t = useTranslations("characters.add");
   const tDuplicate = useTranslations("characters.duplicate");
@@ -110,7 +119,7 @@ function AddCharacterPicker({
 
   const [query, setQuery] = useState("");
   const [warning, setWarning] = useState<Nullable<DuplicateWarning>>(null);
-  const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
+  const [pendingIntent, setPendingIntent] = useState<Nullable<CreateIntent>>(null);
 
   const inBook = useBookCharacterLookup({
     bookContext,
@@ -131,7 +140,7 @@ function AddCharacterPicker({
   const hasLookupError = inBook.isError || suggestions.isError;
   const hasNoMatch = !isLoading && !hasLookupError && shownCandidateIds.size === 0;
   const activeWarning = warning !== null && warning.query === query ? warning : null;
-  const isBusy = isCheckingDuplicates || createInBook.isPending;
+  const isBusy = pendingIntent !== null || createInBook.isPending;
 
   function changeQuery(next: string) {
     setWarning(null);
@@ -143,14 +152,24 @@ function AddCharacterPicker({
     onOpenDetails(characterId);
   }
 
-  function createCharacter() {
+  function createCharacter(intent: CreateIntent) {
     createInBook.mutate(
       { bookId: book.id, input: toCreateNewCharacterInBook(query) },
       {
-        onError: () => toast.error(tToast("createError")),
-        onSuccess: () => {
-          toast.success(tToast("created"));
+        onError: () => {
+          setPendingIntent(null);
+          toast.error(tToast("createError"));
+        },
+        onSuccess: (character) => {
           onClose();
+          if (intent === "details") {
+            onOpenEdit(character.id);
+            return;
+          }
+          toast.success(tToast("created"), {
+            action: { label: tToast("fillProfile"), onClick: () => onOpenEdit(character.id) },
+            duration: milliseconds({ seconds: 8 }),
+          });
         },
       },
     );
@@ -169,8 +188,8 @@ function AddCharacterPicker({
     );
   }
 
-  async function requestCreate() {
-    setIsCheckingDuplicates(true);
+  async function requestCreate(intent: CreateIntent) {
+    setPendingIntent(intent);
     try {
       const { candidates } = await queryClient.fetchQuery({
         ...duplicateCandidatesQueryOptions({
@@ -181,18 +200,19 @@ function AddCharacterPicker({
       });
 
       if (candidates.length === 0) {
-        createCharacter();
+        createCharacter(intent);
         return;
       }
 
+      setPendingIntent(null);
       setWarning({
+        intent,
         query,
         unmatched: candidates.filter((candidate) => !shownCandidateIds.has(candidate.id)),
       });
     } catch {
+      setPendingIntent(null);
       toast.error(tDuplicate("checkFailed"));
-    } finally {
-      setIsCheckingDuplicates(false);
     }
   }
 
@@ -229,7 +249,7 @@ function AddCharacterPicker({
               <DuplicateCharacterSuggestion
                 candidates={activeWarning.unmatched}
                 isCreating={createInBook.isPending}
-                onCreateAnyway={createCharacter}
+                onCreateAnyway={() => createCharacter(activeWarning.intent)}
                 onReview={openDetails}
               />
             )}
@@ -268,17 +288,31 @@ function AddCharacterPicker({
             {hasNoMatch ? <p className="text-sm text-muted-foreground">{t("noMatch")}</p> : null}
 
             {activeWarning === null ? (
-              <Button
-                className="w-full justify-start"
-                disabled={isBusy}
-                loading={isCheckingDuplicates}
-                onClick={() => void requestCreate()}
-                type="button"
-                variant="secondary"
-              >
-                <UiIcon name="plus" size={16} />
-                {t("createNew", { name: query })}
-              </Button>
+              <div className="flex flex-col gap-2">
+                <Button
+                  className="w-full justify-start"
+                  disabled={isBusy}
+                  loading={pendingIntent === "quick"}
+                  onClick={() => void requestCreate("quick")}
+                  type="button"
+                  variant="secondary"
+                >
+                  <UiIcon name="plus" size={16} />
+                  {t("createNew", { name: query })}
+                </Button>
+                <Button
+                  className="w-full justify-start"
+                  disabled={isBusy}
+                  loading={pendingIntent === "details"}
+                  onClick={() => void requestCreate("details")}
+                  type="button"
+                  variant="ghost"
+                >
+                  <UiIcon name="edit" size={16} />
+                  {t("createWithProfile")}
+                  <UiIcon className="ml-auto" name="arrow-right" size={16} />
+                </Button>
+              </div>
             ) : null}
           </div>
         )}

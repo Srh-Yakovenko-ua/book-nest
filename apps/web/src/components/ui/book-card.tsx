@@ -7,10 +7,10 @@ import Image from "next/image";
 import * as React from "react";
 
 import { GenreIcon, type GenreIconName, UiIcon, type UiIconName } from "@/components/icons";
+import { TagChip } from "@/components/tag-chip";
 import { RatingScore } from "@/components/ui/rating-score";
 import { StatusBadge, statusBadgeVariants } from "@/components/ui/status-badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { TagChip } from "@/features/tags/components/tag-chip";
 import { type StatusEntry } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
 

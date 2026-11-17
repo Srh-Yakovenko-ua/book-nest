@@ -40,7 +40,7 @@ const labels: DeliveryAttentionLabels = {
 };
 
 function buildItems(attention: InTransitAttention[]) {
-  return buildDeliveryAttentionItems({ attention, labels, locale });
+  return buildDeliveryAttentionItems({ attention, labels, locale, today: "2026-08-18" });
 }
 
 describe("buildDeliveryAttentionItems", () => {
@@ -119,6 +119,19 @@ describe("buildDeliveryAttentionItems", () => {
         { count: 2, expiredCount: 0, nearestPickupUntil: "2026-08-25", reason: "pickup_expiring" },
       ])[0]?.label,
     ).toBe("pickup.onDate:August 25");
+  });
+
+  it("reads the pickup deadline against the profile today", () => {
+    const [item] = buildDeliveryAttentionItems({
+      attention: [
+        { count: 1, expiredCount: 0, nearestPickupUntil: "2026-08-19", reason: "pickup_expiring" },
+      ],
+      labels,
+      locale,
+      today: "2026-08-19",
+    });
+
+    expect(item?.label).toBe("pickup.today");
   });
 
   it("says the pickup window has closed when every parcel is past its deadline", () => {

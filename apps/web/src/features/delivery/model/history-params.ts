@@ -19,7 +19,7 @@ import {
   isStorableDay,
   isStorableOrderId,
   storableDay,
-} from "@/features/books/model/filter-chips";
+} from "@/lib/filter-chips";
 import {
   DeliveryReadControllerHistoryListCurrencyItem,
   DeliveryReadControllerHistoryListOrderState,

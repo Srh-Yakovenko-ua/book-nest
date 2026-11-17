@@ -18,13 +18,20 @@ type RelativeTimeStep = {
 
 const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 
-const RELATIVE_TIME_STEPS = [
-  { difference: differenceInSeconds, limit: 60, unit: "second" },
-  { difference: differenceInMinutes, limit: 60, unit: "minute" },
-  { difference: differenceInHours, limit: 24, unit: "hour" },
+const CALENDAR_DAY_STEPS = [
   { difference: differenceInCalendarDays, limit: 31, unit: "day" },
   { difference: differenceInCalendarMonths, limit: 12, unit: "month" },
 ] as const satisfies readonly RelativeTimeStep[];
+
+const RELATIVE_TIME_STEPS = {
+  dateOnly: CALENDAR_DAY_STEPS,
+  instant: [
+    { difference: differenceInSeconds, limit: 60, unit: "second" },
+    { difference: differenceInMinutes, limit: 60, unit: "minute" },
+    { difference: differenceInHours, limit: 24, unit: "hour" },
+    ...CALENDAR_DAY_STEPS,
+  ],
+} as const satisfies Record<string, readonly RelativeTimeStep[]>;
 
 const DATE_FNS_LOCALES: Record<string, Locale> = { en: enUS, uk };
 
@@ -71,11 +78,14 @@ export function formatNumber(
 }
 
 export function formatRelativeTime(iso: string, locale: string): string {
-  const target = new Date(iso);
+  const target = parseIsoDay(iso);
   const now = new Date();
   const relative = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  const steps = DATE_ONLY_PATTERN.test(iso)
+    ? RELATIVE_TIME_STEPS.dateOnly
+    : RELATIVE_TIME_STEPS.instant;
 
-  for (const { difference, limit, unit } of RELATIVE_TIME_STEPS) {
+  for (const { difference, limit, unit } of steps) {
     const value = difference(target, now);
     if (Math.abs(value) < limit) return relative.format(value, unit);
   }

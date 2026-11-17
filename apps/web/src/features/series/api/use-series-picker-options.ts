@@ -14,7 +14,10 @@ const SERIES_PICKER_QUERY = {
   sort: SeriesControllerSearchSort.name_asc,
 } as const;
 
-export function useSeriesPickerOptions(search: string) {
+export function useSeriesPickerOptions(
+  search: string,
+  { enabled = true }: { enabled?: boolean } = {},
+) {
   const trimmed = search.trim();
   const params: SeriesListParams = {
     ...SERIES_PICKER_QUERY,
@@ -22,6 +25,7 @@ export function useSeriesPickerOptions(search: string) {
   };
 
   return useInfiniteQuery({
+    enabled,
     getNextPageParam: (lastPage: SeriesPage) =>
       lastPage.page < lastPage.pagesCount ? lastPage.page + 1 : undefined,
     initialPageParam: 1,

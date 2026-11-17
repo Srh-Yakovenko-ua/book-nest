@@ -1510,7 +1510,9 @@ describe("CharacterDetailsPage relationships tab", () => {
     await userEvent.click(editor.getByRole("button", { name: copy.editor.actions.next }));
     const create = await editor.findByRole("button", { name: copy.editor.actions.create });
 
-    expect(editor.getByText(book.title)).toBeInTheDocument();
+    expect(
+      editor.getByRole("heading", { name: `${copy.editor.steps.bookHeading} ${book.title}` }),
+    ).toBeInTheDocument();
     expect(
       editor.queryByRole("combobox", { name: copy.editor.book.label }),
     ).not.toBeInTheDocument();

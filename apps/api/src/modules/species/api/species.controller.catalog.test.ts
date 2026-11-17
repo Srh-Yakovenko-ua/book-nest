@@ -5,6 +5,7 @@ import {
   OwnSpeciesListSchema,
   SPECIES_SEARCH,
   SpeciesCandidatesSchema,
+  SpeciesOptionViewSchema,
   SpeciesSearchResultSchema,
 } from "@app/shared";
 import request from "supertest";
@@ -12,15 +13,16 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 import type { SpeciesCatalogItem } from "../infrastructure/species-catalog-file.js";
+import type { SpeciesApi } from "./species-api.fixtures.js";
 
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
-import { seedSystemSpeciesCatalog } from "../../../test/system-species.js";
+import { findSystemSpeciesId, seedSystemSpeciesCatalog } from "../../../test/system-species.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { readSpeciesCatalog } from "../infrastructure/species-catalog-file.js";
 import { SpeciesRepository } from "../infrastructure/species.repository.js";
 import { SpeciesModule } from "../species.module.js";
-import { speciesApi } from "./species-api.fixtures.js";
+import { SPECIES_TEST_IDS, speciesApi } from "./species-api.fixtures.js";
 
 const SYSTEM_SPECIES_COUNT = 114;
 const CATALOG_PROBE_BATCH = 6;
@@ -314,5 +316,126 @@ describe("species search with LIKE wildcard characters", () => {
     expect(percents).toEqual([]);
     expect(literalUnderscore.map((species) => species.id)).toEqual([literal.body.id]);
     expect(searchItems(viaHttp.body)).toEqual([]);
+  });
+});
+
+describe("GET /api/species?ids=", () => {
+  async function createOwnId(api: SpeciesApi, name: string): Promise<string> {
+    const created = await api.create(name);
+    return SpeciesOptionViewSchema.parse(created.body).id;
+  }
+
+  async function systemAndOwnIds(api: SpeciesApi): Promise<{ ownId: string; systemId: string }> {
+    const ownId = await createOwnId(api, "Зорянин");
+    const systemId = await findSystemSpeciesId({ app, key: "dark_elf" });
+    return { ownId, systemId };
+  }
+
+  it("returns a system and an own species by id with Ukrainian labels for locale=uk", async () => {
+    const api = await signIn();
+    const { ownId, systemId } = await systemAndOwnIds(api);
+
+    const res = await api.search({ ids: `${ownId},${systemId}`, locale: "uk" });
+
+    expect(res.status).toBe(200);
+    expect(searchItems(res.body)).toEqual([
+      {
+        category: { key: "elven", name: "Ельфи та споріднені" },
+        id: systemId,
+        isOwn: false,
+        key: "dark_elf",
+        name: "Темний ельф",
+      },
+      { category: null, id: ownId, isOwn: true, key: null, name: "Зорянин" },
+    ]);
+  });
+
+  it("returns the same species with English labels for locale=en", async () => {
+    const api = await signIn();
+    const { ownId, systemId } = await systemAndOwnIds(api);
+
+    const res = await api.search({ ids: `${ownId},${systemId}`, locale: "en" });
+
+    expect(res.status).toBe(200);
+    expect(searchItems(res.body)).toEqual([
+      {
+        category: { key: "elven", name: "Elves & kin" },
+        id: systemId,
+        isOwn: false,
+        key: "dark_elf",
+        name: "Dark elf",
+      },
+      { category: null, id: ownId, isOwn: true, key: null, name: "Зорянин" },
+    ]);
+  });
+
+  it("accepts the ids as repeated query parameters", async () => {
+    const api = await signIn();
+    const { ownId, systemId } = await systemAndOwnIds(api);
+
+    const res = await api.search({ ids: [ownId, systemId], locale: "uk" });
+
+    expect(res.status).toBe(200);
+    expect(searchItems(res.body).map((item) => item.id)).toEqual([systemId, ownId]);
+  });
+
+  it("omits a species owned by another user", async () => {
+    const alice = await signIn();
+    const bob = await signIn();
+    const alicesId = await createOwnId(alice, "Зорянин");
+    const bobsId = await createOwnId(bob, "Мороколь");
+
+    const res = await alice.search({ ids: [alicesId, bobsId] });
+
+    expect(res.status).toBe(200);
+    expect(searchItems(res.body).map((item) => item.name)).toEqual(["Зорянин"]);
+  });
+
+  it("omits an id that matches no species instead of answering 404", async () => {
+    const api = await signIn();
+    const ownId = await createOwnId(api, "Зорянин");
+
+    const res = await api.search({ ids: [ownId, SPECIES_TEST_IDS.missing] });
+
+    expect(res.status).toBe(200);
+    expect(searchItems(res.body).map((item) => item.id)).toEqual([ownId]);
+  });
+
+  it("answers an empty list instead of the suggestions when no requested id is visible", async () => {
+    const alice = await signIn();
+    const bob = await signIn();
+    const bobsId = await createOwnId(bob, "Мороколь");
+
+    const res = await alice.search({ ids: [bobsId] });
+
+    expect(res.status).toBe(200);
+    expect(searchItems(res.body)).toEqual([]);
+  });
+
+  it("ignores q when ids are given", async () => {
+    const api = await signIn();
+    const ownId = await createOwnId(api, "Зорянин");
+
+    const res = await api.search({ ids: [ownId], locale: "en", q: "dark" });
+
+    expect(res.status).toBe(200);
+    expect(searchItems(res.body).map((item) => item.name)).toEqual(["Зорянин"]);
+  });
+
+  it("returns 400 naming ids for an id that is not a UUID", async () => {
+    const api = await signIn();
+    const ownId = await createOwnId(api, "Зорянин");
+
+    const res = await api.search({ ids: [ownId, "not-a-uuid"] });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: expect.stringMatching(/^ids/),
+          message: expect.any(String),
+        }),
+      ]),
+    );
   });
 });

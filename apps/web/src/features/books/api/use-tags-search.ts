@@ -1,4 +1,6 @@
-import { TAG_COLORS, type TagColor, type TagView } from "@app/shared";
+import type { z } from "zod";
+
+import { PaginatedTagsSchema, type TagColor, type TagView } from "@app/shared";
 import {
   type InfiniteData,
   keepPreviousData,
@@ -6,26 +8,11 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { z } from "zod";
 
 import { tagsKeys } from "@/features/tags/api/tags-keys";
 import { tagsControllerSearch } from "@/shared/api/generated/endpoints/tags/tags";
 
-const tagViewSchema = z.object({
-  color: z.enum(TAG_COLORS),
-  id: z.string(),
-  name: z.string(),
-}) satisfies z.ZodType<TagView>;
-
-const tagsSearchResultSchema = z.object({
-  items: z.array(tagViewSchema),
-  page: z.number(),
-  pagesCount: z.number(),
-  pageSize: z.number(),
-  totalCount: z.number(),
-});
-
-type TagsSearchPage = z.infer<typeof tagsSearchResultSchema>;
+type TagsSearchPage = z.infer<typeof PaginatedTagsSchema>;
 
 const TAGS_SEARCH_PAGE_SIZE = 20;
 const SELECTED_TAGS_MAX = 100;
@@ -46,6 +33,13 @@ export function useSearchedTagColors(): ReadonlyMap<string, TagColor> {
 }
 
 export function useSelectedTags(ids: readonly string[]): ReadonlyMap<string, TagView> {
+  return useSelectedTagsLookup(ids).tags;
+}
+
+export function useSelectedTagsLookup(ids: readonly string[]): {
+  isPending: boolean;
+  tags: ReadonlyMap<string, TagView>;
+} {
   const queryClient = useQueryClient();
   const requestedIds = [...new Set(ids)].sort().slice(0, SELECTED_TAGS_MAX);
   const selected = useQuery({
@@ -56,7 +50,7 @@ export function useSelectedTags(ids: readonly string[]): ReadonlyMap<string, Tag
         ids: requestedIds,
         pageSize: requestedIds.length,
       });
-      return tagsSearchResultSchema.parse(response).items;
+      return PaginatedTagsSchema.parse(response).items;
     },
     queryKey: tagsKeys.selected(requestedIds),
   });
@@ -64,7 +58,10 @@ export function useSelectedTags(ids: readonly string[]): ReadonlyMap<string, Tag
     .getQueriesData<InfiniteData<TagsSearchPage>>({ queryKey: tagsKeys.pickers })
     .flatMap(([, data]) => (data?.pages ?? []).flatMap((page) => page.items));
 
-  return new Map([...searched, ...(selected.data ?? [])].map((tag) => [tag.id, tag] as const));
+  return {
+    isPending: requestedIds.length > 0 && (selected.isPending || selected.isPlaceholderData),
+    tags: new Map([...searched, ...(selected.data ?? [])].map((tag) => [tag.id, tag] as const)),
+  };
 }
 
 export function useTagsSearch(search: string) {
@@ -81,7 +78,7 @@ export function useTagsSearch(search: string) {
         pageSize: TAGS_SEARCH_PAGE_SIZE,
         search: trimmed.length > 0 ? trimmed : undefined,
       });
-      return tagsSearchResultSchema.parse(response);
+      return PaginatedTagsSchema.parse(response);
     },
     queryKey: tagsKeys.picker(trimmed),
     select: (data) => data.pages.flatMap((page) => page.items),

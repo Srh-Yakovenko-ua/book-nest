@@ -44,8 +44,6 @@ export class ApiError extends Error {
   }
 }
 
-const isServer = typeof window === "undefined";
-
 const NON_REFRESHABLE_PATHS = [
   "/api/auth/login",
   "/api/auth/refresh",
@@ -58,6 +56,7 @@ const NON_REFRESHABLE_PATHS = [
 ];
 
 export async function request<T>(path: string, init?: RequestOptions): Promise<T> {
+  const requestUserId = getAuthBridge()?.getUserId() ?? null;
   const res = await send(path, init);
 
   if (res.ok) {
@@ -71,36 +70,16 @@ export async function request<T>(path: string, init?: RequestOptions): Promise<T
   }
 
   if (canAttemptRefresh(res.status, path)) {
-    const retried = await refreshAndRetry<T>(path, init);
+    const retried = await refreshAndRetry<T>({ init, path, requestUserId });
     if (retried.handled) return retried.value;
   }
 
   throw await toApiError(res);
 }
 
-async function buildRequest(
-  path: string,
-  init?: RequestOptions,
-): Promise<{ init: RequestInit; url: string }> {
+function buildRequest(path: string, init?: RequestOptions): { init: RequestInit; url: string } {
   const jsonContentType: Record<string, string> =
     init?.body instanceof FormData ? {} : { "Content-Type": "application/json" };
-
-  if (isServer) {
-    const base = process.env.API_BASE_URL ?? "http://localhost:4000";
-    const { cookies } = await import("next/headers");
-    const cookieHeader = (await cookies()).toString();
-    return {
-      init: {
-        ...init,
-        headers: {
-          ...jsonContentType,
-          ...(cookieHeader ? { cookie: cookieHeader } : {}),
-          ...init?.headers,
-        },
-      },
-      url: `${base}${path}`,
-    };
-  }
 
   const accessToken = getAuthBridge()?.getAccessToken() ?? null;
 
@@ -119,22 +98,25 @@ async function buildRequest(
 }
 
 function canAttemptRefresh(status: number, path: string): boolean {
-  if (isServer) return false;
   if (status !== 401) return false;
   if (NON_REFRESHABLE_PATHS.some((p) => path.startsWith(p))) return false;
   return getAuthBridge() !== null;
 }
 
 function isMaintenanceResponse(res: Response): boolean {
-  if (isServer) return false;
   if (res.status !== MAINTENANCE.status) return false;
   return res.headers.get(MAINTENANCE.header) !== null;
 }
 
-async function refreshAndRetry<T>(
-  path: string,
-  init?: RequestOptions,
-): Promise<{ handled: false } | { handled: true; value: T }> {
+async function refreshAndRetry<T>({
+  init,
+  path,
+  requestUserId,
+}: {
+  init?: RequestOptions;
+  path: string;
+  requestUserId: null | string;
+}): Promise<{ handled: false } | { handled: true; value: T }> {
   const bridge = getAuthBridge();
   if (!bridge) return { handled: false };
 
@@ -145,6 +127,10 @@ async function refreshAndRetry<T>(
     return { handled: false };
   }
 
+  const sessionSwitchedToAnotherUser =
+    requestUserId !== null && bridge.getUserId() !== requestUserId;
+  if (sessionSwitchedToAnotherUser) return { handled: false };
+
   const res = await send(path, init);
   if (!res.ok) throw await toApiError(res);
   if (res.status === 204) return { handled: true, value: undefined as T };
@@ -152,7 +138,7 @@ async function refreshAndRetry<T>(
 }
 
 async function send(path: string, init?: RequestOptions): Promise<Response> {
-  const { init: requestInit, url } = await buildRequest(path, init);
+  const { init: requestInit, url } = buildRequest(path, init);
   return fetch(url, requestInit);
 }
 

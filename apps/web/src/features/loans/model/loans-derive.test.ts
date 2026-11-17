@@ -3,16 +3,16 @@ import { describe, expect, it } from "vitest";
 import { daysBetweenLoanDates, formatLoanDate, loanRelative, loanTerm } from "./loans-derive";
 
 describe("formatLoanDate", () => {
-  it("formats an ISO date as dd.MM.yyyy", () => {
-    expect(formatLoanDate("2024-05-24")).toBe("24.05.2024");
+  it("formats an ISO date in the reader's locale", () => {
+    expect(formatLoanDate({ iso: "2024-05-24", locale: "en" })).toBe("May 24, 2024");
   });
 
   it("returns null for a null value", () => {
-    expect(formatLoanDate(null)).toBeNull();
+    expect(formatLoanDate({ iso: null, locale: "en" })).toBeNull();
   });
 
   it("returns null for a malformed value", () => {
-    expect(formatLoanDate("24-05-2024")).toBeNull();
+    expect(formatLoanDate({ iso: "24-05-2024", locale: "en" })).toBeNull();
   });
 });
 

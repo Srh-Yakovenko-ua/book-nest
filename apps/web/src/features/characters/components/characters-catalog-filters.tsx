@@ -1,27 +1,12 @@
 "use client";
 
-import type {
-  BookCharacterImportance,
-  BookCharacterRoleType,
-  CharacterAttitude,
-  CharacterGender,
-} from "@app/shared";
-
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChipGroup } from "@/components/ui/chip-group";
 import { FilterSection } from "@/components/ui/filter-panel";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
@@ -31,146 +16,213 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { useSeriesPickerOptions } from "@/features/series";
+import { LibraryTagFilter } from "@/features/books";
+import { cn } from "@/lib/utils";
 
-import type { CharactersCatalogState } from "../model/characters-catalog-query";
+import type {
+  CharactersCatalogAdvancedFilters,
+  CharactersCatalogState,
+} from "../model/characters-catalog-query";
+import type { CatalogSpeciesNames } from "../model/use-catalog-species-names";
 import type { CharactersCatalogAdvancedPatch } from "../model/use-characters-catalog-query";
 
-import { useCharacterGroupOptions } from "../api/use-character-group-options";
+import { useCharacterFacets } from "../api/use-character-facets";
 import {
   ATTITUDE_OPTIONS,
   BOOK_CHARACTER_IMPORTANCE,
   BOOK_CHARACTER_ROLE,
   GENDER_OPTIONS,
 } from "../model/character-options";
+import {
+  CHARACTERS_CATALOG_ADVANCED_EMPTY,
+  countActiveAdvancedFilters,
+  pickAdvancedFilters,
+  toCharactersCatalogFilterParams,
+} from "../model/characters-catalog-query";
+import { CharactersBookFilter } from "./characters-book-filter";
+import { CharactersEnumFacetFilter } from "./characters-enum-facet-filter";
+import { CharactersGroupFilter } from "./characters-group-filter";
+import { CharactersSeriesFilter } from "./characters-series-filter";
+import { CharactersSpeciesFilter } from "./characters-species-filter";
+import { CharactersSpoilerFilter } from "./characters-spoiler-filter";
 
 type CharactersCatalogFiltersProps = {
   activeCount: number;
   onApply: (patch: CharactersCatalogAdvancedPatch) => void;
+  speciesNames: CatalogSpeciesNames;
   state: CharactersCatalogState;
 };
-
-const EMPTY_ADVANCED = {
-  attitude: [],
-  gender: [],
-  groupId: [],
-  importance: [],
-  role: [],
-  seriesId: null,
-} satisfies CharactersCatalogAdvancedPatch;
 
 export function CharactersCatalogFilters({
   activeCount,
   onApply,
+  speciesNames,
   state,
 }: CharactersCatalogFiltersProps) {
   const t = useTranslations("characters.catalog.filters");
+  const tAttitude = useTranslations("characters.attitude");
+  const tGender = useTranslations("characters.gender");
+  const tImportance = useTranslations("characters.importance");
+  const tRole = useTranslations("characters.roleType");
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<CharactersCatalogAdvancedPatch>(EMPTY_ADVANCED);
+  const [draft, setDraft] = useState<CharactersCatalogAdvancedFilters>(() =>
+    pickAdvancedFilters(state),
+  );
+  const facets = useCharacterFacets(toCharactersCatalogFilterParams({ ...state, ...draft }), {
+    enabled: open,
+  });
 
-  function openWith(next: boolean) {
-    if (next) {
-      setDraft({
-        attitude: state.attitude,
-        gender: state.gender,
-        groupId: state.groupId,
-        importance: state.importance,
-        role: state.role,
-        seriesId: state.seriesId,
-      });
-    }
-    setOpen(next);
+  function patchDraft(patch: CharactersCatalogAdvancedPatch) {
+    setDraft((current) => ({ ...current, ...patch }));
   }
 
   return (
-    <Sheet onOpenChange={openWith} open={open}>
+    <Sheet
+      onOpenChange={(next) => {
+        if (next) setDraft(pickAdvancedFilters(state));
+        setOpen(next);
+      }}
+      open={open}
+    >
       <SheetTrigger asChild>
-        <Button className="h-10" variant="secondary">
-          <UiIcon name="filter" size={16} />
-          {t("trigger")}
-          {activeCount > 0 ? <Badge variant="primary">{activeCount}</Badge> : null}
+        <Button
+          className={cn("h-10", activeCount > 0 ? "max-sm:px-2.5" : "max-sm:w-10 max-sm:px-0")}
+          type="button"
+          variant="secondary"
+        >
+          <UiIcon name="funnel" size={16} />
+          <span className="max-sm:sr-only">{t("trigger")}</span>
+          {activeCount > 0 ? (
+            <Badge className="ml-0.5" variant="secondary">
+              {activeCount}
+            </Badge>
+          ) : null}
         </Button>
       </SheetTrigger>
 
-      <SheetContent className="flex w-full flex-col gap-0 sm:max-w-md" side="right">
-        <SheetHeader className="border-b border-border">
+      <SheetContent className="gap-0 data-[side=right]:w-full sm:max-w-md" side="right">
+        <SheetHeader>
           <SheetTitle>{t("title")}</SheetTitle>
           <SheetDescription>{t("description")}</SheetDescription>
         </SheetHeader>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">
-          <FilterSection title={t("groups.appearsIn")}>
-            <SeriesFilter
-              onChange={(seriesId) => setDraft((current) => ({ ...current, seriesId }))}
-              value={draft.seriesId ?? null}
+        <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-4">
+          <FilterSection title={t("series")}>
+            <CharactersSeriesFilter
+              onChange={(seriesId) => patchDraft({ seriesId })}
+              value={draft.seriesId}
             />
           </FilterSection>
 
-          <FilterSection title={t("groups.bookRole")}>
-            <ChipGroup
+          <FilterSection title={t("book")}>
+            <CharactersBookFilter
+              onChange={(bookId) => patchDraft({ bookId })}
+              value={draft.bookId}
+            />
+          </FilterSection>
+
+          <FilterSection title={t("importance")}>
+            <CharactersEnumFacetFilter
+              counts={facets.data?.importance}
+              countsPending={facets.isPending}
               label={t("importance")}
-              mode="multi"
-              onValueChange={(importance) => setDraft((current) => ({ ...current, importance }))}
-              options={BOOK_CHARACTER_IMPORTANCE.options.map((option) => ({
-                label: <ImportanceLabel value={option} />,
-                value: option,
-              }))}
-              size="sm"
-              value={draft.importance ?? []}
+              labelOf={(option) => tImportance(option)}
+              onChange={(importance) => patchDraft({ importance })}
+              options={BOOK_CHARACTER_IMPORTANCE.options}
+              value={draft.importance}
             />
-            <ChipGroup
+          </FilterSection>
+
+          <FilterSection title={t("role")}>
+            <CharactersEnumFacetFilter
+              counts={facets.data?.role}
+              countsPending={facets.isPending}
               label={t("role")}
-              mode="multi"
-              onValueChange={(role) => setDraft((current) => ({ ...current, role }))}
-              options={BOOK_CHARACTER_ROLE.options.map((option) => ({
-                label: <RoleLabel value={option} />,
-                value: option,
-              }))}
-              size="sm"
-              value={draft.role ?? []}
+              labelOf={(option) => tRole(option)}
+              onChange={(role) => patchDraft({ role })}
+              options={BOOK_CHARACTER_ROLE.options}
+              value={draft.role}
             />
           </FilterSection>
 
-          <FilterSection title={t("groups.about")}>
-            <ChipGroup
+          <FilterSection title={t("gender")}>
+            <CharactersEnumFacetFilter
+              counts={facets.data?.gender}
+              countsPending={facets.isPending}
               label={t("gender")}
-              mode="multi"
-              onValueChange={(gender) => setDraft((current) => ({ ...current, gender }))}
-              options={GENDER_OPTIONS.map((option) => ({
-                label: <GenderLabel value={option} />,
-                value: option,
-              }))}
-              size="sm"
-              value={draft.gender ?? []}
-            />
-            <ChipGroup
-              label={t("attitude")}
-              mode="multi"
-              onValueChange={(attitude) => setDraft((current) => ({ ...current, attitude }))}
-              options={ATTITUDE_OPTIONS.map((option) => ({
-                label: <AttitudeLabel value={option} />,
-                value: option,
-              }))}
-              size="sm"
-              value={draft.attitude ?? []}
+              labelOf={(option) => tGender(option)}
+              onChange={(gender) => patchDraft({ gender })}
+              options={GENDER_OPTIONS}
+              value={draft.gender}
             />
           </FilterSection>
 
-          <FilterSection title={t("groups.organisation")}>
-            <GroupFilter
-              onChange={(groupId) => setDraft((current) => ({ ...current, groupId }))}
-              value={draft.groupId ?? []}
+          <FilterSection title={t("species")}>
+            <CharactersSpeciesFilter
+              counts={facets.data?.species}
+              names={speciesNames}
+              onChange={(speciesId) => patchDraft({ speciesId })}
+              value={draft.speciesId}
+            />
+          </FilterSection>
+
+          <FilterSection title={t("attitude")}>
+            <CharactersEnumFacetFilter
+              counts={facets.data?.attitude}
+              countsPending={facets.isPending}
+              label={t("attitude")}
+              labelOf={(option) => tAttitude(option)}
+              onChange={(attitude) => patchDraft({ attitude })}
+              options={ATTITUDE_OPTIONS}
+              value={draft.attitude}
+            />
+          </FilterSection>
+
+          <FilterSection title={t("tags")}>
+            <LibraryTagFilter
+              emptyLabel={t("tagEmpty")}
+              id="characters-filter-tag"
+              label={t("tags")}
+              onAdd={(tag) =>
+                setDraft((current) => ({ ...current, tagId: [...current.tagId, tag.id] }))
+              }
+              onRemove={(id) =>
+                setDraft((current) => ({
+                  ...current,
+                  tagId: current.tagId.filter((value) => value !== id),
+                }))
+              }
+              placeholder={t("tagPlaceholder")}
+              removeLabel={(name) => t("removeTag", { name })}
+              resolveName={() => undefined}
+              searchingLabel={t("tagSearching")}
+              suggestionsHeading={t("tagSuggestions")}
+              value={draft.tagId}
+            />
+          </FilterSection>
+
+          <FilterSection title={t("groups")}>
+            <CharactersGroupFilter
+              counts={facets.data?.group}
+              countsPending={facets.isPending}
+              onChange={(groupId) => patchDraft({ groupId })}
+              value={draft.groupId}
+            />
+          </FilterSection>
+
+          <FilterSection title={t("spoilers")}>
+            <CharactersSpoilerFilter
+              onChange={(spoilers) => patchDraft({ spoilers })}
+              value={draft.spoilers}
             />
           </FilterSection>
         </div>
 
-        <SheetFooter className="border-t border-border">
+        <SheetFooter>
           <Button
-            onClick={() => {
-              setDraft(EMPTY_ADVANCED);
-              onApply(EMPTY_ADVANCED);
-              setOpen(false);
-            }}
+            disabled={countActiveAdvancedFilters(draft) === 0}
+            onClick={() => setDraft(CHARACTERS_CATALOG_ADVANCED_EMPTY)}
+            type="button"
             variant="ghost"
           >
             {t("clear")}
@@ -180,91 +232,12 @@ export function CharactersCatalogFilters({
               onApply(draft);
               setOpen(false);
             }}
+            type="button"
           >
             {t("apply")}
           </Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>
-  );
-}
-
-function AttitudeLabel({ value }: { value: CharacterAttitude }) {
-  const t = useTranslations("characters.attitude");
-  return <>{t(value)}</>;
-}
-
-function GenderLabel({ value }: { value: CharacterGender }) {
-  const t = useTranslations("characters.gender");
-  return <>{t(value)}</>;
-}
-
-function GroupFilter({
-  onChange,
-  value,
-}: {
-  onChange: (value: string[]) => void;
-  value: string[];
-}) {
-  const t = useTranslations("characters.catalog.filters");
-  const groups = useCharacterGroupOptions(true);
-  const options = (groups.data?.items ?? []).filter((group) => group.name !== null);
-
-  if (options.length === 0) {
-    return <p className="text-sm text-muted-foreground">{t("noGroups")}</p>;
-  }
-
-  return (
-    <ChipGroup
-      label={t("groups.organisation")}
-      mode="multi"
-      onValueChange={onChange}
-      options={options.map((group) => ({ label: group.name ?? "", value: group.id }))}
-      size="sm"
-      value={value}
-    />
-  );
-}
-
-function ImportanceLabel({ value }: { value: BookCharacterImportance }) {
-  const t = useTranslations("characters.importance");
-  return <>{t(value)}</>;
-}
-
-function RoleLabel({ value }: { value: BookCharacterRoleType }) {
-  const t = useTranslations("characters.roleType");
-  return <>{t(value)}</>;
-}
-
-function SeriesFilter({
-  onChange,
-  value,
-}: {
-  onChange: (value: null | string) => void;
-  value: null | string;
-}) {
-  const t = useTranslations("characters.catalog.filters");
-  const tCommon = useTranslations("common");
-  const series = useSeriesPickerOptions("");
-  const options = (series.data?.pages ?? []).flatMap((page) => page.items);
-
-  return (
-    <Select onValueChange={onChange} value={value ?? ""}>
-      <SelectTrigger
-        className="w-full data-[size=default]:h-10"
-        clearLabel={tCommon("clear")}
-        isClearable={value !== null}
-        onClear={() => onChange(null)}
-      >
-        <SelectValue placeholder={t("anySeries")} />
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((option) => (
-          <SelectItem key={option.id} value={option.id}>
-            {option.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
   );
 }

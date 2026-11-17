@@ -10,11 +10,12 @@ import type {
 
 import { OwnershipStatusSchema, ReadingStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
-import { subDays } from "date-fns";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
+import { addDaysToUtcDay } from "../../../core/iso-date.js";
 import { BookAccessService, BookReadingService, BookViewAssembler } from "../../books/index.js";
+import { UserSettingsContextService } from "../../profile/index.js";
 import { computeQueueInsertPosition } from "../domain/queue-position.js";
 import {
   computeReadingQueueSummary,
@@ -35,6 +36,7 @@ export class ReadingQueueService {
     private readonly bookViewAssembler: BookViewAssembler,
     private readonly readingQueueRepository: ReadingQueueRepository,
     private readonly transactionRunner: TransactionRunner,
+    private readonly userSettingsContextService: UserSettingsContextService,
   ) {}
 
   async addToQueue(userId: string, input: AddToReadingQueueInput): Promise<ReadingQueueView> {
@@ -71,15 +73,16 @@ export class ReadingQueueService {
   }
 
   async getQueue(userId: string, query?: ReadingQueueQuery): Promise<ReadingQueueView> {
-    const [books, totalCount] = await Promise.all([
+    const [books, totalCount, toBookView] = await Promise.all([
       this.readingQueueRepository.listQueue(userId, query),
       this.readingQueueRepository.count(userId),
+      this.bookViewAssembler.forUser(userId),
     ]);
     const items = books.flatMap<ReadingQueueItemView>((book) => {
       if (book.queuePosition === null) {
         return [];
       }
-      return [{ book: this.bookViewAssembler.viewOf(book), position: book.queuePosition }];
+      return [{ book: toBookView(book), position: book.queuePosition }];
     });
     const totalPagesCount = items.reduce((total, item) => total + (item.book.pagesCount ?? 0), 0);
 
@@ -167,11 +170,14 @@ export class ReadingQueueService {
   }
 
   async volumeSummary(userId: string): Promise<ReadingQueueVolumeSummaryView> {
+    const now = new Date();
+    const today = await this.userSettingsContextService.calendarDay({ now, userId });
+    const paceWindowStart = addDaysToUtcDay({ day: today, days: -(PACE_WINDOW_DAYS - 1) });
     const [rows, paceRow] = await Promise.all([
       this.readingQueueRepository.loadVolumeRows(userId),
-      this.readingQueueRepository.loadPaceAggregate(userId, subDays(new Date(), PACE_WINDOW_DAYS)),
+      this.readingQueueRepository.loadPaceAggregate(userId, paceWindowStart),
     ]);
 
-    return computeQueueVolume({ paceRow, rows, today: new Date() });
+    return computeQueueVolume({ paceRow, rows, today });
   }
 }

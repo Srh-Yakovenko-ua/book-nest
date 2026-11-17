@@ -15,8 +15,9 @@ import {
   useWatch,
 } from "react-hook-form";
 
-import type { LoanContactSelection } from "@/features/loans/model/loan-contact-selection";
+import type { LoanContactSelection } from "@/features/loans";
 
+import { DateField } from "@/components/date-field";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -32,13 +33,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CreateLoanContactDialog } from "@/features/loans/components/contact/create-loan-contact-dialog";
-import { LoanContactPicker } from "@/features/loans/components/loan-contact-picker";
+import { CreateLoanContactDialog, LoanContactPicker } from "@/features/loans";
 import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
 import { ownershipStatuses } from "@/lib/book-status";
+import { emptyToNull } from "@/lib/empty-to-null";
 
 import type { BookFormMode } from "../model/book-form-mode";
 import type { CreateBookFormValues } from "../model/create-book-form";
@@ -50,9 +51,7 @@ import {
   ownershipUsesDelivery,
   ownershipUsesLoan,
 } from "../model/book-status-fields";
-import { emptyToNull } from "../model/empty-to-null";
 import { OWNERSHIP_FIELDS } from "../model/section-completeness";
-import { BookDateField } from "./book-date-field";
 import { DeliveryServiceAutocomplete } from "./delivery-service-autocomplete";
 import { FormSection } from "./form-section";
 import { StatusChipGroup } from "./status-chip-group";
@@ -260,7 +259,7 @@ export function OwnershipStatusSection({
                 control={control}
                 name="deliveryInfo.orderDate"
                 render={({ field }) => (
-                  <BookDateField
+                  <DateField
                     ariaLabel={t("deliveryInfo.fields.orderDate")}
                     className={mode === "create" ? "h-10" : undefined}
                     describedBy={
@@ -286,7 +285,7 @@ export function OwnershipStatusSection({
                   control={control}
                   name="deliveryInfo.expectedDeliveryDate"
                   render={({ field }) => (
-                    <BookDateField
+                    <DateField
                       allowFuture
                       ariaLabel={t("deliveryInfo.fields.expectedDeliveryDate")}
                       describedBy={
@@ -469,7 +468,7 @@ export function OwnershipStatusSection({
                         control={control}
                         name="deliveryInfo.expectedDeliveryDate"
                         render={({ field }) => (
-                          <BookDateField
+                          <DateField
                             allowFuture
                             ariaLabel={t("deliveryInfo.fields.expectedDeliveryDate")}
                             className="h-10"
@@ -667,7 +666,7 @@ export function OwnershipStatusSection({
                 control={control}
                 name="loanInfo.loanDate"
                 render={({ field }) => (
-                  <BookDateField
+                  <DateField
                     ariaLabel={t("loanInfo.fields.loanDate")}
                     describedBy={errors.loanInfo?.loanDate ? "loan-date-error" : undefined}
                     id="loan-date"
@@ -687,7 +686,7 @@ export function OwnershipStatusSection({
                 control={control}
                 name="loanInfo.expectedReturnDate"
                 render={({ field }) => (
-                  <BookDateField
+                  <DateField
                     allowFuture
                     ariaLabel={t("loanInfo.fields.expectedReturnDate")}
                     describedBy={

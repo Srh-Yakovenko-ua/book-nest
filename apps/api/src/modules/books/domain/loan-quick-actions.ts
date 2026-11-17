@@ -1,11 +1,6 @@
 import type { Nullable } from "@app/shared";
 
-import {
-  addDaysToIsoDate,
-  daysBetweenIsoDates,
-  parseIsoDate,
-  toIsoDate,
-} from "../../../core/iso-date.js";
+import { addDaysToUtcDay, daysBetweenUtcDays } from "../../../core/iso-date.js";
 
 export type LoanReminderFields = {
   remindBeforeDays: Nullable<number>;
@@ -15,18 +10,15 @@ export type LoanReminderFields = {
 export function extendReturnDate({
   days,
   expectedReturnDate,
-  now,
+  today,
 }: {
   days: number;
   expectedReturnDate: Date;
-  now: Date;
+  today: Date;
 }): Date {
-  const todayIsoDate = toIsoDate(now);
-  const returnIsoDate = toIsoDate(expectedReturnDate);
-  const isOverdue =
-    daysBetweenIsoDates({ endIsoDate: todayIsoDate, startIsoDate: returnIsoDate }) > 0;
+  const isOverdue = daysBetweenUtcDays({ end: today, start: expectedReturnDate }) > 0;
 
-  return parseIsoDate(addDaysToIsoDate(isOverdue ? todayIsoDate : returnIsoDate, days));
+  return addDaysToUtcDay({ day: isOverdue ? today : expectedReturnDate, days });
 }
 
 export function resolveReminderFields({

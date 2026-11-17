@@ -4,11 +4,13 @@ import { type ReactNode, useEffect } from "react";
 
 import { registerAuthBridge } from "@/lib/auth-bridge";
 
+import { useClearPreviousUserState } from "../hooks/use-clear-previous-user-state";
 import { singleFlightRefresh } from "../lib/single-flight-refresh";
 import { useAuthStore } from "../model/auth-store";
 
 registerAuthBridge({
   getAccessToken: () => useAuthStore.getState().accessToken,
+  getUserId: () => useAuthStore.getState().user?.id ?? null,
   onRefreshFailed: () => useAuthStore.getState().clearSession(),
   refresh: singleFlightRefresh,
 });
@@ -16,6 +18,8 @@ registerAuthBridge({
 let bootstrapped = false;
 
 export function SessionProvider({ children }: { children: ReactNode }) {
+  useClearPreviousUserState();
+
   useEffect(() => {
     if (bootstrapped) return;
     bootstrapped = true;

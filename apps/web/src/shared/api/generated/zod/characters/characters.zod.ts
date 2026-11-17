@@ -599,7 +599,6 @@ export const CharacterPortabilityControllerExportBundleResponse = zod.object({
         gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
         globalAttitude: zod
           .union([
-            zod.literal("favorite"),
             zod.literal("like"),
             zod.literal("neutral"),
             zod.literal("distrust"),
@@ -658,7 +657,6 @@ export const CharacterPortabilityControllerExportBundleResponse = zod.object({
               appearanceNotesIsSpoiler: zod.boolean(),
               attitude: zod
                 .union([
-                  zod.literal("favorite"),
                   zod.literal("like"),
                   zod.literal("neutral"),
                   zod.literal("distrust"),
@@ -1647,13 +1645,13 @@ export const CharacterPortabilityControllerImportBundleBody = zod.union([
           gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
           globalAttitude: zod
             .union([
-              zod.literal("favorite"),
               zod.literal("like"),
               zod.literal("neutral"),
               zod.literal("distrust"),
               zod.literal("dislike"),
               zod.literal("hate"),
               zod.literal("unsure"),
+              zod.literal("favorite"),
               zod.literal(null),
             ])
             .nullable(),
@@ -1706,13 +1704,13 @@ export const CharacterPortabilityControllerImportBundleBody = zod.union([
                 appearanceNotesIsSpoiler: zod.boolean(),
                 attitude: zod
                   .union([
-                    zod.literal("favorite"),
                     zod.literal("like"),
                     zod.literal("neutral"),
                     zod.literal("distrust"),
                     zod.literal("dislike"),
                     zod.literal("hate"),
                     zod.literal("unsure"),
+                    zod.literal("favorite"),
                     zod.literal(null),
                   ])
                   .nullable(),
@@ -2266,13 +2264,13 @@ export const CharacterPortabilityControllerImportBundleBody = zod.union([
           gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
           globalAttitude: zod
             .union([
-              zod.literal("favorite"),
               zod.literal("like"),
               zod.literal("neutral"),
               zod.literal("distrust"),
               zod.literal("dislike"),
               zod.literal("hate"),
               zod.literal("unsure"),
+              zod.literal("favorite"),
               zod.literal(null),
             ])
             .nullable(),
@@ -2325,13 +2323,13 @@ export const CharacterPortabilityControllerImportBundleBody = zod.union([
                 appearanceNotesIsSpoiler: zod.boolean(),
                 attitude: zod
                   .union([
-                    zod.literal("favorite"),
                     zod.literal("like"),
                     zod.literal("neutral"),
                     zod.literal("distrust"),
                     zod.literal("dislike"),
                     zod.literal("hate"),
                     zod.literal("unsure"),
+                    zod.literal("favorite"),
                     zod.literal(null),
                   ])
                   .nullable(),
@@ -2862,7 +2860,6 @@ export const CharactersControllerCreateBody = zod.object({
       .default(charactersControllerCreateBodyCharacterGenderDefault),
     globalAttitude: zod
       .union([
-        zod.literal("favorite"),
         zod.literal("like"),
         zod.literal("neutral"),
         zod.literal("distrust"),
@@ -2900,7 +2897,6 @@ export const CharactersControllerCreateBody = zod.object({
           ),
         attitude: zod
           .union([
-            zod.literal("favorite"),
             zod.literal("like"),
             zod.literal("neutral"),
             zod.literal("distrust"),
@@ -3118,7 +3114,6 @@ export const CharactersControllerCreateResponse = zod.object({
       appearanceNotesIsSpoiler: zod.boolean(),
       attitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -3341,7 +3336,6 @@ export const CharactersControllerCreateResponse = zod.object({
   gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
   globalAttitude: zod
     .union([
-      zod.literal("favorite"),
       zod.literal("like"),
       zod.literal("neutral"),
       zod.literal("distrust"),
@@ -3417,7 +3411,7 @@ export const charactersControllerListQueryTagIdMax = 100;
 export const CharactersControllerListQueryParams = zod.object({
   archived: zod.string().optional(),
   attitude: zod
-    .array(zod.enum(["favorite", "like", "neutral", "distrust", "dislike", "hate", "unsure"]))
+    .array(zod.enum(["like", "neutral", "distrust", "dislike", "hate", "unsure"]))
     .max(charactersControllerListQueryAttitudeMax)
     .optional(),
   bookId: zod.uuid().regex(charactersControllerListQueryBookIdRegExp).optional(),
@@ -3486,6 +3480,12 @@ export const charactersControllerListResponseItemsItemAppearanceCountMax = 90071
 export const charactersControllerListResponseItemsItemSpeciesIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
+export const charactersControllerListResponseItemsItemBooksPreviewItemSeriesPartNumberMin =
+  -9007199254740991;
+export const charactersControllerListResponseItemsItemBooksPreviewItemSeriesPartNumberMax = 9007199254740991;
+
+export const charactersControllerListResponseItemsItemBooksPreviewMax = 3;
+
 export const charactersControllerListResponsePageMin = -9007199254740991;
 export const charactersControllerListResponsePageMax = 9007199254740991;
 
@@ -3528,7 +3528,6 @@ export const CharactersControllerListResponse = zod.object({
       gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
       globalAttitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -3562,6 +3561,42 @@ export const CharactersControllerListResponse = zod.object({
           name: zod.string(),
         }),
       ),
+      booksPreview: zod
+        .array(
+          zod.object({
+            cover: zod
+              .object({
+                contentType: zod.string(),
+                createdAt: zod.string(),
+                height: zod.number(),
+                id: zod.string(),
+                kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+                name: zod.string().nullable(),
+                sizeBytes: zod.number(),
+                urls: zod.object({
+                  card: zod.string(),
+                  full: zod.string(),
+                  thumb: zod.string(),
+                }),
+                width: zod.number(),
+              })
+              .nullable(),
+            id: zod.string(),
+            series: zod
+              .object({
+                id: zod.string(),
+                name: zod.string(),
+                partNumber: zod
+                  .int()
+                  .min(charactersControllerListResponseItemsItemBooksPreviewItemSeriesPartNumberMin)
+                  .max(charactersControllerListResponseItemsItemBooksPreviewItemSeriesPartNumberMax)
+                  .nullable(),
+              })
+              .nullable(),
+            title: zod.string(),
+          }),
+        )
+        .max(charactersControllerListResponseItemsItemBooksPreviewMax),
     }),
   ),
   page: zod
@@ -3650,7 +3685,6 @@ export const CharactersControllerDuplicateCandidatesResponse = zod.object({
       gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
       globalAttitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -3770,6 +3804,237 @@ export const CharactersControllerOverviewResponse = zod.object({
 });
 
 /**
+ * @summary Count the characters catalog per filter option
+ */
+export const charactersControllerFacetsQueryAttitudeMax = 100;
+
+export const charactersControllerFacetsQueryBookIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const charactersControllerFacetsQueryContextBookIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const charactersControllerFacetsQueryGenderMax = 100;
+
+export const charactersControllerFacetsQueryGroupIdItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const charactersControllerFacetsQueryGroupIdMax = 100;
+
+export const charactersControllerFacetsQueryImportanceMax = 100;
+
+export const charactersControllerFacetsQueryQMax = 100;
+
+export const charactersControllerFacetsQueryRoleMax = 100;
+
+export const charactersControllerFacetsQuerySeriesIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const charactersControllerFacetsQuerySpeciesIdItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const charactersControllerFacetsQuerySpeciesIdMax = 100;
+
+export const charactersControllerFacetsQueryTagIdItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const charactersControllerFacetsQueryTagIdMax = 100;
+
+export const CharactersControllerFacetsQueryParams = zod.object({
+  archived: zod.string().optional(),
+  attitude: zod
+    .array(zod.enum(["like", "neutral", "distrust", "dislike", "hate", "unsure"]))
+    .max(charactersControllerFacetsQueryAttitudeMax)
+    .optional(),
+  bookId: zod.uuid().regex(charactersControllerFacetsQueryBookIdRegExp).optional(),
+  contextBookId: zod.uuid().regex(charactersControllerFacetsQueryContextBookIdRegExp).optional(),
+  favorite: zod.string().optional(),
+  gender: zod
+    .array(zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]))
+    .max(charactersControllerFacetsQueryGenderMax)
+    .optional(),
+  groupId: zod
+    .array(zod.uuid().regex(charactersControllerFacetsQueryGroupIdItemRegExp))
+    .max(charactersControllerFacetsQueryGroupIdMax)
+    .optional(),
+  hasPersonalImpression: zod.string().optional(),
+  hasSpoilers: zod.string().optional(),
+  importance: zod
+    .array(zod.enum(["central", "major", "supporting", "episodic", "mentioned", "not_specified"]))
+    .max(charactersControllerFacetsQueryImportanceMax)
+    .optional(),
+  includeSpoilerSearch: zod.string().optional(),
+  multipleBooks: zod.string().optional(),
+  possibleDuplicates: zod.string().optional(),
+  q: zod.string().max(charactersControllerFacetsQueryQMax).optional(),
+  role: zod
+    .array(
+      zod.enum([
+        "protagonist",
+        "deuteragonist",
+        "antagonist",
+        "love_interest",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "custom",
+      ]),
+    )
+    .max(charactersControllerFacetsQueryRoleMax)
+    .optional(),
+  seriesId: zod.uuid().regex(charactersControllerFacetsQuerySeriesIdRegExp).optional(),
+  speciesId: zod
+    .array(zod.uuid().regex(charactersControllerFacetsQuerySpeciesIdItemRegExp))
+    .max(charactersControllerFacetsQuerySpeciesIdMax)
+    .optional(),
+  tagId: zod
+    .array(zod.uuid().regex(charactersControllerFacetsQueryTagIdItemRegExp))
+    .max(charactersControllerFacetsQueryTagIdMax)
+    .optional(),
+});
+
+export const charactersControllerFacetsResponseAttitudeItemCountMin = 0;
+export const charactersControllerFacetsResponseAttitudeItemCountMax = 9007199254740991;
+
+export const charactersControllerFacetsResponseGenderItemCountMin = 0;
+export const charactersControllerFacetsResponseGenderItemCountMax = 9007199254740991;
+
+export const charactersControllerFacetsResponseGroupItemCountMin = 0;
+export const charactersControllerFacetsResponseGroupItemCountMax = 9007199254740991;
+
+export const charactersControllerFacetsResponseGroupItemValueRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const charactersControllerFacetsResponseImportanceItemCountMin = 0;
+export const charactersControllerFacetsResponseImportanceItemCountMax = 9007199254740991;
+
+export const charactersControllerFacetsResponseRoleItemCountMin = 0;
+export const charactersControllerFacetsResponseRoleItemCountMax = 9007199254740991;
+
+export const charactersControllerFacetsResponseSpeciesItemCountMin = 0;
+export const charactersControllerFacetsResponseSpeciesItemCountMax = 9007199254740991;
+
+export const charactersControllerFacetsResponseSpeciesItemValueRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const charactersControllerFacetsResponseTagItemCountMin = 0;
+export const charactersControllerFacetsResponseTagItemCountMax = 9007199254740991;
+
+export const charactersControllerFacetsResponseTagItemValueRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+
+export const CharactersControllerFacetsResponse = zod.object({
+  attitude: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(charactersControllerFacetsResponseAttitudeItemCountMin)
+          .max(charactersControllerFacetsResponseAttitudeItemCountMax),
+        value: zod.enum(["like", "neutral", "distrust", "dislike", "hate", "unsure"]),
+      }),
+    )
+    .describe(
+      "Characters per overall attitude. Each count answers to every active filter except this dimension's own selection, so picking one value never hides the others. Values with no matching character are omitted.",
+    ),
+  gender: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(charactersControllerFacetsResponseGenderItemCountMin)
+          .max(charactersControllerFacetsResponseGenderItemCountMax),
+        value: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
+      }),
+    )
+    .describe(
+      "Characters per gender. Each count answers to every active filter except this dimension's own selection, so picking one value never hides the others. Values with no matching character are omitted.",
+    ),
+  group: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(charactersControllerFacetsResponseGroupItemCountMin)
+          .max(charactersControllerFacetsResponseGroupItemCountMax),
+        value: zod.uuid().regex(charactersControllerFacetsResponseGroupItemValueRegExp),
+      }),
+    )
+    .describe(
+      "Characters per group id. Each count answers to every active filter except this dimension's own selection, so picking one value never hides the others. Values with no matching character are omitted.",
+    ),
+  importance: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(charactersControllerFacetsResponseImportanceItemCountMin)
+          .max(charactersControllerFacetsResponseImportanceItemCountMax),
+        value: zod.enum([
+          "central",
+          "major",
+          "supporting",
+          "episodic",
+          "mentioned",
+          "not_specified",
+        ]),
+      }),
+    )
+    .describe(
+      "Characters per importance in any of their books, or in the context book when one is given. Each count answers to every active filter except this dimension's own selection, so picking one value never hides the others. Values with no matching character are omitted.",
+    ),
+  role: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(charactersControllerFacetsResponseRoleItemCountMin)
+          .max(charactersControllerFacetsResponseRoleItemCountMax),
+        value: zod.enum([
+          "protagonist",
+          "deuteragonist",
+          "antagonist",
+          "love_interest",
+          "supporting",
+          "episodic",
+          "mentioned",
+          "custom",
+        ]),
+      }),
+    )
+    .describe(
+      "Characters per role in any of their books, or in the context book when one is given. Each count answers to every active filter except this dimension's own selection, so picking one value never hides the others. Values with no matching character are omitted.",
+    ),
+  species: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(charactersControllerFacetsResponseSpeciesItemCountMin)
+          .max(charactersControllerFacetsResponseSpeciesItemCountMax),
+        value: zod.uuid().regex(charactersControllerFacetsResponseSpeciesItemValueRegExp),
+      }),
+    )
+    .describe(
+      "Characters per species id. Each count answers to every active filter except this dimension's own selection, so picking one value never hides the others. Values with no matching character are omitted.",
+    ),
+  tag: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(charactersControllerFacetsResponseTagItemCountMin)
+          .max(charactersControllerFacetsResponseTagItemCountMax),
+        value: zod.uuid().regex(charactersControllerFacetsResponseTagItemValueRegExp),
+      }),
+    )
+    .describe(
+      "Characters per tag id. Each count answers to every active filter except this dimension's own selection, so picking one value never hides the others. Values with no matching character are omitted.",
+    ),
+});
+
+/**
  * @summary Get a global character with its book appearances
  */
 export const CharactersControllerGetByIdParams = zod.object({
@@ -3864,7 +4129,6 @@ export const CharactersControllerGetByIdResponse = zod.object({
       appearanceNotesIsSpoiler: zod.boolean(),
       attitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -4087,7 +4351,6 @@ export const CharactersControllerGetByIdResponse = zod.object({
   gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
   globalAttitude: zod
     .union([
-      zod.literal("favorite"),
       zod.literal("like"),
       zod.literal("neutral"),
       zod.literal("distrust"),
@@ -4186,7 +4449,6 @@ export const CharactersControllerUpdateGlobalBody = zod.object({
     .optional(),
   globalAttitude: zod
     .union([
-      zod.literal("favorite"),
       zod.literal("like"),
       zod.literal("neutral"),
       zod.literal("distrust"),
@@ -4268,7 +4530,6 @@ export const CharactersControllerUpdateGlobalResponse = zod.object({
       appearanceNotesIsSpoiler: zod.boolean(),
       attitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -4491,7 +4752,6 @@ export const CharactersControllerUpdateGlobalResponse = zod.object({
   gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
   globalAttitude: zod
     .union([
-      zod.literal("favorite"),
       zod.literal("like"),
       zod.literal("neutral"),
       zod.literal("distrust"),
@@ -4625,6 +4885,100 @@ export const CharactersControllerDeletionPreviewResponse = zod.object({
 });
 
 /**
+ * @summary List every active book a character appears in
+ */
+export const CharactersControllerListBooksParams = zod.object({
+  characterId: zod.string().describe("Character id"),
+});
+
+export const charactersControllerListBooksQueryPageNumberDefault = 1;
+export const charactersControllerListBooksQueryPageNumberMax = 21474836;
+
+export const charactersControllerListBooksQueryPageSizeDefault = 20;
+export const charactersControllerListBooksQueryPageSizeMax = 100;
+
+export const CharactersControllerListBooksQueryParams = zod.object({
+  pageNumber: zod
+    .int()
+    .min(1)
+    .max(charactersControllerListBooksQueryPageNumberMax)
+    .default(charactersControllerListBooksQueryPageNumberDefault),
+  pageSize: zod
+    .int()
+    .min(1)
+    .max(charactersControllerListBooksQueryPageSizeMax)
+    .default(charactersControllerListBooksQueryPageSizeDefault),
+});
+
+export const charactersControllerListBooksResponseItemsItemSeriesPartNumberMin = -9007199254740991;
+export const charactersControllerListBooksResponseItemsItemSeriesPartNumberMax = 9007199254740991;
+
+export const charactersControllerListBooksResponsePageMin = -9007199254740991;
+export const charactersControllerListBooksResponsePageMax = 9007199254740991;
+
+export const charactersControllerListBooksResponsePagesCountMin = -9007199254740991;
+export const charactersControllerListBooksResponsePagesCountMax = 9007199254740991;
+
+export const charactersControllerListBooksResponsePageSizeMin = -9007199254740991;
+export const charactersControllerListBooksResponsePageSizeMax = 9007199254740991;
+
+export const charactersControllerListBooksResponseTotalCountMin = -9007199254740991;
+export const charactersControllerListBooksResponseTotalCountMax = 9007199254740991;
+
+export const CharactersControllerListBooksResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      cover: zod
+        .object({
+          contentType: zod.string(),
+          createdAt: zod.string(),
+          height: zod.number(),
+          id: zod.string(),
+          kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+          name: zod.string().nullable(),
+          sizeBytes: zod.number(),
+          urls: zod.object({
+            card: zod.string(),
+            full: zod.string(),
+            thumb: zod.string(),
+          }),
+          width: zod.number(),
+        })
+        .nullable(),
+      id: zod.string(),
+      series: zod
+        .object({
+          id: zod.string(),
+          name: zod.string(),
+          partNumber: zod
+            .int()
+            .min(charactersControllerListBooksResponseItemsItemSeriesPartNumberMin)
+            .max(charactersControllerListBooksResponseItemsItemSeriesPartNumberMax)
+            .nullable(),
+        })
+        .nullable(),
+      title: zod.string(),
+    }),
+  ),
+  page: zod
+    .int()
+    .min(charactersControllerListBooksResponsePageMin)
+    .max(charactersControllerListBooksResponsePageMax),
+  pagesCount: zod
+    .int()
+    .min(charactersControllerListBooksResponsePagesCountMin)
+    .max(charactersControllerListBooksResponsePagesCountMax),
+  pageSize: zod
+    .int()
+    .min(charactersControllerListBooksResponsePageSizeMin)
+    .max(charactersControllerListBooksResponsePageSizeMax),
+  totalCount: zod
+    .int()
+    .min(charactersControllerListBooksResponseTotalCountMin)
+    .max(charactersControllerListBooksResponseTotalCountMax),
+});
+
+/**
  * @summary Restore a soft-deleted character within the undo window
  */
 export const CharactersControllerRestoreParams = zod.object({
@@ -4691,7 +5045,6 @@ export const CharactersControllerRestoreResponse = zod.object({
       appearanceNotesIsSpoiler: zod.boolean(),
       attitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -4914,7 +5267,6 @@ export const CharactersControllerRestoreResponse = zod.object({
   gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
   globalAttitude: zod
     .union([
-      zod.literal("favorite"),
       zod.literal("like"),
       zod.literal("neutral"),
       zod.literal("distrust"),
@@ -5871,7 +6223,6 @@ export const BookCharactersControllerCreateBody = zod.union([
         .default(bookCharactersControllerCreateBodyOneBookProfileAppearanceNotesIsSpoilerDefault),
       attitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -6019,7 +6370,6 @@ export const BookCharactersControllerCreateBody = zod.union([
         .default(bookCharactersControllerCreateBodyTwoBookProfileAppearanceNotesIsSpoilerDefault),
       attitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -6204,7 +6554,6 @@ export const BookCharactersControllerCreateBody = zod.union([
         .default(bookCharactersControllerCreateBodyTwoCharacterGenderDefault),
       globalAttitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -6297,7 +6646,6 @@ export const BookCharactersControllerCreateResponse = zod.object({
       appearanceNotesIsSpoiler: zod.boolean(),
       attitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -6520,7 +6868,6 @@ export const BookCharactersControllerCreateResponse = zod.object({
   gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
   globalAttitude: zod
     .union([
-      zod.literal("favorite"),
       zod.literal("like"),
       zod.literal("neutral"),
       zod.literal("distrust"),
@@ -6642,7 +6989,6 @@ export const BookCharactersControllerGetByIdResponse = zod.object({
       appearanceNotesIsSpoiler: zod.boolean(),
       attitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -6865,7 +7211,6 @@ export const BookCharactersControllerGetByIdResponse = zod.object({
   gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
   globalAttitude: zod
     .union([
-      zod.literal("favorite"),
       zod.literal("like"),
       zod.literal("neutral"),
       zod.literal("distrust"),
@@ -6988,7 +7333,6 @@ export const BookCharactersControllerUpdateInBookBody = zod.object({
   appearanceNotesIsSpoiler: zod.boolean().optional(),
   attitude: zod
     .union([
-      zod.literal("favorite"),
       zod.literal("like"),
       zod.literal("neutral"),
       zod.literal("distrust"),
@@ -7160,7 +7504,6 @@ export const BookCharactersControllerUpdateInBookResponse = zod.object({
       appearanceNotesIsSpoiler: zod.boolean(),
       attitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -7393,7 +7736,6 @@ export const BookCharactersControllerUpdateInBookResponse = zod.object({
   gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
   globalAttitude: zod
     .union([
-      zod.literal("favorite"),
       zod.literal("like"),
       zod.literal("neutral"),
       zod.literal("distrust"),
@@ -7499,7 +7841,6 @@ export const BookCharacterSuggestionsControllerListResponse = zod.object({
       gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
       globalAttitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -7883,7 +8224,6 @@ export const SeriesCharactersControllerProfileResponse = zod.object({
     zod.object({
       attitude: zod
         .union([
-          zod.literal("favorite"),
           zod.literal("like"),
           zod.literal("neutral"),
           zod.literal("distrust"),
@@ -7988,7 +8328,6 @@ export const SeriesCharactersControllerProfileResponse = zod.object({
   gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
   globalAttitude: zod
     .union([
-      zod.literal("favorite"),
       zod.literal("like"),
       zod.literal("neutral"),
       zod.literal("distrust"),

@@ -1,0 +1,1656 @@
+{
+  "spec": "docs/specs/statistics-progress/spec.md",
+  "source": "D:\\IT\\book-docs\\new\\12__BOOK_NEST_STATISTICS_PROGRESS_CLAUDE_CODE_v2_OPTIMIZED.zip :: BOOK_NEST_STATISTICS_PROGRESS_CLAUDE_CODE_v2_OPTIMIZED/SPEC.md",
+  "generatedAt": "2026-10-19T15:17:36Z",
+  "base": {
+    "ref": "origin/dev",
+    "sha": "69479f6a066fa0b4fcd7102cc8219878b44638a1",
+    "branch": "feat/statistics-progress-refactor",
+    "worktree": "D:\\IT\\book-nest\\.claude\\worktrees\\statistics-progress",
+    "note": "HEAD and the local origin/dev ref both equal 69479f6a, the SHA the spec was packaged against (spec line 3). The main loop ran git fetch origin dev this session; this audit did not fetch. git status --short shows only ?? docs/specs/statistics-progress/. No progress/*.tsx changed since 21e32263 (git log -- components/progress/)."
+  },
+  "verify": {
+    "mode": "VERIFY",
+    "verifiedAt": "2026-10-19T16:33:43Z",
+    "base": "origin/dev 69479f6a066fa0b4fcd7102cc8219878b44638a1",
+    "head": "69479f6a066fa0b4fcd7102cc8219878b44638a1 (all work uncommitted)",
+    "commands": [
+      "git status --short",
+      "git diff --name-only",
+      "git diff --stat",
+      "git diff (per file)",
+      "git ls-files --others --exclude-standard"
+    ],
+    "changeSet": {
+      "modified": [
+        "apps/web/src/features/statistics/components/progress/library-balance-section.tsx (+13 -17)",
+        "apps/web/src/features/statistics/components/progress/reading-goal-card.tsx (+53 -26)",
+        "apps/web/src/features/statistics/components/progress/records-section.tsx (+11 -4)",
+        "apps/web/src/features/statistics/components/progress/series-section.tsx (+61 -28)",
+        "apps/web/src/messages/en.json (+22 -13)",
+        "apps/web/src/messages/uk.json (+22 -13)"
+      ],
+      "diffStat": "6 files changed, 182 insertions(+), 101 deletions(-)",
+      "untracked": [
+        "apps/web/src/features/statistics/components/progress/library-balance-section.test.tsx (154 lines)",
+        "apps/web/src/features/statistics/components/progress/reading-goal-card.test.tsx (216 lines)",
+        "apps/web/src/features/statistics/components/progress/records-section.test.tsx (243 lines)",
+        "apps/web/src/features/statistics/components/progress/series-section.test.tsx (221 lines)",
+        "docs/specs/statistics-progress/spec.md",
+        "docs/specs/statistics-progress/tasks.json",
+        "docs/specs/statistics-progress/verify-report.md (written by this VERIFY)"
+      ]
+    },
+    "counts": {
+      "tasks": {
+        "ALREADY_DONE": 4,
+        "done": 13,
+        "EXCLUDED": 3
+      },
+      "requirements": {
+        "ALREADY_DONE": 3,
+        "DONE": 16,
+        "NOT_VERIFIED": 1
+      },
+      "acceptance": {
+        "ALREADY_DONE": 5,
+        "DONE": 19
+      }
+    },
+    "requirements": {
+      "R01": {
+        "verdict": "ALREADY_DONE",
+        "proof": "statistics-overview.tsx:215-220, not in the diff"
+      },
+      "R02": {
+        "verdict": "DONE",
+        "proof": "reading-goal-card.tsx:85,:108 + uk.json:9578; library-balance-section.tsx:29 + :9632; series :9604; records :9650; snapshotNote and the bottom forecast note removed"
+      },
+      "R03": {
+        "verdict": "DONE",
+        "proof": "reading-goal-card.tsx:112 break-words full, :69 truncate compact"
+      },
+      "R04": {
+        "verdict": "DONE",
+        "proof": "status row removed; reading-goal-card.tsx:117, :175-191, null -> secondary + paceUnknown"
+      },
+      "R05": {
+        "verdict": "DONE",
+        "proof": "reading-goal-card.tsx:121-124, :133-138 formatDateLong"
+      },
+      "R06": {
+        "verdict": "DONE",
+        "proof": "reading-goal-card.tsx:226-229"
+      },
+      "R07": {
+        "verdict": "DONE",
+        "proof": "reading-goal-card.tsx:231-235, :135-137; uk.json:9598"
+      },
+      "R08": {
+        "verdict": "DONE",
+        "proof": "series-section.tsx:136-145; uk.json:9611"
+      },
+      "R09": {
+        "verdict": "DONE",
+        "proof": "uk.json:9625-9626; formula untouched series-section.tsx:86-87"
+      },
+      "R10": {
+        "verdict": "DONE",
+        "proof": "series-section.tsx:31-41, :155-169"
+      },
+      "R11": {
+        "verdict": "ALREADY_DONE",
+        "proof": "series-section.tsx:124-131 unchanged"
+      },
+      "R12": {
+        "verdict": "DONE",
+        "proof": "uk.json:9632, library-balance-section.tsx:29"
+      },
+      "R13": {
+        "verdict": "DONE",
+        "proof": "uk.json:9635-9637; library-balance-section.tsx:39-52"
+      },
+      "R14": {
+        "verdict": "DONE",
+        "proof": "label uk.json:9638; hint uk.json:9640 \"за останні 12 місяців\" and future purchases; reason at the KPI library-balance-section.tsx:25, :55-61; no bottom note"
+      },
+      "R15": {
+        "verdict": "DONE",
+        "proof": "library-balance-section.tsx:26, :73-81; no backend path in the diff"
+      },
+      "R16": {
+        "verdict": "DONE",
+        "proof": "records-section.tsx:42, :53-57; uk.json:9650"
+      },
+      "R17": {
+        "verdict": "DONE",
+        "proof": "records-section.tsx:224 break-words, no hover-only tooltip; touch/keyboard NOT_VERIFIED"
+      },
+      "R18": {
+        "verdict": "DONE",
+        "proof": "records-section.tsx:128, :133; uk.json:9667-9668"
+      },
+      "R19": {
+        "verdict": "ALREADY_DONE",
+        "proof": "records-section.tsx:140-151, :189-202 unchanged"
+      },
+      "R20": {
+        "verdict": "NOT_VERIFIED",
+        "proof": "code part done: four test files, i18n parity, no hardcoded text; runtime, viewport, a11y and gates not run"
+      }
+    },
+    "findings": [
+      "F1 RESOLVED: uk.json:9640 forecastHint now says \"вперше дочитані за останні 12 місяців\", matching en.json:9640 \"in the last 12 months\" (was low, T7, R14)",
+      "F2 RESOLVED: library-balance-section.tsx:25 is now forecast.availability === \"unavailable\" ? null : forecast.data, so available or partial with data shows the value and the hint, and \"—\" with the reason appears only for unavailable or data null (spec P3, AD09); flowCounts at :26 keeps the available-only gate (IC8) (was low, drift)"
+    ],
+    "drift": [
+      "F2 resolved (see findings)",
+      "reading-goal-card.tsx:134 text-right on the forecast dd (cosmetic, long unavailable text)",
+      "uk/en statistics.goal.forecastUnavailable reworded (uk.json:9598), supports R07",
+      "series-section.tsx:156 shareUnknown text moved to text-muted-foreground (cosmetic)",
+      "library-balance-section.test.tsx:127-140 flow-available test beyond the T8 list (covers IC8)"
+    ],
+    "recordedDecisions": [
+      "GoalPace renders as its own <dl> (<dt> pace label, <dd> Badge): Slice A a11y fix (T2)",
+      "statistics.libraryBalance.forecast renamed to \"Непрочитаного вистачить приблизно на\" / \"Unread books will last about\" (T7, R14 name)",
+      "statistics.libraryBalance.forecastHint shortened; en reworded to \"Owned books first finished in the last 12 months: {rate} a month on average. Future purchases not counted.\" (T7)",
+      "statistics.series.marathon plural-aware for {length} (T5, pre-existing defect in an in-scope namespace)",
+      "statistics.records.values.peakMonthDetail plural-aware for {pages} (T9, N7)"
+    ],
+    "knownOutOfScope": [
+      "(a) light-theme warning Badge for pace behind measured at 4.23:1 by accessibility-auditor; root cause is the global --warning token in apps/web/src/styles/globals.css shared with Reading Goals; outside spec §5 file boundaries; not fixed",
+      "(b) StatisticsNote role=\"status\" on the static lifecycle note (series-section.tsx:145, statistics-states.tsx:62); shared component outside scope; spec names StatisticsNote for this note; not fixed",
+      "(c) flow line passes raw numbers without thousands formatting (library-balance-section.tsx:75-79); pre-existing; flow is always unavailable from the backend (statistics-library.composer.ts:26); not fixed"
+    ],
+    "notVerified": {
+      "ciTests": [
+        "the four new progress test files",
+        "existing statistics-overview.test.tsx, taste-ranking-list.test.tsx and Activity suites as regression guards"
+      ],
+      "localGates": [
+        "typecheck, eslint and prettier on the diff via bash .claude/scripts/gates.sh (prettier also covers tasks.json and verify-report.md)"
+      ],
+      "build": ["pnpm build (web)"],
+      "runtime": [
+        "dev server pnpm dev:web, /uk and /en statistics?tab=progress",
+        "viewport 375 and 1280, light and dark theme, no global horizontal overflow, pace badge fit",
+        "keyboard: records region Tab, most_pages_in_day trigger, popover at >=1024 and drawer below",
+        "screen reader reading of GoalPace dl and the notes, contrast"
+      ]
+    },
+    "stage7": "DEFERRED by the user: no test, typecheck, eslint, prettier, build, dev server, browser, /check or gates.sh run",
+    "reverify": {
+      "reverifiedAt": "2026-10-19T16:36:19Z",
+      "scope": "T7 doneWhen, T8 test match, R14, A17, F1, F2",
+      "commands": [
+        "git status --short",
+        "git diff --numstat",
+        "sed of library-balance-section.tsx:20-30,54-70, uk.json:9638-9641, en.json:9640, library-balance-section.test.tsx:69-125"
+      ],
+      "result": "F1 and F2 resolved; change set unchanged (same six modified files with the same numstat, same untracked files)"
+    }
+  },
+  "scope": {
+    "included": [
+      "P1 ReadingGoalCard: shared display percent capped at 99 while remainingCount > 0 (both variants); full variant only: snapshot caption next to the title, wrapped full name, no status row, prominent pace with neutral null, deadline and reliable forecast via formatDateLong; statistics.goal uk/en keys; reading-goal-card.test.tsx",
+      "P2 SeriesSection: selected-period caption, unavailable > zero-reads empty state > data, honest 0% and empty ranking, no null-to-0 bar, non-additivity note, text-only relabel of rankings; statistics.series uk/en keys; series-section.test.tsx",
+      "P3 LibraryBalanceSection: current-snapshot caption, readRatio label and hints, forecast hint (rolling 12 months, owned first completions, future purchases) and unavailable reason next to the KPI, no bottom note, flow only when available; statistics.libraryBalance uk/en keys; library-balance-section.test.tsx",
+      "P4 RecordsSection: description as a selection of up to RECORDS_LIMIT records of the selected period, wrapped full book/series names, peak_month winner note and lower-bound pages note; statistics.records uk/en keys; records-section.test.tsx",
+      "P5 i18n parity, file-boundary and regression checks, VERIFY and closure with NOT_VERIFIED gates"
+    ],
+    "excluded": [
+      {
+        "item": "apps/api/**, packages/shared/**, Prisma/DB, generated API (apps/web/src/shared/api/generated/**), package.json, lockfile, CI workflows, .claude hooks",
+        "reason": "spec §5 Заборонено; spec §1 backend contract is read-only; R15"
+      },
+      {
+        "item": "components/overview/statistics-overview.tsx and components/overview/statistics-overview-tab.tsx",
+        "reason": "spec §5 forbids statistics-overview.tsx; the compact goal is rendered by statistics-overview-tab.tsx:39 and needs no change (R03 keeps compact as is, the percent fix lives in reading-goal-card.tsx)"
+      },
+      {
+        "item": "components/overview/statistics-overview.test.tsx edits",
+        "reason": "spec §5 allows it only after proof of need; its progress assertions (:49 titles, :442-476 compact goal, :269-287 lower-bound note) keep passing if T12 invariants hold"
+      },
+      {
+        "item": "components/tastes/taste-ranking-list.tsx and taste-ranking-list.test.tsx, scaleMax for series rows, new TasteRankingList tests",
+        "reason": "spec §0 bullet 2, P2 bullet 4, §5: wrap (:56), mobile expand (:16,:47,:82-92), context links (:59,:97-117) already shipped in PR #295"
+      },
+      {
+        "item": "Activity and Tastes components and their tests, completed-read-card.tsx, rating*/genres/authors/languages/publishers/discoveries and their i18n keys, URL parsers (model/statistics-view.ts, model/use-statistics-params.ts)",
+        "reason": "spec §0 bullets 1 and 3, §5"
+      },
+      {
+        "item": "Reading Goals feature (apps/web/src/features/reading-goals/**) edits and the /goals page",
+        "reason": "spec §1, §5. A read-only import of an existing constant is not an edit (see IC2)"
+      },
+      {
+        "item": "Shared statistics UI (statistics-section.tsx, statistics-stat.tsx, statistics-states.tsx, details/**), components/ui/** (vendored), new shared abstractions, new network requests, new dependencies",
+        "reason": "spec §1 last bullet; CLAUDE.md §3 components/ui is vendored"
+      },
+      {
+        "item": "Library flow history, inflow/outflow chart, a new backend event ledger",
+        "reason": "R15, A18; backend returns flow unavailable/HISTORY_NOT_TRACKED unconditionally (statistics-library.composer.ts:26)"
+      },
+      {
+        "item": "Records type label line-clamp-2 (records-section.tsx:172)",
+        "reason": "spec P4 scopes the wrap requirement to book/series names; the type label is a fixed localized string from statistics.records.types, not user data"
+      },
+      {
+        "item": "Series marathon date format (formatDayShort, series-section.tsx:97) and record detail dates",
+        "reason": "R05/A05 scope the year requirement to the full goal card only"
+      },
+      {
+        "item": "Running vitest, typecheck, eslint, prettier, build, /check, gates.sh, dev server, browser, screenshots, E2E",
+        "reason": "spec §3 P5 Stage 7 DEFERRED, CLAUDE.md §9; all are NOT_VERIFIED until the user asks"
+      },
+      {
+        "item": "Commit, push, PR, merge, deploy",
+        "reason": "spec §3 P5 Stage 8, §5 Операційні правила"
+      }
+    ]
+  },
+  "alreadyDone": [
+    {
+      "id": "AD01",
+      "requirement": "Four progress sections in order Goal, Series, Library balance, Records inside PageTabsPanel value=\"progress\"",
+      "specRef": "§1, R01, A01",
+      "proof": [
+        "apps/web/src/features/statistics/components/overview/statistics-overview.tsx:215-220",
+        "components/overview/statistics-overview.test.tsx:49 SECTION_TITLES.progress, :151-165 ?tab=progress"
+      ]
+    },
+    {
+      "id": "AD02",
+      "requirement": "One shared overview query; tab switch creates no new request; keyboard tabs via PageTabs",
+      "specRef": "§1, A02",
+      "proof": [
+        "statistics-overview.tsx:56 useReadingStatisticsOverview",
+        "statistics-overview.test.tsx:243-247 three tab switches, overviewRequests() length 1"
+      ]
+    },
+    {
+      "id": "AD03",
+      "requirement": "TasteRankingList wraps long names, collapses after 3 rows on mobile, renders context links, scaleMax optional",
+      "specRef": "§0 bullet 2, P2 bullet 4",
+      "proof": [
+        "components/tastes/taste-ranking-list.tsx:56 break-words whitespace-normal",
+        "taste-ranking-list.tsx:16 COLLAPSED_ROWS = 3, :47 hidden lg:flex, :82-92 show-more button",
+        "taste-ranking-list.tsx:29-37 scaleMax ?? peak",
+        "taste-ranking-list.test.tsx:49-133"
+      ]
+    },
+    {
+      "id": "AD04",
+      "requirement": "Goal forecast unavailable for null date or none/low confidence, no invented date",
+      "specRef": "R07, A08",
+      "proof": ["components/progress/reading-goal-card.tsx:137-141"]
+    },
+    {
+      "id": "AD05",
+      "requirement": "Goal empty state with CTA /goals; open-goal link; other active goals link",
+      "specRef": "A09",
+      "proof": [
+        "reading-goal-card.tsx:39-52 compact CTA, :81-98 full CTA",
+        "reading-goal-card.tsx:151-177 GoalLinks (open goal per contextActions, otherGoals when activeGoalsCount > 1)",
+        "model/statistics-drilldown.ts:46-47 open_goal -> /goals/{goalId}"
+      ]
+    },
+    {
+      "id": "AD06",
+      "requirement": "Series unavailable branch precedes all data rendering",
+      "specRef": "P2 bullet 1",
+      "proof": ["components/progress/series-section.tsx:23-29"]
+    },
+    {
+      "id": "AD07",
+      "requirement": "Lifecycle unavailable shows its reason instead of four zeros; the rest of the section stays",
+      "specRef": "R11, A12",
+      "proof": [
+        "series-section.tsx:117-124 StatisticsSectionState with t(`reason.${...}`), called at :48 between share and rankings"
+      ]
+    },
+    {
+      "id": "AD08",
+      "requirement": "Series ranking grid lg:grid-cols-2, no scaleMax, mostActive rows carry contextActions, marathon only when data exists",
+      "specRef": "P2 bullets 3-4, A13, A14",
+      "proof": [
+        "series-section.tsx:50 grid-cols-1 items-start gap-6 lg:grid-cols-2",
+        "series-section.tsx:58-66 and :75-82 TasteRankingList without scaleMax; :60 contextActions",
+        "series-section.tsx:31 and :87 marathon null check"
+      ]
+    },
+    {
+      "id": "AD09",
+      "requirement": "Library: three StatisticsStat in grid-cols-1 sm:grid-cols-3; readRatio null -> \"—\"; Progress only for a numeric ratio; monthsRemaining 0 renders as a number",
+      "specRef": "P3 bullets 1-2, A15, A16",
+      "proof": [
+        "components/progress/library-balance-section.tsx:29",
+        "library-balance-section.tsx:41-48",
+        "library-balance-section.tsx:62-67 renders forecastValue whenever forecast.data !== null"
+      ]
+    },
+    {
+      "id": "AD10",
+      "requirement": "Records: server order, key=type, mobile snap-x region with role/aria-label/tabIndex, desktop 4-column grid, empty state",
+      "specRef": "P4 bullet 1",
+      "proof": ["components/progress/records-section.tsx:43-58"]
+    },
+    {
+      "id": "AD11",
+      "requirement": "Records navigation: only most_pages_in_day opens ReadingDayDetails through StatisticsDetailSurface; only active books get a book link",
+      "specRef": "R19, A22, P4 bullet 3",
+      "proof": [
+        "records-section.tsx:138-149 recordBookLink (bookState active only)",
+        "records-section.tsx:187-200 StatisticsDetailSurface only for most_pages_in_day with a reading_day target",
+        "details/statistics-detail-surface.tsx:46-86 drawer below 1024px, popover otherwise (hooks/use-mobile.ts:3)"
+      ]
+    },
+    {
+      "id": "AD12",
+      "requirement": "Lower-bound handling for longest_streak (\"≥\" value and recordedOnly note) and most_pages_in_day (recordedOnly note); one global lower-bound note above the tabs",
+      "specRef": "R18, A21, P4 bullet 2",
+      "proof": [
+        "records-section.tsx:101-124",
+        "statistics-overview.tsx:113,117",
+        "statistics-overview.test.tsx:269-287"
+      ]
+    }
+  ],
+  "assertions": [
+    {
+      "id": "S01",
+      "claim": "Checked origin/dev is 69479f6a (PR #295 Tastes)",
+      "specRef": "line 3",
+      "verdict": "CONFIRMED",
+      "evidence": "git rev-parse origin/dev and HEAD = 69479f6a066fa0b4fcd7102cc8219878b44638a1; git log -1 69479f6a is the merge of PR #295"
+    },
+    {
+      "id": "S02",
+      "claim": "PR #294 Activity owns URL state calendarMode/calendarMonth",
+      "specRef": "§0 bullet 1",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/statistics/model/statistics-view.ts:10,25,47,50"
+    },
+    {
+      "id": "S03",
+      "claim": "taste-ranking-list.tsx wraps long names with break-words whitespace-normal",
+      "specRef": "§0 bullet 2",
+      "verdict": "CONFIRMED",
+      "evidence": "components/tastes/taste-ranking-list.tsx:56"
+    },
+    {
+      "id": "S04",
+      "claim": "TasteRankingList mobile expand after 3 rows, context links, scaleMax?",
+      "specRef": "§0 bullet 2",
+      "verdict": "CONFIRMED",
+      "evidence": "taste-ranking-list.tsx:16,47,82-92 (expand); :59,97-117 (links); :29,32,37 (scaleMax ?? peak)"
+    },
+    {
+      "id": "S05",
+      "claim": "TasteRankingList is covered by taste-ranking-list.test.tsx",
+      "specRef": "§0 bullet 2",
+      "verdict": "CONFIRMED",
+      "evidence": "components/tastes/taste-ranking-list.test.tsx:49-133 (scale, expand, full name text, unclickable rows)"
+    },
+    {
+      "id": "S06",
+      "claim": "scaleMax=10 is used only for rated genre/author rows",
+      "specRef": "§0 bullet 2",
+      "verdict": "CONFIRMED",
+      "evidence": "tastes/genres-section.tsx:88 and tastes/authors-section.tsx:88 scaleMax={BOOK_RATING.max}; no other caller of scaleMax"
+    },
+    {
+      "id": "S07",
+      "claim": "No progress/*.tsx changed by PR #295; PR #295 i18n did not touch the four progress namespaces",
+      "specRef": "§0 bullet 3",
+      "verdict": "CONFIRMED",
+      "evidence": "git log -- components/progress/ last commit 21e32263; git show 66487ee4 uk.json hunks only at :9474-9567 (ratings, publishers, languages, discoveries)"
+    },
+    {
+      "id": "S08",
+      "claim": "Four sections in fixed order under PageTabsPanel value=\"progress\" in statistics-overview.tsx",
+      "specRef": "§1",
+      "verdict": "ALREADY_DONE",
+      "evidence": "statistics-overview.tsx:215-220"
+    },
+    {
+      "id": "S09",
+      "claim": "Compact ReadingGoalCard on Overview lives in statistics-overview.tsx (brief)",
+      "specRef": "R03 (spec names the Overview tab, not a file)",
+      "verdict": "MOVED",
+      "evidence": "components/overview/statistics-overview-tab.tsx:39 renders <ReadingGoalCard variant=\"compact\" />; statistics-overview.tsx:216 renders only the full variant"
+    },
+    {
+      "id": "S10",
+      "claim": "StatisticsGoalComposer picks the active goal with the nearest deadline; metrics come from Reading Goals unchanged",
+      "specRef": "§1 backend contract bullet 1",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/statistics/application/statistics-goal.composer.ts:13-30 (first of listActiveGoals, metrics passed through); reading-goals/infrastructure/reading-goals.repository.ts:152-157 orderBy deadline asc; reading-goals/application/reading-goal-plans.service.ts:48-49 keeps status active only"
+    },
+    {
+      "id": "S11",
+      "claim": "CTA and otherGoals already implemented",
+      "specRef": "§1 backend contract bullet 1",
+      "verdict": "ALREADY_DONE",
+      "evidence": "reading-goal-card.tsx:44-49, 86-91 (Link /goals), :167-174 otherGoals"
+    },
+    {
+      "id": "S12",
+      "claim": "Full goal shows a duplicated status \"Активна\"",
+      "specRef": "R04",
+      "verdict": "CONFIRMED",
+      "evidence": "reading-goal-card.tsx:117-121 renders tStatus(primary.status); primary.status is always active (reading-goal-plans.service.ts:49,57); goals.status.active = \"Активна\" in uk.json"
+    },
+    {
+      "id": "S13",
+      "claim": "pace can be null",
+      "specRef": "R04, A06",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/reading-goals.ts:141 pace nullable; backend sets null only for non-active goals (apps/api/src/modules/reading-goals/domain/reading-goal-pace.ts:97-98), so through statistics the null branch is defensive. reading-goal-card.tsx:122 currently hides the row on null"
+    },
+    {
+      "id": "S14",
+      "claim": "Display percent can reach 100% while remainingCount > 0 only through rounding",
+      "specRef": "R06, A07",
+      "verdict": "CONFIRMED",
+      "evidence": "backend keeps decimals: reading-goal-pace.ts:86-88 roundPercent(min(completed/target*100,100)); web rounds: reading-goal-card.tsx:55 and :101 Math.round(primary.metrics.progressPercent), e.g. 199/200 = 99.5 -> 100"
+    },
+    {
+      "id": "S15",
+      "claim": "Full goal deadline and forecast lack the year",
+      "specRef": "R05, A05",
+      "verdict": "CONFIRMED",
+      "evidence": "reading-goal-card.tsx:106 and :141 formatDateShort (lib/format.ts:51-56 day + short month, no year)"
+    },
+    {
+      "id": "S16",
+      "claim": "formatDateLong exists in apps/web/src/lib/format",
+      "specRef": "R05",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/lib/format.ts:43-49 (a file, import path @/lib/format) day numeric, month long, year numeric; formatDateShort at :51-56"
+    },
+    {
+      "id": "S17",
+      "claim": "Full goal name is truncated; GoalProgress is shared by both variants",
+      "specRef": "R03, A04",
+      "verdict": "CONFIRMED",
+      "evidence": "reading-goal-card.tsx:194 truncate; GoalProgress used at :63 (compact) and :110 (full)"
+    },
+    {
+      "id": "S18",
+      "claim": "Full goal carries a duplicated snapshot note at the bottom",
+      "specRef": "P1 bullet 1",
+      "verdict": "CONFIRMED",
+      "evidence": "reading-goal-card.tsx:79 snapshotNote passed as note at :83 and :107; StatisticsSection renders note after children (statistics-section.tsx:63-66)"
+    },
+    {
+      "id": "S19",
+      "claim": "Full goal has no extra nested card",
+      "specRef": "P1 bullet 1",
+      "verdict": "ALREADY_DONE",
+      "evidence": "reading-goal-card.tsx:104-148: StatisticsSection (one Card) with GoalProgress, dl, GoalLinks; no nested Card"
+    },
+    {
+      "id": "S20",
+      "claim": "Series composer: mostActive counts all completed read cycles",
+      "specRef": "§1 backend contract bullet 2",
+      "verdict": "CONFIRMED",
+      "evidence": "statistics-series.composer.ts:71-85 completedReadCycles; packages/shared/src/reading-statistics-sections.ts:204 describe"
+    },
+    {
+      "id": "S21",
+      "claim": "topProgress and lifecycle count proven first completions",
+      "specRef": "§1 backend contract bullet 2",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/statistics/domain/reading-series.ts:79 and :171 skip !read.isProvenFirstCompletion"
+    },
+    {
+      "id": "S22",
+      "claim": "Lists max 5 / 3; marathon minimum 2 in a row",
+      "specRef": "§1 backend contract bullet 2",
+      "verdict": "CONFIRMED",
+      "evidence": "reading-series.ts:5 SERIES_RANKING_LIMIT 5, :7 SERIES_PROGRESS_LIMIT 3, :9 MIN_MARATHON_LENGTH 2, :154; statistics-series.composer.ts:73,90"
+    },
+    {
+      "id": "S23",
+      "claim": "Lifecycle is sometimes LEGACY_HISTORY_INCOMPLETE; its counts are non-additive",
+      "specRef": "§1 backend contract bullet 2, R08",
+      "verdict": "CONFIRMED",
+      "evidence": "statistics-series.composer.ts:50-58; reading-series.ts:178-198 every series lands in started or continued and may also land in completed or caughtUp"
+    },
+    {
+      "id": "S24",
+      "claim": "series.availability can be \"unavailable\"",
+      "specRef": "P2 bullet 1",
+      "verdict": "CONFIRMED",
+      "evidence": "schema allows it (reading-statistics-sections.ts:156, StatisticsAvailabilitySchema reading-statistics-common.ts:6) but the composer always emits \"available\" (statistics-series.composer.ts:48); the web branch at series-section.tsx:23-29 is defensive and already first"
+    },
+    {
+      "id": "S25",
+      "claim": "Zero completed reads shows \"could not compute the share\"",
+      "specRef": "R10, A10",
+      "verdict": "CONFIRMED",
+      "evidence": "seriesShare is null exactly when reads.length === 0 (statistics-series.composer.ts:87); series-section.tsx:37-38 renders t(\"shareUnknown\") = \"Частку серійного читання порахувати не вдалося.\" (uk.json:9607), then lifecycle (zeros when available) and the empty ranking"
+    },
+    {
+      "id": "S26",
+      "claim": "A null ratio must not be converted to 0",
+      "specRef": "P2 bullet 1",
+      "verdict": "CONFIRMED",
+      "evidence": "violation today: series-section.tsx:45 Progress value={(series.seriesShare ?? 0) * 100}"
+    },
+    {
+      "id": "S27",
+      "claim": "Library snapshot counts owned and lent_to_someone books; TBR and readRatio by current statuses",
+      "specRef": "§1 backend contract bullet 3",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/statistics/infrastructure/statistics-library.repository.ts:12-20, 68-86; statistics-library.composer.ts:24-28 (readRatio null when ownedTotal 0)"
+    },
+    {
+      "id": "S28",
+      "claim": "Forecast uses proven first completions of owned books over the rolling previous 12 months; minimum 3; unresolved history -> unavailable",
+      "specRef": "§1 backend contract bullet 3",
+      "verdict": "CONFIRMED",
+      "evidence": "statistics-library.repository.ts:46-62; statistics-overview.service.ts:106 since rollingYearStart(localToday); domain/statistics-period.ts:65-67; statistics-library.composer.ts:10,39-50"
+    },
+    {
+      "id": "S29",
+      "claim": "flow is always unavailable/HISTORY_NOT_TRACKED",
+      "specRef": "§1 backend contract bullet 3, R15",
+      "verdict": "CONFIRMED",
+      "evidence": "statistics-library.composer.ts:26"
+    },
+    {
+      "id": "S30",
+      "claim": "Forecast unavailable reason is shown at the end of the section",
+      "specRef": "R14, A17",
+      "verdict": "CONFIRMED",
+      "evidence": "library-balance-section.tsx:81-85 StatisticsNote after the dl and the flow line; forecast StatisticsStat at :52-68 has no hint when data is null"
+    },
+    {
+      "id": "S31",
+      "claim": "record-engine: up to 4 of 7 types in a fixed server priority",
+      "specRef": "§1 backend contract bullet 4",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/statistics/domain/record-engine.ts:32-43 fixed candidate order then slice(0, RECORDS_LIMIT); RECORDS_LIMIT = 4 at packages/shared/src/reading-statistics-sections.ts:28, exported via index.ts:47; 7 union members at :242-295"
+    },
+    {
+      "id": "S32",
+      "claim": "peak_month winner is chosen by completedReads",
+      "specRef": "R18",
+      "verdict": "CONFIRMED",
+      "evidence": "record-engine.ts:158-176 filter completedReads > 0, sort by completedReads desc then month desc; pagesRead is carried along"
+    },
+    {
+      "id": "S33",
+      "claim": "Legacy selectedPeriodQuality=\"legacy_lower_bound\" limits historical pages/activity reliability",
+      "specRef": "§1 backend contract bullet 4",
+      "verdict": "CONFIRMED",
+      "evidence": "reading-statistics-sections.ts:35; statistics-overview.tsx:113 isLowerBound passed to RecordsSection at :219 (records-section.tsx:33-37)"
+    },
+    {
+      "id": "S34",
+      "claim": "peak_month has no lower-bound note today",
+      "specRef": "R18, A21",
+      "verdict": "CONFIRMED",
+      "evidence": "records-section.tsx:125-134 passes no note"
+    },
+    {
+      "id": "S35",
+      "claim": "Long record titles are not fully readable",
+      "specRef": "R17, A20",
+      "verdict": "CONFIRMED",
+      "evidence": "records-section.tsx:220 headline span line-clamp-2, no title/tooltip"
+    },
+    {
+      "id": "S36",
+      "claim": "Reusable StatisticsSection, StatisticsStat (hint), StatisticsSectionState, StatisticsNote, Progress, StatisticsDetailSurface exist",
+      "specRef": "§1 last bullet",
+      "verdict": "CONFIRMED",
+      "evidence": "components/statistics-section.tsx:45-69; components/statistics-stat.tsx:3-20 (hint?: string only, rendered as a second dd at :16-18); components/statistics-states.tsx:49-68 StatisticsNote (role=status), :123-149 StatisticsSectionState; components/ui/progress.tsx:6-27; details/statistics-detail-surface.tsx:33-87"
+    },
+    {
+      "id": "S37",
+      "claim": "Progress.value can be matched by text and aria-label",
+      "specRef": "P1 bullet 3",
+      "verdict": "CONFIRMED",
+      "evidence": "components/ui/progress.tsx:6-25 destructures value and does not forward it to the Radix Root, so the progressbar has no aria-valuenow (radix react-progress dist/index.mjs:38); the value is observable only as aria-label text and the indicator transform translateX(-(100-value)%) at :23"
+    },
+    {
+      "id": "S38",
+      "claim": "Test fixtures available for new tests",
+      "specRef": "brief",
+      "verdict": "CONFIRMED",
+      "evidence": "model/statistics.fixtures.ts:123-407 overviewFixture() with goal :216-251, libraryBalance :304-310, meta exact :312, records (one most_pages_in_day) :363-374, series :375-404; statisticsIds :25-34"
+    },
+    {
+      "id": "S39",
+      "claim": "No progress component has a test file",
+      "specRef": "brief",
+      "verdict": "CONFIRMED",
+      "evidence": "find components/progress: only library-balance-section.tsx, reading-goal-card.tsx, records-section.tsx, series-section.tsx"
+    },
+    {
+      "id": "S40",
+      "claim": "i18n keys of the four namespaces",
+      "specRef": "§5",
+      "verdict": "CONFIRMED",
+      "evidence": "uk.json and en.json are line-aligned: statistics.goal :9575-9601, statistics.series :9602-9624, statistics.libraryBalance :9625-9640, statistics.records :9641-9663. Every key has a caller in progress/*.tsx; no dead keys today. LOW_CONFIDENCE (forecastReason) is reachable by type only, the composer never emits it"
+    }
+  ],
+  "openDecisions": [],
+  "implementationChoices": [
+    {
+      "id": "IC1",
+      "choice": "Display-percent helper is a local function in reading-goal-card.tsx used by both variants",
+      "reason": "spec §5 allows a helper file only if a local one is impossible; two callers in one file",
+      "alternative": "model/statistics-goal.ts"
+    },
+    {
+      "id": "IC2",
+      "choice": "Full-goal pace renders as <Badge variant={GOAL_SIGNAL_TONE.pace[pace]}> imported read-only from @/features/reading-goals/model/goal-status (ahead success, on_track info, behind warning, critical destructive), the same rendering the goals catalog uses",
+      "reason": "one source of truth for pace tone (CLAUDE.md §8.7); reading-goals/components/goal-catalog-card.tsx:129 and goal-overview-tab.tsx:77 already render pace this way; cross-feature deep imports have precedent (statistics/model/use-genre-name.ts:3); web has no boundaries lint rule (eslint.config.mjs:138-188 covers apps/api only). Reading Goals files stay untouched",
+      "alternative": "a local four-key tone map in reading-goal-card.tsx"
+    },
+    {
+      "id": "IC3",
+      "choice": "pace null renders a neutral localized text (new key statistics.goal.paceUnknown) with Badge variant secondary or muted text, never success/info",
+      "reason": "spec P1 \"null нейтральний\" asks for a neutral state, which hiding the row (today :122) does not show",
+      "alternative": "keep hiding the pace row on null"
+    },
+    {
+      "id": "IC4",
+      "choice": "In the full variant the description slot holds the current-snapshot caption; the deadline moves into the details list as its own row (new key, e.g. statistics.goal.deadlineLabel) with formatDateLong",
+      "reason": "P1 asks for one short snapshot explanation next to the title; today the description slot holds the deadline (:106)",
+      "alternative": "description = snapshot caption + deadline in one ICU string"
+    },
+    {
+      "id": "IC5",
+      "choice": "Lifecycle non-additivity is one StatisticsNote under the lifecycle grid, rendered only when lifecycle data is shown",
+      "reason": "a hint on one KPI would describe all four from inside one dd (the WCAG 1.3.1 mismatch recorded in docs/specs/statistics-tastes/tasks.json IC3)",
+      "alternative": "StatisticsStat.hint on each KPI"
+    },
+    {
+      "id": "IC6",
+      "choice": "Records description takes {limit} = RECORDS_LIMIT from @app/shared",
+      "reason": "the 4 is a contract constant (reading-statistics-sections.ts:28); the tastes slice did the same with BOOK_RATING.max (statistics-tastes tasks.json IC4)",
+      "alternative": "literal 4 in the message"
+    },
+    {
+      "id": "IC7",
+      "choice": "readRatio null hint says there are no owned books yet (new key)",
+      "reason": "readRatio is null exactly when currentOwnedTotal is 0 (statistics-library.composer.ts:28)"
+    },
+    {
+      "id": "IC8",
+      "choice": "Flow line renders only when flow.availability === \"available\" and flow.data !== null",
+      "reason": "P3 \"лише якщо backend повернув надійні доступні дані\"; today :71 also renders on \"partial\". No visible change: the backend always returns unavailable"
+    },
+    {
+      "id": "IC9",
+      "choice": "Forecast hint when available is one string combining the rate, the rolling 12 months of first completions of owned books, and that future purchases are not counted; when unavailable the hint is the reason",
+      "reason": "StatisticsStat.hint is a single string (statistics-stat.tsx:4)"
+    }
+  ],
+  "crossCuttingNotes": [
+    {
+      "id": "N1",
+      "note": "Message types come from en.json (apps/web/src/env.d.ts:4,9). Every new key goes in both catalogs at the same path; uk.json and en.json are line-aligned at :9575-9663."
+    },
+    {
+      "id": "N2",
+      "note": "renderWithProviders hardcodes locale uk (apps/web/src/test-utils.tsx:118-136). For en assertions use NextIntlClientProvider locale=\"en\" with @/messages/en.json as features/series/components/series-stats-card.test.tsx:5-32 does."
+    },
+    {
+      "id": "N3",
+      "note": "statistics-overview.test.tsx invariants the new copy must keep: expectSections uses findByText(title) per panel (:100-105), so no new text may equal a section title exactly; the compact goal must not render text.goal.pace (:447); getByText(text.states.lowerBound) on the progress tab (:285-286) must stay unique, so no new note may reuse that text."
+    },
+    {
+      "id": "N4",
+      "note": "Editing lines that already contain focus-visible:ring-[3px] (reading-goal-card.tsx:169, records-section.tsx:48,177,196) re-emits an arbitrary Tailwind value the post-edit hook flags (.claude/hooks/post-edit-check.mjs:109-116). The value predates this change; answer the finding in one line."
+    },
+    {
+      "id": "N5",
+      "note": "Opening the most_pages_in_day surface mounts ReadingDayDetails, which fetches. Tests assert the trigger button exists and do not open it, or stub fetch."
+    },
+    {
+      "id": "N6",
+      "note": "Defensive branches the backend never reaches today: series.availability unavailable (composer :48), seriesShare null with reads > 0 (composer :87), pace null for an active goal, forecastReason LOW_CONFIDENCE. Keep them honest, test only the ones the spec lists."
+    },
+    {
+      "id": "N7",
+      "note": "Pre-existing copy defect, not required by the spec: statistics.records.values.peakMonthDetail \"{pages} сторінок\" / \"{pages} pages\" is not plural-aware (uk.json:9659). If T9 rewrites this key anyway, make {pages} a plural."
+    },
+    {
+      "id": "N8",
+      "note": "Badge has whitespace-nowrap and h-5 (components/ui/badge.tsx:8); the longest pace label is \"Потрібен помітно вищий темп\". Visual fit at 320-375px is NOT_VERIFIED until a browser check."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T0",
+      "title": "P0 preflight: base, branch, worktree, spec extracted",
+      "status": "ALREADY_DONE",
+      "slice": "P0",
+      "layer": "meta",
+      "files": ["docs/specs/statistics-progress/spec.md"],
+      "dependsOn": [],
+      "mandatory": true,
+      "requirementIds": [],
+      "acceptanceIds": [],
+      "doneWhen": [
+        "HEAD == origin/dev == 69479f6a066fa0b4fcd7102cc8219878b44638a1 on branch feat/statistics-progress-refactor",
+        "git status --short shows only docs/specs/statistics-progress/ untracked",
+        "docs/specs/statistics-progress/tasks.json exists"
+      ],
+      "proof": [
+        "git rev-parse HEAD origin/dev; git branch --show-current; git status --short (this audit)"
+      ],
+      "verify": {
+        "verifiedAt": "2026-10-19T16:33:43Z",
+        "reverify": [
+          "git rev-parse HEAD origin/dev: both 69479f6a066fa0b4fcd7102cc8219878b44638a1; git branch --show-current: feat/statistics-progress-refactor",
+          "the preflight line about a clean git status is superseded by the implementation change set listed in verify.changeSet"
+        ]
+      }
+    },
+    {
+      "id": "T1",
+      "title": "ReadingGoalCard: one display-percent rule for both variants, capped at 99 while books remain",
+      "status": "done",
+      "slice": "A",
+      "layer": "web",
+      "files": ["apps/web/src/features/statistics/components/progress/reading-goal-card.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "requirementIds": ["R06"],
+      "acceptanceIds": ["A07"],
+      "currentState": [
+        ":55 and :101 const percent = Math.round(primary.metrics.progressPercent)",
+        ":199-204 GoalProgress feeds the same percent to Progress aria-label (progressLabel), Progress value and the {percent}% span"
+      ],
+      "doneWhen": [
+        "a single local function in reading-goal-card.tsx returns Math.round(progressPercent) and, when remainingCount > 0, Math.min of that and 99",
+        "CompactReadingGoal and FullReadingGoal both call it; no other Math.round(primary.metrics.progressPercent) remains in the file",
+        "GoalProgress uses one variable for the {percent}% text, the Progress value and t(\"progressLabel\", { percent })",
+        "primary.metrics.progressPercent is read, never recomputed from completedCount/targetCount",
+        "remainingCount === 0 with progressPercent 100 yields 100"
+      ],
+      "assumptions": [
+        "The rule applies to the compact variant too; spec P1 bullet 3 names it the one allowed compact change"
+      ],
+      "verify": {
+        "verifiedAt": "2026-10-19T16:33:43Z",
+        "proof": [
+          "reading-goal-card.tsx:226-229 toDisplayPercent rounds metrics.progressPercent and caps it with Math.min(rounded, 99) while remainingCount > 0",
+          "reading-goal-card.tsx:58 (compact) and :103 (full) call it; the only Math.round left in the file is :227",
+          "reading-goal-card.tsx:215-220 one percent feeds t(\"progressLabel\", { percent }), Progress value and the {percent}% span",
+          "progressPercent is read, never recomputed from completedCount/targetCount (:227)",
+          "remainingCount 0 returns the rounded value unchanged (:228)",
+          "tests: reading-goal-card.test.tsx:146-165 (99.5 -> 99%, both variants), :167-182 (100%)"
+        ]
+      }
+    },
+    {
+      "id": "T2",
+      "title": "Full ReadingGoalCard: snapshot caption by the title, wrapped name, no status row, prominent pace, dates with year",
+      "status": "done",
+      "slice": "A",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/components/progress/reading-goal-card.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "requirementIds": ["R02", "R03", "R04", "R05", "R07"],
+      "acceptanceIds": ["A03", "A04", "A05", "A06", "A08", "A09"],
+      "currentState": [
+        ":79 snapshotNote passed as note at :83 (empty) and :107 (with goal)",
+        ":106 description = t(\"deadline\", { date: formatDateShort(...) })",
+        ":117-121 status row via useTranslations(\"goals.status\") at :77",
+        ":122-127 pace row hidden on null, same weight as other rows",
+        ":136-142 forecast: unavailable text or formatDateShort",
+        ":194 name span truncate, shared with compact"
+      ],
+      "doneWhen": [
+        "FullReadingGoal passes no note prop to StatisticsSection in either branch (primary null and present); the current-state caption is in the description slot and appears once",
+        "uk caption contains \"поточн\" and says the selected period does not change it; en caption states the same",
+        "in the full variant the goal name element has break-words (and no truncate); in the compact variant the name keeps truncate",
+        "no status row in the full variant; tStatus / useTranslations(\"goals.status\") removed from the file",
+        "pace is rendered before the details list (next to or under the progress headline) as a Badge with a distinct variant per ahead/on_track/behind/critical (IC2); pace null renders statistics.goal.paceUnknown with a neutral style (IC3)",
+        "deadline in the full variant renders formatDateLong(primary.deadline, locale) imported from @/lib/format (IC4); compact keeps t(\"deadline\", { date: formatDateShort(...) }) at its current place",
+        "forecast renders formatDateLong(projectedCompletionDate, locale) only when the date is non-null and projectionConfidence is medium or high; otherwise the localized unavailable text and no date string",
+        "primaryGoal null keeps the Link href=\"/goals\" with t(\"create\") in both variants",
+        "GoalLinks unchanged: open-goal Link from toContextActionLinks(primary.contextActions), otherGoals Link href=\"/goals\" when activeGoalsCount > 1",
+        "no new Card or bordered wrapper inside FullReadingGoal",
+        "CompactReadingGoal diff is limited to the T1 percent call and whatever prop GoalProgress needs to keep truncate",
+        "all new or changed strings live under statistics.goal in both uk.json and en.json; keys left without a caller (statistics.goal.status, and statistics.goal.description or snapshotNote if superseded) are removed from both catalogs"
+      ],
+      "assumptions": [
+        "The headline t(\"progress\", { completed, target }) already reads as completed/target; a full-only key with a book unit is allowed but not required",
+        "\"без зайвої вкладеної загальної картки\" is a constraint on the new layout, not a removal: no nested card exists today (S19)"
+      ],
+      "verify": {
+        "verifiedAt": "2026-10-19T16:33:43Z",
+        "proof": [
+          "reading-goal-card.tsx:85 and :108 StatisticsSection without note; caption t(\"description\") in the description slot; uk.json:9578 / en.json:9578",
+          "uk caption \"Поточний стан ... Вибраний період на нього не впливає.\" (case-insensitive match on \"поточн\"); en \"The current state ... The selected period does not change it.\"",
+          "reading-goal-card.tsx:112 nameClassName break-words (full), :69 truncate (compact), :210 cn(...) applies it",
+          "status row and useTranslations(\"goals.status\") gone (no goals.status in the file); statistics.goal.status removed from both catalogs",
+          "reading-goal-card.tsx:117 GoalPace before the details dl; :175-191 Badge variant GOAL_SIGNAL_TONE.pace[pace] (reading-goals/model/goal-status.ts:19-20); pace null -> variant secondary + t(\"paceUnknown\") (:184,:186), uk.json:9594",
+          "reading-goal-card.tsx:121-124 deadlineLabel + formatDateLong; compact keeps t(\"deadline\", formatDateShort) at :63",
+          "reading-goal-card.tsx:104, :133-138, :231-235 forecast date only for medium/high and non-null, otherwise t(\"forecastUnavailable\")",
+          "reading-goal-card.tsx:47-51 and :88-93 Link /goals with t(\"create\"); GoalLinks :147-173 unchanged in the diff",
+          "no Card in FullReadingGoal (:78-145)",
+          "compact diff limited to :58 and :69",
+          "statistics.goal.snapshotNote and statistics.goal.status removed from both catalogs; zero references in apps/web/src"
+        ]
+      },
+      "recordedDecisions": [
+        "Slice A a11y fix: GoalPace renders as its own <dl> with <dt> pace label and <dd> Badge (reading-goal-card.tsx:179-189)",
+        "GoalPace Badge overrides h-5/whitespace-nowrap with h-auto min-h-6 max-w-full whitespace-normal (:183) for N8"
+      ],
+      "knownOutOfScope": [
+        "accessibility-auditor measured the light-theme warning Badge (pace behind) at 4.23:1; root cause is the global --warning token in apps/web/src/styles/globals.css shared with Reading Goals; outside spec §5 file boundaries, not fixed"
+      ]
+    },
+    {
+      "id": "T3",
+      "title": "reading-goal-card.test.tsx: long name, full vs compact, pace, confidence, 99.5%, dates, CTA",
+      "status": "done",
+      "slice": "A",
+      "layer": "test",
+      "files": ["apps/web/src/features/statistics/components/progress/reading-goal-card.test.tsx"],
+      "dependsOn": ["T1", "T2"],
+      "mandatory": true,
+      "requirementIds": ["R03", "R04", "R05", "R06", "R07", "R20"],
+      "acceptanceIds": ["A04", "A05", "A06", "A07", "A08", "A09", "A23"],
+      "doneWhen": [
+        "new file components/progress/reading-goal-card.test.tsx, built on renderWithProviders, vi.mock(\"@/i18n/navigation\") Link mock, overviewFixture().goal and messages from @/messages/uk.json",
+        "full: a long goal name renders as full text and its element has break-words, not truncate",
+        "compact: the same long name keeps truncate",
+        "full: messages.goals.status.active is absent; it.each over ahead/on_track/behind/critical shows the matching statistics.goal.paces text; pace null shows the neutral text",
+        "full: deadline and a medium/high forecast render formatDateLong(..., \"uk\") strings that contain the year",
+        "full: it.each over projectionConfidence low, none and projectedCompletionDate null renders the unavailable text and no forecast date",
+        "both variants: progressPercent 99.5 with remainingCount 1 renders \"99%\" and a progressbar named by progressLabel with 99; no \"100%\"",
+        "remainingCount 0 with progressPercent 100 renders \"100%\"",
+        "primaryGoal null renders a link to /goals in both variants; activeGoalsCount 3 renders the otherGoals link to /goals; the open-goal link points to /goals/{statisticsIds.goalId}",
+        "the current-state caption text occurs exactly once in the full variant",
+        "no aria-valuenow assertion (S37); statistics-overview.test.tsx unchanged"
+      ],
+      "verify": {
+        "verifiedAt": "2026-10-19T16:33:43Z",
+        "proof": [
+          "reading-goal-card.test.tsx:8-17 Link mock before renderWithProviders, uk messages; :39-55 goalWith over overviewFixture().goal",
+          ":58-66 full long name break-words, no truncate; :68-74 compact truncate",
+          ":76-81 goals.status.active absent; :83-87 it.each(ReadingGoalPaceSchema.options); :89-98 pace null neutral text",
+          ":109-116 deadline formatDateLong with 2027; :118-134 medium/high forecast with 2026",
+          ":136-144 it.each low, none, null date -> forecastUnavailable and no date",
+          ":146-165 99.5 / remaining 1 -> 99% and progressbar named by progressLabel 99, no 100%; :167-182 remaining 0 -> 100%",
+          ":184-190 CTA /goals both variants; :192-200 otherGoals /goals; :202-209 /goals/{statisticsIds.goalId}",
+          ":211-215 caption exactly once; no aria-valuenow assertion; statistics-overview.test.tsx not in the diff"
+        ],
+        "notVerified": ["not executed (CI-only, Stage 7 deferred)"]
+      }
+    },
+    {
+      "id": "T4",
+      "title": "SeriesSection: selected-period caption, one zero-reads empty state, honest 0%, no null-to-0 bar",
+      "status": "done",
+      "slice": "A",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/components/progress/series-section.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "requirementIds": ["R02", "R10"],
+      "acceptanceIds": ["A03", "A10", "A11"],
+      "currentState": [
+        ":23-29 unavailable branch",
+        ":35-46 share text with shareUnknown for null and Progress value (seriesShare ?? 0) * 100",
+        ":48 lifecycle, :50-85 rankings, :87-103 marathon always reached when available"
+      ],
+      "doneWhen": [
+        "statistics.series.description says the selected period (uk contains \"вибран\", en \"selected period\")",
+        "the availability === \"unavailable\" branch stays first",
+        "completedReadsCount === 0 returns exactly one StatisticsSectionState kind=\"empty\" with a new statistics.series key, before the share, lifecycle, rankings and marathon; no 0, 0% or shareUnknown text in that branch",
+        "completedReadsCount > 0 with seriesShare 0 renders t(\"share\") with percent 0 and the Progress bar; mostActive empty keeps the existing empty ranking state; no marathon block when marathon data is null",
+        "the expression seriesShare ?? 0 is gone; the Progress bar renders only for a numeric seriesShare; a null share with reads > 0 renders a localized unknown-share text and no bar",
+        "new keys exist under statistics.series in both catalogs"
+      ],
+      "assumptions": [
+        "With reads > 0 and no series reads, an available lifecycle still shows its real zeros; the spec forbids zero lifecycle only in the zero-reads state",
+        "Zero-reads empty state wins over a lifecycle-unavailable reason (one empty state)"
+      ],
+      "verify": {
+        "verifiedAt": "2026-10-19T16:33:43Z",
+        "proof": [
+          "uk.json:9604 \"за вибраний період\", en.json:9604 \"in the selected period\"",
+          "series-section.tsx:23-29 unavailable branch first",
+          "series-section.tsx:31-41 one StatisticsSectionState kind=empty with noReadsTitle/noReadsDescription before share, lifecycle, rankings, marathon; uk.json:9606-9607",
+          "series-section.tsx:47 + :159-169 share text with percent and Progress for a numeric share including 0; :59-60 empty ranking; :94 no marathon when null",
+          "no \"?? 0\" in the file; :155-157 null share -> shareUnknown text, no bar; :168 Progress value share * 100"
+        ]
+      }
+    },
+    {
+      "id": "T5",
+      "title": "SeriesSection: non-additivity note, cycles vs first completions wording, ranking kept as is",
+      "status": "done",
+      "slice": "A",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/components/progress/series-section.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["T4"],
+      "mandatory": true,
+      "requirementIds": ["R08", "R09", "R11"],
+      "acceptanceIds": ["A12", "A13", "A14"],
+      "doneWhen": [
+        "LIFECYCLE_KEYS still renders the four StatisticsStat in grid-cols-2 sm:grid-cols-4",
+        "a StatisticsNote under the lifecycle grid says the four counts can overlap and are not summed (IC5); it renders only when lifecycle data is shown",
+        "the lifecycle-unavailable branch still renders the reason and no StatisticsStat; share and rankings still render",
+        "mostActive heading or caption states it counts finished read-throughs including rereads; valueLabel still t(\"reads\", { count: completedReadCycles })",
+        "statistics.series.topProgressTitle is \"Поступ у серіях\" in uk (en equivalent) with a caption meaning books finished for the first time in the period; valueLabel still distinctFirstCompletions",
+        "TasteRankingList calls pass no scaleMax; rows are mapped from mostActive and topProgress in received order with no sort, filter or slice; mostActive rows keep contextActions",
+        "the ranking grid class string grid grid-cols-1 items-start gap-6 lg:grid-cols-2 is unchanged",
+        "taste-ranking-list.tsx is not in the diff"
+      ],
+      "verify": {
+        "verifiedAt": "2026-10-19T16:33:43Z",
+        "proof": [
+          "series-section.tsx:136-144 four StatisticsStat in grid-cols-2 sm:grid-cols-4",
+          "series-section.tsx:145 StatisticsNote lifecycleNote only in the available branch; uk.json:9611",
+          "series-section.tsx:124-131 reason branch unchanged; share and rankings render outside SeriesLifecycle",
+          "series-section.tsx:57 mostActiveCaption (uk.json:9622 \"Завершені читання, включно з перечитуваннями.\"); :68 valueLabel t(\"reads\", completedReadCycles)",
+          "uk.json:9625 \"Поступ у серіях\", :9626 caption; en.json:9625-9626; :86-87 distinctFirstCompletions",
+          "series-section.tsx:62-70 and :82-89 no scaleMax, no sort/filter/slice, contextActions at :64",
+          "series-section.tsx:51 grid class unchanged; taste-ranking-list.tsx not in the diff"
+        ]
+      },
+      "recordedDecisions": [
+        "statistics.series.marathon made plural-aware for {length} (uk.json:9628, en.json:9628): pre-existing defect in an in-scope namespace"
+      ],
+      "knownOutOfScope": [
+        "StatisticsNote carries role=\"status\" (statistics-states.tsx:62) on the static lifecycle note (series-section.tsx:145); the shared component is outside scope and the spec names StatisticsNote for this note"
+      ]
+    },
+    {
+      "id": "T6",
+      "title": "series-section.test.tsx: zero, none, legacy, ranking",
+      "status": "done",
+      "slice": "A",
+      "layer": "test",
+      "files": ["apps/web/src/features/statistics/components/progress/series-section.test.tsx"],
+      "dependsOn": ["T4", "T5"],
+      "mandatory": true,
+      "requirementIds": ["R08", "R09", "R10", "R11", "R20"],
+      "acceptanceIds": ["A10", "A11", "A12", "A13", "A14", "A23"],
+      "doneWhen": [
+        "new file components/progress/series-section.test.tsx using renderWithProviders, the Link mock and overviewFixture().series",
+        "zero: completedReadsCount 0, seriesShare null, empty lists, marathon unavailable renders the one empty state and no \"0%\", lifecycle labels, shareUnknown text or ranking headings",
+        "unavailable with completedReadsCount 0 renders the unavailable title, not the zero-reads empty title",
+        "none: completedReadsCount > 0, seriesCompletedReadsCount 0, seriesShare 0, empty lists, marathon unavailable renders the 0% share text, the statistics.series.empty ranking state and no marathon text",
+        "legacy: lifecycle unavailable renders the LEGACY_HISTORY_INCOMPLETE reason, none of the four lifecycle labels, and still renders the share and the ranking",
+        "ranking: both headings with the new wording, the fixture valueLabels for completedReadCycles and distinctFirstCompletions, a link to /series/{statisticsIds.seriesId}, the non-additivity note, and the fixture marathon text",
+        "no wrap, expand or bar-scale assertions (taste-ranking-list.test.tsx covers them)"
+      ],
+      "verify": {
+        "verifiedAt": "2026-10-19T16:33:43Z",
+        "proof": [
+          "series-section.test.tsx:7-19 Link mock, renderWithProviders, overviewFixture().series",
+          ":64-77 zero reads: one empty title, no 0%, no shareUnknown, no ranking headings, no lifecycle labels",
+          ":79-84 unavailable wins over zero reads",
+          ":86-107 none: 0% share text, statistics.series.empty, no marathon lead",
+          ":109-116 legacy reason without lifecycle labels; :118-136 share and rankings stay",
+          ":171-178 headings and captions; :180-195 valueLabels; :197-203 link /series/{seriesId}; :165-169 lifecycle note; :205-220 marathon text",
+          "no wrap, expand or bar-scale assertions"
+        ],
+        "notVerified": ["not executed (CI-only, Stage 7 deferred)"]
+      }
+    },
+    {
+      "id": "T7",
+      "title": "LibraryBalanceSection: current-snapshot caption, readRatio wording, forecast explanation and reason at the KPI",
+      "status": "done",
+      "slice": "B",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/components/progress/library-balance-section.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "requirementIds": ["R02", "R12", "R13", "R14", "R15"],
+      "acceptanceIds": ["A03", "A15", "A16", "A17", "A18"],
+      "currentState": [
+        ":28 description \"Скільки власних книг чекає на прочитання зараз.\"",
+        ":38-50 readRatio stat without hint, label \"Частка прочитаного\"",
+        ":52-68 forecast hint only when data exists",
+        ":71-79 flow when not unavailable and data non-null",
+        ":81-85 forecast reason as a StatisticsNote at the end"
+      ],
+      "doneWhen": [
+        "statistics.libraryBalance.description is one short caption saying it is the current state, independent of the selected period (uk contains \"поточн\"); no second snapshot note in the section",
+        "three StatisticsStat remain inside grid grid-cols-1 gap-3 sm:grid-cols-3; no new KPI or chart",
+        "readRatio label is \"Прочитані серед власних\" (uk); numeric ratio keeps {share}% and the Progress bar and gets hint \"За поточними статусами\"",
+        "readRatio null renders \"—\" and an explanatory hint (IC7), no Progress and no \"0%\"",
+        "forecast with data renders forecastValue and a hint covering the rate, the rolling 12 months of first completions of owned books, and that future purchases are not counted (IC9)",
+        "forecast with data null or availability unavailable renders \"—\" and the hint t(`forecastReason.${reason ?? \"INSUFFICIENT_SAMPLE\"}`) on the forecast StatisticsStat",
+        "the section-level StatisticsNote for the forecast reason is removed; the StatisticsNote import goes if unused",
+        "monthsRemaining 0 with data present still renders the formatted 0, not \"—\"",
+        "the flow line renders only when flow.availability === \"available\" and flow.data !== null (IC8)",
+        "new or changed keys live under statistics.libraryBalance in both catalogs"
+      ],
+      "assumptions": [
+        "\"current vs historical period\" is structural: LibraryBalanceSection takes no period input (library-balance-section.tsx:17-21) and the backend snapshot ignores the period (S27); the test asserts the caption and current counts"
+      ],
+      "verify": {
+        "verifiedAt": "2026-10-19T16:33:43Z",
+        "proof": [
+          "uk.json:9632 \"Поточний стан ваших власних книг. Вибраний період на нього не впливає.\"; no second snapshot note in the section",
+          "library-balance-section.tsx:30 grid grid-cols-1 gap-3 sm:grid-cols-3 with three StatisticsStat",
+          "uk.json:9635 \"Прочитані серед власних\", :9636 \"За поточними статусами\"; library-balance-section.tsx:40 hint, :46-49 {share}% and Progress",
+          "library-balance-section.tsx:43-44 \"—\" for null, :40 readRatioEmpty hint (uk.json:9637)",
+          "library-balance-section.tsx:25 estimate is null only for unavailable or data null; :55-61 reason hint then, forecastHint otherwise; :63-69 value",
+          "StatisticsNote import and the section-level note removed",
+          "library-balance-section.tsx:26 and :73-81 flow only when availability is available and data non-null",
+          "keys only under statistics.libraryBalance, parity 14/14",
+          "uk.json:9640 \"Темп {rate} кн./міс.: власні книги, вперше дочитані за останні 12 місяців. Без урахування майбутніх покупок.\" covers rate, rolling 12 months, first completions of owned books, future purchases",
+          "monthsRemaining 0 with data renders forecastValue 0 (:25, :63-69)"
+        ],
+        "resolved": [
+          "F1 RESOLVED: uk.json:9640 forecastHint now says \"вперше дочитані за останні 12 місяців\", matching en.json:9640 \"in the last 12 months\"",
+          "F2 RESOLVED: library-balance-section.tsx:25 is now forecast.availability === \"unavailable\" ? null : forecast.data, so available or partial with data shows the value and the hint, and \"—\" with the reason appears only for unavailable or data null (spec P3, AD09); flowCounts at :26 keeps the available-only gate (IC8)"
+        ],
+        "reverifiedAt": "2026-10-19T16:36:19Z"
+      },
+      "recordedDecisions": [
+        "Review round: statistics.libraryBalance.forecast renamed to \"Непрочитаного вистачить приблизно на\" / \"Unread books will last about\" (uk.json:9638, en.json:9638) for the R14 name",
+        "Review round: forecastHint shortened; en reworded to \"Owned books first finished in the last 12 months: {rate} a month on average. Future purchases not counted.\" (en.json:9640)"
+      ],
+      "knownOutOfScope": [
+        "flow line passes raw numbers without thousands formatting (library-balance-section.tsx:75-79); pre-existing and unreachable, the backend always returns flow unavailable (statistics-library.composer.ts:26)"
+      ]
+    },
+    {
+      "id": "T8",
+      "title": "library-balance-section.test.tsx: current snapshot, ratio null, forecast unreliable, no flow",
+      "status": "done",
+      "slice": "B",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/statistics/components/progress/library-balance-section.test.tsx"
+      ],
+      "dependsOn": ["T7"],
+      "mandatory": true,
+      "requirementIds": ["R12", "R13", "R14", "R15", "R20"],
+      "acceptanceIds": ["A15", "A16", "A17", "A18", "A23"],
+      "doneWhen": [
+        "new file components/progress/library-balance-section.test.tsx using renderWithProviders and overviewFixture().libraryBalance",
+        "current snapshot: the current-state caption and the fixture counts \"87 із 186\" are shown",
+        "readRatio 0.53 shows the new label, \"53%\" and the current-statuses hint",
+        "readRatio null shows \"—\" and its explanation, no \"0%\" and no progressbar",
+        "forecast available shows the value and the 12-month hint",
+        "it.each over INSUFFICIENT_SAMPLE, LOW_CONFIDENCE, LEGACY_HISTORY_INCOMPLETE: \"—\" and the reason inside the forecast stat, and no role=\"status\" note in the section",
+        "flow unavailable renders no flow text"
+      ],
+      "verify": {
+        "verifiedAt": "2026-10-19T16:33:43Z",
+        "proof": [
+          "library-balance-section.test.tsx:6-14 renderWithProviders, overviewFixture().libraryBalance",
+          ":33-45 caption and currentTbrValue 87 of 186",
+          ":47-56 label, 53%, hint, progressbar; :58-67 null: dash, explanation, no 0%, no progressbar",
+          ":69-88 value and hint containing 12; :90-102 zero months as a value",
+          ":104-125 it.each three reasons: dash and reason in the last two dd, no role=status",
+          ":142-153 no flow text when unavailable; :127-140 flow line when available (covers IC8)"
+        ],
+        "notVerified": ["not executed (CI-only, Stage 7 deferred)"],
+        "reverify": [
+          "library-balance-section.test.tsx unchanged (154 lines) and still matches the component: :69-88 available with data -> value and hint, :90-102 available with monthsRemaining 0 -> value, no \"—\", :104-125 unavailable with data null -> \"—\" and the reason in the last two dd",
+          "the partial-with-data path has no test; T8 doneWhen does not ask for one"
+        ]
+      }
+    },
+    {
+      "id": "T9",
+      "title": "RecordsSection: selection description, full long names, peak_month winner and lower-bound notes",
+      "status": "done",
+      "slice": "B",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/components/progress/records-section.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "requirementIds": ["R02", "R16", "R17", "R18", "R19"],
+      "acceptanceIds": ["A03", "A19", "A20", "A21", "A22"],
+      "currentState": [
+        ":42 description \"Найпомітніші екстремуми цього періоду.\"",
+        ":220 headline line-clamp-2",
+        ":125-134 peak_month without notes"
+      ],
+      "doneWhen": [
+        "statistics.records.title unchanged; description names a selection of up to {limit} records of the selected period (uk contains \"вибран\"), limit = RECORDS_LIMIT from @app/shared (IC6)",
+        "records.items rendered in received order with key={record.type}; no sort, filter or slice; region role, aria-label, tabIndex, snap-x classes and lg:grid-cols-4 unchanged",
+        "RecordText headline has no line-clamp-2 and has break-words; Card keeps min-w-0; no title attribute or tooltip added",
+        "peak_month always renders a note that the month won by completed reads; with isLowerBound it also renders a note that the shown pages may be incomplete; completedReads and pagesRead values unchanged",
+        "neither new note equals statistics.states.lowerBound; statistics-overview.tsx untouched (no second global warning)",
+        "longest_streak and most_pages_in_day lower-bound handling at :101-124 unchanged",
+        "recordBookLink and the StatisticsDetailSurface wrapper unchanged: book Link only for active books in fastest/longest/shortest, surface only for most_pages_in_day with a reading_day target; no Link or click handler added elsewhere",
+        "items.length === 0 keeps the existing empty state",
+        "new or changed keys live under statistics.records in both catalogs"
+      ],
+      "verify": {
+        "verifiedAt": "2026-10-19T16:33:43Z",
+        "proof": [
+          "records-section.tsx:6 RECORDS_LIMIT from @app/shared, :42 t(\"description\", { limit }); uk.json:9650 \"за вибраний період\"; title key unchanged",
+          "records-section.tsx:46-58 region role, aria-label, tabIndex, snap-x, lg:grid-cols-4, key={record.type} unchanged in the diff",
+          "records-section.tsx:224 headline break-words without line-clamp-2; :166 Card min-w-0; no title attribute or tooltip",
+          "records-section.tsx:133 peakMonthByReads always; :128 peakMonthPagesIncomplete only with isLowerBound; :129-132 values unchanged; uk.json:9667-9668",
+          "neither note equals statistics.states.lowerBound; statistics-overview.tsx not in the diff",
+          "records-section.tsx:101-124, :140-151, :189-202 unchanged in the diff",
+          "records-section.tsx:43-44 empty state unchanged"
+        ]
+      },
+      "recordedDecisions": [
+        "statistics.records.values.peakMonthDetail made plural-aware for {pages} (N7, uk.json:9666, en.json:9666); records-section.tsx:130 passes the raw number and the ICU # formats it, formatNumber import dropped"
+      ]
+    },
+    {
+      "id": "T10",
+      "title": "records-section.test.tsx: typical, empty, legacy, long title, exact links",
+      "status": "done",
+      "slice": "B",
+      "layer": "test",
+      "files": ["apps/web/src/features/statistics/components/progress/records-section.test.tsx"],
+      "dependsOn": ["T9"],
+      "mandatory": true,
+      "requirementIds": ["R16", "R17", "R18", "R19", "R20"],
+      "acceptanceIds": ["A19", "A20", "A21", "A22", "A23"],
+      "doneWhen": [
+        "new file components/progress/records-section.test.tsx using renderWithProviders, the Link mock, overviewFixture().records and statisticsIds",
+        "typical: the description text is shown and the listitems follow the items order",
+        "long title: a very long book title renders as full text in an element with break-words and without line-clamp-2",
+        "empty: items [] shows statistics.records.empty",
+        "peak_month exact: winner-by-reads note, no pages caveat; peak_month with isLowerBound: both notes",
+        "longest_streak with isLowerBound keeps the \"≥\" value and recordedOnly",
+        "links: an active book record links to /books/{bookId}; a soft_deleted one has no link; most_pages_in_day renders one trigger button and no link; peak_month, longest_streak and longest_series_marathon cards render neither link nor button",
+        "the day surface is not opened, or fetch is stubbed (N5)"
+      ],
+      "verify": {
+        "verifiedAt": "2026-10-19T16:33:43Z",
+        "proof": [
+          "records-section.test.tsx:8-19 Link mock, overviewFixture().records, statisticsIds",
+          ":115-121 description with RECORDS_LIMIT; :123-138 listitems in received order",
+          ":140-146 long title break-words, no line-clamp-2; :148-153 empty",
+          ":155-162 exact peak month; :164-169 lower-bound peak month with both notes; :171-182 detail",
+          ":184-198 streak at least and recordedOnly; :200-207 exact streak",
+          ":209-216 active book link /books/{bookId}; :218-223 soft_deleted no link; :225-231 one day button, no link; :233-242 peak month, streak, marathon with neither",
+          ":84-95 fetch stubbed and asserted unused"
+        ],
+        "notVerified": ["not executed (CI-only, Stage 7 deferred)"]
+      }
+    },
+    {
+      "id": "T11",
+      "title": "i18n parity and namespace boundary for the four progress namespaces",
+      "status": "done",
+      "slice": "P5",
+      "layer": "web",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": ["T2", "T4", "T5", "T7", "T9"],
+      "mandatory": true,
+      "requirementIds": ["R20"],
+      "acceptanceIds": ["A24"],
+      "doneWhen": [
+        "git diff of both catalogs has hunks only inside statistics.goal, statistics.series, statistics.libraryBalance, statistics.records",
+        "every added key exists in both catalogs at the same path; every removed key is removed from both",
+        "every remaining key of the four namespaces has a caller in progress/*.tsx, and every t() key used there exists",
+        "uk plurals use one/few/many/other, en plurals one/other",
+        "the four progress .tsx files contain no Cyrillic and no hardcoded English UI strings",
+        "statistics.states, statistics.rankings, statistics.contextActions and the tastes namespaces are unchanged"
+      ],
+      "verify": {
+        "verifiedAt": "2026-10-19T16:33:43Z",
+        "proof": [
+          "git diff hunks of uk.json and en.json start at :9577, :9583, :9586, :9594, :9597, :9603, :9608, :9618, :9626, :9642, :9658, all inside statistics.goal..statistics.records (:9575-9672)",
+          "key sets identical per namespace: goal 23/23, series 22/22, libraryBalance 14/14, records 19/19",
+          "every t() key in the four .tsx files resolves; no key of the four namespaces lacks a caller",
+          "uk plurals one/few/many/other, en one/other for every plural in the four namespaces",
+          "no Cyrillic and no JSX text literals in the four .tsx files",
+          "statistics.states, rankings, contextActions and tastes namespaces have no hunk"
+        ]
+      }
+    },
+    {
+      "id": "T12",
+      "title": "File boundary and regression invariants",
+      "status": "done",
+      "slice": "P5",
+      "layer": "meta",
+      "files": [],
+      "dependsOn": ["T3", "T6", "T8", "T10", "T11"],
+      "mandatory": true,
+      "requirementIds": ["R01", "R15", "R20"],
+      "acceptanceIds": ["A01", "A02", "A18", "A23"],
+      "doneWhen": [
+        "git diff --name-only plus git ls-files --others --exclude-standard list only the four progress .tsx files, the four new progress tests, uk.json, en.json and docs/specs/statistics-progress/{spec.md,tasks.json,verify-report.md}",
+        "not in the diff: statistics-overview.tsx, statistics-overview-tab.tsx, statistics-overview.test.tsx, taste-ranking-list.tsx and its test, statistics-section.tsx, statistics-stat.tsx, statistics-states.tsx, details/**, completed-read-card.tsx, features/reading-goals/**, components/ui/**, apps/api/**, packages/shared/**, generated API, package.json, lockfile, .github/**, .claude/**",
+        "the four progress files add no API hook, fetch or new package import",
+        "no new string equals one of the four section titles or statistics.states.lowerBound (N3)"
+      ],
+      "verify": {
+        "verifiedAt": "2026-10-19T16:33:43Z",
+        "proof": [
+          "git diff --name-only: the four progress .tsx files, uk.json, en.json; git ls-files --others: four progress tests and docs/specs/statistics-progress/{spec.md,tasks.json} (verify-report.md added by this VERIFY)",
+          "none of the forbidden paths appears in either list",
+          "new imports: Badge, GOAL_SIGNAL_TONE, cn, formatDateLong, RECORDS_LIMIT, StatisticsNote, shared types; no API hook, fetch or new package",
+          "no new string equals a section title (uk.json:9576, :9603, :9631, :9649) or statistics.states.lowerBound"
+        ]
+      }
+    },
+    {
+      "id": "T13",
+      "title": "VERIFY and closure with deferred checks listed",
+      "status": "done",
+      "slice": "P5",
+      "layer": "meta",
+      "files": [
+        "docs/specs/statistics-progress/tasks.json",
+        "docs/specs/statistics-progress/verify-report.md"
+      ],
+      "dependsOn": ["T12"],
+      "mandatory": true,
+      "requirementIds": ["R20"],
+      "acceptanceIds": ["A23", "A24"],
+      "doneWhen": [
+        "spec-auditor VERIFY ran over git status --short, git diff --name-only, git diff and git ls-files --others --exclude-standard",
+        "every R01-R20 and A01-A24 carries DONE, ALREADY_DONE, EXCLUDED, BLOCKED or NOT_VERIFIED with file:line proof",
+        "the closing report lists as NOT_VERIFIED: the four new test files and the statistics suite (CI), typecheck/eslint/prettier (bash .claude/scripts/gates.sh), dev server, browser at 375 and 1280, a11y and touch checks",
+        "no commit, push, PR or merge"
+      ],
+      "verify": {
+        "verifiedAt": "2026-10-19T16:33:43Z",
+        "proof": [
+          "this VERIFY ran git status --short, git diff --name-only, git diff and git ls-files --others --exclude-standard",
+          "docs/specs/statistics-progress/verify-report.md carries R01-R20 and A01-A24 verdicts with file:line proof and the NOT_VERIFIED list",
+          "HEAD unchanged at 69479f6a; no commit, push, PR or merge"
+        ]
+      }
+    },
+    {
+      "id": "TA1",
+      "title": "Four sections, order, wrapper, tab and URL state, single query",
+      "status": "ALREADY_DONE",
+      "slice": "P0",
+      "layer": "web",
+      "files": ["apps/web/src/features/statistics/components/overview/statistics-overview.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "requirementIds": ["R01"],
+      "acceptanceIds": ["A01", "A02"],
+      "doneWhen": ["AD01, AD02 hold and the file stays out of the diff (T12)"],
+      "proof": [
+        "statistics-overview.tsx:56, :215-220",
+        "statistics-overview.test.tsx:151-165, :243-247"
+      ],
+      "verify": {
+        "verifiedAt": "2026-10-19T16:33:43Z",
+        "reverify": [
+          "statistics-overview.tsx:56 useReadingStatisticsOverview and :215-220 four sections in order; file not in the diff"
+        ]
+      }
+    },
+    {
+      "id": "TA2",
+      "title": "TasteRankingList wrap and mobile expand reused unchanged",
+      "status": "ALREADY_DONE",
+      "slice": "A",
+      "layer": "web",
+      "files": ["apps/web/src/features/statistics/components/tastes/taste-ranking-list.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "requirementIds": ["R20"],
+      "acceptanceIds": ["A13", "A20"],
+      "doneWhen": ["AD03 holds and the file stays out of the diff"],
+      "proof": ["taste-ranking-list.tsx:16,29-37,47,56,82-92"],
+      "verify": {
+        "verifiedAt": "2026-10-19T16:33:43Z",
+        "reverify": [
+          "taste-ranking-list.tsx:16 COLLAPSED_ROWS and :56 break-words whitespace-normal; file not in the diff"
+        ]
+      }
+    },
+    {
+      "id": "TA3",
+      "title": "Existing honest branches: goal forecast unavailable, series unavailable, lifecycle reason, ratio null dash, records navigation, streak/day lower bound",
+      "status": "ALREADY_DONE",
+      "slice": "A",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/components/progress/reading-goal-card.tsx",
+        "apps/web/src/features/statistics/components/progress/series-section.tsx",
+        "apps/web/src/features/statistics/components/progress/library-balance-section.tsx",
+        "apps/web/src/features/statistics/components/progress/records-section.tsx"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "requirementIds": ["R07", "R11", "R13", "R18", "R19"],
+      "acceptanceIds": ["A08", "A12", "A16", "A21", "A22"],
+      "doneWhen": [
+        "AD04, AD06, AD07, AD09, AD11, AD12 survive T2, T4, T5, T7, T9; covered by T3, T6, T8, T10"
+      ],
+      "proof": [
+        "reading-goal-card.tsx:137-141",
+        "series-section.tsx:23-29, 117-124",
+        "library-balance-section.tsx:41-48",
+        "records-section.tsx:101-124, 138-149, 187-200"
+      ],
+      "verify": {
+        "verifiedAt": "2026-10-19T16:33:43Z",
+        "reverify": [
+          "reading-goal-card.tsx:104, :135-137, :231-235 forecast unavailable branch",
+          "series-section.tsx:23-29 unavailable first, :124-131 lifecycle reason",
+          "library-balance-section.tsx:43-44 readRatio null dash",
+          "records-section.tsx:101-124 lower bound, :140-151 active book link, :189-202 day surface"
+        ]
+      }
+    },
+    {
+      "id": "TX1",
+      "title": "Backend, contract, Prisma, generated client, deps, CI, hooks",
+      "status": "EXCLUDED",
+      "slice": "P5",
+      "layer": "meta",
+      "files": [],
+      "dependsOn": [],
+      "mandatory": false,
+      "requirementIds": ["R15"],
+      "acceptanceIds": ["A18"],
+      "doneWhen": ["none of these paths in the diff (T12)"],
+      "reason": "spec §1, §5",
+      "verify": {
+        "verifiedAt": "2026-10-19T16:33:43Z",
+        "reverify": [
+          "no apps/api, packages/shared, prisma, generated, package.json, lockfile, .github or .claude path in git diff --name-only or git ls-files --others"
+        ]
+      }
+    },
+    {
+      "id": "TX2",
+      "title": "Library flow history, ledger, chart",
+      "status": "EXCLUDED",
+      "slice": "B",
+      "layer": "web",
+      "files": [],
+      "dependsOn": [],
+      "mandatory": false,
+      "requirementIds": ["R15"],
+      "acceptanceIds": ["A18"],
+      "doneWhen": ["no new flow UI beyond the existing guarded line (T7, IC8)"],
+      "reason": "R15; backend flow is always unavailable (S29)",
+      "verify": {
+        "verifiedAt": "2026-10-19T16:33:43Z",
+        "reverify": [
+          "library-balance-section.tsx:26 and :73-81 keep only the guarded flow line; no chart or history"
+        ]
+      }
+    },
+    {
+      "id": "TX3",
+      "title": "Local tests, gates, dev server, browser checks",
+      "status": "EXCLUDED",
+      "slice": "P5",
+      "layer": "meta",
+      "files": [],
+      "dependsOn": [],
+      "mandatory": false,
+      "requirementIds": ["R20"],
+      "acceptanceIds": ["A24"],
+      "doneWhen": ["reported as NOT_VERIFIED with MAIN: lines (T13)"],
+      "reason": "spec §3 P5 Stage 7 DEFERRED; CLAUDE.md §9",
+      "verify": {
+        "verifiedAt": "2026-10-19T16:33:43Z",
+        "reverify": [
+          "no test, typecheck, lint, prettier, build or browser run was made for this change set; all listed NOT_VERIFIED"
+        ]
+      }
+    }
+  ],
+  "requirements": {
+    "R01": ["TA1", "T12"],
+    "R02": ["T2", "T4", "T7", "T9"],
+    "R03": ["T2", "T3"],
+    "R04": ["T2", "T3"],
+    "R05": ["T2", "T3"],
+    "R06": ["T1", "T3"],
+    "R07": ["T2", "T3", "TA3"],
+    "R08": ["T5", "T6"],
+    "R09": ["T5", "T6"],
+    "R10": ["T4", "T6"],
+    "R11": ["T5", "T6", "TA3"],
+    "R12": ["T7", "T8"],
+    "R13": ["T7", "T8", "TA3"],
+    "R14": ["T7", "T8"],
+    "R15": ["T7", "T8", "TX1", "TX2", "T12"],
+    "R16": ["T9", "T10"],
+    "R17": ["T9", "T10"],
+    "R18": ["T9", "T10", "TA3"],
+    "R19": ["T9", "T10", "TA3"],
+    "R20": ["T3", "T6", "T8", "T10", "T11", "T12", "T13", "TA2", "TX3"]
+  },
+  "acceptance": {
+    "A01": {
+      "coveredBy": ["TA1", "T12"],
+      "proof": "statistics-overview.tsx:215-220; statistics-overview.test.tsx:49,151-165",
+      "verdict": "ALREADY_DONE",
+      "planVerdict": "ALREADY_DONE",
+      "verifyProof": "statistics-overview.tsx:215-220, file not in the diff",
+      "notVerified": "statistics-overview.test.tsx not re-run"
+    },
+    "A02": {
+      "coveredBy": ["TA1", "T12"],
+      "proof": "statistics-overview.tsx:56; statistics-overview.test.tsx:243-247",
+      "verdict": "ALREADY_DONE",
+      "planVerdict": "ALREADY_DONE",
+      "verifyProof": "statistics-overview.tsx:56; no hook or fetch added in the diff",
+      "notVerified": "statistics-overview.test.tsx:243-247 not re-run"
+    },
+    "A03": {
+      "coveredBy": ["T2", "T4", "T7", "T9"],
+      "proof": "goal caption already says \"поточний стан\" (uk.json:9578) but sits at the bottom; series :9604, library :9627, records :9643 say neither",
+      "verdict": "DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "uk.json:9578, :9632 \"Поточний стан\"; :9604, :9650 \"за вибраний період\""
+    },
+    "A04": {
+      "coveredBy": ["T2", "T3"],
+      "proof": "reading-goal-card.tsx:194 truncate shared by both variants",
+      "verdict": "DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "reading-goal-card.tsx:112, :69; test :58-74",
+      "notVerified": "test not run; visual wrap at 375/1280"
+    },
+    "A05": {
+      "coveredBy": ["T2", "T3"],
+      "proof": "reading-goal-card.tsx:106,141 formatDateShort",
+      "verdict": "DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "reading-goal-card.tsx:121-124, :133-138; test :109-134",
+      "notVerified": "test not run"
+    },
+    "A06": {
+      "coveredBy": ["T2", "T3"],
+      "proof": "reading-goal-card.tsx:117-127",
+      "verdict": "DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "reading-goal-card.tsx:117, :175-191; test :76-107",
+      "notVerified": "test not run; badge contrast and fit in browser (behind 4.23:1, known)"
+    },
+    "A07": {
+      "coveredBy": ["T1", "T3"],
+      "proof": "reading-goal-card.tsx:55,101",
+      "verdict": "DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "reading-goal-card.tsx:226-229, :215-220; test :146-182",
+      "notVerified": "test not run"
+    },
+    "A08": {
+      "coveredBy": ["T2", "T3", "TA3"],
+      "proof": "branch exists at reading-goal-card.tsx:137-141; test missing",
+      "verdict": "DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "reading-goal-card.tsx:231-235, :135-137; uk.json:9598; test :136-144",
+      "notVerified": "test not run"
+    },
+    "A09": {
+      "coveredBy": ["T2", "T3"],
+      "proof": "AD05; no progress test exists",
+      "verdict": "ALREADY_DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "reading-goal-card.tsx:47-51, :88-93, :147-173 unchanged; tests :184-209",
+      "notVerified": "tests not run"
+    },
+    "A10": {
+      "coveredBy": ["T4", "T6"],
+      "proof": "series-section.tsx:37-38 shareUnknown at zero reads",
+      "verdict": "DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "series-section.tsx:31-41; test :64-84",
+      "notVerified": "test not run"
+    },
+    "A11": {
+      "coveredBy": ["T4", "T6"],
+      "proof": "series-section.tsx:39-45, 55-56, 87; only a test is missing for the 0% path, plus the ?? 0 fix",
+      "verdict": "DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "series-section.tsx:155-169, :59-60, :94; test :86-107",
+      "notVerified": "test not run"
+    },
+    "A12": {
+      "coveredBy": ["T5", "T6", "TA3"],
+      "proof": "reason branch exists (:117-124); non-additivity note missing",
+      "verdict": "DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "series-section.tsx:136-145, :124-131; tests :109-169",
+      "notVerified": "tests not run"
+    },
+    "A13": {
+      "coveredBy": ["T5", "T6", "TA2"],
+      "proof": "series-section.tsx:58-82; wording change only",
+      "verdict": "DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "series-section.tsx:53-89, uk.json:9621-9627; tests :171-203",
+      "notVerified": "tests not run"
+    },
+    "A14": {
+      "coveredBy": ["T5", "T6"],
+      "proof": "series-section.tsx:31,87-103 already guarded; test missing",
+      "verdict": "ALREADY_DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "series-section.tsx:43, :94-110 unchanged guard; test :205-220",
+      "notVerified": "test not run"
+    },
+    "A15": {
+      "coveredBy": ["T7", "T8"],
+      "proof": "library-balance-section.tsx:28-29",
+      "verdict": "DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "library-balance-section.tsx:29-37, uk.json:9632; test :33-45",
+      "notVerified": "test not run; grid at 375/1280"
+    },
+    "A16": {
+      "coveredBy": ["T7", "T8", "TA3"],
+      "proof": "library-balance-section.tsx:38-50",
+      "verdict": "DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "library-balance-section.tsx:39-52, uk.json:9635-9637; tests :47-67",
+      "notVerified": "tests not run"
+    },
+    "A17": {
+      "coveredBy": ["T7", "T8"],
+      "proof": "library-balance-section.tsx:52-68, 81-85",
+      "verdict": "DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "library-balance-section.tsx:25, :54-70; uk/en.json:9640; tests :69-125",
+      "notVerified": "tests not run"
+    },
+    "A18": {
+      "coveredBy": ["T7", "T8", "TX1", "TX2", "T12"],
+      "proof": "statistics-library.composer.ts:26; library-balance-section.tsx:71-79",
+      "verdict": "DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "library-balance-section.tsx:26, :73-81; no api/shared/DTO path in the diff"
+    },
+    "A19": {
+      "coveredBy": ["T9", "T10"],
+      "proof": "record-engine.ts:32-43; records-section.tsx:42,53",
+      "verdict": "DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "records-section.tsx:42, :53-57; uk.json:9650; tests :115-138",
+      "notVerified": "tests not run"
+    },
+    "A20": {
+      "coveredBy": ["T9", "T10", "TA2"],
+      "proof": "records-section.tsx:220 line-clamp-2; viewport overflow is NOT_VERIFIED without a browser",
+      "verdict": "DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "records-section.tsx:224, :166; test :140-146",
+      "notVerified": "touch/mobile/desktop readability and no global horizontal overflow at 375/1280"
+    },
+    "A21": {
+      "coveredBy": ["T9", "T10", "TA3"],
+      "proof": "records-section.tsx:101-134",
+      "verdict": "DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "records-section.tsx:125-136, :101-124; tests :155-207",
+      "notVerified": "tests not run"
+    },
+    "A22": {
+      "coveredBy": ["T9", "T10", "TA3"],
+      "proof": "records-section.tsx:138-149,187-200; popover/drawer runtime NOT_VERIFIED",
+      "verdict": "ALREADY_DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "records-section.tsx:140-151, :189-202 unchanged; tests :209-242",
+      "notVerified": "popover at >=1024 and drawer below in browser; tests not run"
+    },
+    "A23": {
+      "coveredBy": ["T3", "T6", "T8", "T10", "T12", "T13"],
+      "proof": "no progress test exists today (S39); shared components stay out of the diff",
+      "verdict": "DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "four new progress test files; shared components not in the diff",
+      "notVerified": "CI run of the new tests and of overview/activity suites"
+    },
+    "A24": {
+      "coveredBy": ["T11", "T13", "TX3"],
+      "proof": "uk/en at :9575-9663; gates and tests NOT_VERIFIED by design",
+      "verdict": "DONE",
+      "planVerdict": "REQUIRED",
+      "verifyProof": "parity 23/22/14/19 keys, plural categories, no Cyrillic or JSX literals in .tsx; NOT_VERIFIED declared in verify-report.md",
+      "notVerified": "gates and tests by design"
+    }
+  },
+  "testPattern": {
+    "reference": "apps/web/src/features/statistics/components/tastes/ratings-section.test.tsx:1-27 and languages-section.test.tsx:1-25",
+    "helpers": [
+      "vi.mock(\"@/i18n/navigation\", () => ({ Link: ({ children, href }) => <a href={href}>{children}</a>, useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) })) placed before the @/test-utils import",
+      "renderWithProviders and screen, within, userEvent from @/test-utils (test-utils.tsx:118-138, locale uk, QueryClient, TooltipProvider)",
+      "messages from @/messages/uk.json for expected copy (messages.statistics.goal / series / libraryBalance / records, messages.goals.status)",
+      "overviewFixture() from ../../model/statistics.fixtures, destructure goal / series / libraryBalance / records and spread overrides; statisticsIds for UUIDs",
+      "formatDateLong from @/lib/format to build expected date strings, as ratings-section.test.tsx:111-114 does with formatDayLong",
+      "en: NextIntlClientProvider locale=\"en\" with @/messages/en.json (features/series/components/series-stats-card.test.tsx:5-32)"
+    ]
+  }
+}

@@ -168,7 +168,7 @@ One `BookForm` drives both create and edit (discriminated `BookFormProps`, `:61`
 - `use-book.ts` — single book for edit.
 - `use-create-book.ts` / `use-update-book.ts` — mutations; invalidate `["/api/books"]` (and `["/api/books/${id}"]` on update).
 - `use-delete-book.ts`, `use-delete-tag.ts` (invalidates `["tags", "search"]`), `use-genres.ts`.
-- Autocomplete search hooks: `use-author-search.ts`, `use-publishers-search.ts`, `use-series-search.ts`, `use-tags-search.ts`, `use-lists-search.ts` — debounced `useQuery` over the Orval-generated taxonomy endpoints.
+- Autocomplete search hooks: `use-author-options.ts`, `use-publishers-search.ts`, `use-series-search.ts`, `use-tags-search.ts`, `use-lists-search.ts` — debounced `useQuery` over the Orval-generated taxonomy endpoints.
 
 ### State
 

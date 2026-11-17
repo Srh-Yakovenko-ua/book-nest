@@ -195,6 +195,8 @@ describe("reading statistics contract", () => {
 
     expect(response.status).toBe(200);
     expect(() => ReadingStatisticsOverviewSchema.parse(response.body)).not.toThrow();
+    const parsed = ReadingStatisticsOverviewSchema.parse(response.body);
+    expect(parsed.calendar.weekdayActivity).toEqual({ availability: "unavailable", items: [] });
   });
 
   it("never serializes a number that is not finite", async () => {
@@ -249,5 +251,23 @@ describe("reading statistics contract", () => {
     expect(parsed.genres.frequency[0]?.drilldown.kind).toBe("completed_reads_subset");
     expect(parsed.hero.recentCompletedReads[0]?.drilldown.kind).toBe("reading_cycle");
     expect(parsed.calendar.days[0]?.drilldown.kind).toBe("reading_day");
+  });
+
+  it("spreads the all-time active days over seven ordered weekdays with the calendar's availability", async () => {
+    await seedRichHistory(reader.userId);
+
+    const response = await request(app.getHttpServer())
+      .get("/api/statistics/overview")
+      .query({ period: "all_time" })
+      .set("Authorization", `Bearer ${reader.accessToken}`);
+
+    expect(response.status).toBe(200);
+    const { calendar } = ReadingStatisticsOverviewSchema.parse(response.body);
+    const { availability, items } = calendar.weekdayActivity;
+
+    expect(items.map((item) => item.weekday)).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    expect(calendar.activeDays).toBeGreaterThan(0);
+    expect(items.reduce((total, item) => total + item.activeDays, 0)).toBe(calendar.activeDays);
+    expect(availability).toBe(calendar.availability);
   });
 });

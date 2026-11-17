@@ -4,11 +4,16 @@ import type { BookView } from "@app/shared";
 import type { OnUrlUpdateFunction, UrlUpdateEvent } from "nuqs/adapters/testing";
 
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { act } from "react";
+import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
-import { makeBookView } from "../../books/components/book-details.fixtures";
+import { bookKeys } from "../../books/api/book-keys";
+import { makeBookDetailsView, makeBookView } from "../../books/components/book-details.fixtures";
+import { timelineKeys } from "../api/timeline-keys";
 import {
   makeEventsPage,
   makeReadingPosition,
@@ -299,6 +304,63 @@ describe("BookTimelineBlock", () => {
     expect(
       await screen.findByRole("button", { name: "Геральт прибуває до Визими" }),
     ).toBeInTheDocument();
+  });
+
+  it("keeps the loaded events and shows the refresh banner when a refetch fails", async () => {
+    const { queryClient } = renderBlock();
+    expect(
+      await screen.findByRole("button", { name: "Геральт прибуває до Визими" }),
+    ).toBeInTheDocument();
+
+    eventsResponder = () => jsonResponse({ message: "boom" }, 500);
+    await act(() => queryClient.invalidateQueries({ queryKey: timelineKeys.events("book-1") }));
+
+    expect(await screen.findByText(messages.common.refetchError)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Геральт прибуває до Визими" })).toBeInTheDocument();
+    expect(screen.queryByText(messages.timeline.states.errorText)).not.toBeInTheDocument();
+  });
+
+  it("keeps the overview and shows the refresh banner when an overview refetch fails", async () => {
+    const { queryClient } = renderBlock("?view=overview");
+    expect(await screen.findByText(messages.timeline.overview.byType)).toBeInTheDocument();
+
+    overviewResponder = () => jsonResponse({ message: "boom" }, 500);
+    await act(() => queryClient.refetchQueries({ queryKey: timelineKeys.overview("book-1") }));
+
+    expect(await screen.findByText(messages.common.refetchError)).toBeInTheDocument();
+    expect(screen.getByText(messages.timeline.overview.byType)).toBeInTheDocument();
+  });
+
+  it("leaves the refresh banner to the book page while the book refetch has failed", async () => {
+    const { queryClient } = renderBlock("?view=overview");
+    expect(await screen.findByText(messages.timeline.overview.byType)).toBeInTheDocument();
+    overviewResponder = () => jsonResponse({ message: "boom" }, 500);
+    await act(() => queryClient.refetchQueries({ queryKey: timelineKeys.overview("book-1") }));
+    expect(await screen.findByText(messages.common.refetchError)).toBeInTheDocument();
+
+    await act(async () => {
+      queryClient.setQueryData(bookKeys.detail("book-1"), makeBookDetailsView({ id: "book-1" }));
+      await queryClient
+        .fetchQuery({
+          queryFn: () => Promise.reject(new Error("book refetch failed")),
+          queryKey: bookKeys.detail("book-1"),
+        })
+        .catch(() => undefined);
+    });
+
+    await waitFor(() =>
+      expect(screen.queryByText(messages.common.refetchError)).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText(messages.timeline.overview.byType)).toBeInTheDocument();
+  });
+
+  it("watches the book refetch state without requesting the book itself", async () => {
+    renderBlock("?view=overview");
+
+    expect(await screen.findByText(messages.timeline.overview.byType)).toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.map(([input]) => new URL(String(input), "http://localhost").pathname),
+    ).not.toContain("/api/books/book-1");
   });
 
   it("shows the empty state when a book has no events", async () => {
@@ -634,5 +696,64 @@ describe("BookTimelineBlock timeline management", () => {
 
     await waitFor(() => expect(events.at(-1)?.searchParams.get("timelineId")).toBeNull());
     expect(await screen.findByRole("dialog", { name: "Керування лініями" })).toBeInTheDocument();
+  });
+});
+
+describe("BookTimelineBlock event reorder errors", () => {
+  const FIRST_EVENTS = [
+    makeTimelineEventView({ id: "e1", title: "Пролог" }),
+    makeTimelineEventView({ id: "e2", title: "Зав’язка" }),
+  ];
+
+  beforeEach(() => {
+    vi.spyOn(toast, "error");
+    eventsResponder = () => jsonResponse(makeEventsPage(FIRST_EVENTS));
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  async function moveFirstEventDown() {
+    await screen.findByRole("button", { name: "Пролог" });
+    await userEvent.click(screen.getByRole("button", { name: "Дії події «Пролог»" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Перемістити нижче" }));
+  }
+
+  it("warns about the conflict and reloads the events on a reorder conflict", async () => {
+    mutationResponder = () =>
+      jsonResponse({ code: "timeline_reorder_conflict", message: "conflict" }, 409);
+    eventsResponder = () => {
+      const reorderSent = fetchMock.mock.calls.some(([url]) => String(url).includes("/reorder"));
+      return jsonResponse(
+        makeEventsPage(
+          reorderSent
+            ? [...FIRST_EVENTS, makeTimelineEventView({ id: "e3", title: "Кульмінація" })]
+            : FIRST_EVENTS,
+        ),
+      );
+    };
+
+    renderBlock();
+    await moveFirstEventDown();
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "Порядок уже змінився. Онови сторінку та спробуй ще раз.",
+      ),
+    );
+    expect(await screen.findByRole("button", { name: "Кульмінація" })).toBeInTheDocument();
+  });
+
+  it("toasts the generic reorder error instead of a conflict on a 409 without the conflict code", async () => {
+    mutationResponder = () => jsonResponse({ message: "conflict" }, 409);
+
+    renderBlock();
+    await moveFirstEventDown();
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Не вдалося змінити порядок"));
+    expect(toast.error).not.toHaveBeenCalledWith(
+      "Порядок уже змінився. Онови сторінку та спробуй ще раз.",
+    );
   });
 });

@@ -1,7 +1,5 @@
-import type { ReactNode } from "react";
-
 import { defaultUserProfileSettings } from "@app/shared";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -10,11 +8,13 @@ import { makeBookView } from "@/features/books/components/book-details.fixtures"
 import { useCreateGoal } from "@/features/reading-goals/api/use-create-goal";
 import { makeReadingGoalView } from "@/features/reading-goals/model/reading-goals.fixtures";
 import { useUpdateSettings } from "@/features/settings/api/use-update-settings";
-import { getStatisticsControllerGetOverviewQueryKey } from "@/shared/api/generated/endpoints/statistics/statistics";
+import { queryClientWrapper } from "@/test-query-cache";
+
+import { statisticsKeys } from "./statistics-keys";
 
 const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
 
-const STATISTICS_KEY = getStatisticsControllerGetOverviewQueryKey({ period: "year", year: 2026 });
+const STATISTICS_KEY = statisticsKeys.overview({ period: "year", year: 2026 });
 
 const BOOKS_KEY = ["/api/books", "list"];
 
@@ -27,12 +27,6 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json" },
     status,
   });
-}
-
-function makeWrapper(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
 }
 
 function seededClient(): QueryClient {
@@ -60,7 +54,7 @@ describe("statistics cache freshness after mutations", () => {
     const client = seededClient();
 
     const { result } = renderHook(() => useChangeReadingStatus(), {
-      wrapper: makeWrapper(client),
+      wrapper: queryClientWrapper(client),
     });
     result.current.mutate({ id: makeBookView().id, payload: { status: "finished" } });
 
@@ -72,7 +66,7 @@ describe("statistics cache freshness after mutations", () => {
     const client = seededClient();
 
     const { result } = renderHook(() => useChangeReadingStatus(), {
-      wrapper: makeWrapper(client),
+      wrapper: queryClientWrapper(client),
     });
     result.current.mutate({ id: makeBookView().id, payload: { status: "finished" } });
 
@@ -84,7 +78,7 @@ describe("statistics cache freshness after mutations", () => {
     fetchMock.mockResolvedValue(jsonResponse(makeReadingGoalView()));
     const client = seededClient();
 
-    const { result } = renderHook(() => useCreateGoal(), { wrapper: makeWrapper(client) });
+    const { result } = renderHook(() => useCreateGoal(), { wrapper: queryClientWrapper(client) });
     result.current.mutate({
       input: { deadline: "2026-12-31", targetCount: 12 },
       listId: "11111111-1111-4111-8111-111111111111",
@@ -99,7 +93,9 @@ describe("statistics cache freshness after mutations", () => {
     );
     const client = seededClient();
 
-    const { result } = renderHook(() => useUpdateSettings(), { wrapper: makeWrapper(client) });
+    const { result } = renderHook(() => useUpdateSettings(), {
+      wrapper: queryClientWrapper(client),
+    });
     result.current.mutate({ weekStartDay: "sunday" });
 
     await waitFor(() => expect(isInvalidated(client, STATISTICS_KEY)).toBe(true));
@@ -109,7 +105,9 @@ describe("statistics cache freshness after mutations", () => {
     fetchMock.mockResolvedValue(jsonResponse({ message: "nope" }, 500));
     const client = seededClient();
 
-    const { result } = renderHook(() => useUpdateSettings(), { wrapper: makeWrapper(client) });
+    const { result } = renderHook(() => useUpdateSettings(), {
+      wrapper: queryClientWrapper(client),
+    });
     result.current.mutate({ weekStartDay: "sunday" });
 
     await waitFor(() => expect(result.current.isError).toBe(true));

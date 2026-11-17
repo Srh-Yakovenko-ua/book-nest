@@ -20,6 +20,7 @@ import {
   moveFinishedReadingCycle,
 } from "../../../test/reading-cycles.js";
 import { truncateAllTables } from "../../../test/truncate.js";
+import { registerReaderInTimezone } from "../../../test/user-timezone.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { ListsModule } from "../../lists/lists.module.js";
 import { ReadingGoalsModule } from "../reading-goals.module.js";
@@ -50,7 +51,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   context.reset();
-  owner = await context.registerVerifyAndLogin();
+  owner = await registerReaderInTimezone({ context, timezone: "UTC" });
 });
 
 afterEach(async () => {

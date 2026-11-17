@@ -78,7 +78,10 @@ export const ServerErrorKeepsOpen: Story = {
     mockFetch(409, { message: "Книга вже у вашій колекції" });
     const body = within(document.body);
     await userEvent.click(body.getByRole("button", { name: "Зберегти" }));
-    await waitFor(() => expect(body.getByText("Книга вже у вашій колекції")).toBeVisible());
+    await waitFor(() =>
+      expect(body.getByText("Не вдалося зберегти. Спробуйте ще раз.")).toBeVisible(),
+    );
+    await expect(body.queryByText("Книга вже у вашій колекції")).not.toBeInTheDocument();
     await expect(body.getByTestId("open-state")).toHaveTextContent("open");
   },
   render: () => <Harness book={buyBook()} />,

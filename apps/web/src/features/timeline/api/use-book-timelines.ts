@@ -14,6 +14,5 @@ export function useBookTimelines(bookId: string) {
       return TimelineListViewSchema.parse(response);
     },
     queryKey: timelineKeys.timelines(bookId),
-    retry: false,
   });
 }

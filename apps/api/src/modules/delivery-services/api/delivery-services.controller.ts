@@ -22,6 +22,8 @@ import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { DeliveryServicesService } from "../application/delivery-services.service.js";
 import { DeliveryServicesSearchQueryDto } from "./input-dto/delivery-services-search-query.input-dto.js";
 import { RecentDeliveryServicesQueryDto } from "./input-dto/recent-delivery-services-query.input-dto.js";
+import { DeliveryServiceViewDto } from "./view-dto/delivery-service.view-dto.js";
+import { PaginatedDeliveryServicesDto } from "./view-dto/paginated-delivery-services.view-dto.js";
 
 @ApiTags("delivery-services")
 @Controller("api/delivery-services")
@@ -29,6 +31,7 @@ export class DeliveryServicesController {
   constructor(private readonly deliveryServicesService: DeliveryServicesService) {}
   @ApiOkResponse({
     description: "A page of the global default and current user custom delivery services",
+    type: PaginatedDeliveryServicesDto,
   })
   @ApiOperation({ summary: "Search delivery services (global defaults + own custom)" })
   @ApiQuery({ name: "search", required: false })
@@ -45,6 +48,8 @@ export class DeliveryServicesController {
   }
   @ApiOkResponse({
     description: "Delivery services the current user recently used in their own book deliveries",
+    isArray: true,
+    type: DeliveryServiceViewDto,
   })
   @ApiOperation({ summary: "List recently used delivery services for the current user" })
   @ApiQuery({ name: "limit", required: false })

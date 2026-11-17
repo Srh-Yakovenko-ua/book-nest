@@ -6,6 +6,7 @@ import type {
   BundleRelationship,
   BundleTheory,
   CharacterBundle,
+  Nullable,
 } from "@app/shared";
 
 import {
@@ -539,7 +540,7 @@ describe("serializeCharacterBundle", () => {
             },
           ],
           gender: "male",
-          globalAttitude: "favorite",
+          globalAttitude: "like",
           id: CHAR_A,
           isFavorite: true,
           name: "Paul",
@@ -1038,5 +1039,129 @@ describe("serializeCharacterBundle — facts", () => {
       },
     ]);
     expect(CharacterBundleSchema.safeParse(bundle).success).toBe(true);
+  });
+});
+
+type RawAttitudeBundleFixture = {
+  appearanceAttitude: Nullable<string>;
+  formatVersion: 1 | 2;
+  globalAttitude: Nullable<string>;
+  isFavorite: boolean;
+};
+
+function rawAttitudeBundle({
+  appearanceAttitude,
+  formatVersion,
+  globalAttitude,
+  isFavorite,
+}: RawAttitudeBundleFixture): Record<string, unknown> {
+  const { facts, ...appearanceWithoutFacts } = makeAppearance();
+  const appearance =
+    formatVersion === 1 ? appearanceWithoutFacts : { ...appearanceWithoutFacts, facts };
+  return {
+    ...makeBundle(),
+    characters: [
+      {
+        ...makeCharacter({ isFavorite }),
+        appearances: [{ ...appearance, attitude: appearanceAttitude }],
+        globalAttitude,
+      },
+    ],
+    formatVersion,
+  };
+}
+
+describe("CharacterBundleImportSchema — legacy favorite attitude", () => {
+  it.each([1, 2] as const)(
+    "turns a global favorite into like and hearts the character in a version %i bundle",
+    (formatVersion) => {
+      const { bundle } = CharacterBundleImportSchema.parse(
+        rawAttitudeBundle({
+          appearanceAttitude: null,
+          formatVersion,
+          globalAttitude: "favorite",
+          isFavorite: false,
+        }),
+      );
+
+      expect(bundle.characters[0]).toMatchObject({ globalAttitude: "like", isFavorite: true });
+    },
+  );
+
+  it.each([1, 2] as const)(
+    "turns a per-book favorite into like without hearting the character in a version %i bundle",
+    (formatVersion) => {
+      const { bundle } = CharacterBundleImportSchema.parse(
+        rawAttitudeBundle({
+          appearanceAttitude: "favorite",
+          formatVersion,
+          globalAttitude: "neutral",
+          isFavorite: false,
+        }),
+      );
+
+      expect(bundle.characters[0]).toMatchObject({ globalAttitude: "neutral", isFavorite: false });
+      expect(bundle.characters[0]?.appearances[0]?.attitude).toBe("like");
+    },
+  );
+
+  it.each([1, 2] as const)(
+    "yields a bundle the strict export schema accepts from a version %i bundle with favorites",
+    (formatVersion) => {
+      const { bundle } = CharacterBundleImportSchema.parse(
+        rawAttitudeBundle({
+          appearanceAttitude: "favorite",
+          formatVersion,
+          globalAttitude: "favorite",
+          isFavorite: false,
+        }),
+      );
+
+      expect(CharacterBundleSchema.safeParse(bundle).success).toBe(true);
+    },
+  );
+});
+
+describe("CharacterBundleSchema — retired favorite attitude", () => {
+  it.each([
+    {
+      appearanceAttitude: null,
+      globalAttitude: "favorite",
+      label: "global attitude",
+      path: ["characters", 0, "globalAttitude"],
+    },
+    {
+      appearanceAttitude: "favorite",
+      globalAttitude: null,
+      label: "appearance attitude",
+      path: ["characters", 0, "appearances", 0, "attitude"],
+    },
+  ])(
+    "rejects favorite as the $label of an export",
+    ({ appearanceAttitude, globalAttitude, path }) => {
+      const result = CharacterBundleSchema.safeParse(
+        rawAttitudeBundle({
+          appearanceAttitude,
+          formatVersion: 2,
+          globalAttitude,
+          isFavorite: true,
+        }),
+      );
+
+      expect(result.error?.issues.map((issue) => issue.path)).toEqual([path]);
+    },
+  );
+
+  it("accepts like in both attitude slots of an export", () => {
+    const result = CharacterBundleSchema.safeParse(
+      rawAttitudeBundle({
+        appearanceAttitude: "like",
+        formatVersion: 2,
+        globalAttitude: "like",
+        isFavorite: true,
+      }),
+    );
+
+    expect(result.success).toBe(true);
   });
 });

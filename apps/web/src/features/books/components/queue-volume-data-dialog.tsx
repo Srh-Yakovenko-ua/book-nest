@@ -19,6 +19,7 @@ import { z } from "zod";
 
 import type { BooksControllerListFormatItem } from "@/shared/api/generated/model";
 
+import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
 import { UiIcon } from "@/components/icons";
 import { TooltipHint } from "@/components/tooltip-hint";
 import { Button } from "@/components/ui/button";
@@ -57,7 +58,6 @@ import {
   matchesQueueFilters,
   matchesQueueSearch,
 } from "../model/reading-queue-filters";
-import { DiscardConfirmDialog } from "./discard-confirm-dialog";
 
 const FILTERS_ROW_THRESHOLD = 10;
 
@@ -141,7 +141,7 @@ export function QueueVolumeDataDialog({ items, onOpenChange, open }: QueueVolume
         </DialogContent>
       </Dialog>
 
-      <DiscardConfirmDialog
+      <DiscardChangesDialog
         cancelLabel={tDiscardChanges("cancel")}
         confirmLabel={tDiscardChanges("confirm")}
         description={t("discard.description")}

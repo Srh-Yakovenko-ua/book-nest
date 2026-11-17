@@ -15,6 +15,5 @@ export function useTimelineEvent(eventId: Nullable<string>) {
       return TimelineEventDetailViewSchema.parse(response);
     },
     queryKey: timelineKeys.event(eventId ?? ""),
-    retry: false,
   });
 }

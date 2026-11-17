@@ -12,4 +12,7 @@ export type SaveCharacterGraphLayoutInputDtoMode =
 export const SaveCharacterGraphLayoutInputDtoMode = {
   family: "family",
   all: "all",
+  person: "person",
+  tree: "tree",
+  network: "network",
 } as const;

@@ -25,7 +25,7 @@ type DatePickerProps = {
   defaultMonth?: Date;
   describedBy?: string;
   disabled?: boolean;
-  disablePast?: boolean;
+  earliestDay?: Date;
   endMonth?: Date;
   id: string;
   invalid?: boolean;
@@ -49,7 +49,7 @@ export function DatePicker({
   defaultMonth,
   describedBy,
   disabled,
-  disablePast = false,
+  earliestDay,
   endMonth,
   id,
   invalid,
@@ -69,7 +69,7 @@ export function DatePicker({
   const referenceDay = today ?? new Date();
   const disabledMatchers: Matcher[] = [
     ...(allowFuture ? [] : [{ after: referenceDay }]),
-    ...(disablePast ? [{ before: referenceDay }] : []),
+    ...(earliestDay === undefined ? [] : [{ before: earliestDay }]),
   ];
   const label = ariaLabel ?? t("triggerLabel");
   const displayedValue =

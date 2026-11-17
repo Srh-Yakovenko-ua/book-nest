@@ -215,6 +215,52 @@ describe("latest receipt", () => {
     expect(receipt?.sameDayCount).toBe(2);
   });
 
+  it("keeps the books of one Kyiv day in one receipt even across UTC midnight", async () => {
+    await seedOrder({
+      books: [
+        { receivedAt: new Date("2026-08-04T22:30:00.000Z"), title: "Small hours" },
+        { receivedAt: new Date("2026-08-05T10:00:00.000Z"), title: "Afternoon" },
+      ],
+      storeName: "Yakaboo",
+    });
+
+    const receipt = await latestReceipt();
+
+    expect(receipt?.booksCount).toBe(2);
+  });
+
+  it("previews the books received before UTC midnight on the same Kyiv day", async () => {
+    await seedOrder({
+      books: [
+        { receivedAt: new Date("2026-08-04T22:30:00.000Z"), title: "Small hours" },
+        { receivedAt: new Date("2026-08-05T10:00:00.000Z"), title: "Afternoon" },
+      ],
+      storeName: "Yakaboo",
+    });
+
+    const receipt = await latestReceipt();
+
+    expect(receipt?.bookPreviews.map((preview) => preview.title)).toEqual([
+      "Afternoon",
+      "Small hours",
+    ]);
+  });
+
+  it("counts receipts on two Kyiv days apart even when they share a UTC day", async () => {
+    await seedOrder({
+      books: [{ receivedAt: new Date("2026-08-05T20:00:00.000Z"), title: "Late evening" }],
+      storeName: "Amazon",
+    });
+    await seedOrder({
+      books: [{ receivedAt: new Date("2026-08-05T21:30:00.000Z"), title: "After midnight" }],
+      storeName: "Yakaboo",
+    });
+
+    const receipt = await latestReceipt();
+
+    expect(receipt?.sameDayCount).toBe(0);
+  });
+
   it("leaves out a book whose own record was moved to the trash", async () => {
     await seedOrder({
       books: [

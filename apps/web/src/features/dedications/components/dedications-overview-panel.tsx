@@ -2,22 +2,22 @@
 
 import { useTranslations } from "next-intl";
 
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 import type { MobilePageOverviewTab } from "@/components/ui/mobile-page-overview-panel";
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
+import { SummaryDetails } from "@/components/catalog/summary-mobile";
 import {
   MobilePageOverviewPanel,
   MobilePageOverviewTrigger,
   useMobilePageOverviewPanel,
 } from "@/components/ui/mobile-page-overview-panel";
-import { LibrarySummaryDetails } from "@/features/books/components/library-summary-mobile";
 
 import { DedicationsAboutSections } from "./dedications-sidebar";
 
 type DedicationsOverviewPanelProps = {
   isLoading: boolean;
   onChooseBook: () => void;
-  summaryCards: LibrarySummaryCard[];
+  summaryCards: SummaryCard[];
 };
 
 export function DedicationsOverviewPanel({
@@ -31,7 +31,7 @@ export function DedicationsOverviewPanel({
 
   const tabs: MobilePageOverviewTab[] = [
     {
-      content: <LibrarySummaryDetails cards={summaryCards} title={tDetails("title")} />,
+      content: <SummaryDetails cards={summaryCards} title={tDetails("title")} />,
       id: "overview",
       label: t("tabs.overview"),
     },

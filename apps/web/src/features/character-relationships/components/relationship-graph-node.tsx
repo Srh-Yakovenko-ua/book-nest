@@ -14,7 +14,7 @@ import type { RelationshipGraphEmphasis } from "../model/relationship-graph-path
 import { useRelationshipGraphCanvas } from "./relationship-graph-canvas-context";
 
 const GRAPH_NODE_STYLES = {
-  active: "bg-accent text-accent-foreground ring-2 ring-ring",
+  active: "bg-accent text-accent-foreground ring-2 ring-primary",
   base: "flex cursor-pointer items-center gap-1.5 rounded-full border border-border bg-card text-foreground shadow-sm transition-opacity outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none",
   emphasis: {
     default: "",

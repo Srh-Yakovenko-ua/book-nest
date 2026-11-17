@@ -5,10 +5,11 @@ import type { NoteEntityType, NoteView } from "@app/shared";
 import { NOTE_INPUT_LIMITS } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
+import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,7 +20,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useBookPagesCount } from "@/features/books/api/use-book";
-import { bookPageCeiling } from "@/features/books/model/book-page-ceiling";
+import { useCloseGuard } from "@/hooks/use-close-guard";
+import { bookPageCeiling } from "@/lib/book-page-ceiling";
 
 import type { NoteEntityRef } from "../model/note-entity";
 import type { NoteFormInput, NoteFormMessages, NoteFormValues } from "../model/note-form-schema";
@@ -54,46 +56,90 @@ type NoteFormTarget =
 
 export function NoteFormDialog({ onOpenChange, open, target }: NoteFormDialogProps) {
   const t = useTranslations("notes.form");
+  const createNote = useCreateNote();
+  const updateNote = useUpdateNote({ refresh: "background" });
+  const [isDraftDirty, setDraftDirty] = useState(false);
   const isEdit = target.mode === "edit";
+  const isSaving = createNote.isPending || updateNote.isPending;
   const contentRef = useRef<HTMLDivElement>(null);
   const firstFieldId =
     target.mode === "pick" ? NOTE_FORM_FIELD_IDS.entity : NOTE_FORM_FIELD_IDS.title;
 
+  function focusFirstField() {
+    contentRef.current?.querySelector<HTMLElement>(`#${firstFieldId}`)?.focus();
+  }
+
+  const guard = useCloseGuard({
+    focusFallback: focusFirstField,
+    isDirty: isDraftDirty,
+    isOpen: open,
+    isPending: isSaving,
+    onClose: () => onOpenChange(false),
+  });
+
   return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent
-        className="max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)] overflow-hidden sm:max-w-xl"
-        onOpenAutoFocus={(event) => {
-          event.preventDefault();
-          contentRef.current?.querySelector<HTMLElement>(`#${firstFieldId}`)?.focus();
+    <>
+      <Dialog
+        onOpenChange={(next) => {
+          if (!next) guard.requestClose();
         }}
-        ref={contentRef}
+        open={open}
       >
-        <DialogHeader>
-          <DialogTitle>{isEdit ? t("editTitle") : t("createTitle")}</DialogTitle>
-          <DialogDescription>
-            {isEdit ? t("editDescription") : t("createDescription")}
-          </DialogDescription>
-        </DialogHeader>
-        <NoteForm onDone={() => onOpenChange(false)} target={target} />
-      </DialogContent>
-    </Dialog>
+        <DialogContent
+          className="max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)] overflow-hidden sm:max-w-xl"
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            focusFirstField();
+          }}
+          ref={contentRef}
+        >
+          <DialogHeader>
+            <DialogTitle>{isEdit ? t("editTitle") : t("createTitle")}</DialogTitle>
+            <DialogDescription>
+              {isEdit ? t("editDescription") : t("createDescription")}
+            </DialogDescription>
+          </DialogHeader>
+          <NoteForm
+            createNote={createNote}
+            onCancel={guard.requestClose}
+            onDirtyChange={setDraftDirty}
+            onDone={() => onOpenChange(false)}
+            target={target}
+            updateNote={updateNote}
+          />
+        </DialogContent>
+      </Dialog>
+
+      <DiscardChangesDialog {...guard.discardDialog} />
+    </>
   );
 }
 
-function NoteForm({ onDone, target }: { onDone: () => void; target: NoteFormTarget }) {
+function NoteForm({
+  createNote,
+  onCancel,
+  onDirtyChange,
+  onDone,
+  target,
+  updateNote,
+}: {
+  createNote: ReturnType<typeof useCreateNote>;
+  onCancel: () => void;
+  onDirtyChange: (isDirty: boolean) => void;
+  onDone: () => void;
+  target: NoteFormTarget;
+  updateNote: ReturnType<typeof useUpdateNote>;
+}) {
   const t = useTranslations("notes.form");
   const tErrors = useTranslations("notes.errors");
   const tToast = useTranslations("notes.toast");
-  const createNote = useCreateNote();
-  const updateNote = useUpdateNote({ refresh: "background" });
 
   const note = target.mode === "edit" ? target.note : undefined;
   const entityType = target.mode === "pick" ? target.entityType : target.entity.type;
 
   const {
     control,
-    formState: { errors, isSubmitting },
+    formState: { errors, isDirty, isSubmitting },
     getFieldState,
     getValues,
     handleSubmit,
@@ -130,6 +176,10 @@ function NoteForm({ onDone, target }: { onDone: () => void; target: NoteFormTarg
     if (!getFieldState("page").isTouched && getValues("page") === null) return;
     void trigger("page");
   }, [getFieldState, getValues, pageCeiling.max, trigger]);
+
+  useEffect(() => {
+    onDirtyChange(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   const onSubmit = handleSubmit(async (values) => {
     try {
@@ -173,7 +223,7 @@ function NoteForm({ onDone, target }: { onDone: () => void; target: NoteFormTarg
       </div>
 
       <DialogFooter className="shrink-0">
-        <Button disabled={isSubmitting} onClick={onDone} type="button" variant="secondary">
+        <Button disabled={isSubmitting} onClick={onCancel} type="button" variant="secondary">
           {t("cancel")}
         </Button>
         <Button disabled={isSubmitting} loading={isSubmitting} type="submit">

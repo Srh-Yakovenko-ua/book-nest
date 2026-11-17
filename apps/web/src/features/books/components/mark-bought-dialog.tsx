@@ -3,6 +3,7 @@
 import type { BookView } from "@app/shared";
 
 import { useTranslations } from "next-intl";
+import { useState } from "react";
 
 import {
   Dialog,
@@ -12,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useBookStoreLinks } from "@/features/books-to-buy/api/use-book-store-links";
+import { useBookStoreLinks } from "@/features/books-to-buy";
 
 import { MarkBoughtForm } from "./mark-bought-form";
 
@@ -24,11 +25,24 @@ type MarkBoughtDialogProps = {
 };
 
 export function MarkBoughtDialog({ book, onOpenChange, onSuccess, open }: MarkBoughtDialogProps) {
+  const [isSaving, setIsSaving] = useState(false);
+
   return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
+    <Dialog
+      onOpenChange={(next) => {
+        if (isSaving) return;
+        onOpenChange(next);
+      }}
+      open={open}
+    >
       <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-md">
         {open ? (
-          <MarkBoughtContent book={book} onDone={() => onOpenChange(false)} onSuccess={onSuccess} />
+          <MarkBoughtContent
+            book={book}
+            onDone={() => onOpenChange(false)}
+            onPendingChange={setIsSaving}
+            onSuccess={onSuccess}
+          />
         ) : null}
       </DialogContent>
     </Dialog>
@@ -38,10 +52,12 @@ export function MarkBoughtDialog({ book, onOpenChange, onSuccess, open }: MarkBo
 function MarkBoughtContent({
   book,
   onDone,
+  onPendingChange,
   onSuccess,
 }: {
   book: BookView;
   onDone: () => void;
+  onPendingChange: (pending: boolean) => void;
   onSuccess?: () => void;
 }) {
   const t = useTranslations("books.details.ownership.buyConfirm");
@@ -73,6 +89,7 @@ function MarkBoughtContent({
           bestOffer={bestOffer}
           book={book}
           onDone={onDone}
+          onPendingChange={onPendingChange}
           onSuccess={onSuccess}
           storeLinks={storeLinks}
         />

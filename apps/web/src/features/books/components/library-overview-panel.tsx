@@ -2,8 +2,11 @@
 
 import { useTranslations } from "next-intl";
 
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 import type { MobilePageOverviewTab } from "@/components/ui/mobile-page-overview-panel";
 
+import { SummaryDetails } from "@/components/catalog/summary-mobile";
+import { OverviewSection } from "@/components/overview-section";
 import {
   MobilePageOverviewLink,
   MobilePageOverviewPanel,
@@ -16,20 +19,17 @@ import type {
   LibraryOverviewGenre,
   LibraryOverviewTag,
 } from "./library-overview-blocks";
-import type { LibrarySummaryCard } from "./library-summary-cards";
 
 import {
-  LibraryOverviewSection,
   LibraryRecentlyAddedBlock,
   LibraryTopGenresBlock,
   LibraryTopTagsBlock,
 } from "./library-overview-blocks";
-import { LibrarySummaryDetails } from "./library-summary-mobile";
 
 type LibraryOverviewPanelProps = {
   isLoading: boolean;
   recentlyAdded: LibraryOverviewBook[];
-  summaryCards: LibrarySummaryCard[];
+  summaryCards: SummaryCard[];
   topGenres: LibraryOverviewGenre[];
   topTags: LibraryOverviewTag[];
 };
@@ -48,19 +48,19 @@ export function LibraryOverviewPanel({
 
   const tabs: MobilePageOverviewTab[] = [
     {
-      content: <LibrarySummaryDetails cards={summaryCards} title={tDetails("title")} />,
+      content: <SummaryDetails cards={summaryCards} title={tDetails("title")} />,
       id: "overview",
       label: t("tabs.overview"),
     },
     {
       content: (
         <div className="flex flex-col gap-4">
-          <LibraryOverviewSection title={tBlocks("topGenres")}>
+          <OverviewSection title={tBlocks("topGenres")}>
             <LibraryTopGenresBlock genres={topGenres} isLoading={isLoading} />
-          </LibraryOverviewSection>
-          <LibraryOverviewSection title={tBlocks("topTags")}>
+          </OverviewSection>
+          <OverviewSection title={tBlocks("topTags")}>
             <LibraryTopTagsBlock isLoading={isLoading} tags={topTags} />
-          </LibraryOverviewSection>
+          </OverviewSection>
         </div>
       ),
       id: "taxonomy",
@@ -68,13 +68,13 @@ export function LibraryOverviewPanel({
     },
     {
       content: (
-        <LibraryOverviewSection title={tBlocks("recentlyAdded")}>
+        <OverviewSection title={tBlocks("recentlyAdded")}>
           <LibraryRecentlyAddedBlock
             books={recentlyAdded}
             isLoading={isLoading}
             linkComponent={MobilePageOverviewLink}
           />
-        </LibraryOverviewSection>
+        </OverviewSection>
       ),
       id: "activity",
       label: t("tabs.activity"),

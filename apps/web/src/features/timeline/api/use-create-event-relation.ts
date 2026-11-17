@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { timelineEventsControllerCreateRelation } from "@/shared/api/generated/endpoints/timeline-events/timeline-events";
 
-import { invalidateTimelineQueries, timelineKeys } from "./timeline-keys";
+import { invalidateTimelineEventDetails } from "./timeline-keys";
 
 type CreateEventRelationVariables = {
   bookId: string;
@@ -24,9 +24,10 @@ export function useCreateEventRelation() {
       const response = await timelineEventsControllerCreateRelation(eventId, input);
       return CreatedEventRelationViewSchema.parse(response);
     },
-    onSuccess: (relation, { bookId, eventId }) => {
-      invalidateTimelineQueries(queryClient, { bookId, eventId });
-      void queryClient.invalidateQueries({ queryKey: timelineKeys.event(relation.targetEventId) });
+    onSuccess: (relation, { eventId }) => {
+      void invalidateTimelineEventDetails(queryClient, {
+        eventIds: [eventId, relation.targetEventId],
+      });
     },
   });
 }

@@ -4,6 +4,7 @@ import { type ReactNode, Suspense } from "react";
 
 import { AppShell } from "@/components/app-shell";
 import { AuthGuard, GuardFallback } from "@/features/auth";
+import { BookFormDraftCleanup } from "@/features/books";
 import { RealtimeProvider } from "@/features/realtime";
 import { LanguageSync } from "@/features/settings";
 
@@ -13,13 +14,16 @@ export const metadata: Metadata = {
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
-    <Suspense fallback={<GuardFallback />}>
-      <AuthGuard>
-        <RealtimeProvider>
-          <LanguageSync />
-          <AppShell>{children}</AppShell>
-        </RealtimeProvider>
-      </AuthGuard>
-    </Suspense>
+    <>
+      <BookFormDraftCleanup />
+      <Suspense fallback={<GuardFallback />}>
+        <AuthGuard>
+          <RealtimeProvider>
+            <LanguageSync />
+            <AppShell>{children}</AppShell>
+          </RealtimeProvider>
+        </AuthGuard>
+      </Suspense>
+    </>
   );
 }

@@ -6,6 +6,7 @@ import type {
 } from "@app/shared";
 import type { ReactNode } from "react";
 
+import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import messages from "@/messages/uk.json";
@@ -23,12 +24,18 @@ vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
+vi.mock("sonner", () => ({
+  toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
+}));
+
 const sc = messages.favorites.seriesContinuations;
 const actions = sc.actions;
 
 const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
 
 let handleContinuations: () => Promise<Response>;
+let respondToReadingQueue: () => Response;
+let respondToWantToBuy: () => Response;
 
 function continuationsGetCount(): number {
   return fetchMock.mock.calls.filter(
@@ -129,14 +136,16 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
   fetchMock.mockReset();
   handleContinuations = () => Promise.resolve(jsonResponse(continuationsView([])));
+  respondToReadingQueue = () => jsonResponse(readingQueueView());
+  respondToWantToBuy = () => jsonResponse(makeBookView());
   fetchMock.mockImplementation((input) => {
     const url = String(input);
     if (url.includes("/api/series/favorite-continuations")) return handleContinuations();
     if (url.includes("/ownership/want-to-buy")) {
-      return Promise.resolve(jsonResponse(makeBookView()));
+      return Promise.resolve(respondToWantToBuy());
     }
     if (url.includes("/api/reading-queue")) {
-      return Promise.resolve(jsonResponse(readingQueueView()));
+      return Promise.resolve(respondToReadingQueue());
     }
     return Promise.resolve(jsonResponse({}));
   });
@@ -285,6 +294,32 @@ describe("FavoriteSeriesContinuationsBlock", () => {
 
     await waitFor(() => expect(wasPosted("/books/book-77/ownership/want-to-buy")).toBe(true));
     await waitFor(() => expect(continuationsGetCount()).toBeGreaterThan(callsBefore));
+  });
+
+  it("tells the reader when adding a continuation to the queue fails", async () => {
+    respondToReadingQueue = () => jsonResponse({ message: "boom" }, 500);
+    withContinuations([
+      makeItem({ nextBook: { id: "book-99", queue: null }, rankReason: "available" }),
+    ]);
+    renderWithProviders(<FavoriteSeriesContinuationsBlock />);
+
+    await userEvent.click(await screen.findByRole("button", { name: actions.addToQueue }));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(messages.readingQueue.add.errorToast),
+    );
+  });
+
+  it("tells the reader when marking a continuation as wanted fails", async () => {
+    respondToWantToBuy = () => jsonResponse({ message: "boom" }, 500);
+    withContinuations([makeItem({ nextBook: { id: "book-77" }, rankReason: "not_owned" })]);
+    renderWithProviders(<FavoriteSeriesContinuationsBlock />);
+
+    await userEvent.click(await screen.findByRole("button", { name: actions.addToWishlist }));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(messages.books.library.toast.error),
+    );
   });
 
   it("links the title to the book and the series name to the series", async () => {

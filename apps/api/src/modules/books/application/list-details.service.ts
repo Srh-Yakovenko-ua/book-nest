@@ -1,4 +1,4 @@
-import type { CustomListBooksQuery, CustomListDetail, ListBookView } from "@app/shared";
+import type { BookView, CustomListBooksQuery, CustomListDetail, ListBookView } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
@@ -25,6 +25,7 @@ type DetailInput = {
 };
 
 type ListBookViewInput = {
+  bookView: BookView;
   item: BookListItemWithBook;
   positionRanks: Map<string, number> | undefined;
 };
@@ -49,7 +50,7 @@ export class ListDetailsService {
     const filter = buildListBookFilter({ query, search, searchGenreKeys, userId });
     const narrowedByQuickFilter = hasQuickFilterAxis(filter);
 
-    const [items, quickCounts, narrowedCount, positionRanks] = await Promise.all([
+    const [items, quickCounts, narrowedCount, positionRanks, toBookView] = await Promise.all([
       this.listBooksRepository.listBooks({
         filter,
         listId,
@@ -66,10 +67,13 @@ export class ListDetailsService {
       sort === "position"
         ? this.listBooksRepository.listPositionRanks({ listId, userId })
         : Promise.resolve(undefined),
+      this.viewAssembler.forUser(userId),
     ]);
 
     const books = buildPaginator({
-      items: items.map((item) => this.toListBookView({ item, positionRanks })),
+      items: items.map((item) =>
+        toListBookView({ bookView: toBookView(item.book), item, positionRanks }),
+      ),
       pageNumber,
       pageSize,
       totalCount: narrowedCount ?? quickCounts.all,
@@ -77,11 +81,11 @@ export class ListDetailsService {
 
     return { ...header, books, quickCounts: toListQuickCountsView(quickCounts) };
   }
+}
 
-  private toListBookView({ item, positionRanks }: ListBookViewInput): ListBookView {
-    return {
-      ...this.viewAssembler.viewOf(item.book),
-      position: positionRanks?.get(item.bookId) ?? item.position,
-    };
-  }
+function toListBookView({ bookView, item, positionRanks }: ListBookViewInput): ListBookView {
+  return {
+    ...bookView,
+    position: positionRanks?.get(item.bookId) ?? item.position,
+  };
 }

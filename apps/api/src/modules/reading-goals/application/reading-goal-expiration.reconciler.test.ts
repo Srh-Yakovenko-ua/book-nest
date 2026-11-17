@@ -8,6 +8,7 @@ import { PrismaService } from "../../../core/database/prisma.service.js";
 import { addDaysToIsoDate, parseIsoDate, toIsoDate } from "../../../core/iso-date.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
+import { registerReaderInTimezone } from "../../../test/user-timezone.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { ListsModule } from "../../lists/lists.module.js";
 import { ReadingGoalsModule } from "../reading-goals.module.js";
@@ -17,6 +18,12 @@ const TODAY = toIsoDate(new Date());
 const YESTERDAY = addDaysToIsoDate(TODAY, -1);
 const GOAL_STARTED_ON = addDaysToIsoDate(TODAY, -30);
 const BOOK_FINISHED_ON = addDaysToIsoDate(TODAY, -3);
+
+const ZONED_SWEEP = {
+  deadline: "2026-11-15",
+  goalStartedOn: "2026-10-16",
+  now: new Date("2026-11-15T23:30:00.000Z"),
+} as const;
 
 let context: AuthTestContext;
 let app: INestApplication;
@@ -33,7 +40,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   context.reset();
-  owner = await context.registerVerifyAndLogin();
+  owner = await registerReaderInTimezone({ context, timezone: "UTC" });
 });
 
 afterEach(async () => {
@@ -113,6 +120,23 @@ async function seedGoal({
   return goal.id;
 }
 
+async function seedZonedGoal(userId: string): Promise<string> {
+  const list = await prisma.bookList.create({
+    data: { name: "Zoned list", normalizedName: "zoned list", userId },
+  });
+  const goal = await prisma.readingGoal.create({
+    data: {
+      createdAt: parseIsoDate(ZONED_SWEEP.goalStartedOn),
+      deadline: parseIsoDate(ZONED_SWEEP.deadline),
+      listId: list.id,
+      name: "Zoned goal",
+      targetCount: 1,
+      userId,
+    },
+  });
+  return goal.id;
+}
+
 describe("ReadingGoalExpirationReconciler.run", () => {
   it("records goal_expired once for a goal that missed its deadline", async () => {
     const goalId = await seedGoal({ finishedCount: 0, targetCount: 2, totalBooks: 2 });
@@ -174,5 +198,30 @@ describe("ReadingGoalExpirationReconciler.run", () => {
     await reconciler.sweep();
 
     expect(await activityTypes(goalId)).toEqual(["goal_expired"]);
+  });
+});
+
+describe("ReadingGoalExpirationReconciler.run across owner time zones", () => {
+  let kyivGoalId: string;
+  let newYorkGoalId: string;
+
+  beforeEach(async () => {
+    const kyivOwner = await registerReaderInTimezone({ context, timezone: "Europe/Kyiv" });
+    const newYorkOwner = await registerReaderInTimezone({
+      context,
+      timezone: "America/New_York",
+    });
+    kyivGoalId = await seedZonedGoal(kyivOwner.userId);
+    newYorkGoalId = await seedZonedGoal(newYorkOwner.userId);
+
+    await reconciler.run({ now: ZONED_SWEEP.now });
+  });
+
+  it("expires a goal whose owner already lives on the day after the deadline", async () => {
+    expect(await activityTypes(kyivGoalId)).toEqual(["goal_expired"]);
+  });
+
+  it("keeps a goal whose owner still lives on the deadline day", async () => {
+    expect(await activityTypes(newYorkGoalId)).toEqual([]);
   });
 });

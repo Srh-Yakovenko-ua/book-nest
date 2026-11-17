@@ -1,10 +1,10 @@
-import type { QueryKey } from "@tanstack/react-query";
-
 import type {
   LoanHistoryControllerOverviewParams,
   LoanHistoryControllerPeopleParams,
   LoansControllerQuickCountsParams,
 } from "@/shared/api/generated/model";
+
+import { matchesApiRoot } from "@/lib/query-keys";
 
 import type { LoanContactsListParams } from "../model/loan-contacts-query";
 import type { LoanHistoryListParams } from "../model/loan-history-query";
@@ -37,10 +37,7 @@ export const loanKeys = {
   list: (params: LoansListParams) => [LOAN_ROOTS.active, "list", params] as const,
   quickCounts: (params: LoansControllerQuickCountsParams) =>
     [LOAN_ROOTS.active, "quick-counts", params] as const,
+  summary: [`${LOAN_ROOTS.active}/summary`] as const,
 };
 
-export function matchesLoans(query: { queryKey: QueryKey }): boolean {
-  const [root] = query.queryKey;
-  if (typeof root !== "string") return false;
-  return root === LOAN_ROOTS.active || root.startsWith(`${LOAN_ROOTS.active}/`);
-}
+export const matchesLoans = matchesApiRoot(LOAN_ROOTS.active);

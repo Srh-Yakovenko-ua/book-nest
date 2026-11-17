@@ -1,13 +1,15 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { type ReactNode, useState } from "react";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
-import { type ActiveFilterChip, LibraryActiveFilters, useGenres } from "@/features/books";
+import { type ActiveFilterChip, ActiveFilters } from "@/components/catalog/active-filters";
+import { useGenres } from "@/features/genres";
 import { useRouter } from "@/i18n/navigation";
+import { formatNumber } from "@/lib/format";
 
 import { useSeriesList } from "../api/use-series-list";
 import { useSeriesOverview } from "../api/use-series-overview";
@@ -42,14 +44,32 @@ const EMPTY_ATTENTION_COUNTS: Record<SeriesAttentionReason, number> = {
 export function AllSeries() {
   const t = useTranslations("series.summary");
   const tSeries = useTranslations("series");
+  const tCommon = useTranslations("common");
   const tStatusFilter = useTranslations("series.statusFilter");
   const tReadingFilter = useTranslations("series.readingFilter");
   const tCompleteness = useTranslations("series.filters.completeness");
   const tAttention = useTranslations("series.attention");
+  const locale = useLocale();
   const router = useRouter();
 
   const seriesQuery = useSeriesQuery();
-  const { data, isError, isPending, refetch } = useSeriesList(seriesQuery.listParams);
+  const {
+    data,
+    fetchNextPage,
+    isFetchingNextPage,
+    isFetchNextPageError,
+    isLoadingError,
+    isPending,
+    isPlaceholderData,
+    isRefetchError,
+    isRefetching,
+    refetch,
+  } = useSeriesList(seriesQuery.listParams);
+  const listFetchError = isFetchNextPageError
+    ? { isRetrying: isFetchingNextPage, onRetry: () => void fetchNextPage() }
+    : isRefetchError
+      ? { isRetrying: isRefetching, onRetry: () => void refetch() }
+      : null;
   const overview = useSeriesOverview();
   const genres = useGenres();
 
@@ -138,8 +158,8 @@ export function AllSeries() {
     return (
       <span className="block truncate">
         {t("booksReadOfTotal", {
-          finished: finished.toLocaleString(),
-          total: overviewData.booksInSeries.toLocaleString(),
+          finished: formatNumber(finished, locale),
+          total: formatNumber(overviewData.booksInSeries, locale),
         })}
       </span>
     );
@@ -150,7 +170,7 @@ export function AllSeries() {
     detailed: t(`mobile.detailed.${key}`),
   });
 
-  const summaryCards: LibrarySummaryCard[] = [
+  const summaryCards: SummaryCard[] = [
     {
       icon: "layers",
       iconTone: "primary",
@@ -189,7 +209,9 @@ export function AllSeries() {
     seriesQuery.clearAll();
   }
 
-  const counterLabel = tSeries("counter", { shown: visibleSeries.length, total: totalSeries });
+  const counterLabel = isPlaceholderData
+    ? tCommon("updating")
+    : tSeries("counter", { shown: visibleSeries.length, total: totalSeries });
 
   const filterChips: ActiveFilterChip[] = [];
 
@@ -287,12 +309,13 @@ export function AllSeries() {
   return (
     <>
       <AllSeriesView
-        activeFilters={<LibraryActiveFilters chips={filterChips} onClearAll={clearFilters} />}
+        activeFilters={<ActiveFilters chips={filterChips} onClearAll={clearFilters} />}
         counterLabel={counterLabel}
         hasActiveQuery={hasActiveQuery}
         hasAnySeries={hasAnySeries}
-        isError={isError}
+        isError={isLoadingError}
         isPending={isPending}
+        isRefreshing={isPlaceholderData}
         onAddBook={() => router.push("/books/new")}
         onClearFilters={clearFilters}
         onCreateSeries={() => setDialogOpen(true)}
@@ -300,6 +323,7 @@ export function AllSeries() {
         onRetry={() => void refetch()}
         onShowAll={() => setTab("all")}
         onTabChange={setTab}
+        refetchError={listFetchError}
         series={visibleSeries}
         sidebar={
           <SeriesSidebar
@@ -307,7 +331,7 @@ export function AllSeries() {
             almostReadSeries={almostReadSeries}
             attentionCounts={attentionCounts}
             attentionLoading={isPending}
-            isError={overview.isError}
+            isError={overview.isLoadingError}
             isLoading={overview.isPending}
             onAttentionSelect={setAttentionFilter}
             onRetry={() => void overview.refetch()}
@@ -315,7 +339,7 @@ export function AllSeries() {
           />
         }
         summaryCards={summaryCards}
-        summaryError={overview.isError}
+        summaryError={overview.isLoadingError}
         summaryLoading={overview.isPending}
         summaryMobileAction={
           <SeriesOverviewPanel
@@ -323,7 +347,7 @@ export function AllSeries() {
             almostReadSeries={almostReadSeries}
             attentionCounts={attentionCounts}
             attentionLoading={isPending}
-            isError={overview.isError}
+            isError={overview.isLoadingError}
             isLoading={overview.isPending}
             onAttentionSelect={setAttentionFilter}
             onRetry={() => void overview.refetch()}

@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { tagsControllerDelete } from "@/shared/api/generated/endpoints/tags/tags";
 
-import { invalidateTagMetadataQueries } from "./tags-keys";
+import { tagChangeEffects } from "./tag-change-effects";
 
 export function useDeleteTag() {
   const queryClient = useQueryClient();
@@ -10,7 +10,7 @@ export function useDeleteTag() {
   return useMutation({
     mutationFn: (id: string) => tagsControllerDelete(id),
     onSuccess: () => {
-      void invalidateTagMetadataQueries(queryClient);
+      void tagChangeEffects.tagsChanged(queryClient, { change: "deleted" });
     },
   });
 }

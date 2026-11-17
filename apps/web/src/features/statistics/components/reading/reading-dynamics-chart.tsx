@@ -5,7 +5,17 @@ import type { KeyboardEvent, Ref } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
 import { useImperativeHandle, useRef, useState } from "react";
-import { Bar, CartesianGrid, Cell, ComposedChart, Line, XAxis, YAxis } from "recharts";
+import {
+  Bar,
+  CartesianGrid,
+  Cell,
+  ComposedChart,
+  LabelList,
+  type LabelListProps,
+  Line,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { z } from "zod";
 
 import type { ChartConfig } from "@/components/ui/chart";
@@ -35,9 +45,28 @@ const DIMMED_OPACITY = 0.45;
 const ActiveIndexSchema = z.coerce.number().int().nonnegative();
 
 const CHART_HEIGHT = {
-  compact: "h-[13rem] sm:h-[15rem]",
-  full: "h-[16rem] sm:h-[20rem]",
+  compact: "h-44 sm:h-48",
+  full: "h-56 sm:h-64",
 } as const satisfies Record<DynamicsChartVariant, string>;
+
+const BAR_MAX_WIDTH = {
+  compact: 20,
+  full: 30,
+} as const satisfies Record<DynamicsChartVariant, number>;
+
+const CHART_FRAME = {
+  marginTop: 8,
+  marginX: 4,
+  valueLabelMarginTop: 16,
+  yAxisWidth: 36,
+} as const;
+
+const VALUE_LABEL = {
+  charWidth: 7.5,
+  fill: "var(--muted-foreground)",
+  gap: 6,
+  offset: 4,
+} as const;
 
 export type DynamicsChartHandle = { focusBucket: (key: string) => void };
 
@@ -47,6 +76,8 @@ export type DynamicsLegendRanges = {
   comparison: Nullable<string>;
   current: Nullable<string>;
 };
+
+type ValueLabelEntry = Parameters<NonNullable<LabelListProps["valueAccessor"]>>[0];
 
 export function ReadingDynamicsChart({
   legend,
@@ -91,6 +122,11 @@ export function ReadingDynamicsChart({
   }
 
   const hasComparison = points.some((point) => point.comparisonBucket !== null);
+  const showsValueLabels = !hasComparison;
+  const longestValueLabel = Math.max(
+    0,
+    ...points.map((point) => formatNumber(point.value, locale).length),
+  );
   const config = {
     comparisonValue: { color: COMPARISON_STROKE, label: t("comparison") },
     value: { color: CURRENT_FILL, label: t("current") },
@@ -158,7 +194,11 @@ export function ReadingDynamicsChart({
         <ComposedChart
           accessibilityLayer={false}
           data={points}
-          margin={{ left: 4, right: 4, top: 8 }}
+          margin={{
+            left: CHART_FRAME.marginX,
+            right: CHART_FRAME.marginX,
+            top: showsValueLabels ? CHART_FRAME.valueLabelMarginTop : CHART_FRAME.marginTop,
+          }}
           onClick={(state) => {
             const index = ActiveIndexSchema.safeParse(state.activeIndex);
             const point = index.success ? points[index.data] : undefined;
@@ -179,7 +219,7 @@ export function ReadingDynamicsChart({
             axisLine={false}
             tickFormatter={(value: number) => formatNumber(value, locale)}
             tickLine={false}
-            width={36}
+            width={CHART_FRAME.yAxisWidth}
           />
           <ChartTooltip content={<DynamicsTooltip metric={metric} />} />
           {hasComparison && variant === "full" ? (
@@ -189,7 +229,7 @@ export function ReadingDynamicsChart({
             <Bar
               dataKey="comparisonValue"
               fill={COMPARISON_FILL}
-              maxBarSize={20}
+              maxBarSize={BAR_MAX_WIDTH.compact}
               radius={[4, 4, 0, 0]}
               stroke={COMPARISON_STROKE}
               strokeDasharray="3 3"
@@ -199,7 +239,7 @@ export function ReadingDynamicsChart({
           <Bar
             dataKey="value"
             fill={CURRENT_FILL}
-            maxBarSize={variant === "compact" ? 20 : 44}
+            maxBarSize={BAR_MAX_WIDTH[variant]}
             radius={[4, 4, 0, 0]}
           >
             {points.map((point) => (
@@ -208,6 +248,17 @@ export function ReadingDynamicsChart({
                 key={point.key}
               />
             ))}
+            {showsValueLabels ? (
+              <LabelList
+                className="text-xs font-medium tabular-nums"
+                fill={VALUE_LABEL.fill}
+                offset={VALUE_LABEL.offset}
+                position="top"
+                valueAccessor={(entry) =>
+                  fittingValueLabel({ entry, locale, longestValueLabel, slots: points.length })
+                }
+              />
+            ) : null}
           </Bar>
           {hasComparison && variant === "full" ? (
             <Line
@@ -293,6 +344,27 @@ function DynamicsTooltip({
       )}
     </div>
   );
+}
+
+function fittingValueLabel({
+  entry,
+  locale,
+  longestValueLabel,
+  slots,
+}: {
+  entry: ValueLabelEntry;
+  locale: string;
+  longestValueLabel: number;
+  slots: number;
+}): string | undefined {
+  const { parentViewBox: chart, value } = entry;
+  if (typeof value !== "number" || value <= 0) return undefined;
+  if (chart === undefined || !("width" in chart)) return undefined;
+
+  const plotWidth = chart.width - CHART_FRAME.yAxisWidth - CHART_FRAME.marginX * 2;
+  const barSlotWidth = plotWidth / slots;
+  const labelWidth = longestValueLabel * VALUE_LABEL.charWidth + VALUE_LABEL.gap;
+  return labelWidth <= barSlotWidth ? formatNumber(value, locale) : undefined;
 }
 
 function nextBucketIndex({

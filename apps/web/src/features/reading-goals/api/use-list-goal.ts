@@ -16,7 +16,6 @@ export function listGoalQueryOptions(listId: string) {
       return ListGoalSchema.parse(response ?? null);
     },
     queryKey: goalKeys.forList(listId),
-    retry: false,
   });
 }
 

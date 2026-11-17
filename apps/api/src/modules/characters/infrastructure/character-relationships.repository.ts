@@ -3,10 +3,7 @@ import type { Nullable } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
-import type {
-  CharacterRelationshipBookStateModel,
-  CharacterRelationshipModel,
-} from "../../../generated/prisma/models.js";
+import type { CharacterRelationshipModel } from "../../../generated/prisma/models.js";
 import type {
   UpdateBookStateData,
   UpdateRelationshipData,
@@ -79,6 +76,19 @@ export type RelationshipDuplicateRow = {
 export class CharacterRelationshipsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async acquireBookStateLock(
+    { bookId, relationshipId }: { bookId: string; relationshipId: string },
+    client: Prisma.TransactionClient,
+  ): Promise<void> {
+    await acquireAdvisoryLock(
+      {
+        classId: ADVISORY_LOCK_CLASS.characterRelationships,
+        key: `crbs:${relationshipId}:${bookId}`,
+      },
+      client,
+    );
+  }
+
   async acquireRelationshipLock(
     { key }: { key: string },
     client: Prisma.TransactionClient,
@@ -91,6 +101,13 @@ export class CharacterRelationshipsRepository {
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<number> {
     return client.characterRelationshipBookState.count({ where: { relationshipId } });
+  }
+
+  async createBookState(
+    data: CreateBookStateData,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await client.characterRelationshipBookState.create({ data });
   }
 
   async createBookStates(
@@ -211,6 +228,21 @@ export class CharacterRelationshipsRepository {
     });
   }
 
+  async updateBookState(
+    {
+      bookId,
+      data,
+      relationshipId,
+    }: { bookId: string; data: UpdateBookStateData; relationshipId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    const result = await client.characterRelationshipBookState.updateMany({
+      data,
+      where: { bookId, relationshipId },
+    });
+    return result.count;
+  }
+
   updateRelationship(
     {
       data,
@@ -222,21 +254,6 @@ export class CharacterRelationshipsRepository {
     return client.characterRelationship.updateMany({
       data,
       where: { id: relationshipId, userId },
-    });
-  }
-
-  upsertBookState(
-    {
-      bookId,
-      data,
-      relationshipId,
-    }: { bookId: string; data: UpdateBookStateData; relationshipId: string },
-    client: Prisma.TransactionClient = this.prisma,
-  ): Promise<CharacterRelationshipBookStateModel> {
-    return client.characterRelationshipBookState.upsert({
-      create: { ...data, bookId, relationshipId },
-      update: data,
-      where: { relationshipId_bookId: { bookId, relationshipId } },
     });
   }
 }

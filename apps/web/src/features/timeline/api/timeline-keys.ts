@@ -1,13 +1,13 @@
+import type { Nullable } from "@app/shared";
 import type { QueryClient } from "@tanstack/react-query";
-
-import { bookKeys } from "@/features/books/api/book-keys";
 
 import type { TimelineEventsFilterState } from "../model/timeline-events-query";
 
 const TIMELINE_ROOT = "/api/timeline";
 
 export const timelineKeys = {
-  event: (eventId: string) => [TIMELINE_ROOT, "event", eventId] as const,
+  event: (eventId: string) => [...timelineKeys.eventDetails, eventId] as const,
+  eventDetails: [TIMELINE_ROOT, "event"] as const,
   events: (bookId: string) => [TIMELINE_ROOT, "events", bookId] as const,
   eventsList: (bookId: string, filters: TimelineEventsFilterState) =>
     [TIMELINE_ROOT, "events", bookId, filters] as const,
@@ -19,22 +19,56 @@ export const timelineKeys = {
   timelines: (bookId: string) => [TIMELINE_ROOT, "lines", bookId] as const,
 };
 
-type InvalidateTimelineOptions = {
+type TimelineBookScope = {
   bookId: string;
-  eventId?: string;
 };
 
-export function invalidateTimelineQueries(
+export async function invalidateTimelineAggregateQueries(
   queryClient: QueryClient,
-  { bookId, eventId }: InvalidateTimelineOptions,
-): void {
-  void queryClient.invalidateQueries({ queryKey: timelineKeys.timelines(bookId) });
-  void queryClient.invalidateQueries({ queryKey: timelineKeys.summary(bookId) });
-  void queryClient.invalidateQueries({ queryKey: timelineKeys.overview(bookId) });
-  void queryClient.invalidateQueries({ queryKey: timelineKeys.events(bookId) });
-  void queryClient.invalidateQueries({ queryKey: timelineKeys.locationsRoot });
-  void queryClient.invalidateQueries({ queryKey: bookKeys.detail(bookId) });
-  if (eventId !== undefined) {
-    void queryClient.invalidateQueries({ queryKey: timelineKeys.event(eventId) });
-  }
+  { bookId }: TimelineBookScope,
+): Promise<void> {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: timelineKeys.timelines(bookId) }),
+    queryClient.invalidateQueries({ queryKey: timelineKeys.summary(bookId) }),
+    queryClient.invalidateQueries({ queryKey: timelineKeys.overview(bookId) }),
+  ]);
+}
+
+export async function invalidateTimelineEventDetails(
+  queryClient: QueryClient,
+  { eventIds }: { eventIds: ReadonlyArray<Nullable<string> | undefined> },
+): Promise<void> {
+  const uniqueEventIds = new Set(eventIds.filter((eventId) => typeof eventId === "string"));
+  await Promise.all(
+    [...uniqueEventIds].map((eventId) =>
+      queryClient.invalidateQueries({ queryKey: timelineKeys.event(eventId) }),
+    ),
+  );
+}
+
+export async function invalidateTimelineEventQueries(
+  queryClient: QueryClient,
+  { bookId }: TimelineBookScope,
+): Promise<void> {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: timelineKeys.events(bookId) }),
+    queryClient.invalidateQueries({ queryKey: timelineKeys.eventDetails }),
+  ]);
+}
+
+export async function invalidateTimelineLineQueries(
+  queryClient: QueryClient,
+  scope: TimelineBookScope,
+): Promise<void> {
+  await Promise.all([
+    invalidateTimelineAggregateQueries(queryClient, scope),
+    invalidateTimelineEventQueries(queryClient, scope),
+  ]);
+}
+
+export function invalidateTimelineLocations(
+  queryClient: QueryClient,
+  { bookId }: TimelineBookScope,
+): Promise<void> {
+  return queryClient.invalidateQueries({ queryKey: timelineKeys.locations(bookId) });
 }

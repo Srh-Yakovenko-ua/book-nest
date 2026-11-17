@@ -1,5 +1,6 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
+import { pinProcessTimezone } from "../../../test/process-timezone.js";
 import { calculateReadingGoalProjection } from "./reading-goal-projection.js";
 
 type ProjectionInput = Parameters<typeof calculateReadingGoalProjection>[0];
@@ -11,9 +12,9 @@ const baseInput = {
   completedCount: 0,
   deadline,
   elapsedDays: 10,
-  now: new Date("2026-08-11T12:00:00.000Z"),
   remainingCount: 5,
   status: "active",
+  today: new Date("2026-08-11T12:00:00.000Z"),
 } satisfies ProjectionInput;
 
 function calculateProjection(overrides: Partial<ProjectionInput>) {
@@ -79,8 +80,8 @@ describe("calculateReadingGoalProjection active goal", () => {
     const projection = calculateProjection({
       completedCount: 1,
       elapsedDays: 49,
-      now: new Date("2026-08-18T21:00:00.000Z"),
       remainingCount: 1,
+      today: new Date("2026-08-18T21:00:00.000Z"),
     });
 
     expect(projection.projectedCompletionDate).toEqual(new Date("2026-10-06T00:00:00.000Z"));
@@ -100,13 +101,13 @@ describe("calculateReadingGoalProjection active goal", () => {
   it("projects from the UTC day boundary rather than the moment of day", () => {
     const earlyMorning = calculateProjection({
       completedCount: 2,
-      now: new Date("2026-08-11T00:00:01.000Z"),
       remainingCount: 3,
+      today: new Date("2026-08-11T00:00:01.000Z"),
     });
     const lateEvening = calculateProjection({
       completedCount: 2,
-      now: new Date("2026-08-11T23:59:59.000Z"),
       remainingCount: 3,
+      today: new Date("2026-08-11T23:59:59.000Z"),
     });
 
     expect(earlyMorning.projectedCompletionDate).toEqual(lateEvening.projectedCompletionDate);
@@ -114,33 +115,25 @@ describe("calculateReadingGoalProjection active goal", () => {
 });
 
 describe("calculateReadingGoalProjection across a daylight saving change", () => {
-  const originalTimeZone = process.env.TZ;
-
-  beforeAll(() => {
-    process.env.TZ = "Europe/Kyiv";
-  });
-
-  afterAll(() => {
-    process.env.TZ = originalTimeZone;
-  });
+  pinProcessTimezone("Europe/Kyiv");
 
   it.each([
     {
       expectedDelta: 144,
       expectedIsoDate: "2026-04-09",
-      now: new Date("2026-03-20T12:00:00.000Z"),
       remainingCount: 2,
+      today: new Date("2026-03-20T12:00:00.000Z"),
     },
     {
       expectedDelta: 149,
       expectedIsoDate: "2026-04-04",
-      now: new Date("2026-03-25T12:00:00.000Z"),
       remainingCount: 1,
+      today: new Date("2026-03-25T12:00:00.000Z"),
     },
   ])(
     "lands on $expectedIsoDate when the projection window crosses the spring transition",
-    ({ expectedDelta, expectedIsoDate, now, remainingCount }) => {
-      const projection = calculateProjection({ completedCount: 1, now, remainingCount });
+    ({ expectedDelta, expectedIsoDate, remainingCount, today }) => {
+      const projection = calculateProjection({ completedCount: 1, remainingCount, today });
 
       expect(projection.projectedCompletionDate).toEqual(
         new Date(`${expectedIsoDate}T00:00:00.000Z`),
@@ -183,9 +176,9 @@ describe("calculateReadingGoalProjection finished goal", () => {
     const projection = calculateProjection({
       completedCount: 2,
       elapsedDays: 20,
-      now: new Date("2026-09-05T12:00:00.000Z"),
       remainingCount: 3,
       status: "expired",
+      today: new Date("2026-09-05T12:00:00.000Z"),
     });
 
     expect(projection.projectedCompletionDate).toBeNull();

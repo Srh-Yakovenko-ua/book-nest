@@ -1,4 +1,4 @@
-import type { CharactersListQuery } from "@app/shared";
+import type { CharacterFacetsQuery } from "@app/shared";
 
 import { normalizeSearch } from "@app/shared";
 
@@ -12,7 +12,7 @@ export function toGlobalFilter({
 }: {
   duplicateNormalizedNames: string[] | undefined;
   multipleBookCharacterIds: string[] | undefined;
-  query: CharactersListQuery;
+  query: CharacterFacetsQuery;
   userId: string;
 }): GlobalCharacterFilter {
   return {

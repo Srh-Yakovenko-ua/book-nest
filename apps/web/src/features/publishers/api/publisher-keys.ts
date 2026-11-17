@@ -1,10 +1,16 @@
-import type { QueryClient, QueryKey } from "@tanstack/react-query";
+import type { CatalogLocale } from "@app/shared";
+import type { QueryKey } from "@tanstack/react-query";
+
+import { partialMatchKey } from "@tanstack/react-query";
 
 import type {
+  PublishersControllerDuplicateCandidatesParams,
   PublishersControllerLibraryListParams,
   PublishersControllerLibraryQuickCountsParams,
   PublishersControllerLibrarySummaryLocale,
 } from "@/shared/api/generated/model";
+
+import { matchesApiRoot } from "@/lib/query-keys";
 
 const PUBLISHERS_ROOT = "/api/publishers";
 
@@ -13,6 +19,14 @@ export const publisherKeys = {
   list: (params: PublishersControllerLibraryListParams) =>
     [PUBLISHERS_ROOT, "list", params] as const,
   overview: (id: string) => [PUBLISHERS_ROOT, "overview", id] as const,
+  picker: {
+    all: [PUBLISHERS_ROOT, "picker"] as const,
+    duplicates: (params: PublishersControllerDuplicateCandidatesParams) =>
+      [...publisherKeys.picker.all, "duplicates", params] as const,
+    recent: (locale: CatalogLocale) => [...publisherKeys.picker.all, "recent", locale] as const,
+    search: (search: string, locale: CatalogLocale) =>
+      [...publisherKeys.picker.all, "search", search, locale] as const,
+  },
   quickCounts: (params: PublishersControllerLibraryQuickCountsParams) =>
     [PUBLISHERS_ROOT, "quick-counts", params] as const,
   root: [PUBLISHERS_ROOT] as const,
@@ -20,12 +34,8 @@ export const publisherKeys = {
     [PUBLISHERS_ROOT, "summary", locale] as const,
 };
 
-export function invalidatePublisherQueries(queryClient: QueryClient): Promise<void> {
-  return queryClient.invalidateQueries({ predicate: matchesPublisherKey });
-}
+const matchesPublishersRoot = matchesApiRoot(PUBLISHERS_ROOT);
 
-function matchesPublisherKey(query: { queryKey: QueryKey }): boolean {
-  const [root] = query.queryKey;
-  if (typeof root !== "string") return false;
-  return root === PUBLISHERS_ROOT || root.startsWith(`${PUBLISHERS_ROOT}/`);
+export function matchesPublisherCatalogKey(query: { queryKey: QueryKey }): boolean {
+  return matchesPublishersRoot(query) && !partialMatchKey(query.queryKey, publisherKeys.picker.all);
 }

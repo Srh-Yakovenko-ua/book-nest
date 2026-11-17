@@ -5,6 +5,7 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { AddBooksToListInputDtoPositionsItem } from "./addBooksToListInputDtoPositionsItem";
 
 export interface AddBooksToListInputDto {
   /**
@@ -13,4 +14,9 @@ export interface AddBooksToListInputDto {
    * @items.pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
    */
   bookIds: string[];
+  /**
+   * Former 1-based manual-order positions to restore books from bookIds at, clamped to the list size; books without one are appended
+   * @maxItems 100
+   */
+  positions?: AddBooksToListInputDtoPositionsItem[];
 }

@@ -14,6 +14,7 @@ import type { ReadingStatisticsOverviewDtoCalendarLongestStreak } from "./readin
 import type { ReadingStatisticsOverviewDtoCalendarMetricRange } from "./readingStatisticsOverviewDtoCalendarMetricRange";
 import type { ReadingStatisticsOverviewDtoCalendarMostActiveWeekday } from "./readingStatisticsOverviewDtoCalendarMostActiveWeekday";
 import type { ReadingStatisticsOverviewDtoCalendarReason } from "./readingStatisticsOverviewDtoCalendarReason";
+import type { ReadingStatisticsOverviewDtoCalendarWeekdayActivity } from "./readingStatisticsOverviewDtoCalendarWeekdayActivity";
 
 /**
  * metricRange is what the summary numbers describe; displayRange is what days[] draws. For all time the two differ on purpose: the heatmap shows the last twelve months while the summary still covers every tracked day.
@@ -34,4 +35,6 @@ export type ReadingStatisticsOverviewDtoCalendar = {
   metricRange: ReadingStatisticsOverviewDtoCalendarMetricRange;
   mostActiveWeekday: ReadingStatisticsOverviewDtoCalendarMostActiveWeekday;
   reason?: ReadingStatisticsOverviewDtoCalendarReason;
+  /** Reading spread across the week. weekday runs 0..6 with 0 = Sunday, the same numbering as date-fns getDay. For available and partial, items lists all seven weekdays in order 0..6, zeros included; for unavailable it is an empty list rather than seven zeros. activeDays counts the days with more than zero pages read and pagesRead sums the recorded pages; both are computed over metricRange, not displayRange. partial means metricRange starts before reliable history, so the counts are a lower bound. */
+  weekdayActivity: ReadingStatisticsOverviewDtoCalendarWeekdayActivity;
 };

@@ -15,6 +15,5 @@ export function useGenreFacets(params: GenresDatasetParams) {
     queryFn: async ({ signal }): Promise<GenreFacetsView> =>
       GenreFacetsViewSchema.parse(await genresControllerFacets(params, { signal })),
     queryKey: genresKeys.facets(params),
-    retry: false,
   });
 }

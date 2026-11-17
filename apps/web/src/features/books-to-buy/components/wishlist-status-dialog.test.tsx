@@ -2,10 +2,12 @@ import "@testing-library/jest-dom/vitest";
 
 import type { ReactNode } from "react";
 
-import { defaultUserProfileSettings } from "@app/shared";
+import { defaultUserProfileSettings, DELIVERY_ERROR_CODES } from "@app/shared";
+import { toast } from "sonner";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { makeStoreLink, makeWishlistBook } from "../model/books-to-buy.fixtures";
@@ -48,13 +50,15 @@ const STORE_RADIOS = {
   yakaboo: "Yakaboo 20 $",
 } as const;
 
+const deliveryErrors = messages.books.details.delivery.errors;
+
 const fetchMock = vi.fn();
 const onOpenChange = vi.fn();
 
 let respondToMarkBought: () => Response;
 let respondToCreateDelivery: () => Response;
 let respondToMarkOwned: () => Response;
-let respondToRemove: () => Response;
+let respondToRemove: () => Promise<Response> | Response;
 
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
@@ -298,14 +302,36 @@ describe("WishlistStatusDialog ordered branch", () => {
 
   it("surfaces the conflict message when the book already has an active delivery", async () => {
     respondToCreateDelivery = () =>
-      jsonResponse({ message: "Ця книга вже має активну доставку" }, 409);
+      jsonResponse(
+        {
+          code: DELIVERY_ERROR_CODES.bookAlreadyOrdered,
+          message: "Book already has an active delivery",
+        },
+        409,
+      );
     renderDialog();
 
     await pickOption("ordered");
     await submitDialog();
 
-    expect(await screen.findByText("Ця книга вже має активну доставку")).toBeInTheDocument();
+    expect(await screen.findByText(deliveryErrors.bookAlreadyOrdered)).toBeInTheDocument();
+    expect(screen.queryByText("Book already has an active delivery")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Що сталося з книгою?" })).toBeInTheDocument();
+  });
+
+  it("explains in Ukrainian that the book cannot be ordered instead of echoing the server", async () => {
+    respondToCreateDelivery = () =>
+      jsonResponse(
+        { code: DELIVERY_ERROR_CODES.bookNotOrderable, message: "Book is not orderable" },
+        409,
+      );
+    renderDialog();
+
+    await pickOption("ordered");
+    await submitDialog();
+
+    expect(await screen.findByText(deliveryErrors.bookNotOrderable)).toBeInTheDocument();
+    expect(screen.queryByText("Book is not orderable")).not.toBeInTheDocument();
   });
 });
 
@@ -352,5 +378,31 @@ describe("WishlistStatusDialog direct branches", () => {
     await submitDialog();
 
     expect(await screen.findByText("Ця книга більше не в списку бажань")).toBeInTheDocument();
+  });
+
+  it("locks the status choice and stays open until the pending drop lands", async () => {
+    let releaseRemove: (response: Response) => void = () => undefined;
+    respondToRemove = () =>
+      new Promise<Response>((resolve) => {
+        releaseRemove = resolve;
+      });
+    renderDialog();
+
+    await pickOption("dropped");
+    await submitDialog();
+
+    await waitFor(() => expect(optionRadio("bought")).toBeDisabled());
+    expect(optionRadio("received")).toBeDisabled();
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    releaseRemove(jsonResponse(makeBookView({ id: book.id, ownershipStatus: "none" })));
+
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(messages.booksToBuy.removeFromList.success),
+    );
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

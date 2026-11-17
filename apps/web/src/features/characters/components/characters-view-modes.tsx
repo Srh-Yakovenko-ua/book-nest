@@ -18,11 +18,16 @@ const VIEW_MODE_ICON = {
 } as const satisfies Record<CharactersViewMode, UiIconName>;
 
 type CharactersViewModesProps = {
+  modes?: readonly CharactersViewMode[];
   onChange: (mode: CharactersViewMode) => void;
   value: CharactersViewMode;
 };
 
-export function CharactersViewModes({ onChange, value }: CharactersViewModesProps) {
+export function CharactersViewModes({
+  modes = CHARACTERS_VIEW.modes,
+  onChange,
+  value,
+}: CharactersViewModesProps) {
   const t = useTranslations("characters.viewModes");
 
   return (
@@ -33,7 +38,7 @@ export function CharactersViewModes({ onChange, value }: CharactersViewModesProp
         const mode = toCharactersViewMode(next);
         if (mode !== undefined) onChange(mode);
       }}
-      options={CHARACTERS_VIEW.modes.map((mode) => ({
+      options={modes.map((mode) => ({
         icon: <UiIcon className="hidden sm:block" name={VIEW_MODE_ICON[mode]} size={16} />,
         label: t(mode),
         value: mode,

@@ -11,6 +11,7 @@ import { useQueryStates } from "nuqs";
 import type { StatisticsControllerGetOverviewParams } from "@/shared/api/generated/model";
 
 import { useProfileTimeZone } from "@/features/settings";
+import { todayIsoDay } from "@/lib/iso-day";
 
 import type { StatisticsCustomRangeIssue, StatisticsQueryState } from "./statistics-period";
 
@@ -19,7 +20,6 @@ import {
   customRangeIssue,
   statisticsCompareMode,
   statisticsParsers,
-  todayIsoDay,
   toOverviewParams,
 } from "./statistics-period";
 

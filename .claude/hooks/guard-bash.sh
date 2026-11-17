@@ -3,7 +3,7 @@ set -u
 set -f
 
 INPUT="$(cat)"
-RAW="$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)"
+RAW="$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null | tr -d '\r')"
 [ -z "$RAW" ] && exit 0
 AGENT_ID="$(printf '%s' "$INPUT" | jq -r '.agent_id // empty' 2>/dev/null)"
 AGENT_TYPE="$(printf '%s' "$INPUT" | jq -r '.agent_type // empty' 2>/dev/null)"
@@ -34,7 +34,9 @@ PNPM_OPTS='([[:space:]]+(-w|-r|-s|--recursive|--workspace-root|--silent|--filter
 IS_COMMIT=0
 IS_PROSE=0
 in_code "${G}commit([[:space:]]|$)" && IS_COMMIT=1
-in_code "gh[[:space:]]+(pr|issue|release)[[:space:]]+(create|edit|comment|review)|${G}tag[[:space:]]+${A}-[amF]|${G}merge[[:space:]]+${A}-m" && IS_PROSE=1
+in_code "gh[[:space:]]+(pr|issue|release)[[:space:]]+(create|edit|comment|review)|${G}tag[[:space:]]+${A}-[amF]|${G}merge[[:space:]]+${A}-m|${G}commit-tree[[:space:]]+${A}-m" && IS_PROSE=1
+
+names_assistant() { printf '%s' "$1" | LC_ALL=C grep -qiE 'claude|(^|[^a-z])anthropic'; }
 
 check_server_databases() {
   local server_port="(:553[23]([^0-9]|$)|-p[[:space:]]*553[23]([^0-9]|$)|PGPORT=${Q}553[23]|port=553[23])"
@@ -166,6 +168,18 @@ check_subagent_limits() {
   if in_code "$vcs_write"; then
     deny "Subagents never commit, push, stage, switch branches or touch PRs. Leave the working tree as you changed it and list CHANGED files; the main loop owns git."
   fi
+  local names="(node|nodejs|bash|sh|zsh|dash|python[0-9.]*|py|perl|ruby|bun|deno|cmd|powershell|pwsh)(\.exe)?"
+  local inline_flag="(-[a-zA-Z]*[ecp]|--eval|--print|//?[cC]|-Command|-EncodedCommand)"
+  local interpreter="(^|[;&|(\`[:space:]/\\\\])${names}(([[:space:]]+[^;&|[:space:]]+)*[[:space:]]+${inline_flag}([[:space:]=\"']|$)|[[:space:]]+eval([[:space:]]|$)|[^;&|]*<<)|[|][[:space:]]*([^;&|[:space:]]*[/\\\\])?${names}([[:space:]]|$)"
+  in_raw_i "$interpreter" || return 0
+  if in_raw_i "(powershell|pwsh)(\.exe)?([[:space:]]+[^;&|[:space:]]+)*[[:space:]]+-(e|ec|en[a-z]*)([[:space:]]|$)"; then
+    deny "Subagents do not run encoded PowerShell commands: the guard cannot read what they do. List the check under NOT_VERIFIED as 'MAIN: <exact command>'; the main loop runs it."
+    return 0
+  fi
+  if printf '%s' "$RAW" | sed -E "s/[\"']/ ; /g; s#(^|[[:space:]])${inline_flag}([[:space:]=]|$)# ; #g" | grep -qE -- "$tooling|$vcs_write" \
+    || in_raw 'child_process|subprocess|Popen|os\.(system|popen)|IO\.popen|Open3|Bun\.spawn|Deno\.(Command|run)|Start-Process|Invoke-Expression|(^|[^A-Za-z_.])(execSync|execFileSync|spawnSync|spawn|exec|execFile|fork|system)\('; then
+    deny "Subagents do not run gates, builds, codegen, package-manager tasks or git writes through an interpreter either (node -e, bash -c and the like), and do not start child processes from one. Plain JS for calendar facts is fine. List the check under NOT_VERIFIED as 'MAIN: <exact command>'; the main loop runs it."
+  fi
 }
 
 check_main_loop_gates() {
@@ -181,29 +195,29 @@ check_main_loop_gates() {
   local test_words='тест|test|vitest|storybook'
   if in_code "$full_suite"; then
     refused_by_prompt "$last" "$test_words|knip" \
-      && { ask "The user's last message says not to run tests. CI runs them."; return 0; }
+      && { deny "The user's last message says not to run tests. CI runs them. Do not run them another way."; return 0; }
     printf '%s' "$last" | grep -qiE 'полн|весь|все тест|всех тест|full|whole|suite|pnpm test|knip' \
-      || ask "Full test suite (~7 min, pins the machine). Tests run in CI: every PR into dev/prod, every push to dev/prod, or gh workflow run ci.yml --ref <branch>. Locally only when the user asks for the full run."
+      || deny "Full test suite (~7 min, pins the machine). Tests run in CI: every PR into dev/prod, every push to dev/prod, or gh workflow run ci.yml --ref <branch>. Locally only when the user asks for the full run. List it under NOT_VERIFIED as 'MAIN: <exact command>' instead."
     return 0
   fi
   if in_code "$test_run"; then
     refused_by_prompt "$last" "$test_words" \
-      && { ask "The user's last message says not to run tests. CI runs them."; return 0; }
+      && { deny "The user's last message says not to run tests. CI runs them. Do not run them another way."; return 0; }
     printf '%s' "$last" | grep -qiE 'тест|(^|[^a-z])tests?([^a-z]|$)|vitest|storybook|красн|(^|[^a-z])red([^a-z]|$)|воспроизв|відтвор|repro' && return 0
     in_code '\.test\.tsx?([[:space:]]|$)' \
       && printf '%s' "$last" | grep -qiE 'баг|(^|[^a-z])bugs?([^a-z]|$)|не работа|не працю|слома|злама|пада|ошибк|помилк|(^|[^0-9])5[0-9]{2}([^0-9]|$)|crash|broken|fail|flaky|регресс|регрес' \
       && return 0
-    ask "Tests run in CI, not on this machine (they saturate it). Locally only when the user asks for a test run, reports a bug (one test file as the repro), or to reproduce a red CI test."
+    deny "Tests run in CI, not on this machine (they saturate it). Locally only when the user asks for a test run, reports a bug (one test file as the repro), or to reproduce a red CI test. List it under NOT_VERIFIED as 'MAIN: <exact command>' instead."
     return 0
   fi
   local refused
   refused="$(refused_gate_families "$last")"
   if [ -n "$refused" ]; then
-    ask "The user's last message says not to run: ${refused}. Run only the checks it asked for."
+    deny "The user's last message says not to run: ${refused}. Run only the checks it asked for."
     return 0
   fi
   printf '%s' "$last" | grep -qiE '(^|[[:space:]])/[a-z]|commit|push|коммит|коміт|пуш|прогон|прогна|gate|гейт|typecheck|lint|линт|лінт|тест|test|knip|vitest|ревью|review|релиз|реліз|release|build|билд|білд|провер|перевір|check|verify|ci([^a-z]|$)' \
-    || ask "No gates during development: they run once, when the user says commit / push / прогони. Approve to run this one anyway."
+    || deny "No gates during development: they run once, when the user says commit / push / прогони. List it under NOT_VERIFIED as 'MAIN: <exact command>' for that moment."
 }
 
 refused_by_prompt() {
@@ -240,21 +254,63 @@ refused_gate_families() {
 
 commit_message() {
   local file
-  file="$(printf '%s' "$CODE" | grep -oE '(-F|--file|--body-file)([[:space:]]+|=)[^[:space:]]+' | head -1 | sed -E 's/^[^[:space:]=]+([[:space:]]+|=)//')"
+  file="$(printf '%s' "$RAW" | perl -ne 'if (/(?:^|\s)(?:-F|--file|--body-file|--notes-file)(?:=|\s+)(?:"([^"]+)"|\x27([^\x27]+)\x27|(\S+))/) { print defined $1 ? $1 : defined $2 ? $2 : $3; exit }')"
   if printf '%s' "$RAW" | grep -qE "<<-?[[:space:]]*${Q}[A-Za-z_]+"; then
     printf '%s' "$RAW" | perl -0777 -ne 'print $3 if /<<-?\s*([\x27"]?)(\w+)\1[^\n]*\n(.*?)\n[ \t]*\2[ \t]*(\n|$)/s'
   elif [ -n "$file" ] && [ -f "${CWD:-.}/$file" ]; then
     cat "${CWD:-.}/$file"
   elif [ -n "$file" ] && [ -f "$file" ]; then
     cat "$file"
-  else
-    printf '%s' "$RAW" | perl -0777 -ne '
-      my @parts;
-      while (/(?:^|\s)(?:-[a-zA-Z]*m|--message|--title|--body)(?:=|\s+)(?:"((?:[^"\\]|\\.)*)"|\x27([^\x27]*)\x27|(\S+))/gs) {
-        push @parts, defined $1 ? $1 : defined $2 ? $2 : $3;
-      }
-      print join("\n\n", @parts);'
   fi
+  printf '%s' "$RAW" | perl -0777 -ne '
+    my @parts;
+    my $short = /\bgh\s+(?:pr|issue|release)\s+\w+/ ? "|-[tbn]" : "";
+    while (/(?:^|\s)(?:-[a-zA-Z]*m|--message|--title|--body|--notes|--trailer$short)(?:=|\s+)(?:"((?:[^"\\]|\\.)*)"|\x27([^\x27]*)\x27|(\S+))/gs) {
+      push @parts, defined $1 ? $1 : defined $2 ? $2 : $3;
+    }
+    print "\n\n", join("\n\n", @parts) if @parts;'
+}
+
+check_ref_names() {
+  local segment sub token dir branch
+  local -a words positionals
+  while IFS= read -r segment; do
+    [ -n "$segment" ] || continue
+    dir="$(printf '%s' "$segment" | perl -ne 'print $1 if /^git\s+(?:(?:-c\s+\S+|--no-pager)\s+)*-C\s+(\S+)/')"
+    case "$dir" in '' | /* | [A-Za-z]:*) ;; *) dir="${CWD:-$PROJECT_DIR}/$dir" ;; esac
+    read -r -a words <<< "$(printf '%s' "$segment" | sed -E "s/^${G}//")"
+    [ "${#words[@]}" -gt 0 ] || continue
+    sub="${words[0]}"
+    words=("${words[@]:1}")
+    [ "$sub" = worktree ] && words=("${words[@]:1}")
+    case "$sub: ${words[*]:-} " in
+      branch:*" -d "* | branch:*" -D "* | branch:*" --delete "* | push:*" -d "* | push:*" --delete "* | tag:*" -d "* | tag:*" --delete "*) continue ;;
+    esac
+    positionals=()
+    for token in "${words[@]:-}"; do
+      [ "$token" = "--" ] && break
+      case "$token" in '' | -* | *'<'* | *'>'*) continue ;; esac
+      positionals+=("$token")
+    done
+    case "$sub: ${words[*]:-} " in
+      branch:*" -m "* | branch:*" -M "* | branch:*" --move "*) [ "${#positionals[@]}" -ge 2 ] && positionals=("${positionals[@]:1}") ;;
+    esac
+    for token in "${positionals[@]:-}"; do
+      case "$token" in '' | .* | /* | '$'* | '~'* | :* | [A-Za-z]:[/\\]*) continue ;; esac
+      if names_assistant "$token"; then
+        deny "The branch or tag name '$token' names the assistant, and pushing it publishes that name. Pick one without claude or anthropic, for example chore/agents-<topic>."
+        return 0
+      fi
+    done
+    if [ "$sub" = push ] && [ "${#positionals[@]}" -lt 2 ]; then
+      branch="$(git -C "${dir:-${CWD:-$PROJECT_DIR}}" branch --show-current 2>/dev/null)"
+      if names_assistant "$branch"; then
+        deny "The current branch '$branch' names the assistant, so pushing it publishes that name. Rename it first: git branch -m <new-name>."
+        return 0
+      fi
+    fi
+  done <<< "$(printf '%s' "$RAW" | tr -d "\"'" | grep -oE "${G}(push|switch|checkout|branch|tag|worktree[[:space:]]+add)([[:space:]][^|;&]*)?")"
+  return 0
 }
 
 check_commit_text() {
@@ -268,6 +324,17 @@ check_commit_text() {
   fi
   if printf '%s' "$scan" | LC_ALL=C grep -q -e $'\xe2\x80\x94' -e $'\xe2\x80\x93'; then
     deny "The text contains an em or en dash. Use a comma, colon, full stop or brackets (a plain hyphen for ranges)."
+  fi
+  if names_assistant "$msg"; then
+    deny "The commit or PR text names the assistant: claude or anthropic in any form, a .claude/ path or the CLAUDE.md filename included. Nothing published from this repo does. Use the scope agents for agent config changes and write agent config, the hooks or project instructions instead."
+  fi
+  if [ "$IS_COMMIT" = 1 ]; then
+    local identity
+    identity="$(printf '%s' "$RAW" | perl -ne 'print((defined $1 ? $1 : defined $2 ? $2 : $3), "\n") while /(?:--author|user\.(?:name|email)|GIT_(?:AUTHOR|COMMITTER)_(?:NAME|EMAIL))[=\s]+(?:"([^"]*)"|\x27([^\x27]*)\x27|(\S+))/g')"
+    identity="$identity $(git -C "${CWD:-$PROJECT_DIR}" var GIT_AUTHOR_IDENT 2>/dev/null) $(git -C "${CWD:-$PROJECT_DIR}" var GIT_COMMITTER_IDENT 2>/dev/null)"
+    if names_assistant "$identity"; then
+      deny "The commit author or committer names the assistant. Commits from this repo carry the developer's own git identity only."
+    fi
   fi
   [ "$IS_COMMIT" = 1 ] && [ -n "$msg" ] || return 0
   subject="$(printf '%s\n' "$msg" | sed -E 's/^[[:space:]]+//' | grep -v '^$' | head -1)"
@@ -312,6 +379,7 @@ check_security_review() {
 check_server_databases
 check_local_data
 check_git
+check_ref_names
 check_ux_lookup_wrapper
 check_subagent_limits
 check_main_loop_gates

@@ -1,14 +1,16 @@
 "use client";
 
+import type { Ref } from "react";
+
 import { useTranslations } from "next-intl";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { Skeleton } from "@/components/ui/skeleton";
 import { assertNever } from "@/lib/assert-never";
-import { cn } from "@/lib/utils";
 
 import type { GenresEmptyReason, GenresListState } from "../model/genres-list-state";
 
@@ -26,6 +28,7 @@ type GenresContentProps = {
   onOpenLibrary: () => void;
   onResetFilters: () => void;
   onRetry: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
   state: GenresListState;
 };
 
@@ -35,6 +38,7 @@ export function GenresContent({
   onOpenLibrary,
   onResetFilters,
   onRetry,
+  retryButtonRef,
   state,
 }: GenresContentProps) {
   switch (state.kind) {
@@ -48,7 +52,7 @@ export function GenresContent({
         />
       );
     case "error":
-      return <GenresError onRetry={onRetry} />;
+      return <GenresError onRetry={onRetry} retryButtonRef={retryButtonRef} />;
     case "loading":
       return <GenresGridSkeleton />;
     case "ready":
@@ -104,7 +108,13 @@ function GenresEmpty({
   }
 }
 
-function GenresError({ onRetry }: { onRetry: () => void }) {
+function GenresError({
+  onRetry,
+  retryButtonRef,
+}: {
+  onRetry: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
+}) {
   const t = useTranslations("genres.states.error");
   const entry: EmptyStateEntry = {
     desc: t("description"),
@@ -115,7 +125,7 @@ function GenresError({ onRetry }: { onRetry: () => void }) {
 
   return (
     <div aria-live="assertive" role="alert">
-      <EmptyState onPrimary={onRetry} state={entry} />
+      <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={entry} />
     </div>
   );
 }
@@ -131,20 +141,15 @@ function GenresGrid({
 
   return (
     <div className="flex flex-col gap-6">
-      <ul
-        aria-busy={state.isRefreshing}
-        className={cn(
-          GENRES_GRID.className,
-          "transition-opacity duration-200 motion-reduce:transition-none",
-          state.isRefreshing && "opacity-60",
-        )}
-      >
-        {state.genres.map((genre) => (
-          <li className="flex min-w-0 flex-col" key={genre.key}>
-            <GenreCard genre={genre} />
-          </li>
-        ))}
-      </ul>
+      <RefreshingRegion isRefreshing={state.isRefreshing}>
+        <ul className={GENRES_GRID.className}>
+          {state.genres.map((genre) => (
+            <li className="flex min-w-0 flex-col" key={genre.key}>
+              <GenreCard genre={genre} />
+            </li>
+          ))}
+        </ul>
+      </RefreshingRegion>
 
       <InfiniteScrollFooter
         errorLabel={t("loadMoreError")}

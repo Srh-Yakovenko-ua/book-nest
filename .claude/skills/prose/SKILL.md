@@ -15,7 +15,7 @@ The maintainer asked for this directly, in these words: "по-человечес
 
 **No `X — Y` definition lists.** The pattern where every bullet is a term, a dash, and a gloss reads as a generated glossary. Write the bullet as a sentence.
 
-**No attribution footer.** Never add "Generated with Claude Code" or a robot emoji to a commit, a PR body, or anything else. The user asked for it removed entirely.
+**No attribution, anywhere.** Never add "Generated with Claude Code", a co-author trailer or a robot emoji to a commit, a PR body, or anything else. The user asked for it removed entirely, and later widened it: commit and PR text, branch names and tags never contain "claude" or "anthropic" at all, so a change to agent config takes the scope `agents`, and the text says "agent config", "the hooks" or "project instructions" rather than naming that directory or the instructions file (CLAUDE.md §12).
 
 **Plain over formal.** Short sentences. Concrete nouns. Say "the deploy went red" rather than "a deployment failure was encountered". Contractions are fine.
 

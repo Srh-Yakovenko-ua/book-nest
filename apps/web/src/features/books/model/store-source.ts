@@ -9,17 +9,17 @@ import type {
 import { DEFAULT_CURRENCY } from "@app/shared";
 import { z } from "zod";
 
-import { findBestOfferLinkId } from "@/features/books-to-buy/model/best-offer-link";
+import { findBestOfferLinkId } from "@/features/books-to-buy";
 
 export const OTHER_STORE_SOURCE = "other";
 
 export const STORE_SOURCE_CURRENCIES = ["UAH", "EUR", "USD"] as const satisfies readonly Currency[];
 
-export const STORE_SOURCE_LIMITS = {
-  priceMax: 99999999.99,
-  priceMin: 0,
-  storeNameMax: 100,
-} as const;
+export type StoreSourceLimits = {
+  priceMax: number;
+  priceMin: number;
+  storeNameMax: number;
+};
 
 export type StoreSourceMessages = {
   price: string;
@@ -34,21 +34,27 @@ export type StoreSourceValue = {
   storeName: string;
 };
 
-export function buildStoreSourceSchema(messages: StoreSourceMessages) {
+export function buildStoreSourceSchema({
+  limits,
+  messages,
+}: {
+  limits: StoreSourceLimits;
+  messages: StoreSourceMessages;
+}) {
   return z.object({
     currency: z.enum(STORE_SOURCE_CURRENCIES),
     price: z
       .string()
       .refine(
-        (value) => value.trim().length === 0 || Number(value) > STORE_SOURCE_LIMITS.priceMin,
+        (value) => value.trim().length === 0 || Number(value) > limits.priceMin,
         messages.price,
       )
       .refine(
-        (value) => value.trim().length === 0 || Number(value) <= STORE_SOURCE_LIMITS.priceMax,
+        (value) => value.trim().length === 0 || Number(value) <= limits.priceMax,
         messages.priceMax,
       ),
     source: z.string(),
-    storeName: z.string().max(STORE_SOURCE_LIMITS.storeNameMax, messages.storeNameMax),
+    storeName: z.string().max(limits.storeNameMax, messages.storeNameMax),
   });
 }
 

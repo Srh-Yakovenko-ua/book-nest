@@ -11,6 +11,7 @@ import { PrismaService } from "../../../core/database/prisma.service.js";
 import { parseIsoDate, toIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
+import { defaultUserToday } from "../../../test/user-today.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { BooksModule } from "../../books/books.module.js";
 import { ListsModule } from "../../lists/lists.module.js";
@@ -59,7 +60,7 @@ afterAll(async () => {
 });
 
 function currentMonth(): string {
-  return toBudgetMonth(new Date());
+  return toBudgetMonth(parseIsoDate(defaultUserToday()));
 }
 
 function monthsFromNow(offset: number): string {

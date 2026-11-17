@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
-import type { ActiveFilterChip } from "@/features/books";
+import type { ActiveFilterChip } from "@/components/catalog/active-filters";
 
 import type { LoanContactsQueryState } from "./loan-contacts-query";
 import type { UseLoanContactsQueryResult } from "./use-loan-contacts-query";

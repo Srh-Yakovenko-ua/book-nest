@@ -1,6 +1,7 @@
 "use client";
 
 import type { SeriesDetailsView } from "@app/shared";
+import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
@@ -36,6 +37,7 @@ import { SeriesStatsCard } from "./series-stats-card";
 
 type SeriesDetailsViewProps = {
   details: SeriesDetailsView;
+  titleRef?: Ref<HTMLHeadingElement>;
 };
 
 const DETAIL_TABS = ["books", "about", "notes", "characters"] as const;
@@ -44,7 +46,7 @@ type SeriesDetailTab = (typeof DETAIL_TABS)[number];
 
 const tabParser = parseAsStringLiteral(DETAIL_TABS).withDefault("books");
 
-export function SeriesDetailsView({ details }: SeriesDetailsViewProps) {
+export function SeriesDetailsView({ details, titleRef }: SeriesDetailsViewProps) {
   const t = useTranslations("series.details");
   const tToast = useTranslations("series.toast");
   const router = useRouter();
@@ -99,6 +101,7 @@ export function SeriesDetailsView({ details }: SeriesDetailsViewProps) {
           onDelete={() => setDeleteOpen(true)}
           onEdit={() => setEditOpen(true)}
           onReadFullDescription={showAboutTab}
+          titleRef={titleRef}
         />
 
         <div className="details-sidebar-leaf flex flex-col gap-6 lg:hidden">

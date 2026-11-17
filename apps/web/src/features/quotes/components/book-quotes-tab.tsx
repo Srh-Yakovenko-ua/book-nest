@@ -9,6 +9,9 @@ import type { BookTabScrollMemory } from "@/hooks/use-book-tab-scroll-anchor";
 
 import { toBookSelectOption } from "@/features/books/model/book-select-option";
 import { useBookTabScrollAnchor } from "@/hooks/use-book-tab-scroll-anchor";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import { useBookQuotesList } from "../api/use-book-quotes-list";
 import { useQuotesFacets } from "../api/use-quotes-facets";
@@ -31,6 +34,8 @@ export function BookQuotesTab({ book, scrollMemory }: BookQuotesTabProps) {
   const facets = useQuotesFacets(query.facetsParams);
   const [isCreateOpen, setCreateOpen] = useState(false);
   const resultsStartRef = useRef<HTMLDivElement>(null);
+  const tabHeadingRef = useRef<HTMLHeadingElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(tabHeadingRef);
 
   const listState = bookQuotesListState({
     hasActiveFilters: query.hasActiveFilters,
@@ -52,10 +57,15 @@ export function BookQuotesTab({ book, scrollMemory }: BookQuotesTabProps) {
 
   return (
     <div
-      className="flex scroll-mt-[calc(var(--shell-header-height)+1rem)] flex-col gap-5"
+      className={cn(
+        "flex scroll-mt-[calc(var(--shell-header-height)+1rem)] flex-col gap-5",
+        RETRY_FOCUS_RING.aroundHiddenHeading,
+      )}
       ref={resultsStartRef}
     >
-      <h2 className="sr-only">{t("tab")}</h2>
+      <h2 className="sr-only" ref={tabHeadingRef} tabIndex={-1}>
+        {t("tab")}
+      </h2>
       <BookQuotesResultsStatus
         state={listState}
         totalCount={quotes.data?.pages[0]?.totalCount ?? 0}
@@ -74,7 +84,8 @@ export function BookQuotesTab({ book, scrollMemory }: BookQuotesTabProps) {
         onClearFilters={query.clearFilters}
         onClearSearch={query.clearSearch}
         onLoadMore={() => void quotes.fetchNextPage()}
-        onRetry={() => void quotes.refetch()}
+        onRetry={withRetryFocus(() => void quotes.refetch())}
+        retryButtonRef={retryButtonRef}
         state={listState}
       />
 

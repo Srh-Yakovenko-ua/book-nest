@@ -1,11 +1,12 @@
 import "@testing-library/jest-dom/vitest";
 import type { LoanContactListItemView, LoanListItemView } from "@app/shared";
 
+import { format, subDays } from "date-fns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
 import messages from "@/messages/uk.json";
-import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
+import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { EditLoanDialog } from "./edit-loan-dialog";
 
@@ -96,9 +97,9 @@ function loanItem(): LoanListItemView {
   };
 }
 
-function renderDialog() {
+function renderDialog(loan: LoanListItemView = loanItem()) {
   const onOpenChange = vi.fn();
-  renderWithProviders(<EditLoanDialog loan={loanItem()} onOpenChange={onOpenChange} open />);
+  renderWithProviders(<EditLoanDialog loan={loan} onOpenChange={onOpenChange} open />);
   return { onOpenChange };
 }
 
@@ -184,7 +185,7 @@ describe("EditLoanDialog", () => {
     });
   });
 
-  it("closes the whole edit flow when the contact step is cancelled", async () => {
+  it("asks before the contact step cancel drops the cleared contact", async () => {
     searchResults = [];
     const { onOpenChange } = renderDialog();
 
@@ -192,6 +193,26 @@ describe("EditLoanDialog", () => {
     await userEvent.type(contactPicker(), "Марта");
     await userEvent.click(await screen.findByText("Створити «Марта»"));
     await userEvent.click(await screen.findByRole("button", { name: contactCreate.cancel }));
+
+    expect(
+      await screen.findByRole("alertdialog", { name: messages.common.discardChanges.title }),
+    ).toBeInTheDocument();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("closes the whole edit flow once the contact step cancel is confirmed", async () => {
+    searchResults = [];
+    const { onOpenChange } = renderDialog();
+
+    await userEvent.click(screen.getByRole("button", { name: messages.loans.contactPicker.clear }));
+    await userEvent.type(contactPicker(), "Марта");
+    await userEvent.click(await screen.findByText("Створити «Марта»"));
+    await userEvent.click(await screen.findByRole("button", { name: contactCreate.cancel }));
+    await userEvent.click(
+      within(
+        await screen.findByRole("alertdialog", { name: messages.common.discardChanges.title }),
+      ).getByRole("button", { name: messages.common.discardChanges.confirm }),
+    );
 
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
@@ -207,5 +228,37 @@ describe("EditLoanDialog", () => {
     expect(JSON.parse(String(editCall()?.[1].body))).toMatchObject({
       loanContactId: CONTACT_IDS.ihor,
     });
+  });
+});
+
+describe("EditLoanDialog return date", () => {
+  it("saves a note on an overdue loan that has no loan date", async () => {
+    const yesterday = format(subDays(new Date(), 1), "yyyy-MM-dd");
+    renderDialog({
+      ...loanItem(),
+      expectedReturnDate: yesterday,
+      loanDate: null,
+      loanUiStatus: "overdue",
+    });
+
+    await userEvent.type(screen.getByLabelText(loanCopy.fields.note), "remind on Sunday");
+    await userEvent.click(screen.getByRole("button", { name: loanCopy.submit }));
+
+    await waitFor(() => expect(editCall()).toBeDefined());
+    expect(JSON.parse(String(editCall()?.[1].body))).toMatchObject({
+      expectedReturnDate: yesterday,
+      loanDate: null,
+      note: "remind on Sunday",
+    });
+    expect(screen.queryByText(loanCopy.errors.returnBeforeLoan)).not.toBeInTheDocument();
+  });
+
+  it("refuses a return date earlier than the loan date", async () => {
+    renderDialog({ ...loanItem(), expectedReturnDate: "2026-01-04", loanDate: "2026-01-05" });
+
+    await userEvent.click(screen.getByRole("button", { name: loanCopy.submit }));
+
+    expect(await screen.findByText(loanCopy.errors.returnBeforeLoan)).toBeInTheDocument();
+    expect(editCall()).toBeUndefined();
   });
 });

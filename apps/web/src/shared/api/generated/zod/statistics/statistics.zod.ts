@@ -8,6 +8,519 @@
 import * as zod from "zod";
 
 /**
+ * @summary Get the reading calendar of one year
+ */
+export const statisticsControllerGetCalendarPageQueryYearMin = 1900;
+export const statisticsControllerGetCalendarPageQueryYearMax = 9999;
+
+export const StatisticsControllerGetCalendarPageQueryParams = zod.object({
+  year: zod
+    .int()
+    .min(statisticsControllerGetCalendarPageQueryYearMin)
+    .max(statisticsControllerGetCalendarPageQueryYearMax),
+});
+
+export const statisticsControllerGetCalendarPageResponseAvailableYearsItemMin = -9007199254740991;
+export const statisticsControllerGetCalendarPageResponseAvailableYearsItemMax = 9007199254740991;
+
+export const statisticsControllerGetCalendarPageResponseCalendarActiveDaysMin = 0;
+export const statisticsControllerGetCalendarPageResponseCalendarActiveDaysMax = 9007199254740991;
+
+export const statisticsControllerGetCalendarPageResponseCalendarActiveDaysPercentageValueMin = 0;
+export const statisticsControllerGetCalendarPageResponseCalendarActiveDaysPercentageValueMax = 1;
+
+export const statisticsControllerGetCalendarPageResponseCalendarCurrentStreakDataDaysMin = 0;
+export const statisticsControllerGetCalendarPageResponseCalendarCurrentStreakDataDaysMax = 9007199254740991;
+
+export const statisticsControllerGetCalendarPageResponseCalendarCurrentStreakDataEndDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetCalendarPageResponseCalendarCurrentStreakDataStartDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemBooksCountMin = 0;
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemBooksCountMax = 9007199254740991;
+
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemBooksPreviewItemBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemBooksPreviewItemPagesReadMin = 0;
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemBooksPreviewItemPagesReadMax = 9007199254740991;
+
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemBooksPreviewMax = 3;
+
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownOneBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownOneReadingCycleIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownTwoDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersFinishedFromRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersFinishedToRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersRatingMaxMin = 0.5;
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersRatingMaxMax = 10;
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersRatingMaxMultipleOf = 0.5;
+
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersRatingMinMin = 0.5;
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersRatingMinMax = 10;
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersRatingMinMultipleOf = 0.5;
+
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreePeriodFromRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreePeriodToRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemIntensityMin = 0;
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemIntensityMax = 4;
+
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemPagesReadMin = 0;
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemPagesReadMax = 9007199254740991;
+
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemRemainingBooksCountMin = 0;
+export const statisticsControllerGetCalendarPageResponseCalendarDaysItemRemainingBooksCountMax = 9007199254740991;
+
+export const statisticsControllerGetCalendarPageResponseCalendarDisplayRangeFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const statisticsControllerGetCalendarPageResponseCalendarDisplayRangeToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const statisticsControllerGetCalendarPageResponseCalendarLongestStreakDaysMin = 0;
+export const statisticsControllerGetCalendarPageResponseCalendarLongestStreakDaysMax = 9007199254740991;
+
+export const statisticsControllerGetCalendarPageResponseCalendarLongestStreakEndDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetCalendarPageResponseCalendarLongestStreakStartDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetCalendarPageResponseCalendarMetricRangeFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const statisticsControllerGetCalendarPageResponseCalendarMetricRangeToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const statisticsControllerGetCalendarPageResponseCalendarMostActiveWeekdayDataActiveDaysMin = 0;
+export const statisticsControllerGetCalendarPageResponseCalendarMostActiveWeekdayDataActiveDaysMax = 9007199254740991;
+
+export const statisticsControllerGetCalendarPageResponseCalendarMostActiveWeekdayDataPagesReadMin = 0;
+export const statisticsControllerGetCalendarPageResponseCalendarMostActiveWeekdayDataPagesReadMax = 9007199254740991;
+
+export const statisticsControllerGetCalendarPageResponseCalendarMostActiveWeekdayDataWeekdayMin = 0;
+export const statisticsControllerGetCalendarPageResponseCalendarMostActiveWeekdayDataWeekdayMax = 6;
+
+export const statisticsControllerGetCalendarPageResponseCalendarWeekdayActivityItemsItemActiveDaysMin = 0;
+export const statisticsControllerGetCalendarPageResponseCalendarWeekdayActivityItemsItemActiveDaysMax = 9007199254740991;
+
+export const statisticsControllerGetCalendarPageResponseCalendarWeekdayActivityItemsItemPagesReadMin = 0;
+export const statisticsControllerGetCalendarPageResponseCalendarWeekdayActivityItemsItemPagesReadMax = 9007199254740991;
+
+export const statisticsControllerGetCalendarPageResponseCalendarWeekdayActivityItemsItemWeekdayMin = 0;
+export const statisticsControllerGetCalendarPageResponseCalendarWeekdayActivityItemsItemWeekdayMax = 6;
+
+export const statisticsControllerGetCalendarPageResponseCalendarWeekdayActivityItemsMax = 7;
+
+export const statisticsControllerGetCalendarPageResponseMetaActivityHistoryReliableFromRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetCalendarPageResponseMetaGeneratedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const statisticsControllerGetCalendarPageResponseTodayRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const statisticsControllerGetCalendarPageResponseYearMin = -9007199254740991;
+export const statisticsControllerGetCalendarPageResponseYearMax = 9007199254740991;
+
+export const StatisticsControllerGetCalendarPageResponse = zod
+  .object({
+    availableYears: zod.array(
+      zod
+        .int()
+        .min(statisticsControllerGetCalendarPageResponseAvailableYearsItemMin)
+        .max(statisticsControllerGetCalendarPageResponseAvailableYearsItemMax),
+    ),
+    calendar: zod
+      .object({
+        activeDays: zod
+          .int()
+          .min(statisticsControllerGetCalendarPageResponseCalendarActiveDaysMin)
+          .max(statisticsControllerGetCalendarPageResponseCalendarActiveDaysMax),
+        activeDaysPercentage: zod.object({
+          availability: zod.enum(["available", "partial", "unavailable"]),
+          reason: zod.enum(["LEGACY_HISTORY_INCOMPLETE"]).optional(),
+          value: zod
+            .number()
+            .min(statisticsControllerGetCalendarPageResponseCalendarActiveDaysPercentageValueMin)
+            .max(statisticsControllerGetCalendarPageResponseCalendarActiveDaysPercentageValueMax)
+            .nullable(),
+        }),
+        availability: zod.enum(["available", "partial", "unavailable"]),
+        currentStreak: zod
+          .object({
+            availability: zod.enum(["available", "partial", "unavailable"]),
+            data: zod
+              .object({
+                days: zod
+                  .int()
+                  .min(statisticsControllerGetCalendarPageResponseCalendarCurrentStreakDataDaysMin)
+                  .max(statisticsControllerGetCalendarPageResponseCalendarCurrentStreakDataDaysMax),
+                endDate: zod.iso
+                  .date()
+                  .regex(
+                    statisticsControllerGetCalendarPageResponseCalendarCurrentStreakDataEndDateRegExp,
+                  )
+                  .nullable(),
+                startDate: zod.iso
+                  .date()
+                  .regex(
+                    statisticsControllerGetCalendarPageResponseCalendarCurrentStreakDataStartDateRegExp,
+                  )
+                  .nullable(),
+                continuesBeforeRange: zod.boolean(),
+                continuesBeforeReliableHistory: zod.boolean(),
+              })
+              .nullable(),
+            reason: zod.enum(["PERIOD_NOT_CURRENT", "LEGACY_HISTORY_INCOMPLETE"]).optional(),
+          })
+          .describe(
+            "The streak running right now. A closed historical period returns unavailable rather than zero, because there is no such thing as a current streak in a period that already ended.",
+          ),
+        days: zod.array(
+          zod
+            .object({
+              booksCount: zod
+                .int()
+                .min(statisticsControllerGetCalendarPageResponseCalendarDaysItemBooksCountMin)
+                .max(statisticsControllerGetCalendarPageResponseCalendarDaysItemBooksCountMax),
+              booksPreview: zod
+                .array(
+                  zod.object({
+                    bookId: zod
+                      .uuid()
+                      .regex(
+                        statisticsControllerGetCalendarPageResponseCalendarDaysItemBooksPreviewItemBookIdRegExp,
+                      ),
+                    coverThumbUrl: zod.string().nullable(),
+                    pagesRead: zod
+                      .int()
+                      .min(
+                        statisticsControllerGetCalendarPageResponseCalendarDaysItemBooksPreviewItemPagesReadMin,
+                      )
+                      .max(
+                        statisticsControllerGetCalendarPageResponseCalendarDaysItemBooksPreviewItemPagesReadMax,
+                      ),
+                    title: zod.string(),
+                  }),
+                )
+                .max(statisticsControllerGetCalendarPageResponseCalendarDaysItemBooksPreviewMax),
+              date: zod.iso
+                .date()
+                .regex(statisticsControllerGetCalendarPageResponseCalendarDaysItemDateRegExp),
+              drilldown: zod
+                .union([
+                  zod.object({
+                    bookId: zod
+                      .uuid()
+                      .regex(
+                        statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownOneBookIdRegExp,
+                      ),
+                    kind: zod.enum(["reading_cycle"]),
+                    readingCycleId: zod
+                      .uuid()
+                      .regex(
+                        statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownOneReadingCycleIdRegExp,
+                      ),
+                  }),
+                  zod.object({
+                    date: zod.iso
+                      .date()
+                      .regex(
+                        statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownTwoDateRegExp,
+                      ),
+                    kind: zod.enum(["reading_day"]),
+                  }),
+                  zod.object({
+                    filters: zod.object({
+                      authorId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersAuthorIdRegExp,
+                        )
+                        .optional(),
+                      finishedFrom: zod.iso
+                        .date()
+                        .regex(
+                          statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersFinishedFromRegExp,
+                        )
+                        .optional(),
+                      finishedTo: zod.iso
+                        .date()
+                        .regex(
+                          statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersFinishedToRegExp,
+                        )
+                        .optional(),
+                      genre: zod.string().optional(),
+                      language: zod
+                        .enum([
+                          "ukrainian",
+                          "english",
+                          "polish",
+                          "german",
+                          "french",
+                          "spanish",
+                          "other",
+                        ])
+                        .optional(),
+                      publisherId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersPublisherIdRegExp,
+                        )
+                        .optional(),
+                      ratingMax: zod
+                        .number()
+                        .min(
+                          statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersRatingMaxMin,
+                        )
+                        .max(
+                          statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersRatingMaxMax,
+                        )
+                        .multipleOf(
+                          statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersRatingMaxMultipleOf,
+                        )
+                        .optional(),
+                      ratingMin: zod
+                        .number()
+                        .min(
+                          statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersRatingMinMin,
+                        )
+                        .max(
+                          statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersRatingMinMax,
+                        )
+                        .multipleOf(
+                          statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersRatingMinMultipleOf,
+                        )
+                        .optional(),
+                      seriesId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreeFiltersSeriesIdRegExp,
+                        )
+                        .optional(),
+                    }),
+                    kind: zod.enum(["completed_reads_subset"]),
+                    period: zod.object({
+                      from: zod.iso
+                        .date()
+                        .regex(
+                          statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreePeriodFromRegExp,
+                        )
+                        .nullable(),
+                      to: zod.iso
+                        .date()
+                        .regex(
+                          statisticsControllerGetCalendarPageResponseCalendarDaysItemDrilldownThreePeriodToRegExp,
+                        ),
+                    }),
+                  }),
+                ])
+                .describe(
+                  "Where a click on this number leads. It always reproduces the exact set the number was computed from, never a broader related list.",
+                ),
+              historyQuality: zod.enum(["exact", "legacy_observed_only"]),
+              intensity: zod
+                .int()
+                .min(statisticsControllerGetCalendarPageResponseCalendarDaysItemIntensityMin)
+                .max(statisticsControllerGetCalendarPageResponseCalendarDaysItemIntensityMax),
+              pagesRead: zod
+                .int()
+                .min(statisticsControllerGetCalendarPageResponseCalendarDaysItemPagesReadMin)
+                .max(statisticsControllerGetCalendarPageResponseCalendarDaysItemPagesReadMax),
+              remainingBooksCount: zod
+                .int()
+                .min(
+                  statisticsControllerGetCalendarPageResponseCalendarDaysItemRemainingBooksCountMin,
+                )
+                .max(
+                  statisticsControllerGetCalendarPageResponseCalendarDaysItemRemainingBooksCountMax,
+                ),
+            })
+            .describe(
+              "One day of the calendar. booksPreview carries just enough to draw the day without a second request; the rest of the day is behind the day-details endpoint. historyQuality legacy_observed_only means a zero here proves nothing, because events from before the reliability boundary could have been deleted by an old reset.",
+            ),
+        ),
+        displayRange: zod.object({
+          from: zod.iso
+            .date()
+            .regex(statisticsControllerGetCalendarPageResponseCalendarDisplayRangeFromRegExp),
+          to: zod.iso
+            .date()
+            .regex(statisticsControllerGetCalendarPageResponseCalendarDisplayRangeToRegExp),
+        }),
+        longestStreak: zod.object({
+          days: zod
+            .int()
+            .min(statisticsControllerGetCalendarPageResponseCalendarLongestStreakDaysMin)
+            .max(statisticsControllerGetCalendarPageResponseCalendarLongestStreakDaysMax),
+          endDate: zod.iso
+            .date()
+            .regex(statisticsControllerGetCalendarPageResponseCalendarLongestStreakEndDateRegExp)
+            .nullable(),
+          startDate: zod.iso
+            .date()
+            .regex(statisticsControllerGetCalendarPageResponseCalendarLongestStreakStartDateRegExp)
+            .nullable(),
+        }),
+        metricRange: zod.object({
+          from: zod.iso
+            .date()
+            .regex(statisticsControllerGetCalendarPageResponseCalendarMetricRangeFromRegExp),
+          to: zod.iso
+            .date()
+            .regex(statisticsControllerGetCalendarPageResponseCalendarMetricRangeToRegExp),
+        }),
+        mostActiveWeekday: zod.object({
+          availability: zod.enum(["available", "partial", "unavailable"]),
+          data: zod
+            .object({
+              activeDays: zod
+                .int()
+                .min(
+                  statisticsControllerGetCalendarPageResponseCalendarMostActiveWeekdayDataActiveDaysMin,
+                )
+                .max(
+                  statisticsControllerGetCalendarPageResponseCalendarMostActiveWeekdayDataActiveDaysMax,
+                ),
+              pagesRead: zod
+                .int()
+                .min(
+                  statisticsControllerGetCalendarPageResponseCalendarMostActiveWeekdayDataPagesReadMin,
+                )
+                .max(
+                  statisticsControllerGetCalendarPageResponseCalendarMostActiveWeekdayDataPagesReadMax,
+                ),
+              weekday: zod
+                .int()
+                .min(
+                  statisticsControllerGetCalendarPageResponseCalendarMostActiveWeekdayDataWeekdayMin,
+                )
+                .max(
+                  statisticsControllerGetCalendarPageResponseCalendarMostActiveWeekdayDataWeekdayMax,
+                ),
+            })
+            .nullable(),
+          reason: zod.enum(["LEGACY_HISTORY_INCOMPLETE"]).optional(),
+        }),
+        reason: zod.enum(["NO_ACTIVITY_HISTORY"]).optional(),
+        weekdayActivity: zod
+          .object({
+            availability: zod.enum(["available", "partial", "unavailable"]),
+            items: zod
+              .array(
+                zod.object({
+                  activeDays: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetCalendarPageResponseCalendarWeekdayActivityItemsItemActiveDaysMin,
+                    )
+                    .max(
+                      statisticsControllerGetCalendarPageResponseCalendarWeekdayActivityItemsItemActiveDaysMax,
+                    ),
+                  pagesRead: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetCalendarPageResponseCalendarWeekdayActivityItemsItemPagesReadMin,
+                    )
+                    .max(
+                      statisticsControllerGetCalendarPageResponseCalendarWeekdayActivityItemsItemPagesReadMax,
+                    ),
+                  weekday: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetCalendarPageResponseCalendarWeekdayActivityItemsItemWeekdayMin,
+                    )
+                    .max(
+                      statisticsControllerGetCalendarPageResponseCalendarWeekdayActivityItemsItemWeekdayMax,
+                    ),
+                }),
+              )
+              .max(statisticsControllerGetCalendarPageResponseCalendarWeekdayActivityItemsMax),
+          })
+          .describe(
+            "Reading spread across the week. weekday runs 0..6 with 0 = Sunday, the same numbering as date-fns getDay. For available and partial, items lists all seven weekdays in order 0..6, zeros included; for unavailable it is an empty list rather than seven zeros. activeDays counts the days with more than zero pages read and pagesRead sums the recorded pages; both are computed over metricRange, not displayRange. partial means metricRange starts before reliable history, so the counts are a lower bound.",
+          ),
+      })
+      .describe(
+        "metricRange is what the summary numbers describe; displayRange is what days[] draws. For all time the two differ on purpose: the heatmap shows the last twelve months while the summary still covers every tracked day.",
+      ),
+    meta: zod
+      .object({
+        activityHistory: zod.object({
+          reason: zod.enum(["LEGACY_EVENTS_MAY_HAVE_BEEN_DELETED"]).optional(),
+          reliableFrom: zod.iso
+            .date()
+            .regex(
+              statisticsControllerGetCalendarPageResponseMetaActivityHistoryReliableFromRegExp,
+            ),
+          selectedPeriodQuality: zod.enum(["exact", "legacy_lower_bound"]),
+        }),
+        generatedAt: zod.iso
+          .datetime({ offset: true })
+          .regex(statisticsControllerGetCalendarPageResponseMetaGeneratedAtRegExp),
+        timezone: zod.string(),
+        weekStartDay: zod.enum(["monday", "sunday"]),
+      })
+      .describe(
+        "Context the whole response was built with. reliableFrom is the first day from which the activity ledger is known to be complete; anything before it is observed history rather than a full record.",
+      ),
+    today: zod.iso.date().regex(statisticsControllerGetCalendarPageResponseTodayRegExp),
+    year: zod
+      .int()
+      .min(statisticsControllerGetCalendarPageResponseYearMin)
+      .max(statisticsControllerGetCalendarPageResponseYearMax),
+  })
+  .describe(
+    "One year of the reading calendar. availableYears lists every year from the first recorded reading progress up to the current year, ascending, and is just the current year when there is no history yet. calendar is the same section the overview returns, limited to the requested year: January 1 to today for the current year, January 1 to December 31 for a past year.",
+  );
+
+/**
  * @summary List the reading cycles finished inside a date range
  */
 export const statisticsControllerGetCompletedReadsQueryCursorMax = 512;
@@ -333,6 +846,356 @@ export const StatisticsControllerGetCompletedReadsResponse = zod
   );
 
 /**
+ * @summary List the reading cycles finished in a period that carry one historical attribute
+ */
+export const statisticsControllerGetCompletedReadsSubsetQueryAuthorIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const statisticsControllerGetCompletedReadsSubsetQueryCursorMax = 512;
+
+export const statisticsControllerGetCompletedReadsSubsetQueryGenreMax = 64;
+
+export const statisticsControllerGetCompletedReadsSubsetQueryLimitDefault = 20;
+export const statisticsControllerGetCompletedReadsSubsetQueryLimitMax = 50;
+
+export const statisticsControllerGetCompletedReadsSubsetQueryPeriodFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const statisticsControllerGetCompletedReadsSubsetQueryPeriodToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const statisticsControllerGetCompletedReadsSubsetQueryPublisherIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+
+export const StatisticsControllerGetCompletedReadsSubsetQueryParams = zod.object({
+  authorId: zod
+    .uuid()
+    .regex(statisticsControllerGetCompletedReadsSubsetQueryAuthorIdRegExp)
+    .optional(),
+  cursor: zod.string().max(statisticsControllerGetCompletedReadsSubsetQueryCursorMax).optional(),
+  genre: zod
+    .string()
+    .min(1)
+    .max(statisticsControllerGetCompletedReadsSubsetQueryGenreMax)
+    .optional(),
+  language: zod
+    .enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"])
+    .optional(),
+  limit: zod
+    .int()
+    .min(1)
+    .max(statisticsControllerGetCompletedReadsSubsetQueryLimitMax)
+    .default(statisticsControllerGetCompletedReadsSubsetQueryLimitDefault),
+  periodFrom: zod.iso
+    .date()
+    .regex(statisticsControllerGetCompletedReadsSubsetQueryPeriodFromRegExp)
+    .optional(),
+  periodTo: zod.iso.date().regex(statisticsControllerGetCompletedReadsSubsetQueryPeriodToRegExp),
+  publisherId: zod
+    .uuid()
+    .regex(statisticsControllerGetCompletedReadsSubsetQueryPublisherIdRegExp)
+    .optional(),
+});
+
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemBookBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemContextActionsItemOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemContextActionsItemTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemContextActionsItemThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemContextActionsItemFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemContextActionsItemFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownOneBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownOneReadingCycleIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownTwoDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersFinishedFromRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersFinishedToRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersRatingMaxMin = 0.5;
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersRatingMaxMax = 10;
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersRatingMaxMultipleOf = 0.5;
+
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersRatingMinMin = 0.5;
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersRatingMinMax = 10;
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersRatingMinMultipleOf = 0.5;
+
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreePeriodFromRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreePeriodToRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemFinishedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemRatingMin = 0.5;
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemRatingMax = 10;
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemRatingMultipleOf = 0.5;
+
+export const statisticsControllerGetCompletedReadsSubsetResponseItemsItemReadingCycleIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsSubsetResponseTotalCountMin = 0;
+export const statisticsControllerGetCompletedReadsSubsetResponseTotalCountMax = 9007199254740991;
+
+export const StatisticsControllerGetCompletedReadsSubsetResponse = zod
+  .object({
+    items: zod.array(
+      zod
+        .object({
+          authorName: zod.string().nullable(),
+          book: zod
+            .object({
+              bookId: zod
+                .uuid()
+                .regex(
+                  statisticsControllerGetCompletedReadsSubsetResponseItemsItemBookBookIdRegExp,
+                ),
+              bookState: zod.enum(["active", "soft_deleted"]),
+              coverThumbUrl: zod.string().nullable(),
+              title: zod.string(),
+            })
+            .describe(
+              "A historical book reference. bookState says whether the book still exists in the library, so a completed read stays visible after the book is moved to trash.",
+            ),
+          contextActions: zod.array(
+            zod
+              .union([
+                zod.object({
+                  authorId: zod
+                    .uuid()
+                    .regex(
+                      statisticsControllerGetCompletedReadsSubsetResponseItemsItemContextActionsItemOneAuthorIdRegExp,
+                    ),
+                  kind: zod.enum(["open_author"]),
+                }),
+                zod.object({
+                  bookId: zod
+                    .uuid()
+                    .regex(
+                      statisticsControllerGetCompletedReadsSubsetResponseItemsItemContextActionsItemTwoBookIdRegExp,
+                    ),
+                  kind: zod.enum(["open_book"]),
+                }),
+                zod.object({
+                  goalId: zod
+                    .uuid()
+                    .regex(
+                      statisticsControllerGetCompletedReadsSubsetResponseItemsItemContextActionsItemThreeGoalIdRegExp,
+                    ),
+                  kind: zod.enum(["open_goal"]),
+                }),
+                zod.object({
+                  kind: zod.enum(["open_publisher"]),
+                  publisherId: zod
+                    .uuid()
+                    .regex(
+                      statisticsControllerGetCompletedReadsSubsetResponseItemsItemContextActionsItemFourPublisherIdRegExp,
+                    ),
+                }),
+                zod.object({
+                  kind: zod.enum(["open_series"]),
+                  seriesId: zod
+                    .uuid()
+                    .regex(
+                      statisticsControllerGetCompletedReadsSubsetResponseItemsItemContextActionsItemFiveSeriesIdRegExp,
+                    ),
+                }),
+              ])
+              .describe(
+                "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+              ),
+          ),
+          drilldown: zod
+            .union([
+              zod.object({
+                bookId: zod
+                  .uuid()
+                  .regex(
+                    statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownOneBookIdRegExp,
+                  ),
+                kind: zod.enum(["reading_cycle"]),
+                readingCycleId: zod
+                  .uuid()
+                  .regex(
+                    statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownOneReadingCycleIdRegExp,
+                  ),
+              }),
+              zod.object({
+                date: zod.iso
+                  .date()
+                  .regex(
+                    statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownTwoDateRegExp,
+                  ),
+                kind: zod.enum(["reading_day"]),
+              }),
+              zod.object({
+                filters: zod.object({
+                  authorId: zod
+                    .uuid()
+                    .regex(
+                      statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersAuthorIdRegExp,
+                    )
+                    .optional(),
+                  finishedFrom: zod.iso
+                    .date()
+                    .regex(
+                      statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersFinishedFromRegExp,
+                    )
+                    .optional(),
+                  finishedTo: zod.iso
+                    .date()
+                    .regex(
+                      statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersFinishedToRegExp,
+                    )
+                    .optional(),
+                  genre: zod.string().optional(),
+                  language: zod
+                    .enum([
+                      "ukrainian",
+                      "english",
+                      "polish",
+                      "german",
+                      "french",
+                      "spanish",
+                      "other",
+                    ])
+                    .optional(),
+                  publisherId: zod
+                    .uuid()
+                    .regex(
+                      statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersPublisherIdRegExp,
+                    )
+                    .optional(),
+                  ratingMax: zod
+                    .number()
+                    .min(
+                      statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersRatingMaxMin,
+                    )
+                    .max(
+                      statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersRatingMaxMax,
+                    )
+                    .multipleOf(
+                      statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersRatingMaxMultipleOf,
+                    )
+                    .optional(),
+                  ratingMin: zod
+                    .number()
+                    .min(
+                      statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersRatingMinMin,
+                    )
+                    .max(
+                      statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersRatingMinMax,
+                    )
+                    .multipleOf(
+                      statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersRatingMinMultipleOf,
+                    )
+                    .optional(),
+                  seriesId: zod
+                    .uuid()
+                    .regex(
+                      statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreeFiltersSeriesIdRegExp,
+                    )
+                    .optional(),
+                }),
+                kind: zod.enum(["completed_reads_subset"]),
+                period: zod.object({
+                  from: zod.iso
+                    .date()
+                    .regex(
+                      statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreePeriodFromRegExp,
+                    )
+                    .nullable(),
+                  to: zod.iso
+                    .date()
+                    .regex(
+                      statisticsControllerGetCompletedReadsSubsetResponseItemsItemDrilldownThreePeriodToRegExp,
+                    ),
+                }),
+              }),
+            ])
+            .describe(
+              "Where a click on this number leads. It always reproduces the exact set the number was computed from, never a broader related list.",
+            ),
+          finishedAt: zod.iso
+            .date()
+            .regex(statisticsControllerGetCompletedReadsSubsetResponseItemsItemFinishedAtRegExp),
+          rating: zod
+            .number()
+            .min(statisticsControllerGetCompletedReadsSubsetResponseItemsItemRatingMin)
+            .max(statisticsControllerGetCompletedReadsSubsetResponseItemsItemRatingMax)
+            .multipleOf(
+              statisticsControllerGetCompletedReadsSubsetResponseItemsItemRatingMultipleOf,
+            )
+            .nullable(),
+          readingCycleId: zod
+            .uuid()
+            .regex(
+              statisticsControllerGetCompletedReadsSubsetResponseItemsItemReadingCycleIdRegExp,
+            ),
+        })
+        .describe(
+          "One completed read-through. The same book appears once per completed read, so a reread is a second row rather than an overwritten one.",
+        ),
+    ),
+    nextCursor: zod.string().nullable(),
+    totalCount: zod
+      .int()
+      .min(statisticsControllerGetCompletedReadsSubsetResponseTotalCountMin)
+      .max(statisticsControllerGetCompletedReadsSubsetResponseTotalCountMax),
+  })
+  .describe(
+    "Every finished reading cycle inside the period whose completion snapshot carries the attribute, newest first. totalCount covers the whole subset and equals the count shown on the ranking row.",
+  );
+
+/**
  * @summary Get the reading statistics overview for a period
  */
 export const statisticsControllerGetOverviewQueryFromRegExp = new RegExp(
@@ -582,6 +1445,17 @@ export const statisticsControllerGetOverviewResponseCalendarMostActiveWeekdayDat
 
 export const statisticsControllerGetOverviewResponseCalendarMostActiveWeekdayDataWeekdayMin = 0;
 export const statisticsControllerGetOverviewResponseCalendarMostActiveWeekdayDataWeekdayMax = 6;
+
+export const statisticsControllerGetOverviewResponseCalendarWeekdayActivityItemsItemActiveDaysMin = 0;
+export const statisticsControllerGetOverviewResponseCalendarWeekdayActivityItemsItemActiveDaysMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseCalendarWeekdayActivityItemsItemPagesReadMin = 0;
+export const statisticsControllerGetOverviewResponseCalendarWeekdayActivityItemsItemPagesReadMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseCalendarWeekdayActivityItemsItemWeekdayMin = 0;
+export const statisticsControllerGetOverviewResponseCalendarWeekdayActivityItemsItemWeekdayMax = 6;
+
+export const statisticsControllerGetOverviewResponseCalendarWeekdayActivityItemsMax = 7;
 
 export const statisticsControllerGetOverviewResponseComparisonFromRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -3572,6 +4446,43 @@ export const StatisticsControllerGetOverviewResponse = zod.object({
         reason: zod.enum(["LEGACY_HISTORY_INCOMPLETE"]).optional(),
       }),
       reason: zod.enum(["NO_ACTIVITY_HISTORY"]).optional(),
+      weekdayActivity: zod
+        .object({
+          availability: zod.enum(["available", "partial", "unavailable"]),
+          items: zod
+            .array(
+              zod.object({
+                activeDays: zod
+                  .int()
+                  .min(
+                    statisticsControllerGetOverviewResponseCalendarWeekdayActivityItemsItemActiveDaysMin,
+                  )
+                  .max(
+                    statisticsControllerGetOverviewResponseCalendarWeekdayActivityItemsItemActiveDaysMax,
+                  ),
+                pagesRead: zod
+                  .int()
+                  .min(
+                    statisticsControllerGetOverviewResponseCalendarWeekdayActivityItemsItemPagesReadMin,
+                  )
+                  .max(
+                    statisticsControllerGetOverviewResponseCalendarWeekdayActivityItemsItemPagesReadMax,
+                  ),
+                weekday: zod
+                  .int()
+                  .min(
+                    statisticsControllerGetOverviewResponseCalendarWeekdayActivityItemsItemWeekdayMin,
+                  )
+                  .max(
+                    statisticsControllerGetOverviewResponseCalendarWeekdayActivityItemsItemWeekdayMax,
+                  ),
+              }),
+            )
+            .max(statisticsControllerGetOverviewResponseCalendarWeekdayActivityItemsMax),
+        })
+        .describe(
+          "Reading spread across the week. weekday runs 0..6 with 0 = Sunday, the same numbering as date-fns getDay. For available and partial, items lists all seven weekdays in order 0..6, zeros included; for unavailable it is an empty list rather than seven zeros. activeDays counts the days with more than zero pages read and pagesRead sums the recorded pages; both are computed over metricRange, not displayRange. partial means metricRange starts before reliable history, so the counts are a lower bound.",
+        ),
     })
     .describe(
       "metricRange is what the summary numbers describe; displayRange is what days[] draws. For all time the two differ on purpose: the heatmap shows the last twelve months while the summary still covers every tracked day.",

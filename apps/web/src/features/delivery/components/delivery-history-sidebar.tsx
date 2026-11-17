@@ -6,8 +6,8 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
+import { OverviewSection } from "@/components/overview-section";
 import { Button } from "@/components/ui/button";
-import { LibraryOverviewSection } from "@/features/books/components/library-overview-blocks";
 
 import type { DeliveryHistoryTab } from "../model/history-params";
 import type { DeliveryLatestReceiptCardModel } from "../model/latest-receipt-card";
@@ -105,7 +105,7 @@ function CancelledFollowUpError({ onRetry }: { onRetry: () => void }) {
   const t = useTranslations("delivery.history.cancelledFollowUpError");
 
   return (
-    <LibraryOverviewSection className="sidebar-card-leaf" title={t("title")}>
+    <OverviewSection className="sidebar-card-leaf" title={t("title")}>
       <div className="flex flex-col items-start gap-3">
         <p className="text-xs text-muted-foreground">{t("description")}</p>
         <Button className="w-full" onClick={onRetry} size="sm" variant="secondary">
@@ -113,6 +113,6 @@ function CancelledFollowUpError({ onRetry }: { onRetry: () => void }) {
           {t("retry")}
         </Button>
       </div>
-    </LibraryOverviewSection>
+    </OverviewSection>
   );
 }

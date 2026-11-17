@@ -4,15 +4,16 @@ import type { TagsSummaryView } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 import type { MobilePageOverviewTab } from "@/components/ui/mobile-page-overview-panel";
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
+import { SummaryDetails } from "@/components/catalog/summary-mobile";
+import { SummaryError } from "@/components/summary-error";
 import {
   MobilePageOverviewPanel,
   MobilePageOverviewTrigger,
   useMobilePageOverviewPanel,
 } from "@/components/ui/mobile-page-overview-panel";
-import { LibrarySummaryDetails } from "@/features/books/components/library-summary-mobile";
 
 import type { UseTagQueryResult } from "../model/use-tag-query";
 import type { TagsSummaryStatus } from "./tags-summary";
@@ -23,10 +24,9 @@ import {
   TagsStructureBlock,
   TagsUsageBlock,
 } from "./tags-overview-blocks";
-import { TagsSummaryError } from "./tags-summary";
 
 type TagsOverviewPanelProps = {
-  cards: LibrarySummaryCard[];
+  cards: SummaryCard[];
   onRetry: () => void;
   query: UseTagQueryResult;
   status: TagsSummaryStatus;
@@ -48,7 +48,13 @@ export function TagsOverviewPanel({
       <MobilePageOverviewTrigger label={t("trigger")} onClick={() => panel.setOpen(true)} />
       <MobilePageOverviewPanel
         closeLabel={t("close")}
-        error={status === "error" ? <TagsSummaryError onRetry={onRetry} /> : undefined}
+        error={
+          status === "error" ? (
+            <SummaryError state={{ onRetry }} variant="embedded">
+              {null}
+            </SummaryError>
+          ) : undefined
+        }
         loading={status === "pending"}
         panel={panel}
         subtitle={t("subtitle")}
@@ -63,7 +69,7 @@ export function TagsOverviewPanel({
       {
         content: (
           <div className="flex flex-col gap-4">
-            <LibrarySummaryDetails cards={cards} title={t("detailsTitle")} />
+            <SummaryDetails cards={cards} title={t("detailsTitle")} />
             <TagsUsageBlock summary={data} />
           </div>
         ),

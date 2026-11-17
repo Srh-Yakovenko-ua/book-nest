@@ -25,9 +25,12 @@ const COPY = {
 
 const TIMEZONES = {
   known: "Europe/Berlin",
+  legacyAlias: "Europe/Kiev",
+  mergedAlias: "Europe/Zaporozhye",
   other: "Europe/Warsaw",
   unlisted: "UTC",
   unlistedAlias: "Europe/Kyiv",
+  unrelated: "America/New_York",
 } as const satisfies Record<string, string>;
 
 const fetchMock = vi.fn();
@@ -175,5 +178,76 @@ describe("RegionalSettingsSection", () => {
     await userEvent.click(await screen.findByRole("option", { name: TIMEZONES.unlistedAlias }));
 
     await waitFor(() => expect(screen.queryByPlaceholderText(COPY.search)).not.toBeInTheDocument());
+  });
+
+  it("lists a runtime legacy timezone once under its current name", async () => {
+    expect(RUNTIME_TIMEZONES).toContain(TIMEZONES.legacyAlias);
+
+    renderSection(TIMEZONES.unrelated);
+    await openTimezoneList();
+
+    const kyivOptions = await screen.findAllByRole("option", { name: TIMEZONES.unlistedAlias });
+    expect(kyivOptions).toHaveLength(1);
+    expect(screen.queryByRole("option", { name: TIMEZONES.legacyAlias })).not.toBeInTheDocument();
+  });
+
+  it("saves the current name of a runtime legacy timezone picked through a search", async () => {
+    renderSection(TIMEZONES.unrelated);
+
+    const search = await openTimezoneList();
+    await userEvent.type(search, "Kyiv");
+    await userEvent.click(await screen.findByRole("option", { name: TIMEZONES.unlistedAlias }));
+
+    await waitFor(() => expect(updateBodies()).toEqual(['{"timezone":"Europe/Kyiv"}']));
+  });
+
+  it("finds a timezone when searching by its legacy name", async () => {
+    renderSection(TIMEZONES.unrelated);
+
+    const search = await openTimezoneList();
+    await userEvent.type(search, "Kiev");
+
+    expect(
+      await screen.findByRole("option", { name: TIMEZONES.unlistedAlias }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows a stored legacy timezone on the trigger under its current name", () => {
+    renderSection(TIMEZONES.legacyAlias);
+
+    expect(screen.getByRole("button", { name: COPY.triggerLabel })).toHaveTextContent(
+      TIMEZONES.unlistedAlias,
+    );
+  });
+
+  it("lists a stored legacy timezone once under its current name", async () => {
+    renderSection(TIMEZONES.legacyAlias);
+    await openTimezoneList();
+
+    const kyivOptions = await screen.findAllByRole("option", { name: TIMEZONES.unlistedAlias });
+    expect(kyivOptions).toHaveLength(1);
+    expect(screen.queryByRole("option", { name: TIMEZONES.legacyAlias })).not.toBeInTheDocument();
+  });
+
+  it("sends nothing when the current name of a stored legacy timezone is picked", async () => {
+    renderSection(TIMEZONES.legacyAlias);
+
+    await openTimezoneList();
+    await userEvent.click(await screen.findByRole("option", { name: TIMEZONES.unlistedAlias }));
+
+    await waitFor(() => expect(screen.queryByPlaceholderText(COPY.search)).not.toBeInTheDocument());
+    expect(updateBodies()).toEqual([]);
+  });
+
+  it("finds a stored zone merged into a renamed one by the current name, shown once", async () => {
+    expect(canonicalTimezone(TIMEZONES.mergedAlias)).toBe(TIMEZONES.legacyAlias);
+
+    renderSection(TIMEZONES.mergedAlias);
+
+    const search = await openTimezoneList();
+    await userEvent.type(search, "Kyiv");
+
+    expect(await screen.findByRole("option", { name: TIMEZONES.mergedAlias })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: TIMEZONES.unlistedAlias })).not.toBeInTheDocument();
   });
 });

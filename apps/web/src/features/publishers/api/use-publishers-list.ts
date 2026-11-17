@@ -3,7 +3,7 @@ import type { InfiniteData } from "@tanstack/react-query";
 import type { z } from "zod";
 
 import { CatalogLocaleSchema, LibraryPublishersPageSchema } from "@app/shared";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
 
 import { publishersControllerLibraryList } from "@/shared/api/generated/endpoints/publishers/publishers";
@@ -40,6 +40,7 @@ export function usePublishersList(listQuery: PublishersListQuery) {
     getNextPageParam: (lastPage: PublishersListPage) =>
       lastPage.page < lastPage.pagesCount ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
+    placeholderData: keepPreviousData,
     queryFn: async ({ pageParam, signal }): Promise<PublishersListPage> =>
       LibraryPublishersPageSchema.parse(
         await publishersControllerLibraryList({ ...params, pageNumber: pageParam }, { signal }),

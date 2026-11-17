@@ -3,9 +3,11 @@ import type { LoansQuickCounts } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MediaService } from "../../media/index.js";
+import type { UserSettingsContextService } from "../../profile/index.js";
 import type { LoansRepository } from "../infrastructure/loans.repository.js";
 
 import { fakeOf } from "../../../test/fake.js";
+import { pinProcessTimezone } from "../../../test/process-timezone.js";
 import { LoansService } from "./loans.service.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
@@ -21,13 +23,21 @@ const ZERO_QUICK_COUNTS: LoansQuickCounts = {
   return_soon: 0,
 };
 
-function buildService(counts: LoansQuickCounts = ZERO_QUICK_COUNTS) {
+function buildService({
+  counts = ZERO_QUICK_COUNTS,
+  today = TODAY,
+}: { counts?: LoansQuickCounts; today?: Date } = {}) {
   const repository = {
     countQuickFilters: vi.fn().mockResolvedValue(counts),
+    longHeldLoans: vi.fn().mockResolvedValue([]),
+    summary: vi.fn().mockResolvedValue([]),
+    topPeople: vi.fn().mockResolvedValue([]),
+    upcomingReturns: vi.fn().mockResolvedValue([]),
   };
   const service = new LoansService(
     fakeOf<LoansRepository>(repository),
     fakeOf<MediaService>({ buildViewOrNull: vi.fn().mockReturnValue(null) }),
+    fakeOf<UserSettingsContextService>({ calendarDay: vi.fn().mockResolvedValue(today) }),
   );
   return { repository, service };
 }
@@ -44,7 +54,7 @@ afterEach(() => {
 describe("LoansService.quickCounts", () => {
   it("returns the counts the repository produced", async () => {
     const counts: LoansQuickCounts = { all: 6, no_return_date: 2, overdue: 1, return_soon: 3 };
-    const { service } = buildService(counts);
+    const { service } = buildService({ counts });
 
     const result = await service.quickCounts({ query: {}, userId: USER_ID });
 
@@ -83,7 +93,7 @@ describe("LoansService.quickCounts", () => {
     });
   });
 
-  it("windows overdue and return soon from the start of the current UTC day", async () => {
+  it("windows overdue and return soon from the reader's calendar day", async () => {
     const { repository, service } = buildService();
 
     await service.quickCounts({ query: {}, userId: USER_ID });
@@ -118,6 +128,23 @@ describe("LoansService.quickCounts", () => {
           loanDateTo: new Date("2026-08-31T00:00:00.000Z"),
         }),
       }),
+    });
+  });
+});
+
+describe("LoansService.summary", () => {
+  describe("Europe/Kyiv", () => {
+    pinProcessTimezone("Europe/Kyiv");
+
+    it("puts the long-held boundary thirty calendar days before the reader's day", async () => {
+      const readerDay = new Date("2026-11-10T00:00:00.000Z");
+      const { repository, service } = buildService({ today: readerDay });
+
+      await service.summary({ userId: USER_ID });
+
+      expect(repository.summary).toHaveBeenCalledWith(
+        expect.objectContaining({ longHeldBefore: new Date("2026-10-11T00:00:00.000Z") }),
+      );
     });
   });
 });

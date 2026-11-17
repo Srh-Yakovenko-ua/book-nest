@@ -2,7 +2,7 @@ import type { ActiveShipmentStatus, Nullable, ShipmentStatus, ValueOf } from "@a
 
 import { isActiveShipmentStatus } from "@app/shared";
 
-import { parseIsoDate } from "../../../core/iso-date.js";
+import { toZonedDayStart } from "../../../core/iso-date.js";
 
 export const SHIPMENT_TRANSITION_REJECTIONS = {
   terminalShipment: "shipment_is_terminal",
@@ -64,9 +64,13 @@ export function rejectTerminalShipment(
 export function resolveShipmentReceivedAt({
   now,
   receivedAt,
+  timeZone,
 }: {
   now: Date;
   receivedAt: Nullable<string> | undefined;
+  timeZone: string;
 }): Date {
-  return receivedAt === null || receivedAt === undefined ? now : parseIsoDate(receivedAt);
+  return receivedAt === null || receivedAt === undefined
+    ? now
+    : toZonedDayStart({ isoDate: receivedAt, timeZone });
 }

@@ -56,37 +56,19 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type speciesControllerSearchResponse200 = {
-  data: SpeciesSearchResultDto;
-  status: 200;
-};
-
-export type speciesControllerSearchResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type speciesControllerSearchResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type speciesControllerSearchResponseSuccess = speciesControllerSearchResponse200 & {
-  headers: Headers;
-};
-export type speciesControllerSearchResponseError = (
-  speciesControllerSearchResponse400 | speciesControllerSearchResponse401
-) & {
-  headers: Headers;
-};
-
-export type speciesControllerSearchResponse =
-  speciesControllerSearchResponseSuccess | speciesControllerSearchResponseError;
-
 export const getSpeciesControllerSearchUrl = (params?: SpeciesControllerSearchParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["ids"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? "null" : String(value));
     }
@@ -103,8 +85,8 @@ export const getSpeciesControllerSearchUrl = (params?: SpeciesControllerSearchPa
 export const speciesControllerSearch = async (
   params?: SpeciesControllerSearchParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<speciesControllerSearchResponse> => {
-  return customInstance<speciesControllerSearchResponse>(getSpeciesControllerSearchUrl(params), {
+): Promise<SpeciesSearchResultDto> => {
+  return customInstance<SpeciesSearchResultDto>(getSpeciesControllerSearchUrl(params), {
     ...options,
     method: "GET",
   });
@@ -227,40 +209,6 @@ export function useSpeciesControllerSearch<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type speciesControllerCreateResponse201 = {
-  data: SpeciesOptionViewDto;
-  status: 201;
-};
-
-export type speciesControllerCreateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type speciesControllerCreateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type speciesControllerCreateResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type speciesControllerCreateResponseSuccess = speciesControllerCreateResponse201 & {
-  headers: Headers;
-};
-export type speciesControllerCreateResponseError = (
-  | speciesControllerCreateResponse400
-  | speciesControllerCreateResponse401
-  | speciesControllerCreateResponse409
-) & {
-  headers: Headers;
-};
-
-export type speciesControllerCreateResponse =
-  speciesControllerCreateResponseSuccess | speciesControllerCreateResponseError;
-
 export const getSpeciesControllerCreateUrl = (params?: SpeciesControllerCreateParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -282,8 +230,8 @@ export const speciesControllerCreate = async (
   speciesNameDto: SpeciesNameDto,
   params?: SpeciesControllerCreateParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<speciesControllerCreateResponse> => {
-  return customInstance<speciesControllerCreateResponse>(getSpeciesControllerCreateUrl(params), {
+): Promise<SpeciesOptionViewDto> => {
+  return customInstance<SpeciesOptionViewDto>(getSpeciesControllerCreateUrl(params), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -417,33 +365,6 @@ export function useSpeciesControllerCreate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type speciesControllerBrowseResponse200 = {
-  data: SpeciesBrowsePageDto;
-  status: 200;
-};
-
-export type speciesControllerBrowseResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type speciesControllerBrowseResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type speciesControllerBrowseResponseSuccess = speciesControllerBrowseResponse200 & {
-  headers: Headers;
-};
-export type speciesControllerBrowseResponseError = (
-  speciesControllerBrowseResponse400 | speciesControllerBrowseResponse401
-) & {
-  headers: Headers;
-};
-
-export type speciesControllerBrowseResponse =
-  speciesControllerBrowseResponseSuccess | speciesControllerBrowseResponseError;
-
 export const getSpeciesControllerBrowseUrl = (params?: SpeciesControllerBrowseParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -466,8 +387,8 @@ export const getSpeciesControllerBrowseUrl = (params?: SpeciesControllerBrowsePa
 export const speciesControllerBrowse = async (
   params?: SpeciesControllerBrowseParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<speciesControllerBrowseResponse> => {
-  return customInstance<speciesControllerBrowseResponse>(getSpeciesControllerBrowseUrl(params), {
+): Promise<SpeciesBrowsePageDto> => {
+  return customInstance<SpeciesBrowsePageDto>(getSpeciesControllerBrowseUrl(params), {
     ...options,
     method: "GET",
   });
@@ -590,33 +511,6 @@ export function useSpeciesControllerBrowse<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type speciesControllerCandidatesResponse200 = {
-  data: SpeciesCandidatesDto;
-  status: 200;
-};
-
-export type speciesControllerCandidatesResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type speciesControllerCandidatesResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type speciesControllerCandidatesResponseSuccess = speciesControllerCandidatesResponse200 & {
-  headers: Headers;
-};
-export type speciesControllerCandidatesResponseError = (
-  speciesControllerCandidatesResponse400 | speciesControllerCandidatesResponse401
-) & {
-  headers: Headers;
-};
-
-export type speciesControllerCandidatesResponse =
-  speciesControllerCandidatesResponseSuccess | speciesControllerCandidatesResponseError;
-
 export const getSpeciesControllerCandidatesUrl = (params: SpeciesControllerCandidatesParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -639,14 +533,11 @@ export const getSpeciesControllerCandidatesUrl = (params: SpeciesControllerCandi
 export const speciesControllerCandidates = async (
   params: SpeciesControllerCandidatesParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<speciesControllerCandidatesResponse> => {
-  return customInstance<speciesControllerCandidatesResponse>(
-    getSpeciesControllerCandidatesUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<SpeciesCandidatesDto> => {
+  return customInstance<SpeciesCandidatesDto>(getSpeciesControllerCandidatesUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getSpeciesControllerCandidatesQueryKey = (
@@ -768,26 +659,6 @@ export function useSpeciesControllerCandidates<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type speciesControllerListOwnResponse200 = {
-  data: OwnSpeciesListDto;
-  status: 200;
-};
-
-export type speciesControllerListOwnResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type speciesControllerListOwnResponseSuccess = speciesControllerListOwnResponse200 & {
-  headers: Headers;
-};
-export type speciesControllerListOwnResponseError = speciesControllerListOwnResponse401 & {
-  headers: Headers;
-};
-
-export type speciesControllerListOwnResponse =
-  speciesControllerListOwnResponseSuccess | speciesControllerListOwnResponseError;
-
 export const getSpeciesControllerListOwnUrl = (params?: SpeciesControllerListOwnParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -810,8 +681,8 @@ export const getSpeciesControllerListOwnUrl = (params?: SpeciesControllerListOwn
 export const speciesControllerListOwn = async (
   params?: SpeciesControllerListOwnParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<speciesControllerListOwnResponse> => {
-  return customInstance<speciesControllerListOwnResponse>(getSpeciesControllerListOwnUrl(params), {
+): Promise<OwnSpeciesListDto> => {
+  return customInstance<OwnSpeciesListDto>(getSpeciesControllerListOwnUrl(params), {
     ...options,
     method: "GET",
   });
@@ -934,41 +805,6 @@ export function useSpeciesControllerListOwn<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type speciesControllerDeletionPreviewResponse200 = {
-  data: SpeciesDeletionPreviewDto;
-  status: 200;
-};
-
-export type speciesControllerDeletionPreviewResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type speciesControllerDeletionPreviewResponse403 = {
-  data: void;
-  status: 403;
-};
-
-export type speciesControllerDeletionPreviewResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type speciesControllerDeletionPreviewResponseSuccess =
-  speciesControllerDeletionPreviewResponse200 & {
-    headers: Headers;
-  };
-export type speciesControllerDeletionPreviewResponseError = (
-  | speciesControllerDeletionPreviewResponse401
-  | speciesControllerDeletionPreviewResponse403
-  | speciesControllerDeletionPreviewResponse404
-) & {
-  headers: Headers;
-};
-
-export type speciesControllerDeletionPreviewResponse =
-  speciesControllerDeletionPreviewResponseSuccess | speciesControllerDeletionPreviewResponseError;
-
 export const getSpeciesControllerDeletionPreviewUrl = (speciesId: string) => {
   return `/api/species/${speciesId}/deletion-preview`;
 };
@@ -979,8 +815,8 @@ export const getSpeciesControllerDeletionPreviewUrl = (speciesId: string) => {
 export const speciesControllerDeletionPreview = async (
   speciesId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<speciesControllerDeletionPreviewResponse> => {
-  return customInstance<speciesControllerDeletionPreviewResponse>(
+): Promise<SpeciesDeletionPreviewDto> => {
+  return customInstance<SpeciesDeletionPreviewDto>(
     getSpeciesControllerDeletionPreviewUrl(speciesId),
     {
       ...options,
@@ -1111,58 +947,6 @@ export function useSpeciesControllerDeletionPreview<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type speciesControllerMergeResponse200 = {
-  data: SpeciesMergeResultDto;
-  status: 200;
-};
-
-export type speciesControllerMergeResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type speciesControllerMergeResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type speciesControllerMergeResponse403 = {
-  data: void;
-  status: 403;
-};
-
-export type speciesControllerMergeResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type speciesControllerMergeResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type speciesControllerMergeResponse422 = {
-  data: void;
-  status: 422;
-};
-
-export type speciesControllerMergeResponseSuccess = speciesControllerMergeResponse200 & {
-  headers: Headers;
-};
-export type speciesControllerMergeResponseError = (
-  | speciesControllerMergeResponse400
-  | speciesControllerMergeResponse401
-  | speciesControllerMergeResponse403
-  | speciesControllerMergeResponse404
-  | speciesControllerMergeResponse409
-  | speciesControllerMergeResponse422
-) & {
-  headers: Headers;
-};
-
-export type speciesControllerMergeResponse =
-  speciesControllerMergeResponseSuccess | speciesControllerMergeResponseError;
-
 export const getSpeciesControllerMergeUrl = (
   speciesId: string,
   params?: SpeciesControllerMergeParams,
@@ -1190,16 +974,13 @@ export const speciesControllerMerge = async (
   mergeSpeciesDto: MergeSpeciesDto,
   params?: SpeciesControllerMergeParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<speciesControllerMergeResponse> => {
-  return customInstance<speciesControllerMergeResponse>(
-    getSpeciesControllerMergeUrl(speciesId, params),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(mergeSpeciesDto),
-    },
-  );
+): Promise<SpeciesMergeResultDto> => {
+  return customInstance<SpeciesMergeResultDto>(getSpeciesControllerMergeUrl(speciesId, params), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(mergeSpeciesDto),
+  });
 };
 
 export const getSpeciesControllerMergeQueryKey = (
@@ -1346,52 +1127,6 @@ export function useSpeciesControllerMerge<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type speciesControllerRenameResponse200 = {
-  data: SpeciesOptionViewDto;
-  status: 200;
-};
-
-export type speciesControllerRenameResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type speciesControllerRenameResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type speciesControllerRenameResponse403 = {
-  data: void;
-  status: 403;
-};
-
-export type speciesControllerRenameResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type speciesControllerRenameResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type speciesControllerRenameResponseSuccess = speciesControllerRenameResponse200 & {
-  headers: Headers;
-};
-export type speciesControllerRenameResponseError = (
-  | speciesControllerRenameResponse400
-  | speciesControllerRenameResponse401
-  | speciesControllerRenameResponse403
-  | speciesControllerRenameResponse404
-  | speciesControllerRenameResponse409
-) & {
-  headers: Headers;
-};
-
-export type speciesControllerRenameResponse =
-  speciesControllerRenameResponseSuccess | speciesControllerRenameResponseError;
-
 export const getSpeciesControllerRenameUrl = (
   speciesId: string,
   params?: SpeciesControllerRenameParams,
@@ -1419,16 +1154,13 @@ export const speciesControllerRename = async (
   speciesNameDto: SpeciesNameDto,
   params?: SpeciesControllerRenameParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<speciesControllerRenameResponse> => {
-  return customInstance<speciesControllerRenameResponse>(
-    getSpeciesControllerRenameUrl(speciesId, params),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(speciesNameDto),
-    },
-  );
+): Promise<SpeciesOptionViewDto> => {
+  return customInstance<SpeciesOptionViewDto>(getSpeciesControllerRenameUrl(speciesId, params), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(speciesNameDto),
+  });
 };
 
 export const getSpeciesControllerRenameQueryKey = (
@@ -1576,46 +1308,6 @@ export function useSpeciesControllerRename<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type speciesControllerDeleteOwnResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type speciesControllerDeleteOwnResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type speciesControllerDeleteOwnResponse403 = {
-  data: void;
-  status: 403;
-};
-
-export type speciesControllerDeleteOwnResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type speciesControllerDeleteOwnResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type speciesControllerDeleteOwnResponseSuccess = speciesControllerDeleteOwnResponse204 & {
-  headers: Headers;
-};
-export type speciesControllerDeleteOwnResponseError = (
-  | speciesControllerDeleteOwnResponse401
-  | speciesControllerDeleteOwnResponse403
-  | speciesControllerDeleteOwnResponse404
-  | speciesControllerDeleteOwnResponse409
-) & {
-  headers: Headers;
-};
-
-export type speciesControllerDeleteOwnResponse =
-  speciesControllerDeleteOwnResponseSuccess | speciesControllerDeleteOwnResponseError;
-
 export const getSpeciesControllerDeleteOwnUrl = (speciesId: string) => {
   return `/api/species/${speciesId}`;
 };
@@ -1626,14 +1318,11 @@ export const getSpeciesControllerDeleteOwnUrl = (speciesId: string) => {
 export const speciesControllerDeleteOwn = async (
   speciesId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<speciesControllerDeleteOwnResponse> => {
-  return customInstance<speciesControllerDeleteOwnResponse>(
-    getSpeciesControllerDeleteOwnUrl(speciesId),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getSpeciesControllerDeleteOwnUrl(speciesId), {
+    ...options,
+    method: "DELETE",
+  });
 };
 
 export const getSpeciesControllerDeleteOwnQueryKey = (speciesId: string) => {

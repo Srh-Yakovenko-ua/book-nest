@@ -188,6 +188,53 @@ export default tseslint.config(
   },
 
   {
+    files: ["apps/web/src/features/**/*.{ts,tsx}"],
+    ignores: ["apps/web/src/features/**/*.{test,stories,fixtures}.{ts,tsx}"],
+    plugins: {
+      boundaries,
+    },
+    rules: {
+      "boundaries/dependencies": [
+        "warn",
+        {
+          default: "allow",
+          rules: [
+            {
+              disallow: {
+                to: [
+                  {
+                    internalPath: "!{index.ts,api/*-keys.ts,api/*-effects.ts}",
+                    type: ["feature"],
+                  },
+                ],
+              },
+              from: { type: ["feature"] },
+              message:
+                "Cross-feature imports go through the feature's index.ts, its api/*-keys.ts query-key factory or its api/*-effects.ts cache-effects module, not its internal folders.",
+            },
+          ],
+        },
+      ],
+    },
+    settings: {
+      "boundaries/elements": [
+        {
+          capture: ["featureName"],
+          mode: "folder",
+          pattern: "apps/web/src/features/*",
+          type: "feature",
+        },
+      ],
+      "import/resolver": {
+        typescript: {
+          alwaysTryTypes: true,
+          project: ["apps/web/tsconfig.json"],
+        },
+      },
+    },
+  },
+
+  {
     files: ["apps/api/src/modules/**/*.controller.ts"],
     rules: {
       "perfectionist/sort-classes": "off",

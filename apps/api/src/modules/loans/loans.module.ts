@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../auth/index.js";
 import { MediaModule } from "../media/index.js";
+import { ProfileModule } from "../profile/index.js";
 import { LoanContactsController } from "./api/loan-contacts.controller.js";
 import { LoanHistoryController } from "./api/loan-history.controller.js";
 import { LoansController } from "./api/loans.controller.js";
@@ -16,7 +17,7 @@ import { LoansRepository } from "./infrastructure/loans.repository.js";
 @Module({
   controllers: [LoansController, LoanHistoryController, LoanContactsController],
   exports: [LoanContactResolver],
-  imports: [AuthModule, MediaModule],
+  imports: [AuthModule, MediaModule, ProfileModule],
   providers: [
     LoansService,
     LoansRepository,

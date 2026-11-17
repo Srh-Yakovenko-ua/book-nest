@@ -31,6 +31,7 @@ import type {
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { toCreateDate, toUpdateDate } from "../../../core/iso-date.js";
+import { UserSettingsContextService } from "../../profile/index.js";
 import { planShipmentCancellation, planShipmentReceipt } from "../domain/order-item-transition.js";
 import {
   evaluateShipmentEdit,
@@ -69,6 +70,7 @@ export class ShipmentService {
     private readonly deliveryServiceResolver: ShipmentDeliveryServiceResolver,
     private readonly viewLoader: BookOrderViewLoader,
     private readonly transactionRunner: TransactionRunner,
+    private readonly userSettingsContextService: UserSettingsContextService,
   ) {}
 
   cancel({
@@ -227,7 +229,7 @@ export class ShipmentService {
     });
   }
 
-  markReceived({
+  async markReceived({
     input,
     shipmentId,
     userId,
@@ -237,12 +239,17 @@ export class ShipmentService {
     userId: string;
   }): Promise<BookOrderView> {
     const now = new Date();
+    const { timezone } = await this.userSettingsContextService.resolve(userId);
 
     return this.transactionRunner.run(async (tx) => {
       const receipt = await this.receiveOne({
         client: tx,
         now,
-        receivedAt: resolveShipmentReceivedAt({ now, receivedAt: input.receivedAt }),
+        receivedAt: resolveShipmentReceivedAt({
+          now,
+          receivedAt: input.receivedAt,
+          timeZone: timezone,
+        }),
         shipmentId,
         userId,
       });
@@ -291,7 +298,7 @@ export class ShipmentService {
     });
   }
 
-  receiveMany({
+  async receiveMany({
     input,
     userId,
   }: {
@@ -300,9 +307,14 @@ export class ShipmentService {
   }): Promise<ReceiveShipmentsResultView> {
     const now = new Date();
     const requestedShipmentIds = [...new Set(input.shipmentIds)];
+    const { timezone } = await this.userSettingsContextService.resolve(userId);
 
     return this.transactionRunner.run(async (tx) => {
-      const receivedAt = resolveShipmentReceivedAt({ now, receivedAt: input.receivedAt });
+      const receivedAt = resolveShipmentReceivedAt({
+        now,
+        receivedAt: input.receivedAt,
+        timeZone: timezone,
+      });
       const receivedShipmentIds: string[] = [];
       const skipped: ReceiveShipmentsResultView["skipped"] = [];
 

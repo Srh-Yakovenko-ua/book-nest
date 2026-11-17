@@ -6,6 +6,7 @@ import type { RelationshipScope } from "./relationship-scope";
 
 export type RelationshipAuthoringContext = {
   bookOptions?: readonly RelationshipBookOption[];
+  createBookOptions?: readonly RelationshipBookOption[];
 } & (
   | {
       focusCharacter: RelationshipParticipant;
@@ -16,6 +17,7 @@ export type RelationshipAuthoringContext = {
 
 export type RelationshipAuthoringSubject = {
   bookOptions: readonly RelationshipBookOption[];
+  createBookOptions: readonly RelationshipBookOption[];
   focusCharacter: Nullable<RelationshipParticipant>;
   scope: RelationshipScope;
 };
@@ -28,15 +30,13 @@ export type RelationshipDraftState = {
 export type RelationshipEditorTarget =
   { mode: "create" } | { mode: "edit"; relationshipId: string };
 
-export function relationshipRosterBookId(scope: RelationshipScope): Nullable<string> {
-  return scope.kind === "book" ? scope.bookId : scope.contextBookId;
-}
-
 export function toRelationshipAuthoringSubject(
   context: RelationshipAuthoringContext,
 ): RelationshipAuthoringSubject {
+  const bookOptions = context.bookOptions ?? [];
   return {
-    bookOptions: context.bookOptions ?? [],
+    bookOptions,
+    createBookOptions: context.createBookOptions ?? bookOptions,
     focusCharacter: "focusCharacter" in context ? context.focusCharacter : null,
     scope: context.scope,
   };

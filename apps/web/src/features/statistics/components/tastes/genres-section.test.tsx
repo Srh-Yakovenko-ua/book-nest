@@ -10,6 +10,7 @@ vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
 
 import { overviewFixture } from "../../model/statistics.fixtures";
@@ -21,6 +22,10 @@ function genreRow(genreKey: string) {
   const [row] = genres.frequency;
   if (row === undefined) throw new Error("fixture must expose one genre row");
   return { ...row, genreKey };
+}
+
+function subsetOpenLabel(name: string): string {
+  return messages.statistics.details.subset.open.replace("{name}", name);
 }
 
 function withFrequency(
@@ -87,13 +92,35 @@ describe("GenresSection", () => {
     expect(rows.map((row) => row.textContent)).toEqual(["фентезі", "детектив", "аніме"]);
   });
 
-  it("leaves a row non-interactive while the exact subset has no destination", () => {
+  it("opens a frequency row's finished reads from its label and adds no links", async () => {
     renderWithProviders(<GenresSection genres={genres} />);
 
     const list = screen.getByRole("list");
 
-    expect(within(list).queryAllByRole("button")).toHaveLength(0);
+    const trigger = await within(list).findByRole("button", { name: subsetOpenLabel("Фентезі") });
+    expect(trigger).toHaveAttribute("aria-haspopup", "dialog");
+    expect(within(list).getAllByRole("button")).toHaveLength(1);
     expect(within(list).queryAllByRole("link")).toHaveLength(0);
+  });
+
+  it("keeps rated rows unclickable even for a genre whose reads can be opened", async () => {
+    renderWithProviders(
+      <GenresSection
+        genres={{
+          ...genres,
+          topRated: {
+            availability: "available",
+            items: [{ averageRating: 8, genreKey: "fantasy", ratedReadCount: 3 }],
+          },
+        }}
+      />,
+    );
+    expect(await screen.findByRole("button", { name: subsetOpenLabel("Фентезі") })).toBeVisible();
+
+    await userEvent.click(screen.getByRole("radio", { name: "Найвище оцінюю" }));
+
+    expect(screen.getByText("8,0 / 10")).toBeInTheDocument();
+    expect(within(screen.getByRole("list")).queryAllByRole("button")).toHaveLength(0);
   });
 
   it("shows the typed insufficient-sample reason instead of an empty ranking", async () => {
@@ -111,5 +138,25 @@ describe("GenresSection", () => {
     renderWithProviders(<GenresSection genres={withFrequency([])} />);
 
     expect(screen.getByText("У завершених читаннях періоду немає жанрів.")).toBeInTheDocument();
+  });
+
+  it("scores a rated genre against the ten-point scale", async () => {
+    renderWithProviders(
+      <GenresSection
+        genres={{
+          ...genres,
+          topRated: {
+            availability: "available",
+            items: [{ averageRating: 8, genreKey: "fantasy", ratedReadCount: 3 }],
+          },
+        }}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("radio", { name: "Найвище оцінюю" }));
+
+    expect(screen.getByText("8,0 / 10")).toBeInTheDocument();
+    const bar = screen.getByRole("listitem").querySelector<HTMLElement>("[style*='width']");
+    expect(bar?.style.width).toBe("80%");
   });
 });

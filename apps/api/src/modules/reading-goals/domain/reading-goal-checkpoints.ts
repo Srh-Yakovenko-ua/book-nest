@@ -30,25 +30,25 @@ type CheckpointGridPoint = {
 };
 
 type CheckpointsInput = {
-  archivedAt: Nullable<Date>;
+  archivedDay: Nullable<Date>;
   books: ReadingGoalCandidateBook[];
   deadline: Date;
   goalStartDate: Date;
-  now: Date;
   targetCount: number;
+  today: Date;
 };
 
 export function buildReadingGoalCheckpoints({
-  archivedAt,
+  archivedDay,
   books,
   deadline,
   goalStartDate,
-  now,
   targetCount: goalTargetCount,
+  today,
 }: CheckpointsInput): ReadingGoalCheckpoint[] {
   const qualifyingBooks = selectQualifyingReadingGoalBooks({
     books,
-    countingEndsAt: resolveReadingGoalCountingEnd({ archivedAt, deadline }),
+    countingEndsAt: resolveReadingGoalCountingEnd({ archivedDay, deadline }),
     goalStartDate,
   });
   const goalStartIsoDate = toIsoDate(goalStartDate);
@@ -62,7 +62,7 @@ export function buildReadingGoalCheckpoints({
   }));
 
   return dedupeCheckpointTargets(drafts).map((draft) =>
-    toReadingGoalCheckpoint({ draft, qualifyingBooks, today: startOfUtcDay(now) }),
+    toReadingGoalCheckpoint({ draft, qualifyingBooks, today: startOfUtcDay(today) }),
   );
 }
 

@@ -1,12 +1,9 @@
 import "@testing-library/jest-dom/vitest";
-
-import type { ReactNode } from "react";
-
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { listKeys } from "@/features/lists/api/list-keys";
+import { queryClientWrapper } from "@/test-query-cache";
 import { createTestQueryClient } from "@/test-utils";
 
 import { useSetBookLists } from "./use-book-lists";
@@ -21,12 +18,6 @@ function jsonResponse(body: unknown): Response {
     headers: { "Content-Type": "application/json" },
     status: 200,
   });
-}
-
-function makeWrapper(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
 }
 
 beforeEach(() => {
@@ -49,7 +40,7 @@ describe("useSetBookLists", () => {
     expect(client.getQueryState(detailKey)?.isInvalidated).toBe(false);
 
     const { result } = renderHook(() => useSetBookLists(BOOK_ID), {
-      wrapper: makeWrapper(client),
+      wrapper: queryClientWrapper(client),
     });
 
     await act(async () => {
@@ -57,5 +48,33 @@ describe("useSetBookLists", () => {
     });
 
     await waitFor(() => expect(client.getQueryState(detailKey)?.isInvalidated).toBe(true));
+  });
+
+  it("sends the new lists inside one PUT instead of creating each list first", async () => {
+    const client = createTestQueryClient();
+    const { result } = renderHook(() => useSetBookLists(BOOK_ID), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        listIds: [LIST_ID],
+        newLists: [{ name: "Літо 2026" }],
+      });
+    });
+
+    expect(
+      fetchMock.mock.calls.map(([input, init]) => ({
+        body: JSON.parse(String(init?.body)),
+        method: init?.method,
+        path: new URL(String(input), "http://localhost").pathname,
+      })),
+    ).toEqual([
+      {
+        body: { listIds: [LIST_ID], newLists: [{ name: "Літо 2026" }] },
+        method: "PUT",
+        path: `/api/books/${BOOK_ID}/lists`,
+      },
+    ]);
   });
 });

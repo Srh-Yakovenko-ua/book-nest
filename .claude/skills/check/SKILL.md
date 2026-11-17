@@ -19,7 +19,7 @@ During development no gate runs (CLAUDE.md §9). This is the one moment they do,
 
 ## Running tests here anyway
 
-Only when the user asks for a test run, or to reproduce a test that CI reported red. Then run the narrowest thing: `bash .claude/scripts/gates.sh --with-tests` for the diff's related tests, or one file with `VITEST_MAX_WORKERS=1`. A hook asks before any other local test run. CI on a branch without deploying: `gh workflow run ci.yml --ref <pushed-branch>`, which needs the user's consent to push.
+Only when the user asks for a test run, or to reproduce a test that CI reported red. Then run the narrowest thing: `bash .claude/scripts/gates.sh --with-tests` for the diff's related tests, or one file with `VITEST_MAX_WORKERS=1`. A hook denies any other local test run. CI on a branch without deploying: `gh workflow run ci.yml --ref <pushed-branch>`, which needs the user's consent to push.
 
 ## On a failure
 

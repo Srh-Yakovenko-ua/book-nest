@@ -2,6 +2,8 @@ import type { BookOrderHistorySummaryView, LatestReceiptView } from "@app/shared
 
 import { describe, expect, it } from "vitest";
 
+import { formatDate } from "@/lib/format";
+
 import type { DeliveryLatestReceiptLabels } from "./latest-receipt-card";
 
 import { buildDeliveryLatestReceiptCard } from "./latest-receipt-card";
@@ -14,14 +16,32 @@ const LABELS: DeliveryLatestReceiptLabels = {
   yesterday: "yesterday",
 };
 
-const NOW = new Date("2026-08-20T09:00:00.000Z");
+const PROFILE = { timeZone: "Europe/Kyiv", today: "2026-08-20" };
 
 function build(latestReceipt: LatestReceiptView | null) {
   return buildDeliveryLatestReceiptCard({
     labels: LABELS,
     locale: "uk",
-    now: NOW,
     summary: summary(latestReceipt),
+    ...PROFILE,
+  });
+}
+
+function buildInProfile({
+  receivedAt,
+  timeZone,
+  today,
+}: {
+  receivedAt: string;
+  timeZone: string;
+  today: string;
+}) {
+  return buildDeliveryLatestReceiptCard({
+    labels: LABELS,
+    locale: "uk",
+    summary: summary(receipt({ receivedAt })),
+    timeZone,
+    today,
   });
 }
 
@@ -63,7 +83,7 @@ function summary(latestReceipt: LatestReceiptView | null): BookOrderHistorySumma
 describe("buildDeliveryLatestReceiptCard", () => {
   it("has nothing to show without a summary", () => {
     expect(
-      buildDeliveryLatestReceiptCard({ labels: LABELS, locale: "uk", now: NOW, summary: null }),
+      buildDeliveryLatestReceiptCard({ labels: LABELS, locale: "uk", summary: null, ...PROFILE }),
     ).toBeNull();
   });
 
@@ -115,6 +135,48 @@ describe("buildDeliveryLatestReceiptCard", () => {
     expect(build(receipt({ receivedAt: "2026-08-16T07:30:00.000Z" }))?.relativeDayText).toBe(
       "daysAgo:4",
     );
+  });
+
+  it("counts the receipt day from the profile today, not the device clock", () => {
+    const model = buildInProfile({
+      receivedAt: "2026-08-20T07:30:00.000Z",
+      timeZone: "Europe/Kyiv",
+      today: "2026-08-21",
+    });
+
+    expect(model?.relativeDayText).toBe("yesterday");
+  });
+
+  it("reads the receipt day in the profile time zone, not on the device", () => {
+    const model = buildInProfile({
+      receivedAt: "2026-08-19T16:00:00.000Z",
+      timeZone: "Asia/Tokyo",
+      today: "2026-08-20",
+    });
+
+    expect(model?.relativeDayText).toBe("today");
+    expect(model?.receivedDateText).toBe(formatDate("2026-08-20", "uk"));
+  });
+
+  it("moves a late-evening receipt to the next day east of the device", () => {
+    const model = buildInProfile({
+      receivedAt: "2026-08-19T16:00:00.000Z",
+      timeZone: "Asia/Tokyo",
+      today: "2026-08-21",
+    });
+
+    expect(model?.relativeDayText).toBe("yesterday");
+  });
+
+  it("keeps an evening receipt on its own day west of UTC", () => {
+    const model = buildInProfile({
+      receivedAt: "2026-08-20T01:00:00.000Z",
+      timeZone: "America/New_York",
+      today: "2026-08-19",
+    });
+
+    expect(model?.relativeDayText).toBe("today");
+    expect(model?.receivedDateText).toBe(formatDate("2026-08-19", "uk"));
   });
 
   it("mentions the other receipts of the same day only when there were any", () => {

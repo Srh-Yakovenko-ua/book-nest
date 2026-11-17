@@ -1,29 +1,27 @@
 "use client";
 
 import type { Nullable } from "@app/shared";
-import type { UseFormRegister } from "react-hook-form";
 
 import { ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { Controller } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { FieldError } from "@/components/ui/field-error";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 import type {
+  RelationshipFormControl,
   RelationshipFormErrors,
-  RelationshipFormInput,
 } from "../model/relationship-form-schema";
 
-import { RELATIONSHIP_FORM_LIMITS } from "../model/relationship-form-schema";
+import { RelationshipRoleSuggestionCombobox } from "./relationship-role-suggestion-combobox";
 
 const LABEL_FIELDS = {
-  source: { id: "relationship-source-label", name: "sourceLabel" },
-  target: { id: "relationship-target-label", name: "targetLabel" },
+  source: { errorId: "relationship-source-label-error", name: "sourceLabel" },
+  target: { errorId: "relationship-target-label-error", name: "targetLabel" },
 } as const;
 
 type LabelSide = keyof typeof LABEL_FIELDS;
@@ -31,17 +29,17 @@ type LabelSide = keyof typeof LABEL_FIELDS;
 const LABEL_SIDES = ["source", "target"] as const satisfies readonly LabelSide[];
 
 type RelationshipLabelFieldsProps = {
+  control: RelationshipFormControl;
   defaultOpen: boolean;
   errors: RelationshipFormErrors;
   names: Record<LabelSide, Nullable<string>>;
-  register: UseFormRegister<RelationshipFormInput>;
 };
 
 export function RelationshipLabelFields({
+  control,
   defaultOpen,
   errors,
   names,
-  register,
 }: RelationshipLabelFieldsProps) {
   const t = useTranslations("relationships.editor.labels");
   const [isExpanded, setExpanded] = useState(defaultOpen);
@@ -51,7 +49,7 @@ export function RelationshipLabelFields({
   return (
     <Collapsible onOpenChange={setExpanded} open={open}>
       <CollapsibleTrigger asChild>
-        <Button className="w-full justify-between" type="button" variant="ghost">
+        <Button className="w-full justify-between max-sm:min-h-11" type="button" variant="ghost">
           {t("toggle")}
           <ChevronDown aria-hidden className={cn("transition-transform", open && "rotate-180")} />
         </Button>
@@ -59,27 +57,31 @@ export function RelationshipLabelFields({
       <CollapsibleContent className="flex flex-col gap-4 pt-3">
         <p className="text-xs text-muted-foreground">{t("hint")}</p>
         {LABEL_SIDES.map((side) => {
-          const { id, name } = LABEL_FIELDS[side];
+          const { errorId, name } = LABEL_FIELDS[side];
           const error = errors[name];
-          const errorId = `${id}-error`;
           const participantName = names[side];
+          const label =
+            participantName === null ? t(`${side}Fallback`) : t(side, { name: participantName });
 
           return (
             <div className="flex min-w-0 flex-col gap-2" key={side}>
-              <Label className="flex-wrap" htmlFor={id}>
-                {participantName === null
-                  ? t(`${side}Fallback`)
-                  : t(side, { name: participantName })}
-              </Label>
-              <Input
-                aria-describedby={error ? errorId : undefined}
-                aria-invalid={error !== undefined}
-                autoComplete="off"
-                className="h-10"
-                id={id}
-                maxLength={RELATIONSHIP_FORM_LIMITS.labelMax}
-                placeholder={t("placeholder")}
-                {...register(name)}
+              <span aria-hidden className="flex flex-wrap text-sm font-medium text-foreground">
+                {label}
+              </span>
+              <Controller
+                control={control}
+                name={name}
+                render={({ field }) => (
+                  <RelationshipRoleSuggestionCombobox
+                    describedBy={error ? errorId : undefined}
+                    invalid={error !== undefined}
+                    label={label}
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
+                    ref={field.ref}
+                    value={field.value}
+                  />
+                )}
               />
               <FieldError error={error} id={errorId} />
             </div>

@@ -28,6 +28,7 @@ const meta = {
     onResetFilters: () => {},
     onRetry: () => {},
     pagination: { hasNextPage: false, isFetchingNextPage: false, isFetchNextPageError: false },
+    refetchError: null,
     renderCard: (model) => (
       <DeliveryOrderCard
         key={model.id}
@@ -82,7 +83,11 @@ export const Empty: Story = {
 };
 
 export const FilteredEmpty: Story = {
-  args: { content: { kind: "filtered-empty" }, showToolbar: true, toolbar: <div /> },
+  args: {
+    content: { isRefreshing: false, kind: "filtered-empty" },
+    showToolbar: true,
+    toolbar: <div />,
+  },
   play: async ({ canvas }) => {
     await waitFor(() => expect(canvas.getByText("Нічого не знайдено")).toBeVisible());
     await expect(canvas.getByRole("button", { name: "Скинути фільтри" })).toBeVisible();
@@ -91,7 +96,7 @@ export const FilteredEmpty: Story = {
 
 export const Ready: Story = {
   args: {
-    content: { items: deliveryOrderCardModels, kind: "ready" },
+    content: { isRefreshing: false, items: deliveryOrderCardModels, kind: "ready" },
     selectAll: { checked: false, count: 0, onToggle: () => {} },
     showToolbar: true,
     toolbar: <div />,

@@ -350,7 +350,7 @@ bash .claude/scripts/ux-lookup.sh <domain> "<query>"
 
 - Business logic (that's `frontend-engineer`)
 - Data fetching and state management (that's `frontend-engineer`)
-- Vendored shadcn primitives in `components/ui/**` (adding a new one needs the shadcn CLI, which only the main loop runs; name the primitive you need in the report)
+- The shadcn-origin primitives in `components/ui/`, listed in CLAUDE.md §7. Change one only when the task needs it, and keep its structure. A new primitive needs the shadcn CLI, which only the main loop runs, so name the primitive you need in the report. The other files in that folder are the project's own components; edit them freely.
 - Root configs (`next.config.ts`, `postcss.config.mjs`, `components.json`). This is Next.js 16 App Router with Tailwind v4's CSS-first config: there is no JS Tailwind config, and theme tokens live in `globals.css`
 - The `apps/web/src/styles/globals.css` theme block — only extend, never override core brand variables without explicit user approval
 - Test files — `frontend-test-engineer` handles those (stories are yours)

@@ -10,9 +10,9 @@ import type {
 import { type GenreIconName, isGenreIconName, type UiIconName } from "@/components/icons";
 import {
   bookFormats,
+  FALLBACK_READING_STATUS,
   ownershipStatuses,
   readingStatuses,
-  type StatusDefinition,
   type StatusEntry,
 } from "@/lib/book-status";
 
@@ -85,9 +85,6 @@ export type LibraryBookSeries = {
 };
 
 const PROGRESS_STATUSES: readonly ReadingStatus[] = ["reading", "paused", "rereading"];
-
-export const FALLBACK_READING_STATUS: StatusDefinition =
-  readingStatuses.find((entry) => entry.value === "not_started") ?? readingStatuses[0];
 
 export function toLibraryBook(book: BookView, labels: LibraryBookLabels): LibraryBook {
   const baseStatus =

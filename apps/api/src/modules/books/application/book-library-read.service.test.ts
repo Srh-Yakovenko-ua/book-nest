@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { GenresService } from "../../genres/application/genres.service.js";
 import type { MediaService } from "../../media/application/media.service.js";
+import type { UserSettingsContextService } from "../../profile/index.js";
 import type {
   ActiveReadingRow,
   BookLibraryReadRepository,
@@ -134,6 +135,9 @@ function buildReadService(
   const viewAssembler = new BookViewAssembler(
     fakeOf<BooksRepository>({}),
     fakeOf<MediaService>(mediaService),
+    fakeOf<UserSettingsContextService>({
+      calendarDay: vi.fn().mockResolvedValue(new Date("2026-07-07T00:00:00.000Z")),
+    }),
   );
   const genresService = {
     findNamesByKeys: vi.fn().mockResolvedValue([]),
@@ -402,7 +406,7 @@ describe("BookLibraryReadService.overview activeReading", () => {
     const genresService = { findNamesByKeys: vi.fn().mockResolvedValue([]) };
     const service = new BookLibraryReadService(
       fakeOf<BookLibraryReadRepository>(repository),
-      fakeOf<BookViewAssembler>({ viewOf: vi.fn() }),
+      fakeOf<BookViewAssembler>({ forUser: vi.fn().mockResolvedValue(vi.fn()) }),
       fakeOf<GenresService>(genresService),
     );
     return { repository, service };

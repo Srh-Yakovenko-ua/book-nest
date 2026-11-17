@@ -74,4 +74,12 @@ describe("formatRelativeTime", () => {
   it("honours the locale argument", () => {
     expect(formatRelativeTime(localIso({ days: -1 }), "en")).toBe("yesterday");
   });
+
+  it("names a date-only string for the current day as today instead of counting hours", () => {
+    expect(formatRelativeTime("2026-07-30", "uk")).toBe("сьогодні");
+  });
+
+  it("counts calendar days back to a date-only string", () => {
+    expect(formatRelativeTime("2026-07-27", "uk")).toBe("3 дні тому");
+  });
 });

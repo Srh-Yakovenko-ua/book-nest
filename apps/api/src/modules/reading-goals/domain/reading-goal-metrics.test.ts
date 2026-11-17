@@ -11,16 +11,16 @@ import { calculateReadingGoalMetrics } from "./reading-goal-metrics.js";
 type MetricsInput = Parameters<typeof calculateReadingGoalMetrics>[0];
 
 const baseGoal = {
-  archivedAt: null,
-  createdAt: new Date("2026-08-01T09:15:00.000Z"),
+  archivedDay: null,
+  createdDay: new Date("2026-08-01T00:00:00.000Z"),
   deadline: parseIsoDate("2026-08-20"),
   targetCount: 5,
 } satisfies MetricsInput["goal"];
 
 const baseInput = {
   goal: baseGoal,
-  now: new Date("2026-08-10T12:00:00.000Z"),
   snapshotBooks: snapshotBooks(["2026-08-03", "2026-08-07", null, null, null]),
+  today: new Date("2026-08-10T12:00:00.000Z"),
 } satisfies MetricsInput;
 
 function calculateMetrics(overrides: Partial<MetricsInput>) {
@@ -121,8 +121,8 @@ describe("calculateReadingGoalMetrics snapshot qualification", () => {
 
   it("counts a book finished on the goal start day and on the deadline day", () => {
     const metrics = calculateMetrics({
-      now: new Date("2026-08-20T12:00:00.000Z"),
       snapshotBooks: snapshotBooks(["2026-08-01", "2026-08-20", null, null, null]),
+      today: new Date("2026-08-20T12:00:00.000Z"),
     });
 
     expect(metrics.completedCount).toBe(2);
@@ -159,13 +159,13 @@ describe("calculateReadingGoalMetrics idle days", () => {
 
   it("keeps counting idle days after the deadline has passed", () => {
     expect(
-      calculateMetrics({ now: new Date("2026-08-25T12:00:00.000Z") }).daysSinceLastCounted,
+      calculateMetrics({ today: new Date("2026-08-25T12:00:00.000Z") }).daysSinceLastCounted,
     ).toBe(18);
   });
 
   it("reports no idle days for an archived goal", () => {
     const metrics = calculateMetrics({
-      goal: { ...baseGoal, archivedAt: new Date("2026-08-09T10:00:00.000Z") },
+      goal: { ...baseGoal, archivedDay: new Date("2026-08-09T00:00:00.000Z") },
     });
 
     expect(metrics.daysSinceLastCounted).toBeNull();
@@ -210,7 +210,7 @@ describe("calculateReadingGoalMetrics required and actual pace", () => {
   });
 
   it("drops the required pace for a goal whose deadline has passed", () => {
-    const metrics = calculateMetrics({ now: new Date("2026-08-25T12:00:00.000Z") });
+    const metrics = calculateMetrics({ today: new Date("2026-08-25T12:00:00.000Z") });
 
     expect(metrics.requiredBooksPerDay).toBeNull();
     expect(metrics.requiredDaysPerBook).toBeNull();
@@ -241,12 +241,12 @@ describe("calculateReadingGoalMetrics required and actual pace", () => {
       "2026-08-05",
     ]);
     const onCompletionDay = calculateMetrics({
-      now: new Date("2026-08-05T20:00:00.000Z"),
       snapshotBooks: finishedBooks,
+      today: new Date("2026-08-05T20:00:00.000Z"),
     });
     const onTheDeadline = calculateMetrics({
-      now: new Date("2026-08-20T20:00:00.000Z"),
       snapshotBooks: finishedBooks,
+      today: new Date("2026-08-20T20:00:00.000Z"),
     });
 
     expect(onCompletionDay).toMatchObject({
@@ -262,14 +262,14 @@ describe("calculateReadingGoalMetrics required and actual pace", () => {
   });
 
   it("freezes the achieved rate of an archived goal on its archiving day", () => {
-    const archivedGoal = { ...baseGoal, archivedAt: new Date("2026-08-08T10:00:00.000Z") };
+    const archivedGoal = { ...baseGoal, archivedDay: new Date("2026-08-08T00:00:00.000Z") };
     const dayAfterArchiving = calculateMetrics({
       goal: archivedGoal,
-      now: new Date("2026-08-09T12:00:00.000Z"),
+      today: new Date("2026-08-09T12:00:00.000Z"),
     });
     const monthsLater = calculateMetrics({
       goal: archivedGoal,
-      now: new Date("2026-11-06T12:00:00.000Z"),
+      today: new Date("2026-11-06T12:00:00.000Z"),
     });
 
     expect(dayAfterArchiving).toMatchObject({
@@ -289,8 +289,8 @@ describe("calculateReadingGoalMetrics rounding", () => {
   it("rounds the returned rates without rounding the values the risk rules compare", () => {
     const metrics = calculateMetrics({
       goal: { ...baseGoal, deadline: parseIsoDate("2026-11-29"), targetCount: 77 },
-      now: new Date("2026-08-07T12:00:00.000Z"),
       snapshotBooks: snapshotBooks(["2026-08-03", "2026-08-04", "2026-08-05"]),
+      today: new Date("2026-08-07T12:00:00.000Z"),
     });
 
     expect(metrics.actualBooksPerDay).toBe(0.429);
@@ -332,7 +332,7 @@ describe("calculateReadingGoalMetrics contract", () => {
 
   it("blanks every active-only metric once the goal is archived", () => {
     const metrics = calculateMetrics({
-      goal: { ...baseGoal, archivedAt: new Date("2026-08-09T10:00:00.000Z") },
+      goal: { ...baseGoal, archivedDay: new Date("2026-08-09T00:00:00.000Z") },
     });
 
     expect(ReadingGoalMetricsSchema.parse(metrics)).toStrictEqual(metrics);

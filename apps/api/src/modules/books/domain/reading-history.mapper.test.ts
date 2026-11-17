@@ -7,10 +7,11 @@ import type {
   ReadingStatus,
 } from "@app/shared";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import type { ReadingEventRow, ReadingProgressSnapshot } from "./reading-history.mapper.js";
 
+import { pinProcessTimezone } from "../../../test/process-timezone.js";
 import { READING_ACTIVITY_ALL_MAX_DAYS, toReadingHistoryView } from "./reading-history.mapper.js";
 
 const TODAY = utc("2026-03-12T00:00:00.000Z");
@@ -349,6 +350,27 @@ describe("toReadingHistoryView summary", () => {
     });
 
     expect(view.summary.readingPeriod.calendarDays).toBe(1);
+  });
+
+  it("returns each reading progress date as an ISO calendar day", () => {
+    const view = buildView({
+      progress: {
+        abandonedAt: utc("2026-03-07T00:00:00.000Z"),
+        finishedAt: utc("2026-03-11T00:00:00.000Z"),
+        lastProgressUpdateAt: utc("2026-03-09T00:00:00.000Z"),
+        pausedAt: utc("2026-03-06T00:00:00.000Z"),
+        startedAt: utc("2026-03-02T00:00:00.000Z"),
+      },
+      readingStatus: "finished",
+    });
+
+    expect(view.summary).toMatchObject({
+      abandonedAt: "2026-03-07",
+      finishedAt: "2026-03-11",
+      lastProgressUpdateAt: "2026-03-09",
+      pausedAt: "2026-03-06",
+      startedAt: "2026-03-02",
+    });
   });
 
   it("uses the earliest event as the period start when startedAt is missing", () => {
@@ -833,15 +855,7 @@ describe("toReadingHistoryView history grouping", () => {
 });
 
 describe("toReadingHistoryView activity graph across a DST transition", () => {
-  const originalTimezone = process.env.TZ;
-
-  beforeEach(() => {
-    process.env.TZ = "Europe/Kyiv";
-  });
-
-  afterEach(() => {
-    process.env.TZ = originalTimezone;
-  });
+  pinProcessTimezone("Europe/Kyiv");
 
   it("emits seven consecutive UTC days when the 7d window straddles the spring-forward boundary", () => {
     const view = buildView({

@@ -13,6 +13,8 @@ import { Injectable } from "@nestjs/common";
 
 import type { OrderStatisticsRecordsPage } from "../domain/order-statistics-page.js";
 
+import { toIsoDate } from "../../../core/iso-date.js";
+import { UserSettingsContextService } from "../../profile/index.js";
 import { buildActiveMoneyAge } from "../domain/active-age.js";
 import {
   computeBookOrderStatistics,
@@ -24,7 +26,10 @@ import { DeliveryStatisticsRepository } from "../infrastructure/delivery-statist
 
 @Injectable()
 export class DeliveryStatisticsService {
-  constructor(private readonly deliveryStatisticsRepository: DeliveryStatisticsRepository) {}
+  constructor(
+    private readonly deliveryStatisticsRepository: DeliveryStatisticsRepository,
+    private readonly userSettingsContextService: UserSettingsContextService,
+  ) {}
 
   async activeMoneyAge({
     query,
@@ -34,17 +39,21 @@ export class DeliveryStatisticsService {
     userId: string;
   }): Promise<ActiveMoneyAgeResponse> {
     const now = new Date();
-    const page = await this.deliveryStatisticsRepository.listActiveOrderRecords({
-      currency: query.currency,
-      orderState: query.orderState,
-      store: query.store,
-      userId,
-    });
+    const [{ today }, page] = await Promise.all([
+      this.userSettingsContextService.calendar({ now, userId }),
+      this.deliveryStatisticsRepository.listActiveOrderRecords({
+        currency: query.currency,
+        orderState: query.orderState,
+        store: query.store,
+        userId,
+      }),
+    ]);
 
     return {
       ...buildActiveMoneyAge({
         now,
         orders: page.records.map((record) => classifyOrder({ includeCancelled: false, record })),
+        today: toIsoDate(today),
       }),
       source: toSourceQuality(page),
     };
@@ -57,11 +66,15 @@ export class DeliveryStatisticsService {
     query: BookOrderStatisticsQuery;
     userId: string;
   }): Promise<BookOrderStatisticsView> {
+    const { today, weekStartDay } = await this.userSettingsContextService.calendar({
+      now: new Date(),
+      userId,
+    });
     const { comparisonPeriod, currentPeriod, requestedPeriod } = resolveStatisticsPeriods({
       compare: query.compare,
       from: query.from,
-      now: new Date(),
       to: query.to,
+      today: toIsoDate(today),
     });
 
     const [page, activePage, comparisonPage] = await Promise.all([
@@ -95,6 +108,7 @@ export class DeliveryStatisticsService {
           period: currentPeriod,
         },
         topLimit: ORDER_STATISTICS_TOP_LIMIT,
+        weekStartDay,
       }),
       meta: {
         activeSource: toSourceQuality(activePage),

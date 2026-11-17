@@ -86,7 +86,9 @@ function setup(options: {
   const viewOf = vi.fn(
     (row: BookWithRelations) => viewByRowId.get(row.id) ?? makeView({ id: row.id }),
   );
-  const bookViewAssembler = { viewOf } as unknown as BookViewAssembler;
+  const bookViewAssembler = {
+    forUser: vi.fn().mockResolvedValue(viewOf),
+  } as unknown as BookViewAssembler;
 
   const searchKeys = vi.fn().mockResolvedValue(options.searchKeys ?? []);
   const genresService = { searchKeys } as unknown as GenresService;

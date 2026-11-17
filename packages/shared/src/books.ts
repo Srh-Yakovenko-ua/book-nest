@@ -27,7 +27,7 @@ import {
   paginationQueryFields,
   type ValueOf,
 } from "./common.js";
-import { DeliveryServiceSchema } from "./delivery-services.js";
+import { DELIVERY_SERVICE_LIMITS, DeliveryServiceSchema } from "./delivery-services.js";
 import { DeliverySummaryViewSchema } from "./delivery-view.js";
 import { BookGenresSchema, GenreKeySchema } from "./genres.js";
 import {
@@ -37,6 +37,12 @@ import {
   isExpectedNotBeforeOrder,
   NoHtmlString,
   notInFutureDate,
+  OWNERSHIP_NOTE_MAX,
+  OWNERSHIP_ORDER_NUMBER_MAX,
+  OWNERSHIP_PRICE_MAX,
+  OWNERSHIP_PRICE_MIN,
+  OWNERSHIP_STORE_NAME_MAX,
+  OWNERSHIP_STORE_URL_MAX,
   OwnershipNoteSchema,
   OwnershipOrderNumberSchema,
   OwnershipPriceSchema,
@@ -46,10 +52,12 @@ import {
   ratingBound,
   RECENT_USED_LIMIT_DEFAULT,
   RECENT_USED_LIMIT_MAX,
+  TRACKING_NUMBER_MAX,
   TrackingNumberSchema,
 } from "./internal.js";
 import {
   BookListViewSchema,
+  LIST_INPUT_LIMITS,
   ListFacetEntrySchema,
   ListGenreFacetSchema,
   NewListInputSchema,
@@ -70,7 +78,7 @@ export const BOOK_TITLE_MAX = 150;
 export const BOOK_DESCRIPTION_MAX = 5000;
 
 const BOOK_LIST_IDS_MAX = 50;
-const BOOK_NEW_LISTS_MAX = 20;
+const BOOK_NEW_LISTS_MAX = LIST_INPUT_LIMITS.newListsMax;
 
 const BOOK_PAGES_COUNT_MIN = 1;
 const BOOK_PAGES_COUNT_MAX = 10000;
@@ -257,6 +265,12 @@ const OwnershipPersonNameSchema = z
     ),
   );
 
+export const PURCHASE_INPUT_LIMITS = {
+  priceMax: OWNERSHIP_PRICE_MAX,
+  priceMin: OWNERSHIP_PRICE_MIN,
+  storeNameMax: OWNERSHIP_STORE_NAME_MAX,
+} as const;
+
 const PurchaseInfoFieldsSchema = z.object({
   currency: CurrencySchema.nullable().optional(),
   expectedPrice: OwnershipPriceSchema.nullable().optional(),
@@ -301,6 +315,18 @@ export const DeliveryInfoInputSchema = z
   .optional();
 
 export type DeliveryInfoInput = z.infer<typeof DeliveryInfoInputSchema>;
+
+export const DELIVERY_INPUT_LIMITS = {
+  noteMax: OWNERSHIP_NOTE_MAX,
+  orderNumberMax: OWNERSHIP_ORDER_NUMBER_MAX,
+  priceMax: OWNERSHIP_PRICE_MAX,
+  priceMin: OWNERSHIP_PRICE_MIN,
+  serviceMax: DELIVERY_SERVICE_LIMITS.nameMax,
+  serviceMin: DELIVERY_SERVICE_LIMITS.nameMin,
+  storeNameMax: OWNERSHIP_STORE_NAME_MAX,
+  trackingNumberMax: TRACKING_NUMBER_MAX,
+  trackingUrlMax: OWNERSHIP_STORE_URL_MAX,
+} as const;
 
 export const CreateDeliveryInputSchema = z
   .object({
@@ -550,6 +576,10 @@ export const LOAN_ERROR_CODES = {
 
 export type LoanErrorCode = ValueOf<typeof LOAN_ERROR_CODES>;
 
+export const BOOK_SERIES_ERROR_CODES = {
+  partNumberExceedsTotal: "BOOK_PART_NUMBER_EXCEEDS_TOTAL",
+} as const;
+
 export const BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE =
   "Part number can't be greater than the total books in the series";
 
@@ -767,10 +797,12 @@ export const UpdateBookInputSchema = z
 
 export type UpdateBookInput = z.infer<typeof UpdateBookInputSchema>;
 
-const BULK_BOOK_IDS_MAX = LIST_PAGE_SIZE_MAX;
+export const BOOK_BULK_LIMITS = {
+  bookIdsMax: LIST_PAGE_SIZE_MAX,
+} as const;
 
 export const BulkBookIdsSchema = z.object({
-  bookIds: z.array(z.uuid()).min(1).max(BULK_BOOK_IDS_MAX),
+  bookIds: z.array(z.uuid()).min(1).max(BOOK_BULK_LIMITS.bookIdsMax),
 });
 
 export type BulkBookIds = z.infer<typeof BulkBookIdsSchema>;
@@ -997,15 +1029,15 @@ export const PurchaseInfoViewSchema = z.object({
 export type PurchaseInfoView = z.infer<typeof PurchaseInfoViewSchema>;
 
 export const ReadingProgressViewSchema = z.object({
-  abandonedAt: z.string().nullable(),
+  abandonedAt: z.iso.date().nullable(),
   currentPage: z.number().nullable(),
-  finishedAt: z.string().nullable(),
+  finishedAt: z.iso.date().nullable(),
   impression: z.string().nullable(),
-  lastProgressUpdateAt: z.string().nullable(),
+  lastProgressUpdateAt: z.iso.date().nullable(),
   note: z.string().nullable(),
-  pausedAt: z.string().nullable(),
+  pausedAt: z.iso.date().nullable(),
   rating: z.number().nullable(),
-  startedAt: z.string().nullable(),
+  startedAt: z.iso.date().nullable(),
 });
 
 export type ReadingProgressView = z.infer<typeof ReadingProgressViewSchema>;
@@ -1036,7 +1068,7 @@ export const ReadingHistoryQuerySchema = z.object({
 export type ReadingHistoryQuery = z.infer<typeof ReadingHistoryQuerySchema>;
 
 export const ReadingHistoryEventViewSchema = z.object({
-  date: z.string(),
+  date: z.iso.date(),
   id: z.string(),
   page: z.number(),
   pagesRead: z.number(),
@@ -1046,7 +1078,7 @@ export const ReadingHistoryEventViewSchema = z.object({
 export type ReadingHistoryEventView = z.infer<typeof ReadingHistoryEventViewSchema>;
 
 export const ReadingDaySummaryViewSchema = z.object({
-  date: z.string(),
+  date: z.iso.date(),
   finalPage: z.number().nullable(),
   pagesRead: z.number(),
   updatesCount: z.number(),
@@ -1055,29 +1087,29 @@ export const ReadingDaySummaryViewSchema = z.object({
 export type ReadingDaySummaryView = z.infer<typeof ReadingDaySummaryViewSchema>;
 
 export const ReadingHistorySummaryViewSchema = z.object({
-  abandonedAt: z.string().nullable(),
+  abandonedAt: z.iso.date().nullable(),
   activeDaysCount: z.number(),
   averagePagesPerActiveDay: z.number().nullable(),
   bestDay: ReadingDaySummaryViewSchema.nullable(),
   currentPage: z.number(),
   estimatedActiveDaysRemaining: z.number().nullable(),
-  finishedAt: z.string().nullable(),
+  finishedAt: z.iso.date().nullable(),
   historyCompleteness: z.object({
     isComplete: z.boolean(),
     untrackedPages: z.number(),
   }),
   lastActivity: ReadingDaySummaryViewSchema.nullable(),
-  lastProgressUpdateAt: z.string().nullable(),
+  lastProgressUpdateAt: z.iso.date().nullable(),
   pagesCount: z.number().nullable(),
   pagesRemaining: z.number().nullable(),
-  pausedAt: z.string().nullable(),
+  pausedAt: z.iso.date().nullable(),
   progressPercent: z.number().nullable(),
   readingPeriod: z.object({
     calendarDays: z.number().nullable(),
-    endDate: z.string().nullable(),
-    startDate: z.string().nullable(),
+    endDate: z.iso.date().nullable(),
+    startDate: z.iso.date().nullable(),
   }),
-  startedAt: z.string().nullable(),
+  startedAt: z.iso.date().nullable(),
   status: ReadingStatusSchema,
   trackedPagesRead: z.number(),
   updatesCount: z.number(),
@@ -1086,7 +1118,7 @@ export const ReadingHistorySummaryViewSchema = z.object({
 export type ReadingHistorySummaryView = z.infer<typeof ReadingHistorySummaryViewSchema>;
 
 export const ReadingActivityPointViewSchema = z.object({
-  date: z.string(),
+  date: z.iso.date(),
   finalPage: z.number().nullable(),
   hasActivity: z.boolean(),
   pagesRead: z.number(),
@@ -1097,7 +1129,7 @@ export const ReadingActivityPointViewSchema = z.object({
 export type ReadingActivityPointView = z.infer<typeof ReadingActivityPointViewSchema>;
 
 export const ReadingActivityViewSchema = z.object({
-  from: z.string().nullable(),
+  from: z.iso.date().nullable(),
   points: z.array(ReadingActivityPointViewSchema),
   range: ReadingActivityRangeSchema,
   summary: z.object({
@@ -1107,13 +1139,13 @@ export const ReadingActivityViewSchema = z.object({
     pagesRead: z.number(),
     updatesCount: z.number(),
   }),
-  to: z.string().nullable(),
+  to: z.iso.date().nullable(),
 });
 
 export type ReadingActivityView = z.infer<typeof ReadingActivityViewSchema>;
 
 export const ReadingHistoryDayViewSchema = z.object({
-  date: z.string(),
+  date: z.iso.date(),
   events: z.array(ReadingHistoryEventViewSchema),
   finalPage: z.number(),
   pagesRead: z.number(),

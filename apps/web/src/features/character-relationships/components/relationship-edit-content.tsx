@@ -46,7 +46,7 @@ export function RelationshipEditContent({
     );
   }
 
-  if (editable.isError) {
+  if (editable.isLoadingError || (editable.isRefetchError && isRelationshipGone(editable.error))) {
     if (isRelationshipGone(editable.error)) {
       return (
         <div className="flex flex-col gap-4">

@@ -4,7 +4,7 @@ import type { TagsSummaryView } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
 import { formatNumber } from "@/lib/format";
 
@@ -15,7 +15,7 @@ const TAGS_SUMMARY_CARDS = {
   leaderValueClassName: "line-clamp-2 text-xl leading-snug",
 } as const;
 
-export function useTagsSummaryCards(summary: TagsSummaryView | undefined): LibrarySummaryCard[] {
+export function useTagsSummaryCards(summary: TagsSummaryView | undefined): SummaryCard[] {
   const t = useTranslations("tags.summary");
   const locale = useLocale();
 

@@ -3,10 +3,11 @@ import "@testing-library/jest-dom/vitest";
 import type { BookStoreLinksView } from "@app/shared";
 
 import { defaultUserProfileSettings } from "@app/shared";
-import { subDays } from "date-fns";
+import { parseISO } from "date-fns";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeStoreLink } from "@/features/books-to-buy/model/books-to-buy.fixtures";
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import { makeBookView } from "./book-details.fixtures";
@@ -14,6 +15,7 @@ import { MarkBoughtDialog } from "./mark-bought-dialog";
 
 const TODAY = new Date(2026, 7, 1, 9, 0, 0);
 const TODAY_ISO = "2026-08-01";
+const KYIV_AFTER_MIDNIGHT = parseISO("2026-11-15T22:30:00Z");
 
 const book = makeBookView({ ownershipStatus: "want_to_buy", purchaseInfo: null });
 
@@ -56,7 +58,8 @@ const RADIO_NAMES = {
 const fetchMock = vi.fn();
 
 let respondToStoreLinks: () => Response;
-let respondToMarkBought: () => Response;
+let respondToMarkBought: () => Promise<Response> | Response;
+let profileTimeZone: string = defaultUserProfileSettings.timezone;
 
 function currencyTrigger() {
   return screen.getByRole("combobox", { name: "Валюта" });
@@ -85,9 +88,19 @@ function priceInput() {
   return screen.getByLabelText("Ціна");
 }
 
-async function renderDialog(links: BookStoreLinksView = trackedLinks, onOpenChange = vi.fn()) {
+function purchaseDateTriggerName(day: string) {
+  return `${messages.books.details.ownership.buyConfirm.date}, ${day}`;
+}
+
+async function renderDialog(
+  links: BookStoreLinksView = trackedLinks,
+  onOpenChange = vi.fn(),
+  onSuccess = vi.fn(),
+) {
   respondToStoreLinks = () => jsonResponse(links);
-  renderWithProviders(<MarkBoughtDialog book={book} onOpenChange={onOpenChange} open />);
+  renderWithProviders(
+    <MarkBoughtDialog book={book} onOpenChange={onOpenChange} onSuccess={onSuccess} open />,
+  );
   await screen.findByLabelText("Ціна");
 }
 
@@ -105,6 +118,7 @@ afterAll(() => {
 
 beforeEach(() => {
   vi.setSystemTime(TODAY);
+  profileTimeZone = defaultUserProfileSettings.timezone;
   respondToStoreLinks = () => jsonResponse(trackedLinks);
   respondToMarkBought = () => jsonResponse(makeBookView({ ownershipStatus: "owned" }));
   fetchMock.mockReset();
@@ -115,7 +129,9 @@ beforeEach(() => {
       return Promise.resolve(respondToStoreLinks());
     if (url.includes("/api/books/purchase-stores")) return Promise.resolve(jsonResponse([]));
     if (url.includes("/api/profile/settings"))
-      return Promise.resolve(jsonResponse(defaultUserProfileSettings));
+      return Promise.resolve(
+        jsonResponse({ ...defaultUserProfileSettings, timezone: profileTimeZone }),
+      );
     if (url.includes("/ownership/mark-bought") && method === "POST")
       return Promise.resolve(respondToMarkBought());
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
@@ -276,14 +292,78 @@ describe("MarkBoughtDialog payload", () => {
   });
 });
 
-describe("MarkBoughtDialog validation", () => {
-  it("refuses a purchase date that is in the future", async () => {
+describe("MarkBoughtDialog purchase date in the profile time zone", () => {
+  beforeEach(() => {
+    vi.setSystemTime(KYIV_AFTER_MIDNIGHT);
+  });
+
+  it("saves the Kyiv day 2026-11-16 while UTC is still on the 15th", async () => {
+    profileTimeZone = "Europe/Kyiv";
     await renderDialog();
 
-    vi.setSystemTime(subDays(TODAY, 2));
+    expect(
+      await screen.findByRole("button", { name: purchaseDateTriggerName("16 листопада 2026") }),
+    ).toBeInTheDocument();
     await submitDialog();
 
-    expect(await screen.findByText("Дата не може бути в майбутньому.")).toBeInTheDocument();
-    expect(markBoughtCall()).toBeUndefined();
+    await waitFor(() => expect(markBoughtPayload()).toMatchObject({ purchasedAt: "2026-11-16" }));
+    expect(
+      screen.queryByText(messages.books.details.ownership.errors.purchaseDateFuture),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps 2026-11-16 out of reach for a UTC profile at the same instant", async () => {
+    profileTimeZone = "UTC";
+    await renderDialog();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: purchaseDateTriggerName("15 листопада 2026") }),
+    );
+
+    expect(await screen.findByRole("button", { name: /16-е листопада 2026/ })).toBeDisabled();
+  });
+});
+
+describe("MarkBoughtDialog server errors", () => {
+  it("shows the translated save error instead of a bare HTTP status for a field-error response", async () => {
+    respondToMarkBought = () =>
+      jsonResponse(
+        { errorsMessages: [{ field: "storeName", message: "storeName must be a string" }] },
+        400,
+      );
+    await renderDialog();
+
+    await submitDialog();
+
+    expect(
+      await screen.findByText(messages.books.details.ownership.errors.generic),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("HTTP 400")).not.toBeInTheDocument();
+  });
+});
+
+describe("MarkBoughtDialog while saving", () => {
+  it("cannot be dismissed while the purchase is pending and closes once it lands", async () => {
+    let releaseMarkBought: (response: Response) => void = () => undefined;
+    respondToMarkBought = () =>
+      new Promise<Response>((resolve) => {
+        releaseMarkBought = resolve;
+      });
+    const onOpenChange = vi.fn();
+    const onSuccess = vi.fn();
+    await renderDialog(trackedLinks, onOpenChange, onSuccess);
+
+    await submitDialog();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Підтвердити" })).toBeDisabled());
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Скасувати" })).toBeDisabled();
+
+    releaseMarkBought(jsonResponse(makeBookView({ ownershipStatus: "owned" })));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

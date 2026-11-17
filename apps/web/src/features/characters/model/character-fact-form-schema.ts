@@ -9,7 +9,7 @@ import type { Control, FieldErrors, UseFormRegister } from "react-hook-form";
 import { CHARACTER_FACT_INPUT_LIMITS, CreateCharacterFactInputSchema } from "@app/shared";
 import { z } from "zod";
 
-import type { BookPageCeiling } from "@/features/books/model/book-page-ceiling";
+import type { BookPageCeiling } from "@/lib/book-page-ceiling";
 
 export type CharacterFactFormControl = Control<
   CharacterFactFormInput,

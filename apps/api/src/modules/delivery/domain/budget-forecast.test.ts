@@ -19,8 +19,8 @@ function progressAt({
     budget: 8000,
     deliverySpentToDate: 0,
     isSpendComplete: true,
-    now,
     spentToDate,
+    today: now,
   });
 }
 
@@ -40,6 +40,18 @@ describe("resolveBudgetMonthWindow", () => {
 
   it("knows a shorter month has fewer days to spread the spend over", () => {
     expect(resolveBudgetMonthWindow(new Date("2026-02-10T10:00:00.000Z")).daysInMonth).toBe(28);
+  });
+
+  it("opens March on its first elapsed day", () => {
+    const { elapsedDays, month } = resolveBudgetMonthWindow(new Date("2026-03-01T00:00:00.000Z"));
+
+    expect({ elapsedDays, month }).toEqual({ elapsedDays: 1, month: "2026-03-01" });
+  });
+
+  it("closes February on its 28th elapsed day", () => {
+    const { elapsedDays, month } = resolveBudgetMonthWindow(new Date("2026-02-28T00:00:00.000Z"));
+
+    expect({ elapsedDays, month }).toEqual({ elapsedDays: 28, month: "2026-02-01" });
   });
 });
 
@@ -99,8 +111,8 @@ describe("computeBudgetProgress arithmetic", () => {
       budget: 8000,
       deliverySpentToDate: 100,
       isSpendComplete: true,
-      now: AUGUST_TWENTIETH,
       spentToDate: 820,
+      today: AUGUST_TWENTIETH,
     });
 
     expect(progress.deliveryShareOfBudgetPercent).toBe(1.25);
@@ -111,8 +123,8 @@ describe("computeBudgetProgress arithmetic", () => {
       budget: 0,
       deliverySpentToDate: 10,
       isSpendComplete: true,
-      now: AUGUST_TWENTIETH,
       spentToDate: 500,
+      today: AUGUST_TWENTIETH,
     });
 
     expect({
@@ -128,8 +140,8 @@ describe("computeBudgetProgress outlook", () => {
       budget,
       deliverySpentToDate: 0,
       isSpendComplete: true,
-      now: AUGUST_TWENTIETH,
       spentToDate,
+      today: AUGUST_TWENTIETH,
     });
   }
 
@@ -150,8 +162,8 @@ describe("computeBudgetProgress outlook", () => {
       budget: 8000,
       deliverySpentToDate: 0,
       isSpendComplete: true,
-      now: AUGUST_FIRST,
       spentToDate: 500,
+      today: AUGUST_FIRST,
     });
 
     expect({ forecast: progress.forecast, outlook: progress.outlook }).toEqual({
@@ -176,8 +188,8 @@ describe("computeBudgetProgress outlook", () => {
       budget: 8000,
       deliverySpentToDate: 0,
       isSpendComplete: false,
-      now: AUGUST_TWENTIETH,
       spentToDate: 500,
+      today: AUGUST_TWENTIETH,
     });
 
     expect(progress.isForecastComplete).toBe(false);

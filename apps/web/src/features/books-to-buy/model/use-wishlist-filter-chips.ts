@@ -3,14 +3,14 @@
 import { TAG_COLOR_DEFAULT, type TagView } from "@app/shared";
 import { useTranslations } from "next-intl";
 
-import type { ActiveFilterChip } from "@/features/books";
+import type { ActiveFilterChip } from "@/components/catalog/active-filters";
 
-import { rangeLabel } from "@/features/books/model/filter-chips";
+import { rangeLabel } from "@/lib/filter-chips";
 
 import type { UseWishlistQueryResult } from "./use-wishlist-query";
 import type { WishlistQueryState } from "./wishlist-query";
 
-import { resolvePriceCurrency } from "./wishlist-query";
+import { resolvePriceCurrency, toWishlistSearch } from "./wishlist-query";
 
 type UseWishlistFilterChipsOptions = {
   genreName: (key: string) => string;
@@ -35,7 +35,7 @@ export function useWishlistFilterChips({
 
   const chips: ActiveFilterChip[] = [];
 
-  const search = state.q.trim();
+  const search = toWishlistSearch(state.q);
   if (search !== "") {
     chips.push({
       key: "q",

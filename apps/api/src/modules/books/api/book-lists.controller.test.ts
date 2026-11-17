@@ -1,19 +1,23 @@
+import type { SetBookListsInput } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import { randomUUID } from "node:crypto";
 import request from "supertest";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { ListsModule } from "../../lists/lists.module.js";
 import { BooksModule } from "../books.module.js";
+import { ListMembershipRepository } from "../infrastructure/list-membership.repository.js";
 
 const MISSING_UUID = "00000000-0000-4000-8000-000000000000";
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 type ListMembershipResult = {
   bookCount: number;
@@ -75,6 +79,13 @@ async function positionsOf(listId: string): Promise<Array<{ bookId: string; posi
     select: { bookId: true, position: true },
     where: { listId },
   });
+}
+
+function putLists(accessToken: string, bookId: string, body: SetBookListsInput): request.Test {
+  return request(app.getHttpServer())
+    .put(`/api/books/${bookId}/lists`)
+    .set("Authorization", `Bearer ${accessToken}`)
+    .send(body);
 }
 
 async function seedItem(listId: string, bookId: string, position: number): Promise<void> {
@@ -334,5 +345,132 @@ describe("PUT /api/books/:bookId/lists", () => {
 
     expect((await updatedAtOf(affected)).getTime()).toBeGreaterThan(affectedBefore.getTime());
     expect((await updatedAtOf(untouched)).getTime()).toBe(untouchedBefore.getTime());
+  });
+});
+
+describe("PUT /api/books/:bookId/lists with newLists", () => {
+  it("creates a new list and attaches the book to it alongside the selected lists", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const book = await createBook(userId, "Target");
+    const alpha = await createList(userId, "Alpha");
+
+    const res = await putLists(accessToken, book, {
+      listIds: [alpha],
+      newLists: [{ name: "Summer reads" }],
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.lists).toEqual<ListMembershipResult[]>([
+      { bookCount: 1, id: alpha, isMember: true, name: "Alpha" },
+      { bookCount: 1, id: expect.stringMatching(UUID), isMember: true, name: "Summer reads" },
+    ]);
+  });
+
+  it("attaches the book to an existing active list whose name matches a new list instead of returning 409", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const book = await createBook(userId);
+    const favorites = await createList(userId, "Favorites");
+
+    const res = await putLists(accessToken, book, {
+      listIds: [],
+      newLists: [{ name: "FAVORITES" }],
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.lists).toEqual<ListMembershipResult[]>([
+      { bookCount: 1, id: favorites, isMember: true, name: "Favorites" },
+    ]);
+  });
+
+  it("adds the book once when a new name matches a list the same request also selects by id", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const book = await createBook(userId);
+    const favorites = await createList(userId, "Favorites");
+
+    const res = await putLists(accessToken, book, {
+      listIds: [favorites],
+      newLists: [{ name: "Favorites" }],
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.lists).toEqual<ListMembershipResult[]>([
+      { bookCount: 1, id: favorites, isMember: true, name: "Favorites" },
+    ]);
+  });
+
+  it("creates a fresh list when the only list with the new name is in the trash", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const book = await createBook(userId);
+    const trashed = await prisma.bookList.create({
+      data: {
+        ...TRASH_RETENTION.stamp(new Date("2026-01-01T00:00:00.000Z")),
+        name: "Favorites",
+        normalizedName: "favorites",
+        userId,
+      },
+    });
+
+    const res = await putLists(accessToken, book, {
+      listIds: [],
+      newLists: [{ name: "Favorites" }],
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.lists).toEqual<ListMembershipResult[]>([
+      { bookCount: 1, id: expect.stringMatching(UUID), isMember: true, name: "Favorites" },
+    ]);
+    expect(res.body.lists[0].id).not.toBe(trashed.id);
+  });
+
+  it("creates one list for duplicate new names in one request", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const book = await createBook(userId);
+
+    const res = await putLists(accessToken, book, {
+      listIds: [],
+      newLists: [{ name: "Holiday" }, { name: "Holiday" }],
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.lists).toEqual<ListMembershipResult[]>([
+      { bookCount: 1, id: expect.stringMatching(UUID), isMember: true, name: "Holiday" },
+    ]);
+  });
+
+  it("leaves no new list behind when attaching the book fails later in the same request", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const book = await createBook(userId);
+    const alpha = await createList(userId, "Alpha");
+    vi.spyOn(app.get(ListMembershipRepository), "append").mockRejectedValueOnce(
+      new Error("membership write failed"),
+    );
+
+    const res = await putLists(accessToken, book, {
+      listIds: [alpha],
+      newLists: [{ name: "Orphan" }],
+    });
+
+    expect(res.status).toBe(500);
+    const after = await getLists(accessToken, book);
+    expect(after.body.lists).toEqual<ListMembershipResult[]>([
+      { bookCount: 0, id: alpha, isMember: false, name: "Alpha" },
+    ]);
+  });
+
+  it("returns 400 and creates no list when a listIds entry is not a UUID", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const book = await createBook(userId);
+
+    const res = await putLists(accessToken, book, {
+      listIds: ["not-a-uuid"],
+      newLists: [{ name: "Orphan" }],
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "listIds.0" })]),
+    );
+    const after = await getLists(accessToken, book);
+    expect(after.body.lists).toEqual([]);
   });
 });

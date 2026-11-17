@@ -40,10 +40,31 @@ describe("buildCancelledDecisionRows", () => {
       ],
       cancelledOn: (date) => `Скасовано ${date}`,
       locale: "uk",
+      timeZone: "Europe/Kyiv",
     });
 
     expect(rows[0]?.cancelledOnText).toBe("Скасовано 10 серп. 2026 р.");
     expect(rows[0]?.bookHref).toBe("/books/book-1");
+  });
+
+  it("dates a cancellation by the day in the profile zone, not the UTC or Kyiv day", () => {
+    const rows = buildCancelledDecisionRows({
+      books: [
+        {
+          authorName: "Frank Herbert",
+          cancelledAt: "2026-02-10T03:00:00.000Z",
+          cancelReason: null,
+          cover: null,
+          id: "book-1",
+          title: "Поклик з могили",
+        },
+      ],
+      cancelledOn: (date) => `Скасовано ${date}`,
+      locale: "uk",
+      timeZone: "America/New_York",
+    });
+
+    expect(rows[0]?.cancelledOnText).toBe("Скасовано 9 лют. 2026 р.");
   });
 });
 

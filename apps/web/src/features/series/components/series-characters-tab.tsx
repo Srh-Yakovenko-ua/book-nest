@@ -142,6 +142,7 @@ function SeriesCharactersView({ books, contextBook, seriesId, view }: SeriesChar
   };
   const authoring = useRelationshipAuthoring({
     bookOptions: seriesBooksAsOf({ books, contextBook }),
+    createBookOptions: books,
     scope,
   });
 

@@ -11,15 +11,17 @@ import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
+import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DiscardConfirmDialog } from "@/features/books";
 import { useBookPagesCount } from "@/features/books/api/use-book";
-import { bookPageCeiling } from "@/features/books/model/book-page-ceiling";
 import { type OwnSpeciesChange, useSpeciesLocale } from "@/features/species";
+import { useCloseGuard, useReleaseOrphanedHistorySentinel } from "@/hooks/use-close-guard";
+import { type LinkDestination, useLinkLeaveGuard } from "@/hooks/use-link-leave-guard";
 import { useRouter } from "@/i18n/navigation";
 import { applyFieldErrors } from "@/lib/api-errors";
+import { bookPageCeiling } from "@/lib/book-page-ceiling";
 
 import type { CharacterEditMessages, CharacterEditValues } from "../model/character-edit-form";
 import type { CharacterAliasesHandle } from "../model/use-character-alias-editor";
@@ -72,6 +74,7 @@ export function CharacterEditPage({ characterId }: CharacterEditPageProps) {
     revealFieldIds: ALL_REVEAL_FIELD_KEYS,
     ...(request.kind === "book" ? { contextBookId: request.bookId } : {}),
   });
+  useReleaseOrphanedHistorySentinel();
 
   if (request.kind === "invalid-book") {
     return <CharacterUnavailableContext characterId={characterId} />;
@@ -137,9 +140,9 @@ function CharacterEditForm({
     locale,
   });
   const [baseline, setBaseline] = useState<CharacterEditValues>(initialValues);
-  const [discardOpen, setDiscardOpen] = useState(false);
   const [aliasDraftDirty, setAliasDraftDirty] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [linkDestination, setLinkDestination] = useState<Nullable<LinkDestination>>(null);
   const aliasesRef = useRef<Nullable<CharacterAliasesHandle>>(null);
   const [uploadedImageUrls, setUploadedImageUrls] = useState<Record<string, string>>({});
 
@@ -171,6 +174,7 @@ function CharacterEditForm({
     getValues,
     handleSubmit,
     register,
+    setFocus,
     setValue,
     trigger,
   } = form;
@@ -200,7 +204,6 @@ function CharacterEditForm({
   const isDirty = globalDirty || bookDirty;
   const isSaving = updateCharacter.isPending || updateBookCharacter.isPending;
   const hasUnsavedChanges = isDirty || aliasDraftDirty;
-  const guardsLeaving = hasUnsavedChanges && !isSaving && !leaving;
   const avatarMediaId = useWatch({ control, name: "global.avatarMediaId" });
   const portraitMediaId = useWatch({ control, name: "book.portraitMediaId" });
   const avatarUrl = resolveImageUrl({
@@ -231,28 +234,29 @@ function CharacterEditForm({
     setBaseline((previous) => withSpeciesChange(previous, change));
   }
 
-  useEffect(() => {
-    if (!guardsLeaving) return;
-    function warnBeforeUnload(event: BeforeUnloadEvent) {
-      event.preventDefault();
-      event.returnValue = "";
-    }
-    window.addEventListener("beforeunload", warnBeforeUnload);
-    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
-  }, [guardsLeaving]);
+  const guard = useCloseGuard({
+    focusFallback: () => setFocus("global.name"),
+    guardHistory: true,
+    isDirty: hasUnsavedChanges,
+    isOpen: !leaving,
+    isPending: isSaving,
+    onClose: () => setLeaving(true),
+    onLeave: () => {
+      if (linkDestination === null) {
+        router.push(detailsHref);
+        return;
+      }
+      router.push(linkDestination.href, { locale: linkDestination.locale });
+    },
+  });
 
-  function leave() {
-    setLeaving(true);
-    router.push(detailsHref);
-  }
-
-  function cancel() {
-    if (!hasUnsavedChanges) {
-      leave();
-      return;
-    }
-    setDiscardOpen(true);
-  }
+  useLinkLeaveGuard({
+    isGuarding: hasUnsavedChanges && !isSaving && !leaving,
+    onLeaveAttempt: (destination) => {
+      setLinkDestination(destination);
+      guard.requestClose();
+    },
+  });
 
   async function save(values: CharacterEditValues) {
     let savedGlobal = false;
@@ -279,7 +283,7 @@ function CharacterEditForm({
       }
 
       toast.success(tToast("updated"));
-      leave();
+      guard.close();
     } catch (error) {
       if (savedGlobal) toast.warning(t("partialSuccess"));
       if (!applyFieldErrors(form, error)) toast.error(tErrors("generic"));
@@ -366,7 +370,7 @@ function CharacterEditForm({
           <Button
             className="h-11 flex-1 sm:h-10 sm:flex-none"
             disabled={isSaving}
-            onClick={cancel}
+            onClick={guard.requestClose}
             type="button"
             variant="secondary"
           >
@@ -384,14 +388,16 @@ function CharacterEditForm({
         </div>
       </div>
 
-      <DiscardConfirmDialog
+      <DiscardChangesDialog
         cancelLabel={tDiscardChanges("cancel")}
         confirmLabel={tDiscardChanges("confirm")}
         description={t("discardDescription")}
-        onConfirm={leave}
-        onOpenChange={setDiscardOpen}
-        open={discardOpen}
         title={t("discardTitle")}
+        {...guard.discardDialog}
+        onOpenChange={(open) => {
+          guard.discardDialog.onOpenChange(open);
+          if (!open) setLinkDestination(null);
+        }}
       />
     </form>
   );

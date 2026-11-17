@@ -1,23 +1,28 @@
+import { defaultUserProfileSettings } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 
 import type { ExclusiveTask } from "../../../core/exclusive-task.js";
 import type { ReadingGoalProgress } from "../domain/reading-goal-progress.js";
 import type { ReadingGoalActivityInput } from "../infrastructure/reading-goal-activity.repository.js";
-import type { ReadingGoalWithList } from "../infrastructure/reading-goals.repository.js";
+import type { ReadingGoalExpirationCandidate } from "../infrastructure/reading-goals.repository.js";
 
 import { createExclusiveTask } from "../../../core/exclusive-task.js";
-import { startOfUtcDay, toIsoDate } from "../../../core/iso-date.js";
+import { addDaysToUtcDay, toIsoDate, toZonedCalendarDay } from "../../../core/iso-date.js";
 import { scanByKeyset } from "../../../core/keyset-scan.js";
 import { createLogger } from "../../../core/logger.js";
 import { calculateReadingGoalMetrics } from "../domain/reading-goal-metrics.js";
+import { hasDeadlinePassed } from "../domain/reading-goal-progress.js";
 import { ReadingGoalActivityRepository } from "../infrastructure/reading-goal-activity.repository.js";
 import { ReadingGoalBooksRepository } from "../infrastructure/reading-goal-books.repository.js";
 import { ReadingGoalsRepository } from "../infrastructure/reading-goals.repository.js";
+import { toReadingGoalCalculationGoal } from "./reading-goal-calendar.js";
 
 const READING_GOAL_EXPIRATION_SWEEP = {
   candidatePageSize: 100,
+  defaultTimeZone: defaultUserProfileSettings.timezone,
   maxCandidatePages: 50,
+  maxLocalDaysAheadOfUtc: 1,
 } as const;
 
 const SWEEP_SCOPE = "reading-goals.expiration-reconciler";
@@ -38,12 +43,16 @@ export class ReadingGoalExpirationReconciler {
 
   async run({ now }: { now: Date }): Promise<void> {
     let expiredCount = 0;
+    const deadlineBefore = addDaysToUtcDay({
+      day: now,
+      days: READING_GOAL_EXPIRATION_SWEEP.maxLocalDaysAheadOfUtc,
+    });
 
-    const summary = await scanByKeyset<ReadingGoalWithList>({
+    const summary = await scanByKeyset<ReadingGoalExpirationCandidate>({
       loadPage: (afterId) =>
         this.readingGoalsRepository.findExpirationCandidates({
           afterId,
-          deadlineBefore: startOfUtcDay(now),
+          deadlineBefore,
           limit: READING_GOAL_EXPIRATION_SWEEP.candidatePageSize,
         }),
       maxPages: READING_GOAL_EXPIRATION_SWEEP.maxCandidatePages,
@@ -74,12 +83,22 @@ export class ReadingGoalExpirationReconciler {
     goal,
     now,
   }: {
-    goal: ReadingGoalWithList;
+    goal: ReadingGoalExpirationCandidate;
     now: Date;
   }): Promise<boolean> {
     try {
+      const timeZone = goal.timezone ?? READING_GOAL_EXPIRATION_SWEEP.defaultTimeZone;
+      const today = toZonedCalendarDay({ instant: now, timeZone });
+      if (!hasDeadlinePassed({ deadline: goal.deadline, reference: today })) {
+        return false;
+      }
+
       const snapshotBooks = await this.readingGoalBooksRepository.findByGoal({ goalId: goal.id });
-      const { progress } = calculateReadingGoalMetrics({ goal, now, snapshotBooks });
+      const { progress } = calculateReadingGoalMetrics({
+        goal: toReadingGoalCalculationGoal({ goal, timeZone }),
+        snapshotBooks,
+        today,
+      });
       if (progress.status !== "expired") {
         return false;
       }
@@ -115,7 +134,7 @@ function expiredRow({
   goal,
   progress,
 }: {
-  goal: ReadingGoalWithList;
+  goal: ReadingGoalExpirationCandidate;
   progress: ReadingGoalProgress;
 }): ReadingGoalActivityInput {
   return {

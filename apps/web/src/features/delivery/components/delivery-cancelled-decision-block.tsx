@@ -6,10 +6,11 @@ import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { UiIcon } from "@/components/icons";
+import { OverviewSection } from "@/components/overview-section";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWantToBuy } from "@/features/books/api/use-ownership";
-import { LibraryOverviewSection } from "@/features/books/components/library-overview-blocks";
+import { useProfileTimeZone } from "@/features/settings";
 
 import type { CancelledDecisionRow } from "../model/cancelled-follow-up";
 
@@ -31,18 +32,19 @@ export function DeliveryCancelledDecisionBlock({
   const t = useTranslations("delivery.history.cancelledDecision");
   const tToast = useTranslations("delivery.toast");
   const locale = useLocale();
+  const timeZone = useProfileTimeZone();
   const wantToBuy = useWantToBuy();
   const returnAll = useReturnAllToWishlist();
 
   if (isLoading) {
     return (
-      <LibraryOverviewSection className="sidebar-card-leaf" title={t("title")}>
+      <OverviewSection className="sidebar-card-leaf" title={t("title")}>
         <div aria-busy className="flex flex-col gap-3">
           <Skeleton className="h-6 w-24" />
           <Skeleton className="h-3 w-40" />
           <Skeleton className="h-14 w-full rounded-md" />
         </div>
-      </LibraryOverviewSection>
+      </OverviewSection>
     );
   }
 
@@ -54,6 +56,7 @@ export function DeliveryCancelledDecisionBlock({
     books: unresolved.books,
     cancelledOn: (date) => t("cancelledOn", { date }),
     locale,
+    timeZone,
   });
 
   function returnOne(row: CancelledDecisionRow) {
@@ -67,7 +70,7 @@ export function DeliveryCancelledDecisionBlock({
   }
 
   return (
-    <LibraryOverviewSection className="sidebar-card-leaf" title={t("title")}>
+    <OverviewSection className="sidebar-card-leaf" title={t("title")}>
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
           <p className="font-heading text-lg leading-tight font-semibold text-ink">
@@ -127,6 +130,6 @@ export function DeliveryCancelledDecisionBlock({
           </Button>
         )}
       </div>
-    </LibraryOverviewSection>
+    </OverviewSection>
   );
 }

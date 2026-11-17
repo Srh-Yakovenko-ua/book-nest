@@ -54,41 +54,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type bookQuotesControllerCreateQuoteResponse201 = {
-  data: QuoteViewDto;
-  status: 201;
-};
-
-export type bookQuotesControllerCreateQuoteResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookQuotesControllerCreateQuoteResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookQuotesControllerCreateQuoteResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookQuotesControllerCreateQuoteResponseSuccess =
-  bookQuotesControllerCreateQuoteResponse201 & {
-    headers: Headers;
-  };
-export type bookQuotesControllerCreateQuoteResponseError = (
-  | bookQuotesControllerCreateQuoteResponse400
-  | bookQuotesControllerCreateQuoteResponse401
-  | bookQuotesControllerCreateQuoteResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookQuotesControllerCreateQuoteResponse =
-  bookQuotesControllerCreateQuoteResponseSuccess | bookQuotesControllerCreateQuoteResponseError;
-
 export const getBookQuotesControllerCreateQuoteUrl = (bookId: string) => {
   return `/api/books/${bookId}/quotes`;
 };
@@ -100,16 +65,13 @@ export const bookQuotesControllerCreateQuote = async (
   bookId: string,
   createQuoteInputDto: CreateQuoteInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookQuotesControllerCreateQuoteResponse> => {
-  return customInstance<bookQuotesControllerCreateQuoteResponse>(
-    getBookQuotesControllerCreateQuoteUrl(bookId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(createQuoteInputDto),
-    },
-  );
+): Promise<QuoteViewDto> => {
+  return customInstance<QuoteViewDto>(getBookQuotesControllerCreateQuoteUrl(bookId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createQuoteInputDto),
+  });
 };
 
 export const getBookQuotesControllerCreateQuoteQueryKey = (
@@ -248,41 +210,6 @@ export function useBookQuotesControllerCreateQuote<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookQuotesControllerUpdateQuoteResponse200 = {
-  data: QuoteViewDto;
-  status: 200;
-};
-
-export type bookQuotesControllerUpdateQuoteResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type bookQuotesControllerUpdateQuoteResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookQuotesControllerUpdateQuoteResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookQuotesControllerUpdateQuoteResponseSuccess =
-  bookQuotesControllerUpdateQuoteResponse200 & {
-    headers: Headers;
-  };
-export type bookQuotesControllerUpdateQuoteResponseError = (
-  | bookQuotesControllerUpdateQuoteResponse400
-  | bookQuotesControllerUpdateQuoteResponse401
-  | bookQuotesControllerUpdateQuoteResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookQuotesControllerUpdateQuoteResponse =
-  bookQuotesControllerUpdateQuoteResponseSuccess | bookQuotesControllerUpdateQuoteResponseError;
-
 export const getBookQuotesControllerUpdateQuoteUrl = (bookId: string, quoteId: string) => {
   return `/api/books/${bookId}/quotes/${quoteId}`;
 };
@@ -295,16 +222,13 @@ export const bookQuotesControllerUpdateQuote = async (
   quoteId: string,
   updateQuoteInputDto: UpdateQuoteInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookQuotesControllerUpdateQuoteResponse> => {
-  return customInstance<bookQuotesControllerUpdateQuoteResponse>(
-    getBookQuotesControllerUpdateQuoteUrl(bookId, quoteId),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(updateQuoteInputDto),
-    },
-  );
+): Promise<QuoteViewDto> => {
+  return customInstance<QuoteViewDto>(getBookQuotesControllerUpdateQuoteUrl(bookId, quoteId), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateQuoteInputDto),
+  });
 };
 
 export const getBookQuotesControllerUpdateQuoteQueryKey = (
@@ -454,34 +378,6 @@ export function useBookQuotesControllerUpdateQuote<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookQuotesControllerDeleteQuoteResponse200 = {
-  data: QuoteDeletionResultDto;
-  status: 200;
-};
-
-export type bookQuotesControllerDeleteQuoteResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookQuotesControllerDeleteQuoteResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookQuotesControllerDeleteQuoteResponseSuccess =
-  bookQuotesControllerDeleteQuoteResponse200 & {
-    headers: Headers;
-  };
-export type bookQuotesControllerDeleteQuoteResponseError = (
-  bookQuotesControllerDeleteQuoteResponse401 | bookQuotesControllerDeleteQuoteResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookQuotesControllerDeleteQuoteResponse =
-  bookQuotesControllerDeleteQuoteResponseSuccess | bookQuotesControllerDeleteQuoteResponseError;
-
 export const getBookQuotesControllerDeleteQuoteUrl = (bookId: string, quoteId: string) => {
   return `/api/books/${bookId}/quotes/${quoteId}`;
 };
@@ -493,8 +389,8 @@ export const bookQuotesControllerDeleteQuote = async (
   bookId: string,
   quoteId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookQuotesControllerDeleteQuoteResponse> => {
-  return customInstance<bookQuotesControllerDeleteQuoteResponse>(
+): Promise<QuoteDeletionResultDto> => {
+  return customInstance<QuoteDeletionResultDto>(
     getBookQuotesControllerDeleteQuoteUrl(bookId, quoteId),
     {
       ...options,
@@ -631,34 +527,6 @@ export function useBookQuotesControllerDeleteQuote<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type bookQuotesControllerRestoreQuoteResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type bookQuotesControllerRestoreQuoteResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type bookQuotesControllerRestoreQuoteResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type bookQuotesControllerRestoreQuoteResponseSuccess =
-  bookQuotesControllerRestoreQuoteResponse204 & {
-    headers: Headers;
-  };
-export type bookQuotesControllerRestoreQuoteResponseError = (
-  bookQuotesControllerRestoreQuoteResponse401 | bookQuotesControllerRestoreQuoteResponse404
-) & {
-  headers: Headers;
-};
-
-export type bookQuotesControllerRestoreQuoteResponse =
-  bookQuotesControllerRestoreQuoteResponseSuccess | bookQuotesControllerRestoreQuoteResponseError;
-
 export const getBookQuotesControllerRestoreQuoteUrl = (bookId: string, quoteId: string) => {
   return `/api/books/${bookId}/quotes/${quoteId}/restore`;
 };
@@ -670,14 +538,11 @@ export const bookQuotesControllerRestoreQuote = async (
   bookId: string,
   quoteId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<bookQuotesControllerRestoreQuoteResponse> => {
-  return customInstance<bookQuotesControllerRestoreQuoteResponse>(
-    getBookQuotesControllerRestoreQuoteUrl(bookId, quoteId),
-    {
-      ...options,
-      method: "POST",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getBookQuotesControllerRestoreQuoteUrl(bookId, quoteId), {
+    ...options,
+    method: "POST",
+  });
 };
 
 export const getBookQuotesControllerRestoreQuoteQueryKey = (bookId: string, quoteId: string) => {
@@ -808,26 +673,6 @@ export function useBookQuotesControllerRestoreQuote<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type quotesControllerListTrashResponse200 = {
-  data: PaginatedTrashedQuotesDto;
-  status: 200;
-};
-
-export type quotesControllerListTrashResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type quotesControllerListTrashResponseSuccess = quotesControllerListTrashResponse200 & {
-  headers: Headers;
-};
-export type quotesControllerListTrashResponseError = quotesControllerListTrashResponse401 & {
-  headers: Headers;
-};
-
-export type quotesControllerListTrashResponse =
-  quotesControllerListTrashResponseSuccess | quotesControllerListTrashResponseError;
-
 export const getQuotesControllerListTrashUrl = (params?: QuotesControllerListTrashParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -850,14 +695,11 @@ export const getQuotesControllerListTrashUrl = (params?: QuotesControllerListTra
 export const quotesControllerListTrash = async (
   params?: QuotesControllerListTrashParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<quotesControllerListTrashResponse> => {
-  return customInstance<quotesControllerListTrashResponse>(
-    getQuotesControllerListTrashUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<PaginatedTrashedQuotesDto> => {
+  return customInstance<PaginatedTrashedQuotesDto>(getQuotesControllerListTrashUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getQuotesControllerListTrashQueryKey = (params?: QuotesControllerListTrashParams) => {
@@ -977,26 +819,6 @@ export function useQuotesControllerListTrash<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type quotesControllerSummaryResponse200 = {
-  data: QuotesSummaryViewDto;
-  status: 200;
-};
-
-export type quotesControllerSummaryResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type quotesControllerSummaryResponseSuccess = quotesControllerSummaryResponse200 & {
-  headers: Headers;
-};
-export type quotesControllerSummaryResponseError = quotesControllerSummaryResponse401 & {
-  headers: Headers;
-};
-
-export type quotesControllerSummaryResponse =
-  quotesControllerSummaryResponseSuccess | quotesControllerSummaryResponseError;
-
 export const getQuotesControllerSummaryUrl = () => {
   return `/api/quotes/summary`;
 };
@@ -1006,8 +828,8 @@ export const getQuotesControllerSummaryUrl = () => {
  */
 export const quotesControllerSummary = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<quotesControllerSummaryResponse> => {
-  return customInstance<quotesControllerSummaryResponse>(getQuotesControllerSummaryUrl(), {
+): Promise<QuotesSummaryViewDto> => {
+  return customInstance<QuotesSummaryViewDto>(getQuotesControllerSummaryUrl(), {
     ...options,
     method: "GET",
   });
@@ -1123,26 +945,6 @@ export function useQuotesControllerSummary<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type quotesControllerFacetsResponse200 = {
-  data: QuotesFacetsViewDto;
-  status: 200;
-};
-
-export type quotesControllerFacetsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type quotesControllerFacetsResponseSuccess = quotesControllerFacetsResponse200 & {
-  headers: Headers;
-};
-export type quotesControllerFacetsResponseError = quotesControllerFacetsResponse401 & {
-  headers: Headers;
-};
-
-export type quotesControllerFacetsResponse =
-  quotesControllerFacetsResponseSuccess | quotesControllerFacetsResponseError;
-
 export const getQuotesControllerFacetsUrl = (params?: QuotesControllerFacetsParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -1174,8 +976,8 @@ export const getQuotesControllerFacetsUrl = (params?: QuotesControllerFacetsPara
 export const quotesControllerFacets = async (
   params?: QuotesControllerFacetsParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<quotesControllerFacetsResponse> => {
-  return customInstance<quotesControllerFacetsResponse>(getQuotesControllerFacetsUrl(params), {
+): Promise<QuotesFacetsViewDto> => {
+  return customInstance<QuotesFacetsViewDto>(getQuotesControllerFacetsUrl(params), {
     ...options,
     method: "GET",
   });
@@ -1297,26 +1099,6 @@ export function useQuotesControllerFacets<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type quotesControllerOverviewResponse200 = {
-  data: QuotesOverviewViewDto;
-  status: 200;
-};
-
-export type quotesControllerOverviewResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type quotesControllerOverviewResponseSuccess = quotesControllerOverviewResponse200 & {
-  headers: Headers;
-};
-export type quotesControllerOverviewResponseError = quotesControllerOverviewResponse401 & {
-  headers: Headers;
-};
-
-export type quotesControllerOverviewResponse =
-  quotesControllerOverviewResponseSuccess | quotesControllerOverviewResponseError;
-
 export const getQuotesControllerOverviewUrl = () => {
   return `/api/quotes/overview`;
 };
@@ -1326,8 +1108,8 @@ export const getQuotesControllerOverviewUrl = () => {
  */
 export const quotesControllerOverview = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<quotesControllerOverviewResponse> => {
-  return customInstance<quotesControllerOverviewResponse>(getQuotesControllerOverviewUrl(), {
+): Promise<QuotesOverviewViewDto> => {
+  return customInstance<QuotesOverviewViewDto>(getQuotesControllerOverviewUrl(), {
     ...options,
     method: "GET",
   });
@@ -1443,42 +1225,6 @@ export function useQuotesControllerOverview<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type quotesControllerRecordRediscoveryImpressionResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type quotesControllerRecordRediscoveryImpressionResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type quotesControllerRecordRediscoveryImpressionResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type quotesControllerRecordRediscoveryImpressionResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type quotesControllerRecordRediscoveryImpressionResponseSuccess =
-  quotesControllerRecordRediscoveryImpressionResponse204 & {
-    headers: Headers;
-  };
-export type quotesControllerRecordRediscoveryImpressionResponseError = (
-  | quotesControllerRecordRediscoveryImpressionResponse400
-  | quotesControllerRecordRediscoveryImpressionResponse401
-  | quotesControllerRecordRediscoveryImpressionResponse404
-) & {
-  headers: Headers;
-};
-
-export type quotesControllerRecordRediscoveryImpressionResponse =
-  | quotesControllerRecordRediscoveryImpressionResponseSuccess
-  | quotesControllerRecordRediscoveryImpressionResponseError;
-
 export const getQuotesControllerRecordRediscoveryImpressionUrl = () => {
   return `/api/quotes/rediscovery/impression`;
 };
@@ -1489,16 +1235,13 @@ export const getQuotesControllerRecordRediscoveryImpressionUrl = () => {
 export const quotesControllerRecordRediscoveryImpression = async (
   quoteRediscoveryImpressionInputDto: QuoteRediscoveryImpressionInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<quotesControllerRecordRediscoveryImpressionResponse> => {
-  return customInstance<quotesControllerRecordRediscoveryImpressionResponse>(
-    getQuotesControllerRecordRediscoveryImpressionUrl(),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(quoteRediscoveryImpressionInputDto),
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getQuotesControllerRecordRediscoveryImpressionUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(quoteRediscoveryImpressionInputDto),
+  });
 };
 
 export const getQuotesControllerRecordRediscoveryImpressionQueryKey = (
@@ -1653,41 +1396,6 @@ export function useQuotesControllerRecordRediscoveryImpression<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type quotesControllerReviewPostFinishResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type quotesControllerReviewPostFinishResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type quotesControllerReviewPostFinishResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type quotesControllerReviewPostFinishResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type quotesControllerReviewPostFinishResponseSuccess =
-  quotesControllerReviewPostFinishResponse204 & {
-    headers: Headers;
-  };
-export type quotesControllerReviewPostFinishResponseError = (
-  | quotesControllerReviewPostFinishResponse400
-  | quotesControllerReviewPostFinishResponse401
-  | quotesControllerReviewPostFinishResponse404
-) & {
-  headers: Headers;
-};
-
-export type quotesControllerReviewPostFinishResponse =
-  quotesControllerReviewPostFinishResponseSuccess | quotesControllerReviewPostFinishResponseError;
-
 export const getQuotesControllerReviewPostFinishUrl = () => {
   return `/api/quotes/post-finish/review`;
 };
@@ -1698,16 +1406,13 @@ export const getQuotesControllerReviewPostFinishUrl = () => {
 export const quotesControllerReviewPostFinish = async (
   quotePostFinishReviewInputDto: QuotePostFinishReviewInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<quotesControllerReviewPostFinishResponse> => {
-  return customInstance<quotesControllerReviewPostFinishResponse>(
-    getQuotesControllerReviewPostFinishUrl(),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(quotePostFinishReviewInputDto),
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getQuotesControllerReviewPostFinishUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(quotePostFinishReviewInputDto),
+  });
 };
 
 export const getQuotesControllerReviewPostFinishQueryKey = (
@@ -1835,26 +1540,6 @@ export function useQuotesControllerReviewPostFinish<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type quotesControllerListResponse200 = {
-  data: PaginatedQuotesDto;
-  status: 200;
-};
-
-export type quotesControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type quotesControllerListResponseSuccess = quotesControllerListResponse200 & {
-  headers: Headers;
-};
-export type quotesControllerListResponseError = quotesControllerListResponse401 & {
-  headers: Headers;
-};
-
-export type quotesControllerListResponse =
-  quotesControllerListResponseSuccess | quotesControllerListResponseError;
-
 export const getQuotesControllerListUrl = (params?: QuotesControllerListParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -1884,8 +1569,8 @@ export const getQuotesControllerListUrl = (params?: QuotesControllerListParams) 
 export const quotesControllerList = async (
   params?: QuotesControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<quotesControllerListResponse> => {
-  return customInstance<quotesControllerListResponse>(getQuotesControllerListUrl(params), {
+): Promise<PaginatedQuotesDto> => {
+  return customInstance<PaginatedQuotesDto>(getQuotesControllerListUrl(params), {
     ...options,
     method: "GET",
   });

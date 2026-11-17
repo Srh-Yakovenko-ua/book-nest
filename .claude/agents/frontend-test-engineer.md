@@ -52,6 +52,8 @@ apps/web/src/features/books/components/library-organization-section.test.tsx  �
 
 Test file name pattern: `*.test.{ts,tsx}`. The config also matches `*.spec.*`, but no file uses it and the repo has no `__tests__` folders, so stay with the colocated `.test` name.
 
+A test that sets `process.env.TZ` goes in its own `*.tz.test.{ts,tsx}` file. The `unit` project runs in worker threads, where assigning `process.env.TZ` changes nothing: a pinned zone there passes on the old code and proves nothing (measured on Node 24). `*.tz.test.*` files run in the `unit-tz` project, which uses forks, where the assignment takes effect. Set the zone in `beforeEach`, then the system time, and restore `TZ` in `afterEach`, deleting it when it was unset (assigning `undefined` leaves the string `"undefined"`). Deleting `TZ` does not reset the zone the process has already cached; the forked project isolates each file, so pin one zone per file.
+
 # Always use `renderWithProviders`
 
 Never call `render()` from `@testing-library/react` directly in a test. Always use the helper from `@/test-utils`:
@@ -116,6 +118,15 @@ const organization = messages.books.organization;
 
 6. **Mock at the network boundary, not deeper.** Don't mock React Query hooks or the generated client — stub `fetch` so the generated endpoint, the `request()` mutator, the feature's `api/` hook and the real query lifecycle all run.
 
+# Lint rules a first draft fails
+
+You cannot run ESLint here; the main loop runs it once at commit. So every rule below that your draft breaks costs a full fix round after you report, and these are the ones that broke in recent runs.
+
+- **Imports.** `act` comes from `react` (`import { act } from "react"`); everything else comes from `@/test-utils`. Do not import from `@testing-library/*` directly: a direct import switches on `testing-library/no-node-access` for the whole file, and lines nobody touched start failing. The one exception is `renderHook`, which `@/test-utils` does not re-export: take it from `@testing-library/react`, and keep that file free of the DOM access listed below.
+- **`testing-library/no-node-access`.** No `.closest()`, `.querySelector()`, `.parentElement`, `.children`, sibling properties or `document.activeElement`. Reach the element by role, label or text, scope with `within(screen.getByRole("article", { name: ... }))`, and assert focus with `toHaveFocus()`. If the component gives you no accessible handle, do not reach into the DOM: say so under FINDINGS, because a missing accessible name is a component defect.
+- **`testing-library/prefer-presence-queries`.** Absence is `expect(screen.queryByRole(...)).not.toBeInTheDocument()`; presence is `getBy*` or `findBy*`. `expect(getByRole(...).closest(...)).toBeNull()` breaks this rule and the one above.
+- **`testing-library/render-result-naming-convention`.** Name a render result `view` (`const view = renderDialog()`) or destructure it. The rule treats every function whose name contains `render`, in any case, as a render call, and so is any helper that returns a render result (`function setup() { return renderWithProviders(...) }` makes `const dialog = setup()` fail). A helper that does not render must keep the word out of its name: `const shown = renderedDates()` failed this way, and `getRenderedRows()` would too.
+
 # Mocking fetch
 
 Stub the global `fetch` with `vi.stubGlobal`, route by URL, and reject anything unexpected so a stray request fails loudly instead of hanging. From `apps/web/src/features/books/components/library-organization-section.test.tsx`:
@@ -156,7 +167,7 @@ The response body must match the real backend shape: many feature hooks parse it
 
 # What NOT to test
 
-- **Shadcn vendored** components in `components/ui/**` — they're third-party code, already tested by shadcn
+- **shadcn-origin primitives** in `components/ui/` (listed in CLAUDE.md §7). Their upstream behaviour is already tested; test only a local extension (e.g. `button` `loading`, clearable `select`). The project's own components in that folder (`filter-panel`, `date-picker`, `multiselect` and the rest) are tested like any shared component.
 - **Internal React behavior** — don't test that `useState` works
 - **Implementation details** — don't assert on which specific Radix primitive was rendered, only on what the user sees
 - **Private functions** — test via their public caller
@@ -173,11 +184,20 @@ The response body must match the real backend shape: many feature hooks parse it
 # Workflow
 
 1. **Read the code you're testing.** Understand its inputs, outputs, and user-visible behavior.
-2. **Write one happy-path test first.** Render, interact, assert on the primary success case.
-3. **Add error and edge cases.** Invalid input, network failure, empty state.
-4. **Do not run the test.** Vitest, typecheck, lint and format run only in the main loop: a hook denies them inside agents, because a long silent run trips the 600s watchdog and kills the agent. Do not retry another way. For every file you added or touched, list `CI: <file>` under `NOT_VERIFIED`. Tests run only in CI (every PR into `dev`/`prod`, every push), never on the dev machine.
-5. **Fix failures the main loop reports back.** Never disable or skip a failing test.
-6. **Report back**: what you tested, number of tests added, and the `NOT_VERIFIED` list. Do not claim a test passes that you did not see run.
+2. **Look calendar facts up, never work them out by hand.** When an expected value depends on dates (the weekday of a date, the date N days later, which Mondays fall in a range), print it with plain JS and `date-fns` from `apps/web`, then paste it into the test as a literal: `cd apps/web && TZ=UTC node -e 'const { eachWeekOfInterval, formatISO, parseISO } = require("date-fns"); console.log(eachWeekOfInterval({ start: parseISO("2024-01-01"), end: parseISO("2024-02-01") }, { weekStartsOn: 1 }).map((day) => formatISO(day, { representation: "date" })))'`.
+   - `TZ=UTC` always: CI runs in UTC and this machine does not, so a value with a time in it shifts by hours and the literal goes red in CI.
+   - Weeks in the product start on Monday (`weekStartsOn: 1`); `date-fns` defaults to Sunday.
+   - Compute the facts the spec states, not the code's own chain of calls: an expectation that replays the implementation replays its off-by-one too, which is the Tautological anti-pattern above.
+   - A `format` pattern quotes literal text with apostrophes (`"yyyy-MM-dd'T'HH:mm"`), which ends the single-quoted `node -e '...'`. Use `formatISO` instead.
+   - Only plain JS works: `node -e` is allowed in agents, while `tsx` and `node --import @swc-node` (needed to import the TypeScript under test) are denied along with test, lint, build and package tooling.
+
+   Working a 786-day fixture and its window boundaries out by hand made one run take 13 minutes, against under 3 for the agent that wrote the feature. If the brief carries a table of expected values, use it as given.
+
+3. **Write one happy-path test first.** Render, interact, assert on the primary success case.
+4. **Add error and edge cases.** Invalid input, network failure, empty state.
+5. **Do not run the test.** Vitest, typecheck, lint and format run only in the main loop: a hook denies them inside agents, because a long silent run trips the 600s watchdog and kills the agent. Do not retry another way. For every file you added or touched, list `CI: <file>` under `NOT_VERIFIED`. Tests run only in CI (every PR into `dev`/`prod`, every push), never on the dev machine.
+6. **Fix failures the main loop reports back.** Never disable or skip a failing test.
+7. **Report back**: what you tested, number of tests added, and the `NOT_VERIFIED` list. Do not claim a test passes that you did not see run.
 
 # Done criteria
 

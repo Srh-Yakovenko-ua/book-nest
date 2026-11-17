@@ -57,6 +57,11 @@ export const LIBRARY_PUBLISHER_PRESENCE_VALUES = Object.values(
 export const LIBRARY_PUBLISHER_PRESENCE_DEFAULT = BooksControllerListPublisherPresence.all;
 export const LIBRARY_PUBLISHER_PRESENCE_MISSING = BooksControllerListPublisherPresence.missing;
 const sortValues = Object.values(BooksControllerListSort);
+const LIBRARY_RANGE_KEYS = [
+  "rating",
+  "year",
+  "pages",
+] as const satisfies readonly LibraryRangeKey[];
 
 export const libraryQueryParsers = {
   ageCategory: parseAsArrayOf(parseAsStringLiteral(LIBRARY_AGE_CATEGORY_VALUES)).withDefault([]),
@@ -105,6 +110,8 @@ export type LibraryRangeFlags = {
   year: boolean;
 };
 
+export type LibraryRangeKey = keyof LibraryRangeFlags;
+
 type LibraryRange = {
   max: Nullable<number> | undefined;
   min: Nullable<number> | undefined;
@@ -146,6 +153,22 @@ export function hasActiveLibraryFilters(state: LibraryQueryState): boolean {
 
 export function hasActiveLibrarySearch(state: LibraryQueryState): boolean {
   return state.q.trim() !== "";
+}
+
+export function invertedLibraryRanges(source: LibraryRangeSource): LibraryRangeKey[] {
+  const flags = libraryRangeFlags(source);
+  return LIBRARY_RANGE_KEYS.filter((key) => flags[key]);
+}
+
+export function invertedRangesReset(
+  source: LibraryRangeSource,
+): Partial<Record<keyof LibraryRangeSource, null>> {
+  const flags = libraryRangeFlags(source);
+  return {
+    ...(flags.pages ? { pagesMax: null, pagesMin: null } : {}),
+    ...(flags.rating ? { ratingMax: null, ratingMin: null } : {}),
+    ...(flags.year ? { yearMax: null, yearMin: null } : {}),
+  };
 }
 
 export function isLibraryRangeValid(source: LibraryRangeSource): boolean {

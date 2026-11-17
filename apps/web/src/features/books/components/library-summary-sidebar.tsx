@@ -2,6 +2,8 @@
 
 import { useTranslations } from "next-intl";
 
+import { OverviewSection } from "@/components/overview-section";
+
 import type { LibraryBookLinkComponent } from "../model/library-book";
 import type {
   LibraryOverviewBook,
@@ -10,7 +12,6 @@ import type {
 } from "./library-overview-blocks";
 
 import {
-  LibraryOverviewSection,
   LibraryRecentlyAddedBlock,
   LibraryTopGenresBlock,
   LibraryTopTagsBlock,
@@ -38,21 +39,21 @@ export function LibrarySummarySidebar({
       aria-label={t("title")}
       className="flex flex-col gap-4 max-sm:hidden xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
     >
-      <LibraryOverviewSection className="sidebar-card-leaf" title={t("topGenres")}>
+      <OverviewSection className="sidebar-card-leaf" title={t("topGenres")}>
         <LibraryTopGenresBlock genres={topGenres} isLoading={isLoading} />
-      </LibraryOverviewSection>
+      </OverviewSection>
 
-      <LibraryOverviewSection className="sidebar-card-leaf" title={t("topTags")}>
+      <OverviewSection className="sidebar-card-leaf" title={t("topTags")}>
         <LibraryTopTagsBlock isLoading={isLoading} tags={topTags} />
-      </LibraryOverviewSection>
+      </OverviewSection>
 
-      <LibraryOverviewSection className="sidebar-card-leaf" title={t("recentlyAdded")}>
+      <OverviewSection className="sidebar-card-leaf" title={t("recentlyAdded")}>
         <LibraryRecentlyAddedBlock
           books={recentlyAdded}
           isLoading={isLoading}
           linkComponent={linkComponent}
         />
-      </LibraryOverviewSection>
+      </OverviewSection>
     </aside>
   );
 }

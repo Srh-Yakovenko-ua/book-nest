@@ -1,6 +1,4 @@
-import type { ReactNode } from "react";
-
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -9,6 +7,7 @@ import {
   makeBookDetailsView,
   makeBookView,
 } from "@/features/books/components/book-details.fixtures";
+import { queryClientWrapper } from "@/test-query-cache";
 
 import { useToggleFavoriteDedication } from "./use-toggle-favorite-dedication";
 
@@ -41,7 +40,7 @@ describe("useToggleFavoriteDedication", () => {
       jsonResponse(makeBookView({ id: BOOK_ID, isFavoriteDedication: true })),
     );
     const { result } = renderHook(() => useToggleFavoriteDedication(), {
-      wrapper: wrapperFor(client),
+      wrapper: queryClientWrapper(client),
     });
 
     await act(() => result.current.mutateAsync({ id: BOOK_ID, isFavoriteDedication: true }));
@@ -59,7 +58,7 @@ describe("useToggleFavoriteDedication", () => {
       jsonResponse(makeBookView({ id: BOOK_ID, isFavoriteDedication: true })),
     );
     const { result } = renderHook(() => useToggleFavoriteDedication(), {
-      wrapper: wrapperFor(client),
+      wrapper: queryClientWrapper(client),
     });
 
     await act(() => result.current.mutateAsync({ id: BOOK_ID, isFavoriteDedication: true }));
@@ -75,7 +74,7 @@ describe("useToggleFavoriteDedication", () => {
       jsonResponse(makeBookView({ id: BOOK_ID, isFavoriteDedication: true })),
     );
     const { result } = renderHook(() => useToggleFavoriteDedication(), {
-      wrapper: wrapperFor(client),
+      wrapper: queryClientWrapper(client),
     });
 
     await act(() => result.current.mutateAsync({ id: BOOK_ID, isFavoriteDedication: true }));
@@ -83,17 +82,34 @@ describe("useToggleFavoriteDedication", () => {
     expect(client.getQueryState(detailKey)?.isInvalidated).toBe(true);
     expect(client.getQueryData(detailKey)).toBeUndefined();
   });
+
+  it("refreshes the book detail and book lists after a failed toggle", async () => {
+    const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    const detailKey = bookKeys.detail(BOOK_ID);
+    const listKey = ["/api/books", "list", { page: 1 }];
+    client.setQueryData(detailKey, makeBookDetailsView({ id: BOOK_ID }));
+    client.setQueryData(listKey, {});
+    fetchMock.mockResolvedValue(jsonResponse({ message: "Internal server error" }, 500));
+    const { result } = renderHook(() => useToggleFavoriteDedication(), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    await act(() =>
+      result.current
+        .mutateAsync({ id: BOOK_ID, isFavoriteDedication: true })
+        .catch(() => undefined),
+    );
+
+    expect([detailKey, listKey].map((key) => client.getQueryState(key)?.isInvalidated)).toEqual([
+      true,
+      true,
+    ]);
+  });
 });
 
-function jsonResponse(body: unknown): Response {
+function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
-    status: 200,
+    status,
   });
-}
-
-function wrapperFor(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
 }

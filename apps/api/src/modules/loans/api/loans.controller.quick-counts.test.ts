@@ -3,7 +3,7 @@ import type { INestApplication } from "@nestjs/common";
 
 import { addDays } from "date-fns";
 import request from "supertest";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
@@ -13,6 +13,7 @@ import { startOfUtcDay, toIsoDate } from "../../../core/iso-date.js";
 import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
+import { registerReaderInTimezone } from "../../../test/user-timezone.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { BooksModule } from "../../books/books.module.js";
 import { LoansModule } from "../loans.module.js";
@@ -67,6 +68,8 @@ const BORROWED = "borrowed_from_someone";
 const QUICK_FILTER_KEYS: QuickFilterKey[] = ["all", "overdue", "return_soon", "no_return_date"];
 
 const ZERO_COUNTS: LoansQuickCounts = { all: 0, no_return_date: 0, overdue: 0, return_soon: 0 };
+
+const KYIV_PAST_MIDNIGHT = new Date("2026-11-15T22:30:00Z");
 
 const TotalCountSchema = z.object({ totalCount: z.number() });
 
@@ -195,7 +198,7 @@ async function seedLoan({
 }
 
 async function seedLoans(): Promise<SeededLoans> {
-  const { accessToken, userId } = await context.registerVerifyAndLogin();
+  const { accessToken, userId } = await registerReaderInTimezone({ context, timezone: "UTC" });
   const ivan = await prisma.loanContact.create({
     data: { name: "Ivan", normalizedName: "ivan", userId },
     select: { id: true },
@@ -209,6 +212,20 @@ async function seedLoans(): Promise<SeededLoans> {
     await seedLoan({ contactId: contactIds[loan.person], loan, userId });
   }
   return { accessToken, contactIds };
+}
+
+async function seedReaderWithLoanDueToday(timezone: string): Promise<string> {
+  const { accessToken, userId } = await registerReaderInTimezone({ context, timezone });
+  const olha = await prisma.loanContact.create({
+    data: { name: "Olha", normalizedName: "olha", userId },
+    select: { id: true },
+  });
+  await seedLoan({
+    contactId: olha.id,
+    loan: { dueInDays: 0, loanedDaysAgo: 14, person: "Olha", title: "Dune", type: LENT },
+    userId,
+  });
+  return accessToken;
 }
 
 describe("GET /api/loans/quick-counts", () => {
@@ -384,4 +401,36 @@ describe("GET /api/loans/quick-counts", () => {
       }
     },
   );
+});
+
+describe("GET /api/loans/quick-counts on the reader's own calendar day", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ now: KYIV_PAST_MIDNIGHT, toFake: ["Date"] });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("counts a loan due 2026-11-15 as overdue for a Kyiv reader on 2026-11-16", async () => {
+    const accessToken = await seedReaderWithLoanDueToday("Europe/Kyiv");
+
+    expect(await quickCountsOf(accessToken)).toEqual({
+      all: 1,
+      no_return_date: 0,
+      overdue: 1,
+      return_soon: 0,
+    });
+  });
+
+  it("counts a loan due 2026-11-15 as return soon for a UTC reader still on that day", async () => {
+    const accessToken = await seedReaderWithLoanDueToday("UTC");
+
+    expect(await quickCountsOf(accessToken)).toEqual({
+      all: 1,
+      no_return_date: 0,
+      overdue: 0,
+      return_soon: 1,
+    });
+  });
 });

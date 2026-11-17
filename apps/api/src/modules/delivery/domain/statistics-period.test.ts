@@ -16,17 +16,16 @@ type PeriodCase = {
   expectedCurrent: StatisticsPeriod;
   from?: string;
   name: string;
-  now: Date;
   to?: string;
+  today: string;
 };
 
 type PeriodInput = Parameters<typeof resolveStatisticsPeriods>[0];
 
-const AUGUST_20_2026 = new Date("2026-08-20T10:15:00.000Z");
-const MARCH_30_2026 = new Date("2026-03-30T06:00:00.000Z");
-const LEAP_DAY_2024 = new Date("2024-02-29T08:00:00.000Z");
-const FEBRUARY_28_2025 = new Date("2025-02-28T08:00:00.000Z");
-const LAST_UTC_INSTANT_OF_AUGUST_20_2026 = new Date("2026-08-20T23:59:59.999Z");
+const AUGUST_20_2026 = "2026-08-20";
+const MARCH_30_2026 = "2026-03-30";
+const LEAP_DAY_2024 = "2024-02-29";
+const FEBRUARY_28_2025 = "2025-02-28";
 
 const PERIOD_CASES: PeriodCase[] = [
   {
@@ -35,8 +34,8 @@ const PERIOD_CASES: PeriodCase[] = [
     expectedCurrent: { from: "2026-08-01", to: "2026-08-20" },
     from: "2026-08-01",
     name: "a partial current month compares against the same slice of the previous month",
-    now: AUGUST_20_2026,
     to: "2026-08-20",
+    today: AUGUST_20_2026,
   },
   {
     compare: "previous_period",
@@ -44,8 +43,8 @@ const PERIOD_CASES: PeriodCase[] = [
     expectedCurrent: { from: "2026-07-01", to: "2026-07-31" },
     from: "2026-07-01",
     name: "a full calendar month compares against the whole preceding calendar month",
-    now: AUGUST_20_2026,
     to: "2026-07-31",
+    today: AUGUST_20_2026,
   },
   {
     compare: "previous_period",
@@ -53,8 +52,8 @@ const PERIOD_CASES: PeriodCase[] = [
     expectedCurrent: { from: "2026-03-01", to: "2026-03-30" },
     from: "2026-03-01",
     name: "a month-to-date window clamps to the last day of a shorter previous month",
-    now: MARCH_30_2026,
     to: "2026-03-30",
+    today: MARCH_30_2026,
   },
   {
     compare: "previous_period",
@@ -62,8 +61,8 @@ const PERIOD_CASES: PeriodCase[] = [
     expectedCurrent: { from: "2026-07-22", to: "2026-08-20" },
     from: "2026-07-22",
     name: "a rolling thirty-day window compares against the thirty days before it",
-    now: AUGUST_20_2026,
     to: "2026-08-20",
+    today: AUGUST_20_2026,
   },
   {
     compare: "previous_period",
@@ -71,8 +70,8 @@ const PERIOD_CASES: PeriodCase[] = [
     expectedCurrent: { from: "2026-05-21", to: "2026-08-20" },
     from: "2026-05-21",
     name: "a rolling three-month window compares against an equally long window before it",
-    now: AUGUST_20_2026,
     to: "2026-08-20",
+    today: AUGUST_20_2026,
   },
   {
     compare: "previous_period",
@@ -80,8 +79,8 @@ const PERIOD_CASES: PeriodCase[] = [
     expectedCurrent: { from: "2026-01-01", to: "2026-08-20" },
     from: "2026-01-01",
     name: "a year-to-date range falls back to an equally long window instead of guessing a preset",
-    now: AUGUST_20_2026,
     to: "2026-08-20",
+    today: AUGUST_20_2026,
   },
   {
     compare: "previous_period",
@@ -89,8 +88,8 @@ const PERIOD_CASES: PeriodCase[] = [
     expectedCurrent: { from: "2026-08-05", to: "2026-08-20" },
     from: "2026-08-05",
     name: "a custom range inside one month compares against the equally long window before it",
-    now: AUGUST_20_2026,
     to: "2026-08-20",
+    today: AUGUST_20_2026,
   },
   {
     compare: "previous_period",
@@ -98,8 +97,8 @@ const PERIOD_CASES: PeriodCase[] = [
     expectedCurrent: { from: "2026-08-20", to: "2026-08-20" },
     from: "2026-08-20",
     name: "a single day compares against the single day before it, which may hold nothing at all",
-    now: AUGUST_20_2026,
     to: "2026-08-20",
+    today: AUGUST_20_2026,
   },
   {
     compare: "previous_period",
@@ -107,8 +106,8 @@ const PERIOD_CASES: PeriodCase[] = [
     expectedCurrent: { from: "2024-02-01", to: "2024-02-29" },
     from: "2024-02-01",
     name: "a full leap February compares against the whole of January",
-    now: LEAP_DAY_2024,
     to: "2024-02-29",
+    today: LEAP_DAY_2024,
   },
   {
     compare: "same_period_last_year",
@@ -116,8 +115,8 @@ const PERIOD_CASES: PeriodCase[] = [
     expectedCurrent: { from: "2026-08-01", to: "2026-08-20" },
     from: "2026-08-01",
     name: "same_period_last_year keeps the month and day and steps the year back",
-    now: AUGUST_20_2026,
     to: "2026-08-20",
+    today: AUGUST_20_2026,
   },
   {
     compare: "same_period_last_year",
@@ -125,8 +124,8 @@ const PERIOD_CASES: PeriodCase[] = [
     expectedCurrent: { from: "2024-02-01", to: "2024-02-29" },
     from: "2024-02-01",
     name: "a 29 February landing on a non-leap year steps back to 28 February",
-    now: LEAP_DAY_2024,
     to: "2024-02-29",
+    today: LEAP_DAY_2024,
   },
   {
     compare: "same_period_last_year",
@@ -134,16 +133,16 @@ const PERIOD_CASES: PeriodCase[] = [
     expectedCurrent: { from: "2025-02-01", to: "2025-02-28" },
     from: "2025-02-01",
     name: "a 28 February stays on the 28th even when the target year is leap",
-    now: FEBRUARY_28_2025,
     to: "2025-02-28",
+    today: FEBRUARY_28_2025,
   },
   {
     expectedComparison: null,
     expectedCurrent: { from: "2026-08-01", to: "2026-08-20" },
     from: "2026-08-01",
     name: "no compare mode leaves the comparison period out entirely",
-    now: AUGUST_20_2026,
     to: "2026-08-20",
+    today: AUGUST_20_2026,
   },
   {
     compare: "previous_period",
@@ -151,14 +150,14 @@ const PERIOD_CASES: PeriodCase[] = [
     expectedCurrent: { from: "2026-08-01", to: "2026-08-20" },
     from: "2026-08-01",
     name: "an open end resolves to today before the comparison window is derived",
-    now: AUGUST_20_2026,
+    today: AUGUST_20_2026,
   },
   {
     compare: "previous_period",
     expectedComparison: null,
     expectedCurrent: { from: null, to: "2026-08-20" },
     name: "an open start stays open and leaves nothing to compare against",
-    now: AUGUST_20_2026,
+    today: AUGUST_20_2026,
   },
 ];
 
@@ -178,12 +177,12 @@ function inclusiveDays({ from, to }: { from: string; to: string }): number {
 describe("resolveStatisticsPeriods", () => {
   it.each(PERIOD_CASES)(
     "$name",
-    ({ compare, expectedComparison, expectedCurrent, from, now, to }) => {
+    ({ compare, expectedComparison, expectedCurrent, from, to, today }) => {
       const { comparisonPeriod, currentPeriod } = resolveStatisticsPeriods({
         compare,
         from,
-        now,
         to,
+        today,
       });
 
       expect({ comparisonPeriod, currentPeriod }).toEqual({
@@ -197,8 +196,8 @@ describe("resolveStatisticsPeriods", () => {
     const comparison = comparisonOf({
       compare: "previous_period",
       from: "2026-07-01",
-      now: AUGUST_20_2026,
       to: "2026-07-31",
+      today: AUGUST_20_2026,
     });
 
     expect([
@@ -217,7 +216,7 @@ describe("resolveStatisticsPeriods", () => {
 
     const lengths = arbitraryRanges.map((range) => [
       inclusiveDays(range),
-      inclusiveDays(comparisonOf({ compare: "previous_period", now: AUGUST_20_2026, ...range })),
+      inclusiveDays(comparisonOf({ compare: "previous_period", today: AUGUST_20_2026, ...range })),
     ]);
 
     expect(lengths).toEqual([
@@ -232,23 +231,23 @@ describe("resolveStatisticsPeriods", () => {
     const comparison = comparisonOf({
       compare: "previous_period",
       from: "2026-08-05",
-      now: AUGUST_20_2026,
       to: "2026-08-20",
+      today: AUGUST_20_2026,
     });
 
     expect(daysBetweenIsoDates({ endIsoDate: "2026-08-05", startIsoDate: comparison.to })).toBe(1);
   });
 
-  it("reads the last UTC instant of a day as that same day rather than the next one", () => {
-    const { currentPeriod } = resolveStatisticsPeriods({
-      now: LAST_UTC_INSTANT_OF_AUGUST_20_2026,
-    });
+  it("ends an open period on the reader's day exactly as handed in, even on the first of a month", () => {
+    const { currentPeriod } = resolveStatisticsPeriods({ today: "2026-03-01" });
 
-    expect(currentPeriod).toEqual({ from: null, to: "2026-08-20" });
+    expect(currentPeriod).toEqual({ from: null, to: "2026-03-01" });
   });
 
   it("hands back empty bounds when the reader asked for no period", () => {
-    const { currentPeriod, requestedPeriod } = resolveStatisticsPeriods({ now: AUGUST_20_2026 });
+    const { currentPeriod, requestedPeriod } = resolveStatisticsPeriods({
+      today: AUGUST_20_2026,
+    });
 
     expect(requestedPeriod).toEqual({ from: undefined, to: undefined });
     expect(currentPeriod.to).toBe("2026-08-20");
@@ -257,7 +256,7 @@ describe("resolveStatisticsPeriods", () => {
   it("repeats the asked-for bounds without filling either of them in", () => {
     const { requestedPeriod } = resolveStatisticsPeriods({
       from: "2026-08-01",
-      now: AUGUST_20_2026,
+      today: AUGUST_20_2026,
     });
 
     expect(requestedPeriod).toEqual({ from: "2026-08-01", to: undefined });
@@ -267,8 +266,8 @@ describe("resolveStatisticsPeriods", () => {
     const { requestedPeriod } = resolveStatisticsPeriods({
       compare: "previous_period",
       from: "2026-08-01",
-      now: AUGUST_20_2026,
       to: "2026-08-20",
+      today: AUGUST_20_2026,
     });
 
     expect(requestedPeriod).toEqual({ from: "2026-08-01", to: "2026-08-20" });

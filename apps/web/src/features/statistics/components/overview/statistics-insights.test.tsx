@@ -1,7 +1,7 @@
 import type { ReadingStatisticsInsight } from "@app/shared";
 import type { ReactNode } from "react";
 
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
@@ -13,7 +13,27 @@ vi.mock("@/i18n/navigation", () => ({
 import { renderWithProviders, screen } from "@/test-utils";
 
 import { statisticsIds } from "../../model/statistics.fixtures";
-import { StatisticsInsights } from "./statistics-insights";
+import { StatisticsInsightBody, StatisticsInsights } from "./statistics-insights";
+
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((input: RequestInfo | URL) =>
+      String(input).includes("/api/genres")
+        ? Promise.resolve(
+            new Response(JSON.stringify([]), {
+              headers: { "Content-Type": "application/json" },
+              status: 200,
+            }),
+          )
+        : Promise.reject(new Error(`unexpected fetch: ${String(input)}`)),
+    ),
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function getInsightText(text: string): HTMLElement {
   return screen.getByText(
@@ -31,6 +51,9 @@ const STREAK: ReadingStatisticsInsight = {
   params: { days: 12, endDate: "2026-03-14", startDate: "2026-03-03" },
   tone: "positive",
 };
+
+const STREAK_SENTENCE =
+  "Найдовша серія читання — 12 днів поспіль (з 3 березня 2026 р. по 14 березня 2026 р.).";
 
 describe("StatisticsInsights", () => {
   it("localizes a weekday insight from its typed params", () => {
@@ -146,9 +169,37 @@ describe("StatisticsInsights", () => {
     expect(screen.getByText("12 днів", { selector: "strong" })).toBeInTheDocument();
   });
 
+  it("sets the key figure in the heading face in the overview list", () => {
+    render([STREAK]);
+
+    expect(screen.getByText("12 днів", { selector: "strong" })).toHaveClass("font-heading");
+  });
+
+  it("mutes the sentence around the key figure in the overview list", () => {
+    render([STREAK]);
+
+    expect(getInsightText(STREAK_SENTENCE)).toHaveClass("text-muted-foreground");
+  });
+
   it("renders no panel at all when nothing was selected", () => {
     const { container } = render([]);
 
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe("StatisticsInsightBody", () => {
+  it("keeps the key figure in the body face when no emphasis is asked for", () => {
+    renderWithProviders(<StatisticsInsightBody insight={STREAK} isLowerBound={false} />);
+
+    expect(screen.getByText("12 днів", { selector: "strong" })).not.toHaveClass("font-heading");
+  });
+
+  it("keeps the sentence at full contrast when no emphasis is asked for", () => {
+    renderWithProviders(<StatisticsInsightBody insight={STREAK} isLowerBound={false} />);
+
+    const sentence = getInsightText(STREAK_SENTENCE);
+    expect(sentence).toHaveClass("text-foreground");
+    expect(sentence).not.toHaveClass("text-muted-foreground");
   });
 });

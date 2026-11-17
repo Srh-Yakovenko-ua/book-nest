@@ -29,6 +29,7 @@ import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
+import { emptyToNull } from "@/lib/empty-to-null";
 
 import type { BookSpoilerFlag } from "../model/book-spoiler-flags";
 import type { CharacterEditValues } from "../model/character-edit-form";
@@ -779,7 +780,7 @@ export function CharacterBasicsSection({
                     render={({ field }) => (
                       <InheritedTextField
                         error={errors.book?.displayName}
-                        globalValue={textOrNull(globalName)}
+                        globalValue={emptyToNull(globalName)}
                         id="character-display-name"
                         label={t("displayName")}
                         maxLength={CHARACTER_TEXT_MAX.shortText}
@@ -1022,11 +1023,6 @@ function PickerCaption({ label }: { label: string }) {
       {label}
     </span>
   );
-}
-
-function textOrNull(value: string): null | string {
-  const trimmed = value.trim();
-  return trimmed.length === 0 ? null : trimmed;
 }
 
 function toNarratorType(value: string): CharacterEditValues["book"]["narratorType"] {

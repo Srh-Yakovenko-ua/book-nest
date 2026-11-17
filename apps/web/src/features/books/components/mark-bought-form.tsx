@@ -9,40 +9,40 @@ import type {
 } from "@app/shared";
 import type { ReactNode } from "react";
 
-import { STORE_LINK_ERROR_CODES } from "@app/shared";
+import { PURCHASE_INPUT_LIMITS, STORE_LINK_ERROR_CODES } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQueryClient } from "@tanstack/react-query";
 import { isAfter, parseISO } from "date-fns";
-import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { DateField } from "@/components/date-field";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
-import { wishlistKeys } from "@/features/books-to-buy/api/wishlist-keys";
-import { findBestOfferLinkId } from "@/features/books-to-buy/model/best-offer-link";
+import { findBestOfferLinkId } from "@/features/books-to-buy";
+import { useProfileTimeZone } from "@/features/settings";
+import { formatNumber } from "@/lib/format";
 import { ApiError } from "@/lib/http-client";
+import { todayIsoDay } from "@/lib/iso-day";
 
 import { useMarkBought } from "../api/use-ownership";
-import { todayIso } from "../model/reading-progress";
 import {
   buildStoreSourceSchema,
   resolveStoreName,
   resolveStorePrice,
-  STORE_SOURCE_LIMITS,
   type StoreSourceValue,
   toStoreSourceDefaults,
 } from "../model/store-source";
-import { BookDateField } from "./book-date-field";
 import { StoreSourceFields } from "./store-source-fields";
 
 type MarkBoughtFormProps = {
   bestOffer: Nullable<BestOfferView>;
   book: BookView;
   onDone: () => void;
+  onPendingChange?: (pending: boolean) => void;
   onSuccess?: () => void;
   renderFields?: (fields: ReactNode) => ReactNode;
   storeLinks: BookStoreLinkView[];
@@ -57,25 +57,30 @@ export function MarkBoughtForm({
   bestOffer,
   book,
   onDone,
+  onPendingChange,
   onSuccess,
   renderFields = (fields) => fields,
   storeLinks,
 }: MarkBoughtFormProps) {
+  const locale = useLocale();
   const t = useTranslations("books.details.ownership.buyConfirm");
   const tErrors = useTranslations("books.details.ownership.errors");
   const tActions = useTranslations("books.actions");
-  const queryClient = useQueryClient();
   const markBought = useMarkBought();
   const [serverError, setServerError] = useState<null | string>(null);
   const bestOfferLinkId = findBestOfferLinkId({ bestOffer, storeLinks });
+  const today = todayIsoDay(useProfileTimeZone());
 
   const {
     control,
     formState: { errors },
+    getFieldState,
+    getValues,
     handleSubmit,
+    resetField,
   } = useForm<MarkBoughtValues>({
     defaultValues: {
-      purchasedAt: todayIso(),
+      purchasedAt: today,
       store: toStoreSourceDefaults({ bestOffer, purchaseInfo: book.purchaseInfo, storeLinks }),
     },
     mode: "onTouched",
@@ -85,17 +90,32 @@ export function MarkBoughtForm({
           .string()
           .refine((value) => value.length > 0, tErrors("purchaseDateRequired"))
           .refine(
-            (value) => value.length === 0 || !isAfter(parseISO(value), new Date()),
+            (value) => value.length === 0 || !isAfter(parseISO(value), parseISO(today)),
             tErrors("purchaseDateFuture"),
           ),
         store: buildStoreSourceSchema({
-          price: tErrors("price"),
-          priceMax: tErrors("priceMax"),
-          storeNameMax: tErrors("storeNameMax", { max: STORE_SOURCE_LIMITS.storeNameMax }),
+          limits: PURCHASE_INPUT_LIMITS,
+          messages: {
+            price: tErrors("price"),
+            priceMax: tErrors("priceMax", {
+              max: formatNumber(PURCHASE_INPUT_LIMITS.priceMax, locale),
+            }),
+            storeNameMax: tErrors("storeNameMax", { max: PURCHASE_INPUT_LIMITS.storeNameMax }),
+          },
         }),
       }),
     ),
   });
+
+  useEffect(() => {
+    onPendingChange?.(markBought.isPending);
+    return () => onPendingChange?.(false);
+  }, [markBought.isPending, onPendingChange]);
+
+  useEffect(() => {
+    if (getFieldState("purchasedAt").isDirty || getValues("purchasedAt") === today) return;
+    resetField("purchasedAt", { defaultValue: today });
+  }, [getFieldState, getValues, resetField, today]);
 
   const onSubmit = handleSubmit((values) => {
     setServerError(null);
@@ -104,11 +124,10 @@ export function MarkBoughtForm({
       {
         onError: (error) => {
           if (error instanceof ApiError && error.code === STORE_LINK_ERROR_CODES.NOT_IN_WISHLIST) {
-            void queryClient.invalidateQueries({ queryKey: wishlistKeys.root });
             setServerError(tErrors("notInWishlist"));
             return;
           }
-          setServerError(error instanceof ApiError ? error.message : tErrors("generic"));
+          setServerError(tErrors("generic"));
         },
         onSuccess: () => {
           onSuccess?.();
@@ -144,13 +163,14 @@ export function MarkBoughtForm({
               control={control}
               name="purchasedAt"
               render={({ field }) => (
-                <BookDateField
+                <DateField
                   ariaLabel={t("date")}
                   describedBy={errors.purchasedAt ? "mark-bought-date-error" : undefined}
                   id="mark-bought-date"
                   invalid={errors.purchasedAt !== undefined}
                   onChange={(next) => field.onChange(next ?? "")}
                   required
+                  today={today}
                   value={field.value}
                 />
               )}
@@ -167,7 +187,7 @@ export function MarkBoughtForm({
       )}
 
       <DialogFooter>
-        <Button onClick={onDone} type="button" variant="secondary">
+        <Button disabled={markBought.isPending} onClick={onDone} type="button" variant="secondary">
           {tActions("cancel")}
         </Button>
         <Button disabled={markBought.isPending} loading={markBought.isPending} type="submit">

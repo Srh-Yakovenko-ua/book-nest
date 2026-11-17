@@ -57,17 +57,18 @@ export class BookLibraryReadService {
     const { search, searchGenreKeys } = await this.resolveSearch(query.q);
     const filter = buildLibraryBookFilter({ query, search, searchGenreKeys, userId });
 
-    const [books, totalCount] = await Promise.all([
+    const [books, totalCount, toBookView] = await Promise.all([
       this.libraryReadRepository.listForLibrary({
         filter,
         sort,
         ...pageSlice({ pageNumber, pageSize }),
       }),
       this.libraryReadRepository.countForLibrary({ filter }),
+      this.viewAssembler.forUser(userId),
     ]);
 
     return buildPaginator({
-      items: books.map((book) => this.viewAssembler.viewOf(book)),
+      items: books.map((book) => toBookView(book)),
       pageNumber,
       pageSize,
       totalCount,
@@ -82,25 +83,27 @@ export class BookLibraryReadService {
     userId: string;
   }): Promise<LibraryOverviewView> {
     const ownershipStatuses = query.owner;
-    const [summary, activeReading, topGenreKeys, topTags, recentBooks] = await Promise.all([
-      this.buildOverviewSummary({ ownershipStatuses, publisherId: query.publisher, userId }),
-      this.buildActiveReading({ ownershipStatuses, userId }),
-      this.libraryReadRepository.topGenreKeys({
-        limit: LIBRARY_OVERVIEW.topLimit,
-        ownershipStatuses,
-        userId,
-      }),
-      this.libraryReadRepository.topTags({
-        limit: LIBRARY_OVERVIEW.topLimit,
-        ownershipStatuses,
-        userId,
-      }),
-      this.libraryReadRepository.listRecentlyAdded({
-        ownershipStatuses,
-        take: LIBRARY_OVERVIEW.recentLimit,
-        userId,
-      }),
-    ]);
+    const [summary, activeReading, topGenreKeys, topTags, recentBooks, toBookView] =
+      await Promise.all([
+        this.buildOverviewSummary({ ownershipStatuses, publisherId: query.publisher, userId }),
+        this.buildActiveReading({ ownershipStatuses, userId }),
+        this.libraryReadRepository.topGenreKeys({
+          limit: LIBRARY_OVERVIEW.topLimit,
+          ownershipStatuses,
+          userId,
+        }),
+        this.libraryReadRepository.topTags({
+          limit: LIBRARY_OVERVIEW.topLimit,
+          ownershipStatuses,
+          userId,
+        }),
+        this.libraryReadRepository.listRecentlyAdded({
+          ownershipStatuses,
+          take: LIBRARY_OVERVIEW.recentLimit,
+          userId,
+        }),
+        this.viewAssembler.forUser(userId),
+      ]);
 
     const genreNames = await this.genresService.findNamesByKeys(
       topGenreKeys.map((genre) => genre.key),
@@ -114,7 +117,7 @@ export class BookLibraryReadService {
 
     return {
       activeReading,
-      recentlyAdded: recentBooks.map((book) => this.viewAssembler.viewOf(book)),
+      recentlyAdded: recentBooks.map((book) => toBookView(book)),
       summary,
       topGenres,
       topTags: topTags.map((tag) => ({ ...toTagView(tag), count: tag.count })),

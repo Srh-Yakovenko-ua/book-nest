@@ -2,7 +2,7 @@ import type { BookView, MediaView, Nullable } from "@app/shared";
 
 import { isActiveShipmentStatus } from "@app/shared";
 
-import type { LoanContactSelection } from "@/features/loans/model/loan-contact-selection";
+import type { LoanContactSelection } from "@/features/loans";
 
 import type {
   AuthorSelection,

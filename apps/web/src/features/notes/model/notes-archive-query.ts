@@ -11,7 +11,6 @@ import {
   SeriesStatusSchema,
 } from "@app/shared";
 import {
-  createParser,
   type inferParserType,
   parseAsArrayOf,
   parseAsBoolean,
@@ -21,6 +20,7 @@ import {
 import { z } from "zod";
 
 import { assertNever } from "@/lib/assert-never";
+import { parseAsSchema } from "@/lib/parse-as-schema";
 
 import type {
   NotesArchiveConfig,
@@ -73,16 +73,6 @@ export const NOTES_ARCHIVE = {
 };
 
 export type NotesViewMode = (typeof NOTES_ARCHIVE.viewModes)[number];
-
-function parseAsSchema<T>(schema: z.ZodType<T>) {
-  return createParser({
-    parse: (value: string) => {
-      const result = schema.safeParse(value);
-      return result.success ? result.data : null;
-    },
-    serialize: (value: T) => String(value),
-  });
-}
 
 const uuidListParser = parseAsArrayOf(parseAsSchema(z.uuid())).withDefault([]);
 

@@ -33,7 +33,7 @@ function genre(
 }
 
 function overviewOf(genres: GenreOverviewAggregate[]) {
-  return buildGenresOverview({ genres, now: NOW });
+  return buildGenresOverview({ genres, timeZone: "UTC", todayIsoDate: TODAY_ISO });
 }
 
 describe("dormant genres", () => {
@@ -72,6 +72,28 @@ describe("dormant genres", () => {
     ]);
   });
 
+  it("counts dormancy from the reader's day, so a Kyiv reader past midnight reaches day 90 first", () => {
+    const genres = [
+      dormant({ key: "kyiv-day-90", lastReadingActivityAt: parseIsoDate("2026-06-26") }),
+    ];
+
+    const onReaderDay = buildGenresOverview({
+      genres,
+      timeZone: "Europe/Kyiv",
+      todayIsoDate: "2026-09-24",
+    });
+    const onUtcDay = buildGenresOverview({
+      genres,
+      timeZone: "Europe/Kyiv",
+      todayIsoDate: "2026-09-23",
+    });
+
+    expect({
+      onReaderDay: onReaderDay.dormantGenres.map((entry) => entry.key),
+      onUtcDay: onUtcDay.dormantGenres.map((entry) => entry.key),
+    }).toEqual({ onReaderDay: ["kyiv-day-90"], onUtcDay: [] });
+  });
+
   it("excludes fully read, never read and recently active genres", () => {
     const result = overviewOf([
       dormant({ booksCount: 2, key: "fully-read", readCount: 2 }),
@@ -95,7 +117,7 @@ describe("dormant genres", () => {
         booksCount: 5,
         key: "big-backlog",
         label: "big-backlog",
-        lastReadingActivityAt: daysBeforeToday(300).toISOString(),
+        lastReadingActivityAt: "2025-11-27",
         readCount: 1,
       },
       expect.objectContaining({ key: "small-backlog" }),
@@ -132,6 +154,24 @@ describe("new-for-you genres", () => {
       "day-90-late",
       "day-90-start",
     ]);
+  });
+
+  it("dates the first addition on the reader's zone day, so a book added after Kyiv midnight is day 90", () => {
+    const genres = [
+      genre({ firstAddedAt: new Date("2026-09-22T22:30:00.000Z"), key: "kyiv-after-midnight" }),
+    ];
+
+    const inKyiv = buildGenresOverview({
+      genres,
+      timeZone: "Europe/Kyiv",
+      todayIsoDate: "2026-12-22",
+    });
+    const inUtc = buildGenresOverview({ genres, timeZone: "UTC", todayIsoDate: "2026-12-22" });
+
+    expect({
+      inKyiv: inKyiv.newForYouGenres.map((entry) => entry.key),
+      inUtc: inUtc.newForYouGenres.map((entry) => entry.key),
+    }).toEqual({ inKyiv: ["kyiv-after-midnight"], inUtc: [] });
   });
 
   it("prefers multi-book genres, then the most recent first appearance", () => {
@@ -172,7 +212,7 @@ describe("unrated finished genres", () => {
       {
         key: "dated",
         label: "dated",
-        latestUnratedFinishedAt: daysBeforeToday(3).toISOString(),
+        latestUnratedFinishedAt: "2026-09-20",
         unratedFinishedCount: 1,
       },
     ]);

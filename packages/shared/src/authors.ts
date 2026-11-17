@@ -1,7 +1,6 @@
 import { z } from "zod";
 
-import type { Nullable } from "./common.js";
-
+import { createPaginatedSchema } from "./common.js";
 import { RECENT_USED_LIMIT_DEFAULT, RECENT_USED_LIMIT_MAX } from "./internal.js";
 import {
   CatalogLocaleSchema,
@@ -35,20 +34,24 @@ export const BookAuthorsInputSchema = z
   .min(1, BOOK_AUTHORS_REQUIRED_MESSAGE)
   .max(BOOK_AUTHORS_MAX, BOOK_AUTHORS_MAX_MESSAGE);
 
-export type AuthorView = {
-  bio: Nullable<string>;
-  birthYear: Nullable<number>;
-  countryCode: Nullable<string>;
-  deathYear: Nullable<number>;
-  id: string;
-  isCustom: boolean;
-  name: string;
-  openLibraryKey: Nullable<string>;
-  photoAttribution: Nullable<string>;
-  photoLicense: Nullable<string>;
-  photoLicenseUrl: Nullable<string>;
-  photoUrl: Nullable<string>;
-};
+export const AuthorViewSchema = z.object({
+  bio: z.string().nullable(),
+  birthYear: z.number().int().nullable(),
+  countryCode: z.string().nullable(),
+  deathYear: z.number().int().nullable(),
+  id: z.string(),
+  isCustom: z.boolean(),
+  name: z.string(),
+  openLibraryKey: z.string().nullable(),
+  photoAttribution: z.string().nullable(),
+  photoLicense: z.string().nullable(),
+  photoLicenseUrl: z.string().nullable(),
+  photoUrl: z.string().nullable(),
+});
+
+export type AuthorView = z.infer<typeof AuthorViewSchema>;
+
+export const PaginatedAuthorsSchema = createPaginatedSchema(AuthorViewSchema);
 
 export type BookAuthorsInput = z.infer<typeof BookAuthorsInputSchema>;
 
@@ -74,12 +77,14 @@ export const AuthorLookupQuerySchema = z.object({
     .max(AUTHOR_LOOKUP_QUERY_MAX, "Search query must be at most 100 characters long"),
 });
 
-export type AuthorBookSuggestionView = {
-  coverUrl: Nullable<string>;
-  firstPublishYear: Nullable<number>;
-  openLibraryWorkKey: string;
-  title: string;
-};
+export const AuthorBookSuggestionViewSchema = z.object({
+  coverUrl: z.string().nullable(),
+  firstPublishYear: z.number().nullable(),
+  openLibraryWorkKey: z.string(),
+  title: z.string(),
+});
+
+export type AuthorBookSuggestionView = z.infer<typeof AuthorBookSuggestionViewSchema>;
 
 export type AuthorLookupQuery = z.infer<typeof AuthorLookupQuerySchema>;
 

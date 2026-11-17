@@ -1,15 +1,17 @@
 "use client";
 
 import type { QuoteView } from "@app/shared";
+import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
 
-import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { Skeleton } from "@/components/ui/skeleton";
+import { infiniteScrollStateOf } from "@/hooks/use-infinite-scroll-sentinel";
 import { cn } from "@/lib/utils";
 
 import type { QuotesViewMode } from "../model/quotes-query";
@@ -26,6 +28,7 @@ type QuotesContentProps = {
   isFetchingNextPage: boolean;
   isLoadMoreError: boolean;
   isPending: boolean;
+  isRefreshing: boolean;
   listIdentity: string;
   onAddQuote: () => void;
   onClearFilters: () => void;
@@ -33,6 +36,7 @@ type QuotesContentProps = {
   onOpenBooks: () => void;
   onRetry: () => void;
   quotes: QuoteView[];
+  retryButtonRef: Ref<HTMLButtonElement>;
   view: QuotesViewMode;
 };
 
@@ -43,6 +47,7 @@ export function QuotesContent({
   isFetchingNextPage,
   isLoadMoreError,
   isPending,
+  isRefreshing,
   listIdentity,
   onAddQuote,
   onClearFilters,
@@ -50,6 +55,7 @@ export function QuotesContent({
   onOpenBooks,
   onRetry,
   quotes,
+  retryButtonRef,
   view,
 }: QuotesContentProps) {
   const t = useTranslations("quotes");
@@ -63,7 +69,7 @@ export function QuotesContent({
     };
     return (
       <div aria-live="assertive" role="alert">
-        <EmptyState onPrimary={onRetry} state={errorState} />
+        <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
       </div>
     );
   }
@@ -90,46 +96,41 @@ export function QuotesContent({
       primary: { icon: "x", label: t("noResults.clear") },
       title: t("noResults.title"),
     };
-    return <EmptyState onPrimary={onClearFilters} state={noResultsState} />;
+    return (
+      <RefreshingRegion isRefreshing={isRefreshing}>
+        <EmptyState onPrimary={onClearFilters} state={noResultsState} />
+      </RefreshingRegion>
+    );
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <ul
-        className={cn("grid grid-cols-1 items-start gap-4", view === "grid" && "md:grid-cols-2")}
-        key={listIdentity}
-      >
-        {quotes.map((quote) => (
-          <li className="flex min-w-0" key={quote.id}>
-            <QuoteArchiveCard quote={quote} />
-          </li>
-        ))}
-      </ul>
+      <RefreshingRegion isRefreshing={isRefreshing}>
+        <ul
+          className={cn("grid grid-cols-1 items-start gap-4", view === "grid" && "md:grid-cols-2")}
+          key={listIdentity}
+        >
+          {quotes.map((quote) => (
+            <li className="flex min-w-0" key={quote.id}>
+              <QuoteArchiveCard quote={quote} />
+            </li>
+          ))}
+        </ul>
+      </RefreshingRegion>
 
       <InfiniteScrollFooter
         allShownLabel={t("allShown")}
         className="pt-2 text-center"
         errorLabel={t("loadMoreError")}
         onLoadMore={onLoadMore}
-        state={nextPageState({ hasNextPage, isFetchingNextPage, isLoadMoreError })}
+        state={infiniteScrollStateOf({
+          hasNextPage,
+          isFetchingNextPage,
+          isFetchNextPageError: isLoadMoreError,
+        })}
       />
     </div>
   );
-}
-
-function nextPageState({
-  hasNextPage,
-  isFetchingNextPage,
-  isLoadMoreError,
-}: {
-  hasNextPage: boolean;
-  isFetchingNextPage: boolean;
-  isLoadMoreError: boolean;
-}): InfiniteScrollState {
-  if (isFetchingNextPage) return "loading";
-  if (isLoadMoreError) return "error";
-  if (hasNextPage) return "idle";
-  return "none";
 }
 
 function QuotesSkeleton({ view }: { view: QuotesViewMode }) {

@@ -5,6 +5,7 @@ import { Injectable } from "@nestjs/common";
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { isForeignKeyConstraintError } from "../../../core/prisma-errors.js";
+import { ListsService } from "../../lists/index.js";
 import { BookListsRepository } from "../infrastructure/book-lists.repository.js";
 import { BooksRepository } from "../infrastructure/books.repository.js";
 import { ListMembershipRepository } from "../infrastructure/list-membership.repository.js";
@@ -28,6 +29,7 @@ export class BookListsService {
   constructor(
     private readonly bookListsRepository: BookListsRepository,
     private readonly booksRepository: BooksRepository,
+    private readonly listsService: ListsService,
     private readonly membershipRepository: ListMembershipRepository,
     private readonly transactionRunner: TransactionRunner,
   ) {}
@@ -43,10 +45,15 @@ export class BookListsService {
     const requestedIds = [...new Set(input.listIds)];
 
     await this.transactionRunner.run(async (tx) => {
-      const ownedTargetIds =
+      const newListIds = await this.listsService.resolveListsForBook(
+        { input: { newLists: input.newLists }, userId },
+        tx,
+      );
+      const ownedRequestedIds =
         requestedIds.length === 0
           ? []
           : await this.bookListsRepository.findOwnedListIds(tx, { listIds: requestedIds, userId });
+      const ownedTargetIds = [...new Set([...ownedRequestedIds, ...newListIds])];
       const targetSet = new Set(ownedTargetIds);
 
       const currentIds = await this.membershipRepository.findMembershipListIds(tx, { bookId });

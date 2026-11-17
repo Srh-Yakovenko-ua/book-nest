@@ -1,8 +1,11 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useRef } from "react";
 
-import { type ActiveFilterChip, LibraryActiveFilters } from "@/features/books";
+import { type ActiveFilterChip, ActiveFilters } from "@/components/catalog/active-filters";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
 
 import { usePublisherQuickCounts } from "../api/use-publisher-quick-counts";
@@ -28,25 +31,30 @@ import { PublishersContent } from "./publishers-content";
 
 export function AllPublishers() {
   const t = useTranslations("publishers");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const query = usePublisherQuery();
   const list = usePublishersList(query.listQuery);
   const quickCounts = usePublisherQuickCounts(toPublishersQuickCountsParams(query.listQuery));
   const summary = usePublisherSummary();
   const summaryCards = usePublisherSummaryCards(summary.data);
-
-  const hasListError = list.isError && !list.isFetchNextPageError;
+  const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsHeadingRef);
 
   const state = resolvePublishersArchiveState({
     hasActiveFilters: query.hasActiveFilters,
     hasActiveSearch: query.hasActiveSearch,
     list: list.data ?? null,
-    listFailed: hasListError,
+    listFailed: list.isLoadingError,
+    listIsPlaceholder: list.isPlaceholderData,
     summaryPending: summary.isPending,
     summaryPublishersCount: summary.data?.publishersCount ?? null,
   });
 
-  const resultsAnnouncement = announceResults(state, t);
+  const resultsAnnouncement =
+    state.kind === "results" && state.isRefreshing
+      ? tCommon("updating")
+      : announceResults(state, t);
   const showInsights = state.kind !== "empty" && hasPublisherInsights(summary.data);
   const onAddBook = () => router.push("/books/new");
 
@@ -89,22 +97,32 @@ export function AllPublishers() {
   return (
     <AllPublishersView
       content={
-        <PublishersContent
-          hasSidebar={showInsights}
-          loadMore={{
-            hasNextPage: list.hasNextPage,
-            isError: list.isFetchNextPageError,
-            isFetching: list.isFetchingNextPage,
-            onLoadMore: () => void list.fetchNextPage(),
-          }}
-          onAddBook={onAddBook}
-          onClearAll={query.clearAll}
-          onClearSearch={query.clearSearch}
-          onResetFilters={query.resetFilters}
-          onRetry={() => void list.refetch()}
-          state={state}
-          view={query.state.view}
-        />
+        <>
+          <RefetchErrorBanner
+            state={
+              list.isRefetchError
+                ? { isRetrying: list.isRefetching, onRetry: () => void list.refetch() }
+                : null
+            }
+          />
+          <PublishersContent
+            hasSidebar={showInsights}
+            loadMore={{
+              hasNextPage: list.hasNextPage && !list.isPlaceholderData,
+              isError: list.isFetchNextPageError,
+              isFetching: list.isFetchingNextPage,
+              onLoadMore: () => void list.fetchNextPage(),
+            }}
+            onAddBook={onAddBook}
+            onClearAll={query.clearAll}
+            onClearSearch={query.clearSearch}
+            onResetFilters={query.resetFilters}
+            onRetry={withRetryFocus(() => void list.refetch())}
+            retryButtonRef={retryButtonRef}
+            state={state}
+            view={query.state.view}
+          />
+        </>
       }
       controls={
         state.kind === "empty" ? null : (
@@ -126,7 +144,7 @@ export function AllPublishers() {
               onChange={query.setQuickFilter}
               value={query.state.filter}
             />
-            <LibraryActiveFilters chips={chips} onClearAll={query.clearAll} />
+            <ActiveFilters chips={chips} onClearAll={query.clearAll} />
             <p aria-live="polite" className="text-sm text-muted-foreground empty:sr-only">
               {resultsAnnouncement}
             </p>
@@ -139,10 +157,11 @@ export function AllPublishers() {
         ) : null
       }
       onAddBook={onAddBook}
+      resultsHeadingRef={resultsHeadingRef}
       summary={
         <PublisherSummaryCards
           cards={summaryCards}
-          isError={summary.isError}
+          isError={summary.isLoadingError}
           isLoading={summary.isPending}
           mobileAction={
             <PublisherOverviewPanel

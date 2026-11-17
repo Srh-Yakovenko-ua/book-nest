@@ -8,9 +8,14 @@ import type {
   UpdateBookStoreLinkInput,
 } from "@app/shared";
 
-import { DEFAULT_CURRENCY, MAX_STORE_LINKS_PER_BOOK, STORE_LINK_ERROR_CODES } from "@app/shared";
+import {
+  DEFAULT_CURRENCY,
+  MAX_STORE_LINKS_PER_BOOK,
+  STORE_LINK_ERROR_CODES,
+  WISHLIST_INPUT_LIMITS,
+} from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -42,17 +47,14 @@ import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
+import { formatNumber } from "@/lib/format";
+import { CURRENCY_LABELS } from "@/lib/format-price";
 import { ApiError } from "@/lib/http-client";
 import { isHttpsUrl } from "@/lib/is-https-url";
 
 import { useAddStoreLink, useEditStoreLink } from "../api/use-store-links";
-import { CURRENCY_LABELS } from "../model/format-store-price";
 
 const CURRENCY_OPTIONS = ["UAH", "USD", "EUR"] as const satisfies readonly Currency[];
-const STORE_NAME_MAX = 100;
-const STORE_URL_MAX = 300;
-const PRICE_MIN = 0;
-const PRICE_MAX = 99999999.99;
 
 export type StoreLinkBook = Pick<BookView, "authors" | "cover" | "id" | "publisher" | "title">;
 
@@ -112,6 +114,7 @@ export function StoreLinkForm({
 }) {
   const t = useTranslations("booksToBuy.storeLinkDialog");
   const tErrors = useTranslations("booksToBuy.storeLinkDialog.errors");
+  const locale = useLocale();
   const tActions = useTranslations("books.actions");
   const addLink = useAddStoreLink();
   const editLink = useEditStoreLink();
@@ -131,11 +134,13 @@ export function StoreLinkForm({
     resolver: zodResolver(
       buildSchema({
         price: tErrors("price"),
-        priceMax: tErrors("priceMax", { max: PRICE_MAX }),
-        storeNameMax: tErrors("storeNameMax", { max: STORE_NAME_MAX }),
+        priceMax: tErrors("priceMax", {
+          max: formatNumber(WISHLIST_INPUT_LIMITS.priceMax, locale),
+        }),
+        storeNameMax: tErrors("storeNameMax", { max: WISHLIST_INPUT_LIMITS.storeNameMax }),
         storeNameRequired: tErrors("storeNameRequired"),
         url: tErrors("url"),
-        urlMax: tErrors("urlMax", { max: STORE_URL_MAX }),
+        urlMax: tErrors("urlMax", { max: WISHLIST_INPUT_LIMITS.storeUrlMax }),
         urlRequired: tErrors("urlRequired"),
       }),
     ),
@@ -240,7 +245,7 @@ export function StoreLinkForm({
             className="h-10"
             id="store-link-price"
             inputMode="decimal"
-            min={0}
+            min={WISHLIST_INPUT_LIMITS.priceMin}
             onKeyDown={blockNegativeNumberKeys}
             onPaste={blockNegativeNumberPaste}
             placeholder="0"
@@ -314,19 +319,25 @@ function buildSchema(messages: StoreLinkMessages) {
     currency: z.enum(CURRENCY_OPTIONS),
     price: z
       .string()
-      .refine((value) => value.trim().length === 0 || Number(value) > PRICE_MIN, messages.price)
       .refine(
-        (value) => value.trim().length === 0 || Number(value) <= PRICE_MAX,
+        (value) => value.trim().length === 0 || Number(value) > WISHLIST_INPUT_LIMITS.priceMin,
+        messages.price,
+      )
+      .refine(
+        (value) => value.trim().length === 0 || Number(value) <= WISHLIST_INPUT_LIMITS.priceMax,
         messages.priceMax,
       ),
     storeName: z
       .string()
       .refine((value) => value.trim().length > 0, messages.storeNameRequired)
-      .refine((value) => value.trim().length <= STORE_NAME_MAX, messages.storeNameMax),
+      .refine(
+        (value) => value.trim().length <= WISHLIST_INPUT_LIMITS.storeNameMax,
+        messages.storeNameMax,
+      ),
     url: z
       .string()
       .refine((value) => value.trim().length > 0, messages.urlRequired)
-      .refine((value) => value.trim().length <= STORE_URL_MAX, messages.urlMax)
+      .refine((value) => value.trim().length <= WISHLIST_INPUT_LIMITS.storeUrlMax, messages.urlMax)
       .refine((value) => value.trim().length === 0 || isHttpsUrl(value.trim()), messages.url),
   });
 }

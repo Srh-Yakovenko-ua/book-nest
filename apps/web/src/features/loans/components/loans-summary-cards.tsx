@@ -6,13 +6,12 @@ import type { ReactNode } from "react";
 import { LOAN_STATS_WINDOWS } from "@app/shared";
 import { useTranslations } from "next-intl";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
-import { UiIcon } from "@/components/icons";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
-import { todayIso } from "@/features/books/model/reading-progress";
+import { SummaryCards } from "@/components/catalog/summary-cards";
+import { SummaryError } from "@/components/summary-error";
+import { useProfileTimeZone } from "@/features/settings";
+import { todayIsoDay } from "@/lib/iso-day";
 
 import type { LoanDirection } from "../model/loan-pages";
 
@@ -20,7 +19,7 @@ import { LOAN_PAGES } from "../model/loan-pages";
 import { daysBetweenLoanDates } from "../model/loans-derive";
 
 type LoansSummaryCardsProps = {
-  cards: LibrarySummaryCard[];
+  cards: SummaryCard[];
   isError: boolean;
   isLoading: boolean;
   mobileAction?: ReactNode;
@@ -37,7 +36,7 @@ type StatsCardKey =
 const TOTAL_CARD_LOOK = {
   borrowed: { icon: "arrow-down-circle", iconTone: "info" },
   lent: { icon: "arrow-up-right", iconTone: "primary" },
-} as const satisfies Record<LoanDirection, Pick<LibrarySummaryCard, "icon" | "iconTone">>;
+} as const satisfies Record<LoanDirection, Pick<SummaryCard, "icon" | "iconTone">>;
 
 export function LoansSummaryCards({
   cards,
@@ -46,38 +45,22 @@ export function LoansSummaryCards({
   mobileAction,
   onRetry,
 }: LoansSummaryCardsProps) {
-  const t = useTranslations("loans.summary");
-
-  if (isError) {
-    return (
-      <Card
-        aria-live="assertive"
-        className="flex flex-col items-start gap-2 border border-border bg-card p-4 shadow-card sm:flex-row sm:items-center sm:justify-between"
-        role="alert"
-      >
-        <p className="text-sm text-muted-foreground">{t("error.description")}</p>
-        <Button onClick={onRetry} size="sm" variant="secondary">
-          <UiIcon name="refresh" size={16} />
-          {t("error.retry")}
-        </Button>
-      </Card>
-    );
-  }
-
   return (
-    <LibrarySummaryCards
-      cards={cards}
-      isLoading={isLoading}
-      mobileAction={mobileAction}
-      mobileLayout="compact"
-    />
+    <SummaryError state={isError ? { onRetry } : null}>
+      <SummaryCards
+        cards={cards}
+        isLoading={isLoading}
+        mobileAction={mobileAction}
+        mobileLayout="compact"
+      />
+    </SummaryError>
   );
 }
 
 export function useLoansSummaryCards(
   summary: LoansSummaryView | undefined,
   type: LoanType,
-): LibrarySummaryCard[] {
+): SummaryCard[] {
   const { direction } = LOAN_PAGES[type];
 
   return useDirectionCards(summary?.[direction], direction);
@@ -86,9 +69,9 @@ export function useLoansSummaryCards(
 function useDirectionCards(
   stats: LoanDirectionSummary | undefined,
   direction: LoanDirection,
-): LibrarySummaryCard[] {
+): SummaryCard[] {
   const t = useTranslations("loans.stats");
-  const today = todayIso();
+  const today = todayIsoDay(useProfileTimeZone());
 
   const mobileLabels = (key: StatsCardKey) => ({
     compact: t(`${key}.mobile.compact`),
@@ -113,7 +96,7 @@ function useDirectionCards(
     return t("returningSoon.inDays", { count: daysUntilNearestReturn });
   }
 
-  const trailingCard: LibrarySummaryCard =
+  const trailingCard: SummaryCard =
     direction === "borrowed"
       ? {
           icon: "clock",

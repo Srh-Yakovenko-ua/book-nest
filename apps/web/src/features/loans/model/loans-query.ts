@@ -9,7 +9,7 @@ import {
 
 import type { LoansControllerListParams } from "@/shared/api/generated/model";
 
-import { isInvertedDayRange, isStorableDay } from "@/features/books/model/filter-chips";
+import { isInvertedDayRange, isStorableDay } from "@/lib/filter-chips";
 import {
   LoansControllerListFilter,
   LoansControllerListReminder,

@@ -1,6 +1,7 @@
 "use client";
 
 import type { BookView } from "@app/shared";
+import type { Ref } from "react";
 
 import { DEDICATIONS_PAGE_SIZE_DEFAULT } from "@app/shared";
 import { useTranslations } from "next-intl";
@@ -8,8 +9,8 @@ import { useTranslations } from "next-intl";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 
 import type { DedicationView } from "../model/dedications-query";
 
@@ -28,6 +29,7 @@ type DedicationsContentProps = {
   onClearFilters: () => void;
   onOpenDedication: (book: BookView) => void;
   onRetry: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
   view: DedicationView;
 };
 
@@ -41,6 +43,7 @@ export function DedicationsContent({
   onClearFilters,
   onOpenDedication,
   onRetry,
+  retryButtonRef,
   view,
 }: DedicationsContentProps) {
   const t = useTranslations("dedications");
@@ -54,7 +57,7 @@ export function DedicationsContent({
     };
     return (
       <div aria-live="assertive" role="alert">
-        <EmptyState onPrimary={onRetry} state={errorState} />
+        <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
       </div>
     );
   }
@@ -71,7 +74,11 @@ export function DedicationsContent({
         primary: { icon: "x", label: t("noResults.clear") },
         title: t("noResults.title"),
       };
-      return <EmptyState onPrimary={onClearFilters} state={noResultsState} />;
+      return (
+        <RefreshingRegion isRefreshing={isPlaceholderData}>
+          <EmptyState onPrimary={onClearFilters} state={noResultsState} />
+        </RefreshingRegion>
+      );
     }
 
     const emptyState: EmptyStateEntry = {
@@ -85,36 +92,28 @@ export function DedicationsContent({
 
   if (view === "list") {
     return (
-      <ul
-        aria-busy={isPlaceholderData}
-        className={cn(
-          "flex flex-col gap-3 transition-opacity duration-200 motion-reduce:transition-none",
-          isPlaceholderData && "opacity-60",
-        )}
-      >
-        {books.map((book) => (
-          <li key={book.id}>
-            <DedicationRow book={book} onOpen={() => onOpenDedication(book)} />
-          </li>
-        ))}
-      </ul>
+      <RefreshingRegion isRefreshing={isPlaceholderData}>
+        <ul className="flex flex-col gap-3">
+          {books.map((book) => (
+            <li key={book.id}>
+              <DedicationRow book={book} onOpen={() => onOpenDedication(book)} />
+            </li>
+          ))}
+        </ul>
+      </RefreshingRegion>
     );
   }
 
   return (
-    <ul
-      aria-busy={isPlaceholderData}
-      className={cn(
-        "grid grid-cols-1 gap-4 transition-opacity duration-200 motion-reduce:transition-none sm:grid-cols-2 xl:grid-cols-3",
-        isPlaceholderData && "opacity-60",
-      )}
-    >
-      {books.map((book) => (
-        <li className="flex" key={book.id}>
-          <DedicationCard book={book} onOpen={() => onOpenDedication(book)} />
-        </li>
-      ))}
-    </ul>
+    <RefreshingRegion isRefreshing={isPlaceholderData}>
+      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {books.map((book) => (
+          <li className="flex" key={book.id}>
+            <DedicationCard book={book} onOpen={() => onOpenDedication(book)} />
+          </li>
+        ))}
+      </ul>
+    </RefreshingRegion>
   );
 }
 

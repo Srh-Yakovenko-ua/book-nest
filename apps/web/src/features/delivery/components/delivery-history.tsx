@@ -4,7 +4,9 @@ import type { Nullable } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 
+import { useProfileTimeZone } from "@/features/settings";
 import { useRouter } from "@/i18n/navigation";
+import { todayIsoDay } from "@/lib/iso-day";
 
 import type { DeliveryRevealTarget } from "../hooks/use-reveal-delivery-target";
 import type { HistoryOrderCardModel } from "../model/history-order-card-model";
@@ -39,6 +41,8 @@ export function DeliveryHistory() {
   const tLibraryCard = useTranslations("books.library.card");
   const tBadge = useTranslations("delivery.badge");
   const locale = useLocale();
+  const timeZone = useProfileTimeZone();
+  const today = todayIsoDay(timeZone);
   const router = useRouter();
 
   const params = useHistoryParams();
@@ -64,23 +68,22 @@ export function DeliveryHistory() {
       locale,
       search: params.state.q,
       tab: params.tab,
+      timeZone,
     },
   );
 
-  const hasListError = listQuery.isError && !listQuery.isFetchNextPageError;
-
-  const content: HistoryContent = hasListError
+  const content: HistoryContent = listQuery.isLoadingError
     ? { kind: "error" }
     : listQuery.isPending
       ? { kind: "loading" }
       : items.length === 0
         ? params.hasActiveFilters || params.hasActiveSearch
-          ? { kind: "filtered-empty" }
+          ? { isRefreshing: listQuery.isPlaceholderData, kind: "filtered-empty" }
           : { kind: "empty" }
-        : { items, kind: "ready" };
+        : { isRefreshing: listQuery.isPlaceholderData, items, kind: "ready" };
 
   const showToolbar =
-    !hasListError &&
+    !listQuery.isLoadingError &&
     (listQuery.isPending || items.length > 0 || params.hasActiveSearch || params.hasActiveFilters);
 
   const summaryCards = buildHistorySummaryCards({
@@ -145,8 +148,9 @@ export function DeliveryHistory() {
       yesterday: tLatestReceipt("yesterday"),
     },
     locale,
-    now: new Date(),
     summary: summaryQuery.data ?? null,
+    timeZone,
+    today,
   });
 
   const receiptTarget: Nullable<DeliveryRevealTarget> =
@@ -216,6 +220,11 @@ export function DeliveryHistory() {
         isFetchingNextPage: listQuery.isFetchingNextPage,
         isFetchNextPageError: listQuery.isFetchNextPageError,
       }}
+      refetchError={
+        listQuery.isRefetchError
+          ? { isRetrying: listQuery.isRefetching, onRetry: () => void listQuery.refetch() }
+          : null
+      }
       renderCard={renderCard}
       showToolbar={showToolbar}
       sidebar={
@@ -258,6 +267,7 @@ export function DeliveryHistory() {
             total: totalCount,
           })}
           isPending={listQuery.isPending}
+          isRefreshing={listQuery.isPlaceholderData}
           loadingLabel={t("states.loading")}
           onApplyAdvanced={params.applyAdvanced}
           onClearAdvanced={params.clearAdvanced}

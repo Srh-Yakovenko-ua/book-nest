@@ -1,13 +1,30 @@
-import type { QueryClient, QueryKey } from "@tanstack/react-query";
+import type {
+  StatisticsControllerGetCalendarPageParams,
+  StatisticsControllerGetCompletedReadsParams,
+  StatisticsControllerGetCompletedReadsSubsetParams,
+  StatisticsControllerGetOverviewParams,
+  StatisticsControllerGetReadingActivityParams,
+} from "@/shared/api/generated/model";
 
-export const STATISTICS_ROOT = "/api/statistics";
+import { matchesApiRoot } from "@/lib/query-keys";
 
-export function invalidateStatisticsQueries(queryClient: QueryClient): Promise<void> {
-  return queryClient.invalidateQueries({ predicate: matchesStatisticsKey });
-}
+const STATISTICS_ROOT = "/api/statistics";
 
-export function matchesStatisticsKey(query: { queryKey: QueryKey }): boolean {
-  const [root] = query.queryKey;
-  if (typeof root !== "string") return false;
-  return root === STATISTICS_ROOT || root.startsWith(`${STATISTICS_ROOT}/`);
-}
+export const statisticsKeys = {
+  calendarPage: (params: StatisticsControllerGetCalendarPageParams) =>
+    [`${STATISTICS_ROOT}/calendar`, params] as const,
+  completedReads: (params: StatisticsControllerGetCompletedReadsParams) =>
+    [`${STATISTICS_ROOT}/completed-reads`, params] as const,
+  completedReadsSubset: (params: StatisticsControllerGetCompletedReadsSubsetParams) =>
+    [`${STATISTICS_ROOT}/completed-reads/subset`, params] as const,
+  overview: (params: StatisticsControllerGetOverviewParams) =>
+    [`${STATISTICS_ROOT}/overview`, params] as const,
+  readingActivity: (params: StatisticsControllerGetReadingActivityParams) =>
+    [`${STATISTICS_ROOT}/reading-activity`, params] as const,
+  readingDay: (date: string) => [`${STATISTICS_ROOT}/reading-days/${date}`] as const,
+  readingMonthSummary: (
+    params: Pick<StatisticsControllerGetReadingActivityParams, "from" | "to">,
+  ) => [`${STATISTICS_ROOT}/reading-month-summary`, params] as const,
+};
+
+export const matchesStatisticsKey = matchesApiRoot(STATISTICS_ROOT);

@@ -7,12 +7,12 @@ import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
+import { defaultUserToday } from "../../../test/user-today.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { ListsModule } from "../../lists/lists.module.js";
 import { BooksModule } from "../books.module.js";
 
 const MISSING_UUID = "00000000-0000-4000-8000-000000000000";
-const TODAY = new Date().toISOString().slice(0, 10);
 const PAST_PURCHASE_DATE = "2025-01-15";
 const FUTURE_PURCHASE_DATE = "2999-12-31";
 
@@ -406,7 +406,7 @@ describe("POST /api/books/:id/ownership/want-to-buy", () => {
 });
 
 describe("POST /api/books/:id/ownership/mark-bought", () => {
-  it("marks a want-to-buy book as owned, stamps the purchase date, and retains purchase fields", async () => {
+  it("marks a want-to-buy book as owned, stamps the reader's calendar day, and retains purchase fields", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
@@ -422,7 +422,7 @@ describe("POST /api/books/:id/ownership/mark-bought", () => {
     expect(res.body.purchaseInfo).toMatchObject({
       currency: "UAH",
       expectedPrice: 299.99,
-      purchasedAt: TODAY,
+      purchasedAt: defaultUserToday(),
       storeName: "Yakaboo",
     });
   });
@@ -483,7 +483,7 @@ describe("POST /api/books/:id/ownership/mark-bought", () => {
       currency: "UAH",
       expectedPrice: 299.99,
       note: "wishlist",
-      purchasedAt: TODAY,
+      purchasedAt: defaultUserToday(),
       storeName: "Yakaboo",
       storeUrl: "https://yakaboo.ua",
     });
@@ -505,7 +505,7 @@ describe("POST /api/books/:id/ownership/mark-bought", () => {
       currency: null,
       expectedPrice: null,
       note: null,
-      purchasedAt: TODAY,
+      purchasedAt: defaultUserToday(),
       storeName: null,
       storeUrl: null,
     });

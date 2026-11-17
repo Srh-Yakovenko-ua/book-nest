@@ -1,5 +1,7 @@
 "use client";
 
+import type { Ref } from "react";
+
 import { useTranslations } from "next-intl";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
@@ -26,6 +28,7 @@ type BookQuotesListProps = {
   onClearSearch: () => void;
   onLoadMore: () => void;
   onRetry: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
   state: BookQuotesListState;
 };
 
@@ -35,6 +38,7 @@ export function BookQuotesList({
   onClearSearch,
   onLoadMore,
   onRetry,
+  retryButtonRef,
   state,
 }: BookQuotesListProps) {
   const emptyCopy = useBookQuotesEmptyCopy();
@@ -48,7 +52,7 @@ export function BookQuotesList({
     case "empty":
       return <EmptyState onPrimary={emptyActions[state.reason]} state={emptyCopy[state.reason]} />;
     case "error":
-      return <BookQuotesError onRetry={onRetry} />;
+      return <BookQuotesError onRetry={onRetry} retryButtonRef={retryButtonRef} />;
     case "loading":
       return <BookQuotesSkeleton />;
     case "ready":
@@ -58,7 +62,13 @@ export function BookQuotesList({
   }
 }
 
-function BookQuotesError({ onRetry }: { onRetry: () => void }) {
+function BookQuotesError({
+  onRetry,
+  retryButtonRef,
+}: {
+  onRetry: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
+}) {
   const t = useTranslations("quotes");
 
   const errorState: EmptyStateEntry = {
@@ -70,7 +80,7 @@ function BookQuotesError({ onRetry }: { onRetry: () => void }) {
 
   return (
     <div aria-live="assertive" role="alert">
-      <EmptyState onPrimary={onRetry} state={errorState} />
+      <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
     </div>
   );
 }

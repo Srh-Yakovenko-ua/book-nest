@@ -10,10 +10,12 @@ import { StatisticsBookCover } from "../details/statistics-book-cover";
 
 export function ReadingDayPreview({
   className,
+  coverClassName = "w-6",
   coverLimit,
   day,
 }: {
   className?: string;
+  coverClassName?: string;
   coverLimit?: number;
   day: StatisticsCalendarDay;
 }) {
@@ -27,7 +29,7 @@ export function ReadingDayPreview({
     <span className={cn("flex items-center gap-1", className)}>
       {covers.map((book) => (
         <StatisticsBookCover
-          className="w-6"
+          className={coverClassName}
           coverThumbUrl={book.coverThumbUrl}
           key={book.bookId}
           title={book.title}

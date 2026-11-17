@@ -23,7 +23,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { useGenres } from "@/features/books";
+import { useGenres } from "@/features/genres";
 import { assertNever } from "@/lib/assert-never";
 import { cn } from "@/lib/utils";
 

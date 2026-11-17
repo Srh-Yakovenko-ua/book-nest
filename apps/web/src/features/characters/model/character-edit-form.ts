@@ -22,14 +22,15 @@ import {
 } from "@app/shared";
 import { z } from "zod";
 
-import type { BookPageCeiling } from "@/features/books/model/book-page-ceiling";
 import type { OwnSpeciesChange } from "@/features/species";
+import type { BookPageCeiling } from "@/lib/book-page-ceiling";
 
 import {
   applyOwnSpeciesChange,
   selectionFromRef,
   SpeciesSelectionSchema,
 } from "@/features/species";
+import { emptyToNull } from "@/lib/empty-to-null";
 
 import type { CharacterAliasRow } from "./character-aliases";
 
@@ -150,7 +151,7 @@ export function effectiveCharacterName({
   displayName: Nullable<string>;
   globalName: string;
 }): string {
-  const bookName = displayName === null ? null : textOrNull(displayName);
+  const bookName = displayName === null ? null : emptyToNull(displayName);
   return bookName ?? globalName.trim();
 }
 
@@ -316,13 +317,13 @@ export function toGlobalUpdate(
 ): UpdateCharacter {
   return {
     avatarMediaId: values.avatarMediaId,
-    customGender: values.gender === "custom" ? textOrNull(values.customGender) : null,
+    customGender: values.gender === "custom" ? emptyToNull(values.customGender) : null,
     entityKind: values.entityKind,
     gender: values.gender,
     globalAttitude: values.attitude === "" ? null : values.attitude,
     name: values.name.trim(),
-    neutralDescription: textOrNull(values.neutralDescription),
-    pronouns: textOrNull(values.pronouns),
+    neutralDescription: emptyToNull(values.neutralDescription),
+    pronouns: emptyToNull(values.pronouns),
     speciesId: values.species?.id ?? null,
     ...(maskedFields.includes("globalAliases") ? {} : { aliases: toAliasPayload(values.aliases) }),
   };
@@ -452,11 +453,6 @@ function maskedKeyOf(payloadKey: string): string {
   return hasRenamedMaskKey(payloadKey) ? MASKED_KEY_BY_PAYLOAD_KEY[payloadKey] : payloadKey;
 }
 
-function textOrNull(value: string): null | string {
-  const trimmed = value.trim();
-  return trimmed.length === 0 ? null : trimmed;
-}
-
 function toBookProfileUpdate(
   formValues: CharacterEditValues["book"],
   maskedFields: readonly string[],
@@ -464,19 +460,20 @@ function toBookProfileUpdate(
   const values = withoutEmptySpoilerFlags(formValues, maskedFields);
   const maskable = {
     aliases: toAliasPayload(values.aliases),
-    appearanceNotes: textOrNull(values.appearanceNotes),
+    appearanceNotes: emptyToNull(values.appearanceNotes),
     appearanceNotesIsSpoiler: values.appearanceNotesIsSpoiler,
     attitude: values.attitude,
-    description: textOrNull(values.description),
+    description: emptyToNull(values.description),
     descriptionIsSpoiler: values.descriptionIsSpoiler,
-    displayName: values.displayName === null ? null : textOrNull(values.displayName),
+    displayName: values.displayName === null ? null : emptyToNull(values.displayName),
     displayNameIsSpoiler: values.displayNameIsSpoiler,
-    personalImpression: textOrNull(values.personalImpression),
+    personalImpression: emptyToNull(values.personalImpression),
     personalImpressionIsSpoiler: values.personalImpressionIsSpoiler,
     portraitIsSpoiler: values.portraitIsSpoiler,
     portraitMediaId: values.portraitMediaId,
     roles: values.roles.map((role, index) => ({
-      customRole: role.roleType === BOOK_CHARACTER_ROLE.custom ? textOrNull(role.customRole) : null,
+      customRole:
+        role.roleType === BOOK_CHARACTER_ROLE.custom ? emptyToNull(role.customRole) : null,
       isSpoiler: role.isSpoiler,
       position: index,
       roleType: role.roleType,
@@ -485,13 +482,13 @@ function toBookProfileUpdate(
     speciesOverrideIsSpoiler: values.speciesOverrideIsSpoiler,
     status: values.status,
     statusCustomText:
-      values.status === BOOK_CHARACTER_STATUS.custom ? textOrNull(values.statusCustomText) : null,
+      values.status === BOOK_CHARACTER_STATUS.custom ? emptyToNull(values.statusCustomText) : null,
     statusIsSpoiler: values.statusIsSpoiler,
   };
 
   return {
-    firstAppearanceChapter: textOrNull(values.firstAppearanceChapter),
-    firstAppearanceNote: textOrNull(values.firstAppearanceNote),
+    firstAppearanceChapter: emptyToNull(values.firstAppearanceChapter),
+    firstAppearanceNote: emptyToNull(values.firstAppearanceNote),
     firstAppearancePage: values.firstAppearancePage,
     importance: values.importance,
     ...withoutMasked(maskable, maskedFields),

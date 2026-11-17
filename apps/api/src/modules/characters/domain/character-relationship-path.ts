@@ -20,6 +20,9 @@ import {
 
 type Adjacent = { edge: PreparedEdge; to: string };
 
+type PathSearchResult =
+  { kind: "exhausted" } | { kind: "found"; trace: PathTrace } | { kind: "limited" };
+
 type PathStep = { edge: PreparedEdge; from: string };
 
 type PathTrace = { edges: PreparedEdge[]; nodeIds: string[] };
@@ -65,6 +68,7 @@ export function findVisibleRelationshipPath({
     found: false,
     fromId,
     nodes: [],
+    searchLimited: false,
     toId,
   };
 
@@ -85,13 +89,17 @@ export function findVisibleRelationshipPath({
     if (single === null) {
       return notConnected;
     }
-    return { edges: [], found: true, fromId, nodes: [single], toId };
+    return { edges: [], found: true, fromId, nodes: [single], searchLimited: false, toId };
   }
 
-  const trace = traceShortestPath({ edges: visibleEdges, fromId, maxVisitedNodes, toId });
-  if (trace === null) {
+  const search = traceShortestPath({ edges: visibleEdges, fromId, maxVisitedNodes, toId });
+  if (search.kind === "limited") {
+    return { ...notConnected, searchLimited: true };
+  }
+  if (search.kind === "exhausted") {
     return notConnected;
   }
+  const trace = search.trace;
 
   const pathNodes: CharacterGraphNodeView[] = [];
   for (const id of trace.nodeIds) {
@@ -103,7 +111,7 @@ export function findVisibleRelationshipPath({
   }
   const pathEdges: CharacterGraphEdgeView[] = trace.edges.map((edge) => toGraphEdgeView(edge));
 
-  return { edges: pathEdges, found: true, fromId, nodes: pathNodes, toId };
+  return { edges: pathEdges, found: true, fromId, nodes: pathNodes, searchLimited: false, toId };
 }
 
 function addAdjacent({
@@ -168,28 +176,32 @@ function traceShortestPath({
   fromId: string;
   maxVisitedNodes: number;
   toId: string;
-}): Nullable<PathTrace> {
+}): PathSearchResult {
   const adjacency = buildAdjacency(edges);
   const predecessorById = new Map<string, PathStep>();
   const visited = new Set<string>([fromId]);
   let frontier = [fromId];
 
-  while (frontier.length > 0 && visited.size <= maxVisitedNodes) {
+  while (frontier.length > 0) {
     const nextFrontier: string[] = [];
     for (const node of frontier) {
       for (const neighbor of adjacency.get(node) ?? []) {
         if (visited.has(neighbor.to)) {
           continue;
         }
+        if (visited.size >= maxVisitedNodes) {
+          return { kind: "limited" };
+        }
         visited.add(neighbor.to);
         predecessorById.set(neighbor.to, { edge: neighbor.edge, from: node });
         if (neighbor.to === toId) {
-          return reconstructPath({ fromId, predecessorById, toId });
+          const trace = reconstructPath({ fromId, predecessorById, toId });
+          return trace === null ? { kind: "exhausted" } : { kind: "found", trace };
         }
         nextFrontier.push(neighbor.to);
       }
     }
     frontier = nextFrontier;
   }
-  return null;
+  return { kind: "exhausted" };
 }

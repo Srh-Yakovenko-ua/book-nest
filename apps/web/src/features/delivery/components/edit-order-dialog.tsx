@@ -7,6 +7,7 @@ import { ORDER_FINANCIAL_MESSAGES, validateOrderInvariant } from "@app/shared";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { DateField } from "@/components/date-field";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +19,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { BookDateField } from "@/features/books/components/book-date-field";
 import { StoreAutocomplete } from "@/features/books/components/store-autocomplete";
 import { useDeliveryErrorText } from "@/features/books/hooks/use-delivery-error-text";
 import {
@@ -167,7 +167,7 @@ function EditOrderForm({
           </Labeled>
           <Field label={t("orderNumber")} onChange={setOrderNumber} value={orderNumber} />
           <Labeled htmlFor="edit-order-date" label={t("orderDate")}>
-            <BookDateField
+            <DateField
               ariaLabel={t("orderDate")}
               id="edit-order-date"
               onChange={(next) => setOrderDate(next ?? "")}

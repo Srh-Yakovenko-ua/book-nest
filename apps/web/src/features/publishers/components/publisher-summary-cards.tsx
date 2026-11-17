@@ -5,11 +5,10 @@ import type { ReactNode } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
-import { UiIcon } from "@/components/icons";
-import { Button } from "@/components/ui/button";
-import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
+import { SummaryCards } from "@/components/catalog/summary-cards";
+import { SummaryError } from "@/components/summary-error";
 import { formatNumber } from "@/lib/format";
 
 import { formatCoveragePercent } from "../model/publisher-format";
@@ -21,7 +20,7 @@ const SUMMARY_CARDS = {
 } as const;
 
 type PublisherSummaryCardsProps = {
-  cards: LibrarySummaryCard[];
+  cards: SummaryCard[];
   isError: boolean;
   isLoading: boolean;
   mobileAction?: ReactNode;
@@ -37,40 +36,22 @@ export function PublisherSummaryCards({
   mobileAction,
   onRetry,
 }: PublisherSummaryCardsProps) {
-  const t = useTranslations("publishers.summary");
-
-  if (isError) {
-    return (
-      <div
-        className="flex flex-col items-start gap-3 rounded-xl border border-border bg-card p-4 shadow-card"
-        role="alert"
-      >
-        <div className="flex flex-col gap-1">
-          <p className="text-sm font-semibold text-ink">{t("error.title")}</p>
-          <p className="text-xs text-muted-foreground">{t("error.description")}</p>
-        </div>
-        <Button onClick={onRetry} size="sm" variant="secondary">
-          <UiIcon name="refresh" size={16} />
-          {t("error.retry")}
-        </Button>
-      </div>
-    );
-  }
-
   return (
-    <LibrarySummaryCards
-      cards={cards}
-      isLoading={isLoading}
-      mobileAction={mobileAction}
-      mobileLayout="compact"
-      skeletonCount={SUMMARY_CARDS.count}
-    />
+    <SummaryError state={isError ? { onRetry } : null}>
+      <SummaryCards
+        cards={cards}
+        isLoading={isLoading}
+        mobileAction={mobileAction}
+        mobileLayout="compact"
+        skeletonCount={SUMMARY_CARDS.count}
+      />
+    </SummaryError>
   );
 }
 
 export function usePublisherSummaryCards(
   summary: LibraryPublishersSummary | undefined,
-): LibrarySummaryCard[] {
+): SummaryCard[] {
   const t = useTranslations("publishers.summary");
   const locale = useLocale();
 

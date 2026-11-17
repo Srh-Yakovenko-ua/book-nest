@@ -15,9 +15,9 @@ import {
   useBulkOwnershipStatus,
   useBulkReadingStatus,
   useBulkSetFavorite,
-  useRemoveFromReadingQueue,
   useToggleFavorite,
 } from "../api/use-book-actions";
+import { useRemoveFromQueue } from "../api/use-reading-queue";
 
 export function useLibraryActions(): LibraryActions {
   const t = useTranslations("books.library");
@@ -30,13 +30,16 @@ export function useLibraryActions(): LibraryActions {
   const addToList = useBulkAddToList();
   const addTags = useBulkAddTags();
   const addToQueue = useBulkAddToReadingQueue();
-  const removeFromQueue = useRemoveFromReadingQueue();
+  const removeFromQueue = useRemoveFromQueue();
   const deleteBooks = useBulkDeleteBooks();
 
-  async function runWithToast(action: () => Promise<unknown>, successMessage: string) {
+  async function runWithToast<TResult>(
+    action: () => Promise<TResult>,
+    successMessage: ((result: TResult) => string) | string,
+  ) {
     try {
-      await action();
-      toast.success(successMessage);
+      const result = await action();
+      toast.success(typeof successMessage === "string" ? successMessage : successMessage(result));
     } catch (error) {
       toast.error(t("toast.error"));
       throw error;
@@ -56,7 +59,7 @@ export function useLibraryActions(): LibraryActions {
     onDelete: (bookIds) =>
       runWithToast(
         () => deleteBooks.mutateAsync(bookIds),
-        t("toast.deleted", { count: bookIds.length }),
+        ({ affected }) => t("toast.deleted", { count: affected }),
       ),
     onEdit: (bookId) => router.push(`/books/${bookId}/edit`),
     onRemoveFromQueue: (id) =>

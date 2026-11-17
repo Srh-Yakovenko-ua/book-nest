@@ -1,7 +1,7 @@
 "use client";
 
 import type { CustomListCard, CustomListDetail, ListBookView } from "@app/shared";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
@@ -12,11 +12,13 @@ import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
 import { UiIcon } from "@/components/icons";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { Button } from "@/components/ui/button";
-import { useGenres } from "@/features/books/api/use-genres";
 import { useAddToReadingQueue } from "@/features/books/api/use-reading-queue";
+import { useGenres } from "@/features/genres";
 import { ListGoalCard } from "@/features/reading-goals";
 import { Link, useRouter } from "@/i18n/navigation";
+import { assertNever } from "@/lib/assert-never";
 import { cn } from "@/lib/utils";
 
 import type { ListBookItemProps } from "../model/list-book-item";
@@ -28,7 +30,6 @@ import {
   useSetListBookReadingStatus,
   useToggleListBookFavorite,
 } from "../api/use-list-book-actions";
-import { useListCacheInvalidation } from "../api/use-list-cache";
 import { useListFacets } from "../api/use-list-facets";
 import {
   useAddBooksToList,
@@ -67,9 +68,11 @@ import { ListStatsCards, useListSummaryCards } from "./list-stats-cards";
 type ListDetailsViewProps = {
   id: string;
   isFetching: boolean;
+  isRefreshing: boolean;
   loadMoreState: InfiniteScrollState;
   onLoadMore: () => void;
   pages: CustomListDetail[];
+  titleRef?: Ref<HTMLHeadingElement>;
 };
 
 type NoResultsProps = {
@@ -83,12 +86,15 @@ type NoResultsProps = {
 export function ListDetailsView({
   id,
   isFetching,
+  isRefreshing,
   loadMoreState,
   onLoadMore,
   pages,
+  titleRef,
 }: ListDetailsViewProps) {
   const t = useTranslations("lists.details");
   const tManage = useTranslations("lists.manage.toast");
+  const tCommon = useTranslations("common");
   const tLibrary = useTranslations("books.library");
   const tFormat = useTranslations("books.format.options");
   const tStatus = useTranslations("books.readingStatus.options");
@@ -130,7 +136,6 @@ export function ListDetailsView({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [moveAnnouncement, setMoveAnnouncement] = useState("");
 
-  const cache = useListCacheInvalidation(id);
   const enterSelection = useListSelectionStore((state) => state.enterSelection);
   const exitSelection = useListSelectionStore((state) => state.exitSelection);
   const selectedIds = useListSelectionStore((state) => state.selectedIds);
@@ -226,7 +231,10 @@ export function ListDetailsView({
             label: t("remove.undo"),
             onClick: () =>
               addBooks.mutate(
-                { bookIds: [book.id] },
+                {
+                  bookIds: [book.id],
+                  positions: [{ bookId: book.id, position: book.position }],
+                },
                 { onError: () => toast.error(t("toast.error")) },
               ),
           },
@@ -251,10 +259,7 @@ export function ListDetailsView({
       { bookId: book.id, placement: "end" },
       {
         onError: () => toast.error(t("toast.error")),
-        onSuccess: () => {
-          toast.success(t("toast.addedToQueue"));
-          cache.queueChanged();
-        },
+        onSuccess: () => toast.success(t("toast.addedToQueue")),
       },
     );
   }
@@ -318,13 +323,15 @@ export function ListDetailsView({
 
     if (books.length === 0) {
       return (
-        <NoResults
-          conditions={chips.map((chip) => chip.label)}
-          onClearFilters={listQuery.clearFilters}
-          onClearSearch={listQuery.clearSearch}
-          reason={listQuery.emptyReason}
-          tab={listQuery.state.tab}
-        />
+        <RefreshingRegion isRefreshing={isRefreshing}>
+          <NoResults
+            conditions={chips.map((chip) => chip.label)}
+            onClearFilters={listQuery.clearFilters}
+            onClearSearch={listQuery.clearSearch}
+            reason={listQuery.emptyReason}
+            tab={listQuery.state.tab}
+          />
+        </RefreshingRegion>
       );
     }
 
@@ -336,13 +343,14 @@ export function ListDetailsView({
           {moveAnnouncement}
         </p>
 
-        <div
+        <RefreshingRegion
           className={cn(
             "grid gap-5 max-sm:gap-3",
             isListView
               ? "grid-cols-1"
               : "grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(16rem,1fr))]",
           )}
+          isRefreshing={isRefreshing}
         >
           {books.map((book) =>
             isListView ? (
@@ -351,7 +359,7 @@ export function ListDetailsView({
               <ListBookCard key={book.id} {...itemProps(book)} />
             ),
           )}
-        </div>
+        </RefreshingRegion>
 
         <InfiniteScrollFooter
           errorLabel={t("loadMoreError")}
@@ -373,6 +381,7 @@ export function ListDetailsView({
         onDuplicate={handleDuplicate}
         onEdit={() => setEditOpen(true)}
         previewCovers={firstPage.previewCovers}
+        titleRef={titleRef}
         updatedAt={firstPage.updatedAt}
       />
 
@@ -396,10 +405,11 @@ export function ListDetailsView({
 
           <ListDetailsToolbar
             chips={chips}
-            counterLabel={t("toolbar.counter", {
-              shown: books.length,
-              total: firstPage.books.totalCount,
-            })}
+            counterLabel={
+              isRefreshing
+                ? tCommon("updating")
+                : t("toolbar.counter", { shown: books.length, total: firstPage.books.totalCount })
+            }
             id={id}
             isReorderLocked={!isListDetailOrderView(listQuery.state)}
             isSelecting={selectionMode}
@@ -458,10 +468,6 @@ export function ListDetailsView({
       />
     </div>
   );
-}
-
-function assertNever(value: never): never {
-  throw new Error(`Unhandled empty state: ${String(value)}`);
 }
 
 function EmptyList({ onAddBooks }: { onAddBooks: () => void }) {

@@ -1,7 +1,6 @@
 import type {
   CharacterRelationshipBookStateView,
   CharacterRelationshipDetailsView,
-  CreateCharacterRelationship,
   Nullable,
   RelationshipDirectionality,
   RelationshipType,
@@ -10,12 +9,13 @@ import type {
 } from "@app/shared";
 
 import {
-  CreateCharacterRelationshipSchema,
   getRelationshipTypeDirectionality,
   isCatalogRelationshipType,
   UpdateCharacterRelationshipSchema,
   UpsertRelationshipBookStateSchema,
 } from "@app/shared";
+
+import { emptyToNull } from "@/lib/empty-to-null";
 
 import type {
   RelationshipBookStateFormInput,
@@ -121,35 +121,6 @@ export function resolveRelationshipDirectionality({
   return getRelationshipTypeDirectionality(type);
 }
 
-export function toCreateRelationshipInput({
-  allowFamilyCycle,
-  source,
-  target,
-  values,
-}: {
-  allowFamilyCycle: boolean;
-  source: RelationshipParticipant;
-  target: RelationshipParticipant;
-  values: RelationshipFormValues;
-}): CreateCharacterRelationship {
-  return CreateCharacterRelationshipSchema.parse({
-    allowFamilyCycle,
-    category: values.category,
-    customType: values.type === "custom" ? values.customType : null,
-    directionality: resolveRelationshipDirectionality(values),
-    initialBookStates:
-      values.bookId === null
-        ? []
-        : [{ ...toRelationshipBookStateInput(values.bookState), bookId: values.bookId }],
-    isCanonical: values.isCanonical,
-    sourceCharacterId: source.id,
-    sourceLabel: toOptionalText(values.sourceLabel),
-    targetCharacterId: target.id,
-    targetLabel: toOptionalText(values.targetLabel),
-    type: values.type,
-  });
-}
-
 export function toRelationshipBookStateChange({
   relationship,
   values,
@@ -171,14 +142,14 @@ export function toRelationshipBookStateInput(
   state: RelationshipBookStateFormInput,
 ): UpsertRelationshipBookState {
   return UpsertRelationshipBookStateSchema.parse({
-    description: toOptionalText(state.description),
+    description: emptyToNull(state.description),
     endedAudioSeconds: parseAudioPosition(state.endedAudio),
-    endedChapter: toOptionalText(state.endedChapter),
+    endedChapter: emptyToNull(state.endedChapter),
     endedPage: state.endedPage,
     hideRelationshipAsSpoiler: state.hideRelationshipAsSpoiler,
     intensity: state.intensity,
     introducedAudioSeconds: parseAudioPosition(state.introducedAudio),
-    introducedChapter: toOptionalText(state.introducedChapter),
+    introducedChapter: emptyToNull(state.introducedChapter),
     introducedPage: state.introducedPage,
     isDescriptionSpoiler: state.isDescriptionSpoiler,
     isTypeSpoiler: state.isTypeSpoiler,
@@ -212,8 +183,8 @@ export function toUpdateRelationshipInput({
   values: RelationshipFormValues;
 }): Nullable<UpdateCharacterRelationship> {
   const customType = values.type === "custom" ? values.customType : null;
-  const sourceLabel = toOptionalText(values.sourceLabel);
-  const targetLabel = toOptionalText(values.targetLabel);
+  const sourceLabel = emptyToNull(values.sourceLabel);
+  const targetLabel = emptyToNull(values.targetLabel);
   const isTypeChanged =
     values.category !== relationship.category ||
     values.type !== relationship.type ||
@@ -230,9 +201,4 @@ export function toUpdateRelationshipInput({
 
 function toAudioText(seconds: Nullable<number>): string {
   return seconds === null ? "" : formatAudioPosition(seconds);
-}
-
-function toOptionalText(value: string): Nullable<string> {
-  const trimmed = value.trim();
-  return trimmed === "" ? null : trimmed;
 }

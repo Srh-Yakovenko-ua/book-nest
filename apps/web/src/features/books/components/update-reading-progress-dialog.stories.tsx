@@ -112,7 +112,10 @@ export const ServerErrorKeepsOpen: Story = {
     mockFetch(422, { message: "Сторінка більша за обсяг книги" });
     const body = within(document.body);
     await userEvent.click(body.getByRole("button", { name: "Зберегти" }));
-    await waitFor(() => expect(body.getByText("Сторінка більша за обсяг книги")).toBeVisible());
+    await waitFor(() =>
+      expect(body.getByText("Не вдалося зберегти. Спробуйте ще раз.")).toBeVisible(),
+    );
+    await expect(body.queryByText("Сторінка більша за обсяг книги")).not.toBeInTheDocument();
     await expect(body.getByTestId("open-state")).toHaveTextContent("open");
   },
   render: () => <Harness book={readingBook()} />,

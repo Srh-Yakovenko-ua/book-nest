@@ -34,7 +34,6 @@ export function useNotesFacets(scope: NotesArchiveScope, params: NotesDatasetPar
         : fromSeriesFacets(SeriesNotesFacetsViewSchema.parse(response));
     },
     queryKey: notesKeys.archiveFacets(scope, params),
-    retry: false,
   });
 }
 

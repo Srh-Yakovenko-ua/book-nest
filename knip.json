@@ -8,7 +8,7 @@
     "apps/web": {
       "project": ["src/**/*.{ts,tsx}"],
       "ignore": [
-        "src/components/ui/**",
+        "src/components/ui/{alert,alert-dialog,avatar,badge,breadcrumb,button,calendar,card,chart,checkbox,collapsible,command,context-menu,dialog,drawer,dropdown-menu,hover-card,input,input-group,input-otp,label,pagination,popover,progress,radio-group,scroll-area,select,separator,sheet,sidebar,skeleton,slider,sonner,switch,table,tabs,textarea,toggle,toggle-group,tooltip}.tsx",
         "src/shared/api/generated/**",
         "src/test-utils.tsx",
         "src/lib/api-errors.ts",

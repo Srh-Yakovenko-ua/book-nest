@@ -2,7 +2,14 @@
   "common": {
     "loading": "Loading...",
     "loadingMore": "Loading more...",
+    "updating": "Updating…",
     "retry": "Retry",
+    "refetchError": "Could not refresh the data. Showing the last loaded version.",
+    "summaryError": {
+      "title": "Couldn't load the summary",
+      "description": "The summary data is unavailable right now.",
+      "retry": "Try again"
+    },
     "somethingWentWrong": "Something went wrong",
     "decrement": "Decrease",
     "increment": "Increase",
@@ -11,7 +18,9 @@
     "clear": "Clear",
     "discardChanges": {
       "cancel": "Keep editing",
-      "confirm": "Yes, leave"
+      "confirm": "Yes, leave",
+      "description": "Unsaved changes will be lost.",
+      "title": "Discard changes?"
     },
     "suggestionCombobox": {
       "usageCount": "used {count, plural, one {# time} other {# times}}"
@@ -43,6 +52,7 @@
     "settings": "Settings",
     "loansContacts": "Contacts",
     "statistics": "Statistics",
+    "readingCalendar": "Reading calendar",
     "characters": "Characters",
     "groups": {
       "books": "Books",
@@ -469,13 +479,20 @@
       "viewAll": "View all",
       "active": "Active",
       "expectedThisWeek": "This week",
-      "delayed": "Delayed"
+      "delayed": "Delayed",
+      "loading": "Loading deliveries…",
+      "empty": "No deliveries in transit",
+      "error": {
+        "title": "Couldn't load deliveries",
+        "retry": "Try again to load deliveries"
+      }
     }
   },
   "notFound": {
     "title": "Page not found",
     "description": "It looks like this page got lost between the library shelves. But the way back is easy to find.",
-    "quickLinks": "Quick links:"
+    "quickLinks": "Quick links:",
+    "backHome": "Back home"
   },
   "error": {
     "eyebrow": "Error · Client",
@@ -495,8 +512,25 @@
   "localePicker": {
     "ariaLabel": "Language"
   },
+  "themePicker": {
+    "ariaLabel": "Change theme",
+    "options": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    }
+  },
   "facetMultiselect": {
     "remove": "Remove {label}"
+  },
+  "upload": {
+    "browse": "Upload a file",
+    "dropToUpload": "Release to upload",
+    "or": "or",
+    "remove": "Remove {name}",
+    "sizeKilobytes": "{size} KB",
+    "sizeMegabytes": "{size} MB",
+    "title": "Drag a file here"
   },
   "auth": {
     "common": {
@@ -821,6 +855,16 @@
         "title": "Couldn't load your library",
         "description": "Try refreshing the page or repeating the request a bit later.",
         "retry": "Try again"
+      },
+      "invalidRange": {
+        "title": "Check the filter range",
+        "description": "The “from” value is greater than the “to” value for {ranges}.",
+        "clear": "{count, plural, one {Reset the range} other {Reset the ranges}}",
+        "ranges": {
+          "rating": "rating",
+          "year": "publication year",
+          "pages": "page count"
+        }
       },
       "search": {
         "label": "Search books",
@@ -1817,7 +1861,7 @@
           "storeUrl": "Enter a valid https link.",
           "storeUrlMax": "No more than {max} characters.",
           "price": "Price must be greater than 0.",
-          "priceMax": "Too large. Maximum 99999999.99.",
+          "priceMax": "Too large. Maximum {max}.",
           "storeNameMax": "No more than {max} characters.",
           "storeNameRequired": "Add the store name — a link without it cannot be saved.",
           "storeUrlRequired": "Add the store link — the name alone is not enough.",
@@ -1827,6 +1871,7 @@
           "purchaseDateFuture": "The date can’t be in the future.",
           "notInWishlist": "This book is no longer in the wishlist.",
           "storeLinksUnavailable": "Could not load the tracked stores",
+          "maxLinks": "This book already has the maximum of {max} store links.",
           "generic": "Couldn’t save. Please try again."
         }
       },
@@ -2015,7 +2060,7 @@
           "serviceMin": "At least {min} characters.",
           "trackingNumberMax": "No more than {max} characters.",
           "price": "Price must be greater than 0.",
-          "priceMax": "Too large. Maximum 99999999.99.",
+          "priceMax": "Too large. Maximum {max}.",
           "noteMax": "No more than {max} characters.",
           "generic": "Couldn’t save. Please try again.",
           "trackingUrl": "Enter a valid https link.",
@@ -2044,6 +2089,7 @@
     "metaTitle": "Wishlist",
     "title": "Wishlist",
     "subtitle": "Books you don't own yet but want on your shelf",
+    "listLabel": "Books on the wishlist",
     "addBook": "Add book",
     "counter": "Showing {shown} of {total, plural, one {# book} other {# books}}",
     "filters": {
@@ -2182,6 +2228,9 @@
       "attention": {
         "title": "Needs attention",
         "allClear": "Every book is sorted out",
+        "error": {
+          "title": "Couldn't load the books that need attention"
+        },
         "unsetOwnership": {
           "title": "Ownership status not set",
           "detail": "{count, plural, one {# book} other {# books}} with no status",
@@ -2366,6 +2415,7 @@
     "metaTitle": "Dedications",
     "title": "Dedications",
     "subtitle": "Author dedications from the books you added to your library. The small words that begin a big story.",
+    "listLabel": "Dedication list",
     "added": "Dedication added",
     "loadMoreError": "Couldn't load more dedications",
     "allShown": "All dedications shown",
@@ -2661,6 +2711,11 @@
       },
       "validation": {
         "invalid": "Check the required fields, selected books, and shipment assignments.",
+        "storeRequired": "Enter the store the order was placed with.",
+        "booksRequired": "Add at least one book to the order.",
+        "shipmentBooksRequired": "Every shipment needs at least one book. Add books or remove the empty shipment.",
+        "expectedBeforeOrder": "The expected delivery date cannot be earlier than the order date.",
+        "orderDateInFuture": "The order date cannot be in the future.",
         "itemPricesRequired": "In Per book mode, enter a price for every selected book.",
         "negativeTotal": "The discount is larger than the books plus delivery, so the total comes out negative.",
         "totalRequired": "Enter the final order total, or mark the books as received for free.",
@@ -3425,6 +3480,7 @@
       "metaTitle": "Spending statistics",
       "title": "Spending statistics",
       "subtitle": "What you spend on books, where you get the better deal, and how much money is on its way right now.",
+      "resultsLabel": "Spending figures",
       "controls": {
         "toolbarLabel": "Period and filters",
         "includeCancelled": "Include cancelled orders",
@@ -3913,9 +3969,11 @@
         "remaining": "{value} left",
         "retry": "Try again",
         "scheduled": "From {month} — {value} / month",
+        "scheduledCancelFailed": "Could not cancel the scheduled budget change",
         "scheduledCancelled": "The scheduled budget change was cancelled",
         "scopeBadge": "Current month",
         "scopeHint": "The budget always counts the current calendar month and never follows the statistics period. Cancelled orders are left out.",
+        "stopCancelFailed": "Could not cancel the scheduled budget stop",
         "stopCancelled": "The scheduled budget stop was cancelled",
         "stopping": "The budget stops from {month}",
         "stopTitle": "Scheduled stop",
@@ -3945,7 +4003,6 @@
       "states": {
         "loading": "Loading the statistics…",
         "refreshing": "Updating the statistics…",
-        "refetchError": "Could not update the statistics. Showing the last loaded data.",
         "error": {
           "title": "Could not load the data",
           "description": "Try refreshing the page.",
@@ -4740,6 +4797,7 @@
         "favorite": "Add to favorites",
         "favoriteDone": "{count, plural, one {# book added to favorites} other {# books added to favorites}}",
         "favoriteMenu": "Favorites",
+        "limitHint": "Bulk actions handle up to {max, plural, one {# book} other {# books}} at a time",
         "regionLabel": "Bulk actions",
         "remove": "Remove from list",
         "removed": "{count, plural, one {# book removed from the list} other {# books removed from the list}}",
@@ -5164,6 +5222,7 @@
       "metaTitle": "Contacts",
       "title": "Contacts",
       "subtitle": "The people you lend books to and borrow them from.",
+      "listLabel": "Contact list",
       "loadMoreError": "Could not load the next page.",
       "create": {
         "cta": "Add contact",
@@ -5321,11 +5380,6 @@
       }
     },
     "summary": {
-      "error": {
-        "title": "Could not load the summary",
-        "description": "We couldn't load your loan summary.",
-        "retry": "Try again"
-      },
       "mobile": {
         "title": "Detailed stats"
       }
@@ -6630,10 +6684,6 @@
         "tieMore": "{count, plural, one {# more tag} other {# more tags}}",
         "noLeader": "No tags in use yet"
       },
-      "error": {
-        "title": "Couldn’t load the tags overview.",
-        "retry": "Try again"
-      },
       "panel": {
         "trigger": "Tags overview",
         "title": "Tags overview",
@@ -6698,12 +6748,12 @@
       }
     },
     "sort": {
-      "usage_count_desc": "By usage",
-      "books_count_desc": "By number of books",
-      "characters_count_desc": "By number of characters",
-      "name_asc": "By name",
-      "type_asc": "By type",
-      "created_desc": "Newest first"
+      "usage_count_desc": "Usage count: most first",
+      "books_count_desc": "Book count: most first",
+      "characters_count_desc": "Character count: most first",
+      "name_asc": "Name: A–Z",
+      "type_asc": "Type: tropes first",
+      "created_desc": "Date created: newest first"
     },
     "quickFilter": {
       "all": "All",
@@ -6980,6 +7030,7 @@
     "metaTitle": "Quotes",
     "title": "Quotes",
     "subtitle": "Your personal archive of favorite lines from books",
+    "listLabel": "Quote list",
     "noResults": {
       "title": "Nothing found",
       "description": "Try changing your search query or clearing the filters.",
@@ -7293,7 +7344,7 @@
         },
         "relations": {
           "title": "Links to other events",
-          "subtitle": "Cause-and-effect links within the book"
+          "subtitle": "Cause-and-effect links within the book. Link changes apply right away, without saving the form."
         }
       },
       "threadChip": {
@@ -7465,7 +7516,7 @@
       "pageExceedsBook": "No more than {max} pages in the book"
     },
     "actions": {
-      "menu": "Event actions",
+      "menu": "Actions for the event “{title}”",
       "edit": "Edit",
       "moveUp": "Move up",
       "moveDown": "Move down",
@@ -7534,11 +7585,6 @@
       "mostReadBooks": "{count, plural, one {# book read} other {# books read}}",
       "mostReadEmpty": "No books read yet",
       "noValue": "—",
-      "error": {
-        "title": "Couldn't load the summary",
-        "description": "Try refreshing the page or come back a little later.",
-        "retry": "Try again"
-      },
       "mobile": {
         "title": "Detailed stats",
         "compact": {
@@ -7860,9 +7906,26 @@
     }
   },
   "characters": {
+    "activeFilters": {
+      "attitude": "My attitude: {label}",
+      "book": "Book: {name}",
+      "gender": "Gender: {label}",
+      "group": "Group: {name}",
+      "importance": "Importance: {label}",
+      "pending": "loading…",
+      "role": "Role: {label}",
+      "search": "Search: {query}",
+      "series": "Series: {name}",
+      "species": "Species: {name}",
+      "tag": "Tag: {name}",
+      "unknown": "Untitled",
+      "withoutSpoilers": "Without spoilers",
+      "withSpoilers": "With spoilers"
+    },
     "add": {
       "cancel": "Cancel",
       "createNew": "Create “{name}”",
+      "createWithProfile": "Create and fill in profile",
       "description": "Find an existing character or create a new one.",
       "inBookTitle": "Already in this book",
       "link": "Add",
@@ -7945,7 +8008,6 @@
     "attitude": {
       "dislike": "Dislike",
       "distrust": "Distrust",
-      "favorite": "Favorite",
       "hate": "Hate",
       "like": "Like",
       "neutral": "Neutral",
@@ -7962,27 +8024,63 @@
       "unlink": "Remove from this book"
     },
     "catalog": {
-      "appearanceCount": "Books: {count}",
+      "books": {
+        "count": "{count, plural, one {In # book} other {In # books}}",
+        "error": "Couldn't load the books",
+        "loading": "Loading books",
+        "loadMoreError": "Couldn't load more books",
+        "more": "Show {count, plural, one {# more book} other {# more books}}",
+        "none": "Not in any book yet",
+        "openProfile": "Open character profile",
+        "title": "Books with this character",
+        "total": "{count, plural, one {# book} other {# books}}"
+      },
+      "counter": "Showing {shown} of {total, plural, one {# character} other {# characters}}",
       "empty": {
         "description": "Characters appear here once you add them to your books.",
         "title": "No characters yet"
       },
       "filters": {
+        "anyBook": "Any book",
         "anySeries": "Any series",
         "apply": "Apply",
         "attitude": "My attitude",
+        "book": "Book",
+        "bookEmpty": "No books found",
+        "bookSearch": "Search book…",
+        "bookSearching": "Searching books…",
         "clear": "Clear",
+        "clearBook": "Reset book",
+        "clearSeries": "Reset series",
+        "clearSpoilers": "Reset spoiler filter",
         "description": "Narrow the catalog down to what you are looking for.",
         "gender": "Gender",
-        "groups": {
-          "about": "About the character",
-          "appearsIn": "Where they appear",
-          "bookRole": "Role in the book",
-          "organisation": "Organisation"
-        },
+        "groups": "Groups",
         "importance": "Importance",
         "noGroups": "You have no character groups yet.",
+        "removeTag": "Remove tag {name}",
         "role": "Role",
+        "series": "Series",
+        "seriesEmpty": "No series found",
+        "seriesSearch": "Search series…",
+        "seriesSearching": "Searching series…",
+        "species": "Species",
+        "speciesEmpty": "No species found",
+        "speciesPlaceholder": "Any species",
+        "speciesSearch": "Search species…",
+        "speciesSearching": "Searching species…",
+        "speciesSelected": "{count, plural, one {# species} other {# species}}",
+        "spoilerOptions": {
+          "all": "All characters",
+          "with": "With spoilers",
+          "without": "Without spoilers"
+        },
+        "spoilers": "Spoilers",
+        "tagEmpty": "No tags found",
+        "tagPlaceholder": "Search tags…",
+        "tags": "Tags",
+        "tagSearching": "Searching tags…",
+        "tagSuggestions": "Your tags",
         "title": "Filters",
         "trigger": "Filters"
       },
@@ -8008,9 +8106,9 @@
         "title": "New features are on the way"
       },
       "sort": {
-        "name": "By name",
-        "recently_added": "Recently added",
-        "recently_updated": "Recently updated"
+        "name": "Name: A–Z",
+        "recently_added": "Date added: newest first",
+        "recently_updated": "Date updated: newest first"
       },
       "sortLabel": "Sort",
       "states": {
@@ -8025,6 +8123,9 @@
         "sharedLeaders": "{count} share the lead",
         "total": "Characters in total",
         "withImpression": "With my impressions"
+      },
+      "tags": {
+        "more": "{count, plural, one {# more tag} other {# more tags}}: {names}"
       },
       "title": "Characters",
       "view": {
@@ -8451,8 +8552,8 @@
       "supporting": "Supporting"
     },
     "sort": {
-      "importance": "Important first",
-      "name": "By name"
+      "importance": "Importance: central first",
+      "name": "Name: A–Z"
     },
     "spoiler": {
       "hidden": "Hidden (spoiler)",
@@ -8500,16 +8601,13 @@
       "transformed": "Transformed",
       "unknown": "Unknown"
     },
-    "summary": {
-      "favorites": "Favorites: {count}",
-      "pov": "POV: {count}"
-    },
     "tab": "Characters",
     "toast": {
       "created": "Character added",
       "createError": "Couldn't create the character",
       "deleted": "Character deleted",
       "deleteError": "Couldn't delete the character",
+      "fillProfile": "Fill in profile",
       "restored": "Character restored",
       "restoreError": "Couldn't restore the character",
       "revealError": "Couldn't show the hidden content",
@@ -8521,16 +8619,32 @@
     },
     "toolbar": {
       "add": "Add character",
-      "clearFilters": "Clear filters",
-      "favoritesOnly": "Favorites",
-      "filtersLabel": "Character filters",
       "importance": "Importance",
-      "povOnly": "POV",
+      "importanceFilter": {
+        "empty": "No levels found",
+        "placeholder": "Choose importance...",
+        "search": "Search importance"
+      },
+      "quick": {
+        "all": "All",
+        "favorites": "Favorites",
+        "pov": "POV"
+      },
+      "quickLabel": "Quick filters",
       "searchClear": "Clear search",
       "searchLabel": "Search characters",
       "searchPlaceholder": "Search in this book...",
       "selectedCount": "Selected: {count}",
-      "sortLabel": "Sort"
+      "sortLabel": "Sort",
+      "sortMobile": {
+        "close": "Close",
+        "description": "Choose the order of characters.",
+        "title": "Sorting",
+        "trigger": {
+          "importance": "Importance",
+          "name": "Name A–Z"
+        }
+      }
     },
     "unlink": {
       "cancel": "Cancel",
@@ -8546,7 +8660,8 @@
       "graph": "Graph",
       "label": "Characters view",
       "list": "List",
-      "relationships": "Relationships"
+      "relationships": "Relationships",
+      "openGraph": "Open relationship map"
     }
   },
   "species": {
@@ -9196,6 +9311,7 @@
     "metaTitle": "Reading statistics",
     "title": "Statistics",
     "subtitle": "How you read in the selected period: dynamics, tastes, progress and records.",
+    "resultsLabel": "Statistics for the selected period",
     "tabs": {
       "label": "Statistics sections",
       "overview": "Overview",
@@ -9206,8 +9322,8 @@
     "states": {
       "loading": "Loading statistics",
       "refreshing": "Refreshing data",
-      "refetchError": "Could not refresh the statistics. Showing the previous data.",
-      "lowerBound": "Reading history before the day full tracking began may be incomplete. Pages, active days and streaks are shown as the lowest known values.",
+      "periodChanging": "Updating the statistics for the selected period. The previous results are temporarily unavailable for interaction.",
+      "lowerBound": "Some older reading history may be incomplete. The ≥ mark means the minimum known value.",
       "error": {
         "title": "Could not show the statistics",
         "description": "Try reloading the page. If that does not help, come back a little later.",
@@ -9263,7 +9379,11 @@
       "unchanged": "No change",
       "fromZero": "from 0 to {current}",
       "previous": "vs {previous}",
-      "percentagePoints": "{value} p.p."
+      "percentagePoints": "{value} p.p.",
+      "direction": {
+        "up": "up",
+        "down": "down"
+      }
     },
     "contextActions": {
       "open_author": "All books by this author",
@@ -9284,7 +9404,7 @@
       "lowerBoundValue": "≥ {value}",
       "lowerBoundHint": "Lowest known value",
       "completedReads": {
-        "label": "Reads finished",
+        "label": "Finished reads",
         "unit": "{count, plural, one {read} other {reads}}",
         "value": "{count, plural, one {# read} other {# reads}}",
         "unique": "{count, plural, one {# distinct book} other {# distinct books}}"
@@ -9329,67 +9449,103 @@
       "title": "Reading dynamics",
       "metricLabel": "Dynamics metric",
       "metrics": {
-        "reads": "Reads",
+        "reads": "Completions",
         "pages": "Pages"
       },
-      "subtitles": {
-        "day": "Split by day of the period.",
-        "week": "Split by week of the period.",
-        "month": "Split by month of the period.",
-        "year": "Split by year."
+      "descriptions": {
+        "reads": {
+          "day": "Completed book reads per day. Rereads count separately.",
+          "week": "Completed book reads per week. Rereads count separately.",
+          "month": "Completed book reads per month. Rereads count separately.",
+          "year": "Completed book reads per year. Rereads count separately."
+        },
+        "pages": "Pages read, from saved progress entries."
       },
       "empty": "No data to chart for this period.",
       "current": "Current period",
       "comparison": "Comparison period",
       "legendCurrent": "Current period: {range}",
       "legendComparison": "Comparison period: {range}",
-      "comparisonLowerBound": "Pages are not compared: the comparison period starts before full tracking began, so its pages are incomplete.",
-      "peakReads": "Busiest stretch: {range} — {reads, plural, one {# read} other {# reads}}.",
-      "peakPages": "Busiest stretch: {range} — {pages, plural, one {# page} other {# pages}}.",
+      "comparisonUnavailable": {
+        "title": "Page comparison unavailable",
+        "description": "Reading history for the comparison period is incomplete, so only the current period is shown."
+      },
+      "comparisonResult": {
+        "reads": "{direction, select, up {{delta, plural, one {# more completed read} other {# more completed reads}}} down {{delta, plural, one {# fewer completed read} other {# fewer completed reads}}} other {Same number of completed reads as the comparison period}}",
+        "pages": "{direction, select, up {{delta, plural, one {# more page} other {# more pages}}} down {{delta, plural, one {# fewer page} other {# fewer pages}}} other {Same number of pages as the comparison period}}",
+        "values": "Current period: {current} · Comparison period: {comparison}"
+      },
+      "peakReads": "Busiest stretch: {range} — <value>{reads, plural, one {# completion} other {# completions}}</value>.",
+      "peakPages": "Busiest stretch: {range} — <value>{pages, plural, one {# page} other {# pages}}</value>.",
       "tooltip": {
-        "reads": "{count, plural, one {# read} other {# reads}}",
+        "reads": "{count, plural, one {# completion} other {# completions}}",
         "uniqueBooks": "{count, plural, one {# distinct book} other {# distinct books}}",
         "pages": "{count, plural, one {# page} other {# pages}}",
         "comparison": "{metric} in the comparison period: {value}"
       },
-      "srBucket": "{range}: {reads, plural, one {# read} other {# reads}} · {pages} pages",
+      "srBucket": "{range}: {reads, plural, one {# completion} other {# completions}} · {pages} pages",
       "srComparison": "Comparison period, {range}: {metric} — {value}.",
       "bucketsLabel": "Chart buckets: arrow keys move between buckets, Enter opens the details",
       "openHint": "Select a bar to see exactly what went into it."
     },
-    "calendar": {
-      "title": "Reading calendar",
-      "description": "The days you actually read.",
-      "modeLabel": "Calendar mode",
-      "modes": {
-        "activity": "Activity",
-        "books": "Books"
-      },
+    "habits": {
+      "title": "Reading habits",
+      "description": "How often and how steadily you read.",
       "metricRange": "Figures for {range}",
-      "displayRange": "The calendar shows {range}.",
-      "legacyNote": "Days before full history tracking began are observed facts; an empty cell there does not prove that you did not read.",
+      "unavailable": "Reading habits are unavailable",
+      "weekdays": {
+        "title": "Reading by weekday",
+        "description": "Number of days with recorded reading and pages read for each weekday.",
+        "columns": {
+          "day": "Day",
+          "bar": "Reading days",
+          "days": "Days",
+          "pages": "Pages"
+        },
+        "panel": {
+          "label": "Selected weekday",
+          "days": "Reading days",
+          "pages": "Pages total",
+          "summary": "{days, plural, =0 {No saved reading entries for {weekday, select, mon {Mondays} tue {Tuesdays} wed {Wednesdays} thu {Thursdays} fri {Fridays} sat {Saturdays} other {Sundays}} in the selected period.} one {In the selected period, reading was recorded on # {weekday, select, mon {Monday} tue {Tuesday} wed {Wednesday} thu {Thursday} fri {Friday} sat {Saturday} other {Sunday}}.} other {In the selected period, reading was recorded on # different {weekday, select, mon {Mondays} tue {Tuesdays} wed {Wednesdays} thu {Thursdays} fri {Fridays} sat {Saturdays} other {Sundays}}.}}",
+          "note": "Totals cover the whole selected period and include only saved entries."
+        },
+        "empty": "There were no reading days in this period yet."
+      }
+    },
+    "calendarLink": {
+      "title": "Reading calendar",
+      "description": "The yearly activity map and books by day.",
+      "action": "Open the calendar"
+    },
+    "calendar": {
       "empty": "No day with activity in this period.",
       "unavailable": "The calendar is unavailable",
       "reason": {
         "NO_ACTIVITY_HISTORY": "There is not a single recorded page read yet."
       },
       "summary": {
-        "activeDays": "Active days",
-        "activeDaysRate": "Share of the period",
+        "activeDays": "Reading days",
+        "activeDaysRate": "Share of reading days",
         "longestStreak": "Longest streak",
         "currentStreak": "Current streak",
-        "mostActiveWeekday": "Most active weekday",
+        "mostActiveWeekday": "Top day by pages",
+        "definitions": {
+          "activeDays": "Distinct dates with logged progress",
+          "activeDaysRate": "Of all days in the selected period",
+          "longestStreak": "Consecutive reading days",
+          "mostActiveWeekday": "Weekday with the most pages in total"
+        },
         "days": "{count, plural, one {# day} other {# days}}",
         "daysAtLeast": "{count, plural, one {#+ day} other {#+ days}}",
         "lowerBoundValue": "≥ {value}",
         "continuesBeforeRange": "The streak started before this period",
-        "weekdayHint": "{days} active days · {pages} pages",
-        "unavailable": "—",
+        "undetermined": "Not determined",
         "reason": {
-          "LEGACY_HISTORY_INCOMPLETE": "Part of this period predates full history tracking, so the figure would mislead.",
+          "LEGACY_HISTORY_INCOMPLETE": "History for this period is incomplete",
           "PERIOD_NOT_CURRENT": "A closed period has no running streak."
         },
-        "currentStreakLine": "Current streak: <value>{days}</value>"
+        "currentStreakLine": "Current streak: <value>{days}</value>",
+        "currentStreakDefinition": "consecutive reading days up to today or yesterday"
       },
       "heatmap": {
         "legendLess": "less",
@@ -9403,16 +9559,23 @@
       "books": {
         "more": "+{count}",
         "empty": "No months to show.",
-        "emptyMonth": "You did not read this month.",
+        "emptyMonth": "No reading was recorded this month.",
+        "emptyMonthUncertainTitle": "No saved records for this month.",
+        "emptyMonthUncertainDescription": "Part of your reading history may not have been saved.",
+        "legacyMonthNote": "Part of this month predates full history tracking, so its records may be incomplete.",
         "previousMonth": "Previous month",
         "nextMonth": "Next month",
         "daySummary": "{date}: {pages} pages, {books, plural, one {# book} other {# books}}",
         "dayEmpty": "{date}: no reading",
         "dayUnknown": "{date}: this day may be missing from the history",
+        "dayFuture": "{date}: this day has not come yet",
         "diaryMeta": "{books, plural, one {# book} other {# books}} · {pages} pages",
-        "monthActiveDays": "Active days",
-        "monthBooks": "Books",
-        "monthPages": "Pages",
+        "monthActiveDays": "Reading days",
+        "monthBooks": "Books with progress",
+        "monthBooksLoading": "Getting the exact number of books this month",
+        "monthBooksError": "Could not get the exact number of books this month",
+        "monthBooksRetry": "Try again",
+        "monthPages": "Pages read",
         "atLeast": "≥ {value}",
         "unknownLegend": "Unknown history: this day predates full tracking, so an empty cell does not prove there was no reading."
       }
@@ -9427,7 +9590,8 @@
         "deletedBook": "This book was removed from the library",
         "legacyQuality": "This day predates full history tracking, so it may be incomplete.",
         "booksLabel": "Books",
-        "pagesLabel": "Pages"
+        "pagesLabel": "Pages",
+        "showInBooksCalendar": "Show in the books calendar"
       },
       "completedRead": {
         "open": "Read details: {title}",
@@ -9444,13 +9608,20 @@
         "error": "Could not load the bucket details",
         "retry": "Try again",
         "unsupported": "There is no exact list for this bucket.",
-        "readsTotal": "{count, plural, one {# finished read} other {# finished reads}}",
+        "readsTotal": "{count, plural, one {# completion} other {# completions}}",
         "readsEmpty": "No reads were finished in this bucket.",
         "activeDaysLabel": "Active days",
         "observedOnly": "This bucket starts before {date}, when full tracking began, so it shows only the records that survived.",
         "pagesEmpty": "No pages were recorded in this bucket.",
         "pagesEmptyObservedOnly": "No page records survived for this bucket. That does not mean nothing was read.",
         "loadMore": "Show more"
+      },
+      "subset": {
+        "open": "Show finished reads: {name}",
+        "title": "Finished reads: {name}",
+        "loading": "Loading the finished reads",
+        "error": "Could not load the finished reads",
+        "empty": "No matching reads were finished in this period."
       }
     },
     "ratings": {
@@ -9465,9 +9636,10 @@
       "scale": "{value} / 10",
       "highRated": "Rated 8.0 and above",
       "highRatedValue": "{count} · {percent}%",
+      "highRatedHint": "among rated reads",
       "ratedReads": "Rated reads",
       "ratedReadsValue": "{rated} of {total}",
-      "coverage": "{knownCount} of {eligibleCount} reads rated",
+      "coverage": "The average is based on rated reads only.",
       "distributionRow": "Rating {rating}: {count, plural, one {# read} other {# reads}}",
       "topRatedTitle": "Highest rated",
       "topRatedEmpty": "No rated reads yet.",
@@ -9510,7 +9682,7 @@
         "INSUFFICIENT_SAMPLE": "An author needs at least 3 rated reads to be ranked."
       },
       "returningTitle": "You keep coming back to",
-      "returningMeta": "{years, plural, one {# year} other {# years}} · {reads, plural, one {# read} other {# reads}} · last read {lastRead}",
+      "returningMeta": "All time · {years, plural, one {# year} other {# years}} · {reads, plural, one {# read} other {# reads}} · last read {lastRead}",
       "unavailable": "Authors cannot be measured",
       "unavailableDescription": "None of the reads finished in this period carry a recorded author."
     },
@@ -9523,7 +9695,8 @@
       "unavailable": "Publishers cannot be measured",
       "unavailableDescription": "None of the reads finished in this period carry a recorded publisher.",
       "totalLabel": "Publishers",
-      "concentrationLabel": "Top 3 share"
+      "concentrationLabel": "Top 3 share",
+      "concentrationHint": "among reads with a known publisher"
     },
     "languages": {
       "title": "Languages",
@@ -9535,7 +9708,8 @@
       "sourceHint": "The edition language recorded in BookNest when the read was finished.",
       "unavailable": "Languages cannot be measured",
       "unavailableDescription": "None of the reads finished in this period carry a recorded edition language.",
-      "countLabel": "Languages"
+      "countLabel": "Languages",
+      "shareHint": "Shares are counted among reads with a known language."
     },
     "discoveries": {
       "title": "New discoveries",
@@ -9552,7 +9726,7 @@
         "publisher": "Publisher"
       },
       "firstRead": "First finished read: {date}",
-      "afterDiscovery": "{count, plural, one {# read after the discovery} other {# reads after the discovery}}",
+      "afterDiscovery": "{count, plural, one {# read in this period (including the first)} other {# reads in this period (including the first)}}",
       "averageRating": "average rating {value}",
       "countLabels": {
         "authors": "New authors",
@@ -9563,16 +9737,15 @@
     "goal": {
       "title": "Reading goal",
       "currentTitle": "Current goal",
-      "snapshotNote": "Shows the goal as it stands today, whatever period is selected.",
-      "description": "The active goal with the nearest deadline.",
+      "description": "The current state of your active goal with the nearest deadline. The selected period does not change it.",
       "empty": "No active goal",
       "emptyDescription": "Create a goal to see its progress right here.",
       "create": "Create a goal",
       "deadline": "By {date}",
+      "deadlineLabel": "Deadline",
       "fallbackName": "{count, plural, one {# book} other {# books}}",
       "progress": "{completed} of {target}",
       "progressLabel": "Goal progress: {percent}%",
-      "status": "Status",
       "pace": "Pace",
       "paces": {
         "ahead": "Ahead of plan",
@@ -9580,20 +9753,25 @@
         "behind": "Behind plan",
         "critical": "Needs a noticeably higher pace"
       },
+      "paceUnknown": "Pace not determined yet",
       "remaining": "Remaining",
       "remainingValue": "{count, plural, one {# book} other {# books}}",
+      "notStarted": "Not started yet: {count, plural, one {# book} other {# books}} to go.",
       "forecast": "Projected finish",
-      "forecastUnavailable": "Not enough data",
+      "forecastUnavailable": "Not enough data yet for a reliable forecast",
       "open": "Open the goal",
       "otherGoals": "{count, plural, one {# more active goal} other {# more active goals}}"
     },
     "series": {
       "title": "Series reading",
-      "description": "How you moved through book series in this period.",
+      "description": "How you moved through book series in the selected period.",
       "unavailable": "Series data is unavailable",
+      "noReadsTitle": "No finished reads in the selected period",
+      "noReadsDescription": "Series share and rankings will appear once the period has at least one finished read.",
       "share": "{series} of {total} reads came from series · {percent}%",
       "shareUnknown": "The share of series reading could not be computed.",
       "lifecycleUnavailable": "Series milestones are unavailable",
+      "lifecycleNote": "One series can count toward several milestones at once, so these numbers should not be added together.",
       "reason": {
         "LEGACY_HISTORY_INCOMPLETE": "Some completions were carried over from older history, so structural transitions cannot be proven."
       },
@@ -9604,21 +9782,25 @@
         "caughtUp": "Caught up"
       },
       "mostActiveTitle": "Most active series",
+      "mostActiveCaption": "Finished reads, rereads included.",
       "reads": "{count, plural, one {# read} other {# reads}}",
       "empty": "No reads from series were finished in this period.",
-      "topProgressTitle": "Most progress",
+      "topProgressTitle": "Series progress",
+      "topProgressCaption": "Books finished for the first time in the period.",
       "firstCompletions": "{count, plural, one {# new book} other {# new books}}",
-      "marathon": "Series marathon: {length} books in a row from “{name}”, finished {date}."
+      "marathon": "Series marathon: {length, plural, one {# book} other {# books}} in a row from “{name}”, finished {date}."
     },
     "libraryBalance": {
       "title": "Library balance",
-      "description": "How many of your own books are still waiting to be read.",
+      "description": "The current state of the books you own. The selected period does not change it.",
       "currentTbr": "Unread right now",
       "currentTbrValue": "{unread} of {total}",
-      "readRatio": "Share already read",
-      "forecast": "Enough for about",
+      "readRatio": "Read among owned books",
+      "readRatioHint": "Based on current statuses",
+      "readRatioEmpty": "No owned books in your library yet.",
+      "forecast": "Unread books will last about",
       "forecastValue": "{months} mo",
-      "forecastPace": "at {rate} books per month",
+      "forecastHint": "Owned books first finished in the last 12 months: {rate} a month on average. Future purchases not counted.",
       "flow": "In {inflow} · out {outflow} · net {net}",
       "forecastReason": {
         "INSUFFICIENT_SAMPLE": "Too little reading history to estimate a pace.",
@@ -9628,7 +9810,7 @@
     },
     "records": {
       "title": "Your records",
-      "description": "The most notable extremes of this period.",
+      "description": "A selection of up to {limit, plural, one {# standout record} other {# standout records}} from the selected period.",
       "empty": "No records in this period yet.",
       "types": {
         "longest_completed_book": "Longest book finished",
@@ -9644,10 +9826,26 @@
         "elapsedDays": "in {count, plural, one {# day} other {# days}}",
         "marathon": "{count, plural, one {# book in a row} other {# books in a row}}",
         "streakDays": "{count, plural, one {# day in a row} other {# days in a row}}",
-        "peakMonthDetail": "{reads, plural, one {# read} other {# reads}} · {pages} pages",
+        "peakMonthDetail": "{reads, plural, one {# read} other {# reads}} · {pages, plural, one {# page} other {# pages}}",
+        "peakMonthByReads": "Chosen by the number of completed reads.",
+        "peakMonthPagesIncomplete": "The page count may be incomplete: part of the period predates full history tracking.",
         "streakDaysAtLeast": "{count, plural, one {≥ # day in a row} other {≥ # days in a row}}",
         "recordedOnly": "Among recorded days: part of the period predates full history tracking."
       }
+    }
+  },
+  "readingCalendar": {
+    "metaTitle": "Reading calendar",
+    "title": "Reading calendar",
+    "subtitle": "Your reading year day by day: activity and books.",
+    "resultsLabel": "Calendar for the selected year",
+    "activity": {
+      "title": "Activity calendar",
+      "description": "How many pages you read on each day of the year."
+    },
+    "books": {
+      "title": "Books by day",
+      "description": "What you read on each day of the selected month."
     }
   },
   "relationships": {
@@ -9738,21 +9936,42 @@
         "save": "Save"
       },
       "book": {
+        "blocked": {
+          "characterDescription": "Add the character to a book first, then create their relationships.",
+          "characterTitle": "This character is not in any book yet",
+          "seriesDescription": "Add a book to the series to create relationships between its characters.",
+          "seriesTitle": "This series has no books yet"
+        },
+        "changeConfirm": {
+          "cancel": "Keep current book",
+          "confirm": "Change book",
+          "description": "The details you entered for the current book will be lost.",
+          "title": "Change the book?"
+        },
         "current": "Current book",
         "editHint": "Status, description and spoilers are stored separately for each book.",
         "heading": "Details for a book",
         "label": "Book",
         "noState": "This book has no details yet. Fill in the fields to add them.",
-        "none": "No book, add later",
         "noneEdit": "Not selected",
         "placeholder": "Choose a book",
         "remove": "Remove details for this book",
-        "requiredHint": "Choose the series book these details belong to.",
-        "skipHint": "The relationship will be saved without book details. You can add them later.",
         "untitled": "Untitled book"
       },
       "createDescription": "Choose a character and the relationship type, then add details for a book.",
       "createTitle": "New relationship",
+      "customType": {
+        "directed": "One direction",
+        "emptyBrowse": "Custom types you have used will appear here.",
+        "emptySearch": "No matches. The name joins your types when you save the relationship.",
+        "error": "Could not load suggestions. You can still type a name.",
+        "loadMoreError": "Could not load more suggestions",
+        "loading": "Loading suggestions…",
+        "searchHint": "Type at least 2 characters to search",
+        "suggestions": "Your custom types",
+        "symmetric": "Mutual",
+        "useTyped": "Use “{name}”"
+      },
       "discard": {
         "description": "Unsaved changes to the relationship will be lost.",
         "title": "Discard changes?"
@@ -9761,12 +9980,14 @@
       "editTitle": "Edit relationship",
       "errors": {
         "audioInvalid": "Enter a time above zero as h:mm:ss or mm:ss.",
+        "bookContextInvalid": "One of the characters is not in this book. Choose characters from its cast or another book.",
         "bookNotFound": "This book was not found. Choose another one.",
         "bookRequired": "Choose a book",
         "characterNotFound": "This character no longer exists. Choose another one.",
         "customTypeRequired": "Enter a type name",
         "directionMismatch": "The direction does not match the type. Choose the type again.",
         "duplicate": "This relationship between these characters already exists.",
+        "duplicateCreate": "A relationship of this type between these characters already exists. To add details for another book, edit the existing relationship.",
         "invalidValue": "Check this field.",
         "pageInvalid": "Enter a whole number above zero",
         "participantRequired": "Choose a character",
@@ -9791,6 +10012,16 @@
         "placeholder": "For example, mentor",
         "source": "Role: {name}",
         "sourceFallback": "Role of the first character",
+        "suggestions": {
+          "emptyBrowse": "Roles you have used will appear here.",
+          "emptySearch": "No matches. The role joins your suggestions when you save the relationship.",
+          "error": "Could not load suggestions. You can still type a role.",
+          "list": "Your roles",
+          "loadMoreError": "Could not load more suggestions",
+          "loading": "Loading suggestions…",
+          "searchHint": "Type at least 2 characters to search",
+          "useTyped": "Use “{role}”"
+        },
         "target": "Role: {name}",
         "targetFallback": "Role of the second character",
         "toggle": "More settings"
@@ -9801,8 +10032,18 @@
         "title": "Could not load the relationship"
       },
       "loading": "Loading relationship",
+      "orientation": {
+        "hint": "The type name describes the character the arrow starts from.",
+        "legend": "Relationship direction",
+        "option": "From {source} to {target}"
+      },
+      "partialSave": {
+        "description": "The type, roles and canonical setting are saved. The book details are still in the form, try saving them again.",
+        "retry": "Save book details",
+        "title": "Relationship partly saved"
+      },
       "participants": {
-        "directedHint": "The type reads from the first character to the second.",
+        "bookFirst": "Choose a book first: characters come from that book only.",
         "focus": "This character",
         "legend": "Characters",
         "locked": "Participants and direction cannot be changed after creation.",
@@ -9811,46 +10052,65 @@
         "target": "Second character"
       },
       "picker": {
-        "all": "All characters",
         "empty": "No characters found",
+        "emptyBook": "No other characters in this book",
         "error": "Could not load characters",
-        "inBook": "In this book",
+        "hint": "Type at least 2 characters to search",
+        "loadMoreError": "Could not load more characters",
         "loading": "Searching…",
+        "noBook": "Choose a book first",
         "placeholder": "Choose a character",
-        "search": "Search characters",
-        "searchHint": "Type at least {min} characters to search all characters."
+        "results": "Characters in the book",
+        "search": "Search characters"
       },
       "positions": {
         "audio": "Audio",
         "audioPlaceholder": "1:05:30",
         "chapter": "Chapter",
+        "chapterHint": "To track progress by chapter, enter a number, for example 5",
         "ended": "End",
         "introduced": "Start",
-        "page": "Page"
+        "page": "Page",
+        "section": "Start and end"
+      },
+      "preview": {
+        "directed": "{source} — “{type}” toward {target}",
+        "placeholder": "Choose the characters and the relationship type",
+        "symmetric": "Mutual relationship between {first} and {second}",
+        "title": "Preview"
       },
       "spoilers": {
         "description": "Description is a spoiler",
-        "descriptionHint": "The description for this book stays hidden until the reader reaches the start of the relationship.",
+        "descriptionHint": "Hide the description text until it is explicitly revealed in a permitted way",
         "heading": "Spoilers",
         "hint": "These settings hide the relationship from readers, not from the characters.",
         "relationship": "Hide the whole relationship",
-        "relationshipHint": "Until the reader reaches the start of the relationship, it does not appear at all.",
+        "relationshipHint": "The relationship does not appear in reader mode, regardless of progress, while this setting is on",
+        "section": "Spoilers and visibility",
+        "summaryHidden": "The relationship is fully hidden",
+        "summaryNone": "No extra hiding",
+        "summarySome": "Some hiding is set",
         "type": "Relationship type is a spoiler",
-        "typeHint": "Until the reader reaches the start of the relationship, they only see that the characters are connected."
+        "typeHint": "Hide the relationship type, category and direction from readers. These details can only be revealed through a separate permitted action"
       },
       "state": {
         "description": "Description",
+        "descriptionCounter": "{count}/{max}",
         "descriptionPlaceholder": "What happens between the characters in this book",
+        "endedWithoutPositionHint": "Without an end position, readers may see that the relationship has ended as soon as it becomes available to them",
         "intensity": "Intensity",
         "intensityNone": "Not set",
+        "optional": "(optional)",
         "status": "Status",
-        "statusHint": "“Secret” means the characters keep this relationship hidden within the story. To hide it from readers, use the spoiler settings below."
+        "statusHint": "This status describes secrecy between the characters in the story. To hide information from readers, use the spoiler settings"
       },
       "steps": {
         "book": "Details for a book",
+        "bookHeading": "Step 2 of 2:",
         "edge": "Relationship"
       },
       "type": {
+        "allCategories": "All",
         "canonical": "Canonical relationship",
         "canonicalHint": "Confirmed by the text, not your guess or a fan theory.",
         "category": "Category",
@@ -9862,7 +10122,9 @@
         "directionalityPending": "Depends on the type",
         "empty": "No type found",
         "label": "Relationship type",
+        "ownType": "Own type",
         "placeholder": "Choose a type",
+        "results": "Relationship types",
         "search": "Search types"
       }
     },
@@ -10194,6 +10456,233 @@
       "twin_of": "Twin of",
       "unrequited_love_for": "Unrequited love for",
       "ward_of": "Ward of"
+    },
+    "workspace": {
+      "metaTitle": "Relationship map",
+      "header": {
+        "back": "To book characters",
+        "breadcrumb": "Breadcrumb",
+        "characters": "Characters",
+        "title": "Relationship map"
+      },
+      "views": {
+        "label": "Map mode",
+        "network": "Whole network",
+        "person": "Around a character",
+        "short": {
+          "network": "Network",
+          "person": "Character",
+          "tree": "Tree"
+        },
+        "tree": "Family tree"
+      },
+      "pathEntry": "How are two characters connected?",
+      "picker": {
+        "clear": "Clear character",
+        "label": "Central character"
+      },
+      "depth": {
+        "label": "Circle of connections",
+        "option": "{depth, plural, one {Direct (1 step)} other {Up to # steps}}"
+      },
+      "generations": {
+        "ancestors": "Ancestors",
+        "descendants": "Descendants",
+        "option": "{count, plural, one {# generation} other {# generations}}",
+        "trigger": "Generations: ↑{up} / ↓{down}"
+      },
+      "treeOptions": {
+        "distant": "Distant relatives",
+        "exUnions": "Former unions",
+        "guardians": "Guardians",
+        "lineage": "Parents and children are always shown.",
+        "marriages": "Marriages",
+        "partners": "Romantic partners are not shown in the family tree yet.",
+        "siblings": "Siblings",
+        "trigger": "Family relationship types"
+      },
+      "grouping": {
+        "components": "By connectivity",
+        "group": "Groups",
+        "importance": "By importance",
+        "label": "Grouping"
+      },
+      "filters": {
+        "active": "Active filters",
+        "categories": "Categories",
+        "remove": "Remove filter “{label}”",
+        "reset": "Reset filters",
+        "treeDormant": "Category and type filters do not apply to the family tree. They are kept for the other modes.",
+        "trigger": "Filters",
+        "triggerCount": "Filters · {count}",
+        "types": "Types"
+      },
+      "help": {
+        "click": "Clicking a card opens its details. The center changes only with “Make center”.",
+        "depth": "A step is one connection between two characters, whatever its direction.",
+        "filters": "Filters narrow the connections, not the book’s character list.",
+        "spoilers": "The map shows only what is available in your reading context.",
+        "title": "How the map works",
+        "trigger": "How the map works"
+      },
+      "guided": {
+        "charactersCount": "{count, plural, one {# character in the book} other {# characters in the book}}",
+        "charactersTitle": "Book characters",
+        "errorDescription": "Check your connection and try again.",
+        "errorTitle": "Could not load the characters",
+        "hint": "Use the character search above or pick someone below.",
+        "noCharactersDescription": "Add characters to the book to build a relationship map.",
+        "noCharactersTitle": "This book has no characters yet",
+        "personTitle": "Pick a character to see their connections",
+        "pick": "Show connections of {name}",
+        "retry": "Try again",
+        "toCharacters": "To book characters",
+        "treeTitle": "Pick a character to see their family"
+      },
+      "states": {
+        "bookUnavailable": {
+          "description": "The book is unavailable or could not be loaded.",
+          "title": "Could not open the map"
+        },
+        "error": {
+          "description": "Check your connection and try again.",
+          "retry": "Try again",
+          "title": "Could not load the map"
+        },
+        "filteredEmpty": {
+          "description": "No connection matches the filters.",
+          "title": "Nothing found."
+        },
+        "loading": "Loading the map…",
+        "networkEmpty": {
+          "description": "There are no connections to show in the current reading context.",
+          "title": "No connections available."
+        },
+        "noRelations": {
+          "description": "This character has no connections to show in the current reading context.",
+          "title": "This character has no available connections."
+        },
+        "unavailableCharacter": {
+          "action": "Pick another character",
+          "description": "This character is not in the book or is unavailable in the current reading context.",
+          "title": "Character unavailable"
+        }
+      },
+      "notices": {
+        "fallbackComponents": "This network has no available groups, so it is shown by connectivity.",
+        "irregular": "Some generations could not be placed because of conflicting records.",
+        "locked": "Some details are hidden.",
+        "noAncestry": "The records contain no confirmed parent and child relationships.",
+        "overBudget": "The map shows many characters. Collapse some branches or groups to keep it readable.",
+        "truncated": "Only part of the available network is shown."
+      },
+      "counters": {
+        "expanded": "Expanded: {nodes, plural, one {# character} other {# characters}} · {edges, plural, one {# connection} other {# connections}}",
+        "groups": "On the map: {groups, plural, one {# group} other {# groups}}",
+        "people": "On the map: {nodes, plural, one {# character} other {# characters}} · {edges, plural, one {# connection} other {# connections}}"
+      },
+      "more": {
+        "clusters": "Show more groups",
+        "members": "Show more characters",
+        "ring": "Show more at step {hop}"
+      },
+      "node": {
+        "collapse": "Collapse the connections of {name}",
+        "expand": "Expand the connections of {name}",
+        "open": "Open details of {name}",
+        "openFavorite": "Open details of {name}, in favorites",
+        "openRoot": "Open details of the central character {name}"
+      },
+      "cluster": {
+        "collapse": "Collapse group “{name}”, {count, plural, one {# character} other {# characters}}",
+        "expand": "Expand group “{name}”, {count, plural, one {# character} other {# characters}}",
+        "fragment": "Network fragment {index}",
+        "groupHidden": "Group",
+        "importanceUnknown": "Importance not set",
+        "members": "{count, plural, one {# character} other {# characters}} on the map",
+        "ungrouped": "No group specified"
+      },
+      "connection": {
+        "custom": "Custom relationship type",
+        "hidden": "Relationship details are hidden",
+        "many": "Several connections"
+      },
+      "canvas": {
+        "a11yEdge": "Click to open the connection details.",
+        "a11yNode": "Press Enter to open the character details.",
+        "cancelOverwrite": "Cancel",
+        "confirmOverwrite": "Replace",
+        "enterFullscreen": "Full screen",
+        "exitFullscreen": "Exit full screen",
+        "fit": "Fit the map",
+        "label": "Relationship map canvas",
+        "overwrite": "A different layout is already saved for this mode. Replace it?",
+        "relayout": "Rearrange",
+        "reset": "Reset layout",
+        "resetError": "Could not reset the layout",
+        "save": "Save layout",
+        "saved": "Layout saved",
+        "saveError": "Could not save the layout",
+        "zoomIn": "Zoom in",
+        "zoomOut": "Zoom out"
+      },
+      "list": {
+        "aggregate": "The shown characters of “{source}” and “{target}” are connected",
+        "item": "{source} — {target}",
+        "title": "Connections on the map ({count})"
+      },
+      "panel": {
+        "character": {
+          "collapse": "Collapse connections",
+          "connections": "{count, plural, =0 {Connections on the map} one {# connection on the map} other {# connections on the map}}",
+          "expand": "Expand connections",
+          "explore": "Explore around",
+          "favorite": "In favorites",
+          "findPath": "Find a path from this character",
+          "makeCenter": "Make center",
+          "noConnections": "No connections of this character are shown on the map.",
+          "profile": "Character profile",
+          "root": "Current center"
+        },
+        "close": "Close details",
+        "connection": {
+          "back": "Back to the connection list",
+          "group": "Connections between {source} and {target}",
+          "item": "Record {index}",
+          "title": "{source} and {target}"
+        },
+        "description": "Details of the selected map element.",
+        "title": "Details"
+      },
+      "path": {
+        "back": "To the map",
+        "clear": "Clear selection",
+        "context": "The path uses the connections available in the book’s reading context.",
+        "direction": {
+          "forward": "{source} → {target}",
+          "symmetric": "Mutual",
+          "unknown": "Direction not revealed"
+        },
+        "error": "Could not find a path.",
+        "filtered": "The search uses the active filters.",
+        "found": "Shortest chain found: {count, plural, one {# step} other {# steps}}.",
+        "from": "Character A",
+        "idle": "Pick two characters to see how they are connected.",
+        "limited": "The search stopped at a safety limit, so the answer is incomplete. Try narrowing the filters.",
+        "loading": "Searching for a path…",
+        "notFound": "No path was found among the connections available for reading.",
+        "retry": "Try again",
+        "same": "Pick two different characters.",
+        "sequence": "Path between the characters",
+        "step": "Step {index}",
+        "stepHint": "A step is one available connection between two characters. The connection’s own direction may differ from the path order.",
+        "stepTitle": "Path step",
+        "swap": "Swap the characters",
+        "title": "How are two characters connected?",
+        "to": "Character B",
+        "unavailable": "The character is unavailable in this book.",
+        "unknown": "Could not confirm that the search finished completely."
+      }
     }
   }
 }

@@ -3,10 +3,10 @@
 import type { Nullable, SpeciesOptionView } from "@app/shared";
 import type { ReactNode } from "react";
 
-import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
+import { Spinner } from "@/components/spinner";
 import { sectionedGroupClassNames } from "@/components/ui/command";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { cn } from "@/lib/utils";
@@ -194,7 +194,7 @@ function CreateOption({
       type="button"
     >
       {isCreating ? (
-        <Loader2 aria-hidden className="size-4 shrink-0 animate-spin text-muted-foreground" />
+        <Spinner className="text-muted-foreground" />
       ) : (
         <UiIcon
           className={create.secondary ? "text-muted-foreground" : "text-primary"}
@@ -226,7 +226,7 @@ function LoadMoreRow({ more }: { more: SpeciesPickerMore }) {
   if (more.status === "loading") {
     return (
       <div className="flex items-center justify-center gap-2 px-2 py-1.5 text-xs text-muted-foreground">
-        <Loader2 aria-hidden className="size-3.5 animate-spin" />
+        <Spinner size="sm" />
         {t("loadingMore")}
       </div>
     );
@@ -290,7 +290,7 @@ function PickerNotice({ notice, onRetry }: { notice: SpeciesPickerNotice; onRetr
 
   return (
     <div className={cn("flex items-center gap-2 px-2 py-1.5 text-xs", NOTICE_TONE[notice])}>
-      {notice === "loading" ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : null}
+      {notice === "loading" ? <Spinner size="sm" /> : null}
       <span className="min-w-0 flex-1">{noticeText(notice)}</span>
       {notice === "loadFailed" ? (
         <button

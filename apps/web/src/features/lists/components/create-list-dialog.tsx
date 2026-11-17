@@ -2,7 +2,7 @@
 
 import type { NewListInput } from "@app/shared";
 
-import { NewListInputSchema } from "@app/shared";
+import { LIST_INPUT_LIMITS, NewListInputSchema } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { Controller, useForm } from "react-hook-form";
@@ -22,13 +22,9 @@ import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiError } from "@/lib/http-client";
+import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 
 import { useCreateList } from "../api/use-create-list";
-
-const NAME_MAX = 80;
-const DESCRIPTION_MAX = 300;
-const DUPLICATE_STATUS = 409;
 
 type CreateListDialogProps = {
   onOpenChange: (open: boolean) => void;
@@ -79,7 +75,7 @@ function CreateListForm({ onDone }: { onDone: () => void }) {
     };
     createList.mutate(payload, {
       onError: (error) => {
-        if (error instanceof ApiError && error.status === DUPLICATE_STATUS) {
+        if (isApiErrorStatus(error, HTTP_STATUS.conflict)) {
           setError("name", { message: t("errors.duplicate") });
           return;
         }
@@ -102,7 +98,7 @@ function CreateListForm({ onDone }: { onDone: () => void }) {
           autoComplete="off"
           className="h-10"
           id="new-list-name"
-          maxLength={NAME_MAX}
+          maxLength={LIST_INPUT_LIMITS.nameMax}
           placeholder={t("fields.namePlaceholder")}
           {...register("name")}
         />
@@ -119,7 +115,7 @@ function CreateListForm({ onDone }: { onDone: () => void }) {
               <Textarea
                 aria-describedby="new-list-description-counter"
                 id="new-list-description"
-                maxLength={DESCRIPTION_MAX}
+                maxLength={LIST_INPUT_LIMITS.descriptionMax}
                 onChange={field.onChange}
                 placeholder={t("fields.descriptionPlaceholder")}
                 value={field.value ?? ""}
@@ -128,7 +124,7 @@ function CreateListForm({ onDone }: { onDone: () => void }) {
                 className="ml-auto text-xs text-muted-foreground tabular-nums"
                 id="new-list-description-counter"
               >
-                {(field.value ?? "").length}/{DESCRIPTION_MAX}
+                {(field.value ?? "").length}/{LIST_INPUT_LIMITS.descriptionMax}
               </span>
             </>
           )}

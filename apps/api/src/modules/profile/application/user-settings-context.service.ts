@@ -5,8 +5,14 @@ import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 
-import { toZonedIsoDate } from "../../../core/iso-date.js";
+import { toZonedCalendarDay, toZonedIsoDate } from "../../../core/iso-date.js";
 import { SettingsRepository } from "../infrastructure/settings.repository.js";
+
+export type UserCalendar = {
+  timeZone: string;
+  today: Date;
+  weekStartDay: WeekStartDay;
+};
 
 export type UserSettingsContext = {
   timezone: string;
@@ -16,6 +22,36 @@ export type UserSettingsContext = {
 @Injectable()
 export class UserSettingsContextService {
   constructor(private readonly settingsRepository: SettingsRepository) {}
+
+  async calendar({
+    client,
+    now,
+    userId,
+  }: {
+    client?: Prisma.TransactionClient;
+    now: Date;
+    userId: string;
+  }): Promise<UserCalendar> {
+    const { timezone, weekStartDay } = await this.resolve(userId, client);
+    return {
+      timeZone: timezone,
+      today: toZonedCalendarDay({ instant: now, timeZone: timezone }),
+      weekStartDay,
+    };
+  }
+
+  async calendarDay({
+    client,
+    now,
+    userId,
+  }: {
+    client?: Prisma.TransactionClient;
+    now: Date;
+    userId: string;
+  }): Promise<Date> {
+    const { today } = await this.calendar({ client, now, userId });
+    return today;
+  }
 
   async resolve(userId: string, client?: Prisma.TransactionClient): Promise<UserSettingsContext> {
     const settings = await this.settingsRepository.findByUserId(userId, client);

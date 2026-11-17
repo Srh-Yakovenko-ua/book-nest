@@ -39,16 +39,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type changelogControllerListResponse200 = {
-  data: ChangelogListResponseDto;
-  status: 200;
-};
-
-export type changelogControllerListResponseSuccess = changelogControllerListResponse200 & {
-  headers: Headers;
-};
-export type changelogControllerListResponse = changelogControllerListResponseSuccess;
-
 export const getChangelogControllerListUrl = (params?: ChangelogControllerListParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -69,8 +59,8 @@ export const getChangelogControllerListUrl = (params?: ChangelogControllerListPa
 export const changelogControllerList = async (
   params?: ChangelogControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<changelogControllerListResponse> => {
-  return customInstance<changelogControllerListResponse>(getChangelogControllerListUrl(params), {
+): Promise<ChangelogListResponseDto> => {
+  return customInstance<ChangelogListResponseDto>(getChangelogControllerListUrl(params), {
     ...options,
     method: "GET",
   });
@@ -193,26 +183,6 @@ export function useChangelogControllerList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type changelogControllerMarkSeenResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type changelogControllerMarkSeenResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type changelogControllerMarkSeenResponseSuccess = changelogControllerMarkSeenResponse204 & {
-  headers: Headers;
-};
-export type changelogControllerMarkSeenResponseError = changelogControllerMarkSeenResponse401 & {
-  headers: Headers;
-};
-
-export type changelogControllerMarkSeenResponse =
-  changelogControllerMarkSeenResponseSuccess | changelogControllerMarkSeenResponseError;
-
 export const getChangelogControllerMarkSeenUrl = () => {
   return `/api/changelog/seen`;
 };
@@ -222,8 +192,8 @@ export const getChangelogControllerMarkSeenUrl = () => {
  */
 export const changelogControllerMarkSeen = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<changelogControllerMarkSeenResponse> => {
-  return customInstance<changelogControllerMarkSeenResponse>(getChangelogControllerMarkSeenUrl(), {
+): Promise<void> => {
+  return customInstance<void>(getChangelogControllerMarkSeenUrl(), {
     ...options,
     method: "POST",
   });

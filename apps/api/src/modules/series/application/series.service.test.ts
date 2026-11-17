@@ -2,11 +2,12 @@ import type { MediaView, Nullable, TagView } from "@app/shared";
 import type { Mock } from "vitest";
 
 import { SERIES_SORT_DEFAULT } from "@app/shared";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MediaAssetModel, SeriesModel } from "../../../generated/prisma/models.js";
 import type { GenresService } from "../../genres/application/genres.service.js";
 import type { MediaService } from "../../media/application/media.service.js";
+import type { UserSettingsContextService } from "../../profile/index.js";
 import type {
   SeriesRepository,
   SeriesWithBookCount,
@@ -57,6 +58,7 @@ type DetailBookInput = {
   id: string;
   isFavorite?: boolean;
   language?: string;
+  loans?: DetailLoan[];
   originalTitle?: Nullable<string>;
   ownershipStatus?: string;
   pagesCount?: Nullable<number>;
@@ -70,6 +72,8 @@ type DetailBookInput = {
   title?: string;
   updatedAt?: Date;
 };
+
+type DetailLoan = SeriesWithDetails["books"][number]["loans"][number];
 
 type RepoMock = Partial<Record<keyof SeriesRepository, Mock>>;
 
@@ -128,7 +132,7 @@ function detailedSeries(
       id: book.id,
       isFavorite: book.isFavorite ?? false,
       language: book.language ?? "ukrainian",
-      loans: [],
+      loans: book.loans ?? [],
       orderItems: [],
       originalTitle: book.originalTitle ?? null,
       ownershipStatus: book.ownershipStatus ?? "none",
@@ -147,9 +151,41 @@ function detailedSeries(
   } as unknown as SeriesWithDetails;
 }
 
+function loanDueOn(expectedReturnDate: Date): DetailLoan {
+  return {
+    bookId: "part-1",
+    contact: null,
+    createdAt: new Date("2026-11-01T10:00:00.000Z"),
+    expectedReturnDate,
+    id: "44444444-4444-4444-8444-444444444444",
+    loanContact: {
+      archivedAt: null,
+      contact: null,
+      createdAt: new Date("2026-11-01T10:00:00.000Z"),
+      id: "55555555-5555-4555-8555-555555555555",
+      name: "Olha",
+      normalizedName: "olha",
+      updatedAt: new Date("2026-11-01T10:00:00.000Z"),
+      userId: USER_ID,
+    },
+    loanContactId: "55555555-5555-4555-8555-555555555555",
+    loanDate: new Date("2026-11-01T00:00:00.000Z"),
+    note: null,
+    personName: "Olha",
+    remindBeforeDays: null,
+    remindToReturn: false,
+    returnedAt: null,
+    status: "active",
+    type: "lent_to_someone",
+    updatedAt: new Date("2026-11-01T10:00:00.000Z"),
+    userId: USER_ID,
+  };
+}
+
 function makeService(options: {
   assertGenresSelectable?: Mock;
   buildViewOrNull?: Mock;
+  calendarDay?: Mock;
   repository: RepoMock;
   resolveReferences?: Mock;
 }): {
@@ -167,11 +203,14 @@ function makeService(options: {
     options.buildViewOrNull ??
     vi.fn((asset: Nullable<{ id: string }>) => (asset === null ? null : mediaView(asset.id)));
   const mediaService = { buildViewOrNull };
+  const calendarDay =
+    options.calendarDay ?? vi.fn().mockResolvedValue(new Date("2026-07-07T00:00:00.000Z"));
   const service = new SeriesService(
     fakeOf<SeriesRepository>(options.repository),
     fakeOf<AuthorsService>(authorsService),
     fakeOf<GenresService>(genresService),
     fakeOf<MediaService>(mediaService),
+    fakeOf<UserSettingsContextService>({ calendarDay }),
   );
   return { authorsService, genresService, mediaService, service };
 }
@@ -270,6 +309,9 @@ function buildService(overrides: {
     fakeOf<AuthorsService>(authorsService),
     fakeOf<GenresService>(genresService),
     fakeOf<MediaService>(mediaService),
+    fakeOf<UserSettingsContextService>({
+      calendarDay: vi.fn().mockResolvedValue(new Date("2026-07-07T00:00:00.000Z")),
+    }),
   );
 
   return { authorsService, genresService, repository, service };
@@ -1989,5 +2031,68 @@ describe("SeriesService.getById", () => {
       { bookCount: 1, id: "pub-abab", name: "A-BA-BA-HA" },
     ]);
     expect(details.dominantPublisher).toEqual({ bookCount: 2, id: "pub-vivat", name: "Vivat" });
+  });
+});
+
+describe("SeriesService.getById loan badge on the reader's calendar day", () => {
+  const KYIV_PAST_MIDNIGHT = Object.freeze({
+    dueDate: new Date("2026-11-14T00:00:00.000Z"),
+    instant: new Date("2026-11-14T22:30:00.000Z"),
+    kyivDay: new Date("2026-11-15T00:00:00.000Z"),
+    utcDay: new Date("2026-11-14T00:00:00.000Z"),
+  });
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(KYIV_PAST_MIDNIGHT.instant);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function seriesWithLoanDueOn(dueDate: Date): RepoMock {
+    return {
+      findOwnedDetailsById: vi.fn().mockResolvedValue(
+        detailedSeries({
+          books: [{ id: "part-1", loans: [loanDueOn(dueDate)], partNumber: 1 }],
+          id: SERIES_ID,
+        }),
+      ),
+    };
+  }
+
+  it("marks a series book loan due 2026-11-14 overdue for a Kyiv reader already on 2026-11-15", async () => {
+    const { service } = makeService({
+      calendarDay: vi.fn().mockResolvedValue(KYIV_PAST_MIDNIGHT.kyivDay),
+      repository: seriesWithLoanDueOn(KYIV_PAST_MIDNIGHT.dueDate),
+    });
+
+    const details = await service.getById(USER_ID, SERIES_ID);
+
+    expect(details.books[0]?.loanInfo?.loanUiStatus).toBe("overdue");
+  });
+
+  it("marks a series book loan due 2026-11-14 return soon for a UTC reader still on 2026-11-14", async () => {
+    const { service } = makeService({
+      calendarDay: vi.fn().mockResolvedValue(KYIV_PAST_MIDNIGHT.utcDay),
+      repository: seriesWithLoanDueOn(KYIV_PAST_MIDNIGHT.dueDate),
+    });
+
+    const details = await service.getById(USER_ID, SERIES_ID);
+
+    expect(details.books[0]?.loanInfo?.loanUiStatus).toBe("return_soon");
+  });
+
+  it("asks for the calendar day of the requesting reader at the current instant", async () => {
+    const calendarDay = vi.fn().mockResolvedValue(KYIV_PAST_MIDNIGHT.kyivDay);
+    const { service } = makeService({
+      calendarDay,
+      repository: seriesWithLoanDueOn(KYIV_PAST_MIDNIGHT.dueDate),
+    });
+
+    await service.getById(USER_ID, SERIES_ID);
+
+    expect(calendarDay).toHaveBeenCalledWith({ now: KYIV_PAST_MIDNIGHT.instant, userId: USER_ID });
   });
 });

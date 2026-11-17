@@ -3,7 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import type { ChangelogListResponse } from "@app/shared";
 import type { ComponentProps } from "react";
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeChangelogEntry } from "@/features/changelog/components/changelog.fixtures";
 import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
@@ -19,7 +19,6 @@ vi.mock("@/i18n/navigation", () => ({
 
 const REMINDERS_TAB = "Нагадування";
 const CHANGELOG_TAB = "Що нового";
-const LAZY_PANEL_TIMEOUT = { timeout: 2000 };
 
 const fetchMock = vi.fn();
 
@@ -30,7 +29,7 @@ let respondToList: () => Response;
 let respondToChangelog: () => Response;
 
 function findMarkAllRead() {
-  return screen.findByRole("button", { name: "Прочитати все" }, LAZY_PANEL_TIMEOUT);
+  return screen.findByRole("button", { name: "Прочитати все" });
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -51,6 +50,15 @@ function noContent(): Response {
 function openBell() {
   return userEvent.click(screen.getByRole("button", { name: /Сповіщення/ }));
 }
+
+function preloadLazyPanels() {
+  return Promise.all([
+    import("./notification-panel"),
+    import("@/features/changelog/components/changelog-popover-content"),
+  ]);
+}
+
+beforeAll(preloadLazyPanels);
 
 beforeEach(() => {
   calls.changelogList = 0;
@@ -161,9 +169,7 @@ describe("NotificationBell panel", () => {
 
     await openBell();
 
-    expect(
-      await screen.findByRole("tab", { name: new RegExp(REMINDERS_TAB) }, LAZY_PANEL_TIMEOUT),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: new RegExp(REMINDERS_TAB) })).toBeInTheDocument();
     await waitFor(() => expect(calls.list).toBe(1));
     const changelogListCallsBeforeSwitch = calls.changelogList;
 
@@ -201,7 +207,7 @@ describe("NotificationBell panel", () => {
     await screen.findByRole("button", { name: "Сповіщення, 3 непрочитані" });
 
     await openBell();
-    await screen.findByRole("tab", { name: new RegExp(CHANGELOG_TAB) }, LAZY_PANEL_TIMEOUT);
+    await screen.findByRole("tab", { name: new RegExp(CHANGELOG_TAB) });
     const changelogListCallsBeforeSeen = calls.changelogList;
     await userEvent.click(screen.getByRole("tab", { name: new RegExp(CHANGELOG_TAB) }));
 
@@ -244,7 +250,7 @@ describe("NotificationBell panel", () => {
 
     await openBell();
 
-    const alert = await screen.findByRole("alert", {}, LAZY_PANEL_TIMEOUT);
+    const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Не вдалося завантажити сповіщення");
 
     respondToList = () => jsonResponse(makeNotificationsPage({ items: [makeNotification()] }));
@@ -287,7 +293,7 @@ describe("NotificationBell panel", () => {
     await screen.findByRole("button", { name: "Сповіщення, 3 непрочитані" });
 
     await openBell();
-    const loadMore = await screen.findByRole("button", { name: "Показати ще" }, LAZY_PANEL_TIMEOUT);
+    const loadMore = await screen.findByRole("button", { name: "Показати ще" });
 
     respondToList = () => jsonResponse({ message: "boom" }, 500);
     await userEvent.click(loadMore);

@@ -1,4 +1,4 @@
-import type { Currency, Nullable, StatisticsPeriod } from "@app/shared";
+import type { Currency, Nullable, StatisticsPeriod, WeekStartDay } from "@app/shared";
 
 import { describe, expect, it } from "vitest";
 
@@ -14,13 +14,21 @@ function dynamicsOf({
   comparisonPeriod = null,
   currentPeriod = ALL_TIME,
   orders,
+  weekStartDay = "monday",
 }: {
   comparisonOrders?: Nullable<ClassifiedOrder[]>;
   comparisonPeriod?: Nullable<StatisticsPeriod>;
   currentPeriod?: StatisticsPeriod;
   orders: ClassifiedOrder[];
+  weekStartDay?: WeekStartDay;
 }) {
-  return buildStatisticsDynamics({ comparisonOrders, comparisonPeriod, currentPeriod, orders });
+  return buildStatisticsDynamics({
+    comparisonOrders,
+    comparisonPeriod,
+    currentPeriod,
+    orders,
+    weekStartDay,
+  });
 }
 
 function orderOf({
@@ -143,6 +151,55 @@ describe("buildStatisticsDynamics bucket bounds", () => {
 
   it("returns no buckets at all when nothing carries an order date", () => {
     expect(dynamicsOf({ orders: [orderOf({ orderedOn: null })] }).buckets).toEqual([]);
+  });
+});
+
+describe("buildStatisticsDynamics week start", () => {
+  const JULY: StatisticsPeriod = { from: "2026-07-01", to: "2026-07-31" };
+  const SUNDAY_ORDER = orderOf({ orderedOn: "2026-07-12" });
+
+  it("opens weekly buckets on Sundays for a reader whose week starts on Sunday", () => {
+    const dynamics = dynamicsOf({
+      currentPeriod: JULY,
+      orders: [SUNDAY_ORDER],
+      weekStartDay: "sunday",
+    });
+
+    expect(
+      dynamics.buckets.map((bucket) => ({
+        key: bucket.key,
+        ordersCount: bucket.current.ordersCount,
+        to: bucket.current.to,
+      })),
+    ).toEqual([
+      { key: "2026-07-01", ordersCount: 0, to: "2026-07-04" },
+      { key: "2026-07-05", ordersCount: 0, to: "2026-07-11" },
+      { key: "2026-07-12", ordersCount: 1, to: "2026-07-18" },
+      { key: "2026-07-19", ordersCount: 0, to: "2026-07-25" },
+      { key: "2026-07-26", ordersCount: 0, to: "2026-07-31" },
+    ]);
+  });
+
+  it("opens weekly buckets on Mondays, closing the week on that same Sunday order", () => {
+    const dynamics = dynamicsOf({
+      currentPeriod: JULY,
+      orders: [SUNDAY_ORDER],
+      weekStartDay: "monday",
+    });
+
+    expect(
+      dynamics.buckets.map((bucket) => ({
+        key: bucket.key,
+        ordersCount: bucket.current.ordersCount,
+        to: bucket.current.to,
+      })),
+    ).toEqual([
+      { key: "2026-07-01", ordersCount: 0, to: "2026-07-05" },
+      { key: "2026-07-06", ordersCount: 1, to: "2026-07-12" },
+      { key: "2026-07-13", ordersCount: 0, to: "2026-07-19" },
+      { key: "2026-07-20", ordersCount: 0, to: "2026-07-26" },
+      { key: "2026-07-27", ordersCount: 0, to: "2026-07-31" },
+    ]);
   });
 });
 

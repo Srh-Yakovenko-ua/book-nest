@@ -1,10 +1,8 @@
 import type { Nullable, ReadingGoalMetrics, ReadingGoalStatus } from "@app/shared";
 
-import { differenceInCalendarDays } from "date-fns";
-
 import type { ReadingGoalCandidateBook, ReadingGoalProgress } from "./reading-goal-progress.js";
 
-import { startOfUtcDay, toNullableIsoDate } from "../../../core/iso-date.js";
+import { daysBetweenUtcDays, toNullableIsoDate } from "../../../core/iso-date.js";
 import { calculateReadingGoalPace } from "./reading-goal-pace.js";
 import {
   calculateReadingGoalProgress,
@@ -12,7 +10,7 @@ import {
 } from "./reading-goal-progress.js";
 import { calculateReadingGoalProjection } from "./reading-goal-projection.js";
 import { calculateReadingGoalRisk } from "./reading-goal-risk.js";
-import { resolveReadingGoalCountingEnd } from "./reading-goal-window.js";
+import { resolveReadingGoalQualificationWindow } from "./reading-goal-window.js";
 import { INCLUSIVE_DAY, READING_GOAL_ROUNDING, roundTo } from "./reading-goal.constants.js";
 
 export type ReadingGoalCalculation = {
@@ -21,8 +19,8 @@ export type ReadingGoalCalculation = {
 };
 
 export type ReadingGoalCalculationGoal = {
-  archivedAt: Nullable<Date>;
-  createdAt: Date;
+  archivedDay: Nullable<Date>;
+  createdDay: Date;
   deadline: Date;
   targetCount: number;
 };
@@ -35,14 +33,14 @@ export type ReadingGoalSnapshotBook = {
 type IdleDaysInput = {
   goalStartDate: Date;
   lastCountedAt: Nullable<Date>;
-  now: Date;
   status: ReadingGoalStatus;
+  today: Date;
 };
 
 type MetricsInput = {
   goal: ReadingGoalCalculationGoal;
-  now: Date;
   snapshotBooks: ReadingGoalSnapshotBook[];
+  today: Date;
 };
 
 type RequiredPaceInput = {
@@ -53,53 +51,53 @@ type RequiredPaceInput = {
 
 export function calculateReadingGoalMetrics({
   goal,
-  now,
   snapshotBooks,
+  today,
 }: MetricsInput): ReadingGoalCalculation {
-  const { archivedAt, deadline, targetCount } = goal;
-  const goalStartDate = startOfUtcDay(goal.createdAt);
+  const { archivedDay, deadline, targetCount } = goal;
+  const qualificationWindow = resolveReadingGoalQualificationWindow(goal);
+  const { goalStartDate } = qualificationWindow;
   const qualifyingBooks = selectQualifyingReadingGoalBooks({
     books: snapshotBooks.map(toCandidateBook),
-    countingEndsAt: resolveReadingGoalCountingEnd({ archivedAt, deadline }),
-    goalStartDate,
+    ...qualificationWindow,
   });
   const progress = calculateReadingGoalProgress({
-    archivedAt,
+    archivedDay,
     books: qualifyingBooks,
     deadline,
     goalStartDate,
-    now,
     targetCount,
+    today,
   });
   const { completedAt, completedCount, daysLeft, remainingCount, status } = progress;
   const schedule = calculateReadingGoalPace({
-    archivedAt,
+    archivedDay,
     completedAt,
     completedCount,
     daysLeft,
     deadline,
     goalStartDate,
-    now,
     remainingCount,
     status,
     targetCount,
+    today,
   });
   const projection = calculateReadingGoalProjection({
     completedAt,
     completedCount,
     deadline,
     elapsedDays: schedule.elapsedDays,
-    now,
     remainingCount,
     status,
+    today,
   });
   const requiredBooksPerDay = calculateRequiredBooksPerDay({ daysLeft, remainingCount, status });
   const lastCountedAt = qualifyingBooks.at(-1)?.finishedAt ?? null;
   const daysSinceLastCounted = calculateDaysSinceLastCounted({
     goalStartDate,
     lastCountedAt,
-    now,
     status,
+    today,
   });
   const risk = calculateReadingGoalRisk({
     actualBooksPerDay: projection.actualBooksPerDay,
@@ -162,13 +160,13 @@ function calculateAverageDaysPerBook({
 function calculateDaysSinceLastCounted({
   goalStartDate,
   lastCountedAt,
-  now,
   status,
+  today,
 }: IdleDaysInput): Nullable<number> {
   if (!tracksIdleDays(status)) {
     return null;
   }
-  return Math.max(0, differenceInCalendarDays(startOfUtcDay(now), lastCountedAt ?? goalStartDate));
+  return Math.max(0, daysBetweenUtcDays({ end: today, start: lastCountedAt ?? goalStartDate }));
 }
 
 function calculateRequiredBooksPerDay({

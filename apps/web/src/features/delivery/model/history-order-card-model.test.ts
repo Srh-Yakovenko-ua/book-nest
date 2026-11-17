@@ -98,13 +98,14 @@ function historyShipment(
 
 function toCards(
   groups: OrderHistoryGroupView[],
-  options: { search?: string; tab?: DeliveryHistoryTab } = {},
+  options: { search?: string; tab?: DeliveryHistoryTab; timeZone?: string } = {},
 ) {
   return toHistoryOrderCards(groups, {
     labels,
     locale: "uk",
     search: options.search ?? "",
     tab: options.tab ?? "received",
+    timeZone: options.timeZone ?? "Europe/Kyiv",
   });
 }
 
@@ -219,6 +220,42 @@ describe("toHistoryOrderCards", () => {
 
     expect(card?.shipments[0]?.books[0]?.terminalText).toBeNull();
     expect(card?.shipments[0]?.books[1]?.terminalText).toBe("Отримано 18 серп. 2026 р.");
+  });
+
+  it("dates a received book by the day in the profile zone, not the UTC or Kyiv day", () => {
+    const [card] = toCards(
+      [
+        historyGroup([
+          {
+            books: [historyBook({ receivedAt: "2026-02-10T03:00:00.000Z" })],
+            shipment: historyShipment({ receivedAt: "2026-02-12T10:00:00.000Z" }),
+          },
+        ]),
+      ],
+      { timeZone: "America/New_York" },
+    );
+
+    expect(card?.shipments[0]?.books[0]?.terminalText).toBe("Отримано 9 лют. 2026 р.");
+  });
+
+  it("dates a cancelled parcel by the day in the profile zone, not the UTC or Kyiv day", () => {
+    const [card] = toCards(
+      [
+        historyGroup([
+          {
+            books: [historyBook({ cancelledAt: "2026-07-15T03:00:00.000Z", receivedAt: null })],
+            shipment: historyShipment({
+              cancelledAt: "2026-07-15T03:00:00.000Z",
+              receivedAt: null,
+              status: "cancelled",
+            }),
+          },
+        ]),
+      ],
+      { tab: "cancelled", timeZone: "America/New_York" },
+    );
+
+    expect(card?.shipments[0]?.terminalText).toBe("Скасовано 14 лип. 2026 р.");
   });
 
   it("notes the expected date only when the parcel did not arrive on it", () => {

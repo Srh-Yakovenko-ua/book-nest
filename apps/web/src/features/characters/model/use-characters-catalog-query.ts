@@ -5,6 +5,7 @@ import { useQueryStates } from "nuqs";
 import type { CharactersControllerListParams } from "@/shared/api/generated/model";
 
 import type {
+  CharactersCatalogAdvancedFilters,
   CharactersCatalogQuickFilter,
   CharactersCatalogState,
 } from "./characters-catalog-query";
@@ -18,12 +19,7 @@ import {
   toCharactersCatalogParams,
 } from "./characters-catalog-query";
 
-export type CharactersCatalogAdvancedPatch = Partial<
-  Pick<
-    CharactersCatalogState,
-    "attitude" | "gender" | "groupId" | "importance" | "role" | "seriesId"
-  >
->;
+export type CharactersCatalogAdvancedPatch = Partial<CharactersCatalogAdvancedFilters>;
 
 export type UseCharactersCatalogQueryResult = {
   activeAdvancedCount: number;
@@ -31,6 +27,7 @@ export type UseCharactersCatalogQueryResult = {
   clearAll: () => void;
   hasActiveFilters: boolean;
   listParams: CharactersControllerListParams;
+  patchAdvanced: (patch: CharactersCatalogAdvancedPatch) => void;
   setFilter: (value: CharactersCatalogQuickFilter) => void;
   setSearch: (value: string) => void;
   setSort: (value: CharactersCatalogState["sort"]) => void;
@@ -47,6 +44,7 @@ export function useCharactersCatalogQuery(): UseCharactersCatalogQueryResult {
     clearAll: () => void setState(CHARACTERS_CATALOG_RESET),
     hasActiveFilters: hasActiveCatalogFilters(state),
     listParams: toCharactersCatalogParams(state),
+    patchAdvanced: (patch) => void setState(patch),
     setFilter: (filter) => void setState({ filter }),
     setSearch: (q) => void setState({ q }),
     setSort: (sort) => void setState({ sort }),

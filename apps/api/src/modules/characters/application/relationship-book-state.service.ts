@@ -77,10 +77,23 @@ export class RelationshipBookStateService {
           code: CHARACTER_RELATIONSHIP_ERROR_CODES.notFound,
         });
       }
-      await this.relationshipsRepository.upsertBookState(
-        { bookId, data: buildBookStateData(input), relationshipId },
+      await this.relationshipsRepository.acquireBookStateLock({ bookId, relationshipId }, tx);
+      const data = buildBookStateData(input);
+      const updatedCount = await this.relationshipsRepository.updateBookState(
+        { bookId, data, relationshipId },
         tx,
       );
+      if (updatedCount === 0) {
+        await this.accessAsserter.assertCharactersLinkedToBooks(
+          {
+            bookIds: [bookId],
+            characterIds: [relationship.sourceCharacterId, relationship.targetCharacterId],
+            invalidCode: CHARACTER_RELATIONSHIP_ERROR_CODES.bookContextInvalid,
+          },
+          tx,
+        );
+        await this.relationshipsRepository.createBookState({ ...data, bookId, relationshipId }, tx);
+      }
       return this.contextService.loadDetails({ relationshipId, userId }, tx);
     });
 

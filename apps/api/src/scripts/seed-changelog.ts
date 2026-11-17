@@ -1495,6 +1495,126 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Вкладки й огляд у статистиці",
     version: null,
   },
+  {
+    bodyEn:
+      "On the Activity tab of your statistics, the reading calendar now keeps the chosen mode and month in the page address, so a link or a return from another tab opens the same month. In Books by day mode, the month summary shows exactly how many different books you read that month, or a lower bound marked with ≥ when older history is incomplete. The dynamics chart on this tab now also tells you how the period compares with the one you compare it to, for pages or for finished reads.",
+    bodyUk:
+      "На вкладці «Активність» у статистиці календар читання тепер зберігає обраний режим і місяць в адресі сторінки, тож посилання або повернення з іншої вкладки відкриває той самий місяць. У режимі «Книги за днями» підсумок місяця показує точну кількість різних книг, які ви читали того місяця, або нижню межу зі знаком ≥, якщо давніша історія неповна. Графік динаміки на цій вкладці тепер також підказує, як період відрізняється від того, з яким ви його порівнюєте, за сторінками або за дочитаними книгами.",
+    category: "improvement",
+    publishedAt: "2026-10-19T10:10:11.000Z",
+    slug: "statistics-activity-calendar",
+    titleEn: "Reading calendar and dynamics on the Activity tab",
+    titleUk: "Календар і динаміка на вкладці «Активність»",
+    version: null,
+  },
+  {
+    bodyEn:
+      "In the filters on the Characters page, every importance, role, gender, attitude, species and group option now shows how many characters it would find. The numbers take the other filters you picked into account and update as you change them, before you press Apply. A filter does not narrow its own counts, so after choosing Male you still see how many characters are Female.",
+    bodyUk:
+      "У фільтрах на сторінці «Персонажі» біля кожного варіанта важливості, ролі, гендеру, ставлення, виду та групи тепер видно, скільки персонажів він знайде. Числа враховують інші обрані фільтри й оновлюються, щойно ви щось змінюєте, ще до натискання «Застосувати». Фільтр не звужує власні числа, тож обравши «Чоловіча», ви й далі бачите, скільки персонажів мають позначку «Жіноча».",
+    category: "improvement",
+    publishedAt: "2026-10-20T00:00:00.000Z",
+    slug: "characters-filter-counts",
+    titleEn: "Character filters with counts",
+    titleUk: "Фільтри персонажів із кількістю",
+    version: null,
+  },
+  {
+    bodyEn:
+      "A book's relationship graph now has its own page: open it from the Characters tab with Open relationship map. It replaces the Graph mode on that tab, and old links to it lead to the new page. The map has three views. Around a character shows the people connected to the one you pick, one to three steps away, and you can expand any branch further. Family tree is built from the parents and children you recorded, one to three generations up and down. Whole network shows everyone, grouped by character groups, by how connected they are or by importance. How are two characters connected? finds the shortest chain between two characters and walks you through it step by step. Each view remembers its own layout, the map can go full screen, and details open in a side panel, or in a sheet from the bottom on a phone. Spoilers stay hidden according to how far you have read. Series graphs work as before.",
+    bodyUk:
+      "Граф зв'язків книги тепер має окрему сторінку: відкрийте її з вкладки «Персонажі» кнопкою «Відкрити карту зв'язків». Вона замінює режим «Граф» на цій вкладці, а старі посилання на нього ведуть на нову сторінку. На карті три режими. «Навколо персонажа» показує тих, хто пов'язаний з обраним персонажем, на відстані від одного до трьох кроків, і будь-яку гілку можна розгорнути далі. «Родинне дерево» будується з записаних вами батьків і дітей, на одне-три покоління вгору та вниз. «Уся мережа» показує всіх персонажів, згрупованих за групами персонажів, за кількістю зв'язків або за важливістю. «Як пов'язані два персонажі?» знаходить найкоротший ланцюжок між двома персонажами й проводить вас ним крок за кроком. Кожен режим запам'ятовує власне розташування, карту можна розгорнути на весь екран, а подробиці відкриваються в бічній панелі, а на телефоні в панелі знизу. Спойлери приховані відповідно до того, скільки ви прочитали. Графи серій працюють як і раніше.",
+    category: "feature",
+    publishedAt: "2026-10-23T00:00:00.000Z",
+    slug: "book-relationship-map",
+    titleEn: "Relationship map for a book",
+    titleUk: "Карта зв'язків книги",
+    version: null,
+  },
+  {
+    bodyEn:
+      "The reading calendar now has its own page: open Reading calendar in the sidebar right after Statistics, or press Open the calendar on the Activity tab of your statistics. The page shows the Activity calendar for a whole year next to Books by day for one month. One year picker serves both, the books month moves on its own, and both stay in the page address. In Books by day, each month counts your reading days, books with progress and pages read. Each day shows up to two covers and how many more books there were, and days that have not come yet or have no saved record are marked. Click a day on the activity calendar and choose Show in the books calendar to jump straight to it. Old statistics links to the calendar open the new page on the same month.",
+    bodyUk:
+      "Читацький календар тепер має окрему сторінку: відкрийте «Читацький календар» у бічному меню одразу після пункту «Статистика» або натисніть «Відкрити календар» на вкладці «Активність» у статистиці. На сторінці розділ «Календар активності» показує цілий рік, а поруч розділ «Книги за днями» показує один місяць. Рік обирається один для обох, місяць книжкового календаря гортається окремо, і обидва зберігаються в адресі сторінки. У «Книгах за днями» кожен місяць підсумовують дні з читанням, книги з прогресом і прочитані сторінки. Кожен день показує до двох обкладинок і скільки ще книг поза ними, а дні, які ще не настали або не мають збережених записів, позначено окремо. Натисніть день у календарі активності й виберіть «Показати в календарі книг», щоб одразу перейти до нього. Старі посилання на календар у статистиці відкривають нову сторінку на тому самому місяці.",
+    category: "feature",
+    publishedAt: "2026-11-17T00:00:01.000Z",
+    slug: "reading-calendar-page",
+    titleEn: "Reading calendar page",
+    titleUk: "Сторінка читацького календаря",
+    version: null,
+  },
+  {
+    bodyEn:
+      "On the Activity tab of your statistics, the new Reading by weekday section shows on how many different Mondays, Tuesdays and other weekdays you read, and how many pages. Pick a weekday to see its totals for the period; your busiest one is picked first. Reading habits now say what each figure counts, the weekday tile is now called Top day by pages, and a figure shows Not determined when the history of the period is incomplete. Reading dynamics now counts Completions and says that a reread counts separately. On the Overview tab, your current goal now says how many books are left and tells you when it has not started yet.",
+    bodyUk:
+      "На вкладці «Активність» у статистиці з'явився розділ «Читання за днями тижня»: він показує, у скільки різних понеділків, вівторків та інших днів ви читали і скільки сторінок прочитали. Виберіть день тижня, щоб побачити його підсумки за період; спершу вибрано найактивніший. «Читацькі звички» тепер пояснюють, що рахує кожен показник, плитка дня тижня тепер називається «Лідер за сторінками», а якщо історія за період неповна, показник має позначку «Не визначено». «Динаміка читання» тепер рахує «Завершення» й пояснює, що повторне прочитання враховується окремо. На вкладці «Огляд» поточна ціль тепер показує, скільки книг лишилося, і повідомляє, якщо вона ще не почалася.",
+    category: "improvement",
+    publishedAt: "2026-11-17T00:00:02.000Z",
+    slug: "statistics-activity-habits",
+    titleEn: "Habits and weekdays on the Activity tab",
+    titleUk: "Звички й дні тижня на вкладці «Активність»",
+    version: null,
+  },
+  {
+    bodyEn:
+      "On the Tastes tab, press a row ranked by number of reads in Genres, Authors, Publishers or Languages to see the exact finished reads behind its number. They open in a popover on a computer and in a panel from the bottom on a phone. A read stays in the row it was counted in, even if you edit the book later. In the rankings by rating, each bar now shows the average on the scale of 10. Top rated reads show the finish date with the year. The 8+ figure, the top 3 publisher share and the language shares say which reads they are counted among. On the Progress tab, each section says whether it follows the selected period or shows the current state. A goal one book short no longer shows 100%, and the series section explains that its counts overlap and do not add up.",
+    bodyUk:
+      "На вкладці «Вподобання» натисніть рядок рейтингу за кількістю читань у розділі «Жанри», «Автори», «Видавництва» чи «Мови», щоб побачити саме ті завершені читання, з яких складено його число. Вони відкриваються у спливному вікні на комп'ютері й у панелі знизу на телефоні. Читання лишається в тому рядку, де його враховано, навіть якщо пізніше ви зміните книгу. У рейтингах за оцінкою смуга тепер показує середню оцінку за шкалою до 10. Найкраще оцінені читання показують дату завершення з роком. Показник 8+, частка топ-3 видавництв і частки мов пояснюють, серед яких читань їх пораховано. На вкладці «Прогрес» кожен розділ пояснює, чи враховує він вибраний період, чи показує поточний стан. Ціль, якій бракує однієї книги, більше не показує 100%, а розділ серій пояснює, що його числа перетинаються й не підсумовуються.",
+    category: "improvement",
+    publishedAt: "2026-11-17T00:00:03.000Z",
+    slug: "taste-ranking-reads",
+    titleEn: "Finished reads behind taste rankings",
+    titleUk: "Завершені читання в рейтингах вподобань",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Adding a relationship now starts from the book: pick the book first, then choose both characters from its cast and a type, and fill in the details for that book on the second step. Relationship types you name yourself and the roles you give characters are saved to your own lists, Your custom types and Your roles, and are suggested the next time you add or edit a relationship. Both lists already include the types and roles from relationships you created before.",
+    bodyUk:
+      "Додавання зв'язку тепер починається з книги: спершу оберіть книгу, потім обох персонажів з її складу й тип, а на другому кроці заповніть подробиці для цієї книги. Власні типи зв'язків і ролі, які ви даєте персонажам, зберігаються у ваших списках «Ваші власні типи» та «Ваші ролі» й підказуються, коли ви наступного разу додаєте або редагуєте зв'язок. У ці списки вже потрапили типи й ролі зі зв'язків, які ви створили раніше.",
+    category: "feature",
+    publishedAt: "2026-11-17T00:00:04.000Z",
+    slug: "relationships-book-first-dictionaries",
+    titleEn: "Book-first relationships with your own types and roles",
+    titleUk: "Зв'язки від книги та підказки ваших типів і ролей",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Cards on the Characters page now show the covers of up to three books the character appears in, and each cover opens its book. The +N button opens the full list, Books with this character, in a popup, or in a panel from the bottom on a phone.",
+    bodyUk:
+      "Картки на сторінці «Персонажі» тепер показують обкладинки до трьох книг, у яких з'являється персонаж, і кожна обкладинка відкриває свою книгу. Кнопка +N відкриває повний список «Книги з персонажем» у спливному вікні, а на телефоні в панелі знизу.",
+    category: "improvement",
+    publishedAt: "2026-11-17T00:00:05.000Z",
+    slug: "character-cards-books",
+    titleEn: "Books on character cards",
+    titleUk: "Книги на картках персонажів",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Days in the app used to come from the server clock or your device instead of your profile, so for a few hours around midnight some dates were a day off. A loan could still show as due after it was already overdue, and a parcel due today could show as due tomorrow. A book bought or returned just after midnight got yesterday's date, and reading and series dates could show a day early. Now the time zone in Settings decides the day everywhere: goals, loans and loan history, deliveries and their statistics, the reading queue forecast, reading history, series and genres. Delivery weeks start on the day you chose under First day of the week. Receipt and return days you typed earlier are moved to your time zone, and the time zone search now finds current names such as Europe/Kyiv.",
+    bodyUk:
+      "Раніше дні в застосунку рахувалися за годинником сервера або вашого пристрою, а не за профілем, тож кілька годин після півночі деякі дати зсувалися на день. Позика могла ще показуватися зі строком повернення, хоча вже була прострочена, а посилка, яка мала прийти сьогодні, значилася завтрашньою. Книга, куплена чи повернута одразу після півночі, отримувала вчорашню дату, а дати читання й серій могли з'являтися на день раніше. Тепер день скрізь визначає часовий пояс у «Налаштуваннях»: у цілях, позиках та їхній історії, доставках і їхній статистиці, прогнозі черги читання, історії читання, серіях і жанрах. Тижні в доставках починаються з дня, який ви обрали в полі «Перший день тижня». Дні отримання й повернення, які ви вводили раніше, перенесено у ваш часовий пояс, а пошук часового поясу тепер знаходить сучасні назви, як-от Europe/Kyiv.",
+    category: "fix",
+    publishedAt: "2026-11-17T00:00:06.000Z",
+    slug: "reader-time-zone-days",
+    titleEn: "Days in your own time zone",
+    titleUk: "Дні у вашому часовому поясі",
+    version: null,
+  },
+  {
+    bodyEn:
+      "When a page had already loaded and a later refresh failed, it used to turn into a full error screen, and the book edit form lost what you had typed. Now the data stays on screen with a short notice and a Retry button. Summary cards, the delivery widget on the home page and other sections that fail on their own show an error card with Try again instead of zeros or nothing. Error pages and error messages in dialogs are now translated. When you change a filter, sort or search, the old results dim until the new ones arrive and the counter says Updating…. After a retry, keyboard focus lands on the list, and the focus ring is easier to see. The series list once again loads all its pages instead of stopping after the second one.",
+    bodyUk:
+      "Коли сторінка вже завантажилася, а наступне оновлення не вдавалося, вона перетворювалася на повний екран помилки, а форма редагування книги втрачала введене. Тепер дані лишаються на екрані з коротким повідомленням і кнопкою «Повторити». Картки зведення, віджет доставок на головній та інші розділи, які не завантажилися, показують картку помилки з кнопкою «Спробувати ще раз» замість нулів або порожнечі. Сторінки помилок і повідомлення про помилки в діалогах тепер перекладені. Коли ви змінюєте фільтр, сортування чи пошук, старі результати тьмяніють, доки не з'являться нові, а лічильник показує «Оновлюємо…». Після повторної спроби фокус клавіатури переходить до списку, а рамку фокуса тепер краще видно. Список серій знову завантажує всі сторінки, а не зупиняється після другої.",
+    category: "fix",
+    publishedAt: "2026-11-17T00:00:07.000Z",
+    slug: "error-states-retry",
+    titleEn: "Failed loads and retries",
+    titleUk: "Помилки завантаження та повторна спроба",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

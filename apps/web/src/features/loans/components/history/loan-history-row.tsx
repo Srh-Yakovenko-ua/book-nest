@@ -2,7 +2,7 @@
 
 import type { LoanHistoryListItemView } from "@app/shared";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import { useId } from "react";
 
@@ -213,10 +213,11 @@ function LoanHistoryOutcomeResult({ loan }: { loan: LoanHistoryListItemView }) {
 
 function LoanHistoryPeriod({ loan }: { loan: LoanHistoryListItemView }) {
   const t = useTranslations("loans.history.loanPeriod");
+  const locale = useLocale();
 
-  const startDate = formatLoanDate(loan.loanDate);
-  const returnDate = formatLoanDate(loan.returnedDate) ?? loan.returnedDate;
-  const planDate = formatLoanDate(loan.expectedReturnDate);
+  const startDate = formatLoanDate({ iso: loan.loanDate, locale });
+  const returnDate = formatLoanDate({ iso: loan.returnedDate, locale }) ?? loan.returnedDate;
+  const planDate = formatLoanDate({ iso: loan.expectedReturnDate, locale });
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1.5">

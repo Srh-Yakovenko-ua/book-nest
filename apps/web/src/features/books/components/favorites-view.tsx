@@ -4,14 +4,17 @@ import { useTranslations } from "next-intl";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
+import { ActiveFilters } from "@/components/catalog/active-filters";
+import { topGenreIconSlot } from "@/components/icons";
+import { useGenres } from "@/features/genres";
 import { Link, useRouter } from "@/i18n/navigation";
 
 import type { LibraryActions } from "../model/book-card-actions";
 import type { LibraryBook } from "../model/library-book";
 import type { LibraryScope } from "../model/library-query";
-import type { LibrarySummaryCard } from "./library-summary-cards";
 
 import {
   useBulkAddTags,
@@ -21,13 +24,12 @@ import {
   useBulkOwnershipStatus,
   useBulkReadingStatus,
   useBulkSetFavorite,
-  useRemoveFromReadingQueue,
   useToggleFavorite,
 } from "../api/use-book-actions";
 import { useLibraryBooks } from "../api/use-books";
 import { useFavoritesSummary } from "../api/use-favorites-summary";
-import { useGenres } from "../api/use-genres";
 import { useLibraryQuickCounts } from "../api/use-library-quick-counts";
+import { useRemoveFromQueue } from "../api/use-reading-queue";
 import { useSelectedTags } from "../api/use-tags-search";
 import { toLibraryBook } from "../model/library-book";
 import { LIBRARY_SORT_ORDER } from "../model/library-query";
@@ -41,11 +43,9 @@ import { useLibraryQuery } from "../model/use-library-query";
 import { BooksLibraryView } from "./books-library-view";
 import { FavoritesOverviewPanel } from "./favorites-overview-panel";
 import { FavoritesSidebar } from "./favorites-sidebar";
-import { LibraryActiveFilters } from "./library-active-filters";
 import { LibraryAdvancedFilters } from "./library-advanced-filters";
 import { LibraryQuickFilters } from "./library-quick-filters";
 import { LibrarySearchInput } from "./library-search-input";
-import { topGenreIconSlot } from "./top-genre-icon-slot";
 
 const FAVORITES_SCOPE: LibraryScope = "favorites";
 const FAVORITES_MOBILE_TILE_COUNT = 4;
@@ -66,10 +66,13 @@ export function FavoritesView() {
     data,
     fetchNextPage,
     hasNextPage,
-    isError,
     isFetchingNextPage,
     isFetchNextPageError,
+    isLoadingError,
     isPending,
+    isPlaceholderData,
+    isRefetchError,
+    isRefetching,
     refetch,
   } = useLibraryBooks(library.listParams);
   const quickCounts = useLibraryQuickCounts(
@@ -88,7 +91,7 @@ export function FavoritesView() {
   const addToList = useBulkAddToList();
   const addTags = useBulkAddTags();
   const addToQueue = useBulkAddToReadingQueue();
-  const removeFromQueue = useRemoveFromReadingQueue();
+  const removeFromQueue = useRemoveFromQueue();
   const deleteBooks = useBulkDeleteBooks();
 
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
@@ -130,8 +133,6 @@ export function FavoritesView() {
         statusLabel: (value) => tStatus(value),
       }),
     );
-
-  const hasListError = isError && !isFetchNextPageError;
 
   const visibleBookIdsKey = books.map((book) => book.id).join("\n");
   const previousVisibleBookIdsKey = useRef(visibleBookIdsKey);
@@ -270,7 +271,7 @@ export function FavoritesView() {
     detailed: tFav(`summary.mobile.detailed.${key}`),
   });
 
-  const summaryCards: LibrarySummaryCard[] = [
+  const summaryCards: SummaryCard[] = [
     {
       icon: "heart",
       iconTone: "favorite",
@@ -331,14 +332,41 @@ export function FavoritesView() {
 
   const sortOptions = LIBRARY_SORT_ORDER.map((value) => ({ label: tSortOptions(value), value }));
 
-  async function runWithToast(action: () => Promise<unknown>, successMessage: string) {
+  async function runWithToast<TResult>(
+    action: () => Promise<TResult>,
+    successMessage: ((result: TResult) => string) | string,
+  ) {
     try {
-      await action();
-      toast.success(successMessage);
+      const result = await action();
+      toast.success(typeof successMessage === "string" ? successMessage : successMessage(result));
     } catch (error) {
       toast.error(t("toast.error"));
       throw error;
     }
+  }
+
+  async function restoreFavorite(id: string) {
+    try {
+      await toggleFavorite.mutateAsync({ id, isFavorite: true });
+    } catch {
+      toast.error(t("toast.error"));
+    }
+  }
+
+  async function toggleFavoriteWithUndo({ id, isFavorite }: { id: string; isFavorite: boolean }) {
+    try {
+      await toggleFavorite.mutateAsync({ id, isFavorite });
+    } catch {
+      toast.error(t("toast.error"));
+      return;
+    }
+    if (isFavorite) return;
+    toast(tFav("remove.toast"), {
+      action: {
+        label: tFav("remove.undo"),
+        onClick: () => void restoreFavorite(id),
+      },
+    });
   }
 
   const actions: LibraryActions = {
@@ -354,7 +382,7 @@ export function FavoritesView() {
     onDelete: (bookIds) =>
       runWithToast(
         () => deleteBooks.mutateAsync(bookIds),
-        t("toast.deleted", { count: bookIds.length }),
+        ({ affected }) => t("toast.deleted", { count: affected }),
       ),
     onEdit: (bookId) => router.push(`/books/${bookId}/edit`),
     onRemoveFromQueue: (id) =>
@@ -364,20 +392,7 @@ export function FavoritesView() {
         () => setFavorite.mutateAsync(input),
         input.isFavorite ? t("toast.favoriteAdded") : t("toast.favoriteRemoved"),
       ),
-    onToggleFavorite: ({ id, isFavorite }) => {
-      toggleFavorite.mutate({ id, isFavorite }, { onError: () => toast.error(t("toast.error")) });
-      if (isFavorite) return;
-      toast(tFav("remove.toast"), {
-        action: {
-          label: tFav("remove.undo"),
-          onClick: () =>
-            toggleFavorite.mutate(
-              { id, isFavorite: true },
-              { onError: () => toast.error(t("toast.error")) },
-            ),
-        },
-      });
-    },
+    onToggleFavorite: (input) => void toggleFavoriteWithUndo(input),
   };
 
   const emptyState: EmptyStateEntry = {
@@ -413,7 +428,7 @@ export function FavoritesView() {
     <div className="focus:outline-none" ref={resultsRegionRef} tabIndex={-1}>
       <BooksLibraryView
         actions={actions}
-        activeFilters={<LibraryActiveFilters chips={filterChips} onClearAll={library.clearAll} />}
+        activeFilters={<ActiveFilters chips={filterChips} onClearAll={library.clearAll} />}
         advancedFilters={
           <LibraryAdvancedFilters
             activeCount={advancedFiltersCount}
@@ -433,10 +448,12 @@ export function FavoritesView() {
         hasActiveFilters={library.hasActiveFilters}
         hasActiveSearch={library.hasActiveSearch}
         hasNextPage={hasNextPage}
-        isError={hasListError}
+        invalidRange={library.invalidRange}
+        isError={isLoadingError}
         isFetchingNextPage={isFetchingNextPage}
         isLoadMoreError={isFetchNextPageError}
         isPending={isPending}
+        isRefreshing={isPlaceholderData}
         libraryTotal={total}
         linkComponent={Link}
         loadingLabel={t("loading")}
@@ -460,6 +477,9 @@ export function FavoritesView() {
             value={activeQuickFilter(library.state)}
           />
         }
+        refetchError={
+          isRefetchError ? { isRetrying: isRefetching, onRetry: () => void refetch() } : null
+        }
         searchControl={
           <LibrarySearchInput
             onClear={library.clearSearch}
@@ -473,6 +493,7 @@ export function FavoritesView() {
         sortOptions={sortOptions}
         subtitle={tFav("subtitle")}
         summaryCards={summaryCards}
+        summaryError={summary.isLoadingError ? { onRetry: () => void summary.refetch() } : null}
         summaryLoading={summary.isPending}
         summaryMobileAction={
           <FavoritesOverviewPanel

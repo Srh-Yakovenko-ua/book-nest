@@ -1,21 +1,28 @@
 "use client";
 
-import type { SeriesView } from "@app/shared";
-import type { ReactNode } from "react";
+import type { Nullable, SeriesView } from "@app/shared";
+import type { ReactNode, Ref } from "react";
 
 import { useTranslations } from "next-intl";
+import { useRef } from "react";
 
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 import type { PageTabsItem } from "@/components/page-tabs";
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { RefetchErrorState } from "@/components/refetch-error-banner";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
 import { PageTabs, pageTabsTriggerId } from "@/components/page-tabs";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import type { SeriesListLayout, SeriesTab } from "../model/series-derive";
 
@@ -33,6 +40,7 @@ type AllSeriesViewProps = {
   hasAnySeries: boolean;
   isError: boolean;
   isPending: boolean;
+  isRefreshing: boolean;
   onAddBook: () => void;
   onClearFilters: () => void;
   onCreateSeries: () => void;
@@ -40,9 +48,10 @@ type AllSeriesViewProps = {
   onRetry: () => void;
   onShowAll: () => void;
   onTabChange: (tab: SeriesTab) => void;
+  refetchError: Nullable<RefetchErrorState>;
   series: SeriesView[];
   sidebar: ReactNode;
-  summaryCards: LibrarySummaryCard[];
+  summaryCards: SummaryCard[];
   summaryError: boolean;
   summaryLoading: boolean;
   summaryMobileAction?: ReactNode;
@@ -59,6 +68,7 @@ export function AllSeriesView({
   hasAnySeries,
   isError,
   isPending,
+  isRefreshing,
   onAddBook,
   onClearFilters,
   onCreateSeries,
@@ -66,6 +76,7 @@ export function AllSeriesView({
   onRetry,
   onShowAll,
   onTabChange,
+  refetchError,
   series,
   sidebar,
   summaryCards,
@@ -79,6 +90,8 @@ export function AllSeriesView({
 }: AllSeriesViewProps) {
   const t = useTranslations("series");
   const showToolbar = !isError && (isPending || hasAnySeries);
+  const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsHeadingRef);
 
   const tabItems: PageTabsItem[] = [
     { label: t("tabs.all"), value: "all" },
@@ -135,7 +148,7 @@ export function AllSeriesView({
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <div
-          className="flex min-w-0 flex-1 flex-col gap-6"
+          className={cn("flex min-w-0 flex-1 flex-col gap-6", RETRY_FOCUS_RING.aroundHiddenHeading)}
           {...(showToolbar
             ? {
                 "aria-labelledby": pageTabsTriggerId(SERIES_RESULTS_PANEL_ID, tab),
@@ -144,17 +157,22 @@ export function AllSeriesView({
               }
             : {})}
         >
-          <h2 className="sr-only">{t("page.resultsTitle")}</h2>
+          <h2 className="sr-only" ref={resultsHeadingRef} tabIndex={-1}>
+            {t("page.resultsTitle")}
+          </h2>
+          <RefetchErrorBanner state={refetchError} />
           <SeriesContent
             hasActiveQuery={hasActiveQuery}
             hasAnySeries={hasAnySeries}
             isError={isError}
             isPending={isPending}
+            isRefreshing={isRefreshing}
             onAddBook={onAddBook}
             onClearFilters={onClearFilters}
             onCreateSeries={onCreateSeries}
-            onRetry={onRetry}
+            onRetry={withRetryFocus(onRetry)}
             onShowAll={onShowAll}
+            retryButtonRef={retryButtonRef}
             series={series}
             tab={tab}
             view={view}
@@ -197,11 +215,13 @@ function SeriesContent({
   hasAnySeries,
   isError,
   isPending,
+  isRefreshing,
   onAddBook,
   onClearFilters,
   onCreateSeries,
   onRetry,
   onShowAll,
+  retryButtonRef,
   series,
   tab,
   view,
@@ -210,11 +230,13 @@ function SeriesContent({
   hasAnySeries: boolean;
   isError: boolean;
   isPending: boolean;
+  isRefreshing: boolean;
   onAddBook: () => void;
   onClearFilters: () => void;
   onCreateSeries: () => void;
   onRetry: () => void;
   onShowAll: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
   series: SeriesView[];
   tab: SeriesTab;
   view: SeriesListLayout;
@@ -234,6 +256,7 @@ function SeriesContent({
       <div aria-live="assertive" role="alert">
         <EmptyState
           onPrimary={onRetry}
+          primaryRef={retryButtonRef}
           state={{
             desc: t("error.description"),
             illu: "error-generic",
@@ -267,34 +290,39 @@ function SeriesContent({
       );
     }
     return (
-      <EmptyState
-        onPrimary={onClearFilters}
-        state={{
-          desc: t("noResults.description"),
-          illu: "empty-search",
-          primary: { icon: "x", label: t("noResults.clear") },
-          title: t("noResults.title"),
-        }}
-      />
+      <RefreshingRegion isRefreshing={isRefreshing}>
+        <EmptyState
+          onPrimary={onClearFilters}
+          state={{
+            desc: t("noResults.description"),
+            illu: "empty-search",
+            primary: { icon: "x", label: t("noResults.clear") },
+            title: t("noResults.title"),
+          }}
+        />
+      </RefreshingRegion>
     );
   }
 
   if (view === "list") {
     return (
-      <div className="flex flex-col gap-4">
+      <RefreshingRegion className="flex flex-col gap-4" isRefreshing={isRefreshing}>
         {series.map((item) => (
           <SeriesRow key={item.id} series={item} />
         ))}
-      </div>
+      </RefreshingRegion>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+    <RefreshingRegion
+      className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"
+      isRefreshing={isRefreshing}
+    >
       {series.map((item) => (
         <SeriesCard key={item.id} series={item} />
       ))}
-    </div>
+    </RefreshingRegion>
   );
 }
 

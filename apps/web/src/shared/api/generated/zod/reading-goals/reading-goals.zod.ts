@@ -582,6 +582,14 @@ export const readingGoalsControllerFindOneResponseCountedBooksItemCountedFinishe
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
   );
+export const readingGoalsControllerFindOneResponseCountedBooksItemReadingFinishedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const readingGoalsControllerFindOneResponseCountedBooksItemReadingStartedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
 export const readingGoalsControllerFindOneResponseCountedBooksItemReadingPagesCountMin = 0;
 export const readingGoalsControllerFindOneResponseCountedBooksItemReadingPagesCountMax = 9007199254740991;
 
@@ -592,6 +600,14 @@ export const readingGoalsControllerFindOneResponseListBookCountMin = 0;
 export const readingGoalsControllerFindOneResponseListBookCountMax = 9007199254740991;
 
 export const readingGoalsControllerFindOneResponseRemainingBooksItemCountedFinishedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const readingGoalsControllerFindOneResponseRemainingBooksItemReadingFinishedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const readingGoalsControllerFindOneResponseRemainingBooksItemReadingStartedAtRegExp =
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
   );
@@ -802,8 +818,14 @@ export const ReadingGoalsControllerFindOneResponse = zod.object({
       qualifies: zod.boolean(),
       reading: zod.object({
         currentPage: zod.number().nullable(),
-        finishedAt: zod.string().nullable(),
-        startedAt: zod.string().nullable(),
+        finishedAt: zod.iso
+          .date()
+          .regex(readingGoalsControllerFindOneResponseCountedBooksItemReadingFinishedAtRegExp)
+          .nullable(),
+        startedAt: zod.iso
+          .date()
+          .regex(readingGoalsControllerFindOneResponseCountedBooksItemReadingStartedAtRegExp)
+          .nullable(),
         pagesCount: zod
           .int()
           .min(readingGoalsControllerFindOneResponseCountedBooksItemReadingPagesCountMin)
@@ -871,8 +893,14 @@ export const ReadingGoalsControllerFindOneResponse = zod.object({
       qualifies: zod.boolean(),
       reading: zod.object({
         currentPage: zod.number().nullable(),
-        finishedAt: zod.string().nullable(),
-        startedAt: zod.string().nullable(),
+        finishedAt: zod.iso
+          .date()
+          .regex(readingGoalsControllerFindOneResponseRemainingBooksItemReadingFinishedAtRegExp)
+          .nullable(),
+        startedAt: zod.iso
+          .date()
+          .regex(readingGoalsControllerFindOneResponseRemainingBooksItemReadingStartedAtRegExp)
+          .nullable(),
         pagesCount: zod
           .int()
           .min(readingGoalsControllerFindOneResponseRemainingBooksItemReadingPagesCountMin)
@@ -1025,6 +1053,12 @@ export const ReadingGoalsControllerListBooksQueryParams = zod.object({
 export const readingGoalsControllerListBooksResponseItemsItemCountedFinishedAtRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const readingGoalsControllerListBooksResponseItemsItemReadingFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const readingGoalsControllerListBooksResponseItemsItemReadingStartedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const readingGoalsControllerListBooksResponseItemsItemReadingPagesCountMin = 0;
 export const readingGoalsControllerListBooksResponseItemsItemReadingPagesCountMax = 9007199254740991;
 
@@ -1073,8 +1107,14 @@ export const ReadingGoalsControllerListBooksResponse = zod.object({
       qualifies: zod.boolean(),
       reading: zod.object({
         currentPage: zod.number().nullable(),
-        finishedAt: zod.string().nullable(),
-        startedAt: zod.string().nullable(),
+        finishedAt: zod.iso
+          .date()
+          .regex(readingGoalsControllerListBooksResponseItemsItemReadingFinishedAtRegExp)
+          .nullable(),
+        startedAt: zod.iso
+          .date()
+          .regex(readingGoalsControllerListBooksResponseItemsItemReadingStartedAtRegExp)
+          .nullable(),
         pagesCount: zod
           .int()
           .min(readingGoalsControllerListBooksResponseItemsItemReadingPagesCountMin)

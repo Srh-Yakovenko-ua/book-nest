@@ -1,15 +1,11 @@
-import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 
-import {
-  getStatisticsControllerGetOverviewQueryKey,
-  getStatisticsControllerGetReadingDayQueryKey,
-} from "@/shared/api/generated/endpoints/statistics/statistics";
+import { getStatisticsControllerGetOverviewQueryKey } from "@/shared/api/generated/endpoints/statistics/statistics";
 
-import { invalidateStatisticsQueries, matchesStatisticsKey } from "./statistics-keys";
+import { matchesStatisticsKey, statisticsKeys } from "./statistics-keys";
 
 describe("matchesStatisticsKey", () => {
-  it("matches every overview variant", () => {
+  it("matches every overview variant of the generated client", () => {
     const keys = [
       getStatisticsControllerGetOverviewQueryKey(),
       getStatisticsControllerGetOverviewQueryKey({ period: "year", year: 2026 }),
@@ -27,7 +23,13 @@ describe("matchesStatisticsKey", () => {
   });
 
   it("matches a lazy reading-day detail key", () => {
-    const queryKey = getStatisticsControllerGetReadingDayQueryKey("2026-03-02");
+    const queryKey = statisticsKeys.readingDay("2026-03-02");
+
+    expect(matchesStatisticsKey({ queryKey })).toBe(true);
+  });
+
+  it("matches a reading month summary key", () => {
+    const queryKey = statisticsKeys.readingMonthSummary({ from: "2026-03-01", to: "2026-03-31" });
 
     expect(matchesStatisticsKey({ queryKey })).toBe(true);
   });
@@ -47,21 +49,5 @@ describe("matchesStatisticsKey", () => {
     for (const queryKey of foreignKeys) {
       expect(matchesStatisticsKey({ queryKey })).toBe(false);
     }
-  });
-});
-
-describe("invalidateStatisticsQueries", () => {
-  it("invalidates only the statistics family", async () => {
-    const queryClient = new QueryClient();
-    const statisticsKey = getStatisticsControllerGetOverviewQueryKey({ period: "year" });
-    const booksKey = ["/api/books", "list"];
-
-    queryClient.setQueryData(statisticsKey, { marker: "statistics" });
-    queryClient.setQueryData(booksKey, { marker: "books" });
-
-    await invalidateStatisticsQueries(queryClient);
-
-    expect(queryClient.getQueryState(statisticsKey)?.isInvalidated).toBe(true);
-    expect(queryClient.getQueryState(booksKey)?.isInvalidated).toBe(false);
   });
 });

@@ -13,7 +13,7 @@ import type { Control, FieldErrors, UseFormRegister } from "react-hook-form";
 import { NOTE_INPUT_LIMITS, NoteCategorySchema } from "@app/shared";
 import { z } from "zod";
 
-import type { BookPageCeiling } from "@/features/books/model/book-page-ceiling";
+import type { BookPageCeiling } from "@/lib/book-page-ceiling";
 
 import { assertNever } from "@/lib/assert-never";
 

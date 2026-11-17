@@ -11,9 +11,7 @@ import {
 } from "@app/shared";
 import { z } from "zod";
 
-import { ApiError } from "@/lib/http-client";
-
-const DUPLICATE_TAG_NAME_STATUS = 409;
+import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 
 export type TagFormMessages = {
   descriptionTooLong: string;
@@ -48,7 +46,7 @@ export function createTagFormSchema(messages: TagFormMessages) {
 }
 
 export function isDuplicateTagNameError(error: unknown): boolean {
-  return error instanceof ApiError && error.status === DUPLICATE_TAG_NAME_STATUS;
+  return isApiErrorStatus(error, HTTP_STATUS.conflict);
 }
 
 export function toTagUpdatePatch(

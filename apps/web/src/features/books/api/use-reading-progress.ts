@@ -3,7 +3,7 @@ import type { BookView, ChangeReadingStatusInput, UpdateReadingProgressInput } f
 import { BookViewSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { invalidateGoalQueries } from "@/features/reading-goals/api/goal-keys";
+import { resetRelationshipReaderViews } from "@/features/character-relationships/api/relationship-mutation-effects";
 import {
   bookReadingControllerChangeReadingStatus,
   bookReadingControllerUpdateReadingProgress,
@@ -23,7 +23,7 @@ export function useChangeReadingStatus() {
       BookViewSchema.parse(await bookReadingControllerChangeReadingStatus(input.id, input.payload)),
     onSuccess: (book) => {
       sync(book);
-      void invalidateGoalQueries(queryClient);
+      void resetRelationshipReaderViews(queryClient);
     },
   });
 }
@@ -42,7 +42,7 @@ export function useUpdateReadingProgress() {
       ),
     onSuccess: (book) => {
       sync(book);
-      void invalidateGoalQueries(queryClient);
+      void resetRelationshipReaderViews(queryClient);
     },
   });
 }

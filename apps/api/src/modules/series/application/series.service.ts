@@ -37,12 +37,12 @@ import type {
 } from "../infrastructure/series.repository.js";
 
 import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
-import { startOfUtcDay } from "../../../core/iso-date.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
 import { AuthorsService } from "../../authors/index.js";
 import { GenresService } from "../../genres/index.js";
 import { MediaService } from "../../media/index.js";
+import { UserSettingsContextService } from "../../profile/index.js";
 import { assembleContinuations } from "../domain/favorite-continuations.js";
 import { countSeriesAttention, selectAlmostReadSeries } from "../domain/series-attention.js";
 import {
@@ -97,6 +97,7 @@ export class SeriesService {
     private readonly authorsService: AuthorsService,
     private readonly genresService: GenresService,
     private readonly mediaService: MediaService,
+    private readonly userSettingsContextService: UserSettingsContextService,
   ) {}
 
   async create(userId: string, input: NewSeriesInput): Promise<SeriesView> {
@@ -159,12 +160,15 @@ export class SeriesService {
   }
 
   async getById(userId: string, id: string): Promise<SeriesDetailsView> {
-    const series = await this.seriesRepository.findOwnedDetailsById(userId, id);
+    const [series, today] = await Promise.all([
+      this.seriesRepository.findOwnedDetailsById(userId, id),
+      this.userSettingsContextService.calendarDay({ now: new Date(), userId }),
+    ]);
     if (series === null) {
       throw new NotFoundError("Series not found");
     }
     const covers = this.buildCoverByBookId(series.books);
-    return toSeriesDetailsView({ covers, series, today: startOfUtcDay(new Date()) });
+    return toSeriesDetailsView({ covers, series, today });
   }
 
   async overview(userId: string): Promise<SeriesOverviewView> {

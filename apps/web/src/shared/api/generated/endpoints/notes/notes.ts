@@ -62,33 +62,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type noteControllerListBookNotesResponse200 = {
-  data: EntityNotesViewDto;
-  status: 200;
-};
-
-export type noteControllerListBookNotesResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type noteControllerListBookNotesResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type noteControllerListBookNotesResponseSuccess = noteControllerListBookNotesResponse200 & {
-  headers: Headers;
-};
-export type noteControllerListBookNotesResponseError = (
-  noteControllerListBookNotesResponse401 | noteControllerListBookNotesResponse404
-) & {
-  headers: Headers;
-};
-
-export type noteControllerListBookNotesResponse =
-  noteControllerListBookNotesResponseSuccess | noteControllerListBookNotesResponseError;
-
 export const getNoteControllerListBookNotesUrl = (id: string) => {
   return `/api/books/${id}/notes`;
 };
@@ -99,14 +72,11 @@ export const getNoteControllerListBookNotesUrl = (id: string) => {
 export const noteControllerListBookNotes = async (
   id: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<noteControllerListBookNotesResponse> => {
-  return customInstance<noteControllerListBookNotesResponse>(
-    getNoteControllerListBookNotesUrl(id),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<EntityNotesViewDto> => {
+  return customInstance<EntityNotesViewDto>(getNoteControllerListBookNotesUrl(id), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getNoteControllerListBookNotesQueryKey = (id: string) => {
@@ -229,41 +199,6 @@ export function useNoteControllerListBookNotes<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type noteControllerCreateBookNoteResponse201 = {
-  data: NoteViewDto;
-  status: 201;
-};
-
-export type noteControllerCreateBookNoteResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type noteControllerCreateBookNoteResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type noteControllerCreateBookNoteResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type noteControllerCreateBookNoteResponseSuccess =
-  noteControllerCreateBookNoteResponse201 & {
-    headers: Headers;
-  };
-export type noteControllerCreateBookNoteResponseError = (
-  | noteControllerCreateBookNoteResponse400
-  | noteControllerCreateBookNoteResponse401
-  | noteControllerCreateBookNoteResponse404
-) & {
-  headers: Headers;
-};
-
-export type noteControllerCreateBookNoteResponse =
-  noteControllerCreateBookNoteResponseSuccess | noteControllerCreateBookNoteResponseError;
-
 export const getNoteControllerCreateBookNoteUrl = (id: string) => {
   return `/api/books/${id}/notes`;
 };
@@ -275,16 +210,13 @@ export const noteControllerCreateBookNote = async (
   id: string,
   createNoteInputDto: CreateNoteInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<noteControllerCreateBookNoteResponse> => {
-  return customInstance<noteControllerCreateBookNoteResponse>(
-    getNoteControllerCreateBookNoteUrl(id),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(createNoteInputDto),
-    },
-  );
+): Promise<NoteViewDto> => {
+  return customInstance<NoteViewDto>(getNoteControllerCreateBookNoteUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createNoteInputDto),
+  });
 };
 
 export const getNoteControllerCreateBookNoteQueryKey = (
@@ -416,34 +348,6 @@ export function useNoteControllerCreateBookNote<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type noteControllerListSeriesNotesResponse200 = {
-  data: EntityNotesViewDto;
-  status: 200;
-};
-
-export type noteControllerListSeriesNotesResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type noteControllerListSeriesNotesResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type noteControllerListSeriesNotesResponseSuccess =
-  noteControllerListSeriesNotesResponse200 & {
-    headers: Headers;
-  };
-export type noteControllerListSeriesNotesResponseError = (
-  noteControllerListSeriesNotesResponse401 | noteControllerListSeriesNotesResponse404
-) & {
-  headers: Headers;
-};
-
-export type noteControllerListSeriesNotesResponse =
-  noteControllerListSeriesNotesResponseSuccess | noteControllerListSeriesNotesResponseError;
-
 export const getNoteControllerListSeriesNotesUrl = (id: string) => {
   return `/api/series/${id}/notes`;
 };
@@ -454,14 +358,11 @@ export const getNoteControllerListSeriesNotesUrl = (id: string) => {
 export const noteControllerListSeriesNotes = async (
   id: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<noteControllerListSeriesNotesResponse> => {
-  return customInstance<noteControllerListSeriesNotesResponse>(
-    getNoteControllerListSeriesNotesUrl(id),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<EntityNotesViewDto> => {
+  return customInstance<EntityNotesViewDto>(getNoteControllerListSeriesNotesUrl(id), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getNoteControllerListSeriesNotesQueryKey = (id: string) => {
@@ -584,41 +485,6 @@ export function useNoteControllerListSeriesNotes<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type noteControllerCreateSeriesNoteResponse201 = {
-  data: NoteViewDto;
-  status: 201;
-};
-
-export type noteControllerCreateSeriesNoteResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type noteControllerCreateSeriesNoteResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type noteControllerCreateSeriesNoteResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type noteControllerCreateSeriesNoteResponseSuccess =
-  noteControllerCreateSeriesNoteResponse201 & {
-    headers: Headers;
-  };
-export type noteControllerCreateSeriesNoteResponseError = (
-  | noteControllerCreateSeriesNoteResponse400
-  | noteControllerCreateSeriesNoteResponse401
-  | noteControllerCreateSeriesNoteResponse404
-) & {
-  headers: Headers;
-};
-
-export type noteControllerCreateSeriesNoteResponse =
-  noteControllerCreateSeriesNoteResponseSuccess | noteControllerCreateSeriesNoteResponseError;
-
 export const getNoteControllerCreateSeriesNoteUrl = (id: string) => {
   return `/api/series/${id}/notes`;
 };
@@ -630,16 +496,13 @@ export const noteControllerCreateSeriesNote = async (
   id: string,
   createSeriesNoteInputDto: CreateSeriesNoteInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<noteControllerCreateSeriesNoteResponse> => {
-  return customInstance<noteControllerCreateSeriesNoteResponse>(
-    getNoteControllerCreateSeriesNoteUrl(id),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(createSeriesNoteInputDto),
-    },
-  );
+): Promise<NoteViewDto> => {
+  return customInstance<NoteViewDto>(getNoteControllerCreateSeriesNoteUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createSeriesNoteInputDto),
+  });
 };
 
 export const getNoteControllerCreateSeriesNoteQueryKey = (
@@ -778,40 +641,6 @@ export function useNoteControllerCreateSeriesNote<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type noteControllerEditNoteResponse200 = {
-  data: NoteViewDto;
-  status: 200;
-};
-
-export type noteControllerEditNoteResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type noteControllerEditNoteResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type noteControllerEditNoteResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type noteControllerEditNoteResponseSuccess = noteControllerEditNoteResponse200 & {
-  headers: Headers;
-};
-export type noteControllerEditNoteResponseError = (
-  | noteControllerEditNoteResponse400
-  | noteControllerEditNoteResponse401
-  | noteControllerEditNoteResponse404
-) & {
-  headers: Headers;
-};
-
-export type noteControllerEditNoteResponse =
-  noteControllerEditNoteResponseSuccess | noteControllerEditNoteResponseError;
-
 export const getNoteControllerEditNoteUrl = (noteId: string) => {
   return `/api/notes/${noteId}`;
 };
@@ -823,8 +652,8 @@ export const noteControllerEditNote = async (
   noteId: string,
   updateNoteInputDto: UpdateNoteInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<noteControllerEditNoteResponse> => {
-  return customInstance<noteControllerEditNoteResponse>(getNoteControllerEditNoteUrl(noteId), {
+): Promise<NoteViewDto> => {
+  return customInstance<NoteViewDto>(getNoteControllerEditNoteUrl(noteId), {
     ...options,
     method: "PATCH",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -960,33 +789,6 @@ export function useNoteControllerEditNote<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type noteControllerDeleteNoteResponse200 = {
-  data: NoteDeletionResultDto;
-  status: 200;
-};
-
-export type noteControllerDeleteNoteResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type noteControllerDeleteNoteResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type noteControllerDeleteNoteResponseSuccess = noteControllerDeleteNoteResponse200 & {
-  headers: Headers;
-};
-export type noteControllerDeleteNoteResponseError = (
-  noteControllerDeleteNoteResponse401 | noteControllerDeleteNoteResponse404
-) & {
-  headers: Headers;
-};
-
-export type noteControllerDeleteNoteResponse =
-  noteControllerDeleteNoteResponseSuccess | noteControllerDeleteNoteResponseError;
-
 export const getNoteControllerDeleteNoteUrl = (noteId: string) => {
   return `/api/notes/${noteId}`;
 };
@@ -997,8 +799,8 @@ export const getNoteControllerDeleteNoteUrl = (noteId: string) => {
 export const noteControllerDeleteNote = async (
   noteId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<noteControllerDeleteNoteResponse> => {
-  return customInstance<noteControllerDeleteNoteResponse>(getNoteControllerDeleteNoteUrl(noteId), {
+): Promise<NoteDeletionResultDto> => {
+  return customInstance<NoteDeletionResultDto>(getNoteControllerDeleteNoteUrl(noteId), {
     ...options,
     method: "DELETE",
   });
@@ -1124,33 +926,6 @@ export function useNoteControllerDeleteNote<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type noteControllerRestoreNoteResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type noteControllerRestoreNoteResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type noteControllerRestoreNoteResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type noteControllerRestoreNoteResponseSuccess = noteControllerRestoreNoteResponse204 & {
-  headers: Headers;
-};
-export type noteControllerRestoreNoteResponseError = (
-  noteControllerRestoreNoteResponse401 | noteControllerRestoreNoteResponse404
-) & {
-  headers: Headers;
-};
-
-export type noteControllerRestoreNoteResponse =
-  noteControllerRestoreNoteResponseSuccess | noteControllerRestoreNoteResponseError;
-
 export const getNoteControllerRestoreNoteUrl = (noteId: string) => {
   return `/api/notes/${noteId}/restore`;
 };
@@ -1161,14 +936,11 @@ export const getNoteControllerRestoreNoteUrl = (noteId: string) => {
 export const noteControllerRestoreNote = async (
   noteId: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<noteControllerRestoreNoteResponse> => {
-  return customInstance<noteControllerRestoreNoteResponse>(
-    getNoteControllerRestoreNoteUrl(noteId),
-    {
-      ...options,
-      method: "POST",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getNoteControllerRestoreNoteUrl(noteId), {
+    ...options,
+    method: "POST",
+  });
 };
 
 export const getNoteControllerRestoreNoteQueryKey = (noteId: string) => {
@@ -1291,26 +1063,6 @@ export function useNoteControllerRestoreNote<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type notesControllerListTrashResponse200 = {
-  data: PaginatedTrashedNotesDto;
-  status: 200;
-};
-
-export type notesControllerListTrashResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type notesControllerListTrashResponseSuccess = notesControllerListTrashResponse200 & {
-  headers: Headers;
-};
-export type notesControllerListTrashResponseError = notesControllerListTrashResponse401 & {
-  headers: Headers;
-};
-
-export type notesControllerListTrashResponse =
-  notesControllerListTrashResponseSuccess | notesControllerListTrashResponseError;
-
 export const getNotesControllerListTrashUrl = (params?: NotesControllerListTrashParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -1333,8 +1085,8 @@ export const getNotesControllerListTrashUrl = (params?: NotesControllerListTrash
 export const notesControllerListTrash = async (
   params?: NotesControllerListTrashParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<notesControllerListTrashResponse> => {
-  return customInstance<notesControllerListTrashResponse>(getNotesControllerListTrashUrl(params), {
+): Promise<PaginatedTrashedNotesDto> => {
+  return customInstance<PaginatedTrashedNotesDto>(getNotesControllerListTrashUrl(params), {
     ...options,
     method: "GET",
   });
@@ -1457,26 +1209,6 @@ export function useNotesControllerListTrash<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type notesControllerBookFacetsResponse200 = {
-  data: BookNotesFacetsViewDto;
-  status: 200;
-};
-
-export type notesControllerBookFacetsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type notesControllerBookFacetsResponseSuccess = notesControllerBookFacetsResponse200 & {
-  headers: Headers;
-};
-export type notesControllerBookFacetsResponseError = notesControllerBookFacetsResponse401 & {
-  headers: Headers;
-};
-
-export type notesControllerBookFacetsResponse =
-  notesControllerBookFacetsResponseSuccess | notesControllerBookFacetsResponseError;
-
 export const getNotesControllerBookFacetsUrl = (params?: NotesControllerBookFacetsParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -1508,14 +1240,11 @@ export const getNotesControllerBookFacetsUrl = (params?: NotesControllerBookFace
 export const notesControllerBookFacets = async (
   params?: NotesControllerBookFacetsParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<notesControllerBookFacetsResponse> => {
-  return customInstance<notesControllerBookFacetsResponse>(
-    getNotesControllerBookFacetsUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<BookNotesFacetsViewDto> => {
+  return customInstance<BookNotesFacetsViewDto>(getNotesControllerBookFacetsUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getNotesControllerBookFacetsQueryKey = (params?: NotesControllerBookFacetsParams) => {
@@ -1635,26 +1364,6 @@ export function useNotesControllerBookFacets<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type notesControllerBookSummaryResponse200 = {
-  data: BookNotesSummaryViewDto;
-  status: 200;
-};
-
-export type notesControllerBookSummaryResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type notesControllerBookSummaryResponseSuccess = notesControllerBookSummaryResponse200 & {
-  headers: Headers;
-};
-export type notesControllerBookSummaryResponseError = notesControllerBookSummaryResponse401 & {
-  headers: Headers;
-};
-
-export type notesControllerBookSummaryResponse =
-  notesControllerBookSummaryResponseSuccess | notesControllerBookSummaryResponseError;
-
 export const getNotesControllerBookSummaryUrl = () => {
   return `/api/notes/books/summary`;
 };
@@ -1664,8 +1373,8 @@ export const getNotesControllerBookSummaryUrl = () => {
  */
 export const notesControllerBookSummary = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<notesControllerBookSummaryResponse> => {
-  return customInstance<notesControllerBookSummaryResponse>(getNotesControllerBookSummaryUrl(), {
+): Promise<BookNotesSummaryViewDto> => {
+  return customInstance<BookNotesSummaryViewDto>(getNotesControllerBookSummaryUrl(), {
     ...options,
     method: "GET",
   });
@@ -1781,26 +1490,6 @@ export function useNotesControllerBookSummary<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type notesControllerBookOverviewResponse200 = {
-  data: BookNotesOverviewViewDto;
-  status: 200;
-};
-
-export type notesControllerBookOverviewResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type notesControllerBookOverviewResponseSuccess = notesControllerBookOverviewResponse200 & {
-  headers: Headers;
-};
-export type notesControllerBookOverviewResponseError = notesControllerBookOverviewResponse401 & {
-  headers: Headers;
-};
-
-export type notesControllerBookOverviewResponse =
-  notesControllerBookOverviewResponseSuccess | notesControllerBookOverviewResponseError;
-
 export const getNotesControllerBookOverviewUrl = () => {
   return `/api/notes/books/overview`;
 };
@@ -1810,8 +1499,8 @@ export const getNotesControllerBookOverviewUrl = () => {
  */
 export const notesControllerBookOverview = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<notesControllerBookOverviewResponse> => {
-  return customInstance<notesControllerBookOverviewResponse>(getNotesControllerBookOverviewUrl(), {
+): Promise<BookNotesOverviewViewDto> => {
+  return customInstance<BookNotesOverviewViewDto>(getNotesControllerBookOverviewUrl(), {
     ...options,
     method: "GET",
   });
@@ -1927,41 +1616,6 @@ export function useNotesControllerBookOverview<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type notesControllerReviewPostFinishResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type notesControllerReviewPostFinishResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type notesControllerReviewPostFinishResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type notesControllerReviewPostFinishResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type notesControllerReviewPostFinishResponseSuccess =
-  notesControllerReviewPostFinishResponse204 & {
-    headers: Headers;
-  };
-export type notesControllerReviewPostFinishResponseError = (
-  | notesControllerReviewPostFinishResponse400
-  | notesControllerReviewPostFinishResponse401
-  | notesControllerReviewPostFinishResponse404
-) & {
-  headers: Headers;
-};
-
-export type notesControllerReviewPostFinishResponse =
-  notesControllerReviewPostFinishResponseSuccess | notesControllerReviewPostFinishResponseError;
-
 export const getNotesControllerReviewPostFinishUrl = () => {
   return `/api/notes/books/post-finish/review`;
 };
@@ -1972,16 +1626,13 @@ export const getNotesControllerReviewPostFinishUrl = () => {
 export const notesControllerReviewPostFinish = async (
   notePostFinishReviewInputDto: NotePostFinishReviewInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<notesControllerReviewPostFinishResponse> => {
-  return customInstance<notesControllerReviewPostFinishResponse>(
-    getNotesControllerReviewPostFinishUrl(),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(notePostFinishReviewInputDto),
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getNotesControllerReviewPostFinishUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(notePostFinishReviewInputDto),
+  });
 };
 
 export const getNotesControllerReviewPostFinishQueryKey = (
@@ -2109,28 +1760,6 @@ export function useNotesControllerReviewPostFinish<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type notesControllerSeriesOverviewResponse200 = {
-  data: SeriesNotesOverviewViewDto;
-  status: 200;
-};
-
-export type notesControllerSeriesOverviewResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type notesControllerSeriesOverviewResponseSuccess =
-  notesControllerSeriesOverviewResponse200 & {
-    headers: Headers;
-  };
-export type notesControllerSeriesOverviewResponseError =
-  notesControllerSeriesOverviewResponse401 & {
-    headers: Headers;
-  };
-
-export type notesControllerSeriesOverviewResponse =
-  notesControllerSeriesOverviewResponseSuccess | notesControllerSeriesOverviewResponseError;
-
 export const getNotesControllerSeriesOverviewUrl = (
   params?: NotesControllerSeriesOverviewParams,
 ) => {
@@ -2160,14 +1789,11 @@ export const getNotesControllerSeriesOverviewUrl = (
 export const notesControllerSeriesOverview = async (
   params?: NotesControllerSeriesOverviewParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<notesControllerSeriesOverviewResponse> => {
-  return customInstance<notesControllerSeriesOverviewResponse>(
-    getNotesControllerSeriesOverviewUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<SeriesNotesOverviewViewDto> => {
+  return customInstance<SeriesNotesOverviewViewDto>(getNotesControllerSeriesOverviewUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getNotesControllerSeriesOverviewQueryKey = (
@@ -2289,42 +1915,6 @@ export function useNotesControllerSeriesOverview<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type notesControllerRecordRediscoveryImpressionResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type notesControllerRecordRediscoveryImpressionResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type notesControllerRecordRediscoveryImpressionResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type notesControllerRecordRediscoveryImpressionResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type notesControllerRecordRediscoveryImpressionResponseSuccess =
-  notesControllerRecordRediscoveryImpressionResponse204 & {
-    headers: Headers;
-  };
-export type notesControllerRecordRediscoveryImpressionResponseError = (
-  | notesControllerRecordRediscoveryImpressionResponse400
-  | notesControllerRecordRediscoveryImpressionResponse401
-  | notesControllerRecordRediscoveryImpressionResponse404
-) & {
-  headers: Headers;
-};
-
-export type notesControllerRecordRediscoveryImpressionResponse =
-  | notesControllerRecordRediscoveryImpressionResponseSuccess
-  | notesControllerRecordRediscoveryImpressionResponseError;
-
 export const getNotesControllerRecordRediscoveryImpressionUrl = () => {
   return `/api/notes/rediscovery/impression`;
 };
@@ -2335,16 +1925,13 @@ export const getNotesControllerRecordRediscoveryImpressionUrl = () => {
 export const notesControllerRecordRediscoveryImpression = async (
   noteRediscoveryImpressionInputDto: NoteRediscoveryImpressionInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<notesControllerRecordRediscoveryImpressionResponse> => {
-  return customInstance<notesControllerRecordRediscoveryImpressionResponse>(
-    getNotesControllerRecordRediscoveryImpressionUrl(),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(noteRediscoveryImpressionInputDto),
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getNotesControllerRecordRediscoveryImpressionUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(noteRediscoveryImpressionInputDto),
+  });
 };
 
 export const getNotesControllerRecordRediscoveryImpressionQueryKey = (
@@ -2495,26 +2082,6 @@ export function useNotesControllerRecordRediscoveryImpression<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type notesControllerSeriesFacetsResponse200 = {
-  data: SeriesNotesFacetsViewDto;
-  status: 200;
-};
-
-export type notesControllerSeriesFacetsResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type notesControllerSeriesFacetsResponseSuccess = notesControllerSeriesFacetsResponse200 & {
-  headers: Headers;
-};
-export type notesControllerSeriesFacetsResponseError = notesControllerSeriesFacetsResponse401 & {
-  headers: Headers;
-};
-
-export type notesControllerSeriesFacetsResponse =
-  notesControllerSeriesFacetsResponseSuccess | notesControllerSeriesFacetsResponseError;
-
 export const getNotesControllerSeriesFacetsUrl = (params?: NotesControllerSeriesFacetsParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -2554,14 +2121,11 @@ export const getNotesControllerSeriesFacetsUrl = (params?: NotesControllerSeries
 export const notesControllerSeriesFacets = async (
   params?: NotesControllerSeriesFacetsParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<notesControllerSeriesFacetsResponse> => {
-  return customInstance<notesControllerSeriesFacetsResponse>(
-    getNotesControllerSeriesFacetsUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<SeriesNotesFacetsViewDto> => {
+  return customInstance<SeriesNotesFacetsViewDto>(getNotesControllerSeriesFacetsUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getNotesControllerSeriesFacetsQueryKey = (
@@ -2683,27 +2247,6 @@ export function useNotesControllerSeriesFacets<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type notesControllerSeriesSummaryResponse200 = {
-  data: SeriesNotesSummaryViewDto;
-  status: 200;
-};
-
-export type notesControllerSeriesSummaryResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type notesControllerSeriesSummaryResponseSuccess =
-  notesControllerSeriesSummaryResponse200 & {
-    headers: Headers;
-  };
-export type notesControllerSeriesSummaryResponseError = notesControllerSeriesSummaryResponse401 & {
-  headers: Headers;
-};
-
-export type notesControllerSeriesSummaryResponse =
-  notesControllerSeriesSummaryResponseSuccess | notesControllerSeriesSummaryResponseError;
-
 export const getNotesControllerSeriesSummaryUrl = () => {
   return `/api/notes/series/summary`;
 };
@@ -2713,14 +2256,11 @@ export const getNotesControllerSeriesSummaryUrl = () => {
  */
 export const notesControllerSeriesSummary = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<notesControllerSeriesSummaryResponse> => {
-  return customInstance<notesControllerSeriesSummaryResponse>(
-    getNotesControllerSeriesSummaryUrl(),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<SeriesNotesSummaryViewDto> => {
+  return customInstance<SeriesNotesSummaryViewDto>(getNotesControllerSeriesSummaryUrl(), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getNotesControllerSeriesSummaryQueryKey = () => {
@@ -2833,28 +2373,6 @@ export function useNotesControllerSeriesSummary<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type notesControllerListBookArchiveResponse200 = {
-  data: PaginatedNotesDto;
-  status: 200;
-};
-
-export type notesControllerListBookArchiveResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type notesControllerListBookArchiveResponseSuccess =
-  notesControllerListBookArchiveResponse200 & {
-    headers: Headers;
-  };
-export type notesControllerListBookArchiveResponseError =
-  notesControllerListBookArchiveResponse401 & {
-    headers: Headers;
-  };
-
-export type notesControllerListBookArchiveResponse =
-  notesControllerListBookArchiveResponseSuccess | notesControllerListBookArchiveResponseError;
-
 export const getNotesControllerListBookArchiveUrl = (
   params?: NotesControllerListBookArchiveParams,
 ) => {
@@ -2888,14 +2406,11 @@ export const getNotesControllerListBookArchiveUrl = (
 export const notesControllerListBookArchive = async (
   params?: NotesControllerListBookArchiveParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<notesControllerListBookArchiveResponse> => {
-  return customInstance<notesControllerListBookArchiveResponse>(
-    getNotesControllerListBookArchiveUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<PaginatedNotesDto> => {
+  return customInstance<PaginatedNotesDto>(getNotesControllerListBookArchiveUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getNotesControllerListBookArchiveQueryKey = (
@@ -3017,28 +2532,6 @@ export function useNotesControllerListBookArchive<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type notesControllerListSeriesArchiveResponse200 = {
-  data: PaginatedNotesDto;
-  status: 200;
-};
-
-export type notesControllerListSeriesArchiveResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type notesControllerListSeriesArchiveResponseSuccess =
-  notesControllerListSeriesArchiveResponse200 & {
-    headers: Headers;
-  };
-export type notesControllerListSeriesArchiveResponseError =
-  notesControllerListSeriesArchiveResponse401 & {
-    headers: Headers;
-  };
-
-export type notesControllerListSeriesArchiveResponse =
-  notesControllerListSeriesArchiveResponseSuccess | notesControllerListSeriesArchiveResponseError;
-
 export const getNotesControllerListSeriesArchiveUrl = (
   params?: NotesControllerListSeriesArchiveParams,
 ) => {
@@ -3080,14 +2573,11 @@ export const getNotesControllerListSeriesArchiveUrl = (
 export const notesControllerListSeriesArchive = async (
   params?: NotesControllerListSeriesArchiveParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<notesControllerListSeriesArchiveResponse> => {
-  return customInstance<notesControllerListSeriesArchiveResponse>(
-    getNotesControllerListSeriesArchiveUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<PaginatedNotesDto> => {
+  return customInstance<PaginatedNotesDto>(getNotesControllerListSeriesArchiveUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getNotesControllerListSeriesArchiveQueryKey = (

@@ -14,7 +14,6 @@ export type CharacterDuplicateCandidatesDtoCandidatesItemGlobalAttitude =
   | null;
 
 export const CharacterDuplicateCandidatesDtoCandidatesItemGlobalAttitude = {
-  favorite: "favorite",
   like: "like",
   neutral: "neutral",
   distrust: "distrust",

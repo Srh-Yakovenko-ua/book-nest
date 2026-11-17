@@ -31,26 +31,45 @@ type EditTagDialogProps = {
 
 export function EditTagDialog({ onOpenChange, tag }: EditTagDialogProps) {
   const t = useTranslations("tags.tagDialog");
+  const updateTag = useUpdateTag();
 
   return (
-    <Dialog onOpenChange={onOpenChange} open={tag !== null}>
+    <Dialog
+      onOpenChange={(next) => {
+        if (!next && updateTag.isPending) return;
+        onOpenChange(next);
+      }}
+      open={tag !== null}
+    >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t("editTitle")}</DialogTitle>
           <DialogDescription>{t("editSubtitle")}</DialogDescription>
         </DialogHeader>
         {tag === null ? null : (
-          <EditTagForm key={tag.id} onDone={() => onOpenChange(false)} tag={tag} />
+          <EditTagForm
+            key={tag.id}
+            onDone={() => onOpenChange(false)}
+            tag={tag}
+            updateTag={updateTag}
+          />
         )}
       </DialogContent>
     </Dialog>
   );
 }
 
-function EditTagForm({ onDone, tag }: { onDone: () => void; tag: TagCatalogListItem }) {
+function EditTagForm({
+  onDone,
+  tag,
+  updateTag,
+}: {
+  onDone: () => void;
+  tag: TagCatalogListItem;
+  updateTag: ReturnType<typeof useUpdateTag>;
+}) {
   const t = useTranslations("tags.tagDialog");
   const tErrors = useTranslations("tags.errors");
-  const updateTag = useUpdateTag();
   const [formError, setFormError] = useState<Nullable<string>>(null);
 
   const {
@@ -121,7 +140,7 @@ function EditTagForm({ onDone, tag }: { onDone: () => void; tag: TagCatalogListI
       )}
 
       <DialogFooter>
-        <Button onClick={onDone} type="button" variant="secondary">
+        <Button disabled={updateTag.isPending} onClick={onDone} type="button" variant="secondary">
           {t("cancel")}
         </Button>
         <Button

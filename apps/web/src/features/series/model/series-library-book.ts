@@ -9,8 +9,12 @@ import type {
 import type { UiIconName } from "@/components/icons";
 import type { LibraryBook } from "@/features/books/model/library-book";
 
-import { FALLBACK_READING_STATUS } from "@/features/books/model/library-book";
-import { bookFormats, ownershipStatuses, readingStatuses } from "@/lib/book-status";
+import {
+  bookFormats,
+  FALLBACK_READING_STATUS,
+  ownershipStatuses,
+  readingStatuses,
+} from "@/lib/book-status";
 
 import { authorsDifferFromSeries, publisherDiffersFromSeries } from "./series-details-derive";
 

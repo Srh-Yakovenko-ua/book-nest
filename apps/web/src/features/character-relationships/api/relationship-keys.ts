@@ -1,4 +1,8 @@
-import type { Nullable } from "@app/shared";
+import type { Nullable, RelationshipDirectionality } from "@app/shared";
+
+import type { BookCharactersControllerListSort } from "@/shared/api/generated/model";
+
+import { characterKeys } from "@/features/characters/api/character-keys";
 
 import type { RelationshipGraphCriteria } from "../model/relationship-graph-criteria";
 import type { RelationshipGraphPathQuery } from "../model/relationship-graph-path";
@@ -6,8 +10,19 @@ import type { RelationshipGraphLayoutKey } from "../model/relationship-graph-sco
 import type { RelationshipListCriteria } from "../model/relationship-list-query";
 import type { RelationshipReveal } from "../model/relationship-reveal";
 import type { RelationshipScopeKey } from "../model/relationship-scope";
+import type {
+  GraphReaderKey,
+  GraphWorkspacePathRequest,
+  GraphWorkspaceSceneRequest,
+} from "../model/workspace/graph-workspace-request";
 
-const RELATIONSHIPS_ROOT = "character-relationships";
+const RELATIONSHIP_KEY_ROOTS = {
+  customTypes: "/api/character-relationship-custom-types",
+  relationships: "/api/character-relationships",
+  roleSuggestions: "/api/character-relationship-role-suggestions",
+} as const;
+
+const RELATIONSHIPS_ROOT = RELATIONSHIP_KEY_ROOTS.relationships;
 
 const RELATIONSHIP_KEY_SEGMENTS = {
   details: "details",
@@ -15,14 +30,25 @@ const RELATIONSHIP_KEY_SEGMENTS = {
   graph: "graph",
   graphLayout: "graph-layout",
   list: "list",
-  participants: "participants",
   path: "path",
+  roster: "relationship-roster",
+  workspace: "workspace",
 } as const;
 
-export type RelationshipParticipantPool = "book" | "global";
+type GraphWorkspaceQueryRequest =
+  | GraphWorkspacePathRequest
+  | GraphWorkspaceSceneRequest
+  | { characterId: string; kind: "endpoint" };
 
 export const relationshipKeys = {
   all: [RELATIONSHIPS_ROOT] as const,
+  customTypes: ({
+    directionality,
+    term,
+  }: {
+    directionality: Nullable<RelationshipDirectionality>;
+    term: string;
+  }) => [RELATIONSHIP_KEY_ROOTS.customTypes, directionality, term] as const,
   details: ({
     relationshipId,
     reveal,
@@ -39,6 +65,10 @@ export const relationshipKeys = {
       scopeKey,
       reveal,
     ] as const,
+  dictionaries: {
+    customTypes: [RELATIONSHIP_KEY_ROOTS.customTypes] as const,
+    roleSuggestions: [RELATIONSHIP_KEY_ROOTS.roleSuggestions] as const,
+  },
   editable: (relationshipId: string) =>
     [RELATIONSHIPS_ROOT, RELATIONSHIP_KEY_SEGMENTS.editable, relationshipId] as const,
   graph: ({
@@ -50,6 +80,7 @@ export const relationshipKeys = {
   }) => [RELATIONSHIPS_ROOT, RELATIONSHIP_KEY_SEGMENTS.graph, scopeKey, criteria] as const,
   graphLayout: (layoutKey: RelationshipGraphLayoutKey) =>
     [RELATIONSHIPS_ROOT, RELATIONSHIP_KEY_SEGMENTS.graphLayout, layoutKey] as const,
+  graphScope: [RELATIONSHIPS_ROOT, RELATIONSHIP_KEY_SEGMENTS.graph] as const,
   list: ({
     criteria,
     scopeKey,
@@ -57,15 +88,33 @@ export const relationshipKeys = {
     criteria: RelationshipListCriteria;
     scopeKey: RelationshipScopeKey;
   }) => [RELATIONSHIPS_ROOT, RELATIONSHIP_KEY_SEGMENTS.list, scopeKey, criteria] as const,
-  participants: ({
-    bookId,
-    pool,
-    query,
-  }: {
-    bookId: Nullable<string>;
-    pool: RelationshipParticipantPool;
-    query: string;
-  }) => [RELATIONSHIPS_ROOT, RELATIONSHIP_KEY_SEGMENTS.participants, pool, bookId, query] as const,
   path: (pathQuery: RelationshipGraphPathQuery) =>
     [RELATIONSHIPS_ROOT, RELATIONSHIP_KEY_SEGMENTS.path, pathQuery] as const,
+  roleSuggestions: (term: string) => [RELATIONSHIP_KEY_ROOTS.roleSuggestions, term] as const,
+  roster: ({
+    bookId,
+    sort,
+    term,
+  }: {
+    bookId: Nullable<string>;
+    sort: BookCharactersControllerListSort;
+    term: string;
+  }) =>
+    [
+      ...characterKeys.allBookRostersScope(),
+      bookId,
+      RELATIONSHIP_KEY_SEGMENTS.roster,
+      sort,
+      term,
+    ] as const,
+  workspace: ({
+    bookId,
+    reader,
+    request,
+  }: {
+    bookId: string;
+    reader: GraphReaderKey;
+    request: GraphWorkspaceQueryRequest;
+  }) => [RELATIONSHIPS_ROOT, RELATIONSHIP_KEY_SEGMENTS.workspace, bookId, reader, request] as const,
+  workspaceScope: [RELATIONSHIPS_ROOT, RELATIONSHIP_KEY_SEGMENTS.workspace] as const,
 };

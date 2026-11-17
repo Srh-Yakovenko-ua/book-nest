@@ -1,45 +1,73 @@
 "use client";
 
-import type { StatisticsCalendarDay } from "@app/shared";
+import type { Nullable, StatisticsCalendarDay } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 
 import { formatNumber } from "@/lib/format";
 
+import type { BooksCalendarJumpTarget } from "../../hooks/use-books-calendar-jump";
+
 import { resolveReadingDayTarget } from "../../model/statistics-drilldown";
 import { formatDayLong } from "../../model/statistics-format";
 import { ReadingDayDetails } from "../details/reading-day-details";
 import { StatisticsDetailSurface } from "../details/statistics-detail-surface";
-import { StatisticsSectionState } from "../statistics-states";
+import { StatisticsNote, StatisticsSectionState } from "../statistics-states";
 import { ReadingDayPreview } from "./reading-day-preview";
 
-export function ReadingBooksDiary({ days }: { days: readonly StatisticsCalendarDay[] }) {
+export function ReadingBooksDiary({
+  days,
+  isHistoryUncertain,
+  jumpTarget,
+}: {
+  days: readonly StatisticsCalendarDay[];
+  isHistoryUncertain: boolean;
+  jumpTarget?: Nullable<BooksCalendarJumpTarget>;
+}) {
   const locale = useLocale();
   const t = useTranslations("statistics.calendar.books");
   const activeDays = days.filter((day) => day.booksCount > 0).reverse();
 
   if (activeDays.length === 0) {
-    return <StatisticsSectionState kind="empty" title={t("emptyMonth")} />;
+    return isHistoryUncertain ? (
+      <StatisticsSectionState
+        description={t("emptyMonthUncertainDescription")}
+        kind="empty"
+        title={t("emptyMonthUncertainTitle")}
+      />
+    ) : (
+      <StatisticsSectionState kind="empty" title={t("emptyMonth")} />
+    );
   }
 
   return (
-    <ul className="flex flex-col gap-2">
-      {activeDays.map((day) => (
-        <li key={day.date}>
-          <DiaryRow date={formatDayLong(day.date, locale)} day={day} locale={locale} />
-        </li>
-      ))}
-    </ul>
+    <div className="flex flex-col gap-3">
+      <ul className="flex flex-col gap-2">
+        {activeDays.map((day) => (
+          <li key={day.date}>
+            <DiaryRow
+              date={formatDayLong(day.date, locale)}
+              day={day}
+              jumpTarget={jumpTarget?.date === day.date ? jumpTarget : null}
+              locale={locale}
+            />
+          </li>
+        ))}
+      </ul>
+      {isHistoryUncertain ? <StatisticsNote>{t("legacyMonthNote")}</StatisticsNote> : null}
+    </div>
   );
 }
 
 function DiaryRow({
   date,
   day,
+  jumpTarget,
   locale,
 }: {
   date: string;
   day: StatisticsCalendarDay;
+  jumpTarget: Nullable<BooksCalendarJumpTarget>;
   locale: string;
 }) {
   const t = useTranslations("statistics.calendar.books");
@@ -70,7 +98,8 @@ function DiaryRow({
       detail={() => <ReadingDayDetails date={detailDate} />}
       label={t("daySummary", { books: day.booksCount, date, pages: day.pagesRead })}
       title={date}
-      triggerClassName="flex w-full items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      triggerClassName="flex w-full scroll-mt-4 items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 data-jump-highlight:ring-2 data-jump-highlight:ring-primary"
+      triggerRef={jumpTarget?.ref}
     >
       {body}
     </StatisticsDetailSurface>

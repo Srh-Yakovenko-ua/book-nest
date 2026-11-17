@@ -16,9 +16,23 @@ import {
 } from "./books.js";
 import { type Nullable, type ValueOf } from "./common.js";
 import { GenreKeySchema } from "./genres.js";
-import { queryStringArray } from "./internal.js";
+import {
+  OWNERSHIP_PRICE_MAX,
+  OWNERSHIP_PRICE_MIN,
+  OWNERSHIP_STORE_NAME_MAX,
+  OWNERSHIP_STORE_URL_MAX,
+  queryStringArray,
+} from "./internal.js";
 
 export const MAX_STORE_LINKS_PER_BOOK = 20;
+
+export const WISHLIST_INPUT_LIMITS = {
+  priceMax: OWNERSHIP_PRICE_MAX,
+  priceMin: OWNERSHIP_PRICE_MIN,
+  searchMax: LIBRARY_SEARCH_MAX,
+  storeNameMax: OWNERSHIP_STORE_NAME_MAX,
+  storeUrlMax: OWNERSHIP_STORE_URL_MAX,
+} as const;
 
 export const DEFAULT_CURRENCY: Currency = "UAH";
 
@@ -191,7 +205,7 @@ export const WishlistQuerySchema = z
     priceMax: z.coerce.number().nonnegative().optional(),
     priceMin: z.coerce.number().nonnegative().optional(),
     publisher: queryStringArray(z.uuid()),
-    q: z.string().trim().max(LIBRARY_SEARCH_MAX).optional(),
+    q: z.string().trim().max(WISHLIST_INPUT_LIMITS.searchMax).optional(),
     seriesPlacement: queryStringArray(WishlistSeriesPlacementSchema),
     sort: WishlistSortSchema.default(WISHLIST_SORT_DEFAULT),
     store: queryStringArray(StoreLinkStoreNameSchema),

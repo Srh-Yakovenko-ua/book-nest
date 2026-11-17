@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Link } from "@/i18n/navigation";
-import { ApiError } from "@/lib/http-client";
+import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 
 import {
   useAddToReadingQueue,
@@ -95,7 +95,7 @@ function AddToQueueForm({
     if (input === null) return;
     add.mutate(input, {
       onError: (error) => {
-        if (error instanceof ApiError && error.status === 409) {
+        if (isApiErrorStatus(error, HTTP_STATUS.conflict)) {
           toast.error(tAdd("duplicateToast"));
           return;
         }

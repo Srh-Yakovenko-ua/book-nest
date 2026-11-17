@@ -32,6 +32,7 @@ describe("request error parsing", () => {
   beforeEach(() => {
     registerAuthBridge({
       getAccessToken: () => null,
+      getUserId: () => null,
       onRefreshFailed: () => {},
       refresh: () => Promise.reject(new Error("no refresh")),
     });
@@ -69,6 +70,7 @@ describe("request bearer attach", () => {
   it("adds Authorization header when a token is present", async () => {
     registerAuthBridge({
       getAccessToken: () => "token-123",
+      getUserId: () => null,
       onRefreshFailed: () => {},
       refresh: () => Promise.reject(new Error("no refresh")),
     });
@@ -99,6 +101,7 @@ describe("request refresh-on-401 single-flight", () => {
     };
     registerAuthBridge({
       getAccessToken: () => token,
+      getUserId: () => "user-a",
       onRefreshFailed: () => {},
       refresh,
     });
@@ -124,6 +127,7 @@ describe("request refresh-on-401 single-flight", () => {
     const onRefreshFailed = vi.fn();
     registerAuthBridge({
       getAccessToken: () => "old",
+      getUserId: () => null,
       onRefreshFailed,
       refresh: () => Promise.reject(new Error("refresh failed")),
     });
@@ -140,6 +144,7 @@ describe("request refresh-on-401 single-flight", () => {
     const refresh = vi.fn(() => Promise.resolve("new"));
     registerAuthBridge({
       getAccessToken: () => "old",
+      getUserId: () => null,
       onRefreshFailed: () => {},
       refresh,
     });
@@ -149,6 +154,93 @@ describe("request refresh-on-401 single-flight", () => {
     await request("/api/auth/login", { method: "POST" }).catch(() => {});
 
     expect(refresh).not.toHaveBeenCalled();
+  });
+});
+
+describe("request refresh-on-401 user guard", () => {
+  it("does not resend a request after the refresh switched to another user", async () => {
+    let userId = "user-a";
+    const onRefreshFailed = vi.fn();
+    const refresh = vi.fn(() => {
+      userId = "user-b";
+      return Promise.resolve("new");
+    });
+    registerAuthBridge({
+      getAccessToken: () => "old",
+      getUserId: () => userId,
+      onRefreshFailed,
+      refresh,
+    });
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ message: "expired" }, 401))
+      .mockResolvedValue(jsonResponse({ ok: true }));
+
+    const error = await captureError(request("/api/profile"));
+
+    expect(error.status).toBe(401);
+    expect(error.message).toBe("expired");
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(onRefreshFailed).not.toHaveBeenCalled();
+  });
+
+  it("does not resend when another request already switched the session before this one's refresh", async () => {
+    let userId = "user-a";
+    registerAuthBridge({
+      getAccessToken: () => "old",
+      getUserId: () => userId,
+      onRefreshFailed: () => {},
+      refresh: () => Promise.resolve("new"),
+    });
+    fetchMock
+      .mockImplementationOnce(() => {
+        userId = "user-b";
+        return Promise.resolve(jsonResponse({ message: "expired" }, 401));
+      })
+      .mockResolvedValue(jsonResponse({ ok: true }));
+
+    const error = await captureError(request("/api/profile"));
+
+    expect(error.status).toBe(401);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("resends after a refresh for the same user", async () => {
+    registerAuthBridge({
+      getAccessToken: () => "old",
+      getUserId: () => "user-a",
+      onRefreshFailed: () => {},
+      refresh: () => Promise.resolve("new"),
+    });
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ message: "expired" }, 401))
+      .mockResolvedValueOnce(jsonResponse({ name: "second" }));
+
+    const body = await request<{ name: string }>("/api/profile");
+
+    expect(body).toEqual({ name: "second" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("resends after a refresh when no user was signed in yet", async () => {
+    let userId: null | string = null;
+    registerAuthBridge({
+      getAccessToken: () => "old",
+      getUserId: () => userId,
+      onRefreshFailed: () => {},
+      refresh: () => {
+        userId = "user-a";
+        return Promise.resolve("new");
+      },
+    });
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ message: "expired" }, 401))
+      .mockResolvedValueOnce(jsonResponse({ name: "second" }));
+
+    const body = await request<{ name: string }>("/api/profile");
+
+    expect(body).toEqual({ name: "second" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
 

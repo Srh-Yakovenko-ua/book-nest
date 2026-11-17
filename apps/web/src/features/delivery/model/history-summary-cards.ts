@@ -1,6 +1,6 @@
 import type { BookOrderHistorySummaryView, Nullable } from "@app/shared";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
 import { formatNumber } from "@/lib/format";
 
@@ -72,7 +72,7 @@ export function buildHistorySummaryCards({
   labels,
   locale,
   summary,
-}: HistorySummaryCardOptions): LibrarySummaryCard[] {
+}: HistorySummaryCardOptions): SummaryCard[] {
   const counts = summary ?? EMPTY_SUMMARY;
 
   return [
@@ -147,7 +147,7 @@ function seriesToppedUpMicrofact({ counts, labels }: Omit<CardInput, "locale">):
   );
 }
 
-function toCancelledCard({ counts, labels, locale }: CardInput): LibrarySummaryCard {
+function toCancelledCard({ counts, labels, locale }: CardInput): SummaryCard {
   return {
     icon: "x-circle",
     iconTone: "ink",
@@ -159,7 +159,7 @@ function toCancelledCard({ counts, labels, locale }: CardInput): LibrarySummaryC
   };
 }
 
-function toCompletedCard({ counts, labels, locale }: CardInput): LibrarySummaryCard {
+function toCompletedCard({ counts, labels, locale }: CardInput): SummaryCard {
   return {
     icon: "package-check",
     iconTone: "primary",
@@ -171,7 +171,7 @@ function toCompletedCard({ counts, labels, locale }: CardInput): LibrarySummaryC
   };
 }
 
-function toReceivedCard({ counts, labels, locale }: CardInput): LibrarySummaryCard {
+function toReceivedCard({ counts, labels, locale }: CardInput): SummaryCard {
   return {
     icon: "check-circle",
     iconTone: "success",
@@ -183,7 +183,7 @@ function toReceivedCard({ counts, labels, locale }: CardInput): LibrarySummaryCa
   };
 }
 
-function toSeriesToppedUpCard({ counts, labels, locale }: CardInput): LibrarySummaryCard {
+function toSeriesToppedUpCard({ counts, labels, locale }: CardInput): SummaryCard {
   return {
     icon: "library-big",
     iconTone: "genre",

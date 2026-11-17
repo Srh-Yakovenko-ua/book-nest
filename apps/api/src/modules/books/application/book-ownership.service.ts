@@ -18,7 +18,7 @@ import type { OwnershipChangePatch } from "../infrastructure/books.repository.js
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
-import { toIsoDate } from "../../../core/iso-date.js";
+import { UserSettingsContextService } from "../../profile/index.js";
 import { computeOwnershipChange } from "../domain/ownership-transition.js";
 import { BookStoreLinkRepository } from "../infrastructure/book-store-link.repository.js";
 import { BooksRepository } from "../infrastructure/books.repository.js";
@@ -41,6 +41,7 @@ export class BookOwnershipService {
     private readonly bookStoreLinkRepository: BookStoreLinkRepository,
     private readonly transactionRunner: TransactionRunner,
     private readonly viewAssembler: BookViewAssembler,
+    private readonly userSettingsContextService: UserSettingsContextService,
   ) {}
 
   async markBought(userId: string, bookId: string, input: MarkBoughtInput): Promise<BookView> {
@@ -54,7 +55,7 @@ export class BookOwnershipService {
     }
 
     const now = new Date();
-    const date = input.purchasedAt ?? toIsoDate(now);
+    const date = input.purchasedAt ?? (await this.userSettingsContextService.today(userId));
     const patch = computeOwnershipChange({
       current,
       date,

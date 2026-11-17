@@ -7,6 +7,8 @@ import type { DeliveryReadControllerInTransitQuickCountsParams } from "@/shared/
 
 import { deliveryReadControllerInTransitQuickCounts } from "@/shared/api/generated/endpoints/delivery-read/delivery-read";
 
+import { deliveryKeys } from "./delivery-keys";
+
 export function useInTransitQuickCounts(params: DeliveryReadControllerInTransitQuickCountsParams) {
   return useQuery({
     placeholderData: keepPreviousData,
@@ -14,6 +16,6 @@ export function useInTransitQuickCounts(params: DeliveryReadControllerInTransitQ
       InTransitQuickCountsSchema.parse(
         await deliveryReadControllerInTransitQuickCounts(params, { signal }),
       ),
-    queryKey: ["/api/delivery/books/in-transit", "quick-counts", params],
+    queryKey: deliveryKeys.inTransit.quickCounts(params),
   });
 }

@@ -1,19 +1,26 @@
 "use client";
 
-import type { CustomListCard } from "@app/shared";
-import type { ReactNode } from "react";
+import type { CustomListCard, Nullable } from "@app/shared";
+import type { ReactNode, Ref } from "react";
 
 import { useTranslations } from "next-intl";
+import { useRef } from "react";
 
-import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
+import type { RefetchErrorState } from "@/components/refetch-error-banner";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { infiniteScrollStateOf } from "@/hooks/use-infinite-scroll-sentinel";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import type { ListViewMode } from "../model/lists-query";
 
@@ -32,6 +39,7 @@ type AllListsViewProps = {
   isFetchingNextPage: boolean;
   isLoadMoreError: boolean;
   isPending: boolean;
+  isRefreshing: boolean;
   lists: CustomListCard[];
   loadMoreErrorLabel: string;
   onClearFilters: () => void;
@@ -41,6 +49,7 @@ type AllListsViewProps = {
   onLoadMore: () => void;
   onOpenLibrary: () => void;
   onRetry: () => void;
+  refetchError: Nullable<RefetchErrorState>;
   sidebar: ReactNode;
   summary: ReactNode;
   toolbar: ReactNode;
@@ -56,6 +65,7 @@ export function AllListsView({
   isFetchingNextPage,
   isLoadMoreError,
   isPending,
+  isRefreshing,
   lists,
   loadMoreErrorLabel,
   onClearFilters,
@@ -65,6 +75,7 @@ export function AllListsView({
   onLoadMore,
   onOpenLibrary,
   onRetry,
+  refetchError,
   sidebar,
   summary,
   toolbar,
@@ -72,6 +83,8 @@ export function AllListsView({
 }: AllListsViewProps) {
   const t = useTranslations("lists.catalog");
   const showToolbar = !isError && (isPending || hasAnyLists);
+  const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsHeadingRef);
 
   return (
     <div className="flex flex-col gap-6">
@@ -96,20 +109,27 @@ export function AllListsView({
       {showToolbar ? toolbar : null}
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
-          <h2 className="sr-only">{t("title")}</h2>
+        <div
+          className={cn("flex min-w-0 flex-1 flex-col gap-6", RETRY_FOCUS_RING.aroundHiddenHeading)}
+        >
+          <h2 className="sr-only" ref={resultsHeadingRef} tabIndex={-1}>
+            {t("title")}
+          </h2>
+          <RefetchErrorBanner state={refetchError} />
           <ListsContent
             hasActiveFilters={hasActiveFilters}
             hasAnyLists={hasAnyLists}
             isError={isError}
             isPending={isPending}
+            isRefreshing={isRefreshing}
             lists={lists}
             onClearFilters={onClearFilters}
             onCreateList={onCreateList}
             onDeleteList={onDeleteList}
             onEditList={onEditList}
             onOpenLibrary={onOpenLibrary}
-            onRetry={onRetry}
+            onRetry={withRetryFocus(onRetry)}
+            retryButtonRef={retryButtonRef}
             view={view}
           />
           {isError || isPending || lists.length === 0 ? null : (
@@ -118,7 +138,11 @@ export function AllListsView({
                 allShownLabel={allShownLabel}
                 errorLabel={loadMoreErrorLabel}
                 onLoadMore={onLoadMore}
-                state={nextPageState({ hasNextPage, isFetchingNextPage, isLoadMoreError })}
+                state={infiniteScrollStateOf({
+                  hasNextPage,
+                  isFetchingNextPage,
+                  isFetchNextPageError: isLoadMoreError,
+                })}
               />
             </div>
           )}
@@ -151,6 +175,7 @@ function ListsContent({
   hasAnyLists,
   isError,
   isPending,
+  isRefreshing,
   lists,
   onClearFilters,
   onCreateList,
@@ -158,12 +183,14 @@ function ListsContent({
   onEditList,
   onOpenLibrary,
   onRetry,
+  retryButtonRef,
   view,
 }: {
   hasActiveFilters: boolean;
   hasAnyLists: boolean;
   isError: boolean;
   isPending: boolean;
+  isRefreshing: boolean;
   lists: CustomListCard[];
   onClearFilters: () => void;
   onCreateList: () => void;
@@ -171,6 +198,7 @@ function ListsContent({
   onEditList: (list: CustomListCard) => void;
   onOpenLibrary: () => void;
   onRetry: () => void;
+  retryButtonRef: Ref<HTMLButtonElement>;
   view: ListViewMode;
 }) {
   const t = useTranslations("lists.catalog");
@@ -184,7 +212,7 @@ function ListsContent({
     };
     return (
       <div aria-live="assertive" role="alert">
-        <EmptyState onPrimary={onRetry} state={errorState} />
+        <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
       </div>
     );
   }
@@ -211,14 +239,18 @@ function ListsContent({
         primary: { icon: "x", label: t("noResults.clear") },
         title: t("noResults.title"),
       };
-      return <EmptyState onPrimary={onClearFilters} state={noResultsState} />;
+      return (
+        <RefreshingRegion isRefreshing={isRefreshing}>
+          <EmptyState onPrimary={onClearFilters} state={noResultsState} />
+        </RefreshingRegion>
+      );
     }
     return null;
   }
 
   if (view === "list") {
     return (
-      <div className="flex flex-col gap-3">
+      <RefreshingRegion className="flex flex-col gap-3" isRefreshing={isRefreshing}>
         {lists.map((list) => (
           <ListRow
             key={list.id}
@@ -227,12 +259,15 @@ function ListsContent({
             onEdit={() => onEditList(list)}
           />
         ))}
-      </div>
+      </RefreshingRegion>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+    <RefreshingRegion
+      className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"
+      isRefreshing={isRefreshing}
+    >
       {lists.map((list) => (
         <ListCard
           key={list.id}
@@ -241,7 +276,7 @@ function ListsContent({
           onEdit={() => onEditList(list)}
         />
       ))}
-    </div>
+    </RefreshingRegion>
   );
 }
 
@@ -253,18 +288,4 @@ function ListsGridSkeleton() {
       ))}
     </div>
   );
-}
-
-function nextPageState({
-  hasNextPage,
-  isFetchingNextPage,
-  isLoadMoreError,
-}: {
-  hasNextPage: boolean;
-  isFetchingNextPage: boolean;
-  isLoadMoreError: boolean;
-}): InfiniteScrollState {
-  if (isFetchingNextPage) return "loading";
-  if (isLoadMoreError) return "error";
-  return hasNextPage ? "idle" : "none";
 }

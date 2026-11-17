@@ -2,9 +2,9 @@
 
 import { useLocale, useTranslations } from "next-intl";
 
-import type { ActiveFilterChip } from "@/features/books";
+import type { ActiveFilterChip } from "@/components/catalog/active-filters";
 
-import { isStorableOrderId, rangeLabel, storableDay } from "@/features/books/model/filter-chips";
+import { isStorableOrderId, rangeLabel, storableDay } from "@/lib/filter-chips";
 import { formatDate } from "@/lib/format";
 
 import type { DeliveryHistoryAdvancedState, DeliveryHistoryTab } from "./history-params";

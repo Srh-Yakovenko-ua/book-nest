@@ -3,6 +3,7 @@
 import type { WishlistSort } from "@app/shared";
 import type { ReactNode } from "react";
 
+import { WISHLIST_INPUT_LIMITS } from "@app/shared";
 import { LayoutGrid, List } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -69,6 +70,7 @@ export function BooksToBuyToolbar({
             clearLabel={t("searchClear")}
             isCommittable={alwaysCommittable}
             label={t("searchLabel")}
+            maxLength={WISHLIST_INPUT_LIMITS.searchMax}
             onClear={() => onSearchChange("")}
             onSearch={onSearchChange}
             placeholder={t("searchPlaceholder")}

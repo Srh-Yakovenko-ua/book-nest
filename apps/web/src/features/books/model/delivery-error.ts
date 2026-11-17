@@ -1,5 +1,6 @@
 import { DELIVERY_ERROR_CODES } from "@app/shared";
 
+import { HTTP_STATUS } from "@/lib/api-errors";
 import { ApiError } from "@/lib/http-client";
 
 export type DeliveryErrorKey =
@@ -15,8 +16,6 @@ export type DeliveryErrorKey =
   | "sharedOrder"
   | "sharedShipment"
   | "shipmentNotActive";
-
-const HTTP_NOT_FOUND = 404;
 
 export function toDeliveryErrorKey(error: unknown): DeliveryErrorKey {
   if (!(error instanceof ApiError)) return "generic";
@@ -46,5 +45,5 @@ export function toDeliveryErrorKey(error: unknown): DeliveryErrorKey {
       break;
   }
 
-  return error.status === HTTP_NOT_FOUND ? "notFound" : "generic";
+  return error.status === HTTP_STATUS.notFound ? "notFound" : "generic";
 }

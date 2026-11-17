@@ -1,5 +1,6 @@
 import type { BookCharacterView, Nullable } from "@app/shared";
 
+import { HTTP_STATUS } from "@/lib/api-errors";
 import { ApiError } from "@/lib/http-client";
 
 import type { CharacterDetailsTab, CharacterRouteArgs } from "./character-routes";
@@ -22,7 +23,11 @@ type CharacterDetailsSearch = {
   view: Nullable<string>;
 };
 
-const UNAVAILABLE_CONTEXT_STATUSES: readonly number[] = [400, 403, 404];
+const UNAVAILABLE_CONTEXT_STATUSES: readonly number[] = [
+  HTTP_STATUS.badRequest,
+  HTTP_STATUS.forbidden,
+  HTTP_STATUS.notFound,
+];
 
 export function canonicalCharacterDetailsHref({
   characterId,

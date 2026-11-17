@@ -1,25 +1,33 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { Nullable } from "@app/shared";
+import type { ReactNode, Ref } from "react";
 
 import { useTranslations } from "next-intl";
+import { useRef } from "react";
 
+import type { RefetchErrorState } from "@/components/refetch-error-banner";
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import type { DeliveryOrderCardModel } from "../model/order-card-model";
 
 export type DeliveryContent =
-  | { items: DeliveryOrderCardModel[]; kind: "ready" }
+  | { isRefreshing: boolean; items: DeliveryOrderCardModel[]; kind: "ready" }
+  | { isRefreshing: boolean; kind: "filtered-empty" }
   | { kind: "empty" }
   | { kind: "error" }
-  | { kind: "filtered-empty" }
   | { kind: "loading" };
 
 type DeliveryInTransitViewProps = {
@@ -35,6 +43,7 @@ type DeliveryInTransitViewProps = {
     isFetchingNextPage: boolean;
     isFetchNextPageError: boolean;
   };
+  refetchError: Nullable<RefetchErrorState>;
   renderCard: (model: DeliveryOrderCardModel) => ReactNode;
   selectAll?: { checked: "indeterminate" | boolean; count: number; onToggle: () => void };
   showToolbar: boolean;
@@ -54,6 +63,7 @@ export function DeliveryInTransitView({
   onResetFilters,
   onRetry,
   pagination,
+  refetchError,
   renderCard,
   selectAll,
   showToolbar,
@@ -62,6 +72,8 @@ export function DeliveryInTransitView({
   toolbar,
 }: DeliveryInTransitViewProps) {
   const t = useTranslations("delivery");
+  const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsHeadingRef);
 
   return (
     <div className="flex flex-col gap-6">
@@ -85,16 +97,22 @@ export function DeliveryInTransitView({
       {showToolbar ? toolbar : null}
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
-          <h2 className="sr-only">{t("resultsTitle")}</h2>
+        <div
+          className={cn("flex min-w-0 flex-1 flex-col gap-6", RETRY_FOCUS_RING.aroundHiddenHeading)}
+        >
+          <h2 className="sr-only" ref={resultsHeadingRef} tabIndex={-1}>
+            {t("resultsTitle")}
+          </h2>
+          <RefetchErrorBanner state={refetchError} />
           <DeliveryContentArea
             content={content}
             onGoToBooksToBuy={onGoToBooksToBuy}
             onLoadMore={onLoadMore}
             onResetFilters={onResetFilters}
-            onRetry={onRetry}
+            onRetry={withRetryFocus(onRetry)}
             pagination={pagination}
             renderCard={renderCard}
+            retryButtonRef={retryButtonRef}
             selectAll={selectAll}
           />
         </div>
@@ -114,6 +132,7 @@ function DeliveryContentArea({
   onRetry,
   pagination,
   renderCard,
+  retryButtonRef,
   selectAll,
 }: Pick<
   DeliveryInTransitViewProps,
@@ -125,7 +144,7 @@ function DeliveryContentArea({
   | "pagination"
   | "renderCard"
   | "selectAll"
->) {
+> & { retryButtonRef: Ref<HTMLButtonElement> }) {
   const t = useTranslations("delivery");
 
   if (content.kind === "error") {
@@ -137,7 +156,7 @@ function DeliveryContentArea({
     };
     return (
       <div aria-live="assertive" role="alert">
-        <EmptyState onPrimary={onRetry} state={errorState} />
+        <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
       </div>
     );
   }
@@ -163,7 +182,11 @@ function DeliveryContentArea({
       primary: { icon: "x", label: t("states.filteredEmpty.reset") },
       title: t("states.filteredEmpty.title"),
     };
-    return <EmptyState onPrimary={onResetFilters} state={filteredState} />;
+    return (
+      <RefreshingRegion isRefreshing={content.isRefreshing}>
+        <EmptyState onPrimary={onResetFilters} state={filteredState} />
+      </RefreshingRegion>
+    );
   }
 
   const scrollState: InfiniteScrollState = pagination.isFetchNextPageError
@@ -183,7 +206,9 @@ function DeliveryContentArea({
         </label>
       ) : null}
 
-      <div className="flex flex-col gap-4">{content.items.map((model) => renderCard(model))}</div>
+      <RefreshingRegion className="flex flex-col gap-4" isRefreshing={content.isRefreshing}>
+        {content.items.map((model) => renderCard(model))}
+      </RefreshingRegion>
 
       <InfiniteScrollFooter
         errorLabel={t("loadMoreError")}

@@ -21,25 +21,37 @@ type CharacterFactCardProps = {
 export function CharacterFactCard({ fact, onDelete, onEdit }: CharacterFactCardProps) {
   const t = useTranslations("characters.facts.card");
   const titleId = useId();
-  const { isClamped: isTitleClamped, ref: titleRef } = useFittedLineClamp<HTMLHeadingElement>(
+  const { isClamped: isTitleClamped, ref: titleRef } = useFittedLineClamp<HTMLSpanElement>(
     fact.title,
   );
   const { isClamped: isTextClamped, ref: textRef } = useFittedLineClamp<HTMLParagraphElement>(
     fact.text,
   );
-  const fullViewTriggerRef = useRef<Nullable<HTMLButtonElement>>(null);
+  const fullViewTriggerRef = useRef<Nullable<HTMLElement>>(null);
   const [isFullViewOpen, setFullViewOpen] = useState(false);
 
+  function openFullView(trigger: HTMLElement) {
+    fullViewTriggerRef.current = trigger;
+    setFullViewOpen(true);
+  }
+
   return (
-    <article className="flex w-full min-w-0 flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-card">
+    <article className="relative flex w-full min-w-0 flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-card transition-colors hover:border-accent-border">
       <div className="flex min-w-0 flex-col items-start gap-1.5">
         <div className="flex w-full min-w-0 items-start gap-2">
           <h3
-            className="line-clamp-2 min-w-0 flex-1 font-heading text-base leading-snug font-semibold wrap-anywhere text-ink"
+            className="min-w-0 flex-1 font-heading text-base leading-snug font-semibold wrap-anywhere text-ink"
             id={titleId}
-            ref={titleRef}
           >
-            {fact.title}
+            <button
+              className="w-full cursor-pointer text-left outline-hidden after:absolute after:inset-0 after:rounded-xl after:content-[''] focus-visible:after:ring-3 focus-visible:after:ring-ring/50"
+              onClick={(event) => openFullView(event.currentTarget)}
+              type="button"
+            >
+              <span className="line-clamp-2" ref={titleRef}>
+                {fact.title}
+              </span>
+            </button>
           </h3>
           <CharacterFactActionsMenu
             factId={fact.id}
@@ -57,9 +69,8 @@ export function CharacterFactCard({ fact, onDelete, onEdit }: CharacterFactCardP
         {isTitleClamped || isTextClamped ? (
           <Button
             aria-describedby={titleId}
-            className="h-auto p-0"
-            onClick={() => setFullViewOpen(true)}
-            ref={fullViewTriggerRef}
+            className="relative z-10 h-auto p-0"
+            onClick={(event) => openFullView(event.currentTarget)}
             size="sm"
             variant="link"
           >

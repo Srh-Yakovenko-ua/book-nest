@@ -13,7 +13,8 @@ const GOAL_ID = "33333333-3333-4333-8333-333333333333";
 const LIST_ID = "22222222-2222-4222-8222-222222222222";
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 
-const NOW = new Date("2026-08-15T09:00:00.000Z");
+const TIME_ZONE = "UTC";
+const TODAY = parseIsoDate("2026-08-15");
 const TX = fakeOf<Prisma.TransactionClient>({});
 
 type WrittenRow = {
@@ -79,7 +80,7 @@ describe("ReadingGoalActivityRecorder.recordCreation", () => {
       { bookId: bookId(2), qualifiedFinishedAt: null },
     ]);
 
-    await recorder.recordCreation({ goal: goal(), now: NOW, tx: TX });
+    await recorder.recordCreation({ goal: goal(), timeZone: TIME_ZONE, today: TODAY, tx: TX });
 
     expect(rowsOf(activityRepository)).toEqual([
       {
@@ -99,7 +100,12 @@ describe("ReadingGoalActivityRecorder.recordCreation", () => {
       { bookId: bookId(2), qualifiedFinishedAt: parseIsoDate("2026-08-05") },
     ]);
 
-    await recorder.recordCreation({ goal: goal({ targetCount: 5 }), now: NOW, tx: TX });
+    await recorder.recordCreation({
+      goal: goal({ targetCount: 5 }),
+      timeZone: TIME_ZONE,
+      today: TODAY,
+      tx: TX,
+    });
 
     expect(rowsOf(activityRepository).filter((row) => row.type === "book_counted")).toEqual([
       {
@@ -125,7 +131,7 @@ describe("ReadingGoalActivityRecorder.recordCreation", () => {
       { bookId: bookId(1), qualifiedFinishedAt: parseIsoDate("2026-08-10") },
     ]);
 
-    await recorder.recordCreation({ goal: goal(), now: NOW, tx: TX });
+    await recorder.recordCreation({ goal: goal(), timeZone: TIME_ZONE, today: TODAY, tx: TX });
 
     expect(typesOf(activityRepository)).toEqual([
       "goal_created",
@@ -146,7 +152,7 @@ describe("ReadingGoalActivityRecorder.recordCreation", () => {
       { bookId: bookId(1), qualifiedFinishedAt: null },
     ]);
 
-    await recorder.recordCreation({ goal: goal(), now: NOW, tx: TX });
+    await recorder.recordCreation({ goal: goal(), timeZone: TIME_ZONE, today: TODAY, tx: TX });
 
     expect(typesOf(activityRepository)).toEqual(["goal_created", "book_counted"]);
   });
@@ -159,8 +165,9 @@ describe("ReadingGoalActivityRecorder.recordUpdate", () => {
     await recorder.recordUpdate({
       changes: [],
       goal: goal({ targetCount: 6 }),
-      now: NOW,
       previous: goal({ targetCount: 5 }),
+      timeZone: TIME_ZONE,
+      today: TODAY,
       tx: TX,
     });
 
@@ -181,8 +188,9 @@ describe("ReadingGoalActivityRecorder.recordUpdate", () => {
     await recorder.recordUpdate({
       changes: [],
       goal: goal({ deadline: parseIsoDate("2026-11-01") }),
-      now: NOW,
       previous: goal({ deadline: parseIsoDate("2026-10-01") }),
+      timeZone: TIME_ZONE,
+      today: TODAY,
       tx: TX,
     });
 
@@ -203,8 +211,9 @@ describe("ReadingGoalActivityRecorder.recordUpdate", () => {
     await recorder.recordUpdate({
       changes: [],
       goal: goal({ name: "Winter reads" }),
-      now: NOW,
       previous: goal({ name: "Autumn reads" }),
+      timeZone: TIME_ZONE,
+      today: TODAY,
       tx: TX,
     });
 
@@ -233,8 +242,9 @@ describe("ReadingGoalActivityRecorder.recordUpdate", () => {
         },
       ],
       goal: goal({ deadline: parseIsoDate("2026-08-16") }),
-      now: NOW,
       previous: goal(),
+      timeZone: TIME_ZONE,
+      today: TODAY,
       tx: TX,
     });
 
@@ -261,8 +271,9 @@ describe("ReadingGoalActivityRecorder.recordUpdate", () => {
         },
       ],
       goal: goal({ deadline: parseIsoDate("2026-10-01") }),
-      now: NOW,
       previous: goal({ deadline: parseIsoDate("2026-08-10") }),
+      timeZone: TIME_ZONE,
+      today: TODAY,
       tx: TX,
     });
 
@@ -289,8 +300,9 @@ describe("ReadingGoalActivityRecorder.recordUpdate", () => {
         },
       ],
       goal: goal({ deadline: parseIsoDate("2026-10-01") }),
-      now: NOW,
       previous: goal(),
+      timeZone: TIME_ZONE,
+      today: TODAY,
       tx: TX,
     });
 
@@ -306,8 +318,9 @@ describe("ReadingGoalActivityRecorder.recordUpdate", () => {
     await recorder.recordUpdate({
       changes: [],
       goal: goal({ targetCount: 1 }),
-      now: NOW,
       previous: goal({ targetCount: 2 }),
+      timeZone: TIME_ZONE,
+      today: TODAY,
       tx: TX,
     });
 
@@ -323,8 +336,9 @@ describe("ReadingGoalActivityRecorder.recordUpdate", () => {
     await recorder.recordUpdate({
       changes: [],
       goal: goal({ targetCount: 1 }),
-      now: NOW,
       previous: goal({ targetCount: 2 }),
+      timeZone: TIME_ZONE,
+      today: TODAY,
       tx: TX,
     });
 
@@ -339,8 +353,9 @@ describe("ReadingGoalActivityRecorder.recordUpdate", () => {
     await recorder.recordUpdate({
       changes: [],
       goal: goal({ deadline: parseIsoDate("2026-08-10"), targetCount: 2 }),
-      now: NOW,
       previous: goal({ deadline: parseIsoDate("2026-08-10"), targetCount: 1 }),
+      timeZone: TIME_ZONE,
+      today: TODAY,
       tx: TX,
     });
 
@@ -359,8 +374,9 @@ describe("ReadingGoalActivityRecorder.recordUpdate", () => {
     await recorder.recordUpdate({
       changes: [],
       goal: goal(),
-      now: NOW,
       previous: goal(),
+      timeZone: TIME_ZONE,
+      today: TODAY,
       tx: TX,
     });
 
@@ -378,7 +394,8 @@ describe("ReadingGoalActivityRecorder.recordArchive", () => {
     await recorder.recordArchive({
       changes: [],
       goal: goal({ archivedAt: new Date("2026-08-15T09:00:00.000Z") }),
-      now: NOW,
+      timeZone: TIME_ZONE,
+      today: TODAY,
       tx: TX,
     });
 
@@ -404,7 +421,8 @@ describe("ReadingGoalActivityRecorder.recordArchive", () => {
         archivedAt: new Date("2026-09-15T09:00:00.000Z"),
         deadline: parseIsoDate("2026-09-01"),
       }),
-      now: new Date("2026-09-15T09:00:00.000Z"),
+      timeZone: TIME_ZONE,
+      today: parseIsoDate("2026-09-15"),
       tx: TX,
     });
 

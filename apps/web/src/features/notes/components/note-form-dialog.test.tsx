@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } fr
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
 import { makeSeriesView } from "@/features/series/model/series.fixtures";
+import messages from "@/messages/uk.json";
 import {
   createTestQueryClient,
   renderWithProviders,
@@ -1237,5 +1238,61 @@ describe("NoteFormDialog focus", () => {
 
     expect(screen.queryByRole("radio", { name: /Емпіреї/ })).not.toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: NAMES.title })).toHaveFocus();
+  });
+});
+
+describe("NoteFormDialog closing a draft", () => {
+  const discardChanges = messages.common.discardChanges;
+
+  function renderPreselected(onOpenChange: (open: boolean) => void) {
+    renderWithProviders(
+      <NoteFormDialog
+        onOpenChange={onOpenChange}
+        open
+        target={{ entity: bookEntity(makeBookNote()), mode: "preselected" }}
+      />,
+    );
+  }
+
+  it("asks before Escape throws away a typed note and keeps the dialog", async () => {
+    const onOpenChange = vi.fn();
+    renderPreselected(onOpenChange);
+    const dialog = await screen.findByRole("dialog", { name: NAMES.createTitle });
+
+    await userEvent.type(within(dialog).getByRole("textbox", { name: NAMES.text }), DRAFT);
+    await userEvent.keyboard("{Escape}");
+
+    expect(
+      await screen.findByRole("alertdialog", { name: discardChanges.title }),
+    ).toHaveAccessibleDescription(discardChanges.description);
+    expect(dialog).toBeInTheDocument();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("closes once throwing away the typed note is confirmed", async () => {
+    const onOpenChange = vi.fn();
+    renderPreselected(onOpenChange);
+
+    await userEvent.type(await screen.findByRole("textbox", { name: NAMES.text }), DRAFT);
+    await userEvent.keyboard("{Escape}");
+    await userEvent.click(
+      within(await screen.findByRole("alertdialog", { name: discardChanges.title })).getByRole(
+        "button",
+        { name: discardChanges.confirm },
+      ),
+    );
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("closes on Escape at once when nothing was typed", async () => {
+    const onOpenChange = vi.fn();
+    renderPreselected(onOpenChange);
+    await screen.findByRole("dialog", { name: NAMES.createTitle });
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 });

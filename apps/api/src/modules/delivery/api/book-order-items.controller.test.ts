@@ -68,7 +68,9 @@ async function readOrder(orderId: string): Promise<BookOrderView> {
   return res.body;
 }
 
-async function seedThreeBookParcel(): Promise<ThreeBookParcel> {
+async function seedThreeBookParcel({
+  orderDate = isoDay(-4),
+}: { orderDate?: string } = {}): Promise<ThreeBookParcel> {
   const bookIds = await createBooks({
     accessToken: reader.accessToken,
     app,
@@ -81,7 +83,7 @@ async function seedThreeBookParcel(): Promise<ThreeBookParcel> {
     input: {
       currency: "UAH",
       items: bookIds.map((bookId) => ({ bookId, price: 120 })),
-      orderDate: isoDay(-4),
+      orderDate,
       shipments: [{ bookIds, expectedDeliveryDate: isoDay(3), trackingNumber: "NP-1" }],
       storeName: "Yakaboo",
     },
@@ -247,7 +249,7 @@ describe("POST /api/delivery/books/receive", () => {
   });
 
   it("closes the parcel once its last book on the way is received", async () => {
-    const { bookIds, order, shipmentId } = await seedThreeBookParcel();
+    const { bookIds, order, shipmentId } = await seedThreeBookParcel({ orderDate: "2026-07-10" });
     await postJson({
       accessToken: reader.accessToken,
       app,
@@ -257,14 +259,14 @@ describe("POST /api/delivery/books/receive", () => {
     await postJson({
       accessToken: reader.accessToken,
       app,
-      body: { bookIds: [bookIds[0], bookIds[1]], receivedAt: isoDay(-1) },
+      body: { bookIds: [bookIds[0], bookIds[1]], receivedAt: "2026-07-15" },
       path: ORDER_ROUTES.receiveBooks,
     });
 
     const view = await readOrder(order.id);
     const parcel = view.shipments.find((shipment) => shipment.id === shipmentId);
     expect(parcel).toMatchObject({ status: "received" });
-    expect(parcel?.receivedAt).toBe(`${isoDay(-1)}T00:00:00.000Z`);
+    expect(parcel?.receivedAt).toBe("2026-07-14T21:00:00.000Z");
   });
 
   it("leaves a parcel whose books were all cancelled out of the received state", async () => {

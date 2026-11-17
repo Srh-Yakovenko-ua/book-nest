@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { charactersControllerUpdateGlobal } from "@/shared/api/generated/endpoints/characters/characters";
 
-import { characterKeys } from "./character-keys";
+import { invalidateCharacterIdentityViews } from "./character-identity-sync";
 
 type UpdateCharacterVariables = {
   characterId: string;
@@ -22,7 +22,7 @@ export function useUpdateCharacter() {
     }: UpdateCharacterVariables): Promise<CharacterDetailsView> =>
       CharacterDetailsViewSchema.parse(await charactersControllerUpdateGlobal(characterId, input)),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: characterKeys.all });
+      invalidateCharacterIdentityViews(queryClient);
     },
   });
 }

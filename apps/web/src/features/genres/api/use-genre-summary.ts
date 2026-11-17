@@ -12,6 +12,5 @@ export function useGenreSummary() {
     queryFn: async ({ signal }): Promise<GenreSummaryView> =>
       GenreSummaryViewSchema.parse(await genresControllerSummary({ signal })),
     queryKey: genresKeys.summary,
-    retry: false,
   });
 }

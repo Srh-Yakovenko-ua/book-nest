@@ -44,33 +44,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type notificationsControllerListResponse200 = {
-  data: NotificationListResponseDto;
-  status: 200;
-};
-
-export type notificationsControllerListResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type notificationsControllerListResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type notificationsControllerListResponseSuccess = notificationsControllerListResponse200 & {
-  headers: Headers;
-};
-export type notificationsControllerListResponseError = (
-  notificationsControllerListResponse401 | notificationsControllerListResponse404
-) & {
-  headers: Headers;
-};
-
-export type notificationsControllerListResponse =
-  notificationsControllerListResponseSuccess | notificationsControllerListResponseError;
-
 export const getNotificationsControllerListUrl = (params?: NotificationsControllerListParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -93,14 +66,11 @@ export const getNotificationsControllerListUrl = (params?: NotificationsControll
 export const notificationsControllerList = async (
   params?: NotificationsControllerListParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<notificationsControllerListResponse> => {
-  return customInstance<notificationsControllerListResponse>(
-    getNotificationsControllerListUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<NotificationListResponseDto> => {
+  return customInstance<NotificationListResponseDto>(getNotificationsControllerListUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getNotificationsControllerListQueryKey = (
@@ -222,29 +192,6 @@ export function useNotificationsControllerList<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type notificationsControllerUnreadCountResponse200 = {
-  data: NotificationUnreadCountDto;
-  status: 200;
-};
-
-export type notificationsControllerUnreadCountResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type notificationsControllerUnreadCountResponseSuccess =
-  notificationsControllerUnreadCountResponse200 & {
-    headers: Headers;
-  };
-export type notificationsControllerUnreadCountResponseError =
-  notificationsControllerUnreadCountResponse401 & {
-    headers: Headers;
-  };
-
-export type notificationsControllerUnreadCountResponse =
-  | notificationsControllerUnreadCountResponseSuccess
-  | notificationsControllerUnreadCountResponseError;
-
 export const getNotificationsControllerUnreadCountUrl = () => {
   return `/api/notifications/unread-count`;
 };
@@ -254,14 +201,11 @@ export const getNotificationsControllerUnreadCountUrl = () => {
  */
 export const notificationsControllerUnreadCount = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<notificationsControllerUnreadCountResponse> => {
-  return customInstance<notificationsControllerUnreadCountResponse>(
-    getNotificationsControllerUnreadCountUrl(),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<NotificationUnreadCountDto> => {
+  return customInstance<NotificationUnreadCountDto>(getNotificationsControllerUnreadCountUrl(), {
+    ...options,
+    method: "GET",
+  });
 };
 
 export const getNotificationsControllerUnreadCountQueryKey = () => {
@@ -374,28 +318,6 @@ export function useNotificationsControllerUnreadCount<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type notificationsControllerMarkReadResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type notificationsControllerMarkReadResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type notificationsControllerMarkReadResponseSuccess =
-  notificationsControllerMarkReadResponse204 & {
-    headers: Headers;
-  };
-export type notificationsControllerMarkReadResponseError =
-  notificationsControllerMarkReadResponse401 & {
-    headers: Headers;
-  };
-
-export type notificationsControllerMarkReadResponse =
-  notificationsControllerMarkReadResponseSuccess | notificationsControllerMarkReadResponseError;
-
 export const getNotificationsControllerMarkReadUrl = () => {
   return `/api/notifications/read`;
 };
@@ -406,16 +328,13 @@ export const getNotificationsControllerMarkReadUrl = () => {
 export const notificationsControllerMarkRead = async (
   markNotificationsReadInputDto: MarkNotificationsReadInputDto,
   options?: Parameters<typeof customInstance>[1],
-): Promise<notificationsControllerMarkReadResponse> => {
-  return customInstance<notificationsControllerMarkReadResponse>(
-    getNotificationsControllerMarkReadUrl(),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(markNotificationsReadInputDto),
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getNotificationsControllerMarkReadUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(markNotificationsReadInputDto),
+  });
 };
 
 export const getNotificationsControllerMarkReadQueryKey = (
@@ -543,29 +462,6 @@ export function useNotificationsControllerMarkRead<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type notificationsControllerMarkAllReadResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type notificationsControllerMarkAllReadResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type notificationsControllerMarkAllReadResponseSuccess =
-  notificationsControllerMarkAllReadResponse204 & {
-    headers: Headers;
-  };
-export type notificationsControllerMarkAllReadResponseError =
-  notificationsControllerMarkAllReadResponse401 & {
-    headers: Headers;
-  };
-
-export type notificationsControllerMarkAllReadResponse =
-  | notificationsControllerMarkAllReadResponseSuccess
-  | notificationsControllerMarkAllReadResponseError;
-
 export const getNotificationsControllerMarkAllReadUrl = () => {
   return `/api/notifications/read-all`;
 };
@@ -575,14 +471,11 @@ export const getNotificationsControllerMarkAllReadUrl = () => {
  */
 export const notificationsControllerMarkAllRead = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<notificationsControllerMarkAllReadResponse> => {
-  return customInstance<notificationsControllerMarkAllReadResponse>(
-    getNotificationsControllerMarkAllReadUrl(),
-    {
-      ...options,
-      method: "POST",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getNotificationsControllerMarkAllReadUrl(), {
+    ...options,
+    method: "POST",
+  });
 };
 
 export const getNotificationsControllerMarkAllReadQueryKey = () => {
@@ -695,29 +588,6 @@ export function useNotificationsControllerMarkAllRead<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type notificationsControllerCreateTestNotificationResponse202 = {
-  data: void;
-  status: 202;
-};
-
-export type notificationsControllerCreateTestNotificationResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type notificationsControllerCreateTestNotificationResponseSuccess =
-  notificationsControllerCreateTestNotificationResponse202 & {
-    headers: Headers;
-  };
-export type notificationsControllerCreateTestNotificationResponseError =
-  notificationsControllerCreateTestNotificationResponse401 & {
-    headers: Headers;
-  };
-
-export type notificationsControllerCreateTestNotificationResponse =
-  | notificationsControllerCreateTestNotificationResponseSuccess
-  | notificationsControllerCreateTestNotificationResponseError;
-
 export const getNotificationsControllerCreateTestNotificationUrl = () => {
   return `/api/notifications/test`;
 };
@@ -727,14 +597,11 @@ export const getNotificationsControllerCreateTestNotificationUrl = () => {
  */
 export const notificationsControllerCreateTestNotification = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<notificationsControllerCreateTestNotificationResponse> => {
-  return customInstance<notificationsControllerCreateTestNotificationResponse>(
-    getNotificationsControllerCreateTestNotificationUrl(),
-    {
-      ...options,
-      method: "POST",
-    },
-  );
+): Promise<void> => {
+  return customInstance<void>(getNotificationsControllerCreateTestNotificationUrl(), {
+    ...options,
+    method: "POST",
+  });
 };
 
 export const getNotificationsControllerCreateTestNotificationQueryKey = () => {

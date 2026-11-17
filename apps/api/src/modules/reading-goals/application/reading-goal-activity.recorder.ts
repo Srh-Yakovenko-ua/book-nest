@@ -1,10 +1,12 @@
 import type { Nullable, ReadingGoalUncountedReason } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
-import { differenceInCalendarDays } from "date-fns";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
-import type { ReadingGoalSnapshotBook } from "../domain/reading-goal-metrics.js";
+import type {
+  ReadingGoalCalculationGoal,
+  ReadingGoalSnapshotBook,
+} from "../domain/reading-goal-metrics.js";
 import type {
   ReadingGoalProgress,
   ReadingGoalQualifyingBook,
@@ -13,12 +15,13 @@ import type { ReadingGoalActivityInput } from "../infrastructure/reading-goal-ac
 import type { ReadingGoalWithList } from "../infrastructure/reading-goals.repository.js";
 import type { ReadingGoalQualificationChange } from "./reading-goal-snapshot.service.js";
 
-import { startOfUtcDay, toIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
+import { daysBetweenUtcDays, toIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
 import { calculateReadingGoalMetrics } from "../domain/reading-goal-metrics.js";
 import { selectQualifyingReadingGoalBooks } from "../domain/reading-goal-progress.js";
-import { resolveReadingGoalCountingEnd } from "../domain/reading-goal-window.js";
+import { resolveReadingGoalQualificationWindow } from "../domain/reading-goal-window.js";
 import { ReadingGoalActivityRepository } from "../infrastructure/reading-goal-activity.repository.js";
 import { ReadingGoalBooksRepository } from "../infrastructure/reading-goal-books.repository.js";
+import { toReadingGoalCalculationGoal } from "./reading-goal-calendar.js";
 
 type ArchiveActivityInput = GoalActivityInput & {
   changes: ReadingGoalQualificationChange[];
@@ -26,7 +29,8 @@ type ArchiveActivityInput = GoalActivityInput & {
 
 type GoalActivityInput = {
   goal: ReadingGoalWithList;
-  now: Date;
+  timeZone: string;
+  today: Date;
   tx: Prisma.TransactionClient;
 };
 
@@ -48,9 +52,9 @@ export class ReadingGoalActivityRecorder {
     private readonly readingGoalBooksRepository: ReadingGoalBooksRepository,
   ) {}
 
-  async recordArchive({ changes, goal, now, tx }: ArchiveActivityInput): Promise<void> {
+  async recordArchive({ changes, goal, timeZone, today, tx }: ArchiveActivityInput): Promise<void> {
     const snapshotBooks = await this.snapshotBooks({ goal, tx });
-    const { progress } = calculateReadingGoalMetrics({ goal, now, snapshotBooks });
+    const progress = progressOf({ goal, snapshotBooks, timeZone, today });
     await this.write({
       rows: [
         ...uncountedRows({ changes, goal, reason: "deadline_changed" }),
@@ -60,10 +64,15 @@ export class ReadingGoalActivityRecorder {
     });
   }
 
-  async recordCreation({ goal, now, tx }: GoalActivityInput): Promise<void> {
+  async recordCreation({ goal, timeZone, today, tx }: GoalActivityInput): Promise<void> {
     const snapshotBooks = await this.snapshotBooks({ goal, tx });
-    const { progress } = calculateReadingGoalMetrics({ goal, now, snapshotBooks });
-    const qualifying = qualifyingOrder({ goal, snapshotBooks });
+    const calculationGoal = toReadingGoalCalculationGoal({ goal, timeZone });
+    const { progress } = calculateReadingGoalMetrics({
+      goal: calculationGoal,
+      snapshotBooks,
+      today,
+    });
+    const qualifying = qualifyingOrder({ goal: calculationGoal, snapshotBooks });
     await this.write({
       rows: [
         activityRow({
@@ -86,15 +95,33 @@ export class ReadingGoalActivityRecorder {
     });
   }
 
-  async recordUpdate({ changes, goal, now, previous, tx }: UpdateActivityInput): Promise<void> {
+  async recordUpdate({
+    changes,
+    goal,
+    previous,
+    timeZone,
+    today,
+    tx,
+  }: UpdateActivityInput): Promise<void> {
     const snapshotBooks = await this.snapshotBooks({ goal, tx });
-    const qualifying = qualifyingOrder({ goal, snapshotBooks });
+    const qualifying = qualifyingOrder({
+      goal: toReadingGoalCalculationGoal({ goal, timeZone }),
+      snapshotBooks,
+    });
     await this.write({
       rows: [
         ...fieldChangeRows({ goal, previous }),
         ...countedRows({ countedBookIds: newlyCountedBookIds(changes), goal, qualifying }),
         ...uncountedRows({ changes, goal, reason: "deadline_changed" }),
-        ...(await this.lifecycleRows({ changes, goal, now, previous, snapshotBooks, tx })),
+        ...(await this.lifecycleRows({
+          changes,
+          goal,
+          previous,
+          snapshotBooks,
+          timeZone,
+          today,
+          tx,
+        })),
       ],
       tx,
     });
@@ -103,16 +130,18 @@ export class ReadingGoalActivityRecorder {
   private async lifecycleRows({
     changes,
     goal,
-    now,
     previous,
     snapshotBooks,
+    timeZone,
+    today,
     tx,
   }: LifecycleInput): Promise<ReadingGoalActivityInput[]> {
-    const after = progressOf({ goal, now, snapshotBooks });
+    const after = progressOf({ goal, snapshotBooks, timeZone, today });
     const before = progressOf({
       goal: previous,
-      now,
       snapshotBooks: previousSnapshotBooks({ changes, snapshotBooks }),
+      timeZone,
+      today,
     });
     if (after.status === before.status) {
       return [];
@@ -214,7 +243,7 @@ function countedRows({
 }
 
 function daysBetween(deadline: Date, completedAt: Date): number {
-  return Math.max(0, differenceInCalendarDays(startOfUtcDay(deadline), startOfUtcDay(completedAt)));
+  return Math.max(0, daysBetweenUtcDays({ end: deadline, start: completedAt }));
 }
 
 function expiredRow({
@@ -321,21 +350,27 @@ function previousSnapshotBooks({
 
 function progressOf({
   goal,
-  now,
   snapshotBooks,
+  timeZone,
+  today,
 }: {
   goal: ReadingGoalWithList;
-  now: Date;
   snapshotBooks: ReadingGoalSnapshotBook[];
+  timeZone: string;
+  today: Date;
 }): ReadingGoalProgress {
-  return calculateReadingGoalMetrics({ goal, now, snapshotBooks }).progress;
+  return calculateReadingGoalMetrics({
+    goal: toReadingGoalCalculationGoal({ goal, timeZone }),
+    snapshotBooks,
+    today,
+  }).progress;
 }
 
 function qualifyingOrder({
   goal,
   snapshotBooks,
 }: {
-  goal: ReadingGoalWithList;
+  goal: ReadingGoalCalculationGoal;
   snapshotBooks: ReadingGoalSnapshotBook[];
 }): ReadingGoalQualifyingBook[] {
   return selectQualifyingReadingGoalBooks({
@@ -343,11 +378,7 @@ function qualifyingOrder({
       bookId: book.bookId,
       finishedAt: book.qualifiedFinishedAt,
     })),
-    countingEndsAt: resolveReadingGoalCountingEnd({
-      archivedAt: goal.archivedAt,
-      deadline: goal.deadline,
-    }),
-    goalStartDate: startOfUtcDay(goal.createdAt),
+    ...resolveReadingGoalQualificationWindow(goal),
   });
 }
 

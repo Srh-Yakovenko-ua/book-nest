@@ -1,9 +1,7 @@
-import type { BulkActionResult, RemoveBooksFromListResult } from "@app/shared";
+import type { BulkActionResult, NewListInput, RemoveBooksFromListResult } from "@app/shared";
 
 import { BulkActionResultSchema, RemoveBooksFromListResultSchema } from "@app/shared";
 import { useMutation } from "@tanstack/react-query";
-
-import type { ListDraft } from "@/features/books/model/book-organization-fields";
 
 import {
   bulkBooksControllerFavorite,
@@ -21,7 +19,7 @@ export function useBulkAddListBooksToLists(listId: string) {
     mutationFn: async (input: {
       bookIds: string[];
       listIds: string[];
-      newLists: ListDraft[];
+      newLists: NewListInput[];
     }): Promise<BulkActionResult> =>
       BulkActionResultSchema.parse(await bulkBooksControllerLists(input)),
     onSuccess: cache.booksChanged,

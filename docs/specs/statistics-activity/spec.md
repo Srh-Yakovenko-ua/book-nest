@@ -1,0 +1,37 @@
+# Product contract — Activity tab #10–20 (approved) | v5
+
+## In scope — **three primary sections, no fourth**
+
+**P1. Читацькі звички (Habits)**
+
+- Keep existing Activity full `ReadingDynamicsCard` at top, untouched. Between graph and calendar insert `ReadingHabitsSection` (minimal `StatisticsSection` wrapper), _reuse_ `ReadingCalendarSummary` and `StatisticsStat`. Four existing backend metrics: active days, active-days percentage, longest streak, most-active weekday. Optional current streak only when backend marks available. Layout existing 2-column mobile / 4-column desktop. No new calculations/API.
+- Remove the inline summary from `ReadingCalendarCard` to avoid duplicates. Keep calendar day details, unavailable state, legacy notes and range explanation.
+- Add deep-link section `habits` to existing `STATISTICS_VIEW.sections`; retarget **only** Overview KPI `activeDays` from calendar to habits. Preserve `section=calendar|dynamics|ratings`, focus and scroll via `StatisticsFocusTarget`. If calendar unavailable, Habits shows a truthful unavailable state, **not** zero-filled metrics.
+
+**P2. Календар читання (Calendar)**
+
+- Preserve ONE existing calendar, segmented `Активність` Heatmap / `Книги за днями` (`Books by day` EN), current month grid on desktop, diary on mobile, per-day lazy Popover/Drawer, week-start/timezone correctness and heatmap quantiles. Books are those with _recorded positive pages that day_, **not** completed books.
+- Add `calendarMode` (`activity|books`, default activity) and `calendarMonth` (`YYYY-MM`, default latest _visible_ month) to **existing** `statisticsViewParsers` + `useStatisticsView` (`nuqs`). Control state via props in `ReadingCalendarCard`/`ReadingBooksCalendar`, remove conflicting local `useState`s. Set mode/month with `history:replace`; tab changes remain `push`. Keep period/compare/metric/section unchanged and no new `/overview` request on calendar interactions.
+- Validate URL month against `listCalendarMonths(calendar.displayRange)` and valid `YYYY-MM` shape; invalid/out-of-range values must resolve to latest visible month, canonicalize stale URL with a single safe `replace` (avoid effect loops). Preserve valid selection across mode/tab changes; on range change discard only an invalid month. Do not conflate `metricRange` with `displayRange` (all-time metrics can cover all history, while visible calendar spans the last 12 months).
+- Month summary reports active days, **distinct books with recorded pages**, and pages. Inclusive bounds are `[monthStart,monthEnd] ∩ calendar.displayRange` including partial months and current day. Active days/pages come from `calendar.days` in that clipped interval.
+- **CONDITIONAL exact-book-count rule (v5):** first compute observed distinct book IDs from day's `booksPreview` using existing `summarizeCalendarMonth()`. If **every active day has `remainingBooksCount === 0`**, all recorded daily book IDs were present, so the distinct count is exact for the **stored** observations: **do not call** any additional endpoint. If **any** day has `remainingBooksCount > 0`, and **only when books mode and selected month are visible**, fetch an accurate `booksCount` from already generated `GET /api/statistics/reading-activity` with selected intersected `from`, `to`, `limit:1`; validate using `ReadingStatisticsActivityPageSchema`. One response page only: never fetch all contributions or N+1 day details. Cache by exact `[from,to]`, no polling/prefetch of other months.
+- Use a **separate TanStack Query key** such as `['/api/statistics/reading-month-summary', from, to]`. The prefix matches existing `matchesStatisticsKey()` invalidation but **must never collide** with `useReadingActivityInterval`'s infinite-query key/data shape. Use generated Orval client, not custom `fetch`, and follow feature `api/` wrapper conventions. Respect selected mode and `enabled` guard; a React Query hook itself must never be conditional. If month is complete, no query is enabled or issued.
+- **Do not misrepresent incomplete history:** even server `booksCount` is exact only **among surviving recorded data**. If calendar has unknown legacy days or server `historyQuality=legacy_observed_only`, show `≥` observed values / correct quality explanation, never treat blank unknown days as truly inactive. For missing previews while exact count is loading/fails, show observed preview count **clearly marked `≥`** plus localized loading/error and retry, never silently present the lower bound as exact or blank the entire month. When complete previews and legacy days coexist, the unique observed count is exact for recorded data but marked lower-bound for historical coverage. Zero data and unavailable remain distinguishable. Other two monthly stats and grid remain visible when optional count query fails.
+- Preserve daily `booksCount`, day-detail lazy loading, cover limit, existing `StatisticsDetailSurface`. UI labels update both UK/EN. No new backend DTO, endpoint, SQL, migrations, dependencies or generated client edits.
+
+**P3. Context-only insights**
+
+- Use **only** already received `overview.overviewInsights[view.metric]` (and its already verified server values). Prefer at most **one** genuinely new comparison observation (`completed_reads_vs_comparison` for reads, `pages_read_vs_comparison` for pages); optionally a second activity-specific insight only if it adds meaning not conveyed by Habits/peak and is already in the server list. `0–2` insights permitted; if all candidates merely repeat Habits or peak, show **none** (P3 `ALREADY DONE / not applicable`, not a forced filler feature).
+- Reuse the existing formatter/`StatisticsInsightBody` only if a real insight must render; minimal optional full-only slot/prop inside `ReadingDynamicsCard` **without a fourth card**. Keep existing compact Overview insight presentation, full chart height, keyboard/click/bucket drilldown, metric selection, comparison and peak behavior intact. Do not create separate engine/helper unless demonstrably needed.
+
+## Semantics and invariants
+
+- Completed reads = finished reading **cycles** (rereads count again). Active days = distinct dates with recorded positive pages. Unique books in a month = distinct books with positive page progress within the **clipped month**. Never use sum of daily booksCount as monthly uniques; never call finished-read endpoint for month books.
+- Dates are backend/user timezone ISO dates; reuse date-fns/project helpers, no handcrafted UTC conversion. Respect partial month of custom range and `all_time` shortened visible range.
+- Unknown ≠ zero, partial history ≠ fully verified; preserve existing backend states and reasons. A hidden current streak in a closed period is correct.
+- Layout stays project-native: `StatisticsSection`, `StatisticsStat`, `StatisticsMetricTabs`/`Segmented`, semantic Tailwind tokens, next-intl `uk/en`; no redesign of chart, Heatmap or day grids.
+
+## Explicit exclusions
+
+- No refactor of Overview/Tastes/Progress (other than the KPI destination that necessarily points to Habits), no new chart metric or graph, no changes to shared query period logic or API. Do not edit backend, `packages/shared`, generated Orval, database, `.claude`, `CLAUDE.md`, hooks, other feature areas, unrelated tests or migrations. Read read-only references as needed.
+- When new `origin/dev` already satisfies a requirement, mark `ALREADY DONE` and **do not reimplement**. No speculative performance work, design overhaul or new reusable frameworks.

@@ -101,7 +101,13 @@ function collect(
   const buckets = new Map<string, TasteBucket & { ratingTotal: number }>();
 
   for (const read of reads) {
+    const countedKeys = new Set<string>();
     for (const { key, label } of extract(read)) {
+      if (countedKeys.has(key)) {
+        continue;
+      }
+      countedKeys.add(key);
+
       const current = buckets.get(key) ?? {
         averageRating: null,
         completedReadCount: 0,

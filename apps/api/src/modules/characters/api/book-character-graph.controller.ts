@@ -1,14 +1,17 @@
-import type { CharacterGraphView } from "@app/shared";
+import type { CharacterGraphView, FamilyTreeGraphView } from "@app/shared";
 
 import { BookCharacterGraphQuerySchema } from "@app/shared";
 import { Controller, Get, Param, ParseUUIDPipe, Query } from "@nestjs/common";
 import {
+  ApiBadRequestResponse,
+  ApiExtraModels,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
+  getSchemaPath,
 } from "@nestjs/swagger";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
@@ -18,6 +21,7 @@ import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { CharacterGraphService } from "../application/character-graph.service.js";
 import { BookCharacterGraphQueryDto } from "./input-dto/book-character-graph-query.input-dto.js";
 import { CharacterGraphViewDto } from "./view-dto/character-graph.view-dto.js";
+import { FamilyTreeGraphViewDto } from "./view-dto/family-tree-graph.view-dto.js";
 
 @ApiTags("character-relationships")
 @Controller("api/books/:bookId/character-graph")
@@ -25,10 +29,20 @@ import { CharacterGraphViewDto } from "./view-dto/character-graph.view-dto.js";
 export class BookCharacterGraphController {
   constructor(private readonly graphService: CharacterGraphService) {}
 
-  @ApiNotFoundResponse({ description: "Book not found" })
+  @ApiBadRequestResponse({
+    description: "family_tree projection without a focus or combined with graph filters",
+  })
+  @ApiExtraModels(CharacterGraphViewDto, FamilyTreeGraphViewDto)
+  @ApiNotFoundResponse({ description: "Book or focus character not found" })
   @ApiOkResponse({
-    description: "A spoiler-safe relationship graph for the book",
-    type: CharacterGraphViewDto,
+    description:
+      "A spoiler-safe relationship graph for the book, or its family tree when projection=family_tree",
+    schema: {
+      oneOf: [
+        { $ref: getSchemaPath(CharacterGraphViewDto) },
+        { $ref: getSchemaPath(FamilyTreeGraphViewDto) },
+      ],
+    },
   })
   @ApiOperation({ summary: "Build a spoiler-safe character relationship graph for a book" })
   @ApiParam({ description: "Book id", name: "bookId" })
@@ -39,6 +53,22 @@ export class BookCharacterGraphController {
   @ApiQuery({ name: "relationshipTypes", required: false })
   @ApiQuery({ name: "revealEdgeIds", required: false })
   @ApiQuery({ enum: ["group", "importance"], name: "clusterBy", required: false })
+  @ApiQuery({
+    description: "Opt-in genealogy projection built from immediate parent and child records",
+    enum: ["family_tree"],
+    name: "projection",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Ancestor generations for projection=family_tree (1-3, default 2)",
+    name: "ancestors",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Descendant generations for projection=family_tree (1-3, default 2)",
+    name: "descendants",
+    required: false,
+  })
   @ApiQuery({
     description: "Reader chapter within the book for page-level spoiler masking",
     name: "contextChapter",
@@ -59,7 +89,7 @@ export class BookCharacterGraphController {
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookId", ParseUUIDPipe) bookId: string,
     @Query(new ZodQueryPipe(BookCharacterGraphQuerySchema)) query: BookCharacterGraphQueryDto,
-  ): Promise<CharacterGraphView> {
+  ): Promise<CharacterGraphView | FamilyTreeGraphView> {
     return this.graphService.getForBook({ bookId, query, userId: user.id });
   }
 }

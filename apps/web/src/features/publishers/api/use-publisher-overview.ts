@@ -15,6 +15,5 @@ export function usePublisherOverview(publisherId: string, { enabled }: { enabled
       return LibraryPublisherOverviewSchema.parse(response);
     },
     queryKey: publisherKeys.overview(publisherId),
-    retry: false,
   });
 }

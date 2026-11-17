@@ -18,15 +18,17 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 
 export type FacetOption = {
-  count: number;
+  count?: number;
   label: string;
   value: string;
 };
 
 type FacetMultiselectProps = {
   emptyText: string;
+  hideSelection?: boolean;
   isSearching?: boolean;
   label: string;
+  onOpenChange?: (open: boolean) => void;
   onSearchChange?: (next: string) => void;
   onValueChange: (next: string[]) => void;
   options: FacetOption[];
@@ -40,8 +42,10 @@ type FacetMultiselectProps = {
 
 export function FacetMultiselect({
   emptyText,
+  hideSelection = false,
   isSearching,
   label,
+  onOpenChange,
   onSearchChange,
   onValueChange,
   options,
@@ -81,8 +85,16 @@ export function FacetMultiselect({
     return selectedText(value.length);
   }
 
+  function statusText() {
+    if (!open) return "";
+    if (isSearching === true && searchingText !== undefined) return searchingText;
+    if (orderedOptions.length === 0) return emptyText;
+    return "";
+  }
+
   function handleOpenChange(next: boolean) {
     setOpen(next);
+    onOpenChange?.(next);
     if (next) {
       setPinnedOnOpen(new Set(value));
       return;
@@ -146,6 +158,7 @@ export function FacetMultiselect({
               </CommandEmpty>
               {orderedOptions.map((option) => (
                 <CommandItem
+                  aria-checked={selected.has(option.value)}
                   className="cursor-pointer gap-2.5"
                   data-checked={selected.has(option.value)}
                   key={option.value}
@@ -160,16 +173,18 @@ export function FacetMultiselect({
                     tabIndex={-1}
                   />
                   <span className="min-w-0 flex-1 truncate font-medium">{option.label}</span>
-                  <Badge className="min-w-8 justify-center tabular-nums" variant="primary">
-                    {option.count}
-                  </Badge>
+                  {option.count === undefined ? null : (
+                    <Badge className="min-w-8 justify-center tabular-nums" variant="primary">
+                      {option.count}
+                    </Badge>
+                  )}
                 </CommandItem>
               ))}
             </CommandList>
           </Command>
         </PopoverContent>
       </Popover>
-      {value.length > 0 ? (
+      {value.length > 0 && !hideSelection ? (
         <ul aria-label={label} className="flex flex-wrap gap-1.5">
           {value.map((selectedValue) => {
             const selectedLabel = labelOf(selectedValue);
@@ -192,6 +207,9 @@ export function FacetMultiselect({
           })}
         </ul>
       ) : null}
+      <span className="sr-only" role="status">
+        {statusText()}
+      </span>
     </div>
   );
 }

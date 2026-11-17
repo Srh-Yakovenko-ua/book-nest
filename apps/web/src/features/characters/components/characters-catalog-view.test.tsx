@@ -1,9 +1,14 @@
 import "@testing-library/jest-dom/vitest";
+import type { OnUrlUpdateFunction, UrlUpdateEvent } from "nuqs/adapters/testing";
 import type { ReactNode } from "react";
 
+import { createTranslator } from "next-intl";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { makeBookDetailsView } from "@/features/books/components/book-details.fixtures";
+import messages from "@/messages/uk.json";
 import {
   mockIntersectionObserver,
   renderWithProviders,
@@ -13,7 +18,12 @@ import {
   within,
 } from "@/test-utils";
 
-import { makeCharacterGlobalSummary } from "../model/characters.fixtures";
+import { characterKeys } from "../api/character-keys";
+import {
+  makeCharacterAppearanceBook,
+  makeCharacterCatalogItem,
+  SPECIES_REFS,
+} from "../model/characters.fixtures";
 import { CharactersCatalogView } from "./characters-catalog-view";
 
 vi.mock("@/i18n/navigation", () => ({
@@ -24,6 +34,60 @@ vi.mock("@/i18n/navigation", () => ({
   ),
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
+
+const activeFiltersCopy = messages.books.library.activeFilters;
+const characterChipsCopy = messages.characters.activeFilters;
+const sheetCopy = messages.characters.catalog.filters;
+const booksCopy = messages.characters.catalog.books;
+const cardCopy = messages.characters.card;
+const summaryCopy = messages.characters.catalog.summary;
+const summaryErrorCopy = messages.common.summaryError;
+const translateCatalog = createTranslator({
+  locale: "uk",
+  messages,
+  namespace: "characters.catalog",
+});
+
+const CARD_CHARACTER_ID = "2b7e4c1a-9d3f-4e6b-8a5c-7f0e1d2c3b4a";
+
+const CHARACTER_BOOKS_PATH = /\/api\/characters\/[^/?]+\/books/;
+
+const PREVIEW_BOOKS = [
+  makeCharacterAppearanceBook({ id: "book-wish", title: "Останнє бажання" }),
+  makeCharacterAppearanceBook({ id: "book-sword", title: "Меч призначення" }),
+  makeCharacterAppearanceBook({ id: "book-blood", title: "Кров ельфів" }),
+];
+
+const WITCHER_DESCRIPTION = "Мандрує Північчю й береться за будь-яке замовлення на чудовиськ.";
+
+const DESCRIBED_CHARACTER = makeCharacterCatalogItem({
+  name: "Ґеральт",
+  neutralDescription: WITCHER_DESCRIPTION,
+  species: SPECIES_REFS.witcher,
+  tags: [
+    { color: "sage", id: "tag-brave", name: "сміливість" },
+    { color: "sage", id: "tag-irony", name: "іронія" },
+    { color: "sage", id: "tag-loyal", name: "вірність" },
+  ],
+});
+
+const deepLinkIds = {
+  book: "9a8b7c6d-5e4f-4a3b-9c2d-1e0f9a8b7c6d",
+  species: "3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a6b",
+  tag: "6c7d8e9f-0a1b-4c2d-9e3f-4a5b6c7d8e9f",
+};
+
+const elf = { category: null, id: deepLinkIds.species, isOwn: false, key: "elf", name: "Ельф" };
+
+const emptyFacets = {
+  attitude: [],
+  gender: [],
+  group: [],
+  importance: [],
+  role: [],
+  species: [],
+  tag: [],
+};
 
 const overview = {
   favoriteCount: 4,
@@ -37,17 +101,48 @@ const overview = {
   withPersonalImpressionCount: 2,
 };
 
-const fetchMock = vi.fn();
+const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
 
-let respondToList: (url: string) => Response;
+let respondToBooks: (url: string) => Response;
+let respondToCharacterBooks: () => Response;
+let respondToFavorite: () => Promise<Response> | Response;
+let respondToGroups: () => Response;
+let respondToList: (url: string) => Promise<Response> | Response;
 let respondToOverview: () => Response;
+let respondToSpecies: (url: string) => Promise<Response> | Response;
+let respondToTags: (url: string) => Promise<Response> | Response;
 
 const viewport = mockIntersectionObserver();
+
+function catalogList(): HTMLElement {
+  const list = screen
+    .getAllByRole("list")
+    .find((candidate) => within(candidate).queryAllByRole("article").length > 0);
+  if (list === undefined) throw new Error("the catalog list is not shown");
+  return list;
+}
 
 function catalogRequestUrls(): string[] {
   return fetchMock.mock.calls
     .map(([input]) => String(input))
     .filter((url) => url.includes("/api/characters?"));
+}
+
+function catalogSkeleton(): HTMLElement {
+  const skeleton = [...document.querySelectorAll<HTMLElement>('[aria-busy="true"]')].find(
+    (candidate) => candidate.classList.contains("grid"),
+  );
+  if (skeleton === undefined) throw new Error("the catalog skeleton is not shown");
+  return skeleton;
+}
+
+function favoriteRequests(): { body: RequestInit["body"]; path: string }[] {
+  return fetchMock.mock.calls
+    .filter(([, init]) => init?.method === "PATCH")
+    .map(([input, init]) => ({
+      body: init?.body,
+      path: new URL(String(input), "http://localhost").pathname,
+    }));
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -57,46 +152,79 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+function lastCatalogRequest(): URLSearchParams {
+  return new URL(catalogRequestUrls().at(-1) ?? "", "http://localhost").searchParams;
+}
+
 function nextPageRequestCount(): number {
   return catalogRequestUrls().filter((url) => url.includes("pageNumber=2")).length;
 }
 
-function page(items: ReturnType<typeof makeCharacterGlobalSummary>[], pagesCount = 1) {
+function page(items: ReturnType<typeof makeCharacterCatalogItem>[], pagesCount = 1) {
   return { items, page: 1, pagesCount, pageSize: 24, totalCount: items.length };
 }
 
 function pagedList(url: string, pagesCount: number) {
   const pageNumber = Number(new URL(url, "http://localhost").searchParams.get("pageNumber") ?? 1);
   return jsonResponse({
-    items: [makeCharacterGlobalSummary({ name: "Ґеральт" })],
+    items: [makeCharacterCatalogItem({ name: "Ґеральт" })],
     page: pageNumber,
     pagesCount,
-    pageSize: 24,
-    totalCount: pagesCount * 24,
+    pageSize: 1,
+    totalCount: pagesCount,
   });
 }
 
-function renderCatalog(search = "") {
+function removeFilterLabel(label: string): string {
+  return activeFiltersCopy.remove.replace("{label}", label);
+}
+
+function renderCatalog(search = "", onUrlUpdate?: OnUrlUpdateFunction) {
   return renderWithProviders(
-    <NuqsTestingAdapter searchParams={search}>
+    <NuqsTestingAdapter hasMemory onUrlUpdate={onUrlUpdate} searchParams={search}>
       <CharactersCatalogView />
     </NuqsTestingAdapter>,
   );
 }
 
+function requestUrls(fragment: string): string[] {
+  return fetchMock.mock.calls
+    .map(([input]) => String(input))
+    .filter((url) => url.includes(fragment));
+}
+
+function speciesChip(name: string): string {
+  return characterChipsCopy.species.replace("{name}", name);
+}
+
+function tagChip(name: string): string {
+  return characterChipsCopy.tag.replace("{name}", name);
+}
+
 beforeEach(() => {
+  respondToBooks = () => jsonResponse(page([]));
+  respondToCharacterBooks = () =>
+    jsonResponse({ items: [], page: 1, pagesCount: 0, pageSize: 20, totalCount: 0 });
+  respondToFavorite = () => Promise.reject(new Error("unexpected favorite update"));
+  respondToGroups = () => jsonResponse(page([]));
   respondToOverview = () => jsonResponse(overview);
+  respondToSpecies = () => jsonResponse({ items: [] });
+  respondToTags = () => jsonResponse(page([]));
   respondToList = () =>
-    jsonResponse(page([makeCharacterGlobalSummary({ appearanceCount: 7, name: "Ґеральт" })]));
+    jsonResponse(page([makeCharacterCatalogItem({ appearanceCount: 7, name: "Ґеральт" })]));
 
   fetchMock.mockReset();
-  fetchMock.mockImplementation((input: RequestInfo | URL) => {
+  fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
+    if (init?.method === "PATCH") return Promise.resolve(respondToFavorite());
     if (url.includes("/api/characters/overview")) return Promise.resolve(respondToOverview());
-    if (url.includes("/api/character-groups")) {
-      return Promise.resolve(jsonResponse(page([])));
-    }
+    if (CHARACTER_BOOKS_PATH.test(url)) return Promise.resolve(respondToCharacterBooks());
+    if (url.includes("/api/characters/facets")) return Promise.resolve(jsonResponse(emptyFacets));
+    if (url.includes("/api/character-groups")) return Promise.resolve(respondToGroups());
     if (url.includes("/api/series")) return Promise.resolve(jsonResponse(page([])));
+    if (url.includes("/api/books")) return Promise.resolve(respondToBooks(url));
+    if (url.includes("/api/tags")) return Promise.resolve(respondToTags(url));
+    if (url.includes("/api/species")) return Promise.resolve(respondToSpecies(url));
     if (url.includes("/api/characters")) return Promise.resolve(respondToList(url));
     return Promise.reject(new Error(`unexpected ${url}`));
   });
@@ -145,6 +273,33 @@ describe("CharactersCatalogView summary", () => {
 
     expect((await screen.findAllByText("Поки немає")).length).toBeGreaterThan(0);
   });
+
+  it("puts a retry in place of the cards when the overview fails and keeps the catalog", async () => {
+    respondToOverview = () => jsonResponse({ message: "boom" }, 500);
+
+    renderCatalog();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(summaryErrorCopy.title);
+    expect(within(alert).getByRole("button", { name: summaryErrorCopy.retry })).toBeInTheDocument();
+    expect(screen.queryByText(summaryCopy.total)).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Ґеральт" })).toBeInTheDocument();
+  });
+
+  it("asks for the overview again from the retry and shows the cards it returns", async () => {
+    respondToOverview = () => jsonResponse({ message: "boom" }, 500);
+
+    renderCatalog();
+
+    const alert = await screen.findByRole("alert");
+    expect(requestUrls("/api/characters/overview")).toHaveLength(1);
+    respondToOverview = () => jsonResponse(overview);
+    await userEvent.click(within(alert).getByRole("button", { name: summaryErrorCopy.retry }));
+
+    expect((await screen.findAllByText(summaryCopy.total)).length).toBeGreaterThan(0);
+    expect(requestUrls("/api/characters/overview")).toHaveLength(2);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
 });
 
 describe("CharactersCatalogView quick filters", () => {
@@ -170,11 +325,28 @@ describe("CharactersCatalogView quick filters", () => {
 });
 
 describe("CharactersCatalogView catalog", () => {
-  it("links a row to the character page without a book context", async () => {
+  it("links the card title to the character page and every preview cover to its own book", async () => {
+    respondToList = () =>
+      jsonResponse(
+        page([
+          makeCharacterCatalogItem({
+            appearanceCount: 3,
+            booksPreview: PREVIEW_BOOKS,
+            name: "Ґеральт",
+          }),
+        ]),
+      );
+
     renderCatalog();
 
-    const link = await screen.findByRole("link", { name: /Ґеральт/ });
-    expect(link).toHaveAttribute("href", "/characters/char-1");
+    const title = await screen.findByRole("heading", { name: "Ґеральт" });
+    expect(within(title).getByRole("link")).toHaveAttribute("href", "/characters/char-1");
+    expect(
+      PREVIEW_BOOKS.map((book) =>
+        screen.getByRole("link", { name: book.title }).getAttribute("href"),
+      ),
+    ).toEqual(["/books/book-wish", "/books/book-sword", "/books/book-blood"]);
+    expect(screen.getByText(translateCatalog("books.count", { count: 3 }))).toBeInTheDocument();
   });
 
   it("tells a true empty catalog apart from an empty search", async () => {
@@ -194,6 +366,54 @@ describe("CharactersCatalogView catalog", () => {
     viewport.enterViewport();
 
     await waitFor(() => expect(nextPageRequestCount()).toBe(0));
+  });
+});
+
+describe("CharactersCatalogView refetch failure", () => {
+  it("keeps the loaded characters and shows the refresh banner when a refetch fails", async () => {
+    const { queryClient } = renderCatalog();
+    expect(await screen.findByRole("heading", { name: "Ґеральт" })).toBeInTheDocument();
+
+    respondToList = () => jsonResponse({ message: "boom" }, 500);
+    await act(() => queryClient.invalidateQueries({ queryKey: characterKeys.searchScope() }));
+
+    expect(await screen.findByText(messages.common.refetchError)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Ґеральт" })).toBeInTheDocument();
+    expect(screen.queryByText(messages.characters.states.errorTitle)).not.toBeInTheDocument();
+  });
+});
+
+describe("CharactersCatalogView view toggle", () => {
+  it("offers a grid and a list with the grid chosen by default", async () => {
+    renderCatalog();
+
+    const viewToggle = await screen.findByRole("radiogroup", { name: "Вигляд" });
+
+    expect(within(viewToggle).getAllByRole("radio")).toHaveLength(2);
+    expect(within(viewToggle).getByRole("radio", { name: "Сітка" })).toBeChecked();
+    expect(within(viewToggle).getByRole("radio", { name: "Список" })).not.toBeChecked();
+    expect(screen.queryByText("Плитка")).not.toBeInTheDocument();
+  });
+
+  it("switches to the list and records it in the url", async () => {
+    const urlUpdates: UrlUpdateEvent[] = [];
+    renderCatalog("", (event) => urlUpdates.push(event));
+
+    const viewToggle = await screen.findByRole("radiogroup", { name: "Вигляд" });
+    await userEvent.click(within(viewToggle).getByRole("radio", { name: "Список" }));
+
+    await waitFor(() => expect(urlUpdates.at(-1)?.searchParams.get("view")).toBe("list"));
+    expect(within(viewToggle).getByRole("radio", { name: "Список" })).toBeChecked();
+    expect(within(viewToggle).getByRole("radio", { name: "Сітка" })).not.toBeChecked();
+  });
+
+  it("opens on the list when the url already asks for it", async () => {
+    renderCatalog("view=list");
+
+    const viewToggle = await screen.findByRole("radiogroup", { name: "Вигляд" });
+
+    expect(within(viewToggle).getByRole("radio", { name: "Список" })).toBeChecked();
+    expect(within(viewToggle).getByRole("radio", { name: "Сітка" })).not.toBeChecked();
   });
 });
 
@@ -264,5 +484,642 @@ describe("CharactersCatalogView pagination", () => {
     await userEvent.click(retry);
 
     await waitFor(() => expect(nextPageRequestCount()).toBe(2));
+  });
+});
+
+describe("CharactersCatalogView results counter", () => {
+  it("shows how many characters are loaded out of the backend total", async () => {
+    respondToList = () =>
+      jsonResponse({
+        items: [
+          makeCharacterCatalogItem({ id: "char-1", name: "Ґеральт" }),
+          makeCharacterCatalogItem({ id: "char-2", name: "Єнніфер" }),
+        ],
+        page: 1,
+        pagesCount: 3,
+        pageSize: 2,
+        totalCount: 5,
+      });
+
+    renderCatalog();
+
+    expect(await screen.findByText("Показано 2 із 5 персонажів")).toBeInTheDocument();
+  });
+
+  it("uses the singular form for a total of one", async () => {
+    respondToList = () => jsonResponse(page([makeCharacterCatalogItem({ name: "Ґеральт" })]));
+
+    renderCatalog();
+
+    expect(await screen.findByText("Показано 1 із 1 персонажа")).toBeInTheDocument();
+  });
+
+  it("counts the favorites response once that chip is chosen", async () => {
+    respondToList = (url) =>
+      url.includes("favorite=true")
+        ? jsonResponse({
+            items: [makeCharacterCatalogItem({ id: "char-3", name: "Цірі" })],
+            page: 1,
+            pagesCount: 4,
+            pageSize: 1,
+            totalCount: 4,
+          })
+        : jsonResponse({
+            items: [
+              makeCharacterCatalogItem({ id: "char-1", name: "Ґеральт" }),
+              makeCharacterCatalogItem({ id: "char-2", name: "Єнніфер" }),
+            ],
+            page: 1,
+            pagesCount: 3,
+            pageSize: 2,
+            totalCount: 5,
+          });
+
+    renderCatalog();
+
+    await screen.findByText("Показано 2 із 5 персонажів");
+    await userEvent.click(screen.getByRole("radio", { name: /Улюблені/ }));
+
+    expect(await screen.findByText("Показано 1 із 4 персонажів")).toBeInTheDocument();
+    expect(screen.queryByText("Показано 2 із 5 персонажів")).not.toBeInTheDocument();
+  });
+
+  it("grows the shown count when the next page arrives", async () => {
+    respondToList = (url) => pagedList(url, 2);
+
+    renderCatalog();
+
+    await screen.findByText("Показано 1 із 2 персонажів");
+    viewport.enterViewport();
+
+    expect(await screen.findByText("Показано 2 із 2 персонажів")).toBeInTheDocument();
+  });
+
+  it("drops the line when the catalog fails to load", async () => {
+    respondToList = () => jsonResponse({ message: "boom" }, 500);
+
+    renderCatalog();
+
+    await screen.findAllByRole("alert");
+    expect(screen.queryByText(/Показано/)).not.toBeInTheDocument();
+  });
+});
+
+describe("CharactersCatalogView active filters", () => {
+  it("shows no active filters row while nothing narrows the catalog", async () => {
+    renderCatalog();
+
+    await screen.findByText("Показано 1 із 1 персонажа");
+    expect(screen.queryByRole("group", { name: activeFiltersCopy.label })).not.toBeInTheDocument();
+  });
+
+  it("ignores a stale favorite attitude from an old link", async () => {
+    renderCatalog("attitude=favorite");
+
+    await screen.findByText("Показано 1 із 1 персонажа");
+    expect(lastCatalogRequest().has("attitude")).toBe(false);
+    expect(screen.queryByRole("group", { name: activeFiltersCopy.label })).not.toBeInTheDocument();
+  });
+
+  it("lists a chosen quick filter as a chip next to a clear all action", async () => {
+    renderCatalog();
+
+    await userEvent.click(await screen.findByRole("radio", { name: /Улюблені/ }));
+
+    const activeFilters = await screen.findByRole("group", { name: activeFiltersCopy.label });
+    expect(within(activeFilters).getByText("Улюблені")).toBeInTheDocument();
+    expect(
+      within(activeFilters).getByRole("button", { name: removeFilterLabel("Улюблені") }),
+    ).toBeInTheDocument();
+    expect(
+      within(activeFilters).getByRole("button", { name: activeFiltersCopy.clearAll }),
+    ).toBeInTheDocument();
+  });
+
+  it("returns to all characters when the quick filter chip is removed", async () => {
+    const urlUpdates: UrlUpdateEvent[] = [];
+    renderCatalog("", (event) => urlUpdates.push(event));
+
+    await userEvent.click(await screen.findByRole("radio", { name: /Улюблені/ }));
+    await waitFor(() => expect(urlUpdates.at(-1)?.searchParams.get("filter")).toBe("favorites"));
+
+    const activeFilters = await screen.findByRole("group", { name: activeFiltersCopy.label });
+    await userEvent.click(
+      within(activeFilters).getByRole("button", { name: removeFilterLabel("Улюблені") }),
+    );
+
+    await waitFor(() => expect(urlUpdates.at(-1)?.searchParams.has("filter")).toBe(false));
+    expect(screen.getByRole("radio", { name: /Усі/ })).toBeChecked();
+    expect(screen.queryByRole("group", { name: activeFiltersCopy.label })).not.toBeInTheDocument();
+  });
+
+  it("shows one chip per value from a deep link", async () => {
+    renderCatalog("importance=central,major&gender=female");
+
+    const activeFilters = await screen.findByRole("group", { name: activeFiltersCopy.label });
+
+    expect(within(activeFilters).getByText("Важливість: Центральний")).toBeInTheDocument();
+    expect(within(activeFilters).getByText("Важливість: Головний")).toBeInTheDocument();
+    expect(within(activeFilters).getByText("Гендер: Жіноча")).toBeInTheDocument();
+    expect(
+      within(activeFilters).getAllByRole("button", { name: /^Прибрати фільтр / }),
+    ).toHaveLength(3);
+  });
+
+  it("drops only the removed value and asks the backend without it", async () => {
+    renderCatalog("importance=central,major&gender=female");
+
+    const activeFilters = await screen.findByRole("group", { name: activeFiltersCopy.label });
+    await userEvent.click(
+      within(activeFilters).getByRole("button", {
+        name: removeFilterLabel("Важливість: Центральний"),
+      }),
+    );
+
+    await waitFor(() => {
+      const lastRequest = new URL(catalogRequestUrls().at(-1) ?? "", "http://localhost");
+      expect(lastRequest.searchParams.getAll("importance")).toEqual(["major"]);
+      expect(lastRequest.searchParams.getAll("gender")).toEqual(["female"]);
+    });
+    const remaining = screen.getByRole("group", { name: activeFiltersCopy.label });
+    expect(within(remaining).queryByText("Важливість: Центральний")).not.toBeInTheDocument();
+    expect(within(remaining).getByText("Важливість: Головний")).toBeInTheDocument();
+    expect(within(remaining).getByText("Гендер: Жіноча")).toBeInTheDocument();
+  });
+
+  it("names a group chip after the group it filters by", async () => {
+    const groupId = "6f1c2a9e-4b7d-4e3a-9c5f-0d8b7a6e5f41";
+    respondToGroups = () =>
+      jsonResponse({
+        items: [
+          {
+            createdAt: "2026-01-01T00:00:00.000Z",
+            customType: null,
+            description: null,
+            hiddenFields: [],
+            id: groupId,
+            isSpoiler: false,
+            memberCount: 3,
+            name: "Відьмаки",
+            seriesId: null,
+            type: "clan",
+            updatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        ],
+        page: 1,
+        pagesCount: 1,
+        pageSize: 50,
+        totalCount: 1,
+      });
+
+    renderCatalog(`groupId=${groupId}`);
+
+    const activeFilters = await screen.findByRole("group", { name: activeFiltersCopy.label });
+    expect(await within(activeFilters).findByText("Група: Відьмаки")).toBeInTheDocument();
+  });
+
+  it("clears search, quick filter and advanced filters at once", async () => {
+    renderCatalog("q=Ґер&filter=favorites&attitude=like");
+
+    const activeFilters = await screen.findByRole("group", { name: activeFiltersCopy.label });
+    const search = screen.getByRole("textbox", { name: messages.characters.catalog.searchLabel });
+    expect(search).toHaveValue("Ґер");
+    expect(within(activeFilters).getByText("Пошук: Ґер")).toBeInTheDocument();
+    expect(within(activeFilters).getByText("Улюблені")).toBeInTheDocument();
+    expect(within(activeFilters).getByText("Моє ставлення: Подобається")).toBeInTheDocument();
+
+    await userEvent.click(
+      within(activeFilters).getByRole("button", { name: activeFiltersCopy.clearAll }),
+    );
+
+    await waitFor(() => expect(search).toHaveValue(""));
+    expect(screen.getByRole("radio", { name: /Усі/ })).toBeChecked();
+    expect(screen.queryByRole("group", { name: activeFiltersCopy.label })).not.toBeInTheDocument();
+  });
+
+  it("shows a spoiler chip from a deep link and asks for characters with spoilers", async () => {
+    renderCatalog("spoilers=with");
+
+    const activeFilters = await screen.findByRole("group", { name: activeFiltersCopy.label });
+
+    expect(within(activeFilters).getByText(characterChipsCopy.withSpoilers)).toBeInTheDocument();
+    await waitFor(() => expect(lastCatalogRequest().get("hasSpoilers")).toBe("true"));
+  });
+
+  it("names a tag chip after the tag it filters by", async () => {
+    respondToTags = () =>
+      jsonResponse({
+        items: [{ color: "sage", id: deepLinkIds.tag, name: "повільне кохання" }],
+        page: 1,
+        pagesCount: 1,
+        pageSize: 1,
+        totalCount: 1,
+      });
+
+    renderCatalog(`tagId=${deepLinkIds.tag}`);
+
+    const activeFilters = await screen.findByRole("group", { name: activeFiltersCopy.label });
+    expect(
+      await within(activeFilters).findByText(
+        characterChipsCopy.tag.replace("{name}", "повільне кохання"),
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("names a book chip after the book it filters by", async () => {
+    respondToBooks = (url) =>
+      url.includes(`/api/books/${deepLinkIds.book}`)
+        ? jsonResponse(makeBookDetailsView({ id: deepLinkIds.book, title: "Меч призначення" }))
+        : jsonResponse({ message: "not found" }, 404);
+
+    renderCatalog(`bookId=${deepLinkIds.book}`);
+
+    const activeFilters = await screen.findByRole("group", { name: activeFiltersCopy.label });
+    expect(
+      await within(activeFilters).findByText(
+        characterChipsCopy.book.replace("{name}", "Меч призначення"),
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("drops only the removed spoiler chip and keeps the book filter", async () => {
+    const urlUpdates: UrlUpdateEvent[] = [];
+    renderCatalog(`spoilers=with&bookId=${deepLinkIds.book}`, (event) => urlUpdates.push(event));
+
+    const activeFilters = await screen.findByRole("group", { name: activeFiltersCopy.label });
+    await userEvent.click(
+      within(activeFilters).getByRole("button", {
+        name: removeFilterLabel(characterChipsCopy.withSpoilers),
+      }),
+    );
+
+    await waitFor(() => expect(urlUpdates.at(-1)?.searchParams.has("spoilers")).toBe(false));
+    expect(urlUpdates.at(-1)?.searchParams.get("bookId")).toBe(deepLinkIds.book);
+    await waitFor(() => expect(lastCatalogRequest().has("hasSpoilers")).toBe(false));
+    expect(lastCatalogRequest().get("bookId")).toBe(deepLinkIds.book);
+  });
+
+  it("clears the book, species, tag and spoiler filters with the rest", async () => {
+    const urlUpdates: UrlUpdateEvent[] = [];
+    renderCatalog(
+      `bookId=${deepLinkIds.book}&speciesId=${deepLinkIds.species}&tagId=${deepLinkIds.tag}&spoilers=without`,
+      (event) => urlUpdates.push(event),
+    );
+
+    const activeFilters = await screen.findByRole("group", { name: activeFiltersCopy.label });
+    expect(within(activeFilters).getByText(characterChipsCopy.withoutSpoilers)).toBeInTheDocument();
+
+    await userEvent.click(
+      within(activeFilters).getByRole("button", { name: activeFiltersCopy.clearAll }),
+    );
+
+    await waitFor(() => expect(urlUpdates.at(-1)?.searchParams.toString()).toBe(""));
+    await waitFor(() => expect(lastCatalogRequest().has("hasSpoilers")).toBe(false));
+    expect(lastCatalogRequest().has("bookId")).toBe(false);
+    expect(lastCatalogRequest().has("speciesId")).toBe(false);
+    expect(lastCatalogRequest().has("tagId")).toBe(false);
+    expect(screen.queryByRole("group", { name: activeFiltersCopy.label })).not.toBeInTheDocument();
+  });
+});
+
+describe("CharactersCatalogView malformed deep links", () => {
+  it("loads the catalog rather than failing on a series id that is not a uuid", async () => {
+    respondToList = (url) =>
+      new URL(url, "http://localhost").searchParams.has("seriesId")
+        ? jsonResponse({ message: "seriesId must be a uuid" }, 400)
+        : jsonResponse(page([makeCharacterCatalogItem({ name: "Ґеральт" })]));
+
+    renderCatalog("seriesId=not-a-uuid");
+
+    expect(await screen.findByRole("link", { name: /Ґеральт/ })).toBeInTheDocument();
+    expect(screen.queryByText(messages.characters.states.errorTitle)).not.toBeInTheDocument();
+  });
+
+  it("asks the backend without a series id that is not a uuid", async () => {
+    renderCatalog("seriesId=not-a-uuid");
+
+    await screen.findByText("Показано 1 із 1 персонажа");
+    expect(lastCatalogRequest().has("seriesId")).toBe(false);
+  });
+
+  it("shows no series chip for a series id that is not a uuid", async () => {
+    renderCatalog("seriesId=not-a-uuid");
+
+    await screen.findByText("Показано 1 із 1 персонажа");
+    expect(screen.queryByRole("group", { name: activeFiltersCopy.label })).not.toBeInTheDocument();
+  });
+});
+
+describe("CharactersCatalogView loading", () => {
+  it("announces the loading catalog only once", async () => {
+    respondToList = () => new Promise<Response>(() => {});
+
+    renderCatalog();
+
+    expect((await screen.findAllByText("12")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(messages.characters.catalog.states.loading)).toHaveLength(1);
+  });
+});
+
+describe("CharactersCatalogView tag chip", () => {
+  it("keeps the tag chip pending until the lookup answers, then names the tag", async () => {
+    let answerTagLookup: () => void = () => undefined;
+    const tagLookupAnswered = new Promise<void>((resolve) => {
+      answerTagLookup = () => resolve();
+    });
+    respondToTags = (url) =>
+      url.includes("ids=")
+        ? tagLookupAnswered.then(() =>
+            jsonResponse({
+              items: [{ color: "sage", id: deepLinkIds.tag, name: "повільне кохання" }],
+              page: 1,
+              pagesCount: 1,
+              pageSize: 1,
+              totalCount: 1,
+            }),
+          )
+        : jsonResponse(page([]));
+
+    renderCatalog(`tagId=${deepLinkIds.tag}`);
+
+    const activeFilters = await screen.findByRole("group", { name: activeFiltersCopy.label });
+    expect(
+      within(activeFilters).getByText(tagChip(characterChipsCopy.pending)),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(tagChip(characterChipsCopy.unknown))).not.toBeInTheDocument();
+
+    answerTagLookup();
+
+    expect(await within(activeFilters).findByText(tagChip("повільне кохання"))).toBeInTheDocument();
+    expect(screen.queryByText(tagChip(characterChipsCopy.pending))).not.toBeInTheDocument();
+    expect(screen.queryByText(tagChip(characterChipsCopy.unknown))).not.toBeInTheDocument();
+  });
+
+  it("calls the tag untitled once the lookup answers without it", async () => {
+    renderCatalog(`tagId=${deepLinkIds.tag}`);
+
+    const activeFilters = await screen.findByRole("group", { name: activeFiltersCopy.label });
+
+    expect(
+      await within(activeFilters).findByText(tagChip(characterChipsCopy.unknown)),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("CharactersCatalogView species chip", () => {
+  it("keeps the species chip pending until the lookup answers, then names it", async () => {
+    let answerSpeciesLookup: () => void = () => undefined;
+    const speciesLookupAnswered = new Promise<void>((resolve) => {
+      answerSpeciesLookup = () => resolve();
+    });
+    respondToList = () => jsonResponse(page([]));
+    respondToSpecies = (url) => {
+      const params = new URL(url, "http://localhost").searchParams;
+      return params.getAll("ids").join() === elf.id && params.get("locale") === "uk"
+        ? speciesLookupAnswered.then(() => jsonResponse({ items: [elf] }))
+        : jsonResponse({ items: [] });
+    };
+
+    renderCatalog(`speciesId=${elf.id}`);
+
+    const activeFilters = await screen.findByRole("group", { name: activeFiltersCopy.label });
+    expect(
+      within(activeFilters).getByText(speciesChip(characterChipsCopy.pending)),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(speciesChip(characterChipsCopy.unknown))).not.toBeInTheDocument();
+
+    answerSpeciesLookup();
+
+    expect(await within(activeFilters).findByText(speciesChip(elf.name))).toBeInTheDocument();
+    expect(screen.queryByText(speciesChip(characterChipsCopy.pending))).not.toBeInTheDocument();
+    expect(screen.queryByText(speciesChip(characterChipsCopy.unknown))).not.toBeInTheDocument();
+  });
+
+  it("calls the species untitled once the lookup answers without it", async () => {
+    respondToList = () => jsonResponse(page([]));
+
+    renderCatalog(`speciesId=${elf.id}`);
+
+    const activeFilters = await screen.findByRole("group", { name: activeFiltersCopy.label });
+    expect(
+      await within(activeFilters).findByText(speciesChip(characterChipsCopy.unknown)),
+    ).toBeInTheDocument();
+  });
+
+  it("asks for no species while the url has no species filter", async () => {
+    renderCatalog();
+
+    await screen.findByText("Показано 1 із 1 персонажа");
+    expect(requestUrls("/api/species")).toHaveLength(0);
+  });
+
+  it("names the deep linked species on the species picker of the sheet", async () => {
+    respondToList = () => jsonResponse(page([]));
+    respondToSpecies = (url) =>
+      url.includes("ids=") ? jsonResponse({ items: [elf] }) : jsonResponse({ items: [] });
+
+    renderCatalog(`speciesId=${elf.id}`);
+
+    await screen.findByText(speciesChip(elf.name));
+    await userEvent.click(
+      screen.getByRole("button", { name: new RegExp(`^${sheetCopy.trigger}`) }),
+    );
+    const sheet = within(await screen.findByRole("dialog", { name: sheetCopy.title }));
+
+    expect(
+      sheet.getByRole("button", { name: `${sheetCopy.species} ${elf.name}` }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("CharactersCatalogView facet counts", () => {
+  it("asks for facet counts only once the filters sheet opens", async () => {
+    renderCatalog();
+
+    await screen.findByText("Показано 1 із 1 персонажа");
+    expect(requestUrls("/api/characters/facets")).toHaveLength(0);
+
+    await userEvent.click(screen.getByRole("button", { name: sheetCopy.trigger }));
+    await screen.findByRole("dialog", { name: sheetCopy.title });
+
+    await waitFor(() => expect(requestUrls("/api/characters/facets")).toHaveLength(1));
+  });
+});
+
+describe("CharactersCatalogView filters sheet", () => {
+  it("puts the applied spoiler choice in the url and asks the backend for it", async () => {
+    const urlUpdates: UrlUpdateEvent[] = [];
+    renderCatalog("", (event) => urlUpdates.push(event));
+
+    await screen.findByText("Показано 1 із 1 персонажа");
+    await userEvent.click(screen.getByRole("button", { name: sheetCopy.trigger }));
+    const sheet = within(await screen.findByRole("dialog", { name: sheetCopy.title }));
+    await userEvent.click(sheet.getByRole("combobox", { name: sheetCopy.spoilers }));
+    await userEvent.click(
+      await screen.findByRole("option", { name: sheetCopy.spoilerOptions.with }),
+    );
+    await userEvent.click(sheet.getByRole("button", { name: sheetCopy.apply }));
+
+    await waitFor(() => expect(urlUpdates.at(-1)?.searchParams.get("spoilers")).toBe("with"));
+    await waitFor(() => expect(lastCatalogRequest().get("hasSpoilers")).toBe("true"));
+  });
+});
+
+describe("CharactersCatalogView cards", () => {
+  it.each([
+    { search: "", twoColumns: true, view: "grid" },
+    { search: "view=list", twoColumns: false, view: "list" },
+  ])(
+    "lays out the skeleton and the loaded cards for the $view view",
+    async ({ search, twoColumns }) => {
+      let releaseList = (): void => undefined;
+      respondToList = () =>
+        new Promise<Response>((resolve) => {
+          releaseList = () =>
+            resolve(jsonResponse(page([makeCharacterCatalogItem({ name: "Ґеральт" })])));
+        });
+
+      renderCatalog(search);
+
+      expect(catalogSkeleton()).toHaveClass("grid", "grid-cols-1", "gap-4");
+      expect(catalogSkeleton().classList.contains("lg:grid-cols-2")).toBe(twoColumns);
+
+      await waitFor(() => expect(catalogRequestUrls()).toHaveLength(1));
+      releaseList();
+      await screen.findByRole("heading", { name: "Ґеральт" });
+
+      expect(catalogList()).toHaveClass("grid", "grid-cols-1", "gap-4");
+      expect(catalogList().classList.contains("lg:grid-cols-2")).toBe(twoColumns);
+    },
+  );
+
+  it("shows the species, the description and two tags with a counter for the rest on a grid card", async () => {
+    respondToList = () => jsonResponse(page([DESCRIBED_CHARACTER]));
+
+    renderCatalog();
+
+    const card = await screen.findByRole("article");
+    expect(within(card).getByText("Відьмак")).toBeInTheDocument();
+    expect(within(card).getByText(WITCHER_DESCRIPTION)).toBeInTheDocument();
+    expect(within(card).getByText("сміливість")).toBeInTheDocument();
+    expect(within(card).getByText("іронія")).toBeInTheDocument();
+    expect(within(card).queryByText("вірність")).not.toBeInTheDocument();
+    expect(
+      within(card).getByRole("button", {
+        name: translateCatalog("tags.more", { count: 1, names: "вірність" }),
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the species but drops the description and the tags on a list card", async () => {
+    respondToList = () => jsonResponse(page([DESCRIBED_CHARACTER]));
+
+    renderCatalog("view=list");
+
+    const card = await screen.findByRole("article");
+    expect(within(card).getByText("Відьмак")).toBeInTheDocument();
+    expect(within(card).queryByText(WITCHER_DESCRIPTION)).not.toBeInTheDocument();
+    expect(within(card).queryByText("сміливість")).not.toBeInTheDocument();
+    expect(within(card).queryByText("іронія")).not.toBeInTheDocument();
+    expect(
+      within(card).queryByRole("button", {
+        name: translateCatalog("tags.more", { count: 1, names: "вірність" }),
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens every book of the character from the more button without leaving the catalog", async () => {
+    respondToList = () =>
+      jsonResponse(
+        page([
+          makeCharacterCatalogItem({
+            appearanceCount: 7,
+            booksPreview: PREVIEW_BOOKS,
+            name: "Ґеральт",
+          }),
+        ]),
+      );
+
+    renderCatalog();
+
+    const more = await screen.findByRole("button", {
+      name: translateCatalog("books.more", { count: 4 }),
+    });
+    expect(screen.getByText(translateCatalog("books.count", { count: 7 }))).toBeInTheDocument();
+
+    await userEvent.click(more);
+
+    expect(await screen.findByRole("dialog", { name: booksCopy.title })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Ґеральт" })).toBeInTheDocument();
+  });
+
+  it("says a character is in no book yet and offers no book controls", async () => {
+    respondToList = () =>
+      jsonResponse(page([makeCharacterCatalogItem({ appearanceCount: 0, name: "Ґеральт" })]));
+
+    renderCatalog();
+
+    const card = await screen.findByRole("article");
+    expect(within(card).getByText(booksCopy.none)).toBeInTheDocument();
+    expect(within(card).getAllByRole("link")).toEqual([
+      within(card).getByRole("link", { name: "Ґеральт" }),
+    ]);
+    expect(within(card).getAllByRole("button")).toEqual([
+      within(card).getByRole("button", { name: cardCopy.favorite }),
+      within(card).getByRole("button", { name: cardCopy.menu }),
+    ]);
+  });
+
+  it("fills the heart before the server answers and empties it again when the update fails", async () => {
+    let refuseFavorite = (): void => undefined;
+    respondToList = () =>
+      favoriteRequests().length === 0
+        ? jsonResponse(page([makeCharacterCatalogItem({ id: CARD_CHARACTER_ID, name: "Ґеральт" })]))
+        : new Promise<Response>(() => undefined);
+    respondToFavorite = () =>
+      new Promise<Response>((resolve) => {
+        refuseFavorite = () => resolve(jsonResponse({ message: "boom" }, 500));
+      });
+
+    renderCatalog();
+
+    await userEvent.click(await screen.findByRole("button", { name: cardCopy.favorite }));
+
+    expect(await screen.findByRole("button", { name: cardCopy.unfavorite })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await waitFor(() =>
+      expect(favoriteRequests()).toEqual([
+        {
+          body: JSON.stringify({ isFavorite: true }),
+          path: `/api/characters/${CARD_CHARACTER_ID}`,
+        },
+      ]),
+    );
+
+    refuseFavorite();
+
+    expect(await screen.findByRole("button", { name: cardCopy.favorite })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
+  it("offers the general edit page and a full delete in the card menu", async () => {
+    respondToList = () =>
+      jsonResponse(page([makeCharacterCatalogItem({ id: CARD_CHARACTER_ID, name: "Ґеральт" })]));
+
+    renderCatalog();
+
+    await userEvent.click(await screen.findByRole("button", { name: cardCopy.menu }));
+
+    expect(await screen.findByRole("menuitem", { name: cardCopy.edit })).toHaveAttribute(
+      "href",
+      `/characters/${CARD_CHARACTER_ID}/edit?view=global`,
+    );
+    expect(
+      screen.getByRole("menuitem", { name: messages.characters.page.deleteAction }),
+    ).toBeInTheDocument();
   });
 });

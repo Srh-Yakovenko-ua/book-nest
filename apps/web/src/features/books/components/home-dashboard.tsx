@@ -2,7 +2,10 @@
 
 import { useTranslations } from "next-intl";
 
+import { type SummaryCard, SummaryCards } from "@/components/catalog/summary-cards";
 import { UiIcon } from "@/components/icons";
+import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { SummaryError } from "@/components/summary-error";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAuthStore } from "@/features/auth";
@@ -10,7 +13,6 @@ import { Link } from "@/i18n/navigation";
 
 import { useLibraryOverview } from "../api/use-library-overview";
 import { DeliveryDashboardWidget } from "./delivery-dashboard-widget";
-import { type LibrarySummaryCard, LibrarySummaryCards } from "./library-summary-cards";
 
 export function HomeDashboard() {
   const t = useTranslations("home");
@@ -21,13 +23,14 @@ export function HomeDashboard() {
   const displayName = user?.nickname ?? user?.name ?? null;
   const summary = overview.data?.summary;
   const isEmpty = summary !== undefined && summary.total === 0;
+  const retryOverview = () => void overview.refetch();
 
   const mobileLabels = (key: "favorites" | "finished" | "reading" | "total") => ({
     compact: tSummary(`summary.mobile.compact.${key}`),
     detailed: tSummary(`summary.mobile.detailed.${key}`),
   });
 
-  const summaryCards: LibrarySummaryCard[] = [
+  const summaryCards: SummaryCard[] = [
     {
       icon: "library",
       label: tSummary("summary.total"),
@@ -68,32 +71,44 @@ export function HomeDashboard() {
         </p>
       </header>
 
+      <RefetchErrorBanner
+        state={
+          overview.isRefetchError
+            ? { isRetrying: overview.isRefetching, onRetry: retryOverview }
+            : null
+        }
+      />
+
       {isEmpty ? (
-        <EmptyState
+        <EmptyLibraryCard
           action={t("empty.action")}
           description={t("empty.description")}
           title={t("empty.title")}
         />
       ) : (
         <>
-          <LibrarySummaryCards
-            cards={summaryCards}
-            isLoading={overview.isPending}
-            mobileLayout="compact"
-          />
+          <SummaryError state={overview.isLoadingError ? { onRetry: retryOverview } : null}>
+            <SummaryCards
+              cards={summaryCards}
+              isLoading={overview.isPending}
+              mobileLayout="compact"
+            />
+          </SummaryError>
 
           <DeliveryDashboardWidget />
 
-          <ReadingProgress
-            finished={summary?.finished ?? 0}
-            isLoading={overview.isPending}
-            label={t("progress.label", {
-              finished: summary?.finished ?? 0,
-              total: summary?.total ?? 0,
-            })}
-            title={t("progress.title")}
-            total={summary?.total ?? 0}
-          />
+          {overview.isLoadingError ? null : (
+            <ReadingProgress
+              finished={summary?.finished ?? 0}
+              isLoading={overview.isPending}
+              label={t("progress.label", {
+                finished: summary?.finished ?? 0,
+                total: summary?.total ?? 0,
+              })}
+              title={t("progress.title")}
+              total={summary?.total ?? 0}
+            />
+          )}
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button asChild>
@@ -112,7 +127,7 @@ export function HomeDashboard() {
   );
 }
 
-function EmptyState({
+function EmptyLibraryCard({
   action,
   description,
   title,

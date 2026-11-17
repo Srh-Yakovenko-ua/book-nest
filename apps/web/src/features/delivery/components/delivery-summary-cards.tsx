@@ -2,14 +2,14 @@
 
 import type { ReactNode } from "react";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { SummaryCard } from "@/components/catalog/summary-cards";
 
-import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
+import { SummaryCards } from "@/components/catalog/summary-cards";
 
 export const DELIVERY_MOBILE_TILE_COUNT = 4;
 
 type DeliverySummaryCardsProps = {
-  cards: LibrarySummaryCard[];
+  cards: SummaryCard[];
   isLoading: boolean;
   mobileAction?: ReactNode;
 };
@@ -20,7 +20,7 @@ export function DeliverySummaryCards({
   mobileAction,
 }: DeliverySummaryCardsProps) {
   return (
-    <LibrarySummaryCards
+    <SummaryCards
       cards={cards}
       isLoading={isLoading}
       mobileAction={mobileAction}

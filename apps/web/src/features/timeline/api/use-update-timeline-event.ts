@@ -5,7 +5,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { timelineEventsControllerUpdateEvent } from "@/shared/api/generated/endpoints/timeline-events/timeline-events";
 
-import { invalidateTimelineQueries } from "./timeline-keys";
+import {
+  invalidateTimelineEventQueries,
+  invalidateTimelineLocations,
+  timelineKeys,
+} from "./timeline-keys";
 
 type UpdateTimelineEventVariables = {
   bookId: string;
@@ -24,7 +28,10 @@ export function useUpdateTimelineEvent() {
       const response = await timelineEventsControllerUpdateEvent(eventId, input);
       return TimelineEventViewSchema.parse(response);
     },
-    onSuccess: (event, { bookId }) =>
-      invalidateTimelineQueries(queryClient, { bookId, eventId: event.id }),
+    onSuccess: (_event, { bookId }) => {
+      void invalidateTimelineEventQueries(queryClient, { bookId });
+      void queryClient.invalidateQueries({ queryKey: timelineKeys.overview(bookId) });
+      void invalidateTimelineLocations(queryClient, { bookId });
+    },
   });
 }

@@ -3,10 +3,9 @@ import type { CharacterDetailsView, CreateCharacterInBook } from "@app/shared";
 import { CharacterDetailsViewSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { invalidateTagAggregateQueries } from "@/features/tags/api/tags-keys";
 import { bookCharactersControllerCreate } from "@/shared/api/generated/endpoints/characters/characters";
 
-import { characterKeys } from "./character-keys";
+import { characterChangeEffects } from "./character-change-effects";
 
 type CreateCharacterInBookVariables = {
   bookId: string;
@@ -23,8 +22,7 @@ export function useCreateCharacterInBook() {
     }: CreateCharacterInBookVariables): Promise<CharacterDetailsView> =>
       CharacterDetailsViewSchema.parse(await bookCharactersControllerCreate(bookId, input)),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: characterKeys.all });
-      void invalidateTagAggregateQueries(queryClient);
+      void characterChangeEffects.charactersChanged(queryClient, { change: "createdInBook" });
     },
   });
 }

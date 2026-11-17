@@ -7,8 +7,13 @@ import type {
   UpdateShipmentInput,
 } from "@app/shared";
 
-import { BookOrderViewSchema, ReceiveShipmentsResultViewSchema } from "@app/shared";
-import { useMutation } from "@tanstack/react-query";
+import {
+  ActiveShipmentStatusSchema,
+  BookOrderViewSchema,
+  ReceiveShipmentsResultViewSchema,
+} from "@app/shared";
+import { useMutation, useMutationState } from "@tanstack/react-query";
+import { z } from "zod";
 
 import { bookOrdersControllerUpdate } from "@/shared/api/generated/endpoints/book-orders/book-orders";
 import {
@@ -21,13 +26,20 @@ import {
   shipmentsControllerUpdateShipment,
 } from "@/shared/api/generated/endpoints/shipments/shipments";
 
-import { useDeliverySync } from "./delivery-cache";
+import { useDeliverySync, useDeliverySyncAwaitingInTransitList } from "./delivery-cache";
 
 const STATUS_REQUESTS: Record<ActiveShipmentStatus, (shipmentId: string) => Promise<unknown>> = {
   in_transit: (shipmentId) => shipmentsControllerMarkInTransit(shipmentId),
   ordered: (shipmentId) => shipmentsControllerUpdateShipment(shipmentId, { status: "ordered" }),
   ready_for_pickup: (shipmentId) => shipmentsControllerMarkReadyForPickup(shipmentId),
 };
+
+const SET_SHIPMENT_STATUS = {
+  mutationKey: ["shipments", "set-status"],
+  variablesSchema: z.object({ shipmentId: z.string(), status: ActiveShipmentStatusSchema }),
+} as const;
+
+type SetShipmentStatusVariables = z.infer<typeof SET_SHIPMENT_STATUS.variablesSchema>;
 
 export function useCancelShipment(shipmentId: string) {
   const sync = useDeliverySync();
@@ -45,6 +57,15 @@ export function useCreateShipment(orderId: string) {
       BookOrderViewSchema.parseAsync(await shipmentsControllerCreateShipment(orderId, payload)),
     onSuccess: sync,
   });
+}
+
+export function usePendingShipmentStatusIds(): string[] {
+  const pendingIds = useMutationState({
+    filters: { mutationKey: SET_SHIPMENT_STATUS.mutationKey, status: "pending" },
+    select: (mutation) =>
+      SET_SHIPMENT_STATUS.variablesSchema.safeParse(mutation.state.variables).data?.shipmentId,
+  });
+  return pendingIds.filter((id) => id !== undefined);
 }
 
 export function useReceiveShipment() {
@@ -68,15 +89,11 @@ export function useReceiveShipments() {
 }
 
 export function useSetShipmentStatus() {
-  const sync = useDeliverySync();
+  const sync = useDeliverySyncAwaitingInTransitList();
   return useMutation({
-    mutationFn: async ({
-      shipmentId,
-      status,
-    }: {
-      shipmentId: string;
-      status: ActiveShipmentStatus;
-    }) => BookOrderViewSchema.parseAsync(await STATUS_REQUESTS[status](shipmentId)),
+    mutationFn: async ({ shipmentId, status }: SetShipmentStatusVariables) =>
+      BookOrderViewSchema.parseAsync(await STATUS_REQUESTS[status](shipmentId)),
+    mutationKey: SET_SHIPMENT_STATUS.mutationKey,
     onSuccess: sync,
   });
 }

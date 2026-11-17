@@ -16,6 +16,9 @@ export default defineConfig({
       httpClient: "fetch",
       mode: "tags-split",
       override: {
+        fetch: {
+          includeHttpResponseReturnType: false,
+        },
         mutator: {
           name: "customInstance",
           path: "src/shared/api/mutator.ts",

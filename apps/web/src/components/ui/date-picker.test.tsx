@@ -105,7 +105,7 @@ describe("DatePicker", () => {
   });
 
   it("closes the days before the given today when the past is off limits", async () => {
-    renderPicker({ disablePast: true });
+    renderPicker({ earliestDay: DATES.today });
 
     await openPicker();
 

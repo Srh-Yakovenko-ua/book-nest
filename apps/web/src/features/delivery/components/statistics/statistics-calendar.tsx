@@ -9,7 +9,7 @@ import type {
 import type { ReactNode } from "react";
 
 import { STATISTICS_METRIC_KIND } from "@app/shared";
-import { addDays, parseISO } from "date-fns";
+import { addDays, parseISO, startOfWeek } from "date-fns";
 import { useLocale, useTranslations } from "next-intl";
 import { useId, useState } from "react";
 
@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useWeekStartsOn, type WeekStartsOn } from "@/features/settings";
 import { Link } from "@/i18n/navigation";
 import { formatDateLong } from "@/lib/format";
 
@@ -57,7 +58,7 @@ const CALENDAR_UI = {
   disabledClass: "cursor-not-allowed",
   gapPx: 3,
   interactiveClass:
-    "outline-none ring-ring ring-offset-1 ring-offset-card transition-[box-shadow,filter] hover:ring-2 hover:brightness-90 focus-visible:ring-2 focus-visible:brightness-90",
+    "outline-none ring-primary ring-offset-1 ring-offset-card transition-[box-shadow,filter] hover:ring-2 hover:brightness-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:brightness-90",
   minMonthLabelPx: 34,
   monthLabelGapPx: 4,
   monthLabelRowPx: 16,
@@ -104,11 +105,14 @@ export function StatisticsCalendar({
   const truncatedNoticeId = useId();
   const [metric, setMetric] = useState<CalendarMetric>("orders");
   const [requestedYear, setRequestedYear] = useState<Nullable<number>>(null);
+  const weekStartsOn = useWeekStartsOn();
 
   const scope = calendarScope({ daily, period, today });
   const year = scope === null ? null : resolveCalendarYear({ requested: requestedYear, scope });
   const grid =
-    scope === null || year === null ? null : calendarGrid({ daily, metric, scope, year });
+    scope === null || year === null
+      ? null
+      : calendarGrid({ daily, metric, scope, weekStartsOn, year });
 
   return (
     <StatisticsSection
@@ -144,6 +148,7 @@ export function StatisticsCalendar({
         onYearChange={setRequestedYear}
         scope={scope}
         truncatedNoticeId={truncatedNoticeId}
+        weekStartsOn={weekStartsOn}
         year={year}
       />
     </StatisticsSection>
@@ -160,6 +165,7 @@ function CalendarContent({
   onYearChange,
   scope,
   truncatedNoticeId,
+  weekStartsOn,
   year,
 }: {
   coverage: StatisticsCalendarCoverage;
@@ -171,6 +177,7 @@ function CalendarContent({
   onYearChange: (year: number) => void;
   scope: Nullable<CalendarScope>;
   truncatedNoticeId: string;
+  weekStartsOn: WeekStartsOn;
   year: Nullable<number>;
 }) {
   const t = useTranslations("delivery.statistics.calendar");
@@ -238,7 +245,7 @@ function CalendarContent({
                   style={CALENDAR_LAYOUT.cellBox}
                 >
                   {CALENDAR_UI.weekdayLabelRows.some((visible) => visible === row)
-                    ? weekdayLabel(row, locale)
+                    ? weekdayLabel({ locale, row, weekStartsOn })
                     : ""}
                 </span>
               ))}
@@ -524,8 +531,16 @@ function secondaryCount(cell: CalendarCell, metric: CalendarMetric): number {
   return metric === "books" ? cell.ordersCount : cell.booksCount;
 }
 
-function weekdayLabel(row: number, locale: string): string {
-  return new Intl.DateTimeFormat(locale, { weekday: "short" }).format(
-    addDays(parseISO(CALENDAR_UI.weekdayAnchorDate), row),
-  );
+function weekdayLabel({
+  locale,
+  row,
+  weekStartsOn,
+}: {
+  locale: string;
+  row: number;
+  weekStartsOn: WeekStartsOn;
+}): string {
+  const firstWeekday = startOfWeek(parseISO(CALENDAR_UI.weekdayAnchorDate), { weekStartsOn });
+
+  return new Intl.DateTimeFormat(locale, { weekday: "short" }).format(addDays(firstWeekday, row));
 }
