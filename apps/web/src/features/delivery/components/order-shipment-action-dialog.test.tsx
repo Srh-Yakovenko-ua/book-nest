@@ -64,7 +64,10 @@ function renderEditOrder({ onOpenChange = vi.fn() }: { onOpenChange?: () => void
 }
 
 function responseFor(url: string): unknown {
-  if (url.includes("delivery-services")) return [];
+  if (url.includes("delivery-services/recent")) return [];
+  if (url.includes("delivery-services")) {
+    return { items: [], page: 1, pagesCount: 0, pageSize: 20, totalCount: 0 };
+  }
   if (url.includes("purchase-stores")) return recentStores;
   return loadedOrder;
 }
