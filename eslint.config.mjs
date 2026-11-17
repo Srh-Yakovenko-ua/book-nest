@@ -189,7 +189,7 @@ export default tseslint.config(
 
   {
     files: ["apps/web/src/features/**/*.{ts,tsx}"],
-    ignores: ["apps/web/src/features/**/*.{test,stories}.{ts,tsx}"],
+    ignores: ["apps/web/src/features/**/*.{test,stories,fixtures}.{ts,tsx}"],
     plugins: {
       boundaries,
     },
