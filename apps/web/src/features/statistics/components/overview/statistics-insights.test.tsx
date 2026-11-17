@@ -1,7 +1,7 @@
 import type { ReadingStatisticsInsight } from "@app/shared";
 import type { ReactNode } from "react";
 
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
@@ -14,6 +14,26 @@ import { renderWithProviders, screen } from "@/test-utils";
 
 import { statisticsIds } from "../../model/statistics.fixtures";
 import { StatisticsInsightBody, StatisticsInsights } from "./statistics-insights";
+
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((input: RequestInfo | URL) =>
+      String(input).includes("/api/genres")
+        ? Promise.resolve(
+            new Response(JSON.stringify([]), {
+              headers: { "Content-Type": "application/json" },
+              status: 200,
+            }),
+          )
+        : Promise.reject(new Error(`unexpected fetch: ${String(input)}`)),
+    ),
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function getInsightText(text: string): HTMLElement {
   return screen.getByText(

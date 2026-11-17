@@ -1,9 +1,10 @@
 import "@testing-library/jest-dom/vitest";
 import type { ReactNode } from "react";
 
+import { defaultUserProfileSettings } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
@@ -31,6 +32,26 @@ beforeAll(() => {
 
 afterAll(() => {
   vi.useRealTimers();
+});
+
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((input: RequestInfo | URL) =>
+      String(input).includes("/api/profile/settings")
+        ? Promise.resolve(
+            new Response(JSON.stringify(defaultUserProfileSettings), {
+              headers: { "Content-Type": "application/json" },
+              status: 200,
+            }),
+          )
+        : Promise.reject(new Error(`unexpected fetch: ${String(input)}`)),
+    ),
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 function card(priority: keyof typeof cardNames) {
