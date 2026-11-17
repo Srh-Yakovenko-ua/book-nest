@@ -8,16 +8,18 @@ import {
   BooksControllerListPublisherPresence,
 } from "@/shared/api/generated/model";
 
-export const publisherDetailUrlParsers = {
-  ...libraryQueryParsers,
-  tab: parseAsString,
-};
-
 type PublisherDetailUrlPatch = {
   [Key in keyof PublisherDetailUrlState]?: Nullable<PublisherDetailUrlState[Key]>;
 };
 
-type PublisherDetailUrlState = inferParserType<typeof publisherDetailUrlParsers>;
+type PublisherDetailUrlState = inferParserType<ReturnType<typeof createPublisherDetailUrlParsers>>;
+
+export function createPublisherDetailUrlParsers() {
+  return {
+    ...libraryQueryParsers,
+    tab: parseAsString,
+  };
+}
 
 const PUBLISHER_DETAIL_URL = {
   legacyWishlistTab: "toBuy",

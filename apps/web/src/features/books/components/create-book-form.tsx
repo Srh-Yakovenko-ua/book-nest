@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { usePublisherDetails } from "@/features/publishers/api/use-publisher-details";
+import { usePublisherDetails } from "@/features/publishers";
 import { useSeriesDetails } from "@/features/series";
 
 import type { BookFormInitialSeries, PublisherSelection } from "../model/create-book-form";
