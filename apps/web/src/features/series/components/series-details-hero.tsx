@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { StatusBadge, statusBadgeVariants } from "@/components/ui/status-badge";
-import { useGenres } from "@/features/books";
+import { useGenres } from "@/features/genres";
 import { seriesStatuses } from "@/lib/book-status";
 
 import { seriesProgress } from "../model/series-derive";

@@ -7,7 +7,7 @@ import { type ReactNode, useState } from "react";
 import type { SummaryCard } from "@/components/catalog/summary-cards";
 
 import { type ActiveFilterChip, ActiveFilters } from "@/components/catalog/active-filters";
-import { useGenres } from "@/features/books";
+import { useGenres } from "@/features/genres";
 import { useRouter } from "@/i18n/navigation";
 import { formatNumber } from "@/lib/format";
 

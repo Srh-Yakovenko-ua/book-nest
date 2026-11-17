@@ -13,7 +13,7 @@ import { SummaryCards } from "@/components/catalog/summary-cards";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
-import { useGenres } from "@/features/books/api/use-genres";
+import { useGenres } from "@/features/genres";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 import { cn } from "@/lib/utils";

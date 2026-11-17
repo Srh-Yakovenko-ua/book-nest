@@ -9,6 +9,7 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { ActiveFilters } from "@/components/catalog/active-filters";
 import { topGenreIconSlot } from "@/components/icons";
+import { useGenres } from "@/features/genres";
 import { Link, useRouter } from "@/i18n/navigation";
 
 import type { LibraryActions } from "../model/book-card-actions";
@@ -27,7 +28,6 @@ import {
 } from "../api/use-book-actions";
 import { useLibraryBooks } from "../api/use-books";
 import { useFavoritesSummary } from "../api/use-favorites-summary";
-import { useGenres } from "../api/use-genres";
 import { useLibraryQuickCounts } from "../api/use-library-quick-counts";
 import { useRemoveFromQueue } from "../api/use-reading-queue";
 import { useSelectedTags } from "../api/use-tags-search";

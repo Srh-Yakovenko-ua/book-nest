@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useGenres } from "@/features/books/api/use-genres";
+import { useGenres } from "@/features/genres";
 import { Link } from "@/i18n/navigation";
 
 import { useDedicationActions } from "../hooks/use-dedication-actions";

@@ -2,9 +2,9 @@
 
 import { useTranslations } from "next-intl";
 
-import type { LibraryBookLabels } from "../model/library-book";
+import { useGenres } from "@/features/genres";
 
-import { useGenres } from "../api/use-genres";
+import type { LibraryBookLabels } from "../model/library-book";
 
 export function useLibraryBookLabels(): LibraryBookLabels {
   const t = useTranslations("books.library");

@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useGenres } from "@/features/books/api/use-genres";
+import { useGenres } from "@/features/genres";
 
 import type { DedicationView } from "../model/dedications-query";
 

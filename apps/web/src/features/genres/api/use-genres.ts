@@ -5,8 +5,9 @@ import { useQuery } from "@tanstack/react-query";
 import { milliseconds } from "date-fns";
 import { z } from "zod";
 
-import { genresKeys } from "@/features/genres/api/genres-keys";
 import { genresControllerList } from "@/shared/api/generated/endpoints/genres/genres";
+
+import { genresKeys } from "./genres-keys";
 
 const genresSchema = z.array(GenreViewSchema);
 
