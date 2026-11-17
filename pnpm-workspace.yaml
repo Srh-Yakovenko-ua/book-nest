@@ -27,9 +27,9 @@ catalog:
   "@opentelemetry/sdk-node": ^0.221.0
   "@prisma/adapter-pg": ^7.9.1
   "@prisma/client": ^7.9.1
-  "@storybook/addon-vitest": ^10.5.5
-  "@storybook/nextjs-vite": ^10.5.5
-  "@storybook/react": ^10.5.5
+  "@storybook/addon-vitest": ^10.6.2
+  "@storybook/nextjs-vite": ^10.6.2
+  "@storybook/react": ^10.6.2
   "@swc-node/register": ^1.12.0
   "@swc/core": ^1.15.43
   "@tailwindcss/postcss": ^4.3.3
@@ -54,10 +54,10 @@ catalog:
   "@types/react-dom": ^19.2.3
   "@types/supertest": ^7.2.1
   "@vitejs/plugin-react-swc": ^4.3.2
-  "@vitest/browser-playwright": ^4.1.10
-  "@vitest/coverage-v8": ^4.1.10
+  "@vitest/browser-playwright": ^4.1.12
+  "@vitest/coverage-v8": ^4.1.12
   "@vitest/eslint-plugin": ^1.6.24
-  "@vitest/ui": ^4.1.10
+  "@vitest/ui": ^4.1.12
   "@xyflow/react": ^12.12.0
   bcryptjs: ^3.0.2
   body-parser: ^2.4.0
@@ -84,7 +84,7 @@ catalog:
   eslint-plugin-testing-library: ^7.16.2
   file-type: ^22.0.1
   globals: ^17.8.0
-  happy-dom: ^20.11.1
+  happy-dom: ^21.0.4
   heic-to: ^1.5.2
   helmet: ^8.3.0
   husky: ^9.1.7
@@ -127,7 +127,7 @@ catalog:
   socket.io: ^4.8.3
   socket.io-client: ^4.8.3
   sonner: ^2.0.7
-  storybook: ^10.5.5
+  storybook: ^10.6.2
   superjson: ^2.2.6
   supertest: ^7.2.2
   tailwind-merge: ^3.6.0
@@ -139,8 +139,8 @@ catalog:
   typescript: ^6.0.2
   typescript-eslint: ^8.64.0
   vaul: ^1.1.2
-  vite: ^8.1.5
-  vitest: ^4.1.10
+  vite: ^8.1.6
+  vitest: ^4.1.12
   web-vitals: ^6.0.1
   zod: ^4.6.6
   zustand: ^5.0.14
