@@ -21,9 +21,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useBookPagesCount } from "@/features/books/api/use-book";
-import { bookPageCeiling } from "@/features/books/model/book-page-ceiling";
 import { useCloseGuard } from "@/hooks/use-close-guard";
 import { applyFieldErrors } from "@/lib/api-errors";
+import { bookPageCeiling } from "@/lib/book-page-ceiling";
 import { ApiError } from "@/lib/http-client";
 
 import type { CharacterFactsScope } from "../api/character-keys";

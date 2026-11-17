@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatStorePrice } from "@/lib/format-price";
 import { isHttpsUrl } from "@/lib/is-https-url";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +27,6 @@ import type { StoreLinkBook } from "./store-link-dialog";
 import { useBookStoreLinks } from "../api/use-book-store-links";
 import { useDeleteStoreLinkWithUndo } from "../hooks/use-delete-store-link-with-undo";
 import { findBestOfferLinkId } from "../model/best-offer-link";
-import { formatStorePrice } from "../model/format-store-price";
 import { hasMultipleCurrencies, sortStoreLinksByPrice } from "../model/store-link-prices";
 import { StoreLinkForm } from "./store-link-dialog";
 

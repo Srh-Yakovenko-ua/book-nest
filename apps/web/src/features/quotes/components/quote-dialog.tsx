@@ -12,8 +12,8 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import type { BookPageCeiling } from "@/features/books/model/book-page-ceiling";
 import type { BookSelectOption } from "@/features/books/model/book-select-option";
+import type { BookPageCeiling } from "@/lib/book-page-ceiling";
 
 import { UiIcon } from "@/components/icons";
 import { SuggestionCombobox } from "@/components/suggestion-combobox";
@@ -46,7 +46,6 @@ import { useBookPagesCount } from "@/features/books/api/use-book";
 import { useBookChapters } from "@/features/books/api/use-book-chapters";
 import { BookSingleSelectPicker } from "@/features/books/components/book-single-select-picker";
 import { BookSingleSelectValue } from "@/features/books/components/book-single-select-value";
-import { bookPageCeiling } from "@/features/books/model/book-page-ceiling";
 import {
   BookSelectOptionSchema,
   toBookSelectOption,
@@ -55,6 +54,7 @@ import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
+import { bookPageCeiling } from "@/lib/book-page-ceiling";
 
 import { useCreateQuote, useUpdateQuote } from "../api/use-quote-mutations";
 

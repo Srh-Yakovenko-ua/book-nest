@@ -22,6 +22,9 @@ export const readingStatuses = [
   { icon: "refresh", tone: "info", value: "rereading" },
 ] as const satisfies readonly StatusDefinition[];
 
+export const FALLBACK_READING_STATUS: StatusDefinition =
+  readingStatuses.find((entry) => entry.value === "not_started") ?? readingStatuses[0];
+
 export const ownershipStatuses = [
   { icon: "circle-slash", isDefault: true, tone: "neutral", value: "none" },
   { icon: "cart", tone: "accent", value: "want_to_buy" },
