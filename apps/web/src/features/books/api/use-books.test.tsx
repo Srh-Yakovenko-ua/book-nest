@@ -1,10 +1,8 @@
-import type { ReactNode } from "react";
-
-import { QueryClientProvider } from "@tanstack/react-query";
 import { renderHook } from "@testing-library/react";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { queryClientWrapper } from "@/test-query-cache";
 import { createTestQueryClient, waitFor } from "@/test-utils";
 
 import { makeBookView } from "../components/book-details.fixtures";
@@ -34,13 +32,6 @@ function jsonResponse(body: unknown): Response {
   });
 }
 
-function queryWrapper() {
-  const client = createTestQueryClient();
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
-}
-
 beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
   fetchMock.mockReset();
@@ -61,7 +52,7 @@ afterEach(() => {
 describe("useLibraryBooks", () => {
   it("keeps the first page loaded once the eleventh page arrives", async () => {
     const { result } = renderHook(() => useLibraryBooks(libraryListParams()), {
-      wrapper: queryWrapper(),
+      wrapper: queryClientWrapper(createTestQueryClient()),
     });
     await waitFor(() => expect(result.current.data?.pages).toHaveLength(1));
 

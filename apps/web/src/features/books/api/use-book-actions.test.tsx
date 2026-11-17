@@ -1,8 +1,8 @@
-import type { ReactNode } from "react";
-
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { queryClientWrapper } from "@/test-query-cache";
 
 import { makeBookDetailsView, makeBookView } from "../components/book-details.fixtures";
 import { bookKeys } from "./book-keys";
@@ -35,7 +35,9 @@ describe("useToggleFavorite", () => {
     });
     client.setQueryData(bookKeys.detail(BOOK_ID), cachedDetail);
     fetchMock.mockResolvedValue(jsonResponse(makeBookView({ id: BOOK_ID, isFavorite: true })));
-    const { result } = renderHook(() => useToggleFavorite(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useToggleFavorite(), {
+      wrapper: queryClientWrapper(client),
+    });
 
     await act(() => result.current.mutateAsync({ id: BOOK_ID, isFavorite: true }));
 
@@ -93,7 +95,7 @@ async function openBookThenDeleteIt() {
   });
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
   const view = renderHook(() => ({ book: useBook(BOOK_ID), deleteBook: useDeleteBook() }), {
-    wrapper: wrapperFor(client),
+    wrapper: queryClientWrapper(client),
   });
   await waitFor(() => expect(view.result.current.book.isSuccess).toBe(true));
 
@@ -101,10 +103,4 @@ async function openBookThenDeleteIt() {
   await waitFor(() => expect(view.result.current.deleteBook.isSuccess).toBe(true));
 
   return view;
-}
-
-function wrapperFor(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
 }

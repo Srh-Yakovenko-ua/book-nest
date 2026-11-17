@@ -1,12 +1,12 @@
 import type { CreatedEventRelationView } from "@app/shared";
-import type { ReactNode } from "react";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { renderHook } from "@testing-library/react";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { bookKeys } from "@/features/books/api/book-keys";
+import { queryClientWrapper } from "@/test-query-cache";
 
 import {
   makeTimelineEventPreview,
@@ -52,7 +52,9 @@ describe("timeline cache freshness after timeline mutations", () => {
   it("invalidates the event details when a line is renamed", async () => {
     fetchMock.mockResolvedValue(jsonResponse(makeTimelineView({ name: "Second age" })));
     const client = seededClient();
-    const { result } = renderHook(() => useUpdateTimeline(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useUpdateTimeline(), {
+      wrapper: queryClientWrapper(client),
+    });
 
     await act(() =>
       result.current.mutateAsync({
@@ -75,7 +77,7 @@ describe("timeline cache freshness after timeline mutations", () => {
     );
     const client = seededClient();
     const { result } = renderHook(() => useReorderTimelineEvent(), {
-      wrapper: wrapperFor(client),
+      wrapper: queryClientWrapper(client),
     });
 
     await act(() =>
@@ -111,7 +113,7 @@ describe("timeline cache freshness after timeline mutations", () => {
     fetchMock.mockResolvedValue(jsonResponse(createdRelation));
     const client = seededClient();
     const { result } = renderHook(() => useCreateEventRelation(), {
-      wrapper: wrapperFor(client),
+      wrapper: queryClientWrapper(client),
     });
 
     await act(() =>
@@ -163,10 +165,4 @@ function seededClient(): QueryClient {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
   for (const key of Object.values(SEEDED_KEYS)) client.setQueryData(key, { marker: key });
   return client;
-}
-
-function wrapperFor(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
 }

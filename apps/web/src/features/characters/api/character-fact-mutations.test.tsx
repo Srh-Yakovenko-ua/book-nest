@@ -1,9 +1,9 @@
-import type { ReactNode } from "react";
-
 import { CHARACTER_FACT_ERROR_CODES } from "@app/shared";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { queryClientWrapper } from "@/test-query-cache";
 
 import { makeCharacterFact } from "../model/characters.fixtures";
 import { characterKeys } from "./character-keys";
@@ -87,7 +87,9 @@ describe("character fact mutations refresh only the facts they changed", () => {
   it("refreshes the facts of that character in that book after a fact is created", async () => {
     replyWith(201, makeCharacterFact());
     const client = seededClient();
-    const { result } = renderHook(() => useCreateCharacterFact(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useCreateCharacterFact(), {
+      wrapper: queryClientWrapper(client),
+    });
 
     await act(() => result.current.mutateAsync({ ...SCOPE, input: NEW_FACT_INPUT }));
 
@@ -97,7 +99,9 @@ describe("character fact mutations refresh only the facts they changed", () => {
   it("refreshes the facts of that character in that book after a fact is updated", async () => {
     replyWith(200, makeCharacterFact({ title: "Плотва" }));
     const client = seededClient();
-    const { result } = renderHook(() => useUpdateCharacterFact(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useUpdateCharacterFact(), {
+      wrapper: queryClientWrapper(client),
+    });
 
     await act(() =>
       result.current.mutateAsync({ ...SCOPE, factId: "fact-1", input: { title: "Плотва" } }),
@@ -109,7 +113,9 @@ describe("character fact mutations refresh only the facts they changed", () => {
   it("refreshes the facts of that character in that book after a fact is deleted", async () => {
     fetchMock.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
     const client = seededClient();
-    const { result } = renderHook(() => useDeleteCharacterFact(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useDeleteCharacterFact(), {
+      wrapper: queryClientWrapper(client),
+    });
 
     await act(() => result.current.mutateAsync({ ...SCOPE, factId: "fact-1" }));
 
@@ -121,7 +127,9 @@ describe("character fact mutations that find their target gone", () => {
   it("also refreshes the character details when a create finds the character gone", async () => {
     replyWith(404, { message: "Character is not in this book" });
     const client = seededClient();
-    const { result } = renderHook(() => useCreateCharacterFact(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useCreateCharacterFact(), {
+      wrapper: queryClientWrapper(client),
+    });
 
     await act(() =>
       expect(result.current.mutateAsync({ ...SCOPE, input: NEW_FACT_INPUT })).rejects.toThrow(),
@@ -133,7 +141,9 @@ describe("character fact mutations that find their target gone", () => {
   it("also refreshes the character details when an update finds the fact gone", async () => {
     replyWith(404, { code: CHARACTER_FACT_ERROR_CODES.notFound, message: "Fact not found" });
     const client = seededClient();
-    const { result } = renderHook(() => useUpdateCharacterFact(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useUpdateCharacterFact(), {
+      wrapper: queryClientWrapper(client),
+    });
 
     await act(() =>
       expect(
@@ -147,7 +157,9 @@ describe("character fact mutations that find their target gone", () => {
   it("also refreshes the character details when a delete finds the fact gone", async () => {
     replyWith(404, { code: CHARACTER_FACT_ERROR_CODES.notFound, message: "Fact not found" });
     const client = seededClient();
-    const { result } = renderHook(() => useDeleteCharacterFact(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useDeleteCharacterFact(), {
+      wrapper: queryClientWrapper(client),
+    });
 
     await act(() =>
       expect(result.current.mutateAsync({ ...SCOPE, factId: "fact-1" })).rejects.toThrow(),
@@ -159,7 +171,9 @@ describe("character fact mutations that find their target gone", () => {
   it("refreshes nothing when a delete fails for any other reason", async () => {
     replyWith(500, { message: "boom" });
     const client = seededClient();
-    const { result } = renderHook(() => useDeleteCharacterFact(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useDeleteCharacterFact(), {
+      wrapper: queryClientWrapper(client),
+    });
 
     await act(() =>
       expect(result.current.mutateAsync({ ...SCOPE, factId: "fact-1" })).rejects.toThrow(),
@@ -201,10 +215,4 @@ function seededClient(): QueryClient {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
   for (const key of Object.values(SEEDED_KEYS)) client.setQueryData(key, {});
   return client;
-}
-
-function wrapperFor(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
 }

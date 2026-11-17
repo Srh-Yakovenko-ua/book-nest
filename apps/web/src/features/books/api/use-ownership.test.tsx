@@ -1,11 +1,10 @@
-import type { ReactNode } from "react";
-
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { renderHook } from "@testing-library/react";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { wishlistKeys } from "@/features/books-to-buy/api/wishlist-keys";
+import { queryClientWrapper } from "@/test-query-cache";
 
 import { bookKeys } from "./book-keys";
 import { useMarkBought, useRemoveFromWishlist } from "./use-ownership";
@@ -65,7 +64,7 @@ describe("useRemoveFromWishlist", () => {
 
 async function wishlistAfterFailedMarkBought(failure: Failure): Promise<QueryClient> {
   const client = wishlistClientFailingWith(failure);
-  const { result } = renderHook(() => useMarkBought(), { wrapper: wrapperFor(client) });
+  const { result } = renderHook(() => useMarkBought(), { wrapper: queryClientWrapper(client) });
 
   await act(() => result.current.mutateAsync({ id: BOOK_ID, payload: {} }).catch(() => undefined));
 
@@ -74,7 +73,9 @@ async function wishlistAfterFailedMarkBought(failure: Failure): Promise<QueryCli
 
 async function wishlistAfterFailedRemoval(failure: Failure): Promise<QueryClient> {
   const client = wishlistClientFailingWith(failure);
-  const { result } = renderHook(() => useRemoveFromWishlist(), { wrapper: wrapperFor(client) });
+  const { result } = renderHook(() => useRemoveFromWishlist(), {
+    wrapper: queryClientWrapper(client),
+  });
 
   await act(() => result.current.mutateAsync(BOOK_ID).catch(() => undefined));
 
@@ -92,10 +93,4 @@ function wishlistClientFailingWith({ body, status }: Failure): QueryClient {
     }),
   );
   return client;
-}
-
-function wrapperFor(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
 }
