@@ -31,6 +31,7 @@ import { GenresQueryDto } from "./input-dto/genres-query.input-dto.js";
 import { RecentGenresQueryDto } from "./input-dto/recent-genres-query.input-dto.js";
 import { GenreFacetsViewDto } from "./view-dto/genre-facets.view-dto.js";
 import { GenreSummaryViewDto } from "./view-dto/genre-summary.view-dto.js";
+import { GenreViewDto } from "./view-dto/genre.view-dto.js";
 import { GenresOverviewViewDto } from "./view-dto/genres-overview.view-dto.js";
 import { PaginatedGenreStatsDto } from "./view-dto/paginated-genre-stats.view-dto.js";
 
@@ -45,7 +46,11 @@ export class GenresController {
     private readonly genresOverviewService: GenresOverviewService,
   ) {}
 
-  @ApiOkResponse({ description: "The predefined system genre catalog" })
+  @ApiOkResponse({
+    description: "The predefined system genre catalog",
+    isArray: true,
+    type: GenreViewDto,
+  })
   @ApiOperation({ summary: "List the predefined system genre catalog" })
   @Get()
   @Throttle(READ_THROTTLE)
@@ -53,7 +58,11 @@ export class GenresController {
     return this.genresService.list();
   }
 
-  @ApiOkResponse({ description: "System genres the current user recently used in their own books" })
+  @ApiOkResponse({
+    description: "System genres the current user recently used in their own books",
+    isArray: true,
+    type: GenreViewDto,
+  })
   @ApiOperation({ summary: "List recently used system genres for the current user" })
   @ApiQuery({ name: "limit", required: false })
   @Get("recent")

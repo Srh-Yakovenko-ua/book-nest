@@ -29,14 +29,16 @@ export const BookGenresSchema = z
   .max(BOOK_GENRES_MAX, "You can select at most 5 genres")
   .refine((genres) => new Set(genres).size === genres.length, "Genres must not contain duplicates");
 
-export type GenreView = {
-  groupKey: string;
-  groupName: string;
-  id: string;
-  isDefault: boolean;
-  key: string;
-  name: string;
-};
+export const GenreViewSchema = z.object({
+  groupKey: GenreGroupKeySchema,
+  groupName: z.string(),
+  id: z.string(),
+  isDefault: z.boolean(),
+  key: GenreKeySchema,
+  name: z.string(),
+});
+
+export type GenreView = z.infer<typeof GenreViewSchema>;
 
 export const RecentGenresQuerySchema = z.object({
   limit: z.coerce

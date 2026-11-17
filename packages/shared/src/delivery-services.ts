@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { collapseSpaces } from "./common.js";
+import { collapseSpaces, createPaginatedSchema } from "./common.js";
 import { NoHtmlString, RECENT_USED_LIMIT_DEFAULT, RECENT_USED_LIMIT_MAX } from "./internal.js";
 
 export const DELIVERY_SERVICE_LIMITS = {
@@ -30,6 +30,8 @@ export const DeliveryServiceViewSchema = z.object({
 });
 
 export type DeliveryServiceView = z.infer<typeof DeliveryServiceViewSchema>;
+
+export const PaginatedDeliveryServicesSchema = createPaginatedSchema(DeliveryServiceViewSchema);
 
 export const RecentDeliveryServicesQuerySchema = z.object({
   limit: z.coerce

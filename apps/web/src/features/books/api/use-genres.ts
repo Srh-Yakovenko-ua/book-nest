@@ -1,6 +1,6 @@
 import type { GenreView } from "@app/shared";
 
-import { GenreGroupKeySchema, GenreKeySchema } from "@app/shared";
+import { GenreViewSchema } from "@app/shared";
 import { useQuery } from "@tanstack/react-query";
 import { milliseconds } from "date-fns";
 import { z } from "zod";
@@ -8,16 +8,7 @@ import { z } from "zod";
 import { genresKeys } from "@/features/genres/api/genres-keys";
 import { genresControllerList } from "@/shared/api/generated/endpoints/genres/genres";
 
-export const genreViewSchema = z.object({
-  groupKey: GenreGroupKeySchema,
-  groupName: z.string(),
-  id: z.string(),
-  isDefault: z.boolean(),
-  key: GenreKeySchema,
-  name: z.string(),
-}) satisfies z.ZodType<GenreView>;
-
-const genresSchema = z.array(genreViewSchema);
+const genresSchema = z.array(GenreViewSchema);
 
 const GENRES_STALE_TIME = milliseconds({ minutes: 5 });
 

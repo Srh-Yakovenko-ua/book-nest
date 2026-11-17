@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { Nullable, Paginator } from "./common.js";
+import type { Paginator } from "./common.js";
 
 import { createPaginatedSchema } from "./common.js";
 import { IsoCountryCodeSchema } from "./countries.js";
@@ -17,18 +17,22 @@ import {
   TaxonomySearchPaginationQuerySchema,
 } from "./taxonomy.js";
 
-export type PublisherView = {
-  countryCode: Nullable<string>;
-  foundedYear: Nullable<number>;
-  id: string;
-  isCustom: boolean;
-  logoAttribution: Nullable<string>;
-  logoLicense: Nullable<string>;
-  logoLicenseUrl: Nullable<string>;
-  logoUrl: Nullable<string>;
-  name: string;
-  websiteUrl: Nullable<string>;
-};
+export const PublisherViewSchema = z.object({
+  countryCode: z.string().nullable(),
+  foundedYear: z.number().int().nullable(),
+  id: z.string(),
+  isCustom: z.boolean(),
+  logoAttribution: z.string().nullable(),
+  logoLicense: z.string().nullable(),
+  logoLicenseUrl: z.string().nullable(),
+  logoUrl: z.string().nullable(),
+  name: z.string(),
+  websiteUrl: z.string().nullable(),
+});
+
+export type PublisherView = z.infer<typeof PublisherViewSchema>;
+
+export const PaginatedPublishersSchema = createPaginatedSchema(PublisherViewSchema);
 
 export const BookPublisherRefSchema = z.object({
   id: z.string(),

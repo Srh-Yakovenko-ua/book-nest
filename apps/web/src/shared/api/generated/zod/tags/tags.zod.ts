@@ -69,7 +69,42 @@ export const TagsControllerSearchQueryParams = zod.object({
     ),
 });
 
-export const TagsControllerSearchResponse = zod.unknown();
+export const tagsControllerSearchResponsePageMin = -9007199254740991;
+export const tagsControllerSearchResponsePageMax = 9007199254740991;
+
+export const tagsControllerSearchResponsePagesCountMin = -9007199254740991;
+export const tagsControllerSearchResponsePagesCountMax = 9007199254740991;
+
+export const tagsControllerSearchResponsePageSizeMin = -9007199254740991;
+export const tagsControllerSearchResponsePageSizeMax = 9007199254740991;
+
+export const tagsControllerSearchResponseTotalCountMin = -9007199254740991;
+export const tagsControllerSearchResponseTotalCountMax = 9007199254740991;
+
+export const TagsControllerSearchResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
+      id: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+  page: zod.int().min(tagsControllerSearchResponsePageMin).max(tagsControllerSearchResponsePageMax),
+  pagesCount: zod
+    .int()
+    .min(tagsControllerSearchResponsePagesCountMin)
+    .max(tagsControllerSearchResponsePagesCountMax),
+  pageSize: zod
+    .int()
+    .min(tagsControllerSearchResponsePageSizeMin)
+    .max(tagsControllerSearchResponsePageSizeMax),
+  totalCount: zod
+    .int()
+    .min(tagsControllerSearchResponseTotalCountMin)
+    .max(tagsControllerSearchResponseTotalCountMax),
+});
 
 /**
  * @summary List the current user's tags for management with search, a quick filter, type and color filters, sort and pagination

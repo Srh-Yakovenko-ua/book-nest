@@ -10,7 +10,19 @@ import * as zod from "zod";
 /**
  * @summary List the predefined system genre catalog
  */
-export const GenresControllerListResponse = zod.unknown();
+export const genresControllerListResponseGroupKeyMax = 64;
+
+export const genresControllerListResponseKeyMax = 64;
+
+export const GenresControllerListResponseItem = zod.object({
+  groupKey: zod.string().min(1).max(genresControllerListResponseGroupKeyMax),
+  groupName: zod.string(),
+  id: zod.string(),
+  isDefault: zod.boolean(),
+  key: zod.string().min(1).max(genresControllerListResponseKeyMax),
+  name: zod.string(),
+});
+export const GenresControllerListResponse = zod.array(GenresControllerListResponseItem);
 
 /**
  * @summary List recently used system genres for the current user
@@ -26,7 +38,19 @@ export const GenresControllerRecentQueryParams = zod.object({
     .default(genresControllerRecentQueryLimitDefault),
 });
 
-export const GenresControllerRecentResponse = zod.unknown();
+export const genresControllerRecentResponseGroupKeyMax = 64;
+
+export const genresControllerRecentResponseKeyMax = 64;
+
+export const GenresControllerRecentResponseItem = zod.object({
+  groupKey: zod.string().min(1).max(genresControllerRecentResponseGroupKeyMax),
+  groupName: zod.string(),
+  id: zod.string(),
+  isDefault: zod.boolean(),
+  key: zod.string().min(1).max(genresControllerRecentResponseKeyMax),
+  name: zod.string(),
+});
+export const GenresControllerRecentResponse = zod.array(GenresControllerRecentResponseItem);
 
 /**
  * @summary List the current user's genres with search, advanced filters, a quick filter, sort and pagination
