@@ -15,7 +15,7 @@ import { DeliveryServiceAutocomplete } from "@/features/books/components/deliver
 
 import type { ShipmentDraft } from "../model/create-book-order-draft";
 
-import { DateField, Field, TextField } from "./create-order-form-parts";
+import { Field, LabeledDateField, TextField } from "./create-order-form-parts";
 
 export function CreateOrderShipmentSection({
   assignedIds,
@@ -84,7 +84,7 @@ export function CreateOrderShipmentSection({
           optional
           value={shipment.trackingNumber}
         />
-        <DateField
+        <LabeledDateField
           allowFuture
           disablePast
           id={`shipment-expected-date-${shipment.id}`}
@@ -107,7 +107,7 @@ export function CreateOrderShipmentSection({
             />
           </CollapsibleTrigger>
           <CollapsibleContent className="flex flex-col gap-4">
-            <DateField
+            <LabeledDateField
               allowFuture
               disablePast
               id={`shipment-pickup-until-${shipment.id}`}

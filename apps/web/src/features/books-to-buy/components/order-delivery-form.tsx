@@ -17,13 +17,13 @@ import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { DateField } from "@/components/date-field";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DialogFooter } from "@/components/ui/dialog";
 import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import {
-  BookDateField,
   buildStoreSourceSchema,
   resolveStoreName,
   resolveStorePrice,
@@ -203,7 +203,7 @@ export function OrderDeliveryForm({
                 control={control}
                 name="orderDate"
                 render={({ field }) => (
-                  <BookDateField
+                  <DateField
                     ariaLabel={t("orderDate")}
                     describedBy={errors.orderDate ? "order-delivery-order-date-error" : undefined}
                     id="order-delivery-order-date"
@@ -224,7 +224,7 @@ export function OrderDeliveryForm({
                 control={control}
                 name="expectedDeliveryDate"
                 render={({ field }) => (
-                  <BookDateField
+                  <DateField
                     allowFuture
                     ariaLabel={t("expectedDate")}
                     describedBy={

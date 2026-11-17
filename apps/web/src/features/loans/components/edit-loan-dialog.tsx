@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, type UseFormReturn, useWatch } from "react-hook-form";
 import { z } from "zod";
 
+import { DateField } from "@/components/date-field";
 import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +24,6 @@ import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { BookDateField } from "@/features/books/components/book-date-field";
 import { toLoanErrorKey } from "@/features/books/model/loan-error";
 import { useProfileTimeZone } from "@/features/settings";
 import {
@@ -324,7 +324,7 @@ function EditLoanForm({
             control={control}
             name="loanDate"
             render={({ field }) => (
-              <BookDateField
+              <DateField
                 ariaLabel={t(`${variant}.loanDate`)}
                 describedBy={errors.loanDate ? "edit-loan-date-error" : undefined}
                 id="edit-loan-date"
@@ -345,7 +345,7 @@ function EditLoanForm({
             control={control}
             name="expectedReturnDate"
             render={({ field }) => (
-              <BookDateField
+              <DateField
                 allowFuture
                 ariaLabel={t("fields.returnDate")}
                 describedBy={errors.expectedReturnDate ? "edit-loan-return-date-error" : undefined}

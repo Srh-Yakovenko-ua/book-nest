@@ -6,11 +6,10 @@ import { useTranslations } from "next-intl";
 import { useId } from "react";
 import { type Control, Controller, type FieldErrors } from "react-hook-form";
 
+import { DateField } from "@/components/date-field";
 import { Label } from "@/components/ui/label";
 
 import type { CreateBookFormValues } from "../../model/create-book-form";
-
-import { BookDateField } from "../book-date-field";
 
 type QueuePriorityTargetDateFieldProps = {
   control: Control<CreateBookFormValues>;
@@ -45,7 +44,7 @@ export function QueuePriorityTargetDateField({
         control={control}
         name="queuePriorityTargetDate"
         render={({ field }) => (
-          <BookDateField
+          <DateField
             allowFuture
             ariaLabel={t("targetDate.label")}
             className="h-10"

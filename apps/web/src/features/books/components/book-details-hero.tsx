@@ -10,11 +10,11 @@ import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { GenreIcon, isGenreIconName, UiIcon } from "@/components/icons";
+import { TagChip } from "@/components/tag-chip";
 import { Button } from "@/components/ui/button";
 import { RatingScore } from "@/components/ui/rating-score";
 import { StatusBadge, statusBadgeVariants } from "@/components/ui/status-badge";
 import { useDedicationActions } from "@/features/dedications";
-import { TagChip } from "@/features/tags/components/tag-chip";
 import { useAnimatedHeight } from "@/hooks/use-animated-height";
 import { Link } from "@/i18n/navigation";
 import { readingStatuses } from "@/lib/book-status";

@@ -2,9 +2,8 @@ import type { TagColor } from "@app/shared";
 import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { PALETTE_COLOR_STYLES } from "@/components/ui/palette-color";
 import { cn } from "@/lib/utils";
-
-import { TAG_COLOR_STYLES } from "../model/tag-color";
 
 type TagChipProps = Omit<ComponentPropsWithoutRef<"span">, "children" | "color"> & {
   as?: "h3" | "li" | "span";
@@ -26,7 +25,7 @@ export function TagChip({
   trailing,
   ...props
 }: TagChipProps) {
-  const colors = TAG_COLOR_STYLES[color];
+  const colors = PALETTE_COLOR_STYLES[color];
 
   return (
     <Element

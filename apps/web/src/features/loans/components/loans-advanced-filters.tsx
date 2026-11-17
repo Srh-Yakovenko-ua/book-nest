@@ -5,6 +5,7 @@ import type { LoanDirection, Nullable } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { DateField } from "@/components/date-field";
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { BookDateField } from "@/features/books/components/book-date-field";
 import { cn } from "@/lib/utils";
 import { LoansControllerListReminder } from "@/shared/api/generated/model";
 
@@ -119,7 +119,7 @@ export function LoansAdvancedFilters({
 
           <FilterSection title={t(`sections.loanDate.${direction}`)}>
             <div className="grid gap-2.5">
-              <BookDateField
+              <DateField
                 ariaLabel={t("range.from")}
                 className="h-9 text-sm"
                 id="loans-filter-loan-from"
@@ -127,7 +127,7 @@ export function LoansAdvancedFilters({
                 placeholder={t("range.from")}
                 value={draft.loanFrom}
               />
-              <BookDateField
+              <DateField
                 ariaLabel={t("range.to")}
                 className="h-9 text-sm"
                 id="loans-filter-loan-to"
@@ -143,7 +143,7 @@ export function LoansAdvancedFilters({
 
           <FilterSection title={t("sections.dueDate")}>
             <div className="grid gap-2.5">
-              <BookDateField
+              <DateField
                 allowFuture
                 ariaLabel={t("range.from")}
                 className="h-9 text-sm"
@@ -152,7 +152,7 @@ export function LoansAdvancedFilters({
                 placeholder={t("range.from")}
                 value={draft.dueFrom}
               />
-              <BookDateField
+              <DateField
                 allowFuture
                 ariaLabel={t("range.to")}
                 className="h-9 text-sm"

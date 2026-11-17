@@ -4,9 +4,9 @@ import { TAG_COLOR_DEFAULT } from "@app/shared";
 import { Command as CommandPrimitive } from "cmdk";
 import { useRef, useState } from "react";
 
+import { TagChip, TagChipRemoveButton } from "@/components/tag-chip";
 import { CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
-import { TagChip, TagChipRemoveButton } from "@/features/tags/components/tag-chip";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 

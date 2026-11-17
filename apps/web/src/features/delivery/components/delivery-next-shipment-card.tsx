@@ -5,9 +5,9 @@ import type { Nullable } from "@app/shared";
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
+import { OverviewSection } from "@/components/overview-section";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { LibraryOverviewSection } from "@/features/books/components/library-overview-blocks";
 
 import type { DeliveryNextShipmentCardModel } from "../model/next-shipment-card";
 
@@ -29,7 +29,7 @@ export function DeliveryNextShipmentCard({
   const t = useTranslations("delivery.nextShipment");
 
   return (
-    <LibraryOverviewSection className="sidebar-card-leaf" title={t("title")}>
+    <OverviewSection className="sidebar-card-leaf" title={t("title")}>
       {isLoading ? (
         <CardSkeleton />
       ) : model === null ? (
@@ -73,7 +73,7 @@ export function DeliveryNextShipmentCard({
           </div>
         </div>
       )}
-    </LibraryOverviewSection>
+    </OverviewSection>
   );
 }
 

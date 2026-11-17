@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
+import { DateField } from "@/components/date-field";
 import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -39,7 +40,6 @@ import { ISO_DAY, todayIsoDay } from "@/lib/iso-day";
 
 import { useChangeReadingStatus } from "../api/use-reading-progress";
 import { READING_CURRENT_PAGE_CEILING } from "../model/reading-progress";
-import { BookDateField } from "./book-date-field";
 import { StatusChipGroup } from "./status-chip-group";
 
 const NOTE_MAX = 300;
@@ -353,7 +353,7 @@ function ChangeStatusForm({
             control={control}
             name="date"
             render={({ field }) => (
-              <BookDateField
+              <DateField
                 ariaLabel={t("statusDialog.date")}
                 describedBy={errors.date ? "status-date-error" : undefined}
                 id="status-date"

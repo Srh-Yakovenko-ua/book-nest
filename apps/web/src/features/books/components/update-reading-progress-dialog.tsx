@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
+import { DateField } from "@/components/date-field";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -29,7 +30,6 @@ import { ISO_DAY, todayIsoDay } from "@/lib/iso-day";
 
 import { useChangeReadingStatus, useUpdateReadingProgress } from "../api/use-reading-progress";
 import { READING_CURRENT_PAGE_CEILING } from "../model/reading-progress";
-import { BookDateField } from "./book-date-field";
 
 const IMPRESSION_MAX = 5000;
 const RATING_MAX = 10;
@@ -302,7 +302,7 @@ function UpdateProgressForm({ book, onDone }: { book: BookView; onDone: () => vo
           control={control}
           name="updateDate"
           render={({ field }) => (
-            <BookDateField
+            <DateField
               ariaLabel={t("updateDialog.updateDate")}
               describedBy={errors.updateDate ? "update-date-error" : undefined}
               id="update-date"

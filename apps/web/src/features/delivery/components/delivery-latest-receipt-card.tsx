@@ -5,9 +5,9 @@ import type { Nullable } from "@app/shared";
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
+import { OverviewSection } from "@/components/overview-section";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { LibraryOverviewSection } from "@/features/books/components/library-overview-blocks";
 
 import type { DeliveryLatestReceiptCardModel } from "../model/latest-receipt-card";
 
@@ -29,7 +29,7 @@ export function DeliveryLatestReceiptCard({
   const t = useTranslations("delivery.history.latestReceipt");
 
   return (
-    <LibraryOverviewSection className="sidebar-card-leaf" title={t("title")}>
+    <OverviewSection className="sidebar-card-leaf" title={t("title")}>
       {isLoading ? (
         <CardSkeleton />
       ) : model === null ? (
@@ -67,7 +67,7 @@ export function DeliveryLatestReceiptCard({
           </div>
         </div>
       )}
-    </LibraryOverviewSection>
+    </OverviewSection>
   );
 }
 

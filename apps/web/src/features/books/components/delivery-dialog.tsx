@@ -16,6 +16,7 @@ import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
+import { DateField } from "@/components/date-field";
 import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -55,7 +56,6 @@ import { ISO_DAY, todayIsoDay } from "@/lib/iso-day";
 
 import { useCreateDelivery, useUpdateDelivery } from "../api/use-delivery";
 import { useDeliveryErrorText } from "../hooks/use-delivery-error-text";
-import { BookDateField } from "./book-date-field";
 import { DeliveryServiceAutocomplete } from "./delivery-service-autocomplete";
 import { StoreAutocomplete } from "./store-autocomplete";
 
@@ -418,7 +418,7 @@ function DeliveryForm({
             control={control}
             name="orderDate"
             render={({ field }) => (
-              <BookDateField
+              <DateField
                 ariaLabel={t("form.orderDate")}
                 describedBy={errors.orderDate ? "delivery-order-date-error" : undefined}
                 id="delivery-order-date"
@@ -440,7 +440,7 @@ function DeliveryForm({
             control={control}
             name="expectedDeliveryDate"
             render={({ field }) => (
-              <BookDateField
+              <DateField
                 allowFuture
                 ariaLabel={t("form.expectedDeliveryDate")}
                 describedBy={

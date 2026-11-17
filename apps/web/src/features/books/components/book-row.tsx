@@ -6,10 +6,10 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 
 import { GenreIcon, UiIcon } from "@/components/icons";
+import { TagChip } from "@/components/tag-chip";
 import { RatingScore } from "@/components/ui/rating-score";
 import { StatusBadge, statusBadgeVariants } from "@/components/ui/status-badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { TagChip } from "@/features/tags/components/tag-chip";
 import { cn } from "@/lib/utils";
 
 import type { BookRowBook, LibraryBook, LibraryBookLinkComponent } from "../model/library-book";

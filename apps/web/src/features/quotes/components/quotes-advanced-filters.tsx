@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import type { FacetOption } from "@/components/facet-multiselect";
 
+import { DateField } from "@/components/date-field";
 import { FacetMultiselect } from "@/components/facet-multiselect";
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +22,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { BookDateField } from "@/features/books/components/book-date-field";
 import { cn } from "@/lib/utils";
 
 import type { QuotesAdvancedPatch } from "../model/use-quotes-query";
@@ -129,7 +129,7 @@ export function QuotesAdvancedFilters({
 
           <FilterSection title={t("sections.created")}>
             <div className="grid gap-2.5">
-              <BookDateField
+              <DateField
                 ariaLabel={t("range.from")}
                 className="h-9 text-sm"
                 id="quotes-filter-created-from"
@@ -138,7 +138,7 @@ export function QuotesAdvancedFilters({
                 placeholder={t("range.from")}
                 value={draft.createdFrom}
               />
-              <BookDateField
+              <DateField
                 ariaLabel={t("range.to")}
                 className="h-9 text-sm"
                 id="quotes-filter-created-to"

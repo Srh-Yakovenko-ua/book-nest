@@ -17,6 +17,7 @@ import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { DateField } from "@/components/date-field";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { FieldError } from "@/components/ui/field-error";
@@ -35,7 +36,6 @@ import {
   type StoreSourceValue,
   toStoreSourceDefaults,
 } from "../model/store-source";
-import { BookDateField } from "./book-date-field";
 import { StoreSourceFields } from "./store-source-fields";
 
 type MarkBoughtFormProps = {
@@ -163,7 +163,7 @@ export function MarkBoughtForm({
               control={control}
               name="purchasedAt"
               render={({ field }) => (
-                <BookDateField
+                <DateField
                   ariaLabel={t("date")}
                   describedBy={errors.purchasedAt ? "mark-bought-date-error" : undefined}
                   id="mark-bought-date"

@@ -1,10 +1,9 @@
 "use client";
 
-import type { BookView, MediaView, Nullable } from "@app/shared";
+import type { BookView } from "@app/shared";
 import type { ReactNode } from "react";
 
-import Image from "next/image";
-
+import { BookThumb } from "@/components/book-thumb";
 import { UiIcon } from "@/components/icons";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -29,11 +28,6 @@ type BookPickerSelectedProps = {
   emptyLabel: string;
   onRemove: (book: BookView) => void;
   removeLabel: string;
-};
-
-type BookThumbBook = {
-  cover?: Nullable<MediaView>;
-  title: string;
 };
 
 export function BookPickerResults({
@@ -108,31 +102,6 @@ export function BookPickerSelected({
         </li>
       ))}
     </ul>
-  );
-}
-
-export function BookThumb({ book }: { book: BookThumbBook }) {
-  if (book.cover === null || book.cover === undefined) {
-    return (
-      <span
-        className="grid h-12 w-9 shrink-0 place-items-center rounded-sm bg-accent text-icon"
-        data-slot="book-thumb"
-      >
-        <UiIcon name="book" size={16} />
-      </span>
-    );
-  }
-
-  return (
-    <Image
-      alt=""
-      className="h-12 w-9 shrink-0 rounded-sm object-cover"
-      data-slot="book-thumb"
-      height={48}
-      src={book.cover.urls.thumb}
-      unoptimized
-      width={36}
-    />
   );
 }
 

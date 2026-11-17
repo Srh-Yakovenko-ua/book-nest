@@ -17,6 +17,7 @@ import {
 
 import type { LoanContactSelection } from "@/features/loans/model/loan-contact-selection";
 
+import { DateField } from "@/components/date-field";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -52,7 +53,6 @@ import {
   ownershipUsesLoan,
 } from "../model/book-status-fields";
 import { OWNERSHIP_FIELDS } from "../model/section-completeness";
-import { BookDateField } from "./book-date-field";
 import { DeliveryServiceAutocomplete } from "./delivery-service-autocomplete";
 import { FormSection } from "./form-section";
 import { StatusChipGroup } from "./status-chip-group";
@@ -260,7 +260,7 @@ export function OwnershipStatusSection({
                 control={control}
                 name="deliveryInfo.orderDate"
                 render={({ field }) => (
-                  <BookDateField
+                  <DateField
                     ariaLabel={t("deliveryInfo.fields.orderDate")}
                     className={mode === "create" ? "h-10" : undefined}
                     describedBy={
@@ -286,7 +286,7 @@ export function OwnershipStatusSection({
                   control={control}
                   name="deliveryInfo.expectedDeliveryDate"
                   render={({ field }) => (
-                    <BookDateField
+                    <DateField
                       allowFuture
                       ariaLabel={t("deliveryInfo.fields.expectedDeliveryDate")}
                       describedBy={
@@ -469,7 +469,7 @@ export function OwnershipStatusSection({
                         control={control}
                         name="deliveryInfo.expectedDeliveryDate"
                         render={({ field }) => (
-                          <BookDateField
+                          <DateField
                             allowFuture
                             ariaLabel={t("deliveryInfo.fields.expectedDeliveryDate")}
                             className="h-10"
@@ -667,7 +667,7 @@ export function OwnershipStatusSection({
                 control={control}
                 name="loanInfo.loanDate"
                 render={({ field }) => (
-                  <BookDateField
+                  <DateField
                     ariaLabel={t("loanInfo.fields.loanDate")}
                     describedBy={errors.loanInfo?.loanDate ? "loan-date-error" : undefined}
                     id="loan-date"
@@ -687,7 +687,7 @@ export function OwnershipStatusSection({
                 control={control}
                 name="loanInfo.expectedReturnDate"
                 render={({ field }) => (
-                  <BookDateField
+                  <DateField
                     allowFuture
                     ariaLabel={t("loanInfo.fields.expectedReturnDate")}
                     describedBy={

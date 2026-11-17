@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { GenreIcon, isGenreIconName } from "@/components/icons";
+import { GenreIcon, isGenreIconName } from "./genre-icon";
 
 export function topGenreIconSlot(genreKeys: readonly string[]): ReactNode | undefined {
   const [first, second] = genreKeys.filter(isGenreIconName);
