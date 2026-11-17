@@ -3,13 +3,12 @@ import type {
   Nullable,
   RelationshipDirectionality,
 } from "@app/shared";
-import type { ReactNode } from "react";
 
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { queryClientWrapper } from "@/test-query-cache";
 import { createTestQueryClient } from "@/test-utils";
 
 import type { RelationshipCustomTypeSuggestionsState } from "./use-relationship-custom-type-suggestions";
@@ -53,16 +52,10 @@ function lastRequest(): URL {
   return request;
 }
 
-function makeWrapper(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
-}
-
 function renderSuggestions(props: Partial<SuggestionProps> = {}) {
   return renderHook((current: SuggestionProps) => useRelationshipCustomTypeSuggestions(current), {
     initialProps: { ...BROWSE, ...props },
-    wrapper: makeWrapper(createTestQueryClient()),
+    wrapper: queryClientWrapper(createTestQueryClient()),
   });
 }
 

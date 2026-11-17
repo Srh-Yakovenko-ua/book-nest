@@ -1,6 +1,4 @@
-import type { ReactNode } from "react";
-
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,6 +11,7 @@ import { makeBookView } from "@/features/books/components/book-details.fixtures"
 import { seriesKeys } from "@/features/series/api/series-keys";
 import { useDeleteSeries } from "@/features/series/api/use-delete-series";
 import { statisticsKeys } from "@/features/statistics/api/statistics-keys";
+import { queryClientWrapper } from "@/test-query-cache";
 
 import { makePublisherDetail } from "../model/publisher.fixtures";
 import { matchesPublisherCatalogKey, publisherKeys } from "./publisher-keys";
@@ -45,12 +44,6 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json" },
     status,
   });
-}
-
-function makeWrapper(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
 }
 
 function seededClient(): QueryClient {
@@ -93,7 +86,7 @@ describe("publisher cache freshness after related mutations", () => {
     const client = seededClient();
 
     const { result } = renderHook(() => useChangeReadingStatus(), {
-      wrapper: makeWrapper(client),
+      wrapper: queryClientWrapper(client),
     });
     result.current.mutate({ id: makeBookView().id, payload: { status: "finished" } });
 
@@ -106,7 +99,7 @@ describe("publisher cache freshness after related mutations", () => {
     const client = seededClient();
 
     const { result } = renderHook(() => useUpdateBook(makeBookView().id), {
-      wrapper: makeWrapper(client),
+      wrapper: queryClientWrapper(client),
     });
     result.current.mutate({ title: "Renamed" });
 
@@ -117,7 +110,7 @@ describe("publisher cache freshness after related mutations", () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
     const client = seededClient();
 
-    const { result } = renderHook(() => useDeleteBook(), { wrapper: makeWrapper(client) });
+    const { result } = renderHook(() => useDeleteBook(), { wrapper: queryClientWrapper(client) });
     result.current.mutate(makeBookView().id);
 
     await waitFor(() => expect(isInvalidated(client, CACHE_KEYS.detail)).toBe(true));
@@ -127,7 +120,9 @@ describe("publisher cache freshness after related mutations", () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
     const client = seededClient();
 
-    const { result } = renderHook(() => useDeleteStoreLink(), { wrapper: makeWrapper(client) });
+    const { result } = renderHook(() => useDeleteStoreLink(), {
+      wrapper: queryClientWrapper(client),
+    });
     result.current.mutate({ bookId: makeBookView().id, linkId: "link-1" });
 
     await waitFor(() => expect(isInvalidated(client, CACHE_KEYS.detail)).toBe(true));
@@ -138,7 +133,7 @@ describe("publisher cache freshness after related mutations", () => {
     const client = seededClient();
 
     const { result } = renderHook(() => useDeleteSeries("series-1"), {
-      wrapper: makeWrapper(client),
+      wrapper: queryClientWrapper(client),
     });
     result.current.mutate();
 
@@ -149,7 +144,9 @@ describe("publisher cache freshness after related mutations", () => {
     fetchMock.mockResolvedValue(jsonResponse(makeBookView()));
     const client = seededClient();
 
-    const { result } = renderHook(() => useToggleFavorite(), { wrapper: makeWrapper(client) });
+    const { result } = renderHook(() => useToggleFavorite(), {
+      wrapper: queryClientWrapper(client),
+    });
     result.current.mutate({ id: makeBookView().id, isFavorite: true });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -163,7 +160,7 @@ describe("statistics and series freshness after a publisher identity change", ()
     const client = identitySeededClient();
 
     const { result } = renderHook(() => useUpdatePublisher("publisher-1"), {
-      wrapper: makeWrapper(client),
+      wrapper: queryClientWrapper(client),
     });
     result.current.mutate({ name: "Vivat Plus" });
 
@@ -178,7 +175,7 @@ describe("statistics and series freshness after a publisher identity change", ()
     const client = identitySeededClient();
 
     const { result } = renderHook(() => useMergePublisher("publisher-1"), {
-      wrapper: makeWrapper(client),
+      wrapper: queryClientWrapper(client),
     });
     result.current.mutate({ targetPublisherId: MERGE_TARGET_ID });
 
@@ -193,7 +190,7 @@ describe("statistics and series freshness after a publisher identity change", ()
     const client = identitySeededClient();
 
     const { result } = renderHook(() => useMergePublisher("publisher-1"), {
-      wrapper: makeWrapper(client),
+      wrapper: queryClientWrapper(client),
     });
     result.current.mutate({ targetPublisherId: MERGE_TARGET_ID });
 
@@ -207,7 +204,7 @@ describe("statistics and series freshness after a publisher identity change", ()
     const client = identitySeededClient();
 
     const { result } = renderHook(() => useUpdatePublisher("publisher-1"), {
-      wrapper: makeWrapper(client),
+      wrapper: queryClientWrapper(client),
     });
     await act(() => result.current.mutateAsync({ name: "Vivat Plus" }));
 
@@ -220,7 +217,7 @@ describe("statistics and series freshness after a publisher identity change", ()
     const client = identitySeededClient();
 
     const { result } = renderHook(() => useUpdatePublisher("publisher-1"), {
-      wrapper: makeWrapper(client),
+      wrapper: queryClientWrapper(client),
     });
     await act(() => result.current.mutateAsync({ name: "Vivat Plus" }));
 

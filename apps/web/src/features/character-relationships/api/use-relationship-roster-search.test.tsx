@@ -1,11 +1,10 @@
 import type { BookCharacterRosterItem, Nullable } from "@app/shared";
-import type { ReactNode } from "react";
 
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { queryClientWrapper } from "@/test-query-cache";
 import { createTestQueryClient } from "@/test-utils";
 
 import type { RelationshipParticipant } from "../model/relationship-form-schema";
@@ -47,12 +46,6 @@ function lastRequest(): URL {
   return request;
 }
 
-function makeWrapper(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
-}
-
 function participantOf(item: BookCharacterRosterItem): RelationshipParticipant {
   return { avatarUrl: null, id: item.characterId, name: item.name };
 }
@@ -60,7 +53,7 @@ function participantOf(item: BookCharacterRosterItem): RelationshipParticipant {
 function renderRosterSearch(props: Partial<RosterProps> = {}) {
   return renderHook((current: RosterProps) => useRelationshipRosterSearch(current), {
     initialProps: { ...BROWSE, ...props },
-    wrapper: makeWrapper(createTestQueryClient()),
+    wrapper: queryClientWrapper(createTestQueryClient()),
   });
 }
 

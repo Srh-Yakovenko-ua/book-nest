@@ -1,9 +1,7 @@
-import type { ReactNode } from "react";
-
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { queryClientWrapper } from "@/test-query-cache";
 import { createTestQueryClient } from "@/test-utils";
 
 import type { RelationshipScope } from "../model/relationship-scope";
@@ -34,12 +32,6 @@ function lastRequest(): URL {
   const call = fetchMock.mock.calls.at(-1);
   if (call === undefined) throw new Error("no relationship list request");
   return new URL(String(call[0]), "http://localhost");
-}
-
-function makeWrapper(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
 }
 
 beforeEach(() => {
@@ -82,7 +74,7 @@ describe("useRelationshipList scope params", () => {
     },
   ])("requests $name", async ({ expected, scope }) => {
     renderHook(() => useRelationshipList({ criteria: { sort: "name_asc" }, scope }), {
-      wrapper: makeWrapper(createTestQueryClient()),
+      wrapper: queryClientWrapper(createTestQueryClient()),
     });
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
@@ -108,7 +100,7 @@ describe("useRelationshipList criteria params", () => {
           },
           scope: { bookId: BOOK_ID, kind: "book" },
         }),
-      { wrapper: makeWrapper(createTestQueryClient()) },
+      { wrapper: queryClientWrapper(createTestQueryClient()) },
     );
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());

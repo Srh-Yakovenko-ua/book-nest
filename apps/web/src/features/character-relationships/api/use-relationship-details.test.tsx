@@ -1,9 +1,7 @@
-import type { ReactNode } from "react";
-
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { queryClientWrapper } from "@/test-query-cache";
 import { createTestQueryClient } from "@/test-utils";
 
 import type { RelationshipReveal } from "../model/relationship-reveal";
@@ -43,12 +41,6 @@ function lastRequest(): URL {
   return new URL(String(call[0]), "http://localhost");
 }
 
-function makeWrapper(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
-}
-
 function renderDetails({
   reveal = NO_REVEAL,
   scope = BOOK_SCOPE,
@@ -63,7 +55,7 @@ function renderDetails({
         reveal,
         scope,
       }),
-    { wrapper: makeWrapper(createTestQueryClient()) },
+    { wrapper: queryClientWrapper(createTestQueryClient()) },
   );
 }
 

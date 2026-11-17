@@ -1,12 +1,12 @@
 import type { QueryKey } from "@tanstack/react-query";
-import type { ReactNode } from "react";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useChangeReadingStatus } from "@/features/books/api/use-reading-progress";
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
+import { queryClientWrapper } from "@/test-query-cache";
 
 import { makeReadingGoalView } from "../model/reading-goals.fixtures";
 import { goalKeys } from "./goal-keys";
@@ -37,12 +37,6 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-function makeWrapper(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
-}
-
 function seededClient(): QueryClient {
   const client = new QueryClient({
     defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
@@ -66,7 +60,7 @@ describe("goal cache freshness", () => {
     fetchMock.mockResolvedValue(jsonResponse(makeReadingGoalView()));
     const client = seededClient();
 
-    const { result } = renderHook(() => useUpdateGoal(), { wrapper: makeWrapper(client) });
+    const { result } = renderHook(() => useUpdateGoal(), { wrapper: queryClientWrapper(client) });
     result.current.mutate({ goalId: GOAL_ID, input: { name: "Осінній забіг" } });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -77,7 +71,7 @@ describe("goal cache freshness", () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
     const client = seededClient();
 
-    const { result } = renderHook(() => useDeleteGoal(), { wrapper: makeWrapper(client) });
+    const { result } = renderHook(() => useDeleteGoal(), { wrapper: queryClientWrapper(client) });
     result.current.mutate({ goalId: GOAL_ID });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -94,7 +88,7 @@ describe("goal cache freshness", () => {
     const client = seededClient();
 
     const { result } = renderHook(() => useChangeReadingStatus(), {
-      wrapper: makeWrapper(client),
+      wrapper: queryClientWrapper(client),
     });
     result.current.mutate({ id: makeBookView().id, payload: { status: "finished" } });
 
@@ -108,7 +102,7 @@ describe("goal cache freshness", () => {
     const client = seededClient();
 
     const { result } = renderHook(() => useChangeReadingStatus(), {
-      wrapper: makeWrapper(client),
+      wrapper: queryClientWrapper(client),
     });
     result.current.mutate({ id: makeBookView().id, payload: { status: "finished" } });
 

@@ -1,10 +1,8 @@
-import type { ReactNode } from "react";
-
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { queryClientWrapper } from "@/test-query-cache";
 import { createTestQueryClient } from "@/test-utils";
 
 import { useNicknameAvailability } from "./use-nickname-availability";
@@ -22,12 +20,6 @@ function json(body: unknown): Promise<Response> {
   );
 }
 
-function makeWrapper(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
-}
-
 function nicknameRequests(): string[] {
   return fetchMock.mock.calls.map(([input]) => {
     const url = new URL(String(input), "http://localhost");
@@ -38,7 +30,7 @@ function nicknameRequests(): string[] {
 function renderNicknameAvailability(initialNickname: string) {
   return renderHook((nickname: string) => useNicknameAvailability(nickname), {
     initialProps: initialNickname,
-    wrapper: makeWrapper(createTestQueryClient()),
+    wrapper: queryClientWrapper(createTestQueryClient()),
   });
 }
 
