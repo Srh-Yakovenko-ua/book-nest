@@ -17,7 +17,22 @@ export const AuthorsControllerLookupQueryParams = zod.object({
   q: zod.string().min(authorsControllerLookupQueryQMin).max(authorsControllerLookupQueryQMax),
 });
 
-export const AuthorsControllerLookupResponse = zod.unknown();
+export const authorsControllerLookupResponseBirthYearMin = -9007199254740991;
+export const authorsControllerLookupResponseBirthYearMax = 9007199254740991;
+
+export const AuthorsControllerLookupResponseItem = zod.object({
+  birthYear: zod
+    .int()
+    .min(authorsControllerLookupResponseBirthYearMin)
+    .max(authorsControllerLookupResponseBirthYearMax)
+    .nullable(),
+  inDb: zod.boolean(),
+  name: zod.string(),
+  openLibraryKey: zod.string(),
+  photoUrl: zod.string().nullable(),
+  source: zod.enum(["open_library"]),
+});
+export const AuthorsControllerLookupResponse = zod.array(AuthorsControllerLookupResponseItem);
 
 /**
  * @summary List recently used authors for the current user
@@ -34,7 +49,35 @@ export const AuthorsControllerRecentQueryParams = zod.object({
   locale: zod.enum(["en", "uk"]).optional(),
 });
 
-export const AuthorsControllerRecentResponse = zod.unknown();
+export const authorsControllerRecentResponseBirthYearMin = -9007199254740991;
+export const authorsControllerRecentResponseBirthYearMax = 9007199254740991;
+
+export const authorsControllerRecentResponseDeathYearMin = -9007199254740991;
+export const authorsControllerRecentResponseDeathYearMax = 9007199254740991;
+
+export const AuthorsControllerRecentResponseItem = zod.object({
+  bio: zod.string().nullable(),
+  birthYear: zod
+    .int()
+    .min(authorsControllerRecentResponseBirthYearMin)
+    .max(authorsControllerRecentResponseBirthYearMax)
+    .nullable(),
+  countryCode: zod.string().nullable(),
+  deathYear: zod
+    .int()
+    .min(authorsControllerRecentResponseDeathYearMin)
+    .max(authorsControllerRecentResponseDeathYearMax)
+    .nullable(),
+  id: zod.string(),
+  isCustom: zod.boolean(),
+  name: zod.string(),
+  openLibraryKey: zod.string().nullable(),
+  photoAttribution: zod.string().nullable(),
+  photoLicense: zod.string().nullable(),
+  photoLicenseUrl: zod.string().nullable(),
+  photoUrl: zod.string().nullable(),
+});
+export const AuthorsControllerRecentResponse = zod.array(AuthorsControllerRecentResponseItem);
 
 /**
  * @summary List an author's books from Open Library
@@ -43,7 +86,13 @@ export const AuthorsControllerListBooksParams = zod.object({
   id: zod.string(),
 });
 
-export const AuthorsControllerListBooksResponse = zod.unknown();
+export const AuthorsControllerListBooksResponseItem = zod.object({
+  coverUrl: zod.string().nullable(),
+  firstPublishYear: zod.number().nullable(),
+  openLibraryWorkKey: zod.string(),
+  title: zod.string(),
+});
+export const AuthorsControllerListBooksResponse = zod.array(AuthorsControllerListBooksResponseItem);
 
 /**
  * @summary Search authors (global seeds + own custom)
@@ -71,4 +120,63 @@ export const AuthorsControllerSearchQueryParams = zod.object({
   locale: zod.enum(["en", "uk"]).optional(),
 });
 
-export const AuthorsControllerSearchResponse = zod.unknown();
+export const authorsControllerSearchResponseItemsItemBirthYearMin = -9007199254740991;
+export const authorsControllerSearchResponseItemsItemBirthYearMax = 9007199254740991;
+
+export const authorsControllerSearchResponseItemsItemDeathYearMin = -9007199254740991;
+export const authorsControllerSearchResponseItemsItemDeathYearMax = 9007199254740991;
+
+export const authorsControllerSearchResponsePageMin = -9007199254740991;
+export const authorsControllerSearchResponsePageMax = 9007199254740991;
+
+export const authorsControllerSearchResponsePagesCountMin = -9007199254740991;
+export const authorsControllerSearchResponsePagesCountMax = 9007199254740991;
+
+export const authorsControllerSearchResponsePageSizeMin = -9007199254740991;
+export const authorsControllerSearchResponsePageSizeMax = 9007199254740991;
+
+export const authorsControllerSearchResponseTotalCountMin = -9007199254740991;
+export const authorsControllerSearchResponseTotalCountMax = 9007199254740991;
+
+export const AuthorsControllerSearchResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      bio: zod.string().nullable(),
+      birthYear: zod
+        .int()
+        .min(authorsControllerSearchResponseItemsItemBirthYearMin)
+        .max(authorsControllerSearchResponseItemsItemBirthYearMax)
+        .nullable(),
+      countryCode: zod.string().nullable(),
+      deathYear: zod
+        .int()
+        .min(authorsControllerSearchResponseItemsItemDeathYearMin)
+        .max(authorsControllerSearchResponseItemsItemDeathYearMax)
+        .nullable(),
+      id: zod.string(),
+      isCustom: zod.boolean(),
+      name: zod.string(),
+      openLibraryKey: zod.string().nullable(),
+      photoAttribution: zod.string().nullable(),
+      photoLicense: zod.string().nullable(),
+      photoLicenseUrl: zod.string().nullable(),
+      photoUrl: zod.string().nullable(),
+    }),
+  ),
+  page: zod
+    .int()
+    .min(authorsControllerSearchResponsePageMin)
+    .max(authorsControllerSearchResponsePageMax),
+  pagesCount: zod
+    .int()
+    .min(authorsControllerSearchResponsePagesCountMin)
+    .max(authorsControllerSearchResponsePagesCountMax),
+  pageSize: zod
+    .int()
+    .min(authorsControllerSearchResponsePageSizeMin)
+    .max(authorsControllerSearchResponsePageSizeMax),
+  totalCount: zod
+    .int()
+    .min(authorsControllerSearchResponseTotalCountMin)
+    .max(authorsControllerSearchResponseTotalCountMax),
+});

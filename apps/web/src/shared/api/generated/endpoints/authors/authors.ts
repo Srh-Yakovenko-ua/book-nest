@@ -19,9 +19,13 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AuthorBookSuggestionViewDto,
+  AuthorLookupResultDto,
+  AuthorViewDto,
   AuthorsControllerLookupParams,
   AuthorsControllerRecentParams,
   AuthorsControllerSearchParams,
+  PaginatedAuthorsDto,
 } from "../../model";
 
 import { customInstance } from "../../../mutator";
@@ -65,8 +69,8 @@ export const getAuthorsControllerLookupUrl = (params: AuthorsControllerLookupPar
 export const authorsControllerLookup = async (
   params: AuthorsControllerLookupParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<void> => {
-  return customInstance<void>(getAuthorsControllerLookupUrl(params), {
+): Promise<AuthorLookupResultDto[]> => {
+  return customInstance<AuthorLookupResultDto[]>(getAuthorsControllerLookupUrl(params), {
     ...options,
     method: "GET",
   });
@@ -211,8 +215,8 @@ export const getAuthorsControllerRecentUrl = (params?: AuthorsControllerRecentPa
 export const authorsControllerRecent = async (
   params?: AuthorsControllerRecentParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<void> => {
-  return customInstance<void>(getAuthorsControllerRecentUrl(params), {
+): Promise<AuthorViewDto[]> => {
+  return customInstance<AuthorViewDto[]>(getAuthorsControllerRecentUrl(params), {
     ...options,
     method: "GET",
   });
@@ -345,8 +349,8 @@ export const getAuthorsControllerListBooksUrl = (id: string) => {
 export const authorsControllerListBooks = async (
   id: string,
   options?: Parameters<typeof customInstance>[1],
-): Promise<void> => {
-  return customInstance<void>(getAuthorsControllerListBooksUrl(id), {
+): Promise<AuthorBookSuggestionViewDto[]> => {
+  return customInstance<AuthorBookSuggestionViewDto[]>(getAuthorsControllerListBooksUrl(id), {
     ...options,
     method: "GET",
   });
@@ -492,8 +496,8 @@ export const getAuthorsControllerSearchUrl = (params?: AuthorsControllerSearchPa
 export const authorsControllerSearch = async (
   params?: AuthorsControllerSearchParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<void> => {
-  return customInstance<void>(getAuthorsControllerSearchUrl(params), {
+): Promise<PaginatedAuthorsDto> => {
+  return customInstance<PaginatedAuthorsDto>(getAuthorsControllerSearchUrl(params), {
     ...options,
     method: "GET",
   });

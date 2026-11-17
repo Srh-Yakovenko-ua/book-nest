@@ -25,8 +25,10 @@ import type {
   LibraryPublishersQuickCountsDto,
   LibraryPublishersSummaryDto,
   MergePublisherDto,
+  PaginatedPublishersDto,
   PublisherDuplicateCandidateDto,
   PublisherMergeResultDto,
+  PublisherViewDto,
   PublishersControllerDuplicateCandidatesParams,
   PublishersControllerLibraryDetailParams,
   PublishersControllerLibraryListParams,
@@ -730,8 +732,8 @@ export const getPublishersControllerRecentUrl = (params?: PublishersControllerRe
 export const publishersControllerRecent = async (
   params?: PublishersControllerRecentParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<void> => {
-  return customInstance<void>(getPublishersControllerRecentUrl(params), {
+): Promise<PublisherViewDto[]> => {
+  return customInstance<PublisherViewDto[]>(getPublishersControllerRecentUrl(params), {
     ...options,
     method: "GET",
   });
@@ -876,8 +878,8 @@ export const getPublishersControllerSearchUrl = (params?: PublishersControllerSe
 export const publishersControllerSearch = async (
   params?: PublishersControllerSearchParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<void> => {
-  return customInstance<void>(getPublishersControllerSearchUrl(params), {
+): Promise<PaginatedPublishersDto> => {
+  return customInstance<PaginatedPublishersDto>(getPublishersControllerSearchUrl(params), {
     ...options,
     method: "GET",
   });

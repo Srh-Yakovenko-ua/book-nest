@@ -406,7 +406,26 @@ export const PublishersControllerRecentQueryParams = zod.object({
   locale: zod.enum(["en", "uk"]).optional(),
 });
 
-export const PublishersControllerRecentResponse = zod.unknown();
+export const publishersControllerRecentResponseFoundedYearMin = -9007199254740991;
+export const publishersControllerRecentResponseFoundedYearMax = 9007199254740991;
+
+export const PublishersControllerRecentResponseItem = zod.object({
+  countryCode: zod.string().nullable(),
+  foundedYear: zod
+    .int()
+    .min(publishersControllerRecentResponseFoundedYearMin)
+    .max(publishersControllerRecentResponseFoundedYearMax)
+    .nullable(),
+  id: zod.string(),
+  isCustom: zod.boolean(),
+  logoAttribution: zod.string().nullable(),
+  logoLicense: zod.string().nullable(),
+  logoLicenseUrl: zod.string().nullable(),
+  logoUrl: zod.string().nullable(),
+  name: zod.string(),
+  websiteUrl: zod.string().nullable(),
+});
+export const PublishersControllerRecentResponse = zod.array(PublishersControllerRecentResponseItem);
 
 /**
  * @summary Search publishers (global seeds + own custom)
@@ -434,7 +453,57 @@ export const PublishersControllerSearchQueryParams = zod.object({
   locale: zod.enum(["en", "uk"]).optional(),
 });
 
-export const PublishersControllerSearchResponse = zod.unknown();
+export const publishersControllerSearchResponseItemsItemFoundedYearMin = -9007199254740991;
+export const publishersControllerSearchResponseItemsItemFoundedYearMax = 9007199254740991;
+
+export const publishersControllerSearchResponsePageMin = -9007199254740991;
+export const publishersControllerSearchResponsePageMax = 9007199254740991;
+
+export const publishersControllerSearchResponsePagesCountMin = -9007199254740991;
+export const publishersControllerSearchResponsePagesCountMax = 9007199254740991;
+
+export const publishersControllerSearchResponsePageSizeMin = -9007199254740991;
+export const publishersControllerSearchResponsePageSizeMax = 9007199254740991;
+
+export const publishersControllerSearchResponseTotalCountMin = -9007199254740991;
+export const publishersControllerSearchResponseTotalCountMax = 9007199254740991;
+
+export const PublishersControllerSearchResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      countryCode: zod.string().nullable(),
+      foundedYear: zod
+        .int()
+        .min(publishersControllerSearchResponseItemsItemFoundedYearMin)
+        .max(publishersControllerSearchResponseItemsItemFoundedYearMax)
+        .nullable(),
+      id: zod.string(),
+      isCustom: zod.boolean(),
+      logoAttribution: zod.string().nullable(),
+      logoLicense: zod.string().nullable(),
+      logoLicenseUrl: zod.string().nullable(),
+      logoUrl: zod.string().nullable(),
+      name: zod.string(),
+      websiteUrl: zod.string().nullable(),
+    }),
+  ),
+  page: zod
+    .int()
+    .min(publishersControllerSearchResponsePageMin)
+    .max(publishersControllerSearchResponsePageMax),
+  pagesCount: zod
+    .int()
+    .min(publishersControllerSearchResponsePagesCountMin)
+    .max(publishersControllerSearchResponsePagesCountMax),
+  pageSize: zod
+    .int()
+    .min(publishersControllerSearchResponsePageSizeMin)
+    .max(publishersControllerSearchResponsePageSizeMax),
+  totalCount: zod
+    .int()
+    .min(publishersControllerSearchResponseTotalCountMin)
+    .max(publishersControllerSearchResponseTotalCountMax),
+});
 
 /**
  * @summary Get a publisher with the current user library stats

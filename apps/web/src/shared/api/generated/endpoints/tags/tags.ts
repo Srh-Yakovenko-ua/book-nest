@@ -21,6 +21,7 @@ import type {
 import type {
   CreateTagDto,
   PaginatedTagCatalogDto,
+  PaginatedTagsDto,
   TagCatalogViewDto,
   TagDeletionPreviewViewDto,
   TagsCatalogFacetsViewDto,
@@ -214,8 +215,8 @@ export const getTagsControllerSearchUrl = (params?: TagsControllerSearchParams) 
 export const tagsControllerSearch = async (
   params?: TagsControllerSearchParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<void> => {
-  return customInstance<void>(getTagsControllerSearchUrl(params), {
+): Promise<PaginatedTagsDto> => {
+  return customInstance<PaginatedTagsDto>(getTagsControllerSearchUrl(params), {
     ...options,
     method: "GET",
   });

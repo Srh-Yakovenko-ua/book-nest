@@ -32,7 +32,46 @@ export const DeliveryServicesControllerSearchQueryParams = zod.object({
   search: zod.string().max(deliveryServicesControllerSearchQuerySearchMax).optional(),
 });
 
-export const DeliveryServicesControllerSearchResponse = zod.unknown();
+export const deliveryServicesControllerSearchResponsePageMin = -9007199254740991;
+export const deliveryServicesControllerSearchResponsePageMax = 9007199254740991;
+
+export const deliveryServicesControllerSearchResponsePagesCountMin = -9007199254740991;
+export const deliveryServicesControllerSearchResponsePagesCountMax = 9007199254740991;
+
+export const deliveryServicesControllerSearchResponsePageSizeMin = -9007199254740991;
+export const deliveryServicesControllerSearchResponsePageSizeMax = 9007199254740991;
+
+export const deliveryServicesControllerSearchResponseTotalCountMin = -9007199254740991;
+export const deliveryServicesControllerSearchResponseTotalCountMax = 9007199254740991;
+
+export const DeliveryServicesControllerSearchResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      countryCode: zod.string().nullable(),
+      id: zod.string(),
+      isCustom: zod.boolean(),
+      name: zod.string(),
+      providerKey: zod.string().nullable(),
+      trackingUrlTemplate: zod.string().nullable(),
+    }),
+  ),
+  page: zod
+    .int()
+    .min(deliveryServicesControllerSearchResponsePageMin)
+    .max(deliveryServicesControllerSearchResponsePageMax),
+  pagesCount: zod
+    .int()
+    .min(deliveryServicesControllerSearchResponsePagesCountMin)
+    .max(deliveryServicesControllerSearchResponsePagesCountMax),
+  pageSize: zod
+    .int()
+    .min(deliveryServicesControllerSearchResponsePageSizeMin)
+    .max(deliveryServicesControllerSearchResponsePageSizeMax),
+  totalCount: zod
+    .int()
+    .min(deliveryServicesControllerSearchResponseTotalCountMin)
+    .max(deliveryServicesControllerSearchResponseTotalCountMax),
+});
 
 /**
  * @summary List recently used delivery services for the current user
@@ -48,7 +87,17 @@ export const DeliveryServicesControllerRecentQueryParams = zod.object({
     .default(deliveryServicesControllerRecentQueryLimitDefault),
 });
 
-export const DeliveryServicesControllerRecentResponse = zod.unknown();
+export const DeliveryServicesControllerRecentResponseItem = zod.object({
+  countryCode: zod.string().nullable(),
+  id: zod.string(),
+  isCustom: zod.boolean(),
+  name: zod.string(),
+  providerKey: zod.string().nullable(),
+  trackingUrlTemplate: zod.string().nullable(),
+});
+export const DeliveryServicesControllerRecentResponse = zod.array(
+  DeliveryServicesControllerRecentResponseItem,
+);
 
 /**
  * @summary Delete a custom delivery service of the current user

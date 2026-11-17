@@ -21,6 +21,7 @@ import type {
 import type {
   GenreFacetsViewDto,
   GenreSummaryViewDto,
+  GenreViewDto,
   GenresControllerFacetsParams,
   GenresControllerRecentParams,
   GenresControllerStatsParams,
@@ -56,8 +57,8 @@ export const getGenresControllerListUrl = () => {
  */
 export const genresControllerList = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<void> => {
-  return customInstance<void>(getGenresControllerListUrl(), {
+): Promise<GenreViewDto[]> => {
+  return customInstance<GenreViewDto[]>(getGenresControllerListUrl(), {
     ...options,
     method: "GET",
   });
@@ -192,8 +193,8 @@ export const getGenresControllerRecentUrl = (params?: GenresControllerRecentPara
 export const genresControllerRecent = async (
   params?: GenresControllerRecentParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<void> => {
-  return customInstance<void>(getGenresControllerRecentUrl(params), {
+): Promise<GenreViewDto[]> => {
+  return customInstance<GenreViewDto[]>(getGenresControllerRecentUrl(params), {
     ...options,
     method: "GET",
   });

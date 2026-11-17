@@ -1,14 +1,13 @@
 import type { AuthorView } from "@app/shared";
+import type { z } from "zod";
 
-import { CatalogLocaleSchema } from "@app/shared";
+import { CatalogLocaleSchema, PaginatedAuthorsSchema } from "@app/shared";
 import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
-import { z } from "zod";
 
 import { authorsControllerSearch } from "@/shared/api/generated/endpoints/authors/authors";
 
 import { authorKeys } from "./author-keys";
-import { authorSearchResultSchema } from "./use-author-search";
 
 const AUTHOR_OPTIONS_PAGE_SIZE = 20;
 
@@ -20,7 +19,7 @@ type AuthorOptions = {
   items: AuthorView[];
 };
 
-type AuthorSearchPage = z.infer<typeof authorSearchResultSchema>;
+type AuthorSearchPage = z.infer<typeof PaginatedAuthorsSchema>;
 
 export function useAuthorOptions(search: string): AuthorOptions {
   const trimmed = search.trim();
@@ -38,7 +37,7 @@ export function useAuthorOptions(search: string): AuthorOptions {
         pageSize: AUTHOR_OPTIONS_PAGE_SIZE,
         search: trimmed.length > 0 ? trimmed : undefined,
       });
-      return authorSearchResultSchema.parse(response);
+      return PaginatedAuthorsSchema.parse(response);
     },
     queryKey: authorKeys.options({ locale, search: trimmed }),
   });

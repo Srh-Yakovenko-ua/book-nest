@@ -19,8 +19,10 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  DeliveryServiceViewDto,
   DeliveryServicesControllerRecentParams,
   DeliveryServicesControllerSearchParams,
+  PaginatedDeliveryServicesDto,
 } from "../../model";
 
 import { customInstance } from "../../../mutator";
@@ -66,11 +68,14 @@ export const getDeliveryServicesControllerSearchUrl = (
 export const deliveryServicesControllerSearch = async (
   params?: DeliveryServicesControllerSearchParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<void> => {
-  return customInstance<void>(getDeliveryServicesControllerSearchUrl(params), {
-    ...options,
-    method: "GET",
-  });
+): Promise<PaginatedDeliveryServicesDto> => {
+  return customInstance<PaginatedDeliveryServicesDto>(
+    getDeliveryServicesControllerSearchUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
 };
 
 export const getDeliveryServicesControllerSearchQueryKey = (
@@ -216,8 +221,8 @@ export const getDeliveryServicesControllerRecentUrl = (
 export const deliveryServicesControllerRecent = async (
   params?: DeliveryServicesControllerRecentParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<void> => {
-  return customInstance<void>(getDeliveryServicesControllerRecentUrl(params), {
+): Promise<DeliveryServiceViewDto[]> => {
+  return customInstance<DeliveryServiceViewDto[]>(getDeliveryServicesControllerRecentUrl(params), {
     ...options,
     method: "GET",
   });
