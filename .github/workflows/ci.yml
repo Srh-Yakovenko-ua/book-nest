@@ -31,8 +31,10 @@ jobs:
     outputs:
       mode: ${{ steps.scope.outputs.mode }}
       base: ${{ steps.scope.outputs.base }}
-      shards: ${{ steps.scope.outputs.shards }}
-      total: ${{ steps.scope.outputs.total }}
+      api_shards: ${{ steps.scope.outputs.api_shards }}
+      api_total: ${{ steps.scope.outputs.api_total }}
+      web_shards: ${{ steps.scope.outputs.web_shards }}
+      web_total: ${{ steps.scope.outputs.web_total }}
       api: ${{ steps.scope.outputs.api }}
       web: ${{ steps.scope.outputs.web }}
 
@@ -76,8 +78,10 @@ jobs:
             fi
           fi
 
-          shards='[1,2,3,4]'
-          total=4
+          api_shards='[1,2,3,4]'
+          api_total=4
+          web_shards='[1,2,3]'
+          web_total=3
           if [ "$mode" = full ]; then
             base=""
           fi
@@ -86,8 +90,10 @@ jobs:
           {
             echo "mode=$mode"
             echo "base=$base"
-            echo "shards=$shards"
-            echo "total=$total"
+            echo "api_shards=$api_shards"
+            echo "api_total=$api_total"
+            echo "web_shards=$web_shards"
+            echo "web_total=$web_total"
             echo "api=$api"
             echo "web=$web"
           } >> "$GITHUB_OUTPUT"
@@ -140,7 +146,7 @@ jobs:
         run: pnpm knip
 
   test-api:
-    name: API tests (${{ needs.scope.outputs.mode }}, shard ${{ matrix.shard }}/${{ needs.scope.outputs.total }})
+    name: API tests (${{ needs.scope.outputs.mode }}, shard ${{ matrix.shard }}/${{ needs.scope.outputs.api_total }})
     needs: scope
     if: needs.scope.outputs.api == 'true'
     runs-on: ubuntu-latest
@@ -149,7 +155,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(needs.scope.outputs.shards) }}
+        shard: ${{ fromJSON(needs.scope.outputs.api_shards) }}
 
     services:
       postgres:
@@ -216,7 +222,7 @@ jobs:
         env:
           MODE: ${{ needs.scope.outputs.mode }}
           BASE: ${{ needs.scope.outputs.base }}
-          SHARD: ${{ matrix.shard }}/${{ needs.scope.outputs.total }}
+          SHARD: ${{ matrix.shard }}/${{ needs.scope.outputs.api_total }}
         run: |
           if [ "$MODE" = affected ]; then
             pnpm --filter @app/api exec vitest run --changed "$BASE" --shard="$SHARD" --passWithNoTests
@@ -225,11 +231,16 @@ jobs:
           fi
 
   test-web:
-    name: Web tests (${{ needs.scope.outputs.mode }})
+    name: Web tests (${{ needs.scope.outputs.mode }}, shard ${{ matrix.shard }}/${{ needs.scope.outputs.web_total }})
     needs: scope
     if: needs.scope.outputs.web == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.scope.outputs.web_shards) }}
 
     env:
       DATABASE_URL: postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder
@@ -255,24 +266,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Restore turbo cache
-        uses: actions/cache@v6
-        with:
-          path: .turbo
-          key: turbo-web-${{ runner.os }}-${{ github.sha }}
-          restore-keys: |
-            turbo-web-${{ runner.os }}-
+      - name: Build shared
+        run: pnpm --filter @app/shared build
 
-      - name: Test
+      - name: Test shard
         env:
           MODE: ${{ needs.scope.outputs.mode }}
           BASE: ${{ needs.scope.outputs.base }}
+          SHARD: ${{ matrix.shard }}/${{ needs.scope.outputs.web_total }}
         run: |
           if [ "$MODE" = affected ]; then
-            pnpm --filter @app/shared build
-            pnpm --filter @app/web exec vitest --project unit --project unit-tz run --changed "$BASE" --passWithNoTests
+            pnpm --filter @app/web exec vitest --project unit --project unit-tz run --changed "$BASE" --shard="$SHARD" --passWithNoTests
           else
-            pnpm turbo run test --filter=@app/web
+            pnpm --filter @app/web exec vitest --project unit --project unit-tz run --shard="$SHARD"
           fi
 
   build:
