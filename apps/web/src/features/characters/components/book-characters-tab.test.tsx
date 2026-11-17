@@ -810,6 +810,24 @@ describe("BookCharactersTab favorite guard", () => {
       ([, init]) => (init as RequestInit | undefined)?.method === "PATCH",
     );
     expect(patches).toHaveLength(1);
+
+    const requestsBeforeFailure = fetchMock.mock.calls.length;
     gate.fail(new Error("stop"));
+
+    await waitFor(() =>
+      expect(
+        within(cardFor("Ґеральт")).getByRole("button", { name: "Додати в улюблені" }),
+      ).toHaveAttribute("aria-pressed", "false"),
+    );
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.slice(requestsBeforeFailure).map(([input]) => String(input)),
+      ).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining("/api/books/book-1/characters?"),
+          expect.stringContaining("/api/books/book-1/character-summary"),
+        ]),
+      ),
+    );
   });
 });

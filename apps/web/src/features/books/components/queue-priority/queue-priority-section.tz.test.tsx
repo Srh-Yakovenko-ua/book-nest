@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { defaultUserProfileSettings } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { parseISO } from "date-fns";
 import { useForm } from "react-hook-form";
@@ -32,9 +33,23 @@ beforeEach(() => {
   process.env.TZ = PINNED_TIME_ZONE;
   vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.setSystemTime(parseISO(TODAY));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((input: RequestInfo | URL) =>
+      String(input).includes("/api/profile/settings")
+        ? Promise.resolve(
+            new Response(JSON.stringify(defaultUserProfileSettings), {
+              headers: { "Content-Type": "application/json" },
+              status: 200,
+            }),
+          )
+        : Promise.reject(new Error(`unexpected fetch: ${String(input)}`)),
+    ),
+  );
 });
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   vi.useRealTimers();
   if (previousTimeZone === undefined) {
     delete process.env.TZ;
