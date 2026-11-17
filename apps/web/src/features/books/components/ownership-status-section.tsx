@@ -15,7 +15,7 @@ import {
   useWatch,
 } from "react-hook-form";
 
-import type { LoanContactSelection } from "@/features/loans/model/loan-contact-selection";
+import type { LoanContactSelection } from "@/features/loans";
 
 import { DateField } from "@/components/date-field";
 import { UiIcon } from "@/components/icons";
@@ -33,8 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CreateLoanContactDialog } from "@/features/loans/components/contact/create-loan-contact-dialog";
-import { LoanContactPicker } from "@/features/loans/components/loan-contact-picker";
+import { CreateLoanContactDialog, LoanContactPicker } from "@/features/loans";
 import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,

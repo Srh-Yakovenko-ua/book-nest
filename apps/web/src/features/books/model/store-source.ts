@@ -9,7 +9,7 @@ import type {
 import { DEFAULT_CURRENCY } from "@app/shared";
 import { z } from "zod";
 
-import { findBestOfferLinkId } from "@/features/books-to-buy/model/best-offer-link";
+import { findBestOfferLinkId } from "@/features/books-to-buy";
 
 export const OTHER_STORE_SOURCE = "other";
 

@@ -21,7 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useLists } from "@/features/lists/api/use-lists";
+import { useLists } from "@/features/lists";
 import { Link } from "@/i18n/navigation";
 import { assertNever } from "@/lib/assert-never";
 import { cn } from "@/lib/utils";

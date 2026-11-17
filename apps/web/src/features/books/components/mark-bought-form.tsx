@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
-import { findBestOfferLinkId } from "@/features/books-to-buy/model/best-offer-link";
+import { findBestOfferLinkId } from "@/features/books-to-buy";
 import { useProfileTimeZone } from "@/features/settings";
 import { formatNumber } from "@/lib/format";
 import { ApiError } from "@/lib/http-client";

@@ -26,6 +26,11 @@ const unitTestOptions = {
   environment: "happy-dom",
   globals: true,
   maxWorkers,
+  server: {
+    deps: {
+      inline: ["next-intl"],
+    },
+  },
   setupFiles: ["./vitest.setup.ts"],
 };
 

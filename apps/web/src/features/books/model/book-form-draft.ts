@@ -15,7 +15,7 @@ import {
 } from "@app/shared";
 import { z } from "zod";
 
-import type { LoanContactSelection } from "@/features/loans/model/loan-contact-selection";
+import type { LoanContactSelection } from "@/features/loans";
 
 import type {
   AuthorSelection,

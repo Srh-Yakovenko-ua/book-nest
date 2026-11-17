@@ -9,8 +9,7 @@ import { TruncatedText } from "@/components/truncated-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { goalDisplayPercent } from "@/features/reading-goals/model/goal-display-percent";
-import { GOAL_SIGNAL_TONE } from "@/features/reading-goals/model/goal-status";
+import { GOAL_SIGNAL_TONE, goalDisplayPercent } from "@/features/reading-goals";
 import { Link } from "@/i18n/navigation";
 import { formatDateLong, formatDateShort } from "@/lib/format";
 

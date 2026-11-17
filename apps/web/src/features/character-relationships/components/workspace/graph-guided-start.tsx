@@ -8,8 +8,7 @@ import { TruncatedText } from "@/components/truncated-text";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useBookCharacterSummary } from "@/features/characters/api/use-book-character-summary";
-import { toCharacterBookContext } from "@/features/characters/model/characters-roster-query";
+import { toCharacterBookContext, useBookCharacterSummary } from "@/features/characters";
 import { Link } from "@/i18n/navigation";
 
 import { getBookCharactersListPath } from "../../model/workspace/graph-workspace-routes";

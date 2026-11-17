@@ -16,7 +16,7 @@ import { Controller, useForm, type UseFormReturn, useWatch } from "react-hook-fo
 import { toast } from "sonner";
 import { z } from "zod";
 
-import type { LoanContactSelection } from "@/features/loans/model/loan-contact-selection";
+import type { LoanContactSelection } from "@/features/loans";
 
 import { BookThumb } from "@/components/book-thumb";
 import { DateField } from "@/components/date-field";
@@ -35,8 +35,7 @@ import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { CreateLoanContactStep } from "@/features/loans/components/contact/create-loan-contact-step";
-import { LoanContactPicker } from "@/features/loans/components/loan-contact-picker";
+import { CreateLoanContactStep, LoanContactPicker, toLoanErrorKey } from "@/features/loans";
 import { useProfileTimeZone } from "@/features/settings";
 import {
   CLEAN_CLOSE_GUARD_DRAFT,
@@ -49,7 +48,6 @@ import { ISO_DAY, todayIsoDay } from "@/lib/iso-day";
 import { useCreateLoansBatch } from "../api/use-create-loans-batch";
 import { useCreateLoan } from "../api/use-loan";
 import { toLoanBatchConflicts } from "../model/loan-batch-error";
-import { toLoanErrorKey } from "../model/loan-error";
 import { LoanBooksStep } from "./loan-books-step";
 
 const NOTE_MAX = 300;
