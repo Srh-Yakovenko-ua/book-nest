@@ -1,7 +1,7 @@
 import type { UserView } from "@app/shared";
 
 import { act, useEffect, useState } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const router = vi.hoisted(() => ({ replace: vi.fn() }));
 
@@ -68,11 +68,8 @@ function mountGuardedProbe() {
 }
 
 beforeEach(() => {
-  useAuthStore.setState(useAuthStore.getInitialState(), true);
-});
-
-afterEach(() => {
   vi.clearAllMocks();
+  useAuthStore.setState(useAuthStore.getInitialState(), true);
 });
 
 describe("AuthGuard", () => {
