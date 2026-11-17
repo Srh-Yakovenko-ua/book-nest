@@ -1,4 +1,10 @@
+export { useReturnLoan } from "./api/use-loan-actions";
+export { CreateLoanContactDialog } from "./components/contact/create-loan-contact-dialog";
+export { CreateLoanContactStep } from "./components/contact/create-loan-contact-step";
 export { LoanContactsView } from "./components/contact/loan-contacts-view";
 export { LoanHistoryView } from "./components/history/loan-history-view";
+export { LoanContactPicker } from "./components/loan-contact-picker";
 export { LoansView } from "./components/loans-view";
+export type { LoanContactSelection } from "./model/loan-contact-selection";
+export { toLoanErrorKey } from "./model/loan-error";
 export { LOAN_PAGES } from "./model/loan-pages";

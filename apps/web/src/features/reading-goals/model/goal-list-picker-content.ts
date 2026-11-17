@@ -1,9 +1,9 @@
 import type { CustomListCard } from "@app/shared";
 
-import type { ListsListParams } from "@/features/lists/model/lists-query";
+import type { ListsListParams } from "@/features/lists";
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
-import { LIST_SORT_DEFAULT, LISTS_PAGE_SIZE } from "@/features/lists/model/lists-query";
+import { LIST_SORT_DEFAULT, LISTS_PAGE_SIZE } from "@/features/lists";
 import { ListsControllerSearchFillItem } from "@/shared/api/generated/model";
 
 import { resolveGoalCursorContent } from "./goal-cursor-content";

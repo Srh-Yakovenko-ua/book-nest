@@ -2,7 +2,7 @@ import type { BookView, NoteBookPreview, SeriesView } from "@app/shared";
 
 import type { BookSelectOption } from "@/features/books/model/book-select-option";
 
-import { toSeriesSelectOption } from "@/features/series/model/series-select-option";
+import { toSeriesSelectOption } from "@/features/series";
 
 import type { NoteEntityRef } from "./note-entity";
 

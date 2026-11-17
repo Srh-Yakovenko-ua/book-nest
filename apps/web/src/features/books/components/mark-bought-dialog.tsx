@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useBookStoreLinks } from "@/features/books-to-buy/api/use-book-store-links";
+import { useBookStoreLinks } from "@/features/books-to-buy";
 
 import { MarkBoughtForm } from "./mark-bought-form";
 

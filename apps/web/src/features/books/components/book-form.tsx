@@ -34,7 +34,7 @@ import {
 } from "react-hook-form";
 import { toast } from "sonner";
 
-import type { LoanContactSelection } from "@/features/loans/model/loan-contact-selection";
+import type { LoanContactSelection } from "@/features/loans";
 
 import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
 import { UiIcon } from "@/components/icons";

@@ -8,7 +8,7 @@ import { UiIcon } from "@/components/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getCharacterDetailsPath } from "@/features/characters/model/character-routes";
+import { getCharacterDetailsPath } from "@/features/characters";
 import { Link } from "@/i18n/navigation";
 
 export type GraphCharacterConnectionItem = {

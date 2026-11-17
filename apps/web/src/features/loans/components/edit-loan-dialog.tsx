@@ -24,7 +24,6 @@ import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { toLoanErrorKey } from "@/features/books/model/loan-error";
 import { useProfileTimeZone } from "@/features/settings";
 import {
   CLEAN_CLOSE_GUARD_DRAFT,
@@ -37,6 +36,7 @@ import { ISO_DAY, todayIsoDay } from "@/lib/iso-day";
 import type { LoanContactSelection } from "../model/loan-contact-selection";
 
 import { useEditLoan } from "../api/use-loan-actions";
+import { toLoanErrorKey } from "../model/loan-error";
 import { restoreLoanTriggerFocus } from "../model/loan-focus";
 import { CreateLoanContactStep } from "./contact/create-loan-contact-step";
 import { LoanContactPicker } from "./loan-contact-picker";

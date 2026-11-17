@@ -7,8 +7,7 @@ import { Controller } from "react-hook-form";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { SeriesSingleSelectPicker } from "@/features/series/components/series-single-select-picker";
-import { SeriesSingleSelectValue } from "@/features/series/components/series-single-select-value";
+import { SeriesSingleSelectPicker, SeriesSingleSelectValue } from "@/features/series";
 import { cn } from "@/lib/utils";
 
 import type { NoteFormControl, NoteFormErrors } from "../model/note-form-schema";

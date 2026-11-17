@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { BookStoreLinksBlock, RemoveFromWishlistDialog } from "@/features/books-to-buy";
-import { useReturnLoan } from "@/features/loans/api/use-loan-actions";
+import { toLoanErrorKey, useReturnLoan } from "@/features/loans";
 import { useProfileTimeZone } from "@/features/settings";
 import { assertNever } from "@/lib/assert-never";
 import { ownershipStatuses } from "@/lib/book-status";
@@ -29,7 +29,6 @@ import { todayIsoDay } from "@/lib/iso-day";
 import { cn } from "@/lib/utils";
 
 import { useMarkOwned, useRemoveFromWishlist, useRemoveOwned } from "../api/use-ownership";
-import { toLoanErrorKey } from "../model/loan-error";
 import { DeliveryDialog } from "./delivery-dialog";
 import { LoanDialog } from "./loan-dialog";
 import { MarkBoughtDialog } from "./mark-bought-dialog";

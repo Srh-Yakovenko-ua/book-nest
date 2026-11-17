@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { io } from "socket.io-client";
 
-import { useAuthStore } from "@/features/auth/model/auth-store";
+import { useAuthStore } from "@/features/auth";
 import { assertNever } from "@/lib/assert-never";
 import { getAuthBridge } from "@/lib/auth-bridge";
 import { env } from "@/lib/env";
