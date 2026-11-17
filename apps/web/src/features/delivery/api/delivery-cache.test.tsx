@@ -1,10 +1,9 @@
-import type { ReactNode } from "react";
-
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { genresKeys } from "@/features/genres/api/genres-keys";
+import { queryClientWrapper } from "@/test-query-cache";
 import { createTestQueryClient } from "@/test-utils";
 
 import { useDeliverySync, useDeliverySyncAwaitingInTransitList } from "./delivery-cache";
@@ -37,7 +36,7 @@ describe("useDeliverySync", () => {
   it("refreshes Genre analytics because deliveries change ownership status", () => {
     const client = new QueryClient();
     for (const key of [...GENRE_DERIVED_KEYS, UNRELATED_KEY]) client.setQueryData(key, {});
-    const { result } = renderHook(() => useDeliverySync(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useDeliverySync(), { wrapper: queryClientWrapper(client) });
 
     act(() => result.current());
 
@@ -53,7 +52,7 @@ describe("useDeliverySync", () => {
   it("refreshes statistics, goals, lists, publishers and the queue that ownership feeds", () => {
     const client = new QueryClient();
     for (const key of OWNERSHIP_DERIVED_KEYS) client.setQueryData(key, {});
-    const { result } = renderHook(() => useDeliverySync(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useDeliverySync(), { wrapper: queryClientWrapper(client) });
 
     act(() => result.current());
 
@@ -89,7 +88,7 @@ describe("useDeliverySyncAwaitingInTransitList", () => {
         list: useInTransitList({ pageSize: 24 }),
         sync: useDeliverySyncAwaitingInTransitList(),
       }),
-      { wrapper: wrapperFor(client) },
+      { wrapper: queryClientWrapper(client) },
     );
     await waitFor(() => expect(result.current.list.isSuccess).toBe(true));
     fetchMock.mockClear();
@@ -115,10 +114,4 @@ function jsonResponse(body: unknown): Response {
 
 function requestPath(input: RequestInfo | URL): string {
   return new URL(String(input), "http://localhost").pathname;
-}
-
-function wrapperFor(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
 }

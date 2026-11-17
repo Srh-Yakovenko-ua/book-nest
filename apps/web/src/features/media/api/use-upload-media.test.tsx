@@ -1,11 +1,10 @@
 import type { MediaView } from "@app/shared";
-import type { ReactNode } from "react";
 
-import { QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "@/lib/http-client";
+import { queryClientWrapper } from "@/test-query-cache";
 import { createTestQueryClient } from "@/test-utils";
 
 import { useUploadMedia } from "./use-upload-media";
@@ -32,13 +31,6 @@ function coverFile() {
   return new File(["cover-bytes"], "cover.webp", { type: "image/webp" });
 }
 
-function createWrapper() {
-  const queryClient = createTestQueryClient();
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-  };
-}
-
 function jsonResponse(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
@@ -60,7 +52,9 @@ describe("useUploadMedia", () => {
     fetchMock.mockResolvedValueOnce(jsonResponse(validView, 201));
     const file = coverFile();
 
-    const { result } = renderHook(() => useUploadMedia(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useUploadMedia(), {
+      wrapper: queryClientWrapper(createTestQueryClient()),
+    });
     act(() => {
       result.current.mutate({ file });
     });
@@ -81,7 +75,9 @@ describe("useUploadMedia", () => {
   it("returns the parsed media view on a successful upload", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse(validView, 201));
 
-    const { result } = renderHook(() => useUploadMedia(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useUploadMedia(), {
+      wrapper: queryClientWrapper(createTestQueryClient()),
+    });
     act(() => {
       result.current.mutate({ file: coverFile() });
     });
@@ -94,7 +90,9 @@ describe("useUploadMedia", () => {
     fetchMock.mockResolvedValueOnce(jsonResponse(validView, 201));
     const crop = { height: 1600, width: 1200, x: 0, y: 0 };
 
-    const { result } = renderHook(() => useUploadMedia(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useUploadMedia(), {
+      wrapper: queryClientWrapper(createTestQueryClient()),
+    });
     act(() => {
       result.current.mutate({ crop, file: coverFile() });
     });
@@ -108,7 +106,9 @@ describe("useUploadMedia", () => {
   it("omits the crop field when no crop is provided", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse(validView, 201));
 
-    const { result } = renderHook(() => useUploadMedia(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useUploadMedia(), {
+      wrapper: queryClientWrapper(createTestQueryClient()),
+    });
     act(() => {
       result.current.mutate({ file: coverFile() });
     });
@@ -121,7 +121,9 @@ describe("useUploadMedia", () => {
   it("sends the requested kind when provided", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ ...validView, kind: "avatar" }, 201));
 
-    const { result } = renderHook(() => useUploadMedia(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useUploadMedia(), {
+      wrapper: queryClientWrapper(createTestQueryClient()),
+    });
     act(() => {
       result.current.mutate({ file: coverFile(), kind: "avatar" });
     });
@@ -135,7 +137,9 @@ describe("useUploadMedia", () => {
   it("surfaces an ApiError when the server responds with an error", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ message: "Upload failed" }, 500));
 
-    const { result } = renderHook(() => useUploadMedia(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useUploadMedia(), {
+      wrapper: queryClientWrapper(createTestQueryClient()),
+    });
     act(() => {
       result.current.mutate({ file: coverFile() });
     });
@@ -149,7 +153,9 @@ describe("useUploadMedia", () => {
   it("errors when the server returns a malformed media view", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ id: "media-1", kind: "book_cover" }, 201));
 
-    const { result } = renderHook(() => useUploadMedia(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useUploadMedia(), {
+      wrapper: queryClientWrapper(createTestQueryClient()),
+    });
     act(() => {
       result.current.mutate({ file: coverFile() });
     });

@@ -1,6 +1,4 @@
-import type { ReactNode } from "react";
-
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -9,6 +7,7 @@ import {
   makeBookDetailsView,
   makeBookView,
 } from "@/features/books/components/book-details.fixtures";
+import { queryClientWrapper } from "@/test-query-cache";
 
 import { useToggleFavoriteDedication } from "./use-toggle-favorite-dedication";
 
@@ -41,7 +40,7 @@ describe("useToggleFavoriteDedication", () => {
       jsonResponse(makeBookView({ id: BOOK_ID, isFavoriteDedication: true })),
     );
     const { result } = renderHook(() => useToggleFavoriteDedication(), {
-      wrapper: wrapperFor(client),
+      wrapper: queryClientWrapper(client),
     });
 
     await act(() => result.current.mutateAsync({ id: BOOK_ID, isFavoriteDedication: true }));
@@ -59,7 +58,7 @@ describe("useToggleFavoriteDedication", () => {
       jsonResponse(makeBookView({ id: BOOK_ID, isFavoriteDedication: true })),
     );
     const { result } = renderHook(() => useToggleFavoriteDedication(), {
-      wrapper: wrapperFor(client),
+      wrapper: queryClientWrapper(client),
     });
 
     await act(() => result.current.mutateAsync({ id: BOOK_ID, isFavoriteDedication: true }));
@@ -75,7 +74,7 @@ describe("useToggleFavoriteDedication", () => {
       jsonResponse(makeBookView({ id: BOOK_ID, isFavoriteDedication: true })),
     );
     const { result } = renderHook(() => useToggleFavoriteDedication(), {
-      wrapper: wrapperFor(client),
+      wrapper: queryClientWrapper(client),
     });
 
     await act(() => result.current.mutateAsync({ id: BOOK_ID, isFavoriteDedication: true }));
@@ -92,7 +91,7 @@ describe("useToggleFavoriteDedication", () => {
     client.setQueryData(listKey, {});
     fetchMock.mockResolvedValue(jsonResponse({ message: "Internal server error" }, 500));
     const { result } = renderHook(() => useToggleFavoriteDedication(), {
-      wrapper: wrapperFor(client),
+      wrapper: queryClientWrapper(client),
     });
 
     await act(() =>
@@ -113,10 +112,4 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json" },
     status,
   });
-}
-
-function wrapperFor(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
 }

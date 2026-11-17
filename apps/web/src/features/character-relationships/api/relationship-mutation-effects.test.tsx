@@ -1,9 +1,9 @@
-import type { ReactNode } from "react";
-
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { renderHook } from "@testing-library/react";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { queryClientWrapper } from "@/test-query-cache";
 
 import { toRelationshipScopeKey } from "../model/relationship-scope";
 import { makeEditableRelationship, RELATIONSHIP_FIXTURE } from "../model/relationships.fixtures";
@@ -89,12 +89,6 @@ function serveSavedRelationship({ method, path, status }: SavedRelationshipRoute
   });
 }
 
-function wrapperFor(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
-}
-
 beforeEach(() => {
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
@@ -109,7 +103,9 @@ describe("relationship saves refresh the suggestion dictionaries", () => {
   it("§11.3 E02 clears the custom type and role suggestions after a create and leaves the roster alone", async () => {
     serveSavedRelationship(SAVE_ROUTES.create);
     const client = seededClient();
-    const { result } = renderHook(() => useCreateRelationship(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useCreateRelationship(), {
+      wrapper: queryClientWrapper(client),
+    });
 
     await act(() =>
       result.current.mutateAsync({
@@ -130,7 +126,9 @@ describe("relationship saves refresh the suggestion dictionaries", () => {
   it("§11.3 E02 clears the custom type and role suggestions after an update and leaves the roster alone", async () => {
     serveSavedRelationship(SAVE_ROUTES.update);
     const client = seededClient();
-    const { result } = renderHook(() => useUpdateRelationship(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useUpdateRelationship(), {
+      wrapper: queryClientWrapper(client),
+    });
 
     await act(() =>
       result.current.mutateAsync({

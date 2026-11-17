@@ -1,10 +1,9 @@
-import type { ReactNode } from "react";
-
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { bookKeys } from "@/features/books/api/book-keys";
+import { queryClientWrapper } from "@/test-query-cache";
 
 import { makeQuote } from "../model/quotes.fixtures";
 import { useCreateQuote, useDeleteQuote, useUpdateQuote } from "./use-quote-mutations";
@@ -49,7 +48,7 @@ describe("quote mutations refresh the chapter suggestions and the quote count", 
   it("marks the quoted book's detail and chapters stale after a quote is created", async () => {
     replyWith(QUOTE);
     const client = seededClient();
-    const { result } = renderHook(() => useCreateQuote(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useCreateQuote(), { wrapper: queryClientWrapper(client) });
 
     await act(() =>
       result.current.mutateAsync({
@@ -64,7 +63,7 @@ describe("quote mutations refresh the chapter suggestions and the quote count", 
   it("keeps the book detail fresh and marks only its chapters stale after a quote is updated", async () => {
     replyWith(makeQuote({ chapter: "Пролог" }));
     const client = seededClient();
-    const { result } = renderHook(() => useUpdateQuote(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useUpdateQuote(), { wrapper: queryClientWrapper(client) });
 
     await act(() =>
       result.current.mutateAsync({
@@ -80,7 +79,7 @@ describe("quote mutations refresh the chapter suggestions and the quote count", 
   it("marks the quoted book's detail and chapters stale after a quote is deleted", async () => {
     fetchMock.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
     const client = seededClient();
-    const { result } = renderHook(() => useDeleteQuote(), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useDeleteQuote(), { wrapper: queryClientWrapper(client) });
 
     await act(() => result.current.mutateAsync({ bookId: QUOTE.bookId, quoteId: QUOTE.id }));
 
@@ -115,10 +114,4 @@ function seededClient(): QueryClient {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
   for (const key of Object.values(SEEDED_KEYS)) client.setQueryData(key, {});
   return client;
-}
-
-function wrapperFor(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
 }

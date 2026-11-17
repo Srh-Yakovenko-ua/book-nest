@@ -1,8 +1,8 @@
-import type { ReactNode } from "react";
-
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+
+import { queryClientWrapper } from "@/test-query-cache";
 
 import { makeBookDetailsView, makeBookView } from "../components/book-details.fixtures";
 import { bookKeys } from "./book-keys";
@@ -63,13 +63,7 @@ describe("useBookMutationSync", () => {
 
 function syncWith(client: QueryClient, change?: Parameters<typeof useBookMutationSync>[0]) {
   const { result } = renderHook(() => useBookMutationSync(change), {
-    wrapper: wrapperFor(client),
+    wrapper: queryClientWrapper(client),
   });
   return result.current;
-}
-
-function wrapperFor(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
 }
