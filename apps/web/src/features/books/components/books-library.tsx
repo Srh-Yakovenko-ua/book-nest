@@ -8,12 +8,12 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { type SummaryCard } from "@/components/catalog/summary-cards";
 import { Progress } from "@/components/ui/progress";
+import { useGenres } from "@/features/genres";
 import { Link, useRouter } from "@/i18n/navigation";
 import { formatNumber } from "@/lib/format";
 
 import type { LibraryScope } from "../model/library-query";
 
-import { useGenres } from "../api/use-genres";
 import { useLibraryOverview } from "../api/use-library-overview";
 import { BooksArchive } from "./books-archive";
 import { LibraryOverviewPanel } from "./library-overview-panel";

@@ -16,6 +16,7 @@ import { SummaryError } from "@/components/summary-error";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useGenres } from "@/features/genres";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
@@ -23,7 +24,6 @@ import { cn } from "@/lib/utils";
 
 import type { LibraryBookLabels } from "../model/library-book";
 
-import { useGenres } from "../api/use-genres";
 import {
   useReadingQueue,
   useReadingQueueSummary,

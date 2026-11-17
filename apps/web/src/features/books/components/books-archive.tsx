@@ -8,13 +8,13 @@ import { useState } from "react";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { ActiveFilters } from "@/components/catalog/active-filters";
+import { useGenres } from "@/features/genres";
 import { Link } from "@/i18n/navigation";
 
 import type { LibraryBook } from "../model/library-book";
 import type { LibraryPublisherContext, LibraryScope } from "../model/library-query";
 
 import { useLibraryBooks } from "../api/use-books";
-import { useGenres } from "../api/use-genres";
 import { useLibraryOverview } from "../api/use-library-overview";
 import { useLibraryQuickCounts } from "../api/use-library-quick-counts";
 import { useSelectedTags } from "../api/use-tags-search";

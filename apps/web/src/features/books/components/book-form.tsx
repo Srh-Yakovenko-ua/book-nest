@@ -44,6 +44,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuthStore } from "@/features/auth";
+import { useGenres } from "@/features/genres";
 import { useUploadMedia } from "@/features/media";
 import { useRouter } from "@/i18n/navigation";
 import { emptyToNull } from "@/lib/empty-to-null";
@@ -52,7 +53,6 @@ import { ApiError, type FieldError as ApiFieldError } from "@/lib/http-client";
 import type { BookFormMode } from "../model/book-form-mode";
 
 import { useCreateBook } from "../api/use-create-book";
-import { useGenres } from "../api/use-genres";
 import {
   isReliableMatch,
   PUBLISHER_LOOKUP,

@@ -14,11 +14,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useGenres } from "@/features/genres";
 
 import type { CreateBookFormValues } from "../model/create-book-form";
 import type { SeriesGenresHint, SeriesGenresSource } from "../model/series-genres-suggestion";
 
-import { useGenres } from "../api/use-genres";
 import {
   AGE_CATEGORY_OPTIONS,
   BOOK_GENRES_MAX,

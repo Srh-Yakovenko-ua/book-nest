@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import type { ActiveFilterChip } from "@/components/catalog/active-filters";
 
 import { ActiveFilters } from "@/components/catalog/active-filters";
-import { useGenres } from "@/features/books";
+import { useGenres } from "@/features/genres";
 import { assertNever } from "@/lib/assert-never";
 
 import type { NotesArchiveFacets } from "../api/use-notes-facets";

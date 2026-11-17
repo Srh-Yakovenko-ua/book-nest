@@ -2,7 +2,6 @@ export { useBook } from "./api/use-book";
 export { useToggleFavorite } from "./api/use-book-actions";
 export { useBookFacets } from "./api/use-book-facets";
 export { useCreateDelivery } from "./api/use-delivery";
-export { useGenres } from "./api/use-genres";
 export { useMarkOwned, useRemoveFromWishlist } from "./api/use-ownership";
 export { usePublishersSearch } from "./api/use-publishers-search";
 export { useRecentPublishers } from "./api/use-recent-publishers";

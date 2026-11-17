@@ -1,6 +1,6 @@
 "use client";
 
-import { useGenres } from "@/features/books/api/use-genres";
+import { useGenres } from "@/features/genres";
 
 export function useGenreName(): (genreKey: string) => string {
   const genres = useGenres();

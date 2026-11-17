@@ -15,13 +15,13 @@ import { Button } from "@/components/ui/button";
 import { RatingScore } from "@/components/ui/rating-score";
 import { StatusBadge, statusBadgeVariants } from "@/components/ui/status-badge";
 import { useDedicationActions } from "@/features/dedications";
+import { useGenres } from "@/features/genres";
 import { useAnimatedHeight } from "@/hooks/use-animated-height";
 import { Link } from "@/i18n/navigation";
 import { readingStatuses } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
 
 import { useToggleFavorite } from "../api/use-book-actions";
-import { useGenres } from "../api/use-genres";
 import { useReadingQueuePosition } from "../api/use-reading-queue";
 import { resolveReadingProgress } from "../model/reading-progress";
 import { BookDetailsActionsMenu } from "./book-details-actions-menu";
