@@ -1,8 +1,16 @@
 import type { ReadingStatisticsDiscoveriesSection } from "@app/shared";
+import type { ReactNode } from "react";
 
 import { QueryClientProvider } from "@tanstack/react-query";
 import { NextIntlClientProvider } from "next-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
 
 import enMessages from "@/messages/en.json";
 import { createTestQueryClient, render, renderWithProviders, screen } from "@/test-utils";
