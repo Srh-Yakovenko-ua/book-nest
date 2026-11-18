@@ -6,10 +6,12 @@ import {
   clipCalendarMonth,
   listCalendarMonths,
   resolveCalendarMonth,
+  resolveSelectedCalendarDay,
   summarizeCalendarMonth,
+  toSelectableCalendarDay,
   weekdayOrder,
 } from "./statistics-calendar";
-import { calendarDayFixture } from "./statistics.fixtures";
+import { calendarDayFixture, statisticsIds } from "./statistics.fixtures";
 
 const MARCH_2026 = [
   "2026-03-01",
@@ -20,6 +22,16 @@ const MARCH_2026 = [
   "2026-03-06",
   "2026-03-07",
 ].map((date) => calendarDayFixture({ date, drilldown: { date, kind: "reading_day" } }));
+
+const READING_CYCLE_DRILLDOWN = {
+  bookId: statisticsIds.bookId,
+  kind: "reading_cycle",
+  readingCycleId: statisticsIds.cycleId,
+} as const;
+
+function readingDay(date: string, booksCount: number) {
+  return calendarDayFixture({ booksCount, date, drilldown: { date, kind: "reading_day" } });
+}
 
 describe("weekdayOrder", () => {
   it("starts on Monday for a Monday week start", () => {
@@ -227,5 +239,87 @@ describe("clipCalendarMonth", () => {
       from: "2026-03-01",
       to: "2026-03-10",
     });
+  });
+});
+
+describe("toSelectableCalendarDay", () => {
+  it("does not offer a day without books", () => {
+    expect(toSelectableCalendarDay(readingDay("2026-03-04", 0))).toBeNull();
+  });
+
+  it("does not offer a day with books whose drilldown leads elsewhere than a reading day", () => {
+    const day = calendarDayFixture({
+      booksCount: 2,
+      date: "2026-03-04",
+      drilldown: READING_CYCLE_DRILLDOWN,
+    });
+
+    expect(toSelectableCalendarDay(day)).toBeNull();
+  });
+
+  it("offers a day with books and takes its detail date from the reading-day drilldown", () => {
+    const day = calendarDayFixture({
+      booksCount: 2,
+      date: "2026-03-05",
+      drilldown: { date: "2026-03-04", kind: "reading_day" },
+    });
+
+    expect(toSelectableCalendarDay(day)).toEqual({ date: "2026-03-05", detailDate: "2026-03-04" });
+  });
+});
+
+describe("resolveSelectedCalendarDay", () => {
+  const days = [
+    readingDay("2026-03-02", 2),
+    readingDay("2026-03-04", 0),
+    readingDay("2026-03-05", 1),
+    readingDay("2026-03-07", 0),
+  ];
+
+  it("keeps a requested day that has books, even when a later day has books too", () => {
+    expect(resolveSelectedCalendarDay({ days, requested: "2026-03-02" })).toEqual({
+      date: "2026-03-02",
+      detailDate: "2026-03-02",
+    });
+  });
+
+  it("falls back to the latest day with books when the requested day has none", () => {
+    expect(resolveSelectedCalendarDay({ days, requested: "2026-03-04" })).toEqual({
+      date: "2026-03-05",
+      detailDate: "2026-03-05",
+    });
+  });
+
+  it.each([["2026-03-20"], [null]] as const)(
+    "falls back to the latest day with books for %s, which the month does not list",
+    (requested) => {
+      expect(resolveSelectedCalendarDay({ days, requested })).toEqual({
+        date: "2026-03-05",
+        detailDate: "2026-03-05",
+      });
+    },
+  );
+
+  it("picks the latest day with books by date, not by its position in the list", () => {
+    const shuffled = [
+      readingDay("2026-03-03", 3),
+      readingDay("2026-03-05", 1),
+      readingDay("2026-03-07", 0),
+      readingDay("2026-03-02", 2),
+    ];
+
+    expect(resolveSelectedCalendarDay({ days: shuffled, requested: null })).toEqual({
+      date: "2026-03-05",
+      detailDate: "2026-03-05",
+    });
+  });
+
+  it("selects no day when no day of the month can be opened", () => {
+    const closedDays = [
+      readingDay("2026-03-02", 0),
+      calendarDayFixture({ booksCount: 2, date: "2026-03-03", drilldown: READING_CYCLE_DRILLDOWN }),
+    ];
+
+    expect(resolveSelectedCalendarDay({ days: closedDays, requested: "2026-03-03" })).toBeNull();
   });
 });

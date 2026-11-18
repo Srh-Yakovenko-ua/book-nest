@@ -590,6 +590,14 @@
   }
 }
 
+@utility hatched {
+  background-image: repeating-linear-gradient(
+    135deg,
+    oklch(from var(--muted-foreground) l c h / 0.75) 0 1px,
+    transparent 1.5px 5px
+  );
+}
+
 @utility graph-workspace-viewport {
   min-height: calc(100dvh - var(--shell-header-height) - var(--spacing) * 18);
 }

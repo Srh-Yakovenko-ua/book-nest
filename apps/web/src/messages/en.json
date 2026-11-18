@@ -9483,7 +9483,7 @@
         "pages": "{count, plural, one {# page} other {# pages}}",
         "comparison": "{metric} in the comparison period: {value}"
       },
-      "srBucket": "{range}: {reads, plural, one {# completion} other {# completions}} · {pages} pages",
+      "srBucket": "{range}: {reads, plural, one {# completion} other {# completions}} · {pages, plural, one {# page} other {# pages}}",
       "srComparison": "Comparison period, {range}: {metric} — {value}.",
       "bucketsLabel": "Chart buckets: arrow keys move between buckets, Enter opens the details",
       "openHint": "Select a bar to see exactly what went into it."
@@ -9552,7 +9552,7 @@
         "legendMore": "more",
         "dayEmpty": "{date}: no reading",
         "dayUnknown": "{date}: this day may be missing from the history",
-        "daySummary": "{date}: {pages} pages, {books, plural, one {# book} other {# books}}",
+        "daySummary": "{date}: {pages, plural, one {# page} other {# pages}}, {books, plural, one {# book} other {# books}}",
         "intensityLegend": "Intensity by number of pages read",
         "unknownLegend": "Unknown history"
       },
@@ -9565,11 +9565,11 @@
         "legacyMonthNote": "Part of this month predates full history tracking, so its records may be incomplete.",
         "previousMonth": "Previous month",
         "nextMonth": "Next month",
-        "daySummary": "{date}: {pages} pages, {books, plural, one {# book} other {# books}}",
+        "daySummary": "{date}: {pages, plural, one {# page} other {# pages}}, {books, plural, one {# book} other {# books}}",
         "dayEmpty": "{date}: no reading",
         "dayUnknown": "{date}: this day may be missing from the history",
         "dayFuture": "{date}: this day has not come yet",
-        "diaryMeta": "{books, plural, one {# book} other {# books}} · {pages} pages",
+        "diaryMeta": "{books, plural, one {# book} other {# books}} · {pages, plural, one {# page} other {# pages}}",
         "monthActiveDays": "Reading days",
         "monthBooks": "Books with progress",
         "monthBooksLoading": "Getting the exact number of books this month",
@@ -9577,7 +9577,7 @@
         "monthBooksRetry": "Try again",
         "monthPages": "Pages read",
         "atLeast": "≥ {value}",
-        "unknownLegend": "Unknown history: this day predates full tracking, so an empty cell does not prove there was no reading."
+        "pagesPerDayLegend": "Pages per day"
       }
     },
     "details": {
@@ -9586,7 +9586,7 @@
         "error": "Could not load this day",
         "retry": "Try again",
         "empty": "No pages were read on this day.",
-        "bookPages": "{pages} pages",
+        "bookPages": "{pages, plural, one {# page} other {# pages}}",
         "deletedBook": "This book was removed from the library",
         "legacyQuality": "This day predates full history tracking, so it may be incomplete.",
         "booksLabel": "Books",

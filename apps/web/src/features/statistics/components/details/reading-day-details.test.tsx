@@ -96,3 +96,71 @@ describe("ReadingDayDetails calendar action", () => {
     expect(onShowInBooksCalendar).toHaveBeenCalledOnce();
   });
 });
+
+describe("ReadingDayDetails panel variant", () => {
+  it("lists the day totals as books and pages terms", async () => {
+    renderWithProviders(<ReadingDayDetails date={DAY.date} variant="panel" />);
+
+    const terms = await screen.findAllByRole("term");
+    expect(terms.map((term) => term.textContent)).toEqual([dayText.booksLabel, dayText.pagesLabel]);
+    expect(screen.getAllByRole("definition").map((definition) => definition.textContent)).toEqual([
+      "1",
+      "30",
+    ]);
+  });
+
+  it("lets book titles wrap to two lines", async () => {
+    renderWithProviders(<ReadingDayDetails date={DAY.date} variant="panel" />);
+
+    const title = await screen.findByText(DAY.bookTitle);
+    expect(title).toHaveClass("line-clamp-2");
+    expect(title).not.toHaveClass("truncate");
+  });
+
+  it("keeps book titles on one cut-off line without the variant", async () => {
+    renderWithProviders(<ReadingDayDetails date={DAY.date} />);
+
+    const title = await screen.findByText(DAY.bookTitle);
+    expect(title).toHaveClass("truncate");
+    expect(title).not.toHaveClass("line-clamp-2");
+  });
+});
+
+describe("ReadingDayDetails book pages", () => {
+  it("counts each book's pages in the matching plural form", async () => {
+    dayResponse = () =>
+      jsonResponse({
+        ...DAY_DETAILS,
+        books: [
+          {
+            bookId: statisticsIds.bookId,
+            bookState: "active",
+            coverThumbUrl: null,
+            pagesRead: 1,
+            title: DAY.bookTitle,
+          },
+          {
+            bookId: statisticsIds.secondBookId,
+            bookState: "active",
+            coverThumbUrl: null,
+            pagesRead: 2,
+            title: "The Tombs of Atuan",
+          },
+          {
+            bookId: "99999999-9999-4999-8999-999999999999",
+            bookState: "active",
+            coverThumbUrl: null,
+            pagesRead: 5,
+            title: "The Farthest Shore",
+          },
+        ],
+        booksCount: 3,
+        pagesRead: 8,
+      });
+    renderWithProviders(<ReadingDayDetails date={DAY.date} />);
+
+    expect(await screen.findByText("1 сторінка")).toBeInTheDocument();
+    expect(screen.getByText("2 сторінки")).toBeInTheDocument();
+    expect(screen.getByText("5 сторінок")).toBeInTheDocument();
+  });
+});

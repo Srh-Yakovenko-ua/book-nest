@@ -29,6 +29,8 @@ const MONTH_LABELS = {
   december2025: "грудень 2025 р.",
   february2025: "лютий 2025 р.",
   january2025: "січень 2025 р.",
+  july2025: "липень 2025 р.",
+  march2025: "березень 2025 р.",
   march2026: "березень 2026 р.",
   november2025: "листопад 2025 р.",
 } as const;
@@ -38,9 +40,16 @@ const JUMP_DAYS = {
   february12: { label: "12 лютого 2025 р.: 20 сторінок, 0 книг", title: "12 лютого 2025 р." },
 } as const;
 
+const SELECTABLE_DAYS = {
+  february5: { label: "5 лютого 2025 р.: 40 сторінок, 1 книга", title: "5 лютого 2025 р." },
+  february10: JUMP_DAYS.february10,
+} as const;
+
 const JUMP_HIGHLIGHT_WAIT = { removalTimeoutMs: 3000, testTimeoutMs: 10_000 } as const;
 
 const READING_DAYS_PATH = "/api/statistics/reading-days/";
+
+const INTENSITY_METER = { fillWidth: /^w-\d+$/, trackClass: "bg-border" } as const;
 
 let calendarResponse: (year: number) => Response = (year) => jsonResponse(calendarPage(year));
 
@@ -72,6 +81,12 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+function booksCalendarDay(day: keyof typeof SELECTABLE_DAYS) {
+  return within(screen.getByRole("region", { name: pageText.books.title })).getByRole("button", {
+    name: SELECTABLE_DAYS[day].label,
+  });
+}
+
 function calendarPage(year: number): ReadingStatisticsCalendarPage {
   const range = {
     from: `${year}-01-01`,
@@ -100,6 +115,18 @@ function calendarRequestYears(): string[] {
 function dayButtons(label: string) {
   const [heatmap, booksCalendar] = screen.getAllByRole("button", { name: label });
   return { booksCalendar, heatmap };
+}
+
+function intensityFillWidths(scope: HTMLElement) {
+  return within(scope)
+    .getAllByRole("generic", { hidden: true })
+    .filter((element) => element.classList.contains(INTENSITY_METER.trackClass))
+    .map((track) =>
+      within(track)
+        .getByRole("generic", { hidden: true })
+        .className.split(" ")
+        .find((token) => INTENSITY_METER.fillWidth.test(token)),
+    );
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -238,16 +265,22 @@ describe("ReadingCalendarPage", () => {
   });
 
   it.each([
-    ["?year=abc&month=2025-13", ""],
-    ["?year=2025&month=2026-03", "year=2025"],
-  ])("cleans the invalid params of %s down to %j with a replace", async (search, cleaned) => {
-    const { onUrlUpdate } = renderCalendar(search, { resetUrlUpdateQueueOnMount: false });
+    ["?year=abc&month=2025-13", "", MONTH_LABELS.march2026],
+    ["?year=2025&month=2026-03", "year=2025", MONTH_LABELS.december2025],
+    ["?year=2025&month=2025-07&day=2025-07-40", "year=2025&month=2025-07", MONTH_LABELS.july2025],
+  ])(
+    "cleans the invalid params of %s down to %j with a replace and still shows %s",
+    async (search, cleaned, month) => {
+      const { onUrlUpdate } = renderCalendar(search, { resetUrlUpdateQueueOnMount: false });
 
-    await waitFor(() => expect(onUrlUpdate).toHaveBeenCalled());
-    const update = lastUrlUpdate(onUrlUpdate);
-    expect(update?.searchParams.toString()).toBe(cleaned);
-    expect(update?.options.history).toBe("replace");
-  });
+      await waitFor(() => expect(onUrlUpdate).toHaveBeenCalled());
+      const update = lastUrlUpdate(onUrlUpdate);
+      expect(update?.searchParams.toString()).toBe(cleaned);
+      expect(update?.options.history).toBe("replace");
+      expect(await screen.findByText(month)).toBeInTheDocument();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    },
+  );
 
   it("shows the unavailable state in place of both calendars", async () => {
     calendarResponse = (year) => {
@@ -312,7 +345,7 @@ describe("ReadingCalendarPage", () => {
     text.calendar.books.monthActiveDays,
     text.calendar.books.monthBooks,
     text.calendar.books.monthPages,
-  ])("shows the month figure %j as a plain card, not a button", async (label) => {
+  ])("shows the month figure %j as static text, not a button", async (label) => {
     renderCalendar("?year=2025&month=2025-02");
 
     expect(await screen.findByText(label)).toBeInTheDocument();
@@ -361,9 +394,10 @@ describe("ReadingCalendarPage jump from the heatmap to the books calendar", () =
     await waitFor(() =>
       expect(lastUrlUpdate(onUrlUpdate)?.searchParams.get("month")).toBe("2025-02"),
     );
+    expect(lastUrlUpdate(onUrlUpdate)?.searchParams.get("day")).toBe("2025-02-10");
     expect(lastUrlUpdate(onUrlUpdate)?.options.history).toBe("push");
     expect(calendarRequestYears()).toEqual(["2025"]);
-    expect(readingDayRequestDates()).toEqual(["2025-02-10"]);
+    expect(new Set(readingDayRequestDates())).toEqual(new Set(["2025-02-10"]));
   });
 
   it(
@@ -389,11 +423,10 @@ describe("ReadingCalendarPage jump from the heatmap to the books calendar", () =
     JUMP_HIGHLIGHT_WAIT.testTimeoutMs,
   );
 
-  it("in the month already shown moves focus to the day on every jump and leaves the URL alone", async () => {
+  it("in the month already shown moves focus to the day on every jump and writes the day with a replace", async () => {
     const user = userEvent.setup();
     const { onUrlUpdate } = renderCalendar("?year=2025&month=2025-02");
     await screen.findByText(MONTH_LABELS.february2025);
-    const updatesBefore = onUrlUpdate.mock.calls.length;
     const { booksCalendar } = dayButtons(JUMP_DAYS.february10.label);
 
     await jumpToBooksCalendar(user, JUMP_DAYS.february10);
@@ -403,7 +436,12 @@ describe("ReadingCalendarPage jump from the heatmap to the books calendar", () =
     await jumpToBooksCalendar(user, JUMP_DAYS.february10);
 
     await waitFor(() => expect(booksCalendar).toHaveFocus());
-    expect(onUrlUpdate).toHaveBeenCalledTimes(updatesBefore);
+    await waitFor(() =>
+      expect(lastUrlUpdate(onUrlUpdate)?.searchParams.get("day")).toBe("2025-02-10"),
+    );
+    expect(lastUrlUpdate(onUrlUpdate)?.searchParams.get("month")).toBe("2025-02");
+    expect(lastUrlUpdate(onUrlUpdate)?.options.history).toBe("replace");
+    expect(onUrlUpdate.mock.calls.map(([update]) => update.options.history)).not.toContain("push");
   });
 
   it("focuses the books section when the day has pages but no book to open", async () => {
@@ -480,5 +518,147 @@ describe("ReadingCalendarPage jump from the heatmap to the books calendar", () =
     );
     expect(onUrlUpdate).toHaveBeenCalledTimes(1);
     expect(lastUrlUpdate(onUrlUpdate)?.options.history).toBe("push");
+  });
+});
+
+describe("ReadingCalendarPage books month with two reading days", () => {
+  beforeEach(() => {
+    vi.stubGlobal("innerWidth", 1280);
+    calendarResponse = (year) => {
+      const page = calendarPage(year);
+      return jsonResponse({
+        ...page,
+        calendar: {
+          ...page.calendar,
+          days: [
+            readingDay(`${year}-01-15`),
+            readingDay(`${year}-02-05`),
+            readingDay(`${year}-02-10`),
+          ],
+        },
+      });
+    };
+  });
+
+  it("presses the day named in the URL and titles the day panel with its date", async () => {
+    renderCalendar("?year=2025&month=2025-02&day=2025-02-05");
+    await screen.findByText(MONTH_LABELS.february2025);
+
+    expect(booksCalendarDay("february5")).toHaveAttribute("aria-pressed", "true");
+    expect(booksCalendarDay("february10")).toHaveAttribute("aria-pressed", "false");
+    const panel = screen.getByRole("region", { name: SELECTABLE_DAYS.february5.title });
+    expect(within(panel).getByRole("heading", { level: 3 })).toHaveTextContent(
+      SELECTABLE_DAYS.february5.title,
+    );
+  });
+
+  it("presses the latest day with books when the URL names no day", async () => {
+    renderCalendar("?year=2025&month=2025-02");
+    await screen.findByText(MONTH_LABELS.february2025);
+
+    expect(booksCalendarDay("february10")).toHaveAttribute("aria-pressed", "true");
+    expect(booksCalendarDay("february5")).toHaveAttribute("aria-pressed", "false");
+    expect(
+      screen.getByRole("region", { name: SELECTABLE_DAYS.february10.title }),
+    ).toBeInTheDocument();
+  });
+
+  it("selects another day with books in place, writing it with a replace and opening no dialog", async () => {
+    const user = userEvent.setup();
+    const { onUrlUpdate } = renderCalendar("?year=2025&month=2025-02");
+    await screen.findByText(MONTH_LABELS.february2025);
+
+    await user.click(booksCalendarDay("february5"));
+
+    await waitFor(() =>
+      expect(booksCalendarDay("february5")).toHaveAttribute("aria-pressed", "true"),
+    );
+    expect(booksCalendarDay("february10")).toHaveAttribute("aria-pressed", "false");
+    expect(
+      await screen.findByRole("region", { name: SELECTABLE_DAYS.february5.title }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(lastUrlUpdate(onUrlUpdate)?.searchParams.get("day")).toBe("2025-02-05"),
+    );
+    expect(lastUrlUpdate(onUrlUpdate)?.searchParams.get("month")).toBe("2025-02");
+    expect(lastUrlUpdate(onUrlUpdate)?.options.history).toBe("replace");
+  });
+
+  it("lists the month figures as label and value pairs: reading days, books, pages", async () => {
+    vi.stubGlobal("innerWidth", 375);
+    renderCalendar("?year=2025&month=2025-02");
+
+    const terms = await screen.findAllByRole("term");
+
+    expect(terms.map((term) => term.textContent)).toEqual([
+      text.calendar.books.monthActiveDays,
+      text.calendar.books.monthBooks,
+      text.calendar.books.monthPages,
+    ]);
+    expect(screen.getAllByRole("definition").map((value) => value.textContent)).toEqual([
+      "2",
+      "1",
+      "80",
+    ]);
+  });
+});
+
+describe("ReadingCalendarPage books month legend on desktop", () => {
+  beforeEach(() => {
+    vi.stubGlobal("innerWidth", 1280);
+  });
+
+  it("explains the pages-per-day bars and leaves out the unknown-history item in a fully recorded month", async () => {
+    renderCalendar("?year=2025&month=2025-02");
+    await screen.findByText(MONTH_LABELS.february2025);
+
+    const booksRegion = screen.getByRole("region", { name: pageText.books.title });
+    expect(
+      within(booksRegion).getByText(text.calendar.books.pagesPerDayLegend),
+    ).toBeInTheDocument();
+    expect(within(booksRegion).getByText(text.calendar.heatmap.legendLess)).toBeInTheDocument();
+    expect(within(booksRegion).getByText(text.calendar.heatmap.legendMore)).toBeInTheDocument();
+    expect(
+      within(booksRegion).queryByText(text.calendar.heatmap.unknownLegend),
+    ).not.toBeInTheDocument();
+  });
+
+  it("adds the unknown-history item to the legend in a month with unknown days", async () => {
+    calendarResponse = (year) => {
+      const page = calendarPage(year);
+      const unknownDate = `${year}-02-03`;
+      return jsonResponse({
+        ...page,
+        calendar: {
+          ...page.calendar,
+          days: [
+            readingDay(`${year}-01-15`),
+            calendarDayFixture({
+              date: unknownDate,
+              drilldown: { date: unknownDate, kind: "reading_day" },
+              historyQuality: "legacy_observed_only",
+            }),
+            readingDay(`${year}-02-10`),
+          ],
+        },
+      });
+    };
+    renderCalendar("?year=2025&month=2025-02");
+    await screen.findByText(MONTH_LABELS.february2025);
+
+    const booksRegion = screen.getByRole("region", { name: pageText.books.title });
+    expect(
+      within(booksRegion).getByText(text.calendar.books.pagesPerDayLegend),
+    ).toBeInTheDocument();
+    expect(within(booksRegion).getByText(text.calendar.heatmap.unknownLegend)).toBeInTheDocument();
+  });
+
+  it("draws the pages-per-day scale as four meters filled from w-1 to w-4 in order", async () => {
+    renderCalendar("?year=2025&month=2025-03");
+    await screen.findByText(MONTH_LABELS.march2025);
+
+    const booksRegion = screen.getByRole("region", { name: pageText.books.title });
+    expect(intensityFillWidths(booksRegion)).toEqual(["w-1", "w-2", "w-3", "w-4"]);
   });
 });

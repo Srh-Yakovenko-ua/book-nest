@@ -5,7 +5,7 @@ import type { Nullable, StatisticsCalendarDay, WeekStartDay } from "@app/shared"
 import { addDays, format, getDay, getDaysInMonth, isAfter } from "date-fns";
 import { useLocale, useTranslations } from "next-intl";
 
-import { formatNumber, parseIsoDay } from "@/lib/format";
+import { parseIsoDay } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import type { BooksCalendarJumpTarget } from "../../hooks/use-books-calendar-jump";
@@ -14,29 +14,39 @@ import type { CalendarWeek } from "../../model/statistics-calendar";
 import {
   buildMonthGrid,
   isUnknownCalendarDay,
+  toSelectableCalendarDay,
   weekdayOrder,
 } from "../../model/statistics-calendar";
-import { resolveReadingDayTarget } from "../../model/statistics-drilldown";
 import { formatDayLong, weekdayLabel } from "../../model/statistics-format";
-import { ReadingDayDetails } from "../details/reading-day-details";
-import { StatisticsDetailSurface } from "../details/statistics-detail-surface";
-import { ReadingDayPreview } from "./reading-day-preview";
+import { ReadingBooksMonthCellCovers } from "./reading-books-month-cell-covers";
+import { READING_INTENSITY_CLASS } from "./reading-intensity";
+import { ReadingIntensityMeter } from "./reading-intensity-meter";
 
-const MONTH_GRID = { coverLimit: 2, daysPerWeek: 7, isoDayFormat: "yyyy-MM-dd" } as const;
+const MONTH_GRID = { dayNumberFormat: "d", daysPerWeek: 7, isoDayFormat: "yyyy-MM-dd" } as const;
 
 const MONTH_GRID_CLASS = {
-  blank: "min-h-20 xl:min-h-22",
-  cell: "flex min-h-20 w-full min-w-0 flex-col gap-1.5 rounded-lg border p-2 xl:min-h-22",
-  columns: "grid grid-cols-7 gap-2",
-  cover: "w-7 shrink-0",
-  dayNumber: "text-xs font-medium text-foreground tabular-nums",
-  futureDayNumber: "text-xs font-medium text-muted-foreground tabular-nums",
-  pages: "text-[0.625rem] text-muted-foreground tabular-nums",
+  blank: "h-16",
+  cell: "flex h-16 w-full min-w-0 gap-1 rounded-md border border-transparent p-1 text-left text-xs",
+  columns: "grid grid-cols-7 gap-1",
+  dayColumn: "flex shrink-0 flex-col items-start justify-between",
+  indicator: "mx-0.5 mb-0.5",
+  number: {
+    base: "self-start px-0.5 tabular-nums",
+    empty: "font-medium text-foreground",
+    future: "font-medium text-muted-foreground",
+    reading: "font-semibold text-ink",
+    unknown: "font-medium text-muted-foreground",
+  },
+  readingTile: "border-border bg-card shadow-soft",
+  selected: "border-primary ring-1 ring-primary",
+  today: "font-bold text-ink underline decoration-primary decoration-2 underline-offset-2",
   trigger:
-    "transition-colors outline-none hover:border-accent-border hover:bg-accent/40 focus-visible:ring-3 focus-visible:ring-ring/50 data-jump-highlight:ring-2 data-jump-highlight:ring-primary",
-  unknown: "border-dashed border-muted-foreground/40",
-  unknownMark: "m-auto text-sm font-medium text-muted-foreground",
+    "cursor-pointer transition duration-150 ease-out active:translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring data-jump-highlight:ring-4 data-jump-highlight:ring-primary/35",
+  triggerIdle: "hover:border-accent-border hover:shadow-card",
+  weekday: "text-center text-xs font-medium text-muted-foreground",
 } as const;
+
+type DayNumberTone = keyof Omit<typeof MONTH_GRID_CLASS.number, "base">;
 
 type MonthGridSlot =
   | { date: string; kind: "future" | "missing" }
@@ -44,15 +54,23 @@ type MonthGridSlot =
   | { kind: "blank" };
 
 export function ReadingBooksMonthGrid({
+  className,
   days,
   jumpTarget,
   monthKey,
+  onSelectDay,
+  panelId,
+  selectedDate,
   today,
   weekStartDay,
 }: {
+  className?: string;
   days: readonly StatisticsCalendarDay[];
   jumpTarget?: Nullable<BooksCalendarJumpTarget>;
   monthKey: string;
+  onSelectDay: (date: string) => void;
+  panelId: string;
+  selectedDate: Nullable<string>;
   today: string;
   weekStartDay: WeekStartDay;
 }) {
@@ -62,13 +80,10 @@ export function ReadingBooksMonthGrid({
   const slots = toMonthGridSlots({ monthKey, order, today, weeks });
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className={cn("@container/month-grid flex flex-col gap-1", className)}>
       <div className={MONTH_GRID_CLASS.columns}>
         {order.map((weekday) => (
-          <span
-            className="text-center text-[0.6875rem] font-medium text-muted-foreground"
-            key={weekday}
-          >
+          <span className={MONTH_GRID_CLASS.weekday} key={weekday}>
             {weekdayLabel({ locale, weekday, width: "short" })}
           </span>
         ))}
@@ -82,13 +97,24 @@ export function ReadingBooksMonthGrid({
               return (
                 <MonthDayCell
                   day={slot.day}
+                  isSelected={slot.day.date === selectedDate}
+                  isToday={slot.day.date === today}
                   jumpTarget={jumpTarget?.date === slot.day.date ? jumpTarget : null}
                   key={slot.day.date}
+                  onSelect={onSelectDay}
+                  panelId={panelId}
                 />
               );
             case "future":
             case "missing":
-              return <MonthUnrecordedCell date={slot.date} key={slot.date} kind={slot.kind} />;
+              return (
+                <MonthUnrecordedCell
+                  date={slot.date}
+                  isToday={slot.date === today}
+                  key={slot.date}
+                  kind={slot.kind}
+                />
+              );
           }
         })}
       </div>
@@ -96,12 +122,43 @@ export function ReadingBooksMonthGrid({
   );
 }
 
+function DayNumber({
+  date,
+  isToday,
+  tone,
+}: {
+  date: string;
+  isToday: boolean;
+  tone: DayNumberTone;
+}) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        MONTH_GRID_CLASS.number.base,
+        MONTH_GRID_CLASS.number[tone],
+        isToday && MONTH_GRID_CLASS.today,
+      )}
+    >
+      {format(parseIsoDay(date), MONTH_GRID.dayNumberFormat)}
+    </span>
+  );
+}
+
 function MonthDayCell({
   day,
+  isSelected,
+  isToday,
   jumpTarget,
+  onSelect,
+  panelId,
 }: {
   day: StatisticsCalendarDay;
+  isSelected: boolean;
+  isToday: boolean;
   jumpTarget: Nullable<BooksCalendarJumpTarget>;
+  onSelect: (date: string) => void;
+  panelId: string;
 }) {
   const locale = useLocale();
   const t = useTranslations("statistics.calendar.books");
@@ -109,41 +166,25 @@ function MonthDayCell({
   const date = formatDayLong(day.date, locale);
   const isUnknown = isUnknownCalendarDay(day);
   const hasReading = day.booksCount > 0 || day.pagesRead > 0;
-  const cellClass = cn(
-    MONTH_GRID_CLASS.cell,
-    hasReading
-      ? "border-border bg-card"
-      : isUnknown
-        ? MONTH_GRID_CLASS.unknown
-        : "border-transparent",
-  );
   const summary = t("daySummary", { books: day.booksCount, date, pages: day.pagesRead });
-  const detailDate = resolveReadingDayTarget(day.drilldown);
+  const tone: DayNumberTone = hasReading ? "reading" : isUnknown ? "unknown" : "empty";
+  const cellClass = cn(MONTH_GRID_CLASS.cell, hasReading && MONTH_GRID_CLASS.readingTile);
 
   const body = (
     <>
-      <span className="flex items-baseline justify-between gap-1">
-        <span className={MONTH_GRID_CLASS.dayNumber}>{day.date.slice(8)}</span>
-        {day.pagesRead === 0 ? null : (
-          <span className={MONTH_GRID_CLASS.pages}>{formatNumber(day.pagesRead, locale)}</span>
-        )}
+      <span className={MONTH_GRID_CLASS.dayColumn}>
+        <DayNumber date={day.date} isToday={isToday} tone={tone} />
+        {isUnknown ? (
+          <UnknownHistoryMark />
+        ) : hasReading ? (
+          <ReadingIntensityMeter className={MONTH_GRID_CLASS.indicator} level={day.intensity} />
+        ) : null}
       </span>
-      {isUnknown ? (
-        <span aria-hidden className={MONTH_GRID_CLASS.unknownMark}>
-          ?
-        </span>
-      ) : (
-        <ReadingDayPreview
-          className="flex-wrap"
-          coverClassName={MONTH_GRID_CLASS.cover}
-          coverLimit={MONTH_GRID.coverLimit}
-          day={day}
-        />
-      )}
+      <ReadingBooksMonthCellCovers day={day} />
     </>
   );
 
-  if (day.booksCount === 0 || detailDate === null) {
+  if (toSelectableCalendarDay(day) === null) {
     return (
       <span className={cellClass}>
         <span className="sr-only">
@@ -157,42 +198,52 @@ function MonthDayCell({
   }
 
   return (
-    <StatisticsDetailSurface
-      detail={() => <ReadingDayDetails date={detailDate} />}
-      label={summary}
-      title={date}
-      triggerClassName={cn(cellClass, MONTH_GRID_CLASS.trigger)}
-      triggerRef={jumpTarget?.ref}
+    <button
+      aria-controls={panelId}
+      aria-label={summary}
+      aria-pressed={isSelected}
+      className={cn(
+        cellClass,
+        MONTH_GRID_CLASS.trigger,
+        isSelected ? MONTH_GRID_CLASS.selected : MONTH_GRID_CLASS.triggerIdle,
+      )}
+      onClick={() => onSelect(day.date)}
+      ref={jumpTarget?.ref}
+      type="button"
     >
       {body}
-    </StatisticsDetailSurface>
+    </button>
   );
 }
 
-function MonthUnrecordedCell({ date, kind }: { date: string; kind: "future" | "missing" }) {
+function MonthUnrecordedCell({
+  date,
+  isToday,
+  kind,
+}: {
+  date: string;
+  isToday: boolean;
+  kind: "future" | "missing";
+}) {
   const locale = useLocale();
   const t = useTranslations("statistics.calendar.books");
   const longDate = formatDayLong(date, locale);
 
   if (kind === "future") {
     return (
-      <span className={cn(MONTH_GRID_CLASS.cell, "border-transparent")}>
+      <span className={MONTH_GRID_CLASS.cell}>
         <span className="sr-only">{t("dayFuture", { date: longDate })}</span>
-        <span aria-hidden className={MONTH_GRID_CLASS.futureDayNumber}>
-          {date.slice(8)}
-        </span>
+        <DayNumber date={date} isToday={false} tone="future" />
       </span>
     );
   }
 
   return (
-    <span className={cn(MONTH_GRID_CLASS.cell, MONTH_GRID_CLASS.unknown)}>
+    <span className={MONTH_GRID_CLASS.cell}>
       <span className="sr-only">{t("dayUnknown", { date: longDate })}</span>
-      <span aria-hidden className={MONTH_GRID_CLASS.dayNumber}>
-        {date.slice(8)}
-      </span>
-      <span aria-hidden className={MONTH_GRID_CLASS.unknownMark}>
-        ?
+      <span className={MONTH_GRID_CLASS.dayColumn}>
+        <DayNumber date={date} isToday={isToday} tone="unknown" />
+        <UnknownHistoryMark />
       </span>
     </span>
   );
@@ -225,5 +276,11 @@ function toMonthGridSlots({
         kind: isAfter(date, todayDate) ? "future" : "missing",
       };
     }),
+  );
+}
+
+function UnknownHistoryMark() {
+  return (
+    <span aria-hidden className={cn(MONTH_GRID_CLASS.indicator, READING_INTENSITY_CLASS.unknown)} />
   );
 }
