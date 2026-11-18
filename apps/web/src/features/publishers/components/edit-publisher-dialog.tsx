@@ -407,12 +407,16 @@ function useConflictingPublisher({
 }): PublisherLookupState {
   const trimmedName = name.trim();
   const debouncedName = useDebouncedValue(trimmedName, PUBLISHER_LOOKUP.debounceMs);
-  const { data: candidates = [], isError } = usePublisherDuplicateCandidates({
+  const {
+    data: candidates = [],
+    isError,
+    isPlaceholderData,
+  } = usePublisherDuplicateCandidates({
     excludePublisherId: publisherId,
     name: debouncedName,
   });
 
-  const lookupMatchesName = debouncedName === trimmedName;
+  const lookupMatchesName = debouncedName === trimmedName && !isPlaceholderData;
 
   return {
     conflictingPublisher: lookupMatchesName ? (candidates.find(isReliableMatch) ?? null) : null,
