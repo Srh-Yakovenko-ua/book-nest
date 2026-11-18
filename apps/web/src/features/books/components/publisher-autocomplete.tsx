@@ -72,9 +72,13 @@ export function PublisherAutocomplete({
     items: publishers,
   } = usePublishersSearch(debouncedQuery);
   const { data: recentPublishers = [] } = useRecentPublishers();
-  const { data: fetchedCandidates = [], isError } = usePublisherDuplicateCandidates({
-    name: debouncedQuery,
-  });
+  const {
+    data: fetchedCandidates = [],
+    fetchStatus: lookupFetchStatus,
+    isError,
+    isPending,
+    isPlaceholderData,
+  } = usePublisherDuplicateCandidates({ name: debouncedQuery });
   const { onScroll, scrollRef } = useInfiniteScroll({
     hasNextPage,
     isFetchingNextPage,
@@ -86,8 +90,14 @@ export function PublisherAutocomplete({
   const normalizedQuery = trimmedQuery.toLowerCase();
   const lookupMatchesQuery = debouncedQuery.trim() === trimmedQuery;
   const lookupIsEnabled = trimmedQuery.length >= PUBLISHER_LOOKUP.minNameLength;
-  const lookupUnavailable = isError && lookupMatchesQuery && lookupIsEnabled;
-  const candidates = lookupMatchesQuery ? fetchedCandidates : [];
+  const lookupCaughtUp = lookupIsEnabled && lookupMatchesQuery;
+  const lookupIsCurrent = lookupCaughtUp && !isPlaceholderData;
+  const lookupAnswered = lookupIsCurrent && !isPending;
+  const lookupPaused = lookupCaughtUp && !lookupAnswered && lookupFetchStatus === "paused";
+  const lookupSettled = lookupAnswered || lookupPaused;
+  const lookupPending = lookupIsEnabled && !lookupSettled;
+  const lookupUnavailable = lookupPaused || (lookupIsCurrent && isError);
+  const candidates = lookupIsCurrent ? fetchedCandidates : [];
   const existingMatches = candidates.filter(isReliableMatch);
   const similarMatches = existingMatches.length > 0 ? [] : candidates;
 
@@ -102,10 +112,11 @@ export function PublisherAutocomplete({
   const listedIds = new Set([...matchedIds, ...filteredRecent.map((publisher) => publisher.id)]);
   const catalogResults = publishers.filter((publisher) => !listedIds.has(publisher.id));
 
-  const showCustomOption = lookupIsEnabled && existingMatches.length === 0;
+  const showCustomOption = lookupSettled && existingMatches.length === 0;
   const customIsSecondary = similarMatches.length > 0;
 
   const hasResults = listedIds.size > 0 || catalogResults.length > 0;
+  const isSearching = isFetching || lookupPending;
 
   function pickCatalog(publisher: PublisherRow) {
     onChange({ id: publisher.id, kind: "catalog", name: publisher.name });
@@ -187,10 +198,10 @@ export function PublisherAutocomplete({
           sideOffset={6}
         >
           <CommandList onScroll={onScroll} ref={scrollRef}>
-            {isFetching && !hasResults ? (
+            {isSearching && !hasResults ? (
               <CommandEmpty>{t("publisher.searching")}</CommandEmpty>
             ) : null}
-            {!isFetching && !hasResults && !showCustomOption ? (
+            {!isSearching && !hasResults && !showCustomOption ? (
               <CommandEmpty>{t("publisher.empty")}</CommandEmpty>
             ) : null}
             {existingMatches.length > 0 ? (
