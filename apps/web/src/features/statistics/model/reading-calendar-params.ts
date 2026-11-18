@@ -1,7 +1,7 @@
 import type { Nullable } from "@app/shared";
 
 import { READING_CALENDAR_PAGE_BOUNDS } from "@app/shared";
-import { endOfYear, format, getYear, parseISO } from "date-fns";
+import { endOfYear, format, getYear, isAfter, parseISO } from "date-fns";
 import { parseAsString } from "nuqs/server";
 import { z } from "zod";
 
@@ -13,6 +13,7 @@ export const READING_CALENDAR_PAGE = {
 } as const;
 
 export const readingCalendarParsers = {
+  day: parseAsString,
   month: parseAsString,
   year: parseAsString,
 };
@@ -26,6 +27,26 @@ export function defaultReadingCalendarMonth({
 }): string {
   if (year === readingCalendarCurrentYear(today)) return toMonthKey(today);
   return format(endOfYear(parseISO(String(year))), READING_CALENDAR_PAGE.monthFormat);
+}
+
+export function parseReadingCalendarDay({
+  month,
+  today,
+  value,
+}: {
+  month: string;
+  today: string;
+  value: string;
+}): Nullable<string> {
+  const result = z.iso
+    .date()
+    .pipe(
+      z
+        .string()
+        .refine((day) => toMonthKey(day) === month && !isAfter(parseISO(day), parseISO(today))),
+    )
+    .safeParse(value);
+  return result.success ? result.data : null;
 }
 
 export function parseReadingCalendarMonth({
@@ -65,6 +86,6 @@ export function readingCalendarCurrentYear(today: string): number {
   return getYear(parseISO(today));
 }
 
-function toMonthKey(isoDay: string): string {
+export function toMonthKey(isoDay: string): string {
   return format(parseISO(isoDay), READING_CALENDAR_PAGE.monthFormat);
 }

@@ -47,7 +47,7 @@ export function ReadingCalendarPage() {
     isCalendarCurrent: scope.data?.year === params.year && !scope.isPlaceholderData,
     month: params.month,
     sectionRef: booksSectionRef,
-    setMonth: params.setMonth,
+    selectDay: params.selectDay,
   });
 
   return (
@@ -142,6 +142,7 @@ function ReadingCalendarBody({
         <ReadingCalendarContent calendar={calendar}>
           <ReadingHeatmap
             days={calendar.days}
+            focusMonth={params.month}
             onShowInBooksCalendar={jump.showInBooksCalendar}
             weekStartDay={meta.weekStartDay}
           />
@@ -150,7 +151,7 @@ function ReadingCalendarBody({
 
       <div
         aria-label={t("books.title")}
-        className="scroll-mt-4 rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring data-jump-highlight:ring-2 data-jump-highlight:ring-primary"
+        className="scroll-mt-[calc(var(--shell-header-height)+1rem)] rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring data-jump-highlight:ring-2 data-jump-highlight:ring-primary"
         ref={booksSectionRef}
         role="region"
         tabIndex={-1}
@@ -175,6 +176,8 @@ function ReadingCalendarBody({
               jumpTarget={jump.dayTarget}
               month={params.month}
               monthLabelRef={monthLabelRef}
+              onSelectDay={params.selectDay}
+              selectedDay={params.day}
               today={params.today}
               weekStartDay={meta.weekStartDay}
             />

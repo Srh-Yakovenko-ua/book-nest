@@ -6,9 +6,21 @@ import type {
 } from "@app/shared";
 
 import { WEEK_STARTS_ON } from "@app/shared";
-import { addDays, addMonths, endOfMonth, format, getDay, max, min, startOfMonth } from "date-fns";
+import {
+  addDays,
+  addMonths,
+  endOfMonth,
+  format,
+  getDay,
+  isAfter,
+  max,
+  min,
+  startOfMonth,
+} from "date-fns";
 
 import { parseIsoDay } from "@/lib/format";
+
+import { resolveReadingDayTarget } from "./statistics-drilldown";
 
 const ISO_DAY_FORMAT = "yyyy-MM-dd";
 
@@ -25,6 +37,8 @@ export type CalendarMonthSummary = {
 };
 
 export type CalendarWeek = Nullable<StatisticsCalendarDay>[];
+
+export type SelectableCalendarDay = { date: string; detailDate: string };
 
 export function buildHeatmapWeeks({
   days,
@@ -143,6 +157,23 @@ export function resolveCalendarMonth({
   return months.at(-1) ?? null;
 }
 
+export function resolveSelectedCalendarDay({
+  days,
+  requested,
+}: {
+  days: readonly StatisticsCalendarDay[];
+  requested: Nullable<string>;
+}): Nullable<SelectableCalendarDay> {
+  const selectable = days.flatMap((day) => toSelectableCalendarDay(day) ?? []);
+  const requestedDay = selectable.find((day) => day.date === requested);
+  if (requestedDay !== undefined) return requestedDay;
+  return selectable.reduce<Nullable<SelectableCalendarDay>>(
+    (latest, day) =>
+      latest === null || isAfter(parseIsoDay(day.date), parseIsoDay(latest.date)) ? day : latest,
+    null,
+  );
+}
+
 export function summarizeCalendarMonth(
   days: readonly StatisticsCalendarDay[],
 ): CalendarMonthSummary {
@@ -159,6 +190,14 @@ export function summarizeCalendarMonth(
     hasUnknownDays: days.some(isUnknownCalendarDay),
     pagesRead: activeDays.reduce((total, day) => total + day.pagesRead, 0),
   };
+}
+
+export function toSelectableCalendarDay(
+  day: StatisticsCalendarDay,
+): Nullable<SelectableCalendarDay> {
+  if (day.booksCount === 0) return null;
+  const detailDate = resolveReadingDayTarget(day.drilldown);
+  return detailDate === null ? null : { date: day.date, detailDate };
 }
 
 export function weekdayOrder(weekStartDay: WeekStartDay): number[] {

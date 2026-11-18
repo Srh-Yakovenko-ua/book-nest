@@ -3,13 +3,13 @@
 import type { StatisticsCalendarDay, WeekStartDay } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 
-import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import {
   buildHeatmapWeeks,
+  isDateInMonth,
   isUnknownCalendarDay,
   weekdayOrder,
 } from "../../model/statistics-calendar";
@@ -17,32 +17,42 @@ import { resolveReadingDayTarget } from "../../model/statistics-drilldown";
 import { formatDayLong, formatMonthShort, weekdayLabel } from "../../model/statistics-format";
 import { ReadingDayDetails } from "../details/reading-day-details";
 import { StatisticsDetailSurface } from "../details/statistics-detail-surface";
+import { READING_INTENSITY_CLASS } from "./reading-intensity";
 
 const HEATMAP_CELL_CLASS = {
-  intensity: ["bg-secondary", "bg-primary/25", "bg-primary/45", "bg-primary/70", "bg-primary"],
-  unknown: "border border-dashed border-muted-foreground/50 bg-transparent",
+  unknown: "hatched",
 } as const;
 
 const VISIBLE_WEEKDAY_ROWS = [0, 2, 4] as const;
 
 export function ReadingHeatmap({
   days,
+  focusMonth,
   onShowInBooksCalendar,
   weekStartDay,
 }: {
   days: readonly StatisticsCalendarDay[];
+  focusMonth?: string;
   onShowInBooksCalendar?: (date: string) => void;
   weekStartDay: WeekStartDay;
 }) {
   const locale = useLocale();
   const t = useTranslations("statistics.calendar.heatmap");
+  const scrollerRef = useRef<HTMLDivElement>(null);
   const weeks = buildHeatmapWeeks({ days, weekStartDay });
   const order = weekdayOrder(weekStartDay);
   const hasUnknownDays = days.some(isUnknownCalendarDay);
+  const isFocusMonthShown = weeks.some((week) => containsMonth({ month: focusMonth, week }));
+
+  useLayoutEffect(() => {
+    const scroller = scrollerRef.current;
+    if (scroller === null || !isFocusMonthShown) return;
+    revealFocusMonth(scroller);
+  }, [focusMonth, isFocusMonthShown]);
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="overflow-x-auto pb-1">
+      <div className="overflow-x-auto pb-1" ref={scrollerRef}>
         <div className="flex min-w-max gap-2">
           <div className="flex shrink-0 flex-col gap-[3px] pt-4">
             {order.map((weekday, row) => (
@@ -71,7 +81,11 @@ export function ReadingHeatmap({
             </div>
             <div className="flex gap-[3px]">
               {weeks.map((week, weekIndex) => (
-                <div className="flex flex-col gap-[3px]" key={firstDate(week) ?? weekIndex}>
+                <div
+                  className="flex flex-col gap-[3px]"
+                  data-focus-month={containsMonth({ month: focusMonth, week }) ? "" : undefined}
+                  key={firstDate(week) ?? weekIndex}
+                >
                   {week.map((day, dayIndex) =>
                     day === null ? (
                       <span aria-hidden className="size-[13px]" key={dayIndex} />
@@ -94,7 +108,7 @@ export function ReadingHeatmap({
         <span className="w-full">{t("intensityLegend")}</span>
         <span className="flex items-center gap-1.5">
           <span>{t("legendLess")}</span>
-          {HEATMAP_CELL_CLASS.intensity.map((className, level) => (
+          {READING_INTENSITY_CLASS.background.map((className, level) => (
             <span aria-hidden className={cn("size-[13px] rounded-[3px]", className)} key={level} />
           ))}
           <span>{t("legendMore")}</span>
@@ -111,6 +125,17 @@ export function ReadingHeatmap({
       </div>
     </div>
   );
+}
+
+function containsMonth({
+  month,
+  week,
+}: {
+  month?: string;
+  week: readonly (null | StatisticsCalendarDay)[];
+}): boolean {
+  if (month === undefined) return false;
+  return week.some((day) => day !== null && isDateInMonth(day.date, month));
 }
 
 function firstDate(week: readonly (null | StatisticsCalendarDay)[]): null | string {
@@ -135,15 +160,11 @@ function HeatmapCell({
       ? isUnknown
         ? t("dayUnknown", { date })
         : t("dayEmpty", { date })
-      : t("daySummary", {
-          books: day.booksCount,
-          date,
-          pages: formatNumber(day.pagesRead, locale),
-        });
+      : t("daySummary", { books: day.booksCount, date, pages: day.pagesRead });
 
   const cellClass = cn(
     "size-[13px] rounded-[3px] outline-none",
-    isUnknown ? HEATMAP_CELL_CLASS.unknown : HEATMAP_CELL_CLASS.intensity[day.intensity],
+    isUnknown ? HEATMAP_CELL_CLASS.unknown : READING_INTENSITY_CLASS.background[day.intensity],
   );
   const detailDate = resolveReadingDayTarget(day.drilldown);
 
@@ -194,4 +215,20 @@ function monthTick(
   const previous = weekIndex === 0 ? null : firstDate(weeks[weekIndex - 1] ?? []);
   if (previous !== null && previous.slice(0, 7) === current.slice(0, 7)) return "";
   return formatMonthShort(current, locale);
+}
+
+function revealFocusMonth(scroller: HTMLElement) {
+  if (scroller.scrollWidth <= scroller.clientWidth) return;
+  const focusColumns = Array.from(scroller.querySelectorAll<HTMLElement>("[data-focus-month]"));
+  const firstColumn = focusColumns.at(0);
+  const lastColumn = focusColumns.at(-1);
+  if (firstColumn === undefined || lastColumn === undefined) return;
+  const contentLeft =
+    scroller.getBoundingClientRect().left + scroller.clientLeft - scroller.scrollLeft;
+  const monthStart = firstColumn.getBoundingClientRect().left - contentLeft;
+  const monthEnd = lastColumn.getBoundingClientRect().right - contentLeft;
+  scroller.scrollTo({
+    behavior: "instant",
+    left: Math.max(0, Math.min(monthStart, monthEnd - scroller.clientWidth)),
+  });
 }

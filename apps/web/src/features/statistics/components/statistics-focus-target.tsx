@@ -26,7 +26,7 @@ export function StatisticsFocusTarget({
   return (
     <div
       className={cn(
-        "scroll-mt-4 rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+        "scroll-mt-[calc(var(--shell-header-height)+1rem)] rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
         className,
       )}
       ref={ref}

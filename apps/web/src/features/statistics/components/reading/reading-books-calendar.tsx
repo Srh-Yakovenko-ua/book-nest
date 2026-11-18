@@ -9,12 +9,9 @@ import type {
 import type { RefObject } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
-
-import type { UiIconName } from "@/components/icons";
-import type { StatCardIconTone } from "@/components/ui/stat-card";
+import { useId } from "react";
 
 import { Button } from "@/components/ui/button";
-import { StatCard } from "@/components/ui/stat-card";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -28,21 +25,18 @@ import {
   isDateInMonth,
   listCalendarMonths,
   resolveCalendarMonth,
+  resolveSelectedCalendarDay,
   summarizeCalendarMonth,
 } from "../../model/statistics-calendar";
 import { StatisticsNote, StatisticsSectionState } from "../statistics-states";
+import { ReadingBooksDayPanel } from "./reading-books-day-panel";
 import { ReadingBooksDiary } from "./reading-books-diary";
 import { ReadingBooksMonthGrid } from "./reading-books-month-grid";
-
-const MONTH_KPI_LAYOUT = {
-  grid: "grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3",
-  tile: "px-3 py-2.5 sm:px-3 sm:py-2.5",
-} as const;
+import { READING_INTENSITY_CLASS } from "./reading-intensity";
+import { ReadingIntensityMeter } from "./reading-intensity-meter";
 
 type MonthKpi = {
-  icon: UiIconName;
   label: "monthActiveDays" | "monthBooks" | "monthPages";
-  tone: StatCardIconTone;
   value: string;
 };
 
@@ -51,6 +45,8 @@ export function ReadingBooksCalendar({
   jumpTarget,
   month,
   monthLabelRef,
+  onSelectDay,
+  selectedDay,
   today,
   weekStartDay,
 }: {
@@ -58,12 +54,15 @@ export function ReadingBooksCalendar({
   jumpTarget?: Nullable<BooksCalendarJumpTarget>;
   month: Nullable<string>;
   monthLabelRef?: RefObject<Nullable<HTMLSpanElement>>;
+  onSelectDay: (date: string) => void;
+  selectedDay: Nullable<string>;
   today: string;
   weekStartDay: WeekStartDay;
 }) {
   const isMobile = useIsMobile();
   const locale = useLocale();
   const t = useTranslations("statistics.calendar.books");
+  const panelId = useId();
   const months = listCalendarMonths(calendar.displayRange);
   const monthKey = resolveCalendarMonth({ months, requested: month });
   const monthDays =
@@ -95,25 +94,11 @@ export function ReadingBooksCalendar({
   const hasMonthBooksFailed = monthBooks.errorUpdateCount > 0;
   const isHistoryUncertain = summary.hasUnknownDays || summary.hasLegacyHistory;
   const kpis: MonthKpi[] = [
-    {
-      icon: "calendar",
-      label: "monthActiveDays",
-      tone: "primary",
-      value: lowerBound(summary.hasUnknownDays, summary.activeDays),
-    },
-    {
-      icon: "book-copy",
-      label: "monthBooks",
-      tone: "genre",
-      value: lowerBound(books.isLowerBound, books.count),
-    },
-    {
-      icon: "book-open-text",
-      label: "monthPages",
-      tone: "info",
-      value: lowerBound(summary.hasUnknownDays, summary.pagesRead),
-    },
+    { label: "monthActiveDays", value: lowerBound(summary.hasUnknownDays, summary.activeDays) },
+    { label: "monthBooks", value: lowerBound(books.isLowerBound, books.count) },
+    { label: "monthPages", value: lowerBound(summary.hasUnknownDays, summary.pagesRead) },
   ];
+  const selected = resolveSelectedCalendarDay({ days: monthDays, requested: selectedDay });
 
   const retryMonthBooks = async () => {
     if (monthBooks.isFetching) return;
@@ -122,23 +107,16 @@ export function ReadingBooksCalendar({
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-250 flex-col gap-3">
+    <div className="flex w-full flex-col gap-3">
       <div>
-        <div className={MONTH_KPI_LAYOUT.grid}>
+        <dl className="flex flex-wrap items-baseline gap-x-6 gap-y-1 text-sm">
           {kpis.map((kpi) => (
-            <StatCard
-              className={MONTH_KPI_LAYOUT.tile}
-              icon={kpi.icon}
-              iconBadgeSize="md"
-              iconTone={kpi.tone}
-              key={kpi.label}
-              label={t(kpi.label)}
-              labelOverflow="wrap"
-              size="compact"
-              value={kpi.value}
-            />
+            <div className="flex items-baseline gap-1.5" key={kpi.label}>
+              <dt className="text-muted-foreground">{t(kpi.label)}</dt>
+              <dd className="font-semibold text-ink tabular-nums">{kpi.value}</dd>
+            </div>
           ))}
-        </div>
+        </dl>
         <div aria-live="polite">
           {isMonthBooksStatusShown ? (
             <p
@@ -172,14 +150,26 @@ export function ReadingBooksCalendar({
         />
       ) : (
         <>
-          <ReadingBooksMonthGrid
-            days={monthDays}
-            jumpTarget={jumpTarget}
-            monthKey={monthKey}
-            today={today}
-            weekStartDay={weekStartDay}
-          />
-          <MonthGridHistoryNote summary={summary} />
+          <MonthGridLegend summary={summary} />
+          <div className="grid gap-4 lg:grid-cols-5">
+            <ReadingBooksMonthGrid
+              className="lg:col-span-3"
+              days={monthDays}
+              jumpTarget={jumpTarget}
+              monthKey={monthKey}
+              onSelectDay={onSelectDay}
+              panelId={panelId}
+              selectedDate={selected?.date ?? null}
+              today={today}
+              weekStartDay={weekStartDay}
+            />
+            <ReadingBooksDayPanel
+              className="lg:col-span-2"
+              id={panelId}
+              isHistoryUncertain={isHistoryUncertain}
+              selected={selected}
+            />
+          </div>
         </>
       )}
     </div>
@@ -207,17 +197,13 @@ function monthBooksCount({
 
 function MonthGridHistoryNote({ summary }: { summary: CalendarMonthSummary }) {
   const t = useTranslations("statistics.calendar.books");
+  const tHeatmap = useTranslations("statistics.calendar.heatmap");
 
   if (summary.hasUnknownDays) {
     return (
-      <p className="flex items-start gap-2 text-xs text-muted-foreground">
-        <span
-          aria-hidden
-          className="flex size-5 shrink-0 items-center justify-center rounded-sm border border-dashed border-muted-foreground/40 text-[0.625rem] font-medium"
-        >
-          ?
-        </span>
-        {t("unknownLegend")}
+      <p className="flex items-center gap-2">
+        <span aria-hidden className={READING_INTENSITY_CLASS.unknown} />
+        <span>{tHeatmap("unknownLegend")}</span>
       </p>
     );
   }
@@ -227,4 +213,25 @@ function MonthGridHistoryNote({ summary }: { summary: CalendarMonthSummary }) {
   }
 
   return null;
+}
+
+function MonthGridLegend({ summary }: { summary: CalendarMonthSummary }) {
+  const t = useTranslations("statistics.calendar.books");
+  const tHeatmap = useTranslations("statistics.calendar.heatmap");
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-muted-foreground">
+      <p className="flex items-center gap-2">
+        <span>{t("pagesPerDayLegend")}</span>
+        <span className="flex items-center gap-1.5">
+          <span>{tHeatmap("legendLess")}</span>
+          {READING_INTENSITY_CLASS.meter.fillWidth.map((fillWidth, level) =>
+            level === 0 ? null : <ReadingIntensityMeter key={fillWidth} level={level} />,
+          )}
+          <span>{tHeatmap("legendMore")}</span>
+        </span>
+      </p>
+      <MonthGridHistoryNote summary={summary} />
+    </div>
+  );
 }
