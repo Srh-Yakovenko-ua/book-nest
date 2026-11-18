@@ -76,7 +76,6 @@
     "@types/cookie-parser": "catalog:",
     "@types/express": "catalog:",
     "@types/node": "catalog:",
-    "@types/nodemailer": "catalog:",
     "@types/pg": "catalog:",
     "@types/supertest": "catalog:",
     "pg": "catalog:",
