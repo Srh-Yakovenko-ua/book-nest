@@ -18,14 +18,13 @@ window.fetch = (input, init) => {
 
 const happyDomGetComputedStyle = window.getComputedStyle.bind(window);
 
-window.getComputedStyle = (element, pseudoElement) => {
-  const style = happyDomGetComputedStyle(element, pseudoElement);
-  Object.defineProperty(style, "transform", {
-    configurable: true,
-    get: () => style.getPropertyValue("transform") || "none",
+window.getComputedStyle = (element, pseudoElement) =>
+  new Proxy(happyDomGetComputedStyle(element, pseudoElement), {
+    get: (style, property) =>
+      property === "transform"
+        ? style.getPropertyValue("transform") || "none"
+        : Reflect.get(style, property),
   });
-  return style;
-};
 
 afterEach(() => {
   cleanup();
