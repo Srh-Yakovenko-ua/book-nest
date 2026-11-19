@@ -9323,7 +9323,7 @@
       "loading": "Завантажуємо статистику",
       "refreshing": "Оновлюємо дані",
       "periodChanging": "Оновлюємо статистику для вибраного періоду. Попередні результати тимчасово недоступні для взаємодії.",
-      "lowerBound": "Частина давнішої історії читання може бути неповною. Позначка ≥ означає мінімально відоме значення.",
+      "lowerBound": "Давніша історія може бути неповною: ≥ позначає мінімально відоме значення.",
       "error": {
         "title": "Не вдалося показати статистику",
         "description": "Спробуйте оновити сторінку. Якщо не допоможе, поверніться трохи згодом.",
@@ -9370,6 +9370,7 @@
       "toggle": "Порівняти",
       "mode": "Режим порівняння",
       "unavailable": "Для періоду «Увесь час» порівняння недоступне.",
+      "tabUnavailable": "Порівняння діє на вкладках «Огляд» і «Активність».",
       "modes": {
         "previous_period": "З попереднім періодом",
         "same_period_last_year": "З тим самим періодом торік"
@@ -9646,51 +9647,59 @@
       "averageRating": "Середня оцінка",
       "scale": "{value} / 10",
       "highRated": "Оцінки 8,0 і вище",
-      "highRatedValue": "{count} · {percent}%",
-      "highRatedHint": "серед оцінених читань",
+      "highRatedValue": "{count} із {total}",
+      "highRatedHint": "{percent}% оцінених",
       "ratedReads": "Оцінено читань",
       "ratedReadsValue": "{rated} із {total}",
+      "ratedReadsHint": "{percent}% завершених",
       "coverage": "Середню оцінку розраховано лише за оціненими читаннями.",
       "distributionRow": "Оцінка {rating}: {count, plural, one {# читання} few {# читання} many {# читань} other {# читання}}",
       "topRatedTitle": "Найвище оцінені",
+      "topRatedDescription": "Найвище оцінені читання періоду, кожне перечитування окремо.",
       "topRatedEmpty": "Ще немає оцінених читань.",
-      "distributionTitle": "Розподіл оцінок"
+      "distributionTitle": "Розподіл оцінок",
+      "distributionShowAll": "Показати всю шкалу",
+      "distributionShowPresent": "Приховати нульові",
+      "distributionEmpty": "Немає оцінок для розподілу.",
+      "distributionCountShare": "{count}<share> · {percent}%</share>",
+      "distributionRowShare": "Оцінка {rating}: {count, plural, one {# читання} few {# читання} many {# читань} other {# читання}}, {percent}% оцінених",
+      "distributionScaleHint": "Смуга й відсоток показують частку оцінених читань із цією оцінкою.",
+      "distributionScaleHintLabel": "Як читати розподіл"
     },
     "genres": {
       "title": "Жанри",
-      "description": "Жанри завершених читань періоду.",
       "modeLabel": "Показник жанрів",
       "modes": {
-        "frequency": "Найчастіше читаю",
+        "frequency": "Найчастіше",
         "rated": "Найвище оцінюю"
       },
       "empty": "У завершених читаннях періоду немає жанрів.",
-      "coverage": "{knownCount} із {eligibleCount} читань мають збережений жанр",
+      "coverage": "Жанри відомі для {knownCount} із {eligibleCount} читань",
       "share": "{percent}% читань",
       "reads": "{count, plural, one {# читання} few {# читання} many {# читань} other {# читання}}",
       "ratedReads": "{count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінки}}",
-      "ratedUnavailable": "Замало оцінок",
+      "ratedUnavailable": "Поки немає достатньо даних для рейтингу",
       "reason": {
-        "INSUFFICIENT_SAMPLE": "Для рейтингу потрібно щонайменше 3 оцінені читання жанру."
+        "INSUFFICIENT_SAMPLE": "Жанр потрапляє в рейтинг, коли має щонайменше 3 оцінені читання."
       },
       "unavailable": "Жанрів виміряти не вдалося",
       "unavailableDescription": "Жодне завершене читання періоду не має збереженого жанру."
     },
     "authors": {
       "title": "Автори",
-      "description": "Автори завершених читань періоду.",
       "modeLabel": "Показник авторів",
       "modes": {
-        "frequency": "Найчастіше читаю",
+        "frequency": "Найчастіше",
         "rated": "Найвище оцінюю"
       },
       "empty": "У завершених читаннях періоду немає авторів.",
-      "coverage": "{knownCount} із {eligibleCount} читань мають збереженого автора",
+      "coverage": "Автор відомий для {knownCount} із {eligibleCount} читань",
+      "share": "{percent}% читань",
       "reads": "{count, plural, one {# читання} few {# читання} many {# читань} other {# читання}}",
       "ratedReads": "{count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінки}}",
-      "ratedUnavailable": "Замало оцінок",
+      "ratedUnavailable": "Поки немає достатньо даних для рейтингу",
       "reason": {
-        "INSUFFICIENT_SAMPLE": "Для рейтингу потрібно щонайменше 3 оцінені читання автора."
+        "INSUFFICIENT_SAMPLE": "Автор потрапляє в рейтинг, коли має щонайменше 3 оцінені читання."
       },
       "returningTitle": "Найчастіше повертаєтесь",
       "returningMeta": "За весь час · {years, plural, one {# рік} few {# роки} many {# років} other {# року}} · {reads, plural, one {# читання} few {# читання} many {# читань} other {# читання}} · востаннє {lastRead}",
@@ -9699,15 +9708,14 @@
     },
     "publishers": {
       "title": "Видавництва",
-      "description": "Видавництва завершених читань періоду.",
       "empty": "У завершених читаннях періоду немає видавництв.",
-      "coverage": "{knownCount} із {eligibleCount} читань мають збережене видавництво",
+      "coverage": "Видавництво відоме для {knownCount} із {eligibleCount} читань",
+      "share": "{percent}% відомих",
       "reads": "{count, plural, one {# читання} few {# читання} many {# читань} other {# читання}}",
       "unavailable": "Видавництв виміряти не вдалося",
       "unavailableDescription": "Жодне завершене читання періоду не має збереженого видавництва.",
-      "totalLabel": "Видавництв",
-      "concentrationLabel": "Частка топ-3",
-      "concentrationHint": "серед читань із відомим видавництвом"
+      "count": "{count, plural, one {# видавництво} few {# видавництва} many {# видавництв} other {# видавництва}}",
+      "topThreeShare": "Топ-3 видавництва: {percent}% читань із відомим видавництвом"
     },
     "languages": {
       "title": "Мови",
@@ -9716,11 +9724,9 @@
       "coverage": "{knownCount} із {eligibleCount} історичних читань мають надійно збережену мову видання",
       "share": "{percent}% відомих",
       "reads": "{count, plural, one {# читання} few {# читання} many {# читань} other {# читання}}",
-      "sourceHint": "Мова видання, зафіксована в BookNest на момент завершення читання.",
       "unavailable": "Мов виміряти не вдалося",
       "unavailableDescription": "Жодне завершене читання періоду не має збереженої мови видання.",
-      "countLabel": "Мов",
-      "shareHint": "Частки рахуються серед читань із відомою мовою."
+      "count": "{count, plural, one {# мова} few {# мови} many {# мов} other {# мови}}"
     },
     "discoveries": {
       "title": "Нові відкриття",
@@ -9728,7 +9734,7 @@
       "empty": "У цьому періоді нових відкриттів не було.",
       "unavailable": "Відкриття недоступні",
       "reason": {
-        "LEGACY_HISTORY_INCOMPLETE": "Частина завершень перенесена з попередньої історії, тому перше знайомство неможливо довести."
+        "LEGACY_HISTORY_INCOMPLETE": "Перші знайомства поки неможливо підтвердити через неповну попередню історію читання."
       },
       "partialNote": "Частина завершень періоду не має доведеного статусу першого прочитання.",
       "kinds": {

@@ -1,12 +1,10 @@
 import type { Nullable, ReadingStatisticsCompletedReadsSubsetPage } from "@app/shared";
-import type { ReactNode } from "react";
+import type { ComponentProps } from "react";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/i18n/navigation", () => ({
-  Link: ({ children, href }: { children: ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  ),
+  Link: ({ children, ...props }: ComponentProps<"a">) => <a {...props}>{children}</a>,
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
@@ -17,6 +15,8 @@ import type { TasteRankingRow } from "./taste-ranking-list";
 
 import { completedReadFixture, statisticsIds } from "../../model/statistics.fixtures";
 import { TasteRankingList } from "./taste-ranking-list";
+
+const actionsText = messages.statistics.contextActions;
 
 const rankingsText = messages.statistics.rankings;
 
@@ -160,6 +160,183 @@ describe("TasteRankingList", () => {
     expect(links).toHaveLength(1);
     expect(links[0]).toHaveAttribute("href", `/books?author=${statisticsIds.authorId}`);
   });
+
+  it("keeps the rows beyond three on desktop and the show-more control mobile-only by default", () => {
+    renderWithProviders(<TasteRankingList rows={SEVEN_ROWS.slice(0, 5)} />);
+
+    const rows = screen.getAllByRole("listitem");
+    expect(rows[3]).toHaveClass("hidden", "lg:flex");
+    expect(rows[4]).toHaveClass("hidden", "lg:flex");
+    expect(screen.getByRole("button", { name: "Показати ще 2" })).toHaveClass("lg:hidden");
+  });
+
+  it("numbers a lone row by default", () => {
+    renderWithProviders(<TasteRankingList rows={[rankingRow("Fantasy", 4)]} />);
+
+    expect(screen.getByText("1")).toBeInTheDocument();
+  });
+});
+
+describe("TasteRankingList compact variant", () => {
+  const NAMESAKE = "Олена Петренко";
+
+  const NAMESAKE_ROWS = [
+    rankingRow(AUTHOR, 6),
+    { ...rankingRow(NAMESAKE, 5), key: "a1" },
+    rankingRow("Terry Pratchett", 4),
+    rankingRow("Ted Chiang", 3),
+    rankingRow("Octavia E. Butler", 2),
+    rankingRow("N. K. Jemisin", 2),
+    { ...rankingRow(NAMESAKE, 1), key: "a2" },
+  ];
+
+  it("keeps two same-named rows apart, each with its own ordinal and value", () => {
+    renderWithProviders(<TasteRankingList rows={NAMESAKE_ROWS} variant="compact" />);
+
+    const rows = screen.getAllByRole("listitem");
+    expect(rows).toHaveLength(7);
+    expect(screen.getAllByText(NAMESAKE)).toHaveLength(2);
+    const [, firstNamesake, , , , , secondNamesake] = rows;
+    if (firstNamesake === undefined || secondNamesake === undefined) {
+      throw new Error("the ranking draws seven rows");
+    }
+    expect(within(firstNamesake).getByText(NAMESAKE)).toBeInTheDocument();
+    expect(within(firstNamesake).getByText("2")).toBeInTheDocument();
+    expect(within(firstNamesake).getByText("5 reads")).toBeInTheDocument();
+    expect(within(secondNamesake).getByText(NAMESAKE)).toBeInTheDocument();
+    expect(within(secondNamesake).getByText("7")).toBeInTheDocument();
+    expect(within(secondNamesake).getByText("1 reads")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Показати ще 2" })).toBeInTheDocument();
+  });
+
+  it("reveals the second same-named row with the rest on show-more", async () => {
+    renderWithProviders(<TasteRankingList rows={NAMESAKE_ROWS} variant="compact" />);
+
+    expect(screen.getAllByRole("listitem")[6]).toHaveClass("hidden");
+
+    await userEvent.click(screen.getByRole("button", { name: "Показати ще 2" }));
+
+    const rows = screen.getAllByRole("listitem");
+    expect(rows).toHaveLength(7);
+    for (const row of rows) {
+      expect(row).not.toHaveClass("hidden");
+    }
+  });
+
+  it("hides the rows beyond the first five on desktop too", () => {
+    renderWithProviders(<TasteRankingList rows={SEVEN_ROWS} variant="compact" />);
+
+    const rows = screen.getAllByRole("listitem");
+    expect(rows).toHaveLength(7);
+    for (const row of rows.slice(0, 5)) {
+      expect(row).not.toHaveClass("hidden");
+    }
+    for (const row of rows.slice(5)) {
+      expect(row).toHaveClass("hidden");
+      expect(row).not.toHaveClass("lg:flex");
+    }
+  });
+
+  it("offers the show-more control on desktop too, collapsed and counting the hidden rows", () => {
+    renderWithProviders(<TasteRankingList rows={SEVEN_ROWS} variant="compact" />);
+
+    const showMore = screen.getByRole("button", { name: "Показати ще 2" });
+    expect(showMore).toHaveAttribute("aria-expanded", "false");
+    expect(showMore).not.toHaveClass("lg:hidden");
+  });
+
+  it("reveals every row on show-more and offers to collapse them", async () => {
+    renderWithProviders(<TasteRankingList rows={SEVEN_ROWS} variant="compact" />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Показати ще 2" }));
+
+    for (const row of screen.getAllByRole("listitem")) {
+      expect(row).not.toHaveClass("hidden");
+    }
+    expect(screen.getByRole("button", { name: rankingsText.showLess })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+  });
+
+  it("hides rows six and seven again on collapse", async () => {
+    renderWithProviders(<TasteRankingList rows={SEVEN_ROWS} variant="compact" />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Показати ще 2" }));
+    await userEvent.click(screen.getByRole("button", { name: rankingsText.showLess }));
+
+    const rows = screen.getAllByRole("listitem");
+    expect(rows[4]).not.toHaveClass("hidden");
+    expect(rows[5]).toHaveClass("hidden");
+    expect(rows[6]).toHaveClass("hidden");
+    expect(screen.getByRole("button", { name: "Показати ще 2" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
+
+  it.each([5, 3, 1])("shows all %i row(s) with no show-more control", (count) => {
+    renderWithProviders(<TasteRankingList rows={SEVEN_ROWS.slice(0, count)} variant="compact" />);
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    for (const row of screen.getAllByRole("listitem")) {
+      expect(row).not.toHaveClass("hidden");
+    }
+  });
+
+  it("drops the ordinal when there is only one row", () => {
+    renderWithProviders(<TasteRankingList rows={[rankingRow("Fantasy", 4)]} variant="compact" />);
+
+    expect(screen.getByText("Fantasy")).toBeInTheDocument();
+    expect(screen.getByText("4 reads")).toBeInTheDocument();
+    expect(screen.queryByText("1")).not.toBeInTheDocument();
+  });
+
+  it("numbers the rows once there are two", () => {
+    renderWithProviders(
+      <TasteRankingList
+        rows={[rankingRow("Fantasy", 4), rankingRow("Mystery", 2)]}
+        variant="compact"
+      />,
+    );
+
+    expect(screen.getByText("1")).toBeInTheDocument();
+    expect(screen.getByText("2")).toBeInTheDocument();
+  });
+});
+
+describe("TasteRankingList action tooltips", () => {
+  const ACTION_ROW: TasteRankingRow = {
+    ...rankingRow("Ursula K. Le Guin", 3),
+    contextActions: [{ authorId: statisticsIds.authorId, kind: "open_author" }],
+  };
+
+  it("names the action link in a tooltip on hover in the compact variant", async () => {
+    renderWithProviders(<TasteRankingList rows={[ACTION_ROW]} variant="compact" />);
+
+    await userEvent.hover(screen.getByRole("link", { name: actionsText.open_author }));
+
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(actionsText.open_author);
+  });
+
+  it("names the action link in a tooltip on keyboard focus in the compact variant", async () => {
+    renderWithProviders(<TasteRankingList rows={[ACTION_ROW]} variant="compact" />);
+
+    await userEvent.tab();
+
+    expect(screen.getByRole("link", { name: actionsText.open_author })).toHaveFocus();
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(actionsText.open_author);
+  });
+
+  it("shows no tooltip on the action link in the default variant", async () => {
+    renderWithProviders(<TasteRankingList rows={[ACTION_ROW]} />);
+    const link = screen.getByRole("link", { name: actionsText.open_author });
+
+    await userEvent.hover(link);
+
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    expect(link).not.toHaveAttribute("data-slot", "tooltip-trigger");
+  });
 });
 
 type SubsetPeriod = { from: Nullable<string>; to: string };
@@ -260,6 +437,25 @@ describe("TasteRankingList finished-reads drill-down", () => {
     const unsupportedLabel = screen.getByText("Земномор'я");
     expect(plainLabel.closest("button")).toBeNull();
     expect(unsupportedLabel.closest("button")).toBeNull();
+  });
+
+  it("shows an openable label as plain text without an icon or a dotted underline, and leaves a plain label bare", () => {
+    renderWithProviders(
+      <TasteRankingList
+        rows={[genreSubsetRow(rankingRow("Fantasy", 4)), rankingRow("Mystery", 2)]}
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: openLabel("Fantasy") });
+    expect(trigger).toHaveTextContent("Fantasy");
+    expect(trigger).not.toHaveClass("decoration-dotted");
+    expect(trigger.querySelector("svg")).toBeNull();
+
+    const [, plainRow] = screen.getAllByRole("listitem");
+    if (plainRow === undefined) throw new Error("the ranking draws two rows");
+    expect(within(plainRow).getByText("Mystery")).toBeInTheDocument();
+    expect(within(plainRow).queryByRole("button")).not.toBeInTheDocument();
+    expect(plainRow.querySelector("svg")).toBeNull();
   });
 
   it("asks for no finished reads on render, hover or show-more", async () => {

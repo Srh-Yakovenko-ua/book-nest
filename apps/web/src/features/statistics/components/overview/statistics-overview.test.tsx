@@ -40,6 +40,8 @@ vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams()
 
 const text = messages.statistics;
 
+const COMPARE_TAB_REASON = text.compare.tabUnavailable;
+
 const SECTION_TITLES = {
   activity: [
     text.dynamics.title,
@@ -208,6 +210,26 @@ describe("StatisticsOverview tabs", () => {
     await expectSections(SECTION_TITLES.overview);
     expect(onUrlUpdate.mock.calls.at(-1)?.[0].searchParams.has("tab")).toBe(false);
     expect(overviewRequests()).toHaveLength(1);
+  });
+
+  it("disables comparison on the tastes tab and restores it on the overview tab", async () => {
+    const user = userEvent.setup();
+    renderStatistics("?period=year&year=2025&compare=previous_period&tab=tastes");
+    await expectSections(SECTION_TITLES.tastes);
+
+    const tastesSwitch = screen.getByRole("switch", { name: text.compare.toggle });
+    expect(tastesSwitch).toBeDisabled();
+    expect(tastesSwitch).toBeChecked();
+    expect(screen.getByRole("button", { name: COMPARE_TAB_REASON })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: text.tabs.overview }));
+    await expectSections(SECTION_TITLES.overview);
+
+    const overviewSwitch = screen.getByRole("switch", { name: text.compare.toggle });
+    expect(overviewSwitch).toBeEnabled();
+    expect(overviewSwitch).toBeChecked();
+    expect(screen.getByRole("combobox", { name: text.compare.mode })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: COMPARE_TAB_REASON })).not.toBeInTheDocument();
   });
 
   it("moves between tabs with the arrow keys", async () => {

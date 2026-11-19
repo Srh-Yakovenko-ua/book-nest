@@ -1,3 +1,4 @@
+import type { BookLanguage } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { BookLanguageSchema } from "@app/shared";
@@ -11,7 +12,7 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 import messages from "@/messages/uk.json";
-import { renderWithProviders, screen } from "@/test-utils";
+import { renderWithProviders, screen, within } from "@/test-utils";
 
 import { overviewFixture } from "../../model/statistics.fixtures";
 import { LanguagesSection } from "./languages-section";
@@ -22,7 +23,11 @@ const languageLabels = messages.books.classification.languageLabels;
 
 const languagesText = messages.statistics.languages;
 
-const SHARE_NOTE = "Частки рахуються серед читань із відомою мовою.";
+function languageItem(language: BookLanguage, shareOfKnown: number) {
+  const [first] = languages.items;
+  if (first === undefined) throw new Error("fixture must expose one language row");
+  return { ...first, language, shareOfKnown };
+}
 
 describe("LanguagesSection", () => {
   it("localizes the canonical enum instead of showing the api value", () => {
@@ -33,12 +38,10 @@ describe("LanguagesSection", () => {
     expect(screen.queryByText("uk")).not.toBeInTheDocument();
   });
 
-  it("says where the language came from", () => {
+  it("says the language is the edition's at the time the read was finished", () => {
     renderWithProviders(<LanguagesSection languages={languages} />);
 
-    expect(
-      screen.getByText("Мова видання, зафіксована в BookNest на момент завершення читання."),
-    ).toBeInTheDocument();
+    expect(screen.getByText(languagesText.description)).toBeInTheDocument();
   });
 
   it("shows coverage rather than an unknown ranking row", () => {
@@ -98,7 +101,7 @@ describe("LanguagesSection", () => {
     expect(rows[1]?.textContent).toBe("Англійська");
   });
 
-  it("lists every one of the seven languages with the rows beyond three behind show-more", () => {
+  it("lists every one of the seven languages with the rows beyond five behind show-more", () => {
     const [first] = languages.items;
     if (first === undefined) throw new Error("fixture must expose one language row");
 
@@ -119,26 +122,106 @@ describe("LanguagesSection", () => {
     for (const language of BookLanguageSchema.options) {
       expect(screen.getByText(languageLabels[language])).toBeInTheDocument();
     }
-    expect(screen.getByRole("button", { name: "Показати ще 4" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Показати ще 2" })).not.toHaveClass("lg:hidden");
+    const rows = screen.getAllByRole("listitem");
+    for (const row of rows.slice(0, 5)) {
+      expect(row).not.toHaveClass("hidden");
+    }
+    for (const row of rows.slice(5)) {
+      expect(row).toHaveClass("hidden");
+      expect(row).not.toHaveClass("lg:flex");
+    }
   });
 
-  it("says shares are counted among reads with a known language in a note, not in the KPI", () => {
+  it("names reads with a known language as the denominator of each row's share", () => {
     renderWithProviders(<LanguagesSection languages={languages} />);
 
-    expect(screen.getByText(SHARE_NOTE)).toBeInTheDocument();
-    expect(screen.getByRole("term")).toHaveTextContent(languagesText.countLabel);
-    for (const definition of screen.getAllByRole("definition")) {
-      expect(definition).not.toHaveTextContent(SHARE_NOTE);
-    }
     expect(screen.getByText("66,7% відомих")).toBeInTheDocument();
   });
 
-  it("drops the share note when the period has no languages", () => {
+  it("shows no language-count tile", () => {
+    renderWithProviders(<LanguagesSection languages={languages} />);
+
+    expect(screen.queryByRole("term")).not.toBeInTheDocument();
+    expect(screen.queryByText("Мов")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    { count: 1, text: "1 мова" },
+    { count: 2, text: "2 мови" },
+    { count: 5, text: "5 мов" },
+  ])("counts $count language(s) in the header as $text", ({ count, text }) => {
+    renderWithProviders(
+      <LanguagesSection
+        languages={{
+          ...languages,
+          items: BookLanguageSchema.options
+            .slice(0, count)
+            .map((language) => languageItem(language, 1 / count)),
+        }}
+      />,
+    );
+
+    expect(screen.getByText(text)).toBeInTheDocument();
+  });
+
+  it("fills each bar to the language's share of reads with a known language", () => {
+    renderWithProviders(
+      <LanguagesSection
+        languages={{
+          ...languages,
+          items: [languageItem("ukrainian", 0.75), languageItem("english", 0.25)],
+        }}
+      />,
+    );
+
+    const widths = within(screen.getByRole("list"))
+      .getAllByRole("listitem")
+      .map((row) =>
+        Number.parseFloat(row.querySelector<HTMLElement>("[style*='width']")?.style.width ?? ""),
+      );
+    expect(widths).toEqual([75, 25]);
+  });
+
+  it("shows a lone language as one unnumbered row holding all known reads", () => {
+    renderWithProviders(
+      <LanguagesSection
+        languages={{
+          ...languages,
+          items: [{ ...languageItem("ukrainian", 1), completedReadCount: 3 }],
+        }}
+      />,
+    );
+
+    const row = within(screen.getByRole("list")).getByRole("listitem");
+    expect(row).toHaveTextContent("Українська");
+    expect(row).toHaveTextContent("100% відомих");
+    expect(row).toHaveTextContent("3 читання");
+    expect(within(row).queryByText("1")).not.toBeInTheDocument();
+    expect(screen.getByText(languagesText.description)).toBeInTheDocument();
+  });
+
+  it("numbers the rows when there are several languages", () => {
+    renderWithProviders(
+      <LanguagesSection
+        languages={{
+          ...languages,
+          items: [languageItem("ukrainian", 0.75), languageItem("english", 0.25)],
+        }}
+      />,
+    );
+
+    const list = within(screen.getByRole("list"));
+    expect(list.getByText("1")).toBeInTheDocument();
+    expect(list.getByText("2")).toBeInTheDocument();
+  });
+
+  it("shows the empty state under the description, with no count, when the period has no languages", () => {
     renderWithProviders(<LanguagesSection languages={{ ...languages, items: [] }} />);
 
     expect(screen.getByText(languagesText.empty)).toBeInTheDocument();
-    expect(screen.getByText(languagesText.sourceHint)).toBeInTheDocument();
-    expect(screen.queryByText(SHARE_NOTE)).not.toBeInTheDocument();
+    expect(screen.getByText(languagesText.description)).toBeInTheDocument();
+    expect(screen.queryByText(/^\d+ мов/)).not.toBeInTheDocument();
   });
 
   it("opens a language row's finished reads from its localized label", () => {

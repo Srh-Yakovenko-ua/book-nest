@@ -10,7 +10,7 @@ import { coverageCaption } from "../../model/statistics-availability";
 import { formatRatingScore, formatShare } from "../../model/statistics-format";
 import { useGenreName } from "../../model/use-genre-name";
 import { StatisticsMetricTabs, StatisticsSection } from "../statistics-section";
-import { StatisticsNote, StatisticsSectionState } from "../statistics-states";
+import { StatisticsSectionState } from "../statistics-states";
 import { TasteRankingList } from "./taste-ranking-list";
 
 const GENRE_MODES = ["frequency", "rated"] as const;
@@ -27,8 +27,9 @@ export function GenresSection({ genres }: { genres: ReadingStatisticsGenresSecti
 
   if (genres.availability === "unavailable") {
     return (
-      <StatisticsSection description={t("description")} title={t("title")}>
+      <StatisticsSection title={t("title")}>
         <StatisticsSectionState
+          density="compact"
           description={t("unavailableDescription")}
           kind="unavailable"
           title={t("unavailable")}
@@ -48,13 +49,12 @@ export function GenresSection({ genres }: { genres: ReadingStatisticsGenresSecti
           value={mode}
         />
       }
-      description={t("description")}
-      note={coverage === null ? null : <StatisticsNote>{t("coverage", coverage)}</StatisticsNote>}
+      description={coverage === null ? undefined : t("coverage", coverage)}
       title={t("title")}
     >
       {mode === "frequency" ? (
         genres.frequency.length === 0 ? (
-          <StatisticsSectionState kind="empty" title={t("empty")} />
+          <StatisticsSectionState density="compact" kind="empty" title={t("empty")} />
         ) : (
           <TasteRankingList
             rows={genres.frequency.map((entry) => ({
@@ -64,13 +64,16 @@ export function GenresSection({ genres }: { genres: ReadingStatisticsGenresSecti
               secondary: t("share", {
                 percent: formatShare(entry.shareOfCompletedReads, locale),
               }),
-              value: entry.completedReadCount,
+              value: entry.shareOfCompletedReads,
               valueLabel: t("reads", { count: entry.completedReadCount }),
             }))}
+            scaleMax={1}
+            variant="compact"
           />
         )
       ) : genres.topRated.availability === "unavailable" ? (
         <StatisticsSectionState
+          density="compact"
           description={t(`reason.${genres.topRated.reason ?? "INSUFFICIENT_SAMPLE"}`)}
           kind="insufficient"
           title={t("ratedUnavailable")}
@@ -87,6 +90,7 @@ export function GenresSection({ genres }: { genres: ReadingStatisticsGenresSecti
             }),
           }))}
           scaleMax={BOOK_RATING.max}
+          variant="compact"
         />
       )}
     </StatisticsSection>

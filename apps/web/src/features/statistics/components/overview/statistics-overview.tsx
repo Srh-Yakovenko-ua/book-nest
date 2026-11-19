@@ -22,7 +22,7 @@ import type { UseStatisticsParamsResult } from "../../model/use-statistics-param
 import { useReadingStatisticsOverview } from "../../api/use-reading-statistics-overview";
 import { isLowerBoundComparison } from "../../model/statistics-dynamics";
 import { toStatisticsScopeState } from "../../model/statistics-scope-state";
-import { STATISTICS_VIEW, toStatisticsTab } from "../../model/statistics-view";
+import { isComparedTab, STATISTICS_VIEW, toStatisticsTab } from "../../model/statistics-view";
 import { useStatisticsParams } from "../../model/use-statistics-params";
 import { useStatisticsView } from "../../model/use-statistics-view";
 import { StatisticsPeriodControls } from "../controls/statistics-period-controls";
@@ -63,6 +63,7 @@ export function StatisticsOverview() {
   });
   const scope = toStatisticsScopeState(query);
   const currentOverview = scope.isPlaceholderData ? undefined : scope.data;
+  const view = useStatisticsView(params.state);
   const periodTriggerRef = useRef<HTMLButtonElement>(null);
   const statisticsBodyRef = useRef<HTMLElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(statisticsBodyRef);
@@ -73,7 +74,7 @@ export function StatisticsOverview() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <header className="flex flex-col gap-1">
         <div className="flex items-center gap-3">
           <h1 className="font-heading text-[clamp(1.75rem,3.5vw,2.5rem)] leading-tight font-semibold text-ink">
@@ -86,6 +87,7 @@ export function StatisticsOverview() {
 
       <StatisticsPeriodControls
         comparison={currentOverview?.comparison ?? null}
+        comparisonAvailability={isComparedTab(view.tab) ? "available" : "tab"}
         params={params}
         period={currentOverview?.period ?? null}
         periodTriggerRef={periodTriggerRef}
@@ -157,7 +159,7 @@ function StatisticsBody({
   return (
     <RefreshingRegion
       aria-busy={scope.isRefreshing}
-      className="flex flex-col gap-6"
+      className="flex flex-col gap-4"
       isRefreshing={scope.isPlaceholderData}
     >
       {isLowerBound ? <StatisticsNote>{t("states.lowerBound")}</StatisticsNote> : null}
@@ -250,19 +252,24 @@ function StatisticsTabs({
         <ReadingCalendarLink />
       </PageTabsPanel>
 
-      <PageTabsPanel className="flex flex-col gap-6" value="tastes">
+      <PageTabsPanel className="flex flex-col gap-4" value="tastes">
         <StatisticsFocusTarget isTarget={view.section === "ratings"}>
           <RatingsSection ratings={overview.ratings} />
         </StatisticsFocusTarget>
 
-        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-          <GenresSection genres={overview.genres} />
-          <AuthorsSection authors={overview.authors} />
-        </div>
-
-        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-          <PublishersSection publishers={overview.publishers} />
-          <LanguagesSection languages={overview.languages} />
+        <div className="@container flex flex-col gap-4">
+          <div className="grid grid-cols-1 items-start gap-4 @min-[41rem]:grid-cols-2">
+            <GenresSection genres={overview.genres} />
+            <AuthorsSection authors={overview.authors} />
+          </div>
+          <div className="grid grid-cols-1 items-start gap-4 @min-[41rem]:grid-cols-5">
+            <div className="min-w-0 @min-[41rem]:col-span-3">
+              <PublishersSection publishers={overview.publishers} />
+            </div>
+            <div className="min-w-0 @min-[41rem]:col-span-2">
+              <LanguagesSection languages={overview.languages} />
+            </div>
+          </div>
         </div>
 
         {overview.period.kind === "all_time" ? null : (
