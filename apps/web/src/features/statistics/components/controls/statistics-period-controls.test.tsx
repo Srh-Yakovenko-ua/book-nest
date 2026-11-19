@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
 
 import type { UseStatisticsParamsResult } from "../../model/use-statistics-params";
+import type { StatisticsComparisonAvailability } from "./statistics-period-controls";
 
 import { overviewFixture } from "../../model/statistics.fixtures";
 import { StatisticsPeriodControls } from "./statistics-period-controls";
@@ -50,14 +51,30 @@ function makeParams(overrides: Partial<UseStatisticsParamsResult> = {}): UseStat
   };
 }
 
+const COMPARE_ALL_TIME_REASON = "Для періоду «Увесь час» порівняння недоступне.";
+
+const COMPARE_TAB_REASON = "Порівняння діє на вкладках «Огляд» і «Активність».";
+
+const LAST_YEAR_COMPARISON = {
+  from: "2025-01-01",
+  mode: "same_period_last_year",
+  to: "2025-03-31",
+} as const;
+
 function render(
   params: UseStatisticsParamsResult,
   comparison = overview.comparison,
   period: Nullable<ReadingStatisticsPeriod> = overview.period,
+  comparisonAvailability: StatisticsComparisonAvailability = "available",
 ) {
   return renderWithProviders(
     <NuqsTestingAdapter hasMemory searchParams="">
-      <StatisticsPeriodControls comparison={comparison} params={params} period={period} />
+      <StatisticsPeriodControls
+        comparison={comparison}
+        comparisonAvailability={comparisonAvailability}
+        params={params}
+        period={period}
+      />
     </NuqsTestingAdapter>,
   );
 }
@@ -228,5 +245,71 @@ describe("StatisticsPeriodControls", () => {
     );
 
     expect(setCustomRange).toHaveBeenCalledWith({ from: "2026-03-02", to: "2026-03-25" });
+  });
+
+  it("names the all-time reason when comparison is off for the whole period", () => {
+    render(
+      makeParams({
+        canCompare: false,
+        state: { compare: null, from: "", period: "all_time", to: "", year: null },
+      }),
+    );
+
+    expect(screen.getByRole("button", { name: COMPARE_ALL_TIME_REASON })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: COMPARE_TAB_REASON })).not.toBeInTheDocument();
+  });
+
+  it("describes the disabled all-time switch with the all-time reason", () => {
+    render(
+      makeParams({
+        canCompare: false,
+        state: { compare: null, from: "", period: "all_time", to: "", year: null },
+      }),
+    );
+
+    expect(screen.getByRole("switch", { name: "Порівняти" })).toHaveAccessibleDescription(
+      COMPARE_ALL_TIME_REASON,
+    );
+  });
+
+  it("offers the compare mode on a tab that compares", () => {
+    render(makeParams({ compareMode: "same_period_last_year" }), LAST_YEAR_COMPARISON);
+
+    expect(screen.getByRole("switch", { name: "Порівняти" })).toBeEnabled();
+    expect(screen.getByRole("combobox", { name: "Режим порівняння" })).toBeInTheDocument();
+  });
+
+  it("disables the compare switch on a tab without comparison", () => {
+    render(makeParams(), overview.comparison, overview.period, "tab");
+
+    expect(screen.getByRole("switch", { name: "Порівняти" })).toBeDisabled();
+  });
+
+  it("describes the switch disabled by the tab with the tab reason", () => {
+    render(makeParams(), overview.comparison, overview.period, "tab");
+
+    expect(screen.getByRole("switch", { name: "Порівняти" })).toHaveAccessibleDescription(
+      COMPARE_TAB_REASON,
+    );
+  });
+
+  it("explains that only the overview and activity tabs compare", () => {
+    render(makeParams(), overview.comparison, overview.period, "tab");
+
+    expect(screen.getByRole("button", { name: COMPARE_TAB_REASON })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: COMPARE_ALL_TIME_REASON })).not.toBeInTheDocument();
+  });
+
+  it("hides the compare mode and the comparison range on a tab without comparison", () => {
+    render(
+      makeParams({ compareMode: "same_period_last_year" }),
+      LAST_YEAR_COMPARISON,
+      overview.period,
+      "tab",
+    );
+
+    expect(screen.queryByRole("combobox", { name: "Режим порівняння" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Порівнюється з/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Період:/)).toBeInTheDocument();
   });
 });

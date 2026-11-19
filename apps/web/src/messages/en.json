@@ -9323,7 +9323,7 @@
       "loading": "Loading statistics",
       "refreshing": "Refreshing data",
       "periodChanging": "Updating the statistics for the selected period. The previous results are temporarily unavailable for interaction.",
-      "lowerBound": "Some older reading history may be incomplete. The ≥ mark means the minimum known value.",
+      "lowerBound": "Older history may be incomplete: ≥ marks the minimum known value.",
       "error": {
         "title": "Could not show the statistics",
         "description": "Try reloading the page. If that does not help, come back a little later.",
@@ -9370,6 +9370,7 @@
       "toggle": "Compare",
       "mode": "Comparison mode",
       "unavailable": "All time cannot be compared with another period.",
+      "tabUnavailable": "Comparison applies to the Overview and Activity tabs.",
       "modes": {
         "previous_period": "With the previous period",
         "same_period_last_year": "With the same period last year"
@@ -9646,51 +9647,59 @@
       "averageRating": "Average rating",
       "scale": "{value} / 10",
       "highRated": "Rated 8.0 and above",
-      "highRatedValue": "{count} · {percent}%",
-      "highRatedHint": "among rated reads",
+      "highRatedValue": "{count} of {total}",
+      "highRatedHint": "{percent}% of rated",
       "ratedReads": "Rated reads",
       "ratedReadsValue": "{rated} of {total}",
+      "ratedReadsHint": "{percent}% of finished",
       "coverage": "The average is based on rated reads only.",
       "distributionRow": "Rating {rating}: {count, plural, one {# read} other {# reads}}",
       "topRatedTitle": "Highest rated",
+      "topRatedDescription": "Your highest-rated reads of the period, each reread on its own.",
       "topRatedEmpty": "No rated reads yet.",
-      "distributionTitle": "Rating distribution"
+      "distributionTitle": "Rating distribution",
+      "distributionShowAll": "Show full scale",
+      "distributionShowPresent": "Hide zero scores",
+      "distributionEmpty": "No ratings to show yet.",
+      "distributionCountShare": "{count}<share> · {percent}%</share>",
+      "distributionRowShare": "Rating {rating}: {count, plural, one {# read} other {# reads}}, {percent}% of rated",
+      "distributionScaleHint": "The bar and the percentage show the share of rated reads with this score.",
+      "distributionScaleHintLabel": "How to read the distribution"
     },
     "genres": {
       "title": "Genres",
-      "description": "Genres of the reads finished in this period.",
       "modeLabel": "Genre metric",
       "modes": {
         "frequency": "Read most often",
         "rated": "Rated highest"
       },
       "empty": "The reads finished in this period carry no genres.",
-      "coverage": "{knownCount} of {eligibleCount} reads carry a genre",
+      "coverage": "Genres known for {knownCount} of {eligibleCount} reads",
       "share": "{percent}% of reads",
       "reads": "{count, plural, one {# read} other {# reads}}",
       "ratedReads": "{count, plural, one {# rating} other {# ratings}}",
-      "ratedUnavailable": "Too few ratings",
+      "ratedUnavailable": "Not enough data for a ranking yet",
       "reason": {
-        "INSUFFICIENT_SAMPLE": "A genre needs at least 3 rated reads to be ranked."
+        "INSUFFICIENT_SAMPLE": "A genre is ranked once it has at least 3 rated reads."
       },
       "unavailable": "Genres cannot be measured",
       "unavailableDescription": "None of the reads finished in this period carry a recorded genre."
     },
     "authors": {
       "title": "Authors",
-      "description": "Authors of the reads finished in this period.",
       "modeLabel": "Author metric",
       "modes": {
         "frequency": "Read most often",
         "rated": "Rated highest"
       },
       "empty": "The reads finished in this period carry no authors.",
-      "coverage": "{knownCount} of {eligibleCount} reads carry an author",
+      "coverage": "Author known for {knownCount} of {eligibleCount} reads",
+      "share": "{percent}% of reads",
       "reads": "{count, plural, one {# read} other {# reads}}",
       "ratedReads": "{count, plural, one {# rating} other {# ratings}}",
-      "ratedUnavailable": "Too few ratings",
+      "ratedUnavailable": "Not enough data for a ranking yet",
       "reason": {
-        "INSUFFICIENT_SAMPLE": "An author needs at least 3 rated reads to be ranked."
+        "INSUFFICIENT_SAMPLE": "An author is ranked once they have at least 3 rated reads."
       },
       "returningTitle": "You keep coming back to",
       "returningMeta": "All time · {years, plural, one {# year} other {# years}} · {reads, plural, one {# read} other {# reads}} · last read {lastRead}",
@@ -9699,15 +9708,14 @@
     },
     "publishers": {
       "title": "Publishers",
-      "description": "Publishers behind the reads finished in this period.",
       "empty": "The reads finished in this period carry no publishers.",
-      "coverage": "{knownCount} of {eligibleCount} reads carry a publisher",
+      "coverage": "Publisher known for {knownCount} of {eligibleCount} reads",
+      "share": "{percent}% of known",
       "reads": "{count, plural, one {# read} other {# reads}}",
       "unavailable": "Publishers cannot be measured",
       "unavailableDescription": "None of the reads finished in this period carry a recorded publisher.",
-      "totalLabel": "Publishers",
-      "concentrationLabel": "Top 3 share",
-      "concentrationHint": "among reads with a known publisher"
+      "count": "{count, plural, one {# publisher} other {# publishers}}",
+      "topThreeShare": "Top 3 publishers: {percent}% of reads with a known publisher"
     },
     "languages": {
       "title": "Languages",
@@ -9716,11 +9724,9 @@
       "coverage": "{knownCount} of {eligibleCount} historical reads carry a reliably recorded edition language",
       "share": "{percent}% of the known ones",
       "reads": "{count, plural, one {# read} other {# reads}}",
-      "sourceHint": "The edition language recorded in BookNest when the read was finished.",
       "unavailable": "Languages cannot be measured",
       "unavailableDescription": "None of the reads finished in this period carry a recorded edition language.",
-      "countLabel": "Languages",
-      "shareHint": "Shares are counted among reads with a known language."
+      "count": "{count, plural, one {# language} other {# languages}}"
     },
     "discoveries": {
       "title": "New discoveries",
@@ -9728,7 +9734,7 @@
       "empty": "No new discoveries in this period.",
       "unavailable": "Discoveries are unavailable",
       "reason": {
-        "LEGACY_HISTORY_INCOMPLETE": "Some completions were carried over from older history, so a first encounter cannot be proven."
+        "LEGACY_HISTORY_INCOMPLETE": "First encounters cannot be confirmed yet because earlier reading history is incomplete."
       },
       "partialNote": "Some completions in this period cannot be proven to be a first-ever read.",
       "kinds": {

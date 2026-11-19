@@ -8,7 +8,7 @@ import { useLocale, useTranslations } from "next-intl";
 import type { UiIconName } from "@/components/icons";
 
 import { UiIcon } from "@/components/icons";
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { formatNumber } from "@/lib/format";
 
 import { formatDayShort, formatRatingScore } from "../../model/statistics-format";
@@ -43,13 +43,30 @@ export function DiscoveriesSection({
 
   if (discoveries.availability === "unavailable") {
     return (
-      <StatisticsSection description={t("description")} title={t("title")}>
-        <StatisticsSectionState
-          description={t(`reason.${discoveries.reason ?? "LEGACY_HISTORY_INCOMPLETE"}`)}
-          kind="unavailable"
-          title={t("unavailable")}
-        />
-      </StatisticsSection>
+      <div className="@container">
+        <Card className="flex flex-col gap-2 px-4 py-3.5 @2xl:flex-row @2xl:items-center @2xl:gap-6">
+          <div className="flex shrink-0 items-center gap-2">
+            <UiIcon aria-hidden className="text-primary" name="sparkles" size={16} />
+            <CardTitle className="font-heading text-base font-semibold text-ink">
+              {t("title")}
+            </CardTitle>
+          </div>
+          <div className="flex min-w-0 items-start gap-2 text-sm">
+            <UiIcon
+              aria-hidden
+              className="mt-0.5 text-muted-foreground"
+              name="circle-slash"
+              size={15}
+            />
+            <p className="flex min-w-0 flex-col gap-0.5">
+              <span className="font-medium text-ink">{t("unavailable")}</span>
+              <span className="text-muted-foreground">
+                {t(`reason.${discoveries.reason ?? "LEGACY_HISTORY_INCOMPLETE"}`)}
+              </span>
+            </p>
+          </div>
+        </Card>
+      </div>
     );
   }
 
@@ -79,7 +96,7 @@ export function DiscoveriesSection({
       </dl>
 
       {cards.length === 0 ? (
-        <StatisticsSectionState kind="empty" title={t("empty")} />
+        <StatisticsSectionState density="compact" kind="empty" title={t("empty")} />
       ) : (
         <div
           aria-label={t("title")}
@@ -105,7 +122,7 @@ function DiscoveryCardView({ card }: { card: DiscoveryCard }): ReactNode {
   const t = useTranslations("statistics.discoveries");
 
   return (
-    <Card className="flex h-full flex-col gap-1 px-4 py-3.5">
+    <Card className="flex h-full flex-col gap-1 px-3.5 py-3">
       <span className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
         <UiIcon aria-hidden className="text-primary" name={DISCOVERY_ICON[card.kind]} size={14} />
         {t(`kinds.${card.kind}`)}
