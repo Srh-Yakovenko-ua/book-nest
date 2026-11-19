@@ -1,6 +1,6 @@
 import type { Nullable } from "@app/shared";
 
-import { addDays } from "date-fns";
+import { addDays, endOfQuarter, format } from "date-fns";
 
 import { formatNumber, parseIsoDay } from "@/lib/format";
 
@@ -11,6 +11,8 @@ const DAY_NUMERIC = { day: "numeric", month: "numeric" } as const;
 const DAY_SHORT = { day: "numeric", month: "short" } as const;
 
 const MONTH_LONG = { month: "long", year: "numeric" } as const;
+
+const MONTH_NAME = { month: "long" } as const;
 
 const MONTH_NARROW = { month: "narrow" } as const;
 
@@ -52,6 +54,10 @@ export function formatMonthKey(monthKey: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, MONTH_LONG).format(parseIsoDay(`${monthKey}-01`));
 }
 
+export function formatMonthName(monthKey: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, MONTH_NAME).format(parseIsoDay(`${monthKey}-01`));
+}
+
 export function formatMonthNarrow(day: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, MONTH_NARROW).format(parseIsoDay(day));
 }
@@ -62,6 +68,17 @@ export function formatMonthShort(day: string, locale: string): string {
 
 export function formatPercentagePoints(value: number, locale: string): string {
   return formatNumber(Math.abs(value), locale, SHARE_FRACTION);
+}
+
+export function formatQuarterKey(
+  quarterKey: string,
+  locale: string,
+): { months: string; year: string } {
+  const start = parseIsoDay(`${quarterKey}-01`);
+  return {
+    months: new Intl.DateTimeFormat(locale, MONTH_NAME).formatRange(start, endOfQuarter(start)),
+    year: format(start, "yyyy"),
+  };
 }
 
 export function formatRatingScore(value: number, locale: string): string {

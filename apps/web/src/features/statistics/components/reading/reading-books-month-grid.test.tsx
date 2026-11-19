@@ -26,7 +26,13 @@ const PANEL_ID = "reading-books-day-panel";
 
 const TEXT_PATTERN = { dayNumber: /^\d{1,2}$/, overflowCount: /^\+\d+$/ } as const;
 
-const DAY_MARK_CLASS = { intensityTrack: "bg-border", unknownHistory: "hatched" } as const;
+const CELL_TONE_CLASS = {
+  empty: "bg-card",
+  future: "border-dashed",
+  unknown: "bg-secondary/60",
+} as const;
+
+const DECORATION_CLASS = { dot: "rounded-full", hatch: "hatched" } as const;
 
 const BOOKS = {
   farthestShore: {
@@ -57,18 +63,18 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+function cellOf(label: string): HTMLElement {
+  const cell = screen.getByText(label).parentElement;
+  if (cell === null) throw new Error(`no cell holds ${label}`);
+  return cell;
+}
+
 function cellText(key: "dayEmpty" | "dayFuture" | "dayUnknown", date: string): string {
   return collapseSpaces(translateBooks(key, { date: formatDayLong(date, "uk") }));
 }
 
 function collapseSpaces(text: string): string {
   return text.replace(/\s+/g, " ");
-}
-
-function dayMarks(scope: HTMLElement, mark: keyof typeof DAY_MARK_CLASS): HTMLElement[] {
-  return within(scope)
-    .queryAllByRole("generic", { hidden: true })
-    .filter((element) => element.classList.contains(DAY_MARK_CLASS[mark]));
 }
 
 function dayOn(date: string, overrides: Partial<StatisticsCalendarDay> = {}) {
@@ -79,10 +85,12 @@ function daySummary({ books, date, pages }: { books: number; date: string; pages
   return translateBooks("daySummary", { books, date: formatDayLong(date, "uk"), pages });
 }
 
-function intensityFill(cell: HTMLElement): HTMLElement {
-  const [track] = dayMarks(cell, "intensityTrack");
-  if (track === undefined) throw new Error("the day shows no intensity meter");
-  return within(track).getByRole("generic", { hidden: true });
+function decorations(scope: HTMLElement): HTMLElement[] {
+  return within(scope)
+    .queryAllByRole("generic", { hidden: true })
+    .filter((element) =>
+      Object.values(DECORATION_CLASS).some((className) => element.classList.contains(className)),
+    );
 }
 
 function renderGrid(
@@ -111,8 +119,8 @@ function renderGrid(
   );
 }
 
-describe("ReadingBooksMonthGrid covers", () => {
-  it("shows two covers and counts the other three books of a five-book day", () => {
+describe("ReadingBooksMonthGrid posters", () => {
+  it("draws the covers of the day inside its single button and counts the books beyond three", () => {
     renderGrid([
       dayOn("2026-03-10", {
         booksCount: 5,
@@ -125,45 +133,10 @@ describe("ReadingBooksMonthGrid covers", () => {
     const cell = screen.getByRole("button", {
       name: daySummary({ books: 5, date: "2026-03-10", pages: 50 }),
     });
-    expect(within(cell).getAllByRole("img")).toHaveLength(2);
-    expect(within(cell).getByRole("img", { name: BOOKS.wizard.title })).toBeInTheDocument();
-    expect(within(cell).getByRole("img", { name: BOOKS.tombs.title })).toBeInTheDocument();
-    expect(within(cell).getByText(translateBooks("more", { count: 3 }))).toBeInTheDocument();
-  });
-
-  it("counts the book beyond the preview of a three-book day", () => {
-    renderGrid([
-      dayOn("2026-03-11", {
-        booksCount: 3,
-        booksPreview: [BOOKS.wizard, BOOKS.tombs],
-        pagesRead: 40,
-        remainingBooksCount: 1,
-      }),
-    ]);
-
-    const cell = screen.getByRole("button", {
-      name: daySummary({ books: 3, date: "2026-03-11", pages: 40 }),
-    });
-    expect(within(cell).getByText(translateBooks("more", { count: 1 }))).toBeInTheDocument();
-  });
-
-  it("shows both covers of a two-book day and counts the second only where one cover fits", () => {
-    renderGrid([
-      dayOn("2026-03-13", {
-        booksCount: 2,
-        booksPreview: [BOOKS.wizard, BOOKS.tombs],
-        pagesRead: 35,
-      }),
-    ]);
-
-    const cell = screen.getByRole("button", {
-      name: daySummary({ books: 2, date: "2026-03-13", pages: 35 }),
-    });
-    expect(within(cell).getAllByRole("img")).toHaveLength(2);
-    expect(within(cell).getAllByText(TEXT_PATTERN.overflowCount)).toHaveLength(1);
-    expect(within(cell).getByText(translateBooks("more", { count: 1 }))).toHaveClass(
-      "@2xl/month-grid:hidden",
-    );
+    expect(cell.querySelectorAll("[data-poster-slot]")).toHaveLength(3);
+    expect(within(cell).getByText(translateBooks("more", { count: 2 }))).toBeInTheDocument();
+    expect(within(cell).queryAllByRole("button")).toHaveLength(0);
+    expect(screen.getAllByRole("button")).toHaveLength(1);
   });
 
   it("shows no overflow count for a single-book day", () => {
@@ -174,7 +147,18 @@ describe("ReadingBooksMonthGrid covers", () => {
     const cell = screen.getByRole("button", {
       name: daySummary({ books: 1, date: "2026-03-12", pages: 25 }),
     });
-    expect(within(cell).getByRole("img", { name: BOOKS.wizard.title })).toBeInTheDocument();
+    expect(cell.querySelectorAll("[data-poster-slot]")).toHaveLength(1);
+    expect(within(cell).queryByText(TEXT_PATTERN.overflowCount)).not.toBeInTheDocument();
+  });
+
+  it("draws no cover for a day that counts books but brought no preview", () => {
+    renderGrid([dayOn("2026-03-12", { booksCount: 2, pagesRead: 25 })]);
+
+    const cell = screen.getByRole("button", {
+      name: daySummary({ books: 2, date: "2026-03-12", pages: 25 }),
+    });
+    expect(cell.querySelectorAll("[data-poster-slot]")).toHaveLength(0);
+    expect(cell.querySelectorAll("img")).toHaveLength(0);
     expect(within(cell).queryByText(TEXT_PATTERN.overflowCount)).not.toBeInTheDocument();
   });
 });
@@ -212,7 +196,7 @@ describe("ReadingBooksMonthGrid days without reading", () => {
     expect(screen.queryByText("?")).not.toBeInTheDocument();
   });
 
-  it("keeps a legacy day with pages as an openable reading day without the unknown mark", () => {
+  it("keeps a legacy day with pages as an openable poster rather than an unknown day", () => {
     renderGrid([
       dayOn("2026-03-04", {
         booksCount: 1,
@@ -226,11 +210,11 @@ describe("ReadingBooksMonthGrid days without reading", () => {
       name: daySummary({ books: 1, date: "2026-03-04", pages: 30 }),
     });
     expect(within(cell).queryByText("?")).not.toBeInTheDocument();
-    expect(dayMarks(cell, "unknownHistory")).toHaveLength(0);
+    expect(cell).not.toHaveClass(CELL_TONE_CLASS.unknown);
     expect(screen.queryByText(cellText("dayUnknown", "2026-03-04"))).not.toBeInTheDocument();
   });
 
-  it("hatches a legacy day whose books gained no pages", () => {
+  it("shows a legacy day whose books gained no pages as its covers, with no pages badge or marker", () => {
     renderGrid([
       dayOn("2026-03-04", {
         booksCount: 1,
@@ -242,44 +226,44 @@ describe("ReadingBooksMonthGrid days without reading", () => {
     const cell = screen.getByRole("button", {
       name: daySummary({ books: 1, date: "2026-03-04", pages: 0 }),
     });
-    expect(dayMarks(cell, "unknownHistory")).toHaveLength(1);
+    expect(cell.querySelectorAll("[data-poster-slot]")).toHaveLength(1);
+    expect(
+      within(cell).queryByText(translateBooks("pagesShort", { pages: 0 })),
+    ).not.toBeInTheDocument();
+    expect(decorations(cell)).toHaveLength(0);
   });
 
-  it("shows the unknown-history square in place of the intensity meter on a legacy day whose books gained no pages", () => {
-    renderGrid([
-      dayOn("2026-03-04", {
-        booksCount: 1,
-        booksPreview: [BOOKS.wizard],
-        historyQuality: "legacy_observed_only",
-      }),
-    ]);
-
-    const cell = screen.getByRole("button", {
-      name: daySummary({ books: 1, date: "2026-03-04", pages: 0 }),
-    });
-    expect(dayMarks(cell, "unknownHistory")).toHaveLength(1);
-    expect(dayMarks(cell, "intensityTrack")).toHaveLength(0);
-  });
-
-  it("does not hatch a reliably recorded day whose books gained no pages", () => {
-    renderGrid([dayOn("2026-03-04", { booksCount: 1, booksPreview: [BOOKS.wizard] })]);
-
-    const cell = screen.getByRole("button", {
-      name: daySummary({ books: 1, date: "2026-03-04", pages: 0 }),
-    });
-    expect(dayMarks(cell, "unknownHistory")).toHaveLength(0);
-  });
-
-  it("shows neither an intensity meter nor an unknown-history square on reliably recorded days without reading", () => {
+  it("draws reliably recorded days without reading in the neutral tone", () => {
     const daysUpToToday = eachDayOfInterval({
       end: parseISO(MONTH.today),
       start: parseISO(`${MONTH.key}-01`),
     });
     renderGrid(daysUpToToday.map((date) => dayOn(formatISO(date, { representation: "date" }))));
 
-    expect(screen.getByText(cellText("dayEmpty", "2026-03-06"))).toBeInTheDocument();
-    expect(dayMarks(document.body, "unknownHistory")).toHaveLength(0);
-    expect(dayMarks(document.body, "intensityTrack")).toHaveLength(0);
+    const cell = cellOf(cellText("dayEmpty", "2026-03-06"));
+    expect(cell).toHaveClass(CELL_TONE_CLASS.empty);
+    expect(cell).not.toHaveClass(CELL_TONE_CLASS.unknown);
+    expect(decorations(document.body)).toHaveLength(0);
+  });
+
+  it("draws unknown days in the soft unknown tone with no hatch or dot", () => {
+    renderGrid([dayOn("2026-03-03", { historyQuality: "legacy_observed_only" })]);
+
+    const legacyZero = cellOf(cellText("dayUnknown", "2026-03-03"));
+    const missing = cellOf(cellText("dayUnknown", "2026-03-05"));
+    expect(legacyZero).toHaveClass(CELL_TONE_CLASS.unknown);
+    expect(missing).toHaveClass(CELL_TONE_CLASS.unknown);
+    expect(legacyZero).not.toHaveClass(CELL_TONE_CLASS.empty);
+    expect(decorations(document.body)).toHaveLength(0);
+  });
+
+  it("draws days after today in the dashed future tone, apart from unknown and empty days", () => {
+    renderGrid([]);
+
+    const future = cellOf(cellText("dayFuture", "2026-03-25"));
+    expect(future).toHaveClass(CELL_TONE_CLASS.future);
+    expect(future).not.toHaveClass(CELL_TONE_CLASS.unknown);
+    expect(future).not.toHaveClass(CELL_TONE_CLASS.empty);
   });
 
   it("announces a reliable zero day as a day without reading and offers no button for it", () => {
@@ -333,7 +317,7 @@ describe("ReadingBooksMonthGrid jump target", () => {
 });
 
 describe("ReadingBooksMonthGrid day content", () => {
-  it("shows the day number and leaves the pages read to the button name", () => {
+  it("shows the day number and the pages read that day on the cell", () => {
     renderGrid([
       dayOn("2026-03-09", { booksCount: 1, booksPreview: [BOOKS.wizard], pagesRead: 48 }),
     ]);
@@ -342,7 +326,14 @@ describe("ReadingBooksMonthGrid day content", () => {
       name: daySummary({ books: 1, date: "2026-03-09", pages: 48 }),
     });
     expect(within(cell).getByText("9")).toBeInTheDocument();
-    expect(within(cell).queryByText("48")).not.toBeInTheDocument();
+    expect(within(cell).getByText(translateBooks("pagesShort", { pages: 48 }))).toBeInTheDocument();
+  });
+
+  it("shows the pages of a day with pages but no books, with no cover", () => {
+    renderGrid([dayOn("2026-03-07", { pagesRead: 20 })]);
+
+    expect(screen.getByText(translateBooks("pagesShort", { pages: 20 }))).toBeInTheDocument();
+    expect(document.body.querySelectorAll("[data-poster-slot]")).toHaveLength(0);
   });
 
   it.each([
@@ -361,7 +352,7 @@ describe("ReadingBooksMonthGrid day content", () => {
     ).toBeInTheDocument();
   });
 
-  it("underlines the number of today only", () => {
+  it("marks today alone as the current date", () => {
     renderGrid([
       dayOn("2026-03-19", { booksCount: 1, booksPreview: [BOOKS.wizard], pagesRead: 25 }),
       dayOn(MONTH.today, { booksCount: 1, booksPreview: [BOOKS.tombs], pagesRead: 15 }),
@@ -373,35 +364,27 @@ describe("ReadingBooksMonthGrid day content", () => {
     const yesterdayCell = screen.getByRole("button", {
       name: daySummary({ books: 1, date: "2026-03-19", pages: 25 }),
     });
-    expect(within(todayCell).getByText("20")).toHaveClass("underline");
-    expect(within(yesterdayCell).getByText("19")).not.toHaveClass("underline");
+    expect(todayCell).toHaveAttribute("aria-current", "date");
+    expect(yesterdayCell).not.toHaveAttribute("aria-current");
+    expect(document.body.querySelectorAll("[aria-current]")).toHaveLength(1);
   });
 
-  it("fills the intensity meter of a reading day to the level of the day", () => {
-    renderGrid([
-      dayOn("2026-03-10", {
-        booksCount: 1,
-        booksPreview: [BOOKS.wizard],
-        intensity: 3,
-        pagesRead: 40,
-      }),
-    ]);
+  it("keeps the selection on the selected day and the current-date mark on today", () => {
+    renderGrid(
+      [
+        dayOn("2026-03-19", { booksCount: 1, booksPreview: [BOOKS.wizard], pagesRead: 25 }),
+        dayOn(MONTH.today, { booksCount: 1, booksPreview: [BOOKS.tombs], pagesRead: 15 }),
+      ],
+      { selectedDate: "2026-03-19" },
+    );
 
-    const cell = screen.getByRole("button", {
-      name: daySummary({ books: 1, date: "2026-03-10", pages: 40 }),
-    });
-    expect(intensityFill(cell)).toHaveClass("w-3");
-  });
-
-  it("keeps an empty intensity meter on a day whose books gained no pages", () => {
-    renderGrid([
-      dayOn("2026-03-04", { booksCount: 1, booksPreview: [BOOKS.wizard], intensity: 0 }),
-    ]);
-
-    const cell = screen.getByRole("button", {
-      name: daySummary({ books: 1, date: "2026-03-04", pages: 0 }),
-    });
-    expect(intensityFill(cell)).toHaveClass("w-0");
+    const selected = screen.getByRole("button", { pressed: true });
+    expect(selected).toHaveAccessibleName(daySummary({ books: 1, date: "2026-03-19", pages: 25 }));
+    expect(selected).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { current: "date" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
   });
 });
 

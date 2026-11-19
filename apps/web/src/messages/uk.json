@@ -9549,12 +9549,12 @@
       },
       "heatmap": {
         "legendLess": "менше",
-        "legendMore": "більше",
+        "legendMore": "більше сторінок",
         "dayEmpty": "{date}: читання не було",
         "dayUnknown": "{date}: даних за цей день може не бути",
         "daySummary": "{date}: {pages, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінки}}, {books, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
-        "intensityLegend": "Інтенсивність за кількістю прочитаних сторінок",
-        "unknownLegend": "Історія невідома"
+        "unknownLegend": "Історія невідома",
+        "futureLegend": "Майбутні дні"
       },
       "books": {
         "more": "+{count}",
@@ -9562,33 +9562,44 @@
         "emptyMonth": "За цей місяць немає зафіксованого читання.",
         "emptyMonthUncertainTitle": "За цей місяць немає збережених записів.",
         "emptyMonthUncertainDescription": "Частина історії читання могла не зберегтися.",
+        "dayPanelEmpty": "За цей місяць немає записів читання.",
+        "dayPanelEmptyUncertain": "Немає підтверджених записів читання.",
         "legacyMonthNote": "Частина цього місяця передує повному обліку історії, тому записи можуть бути неповними.",
         "previousMonth": "Попередній місяць",
         "nextMonth": "Наступний місяць",
+        "dayDetailsTitle": "Деталі дня",
+        "previousDay": "Попередній день із книгами",
+        "nextDay": "Наступний день із книгами",
         "daySummary": "{date}: {pages, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінки}}, {books, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
         "dayEmpty": "{date}: читання не було",
         "dayUnknown": "{date}: даних за цей день може не бути",
         "dayFuture": "{date}: цей день ще не настав",
         "diaryMeta": "{books, plural, one {# книга} few {# книги} many {# книг} other {# книги}} · {pages, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінки}}",
         "monthActiveDays": "Днів із читанням",
-        "monthBooks": "Книг із прогресом",
+        "monthBooks": "Книг",
         "monthBooksLoading": "Уточнюємо кількість книг за місяць",
         "monthBooksError": "Не вдалося уточнити кількість книг за місяць",
         "monthBooksRetry": "Спробувати ще раз",
         "monthPages": "Прочитано сторінок",
         "atLeast": "≥ {value}",
-        "pagesPerDayLegend": "Сторінок за день"
+        "unconfirmedValue": "—",
+        "unconfirmedValueHint": "Немає підтверджених даних. Історія може бути неповною.",
+        "pagesShort": "{pages, number} стор."
       }
     },
     "details": {
       "day": {
+        "eyebrow": "Активність за день",
+        "close": "Закрити",
         "loading": "Завантажуємо деталі дня",
         "error": "Не вдалося завантажити деталі дня",
         "retry": "Спробувати ще раз",
         "empty": "Цього дня немає прочитаних сторінок.",
         "bookPages": "{pages, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінки}}",
+        "booksCount": "{books, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
         "deletedBook": "Книгу видалено з бібліотеки",
         "legacyQuality": "Цей день передує повному обліку історії, тому дані можуть бути неповними.",
+        "legacyQualityShort": "Історія за цей день може бути неповною.",
         "booksLabel": "Книги",
         "pagesLabel": "Сторінки",
         "showInBooksCalendar": "Показати в календарі книг"
@@ -9840,8 +9851,10 @@
     "subtitle": "Ваш рік читання день за днем: активність і книги.",
     "resultsLabel": "Календар за вибраний рік",
     "activity": {
-      "title": "Календар активності",
-      "description": "Скільки сторінок ви прочитали кожного дня року."
+      "title": "Інтенсивність читання",
+      "quarterLabel": "{months} {year} р.",
+      "previousQuarter": "Попередній квартал",
+      "nextQuarter": "Наступний квартал"
     },
     "books": {
       "title": "Книги за днями",
