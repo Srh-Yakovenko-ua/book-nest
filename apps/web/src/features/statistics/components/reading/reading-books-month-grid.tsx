@@ -31,7 +31,7 @@ const MONTH_GRID_CLASS = {
   number: {
     base: "absolute top-1 left-1 z-10 flex h-6 min-w-6 items-center justify-center rounded-md px-1 text-xs leading-none tabular-nums",
     empty: "font-medium text-foreground",
-    future: "font-medium text-muted-foreground/70",
+    future: "font-medium text-muted-foreground",
     poster: "bg-card/90 font-semibold text-ink shadow-xs",
     reading: "font-semibold text-ink",
     unknown: "font-medium text-muted-foreground",
