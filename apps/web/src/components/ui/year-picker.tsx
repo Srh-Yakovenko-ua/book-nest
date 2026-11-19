@@ -17,9 +17,10 @@ const triggerClassName =
 const clearClassName =
   "absolute top-1/2 right-2 flex size-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none";
 
-type YearPickerProps = {
+type YearPickerClearProps = { clearable: false } | { clearable?: true; clearLabel: string };
+
+type YearPickerProps = YearPickerClearProps & {
   ariaLabel?: string;
-  clearLabel: string;
   id: string;
   invalid?: boolean;
   max: number;
@@ -33,7 +34,6 @@ type YearPickerProps = {
 
 export function YearPicker({
   ariaLabel,
-  clearLabel,
   id,
   invalid,
   max,
@@ -43,8 +43,11 @@ export function YearPicker({
   placeholder,
   prevLabel,
   value,
+  ...clearProps
 }: YearPickerProps) {
   const [open, setOpen] = useState(false);
+  const clearLabel = clearProps.clearable === false ? null : clearProps.clearLabel;
+  const isClearShown = value !== null && clearLabel !== null;
   const [pageStart, setPageStart] = useState(() => alignPageStart(value ?? max, max));
 
   const years = Array.from({ length: YEARS_PER_PAGE }, (_, index) => pageStart + index);
@@ -73,7 +76,7 @@ export function YearPicker({
         <PopoverTrigger
           aria-invalid={invalid ? true : undefined}
           aria-label={ariaLabel}
-          className={cn(triggerClassName, value !== null && "pr-9")}
+          className={cn(triggerClassName, isClearShown && "pr-9")}
           id={id}
           type="button"
         >
@@ -84,7 +87,7 @@ export function YearPicker({
             </span>
           </span>
         </PopoverTrigger>
-        {value !== null ? (
+        {isClearShown ? (
           <button
             aria-label={clearLabel}
             className={clearClassName}

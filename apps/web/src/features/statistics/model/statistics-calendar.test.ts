@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildHeatmapWeeks,
   buildMonthGrid,
+  buildMonthSlots,
   clipCalendarMonth,
   listCalendarMonths,
   resolveCalendarMonth,
@@ -43,36 +43,43 @@ describe("weekdayOrder", () => {
   });
 });
 
-describe("buildHeatmapWeeks", () => {
-  it("pads the first column so Sunday 2026-03-01 lands last in a Monday-first week", () => {
-    const weeks = buildHeatmapWeeks({ days: MARCH_2026, weekStartDay: "monday" });
-
-    expect(weeks[0]?.slice(0, 6).every((cell) => cell === null)).toBe(true);
-    expect(weeks[0]?.[6]?.date).toBe("2026-03-01");
-    expect(weeks[1]?.[0]?.date).toBe("2026-03-02");
+describe("buildMonthSlots", () => {
+  it.each([
+    ["2027-02", 4],
+    ["2026-07", 5],
+    ["2026-08", 6],
+  ])("lays %s out in %i Monday-first weeks", (monthKey, weeks) => {
+    expect(
+      buildMonthSlots({ days: [], monthKey, today: "2027-12-31", weekStartDay: "monday" }),
+    ).toHaveLength(weeks);
   });
 
-  it("keeps every day in its weekday column even if a day is missing", () => {
-    const withGap = MARCH_2026.filter((day) => day.date !== "2026-03-04");
-    const weeks = buildHeatmapWeeks({ days: withGap, weekStartDay: "monday" });
+  it("leaves the padding around the month blank and keeps each day under its weekday", () => {
+    const weeks = buildMonthSlots({
+      days: MARCH_2026,
+      monthKey: "2026-03",
+      today: "2026-03-31",
+      weekStartDay: "monday",
+    });
 
-    expect(weeks[1]?.[1]?.date).toBe("2026-03-03");
-    expect(weeks[1]?.[2]).toBeNull();
-    expect(weeks[1]?.[3]?.date).toBe("2026-03-05");
+    expect(weeks[0]?.slice(0, 6).every((slot) => slot.kind === "blank")).toBe(true);
+    expect(weeks[0]?.[6]).toEqual({ day: MARCH_2026[0], kind: "day" });
+    expect(weeks.at(-1)?.at(-1)).toEqual({ kind: "blank" });
   });
 
-  it("puts the same day first under a Sunday week start", () => {
-    const weeks = buildHeatmapWeeks({ days: MARCH_2026, weekStartDay: "sunday" });
+  it("splits the dates the calendar does not carry into missing up to today and future after it", () => {
+    const weeks = buildMonthSlots({
+      days: MARCH_2026,
+      monthKey: "2026-03",
+      today: "2026-03-20",
+      weekStartDay: "monday",
+    });
+    const slots = weeks.flat();
 
-    expect(weeks[0]?.[0]?.date).toBe("2026-03-01");
-    expect(weeks[0]?.[1]?.date).toBe("2026-03-02");
-  });
-
-  it("keeps the backend day order", () => {
-    const weeks = buildHeatmapWeeks({ days: MARCH_2026, weekStartDay: "monday" });
-    const dates = weeks.flat().flatMap((day) => (day === null ? [] : [day.date]));
-
-    expect(dates).toEqual(MARCH_2026.map((day) => day.date));
+    expect(slots).toContainEqual({ date: "2026-03-20", kind: "missing" });
+    expect(slots).toContainEqual({ date: "2026-03-21", kind: "future" });
+    expect(slots).toContainEqual({ date: "2026-03-31", kind: "future" });
+    expect(slots.filter((slot) => slot.kind !== "blank")).toHaveLength(31);
   });
 });
 

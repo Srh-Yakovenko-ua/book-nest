@@ -1,4 +1,5 @@
 import type { ReadingDayDetails as ReadingDayDetailsView } from "@app/shared";
+import type { ReactNode } from "react";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -7,6 +8,22 @@ import { renderWithProviders, screen, userEvent } from "@/test-utils";
 
 import { statisticsIds } from "../../model/statistics.fixtures";
 import { ReadingDayDetails } from "./reading-day-details";
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({
+    children,
+    className,
+    href,
+  }: {
+    children: ReactNode;
+    className?: string;
+    href: string;
+  }) => (
+    <a className={className} href={href}>
+      {children}
+    </a>
+  ),
+}));
 
 const dayText = messages.statistics.details.day;
 
@@ -98,14 +115,14 @@ describe("ReadingDayDetails calendar action", () => {
 });
 
 describe("ReadingDayDetails panel variant", () => {
-  it("lists the day totals as books and pages terms", async () => {
+  it("lists the day totals as one row of books and pages", async () => {
     renderWithProviders(<ReadingDayDetails date={DAY.date} variant="panel" />);
 
     const terms = await screen.findAllByRole("term");
     expect(terms.map((term) => term.textContent)).toEqual([dayText.booksLabel, dayText.pagesLabel]);
     expect(screen.getAllByRole("definition").map((definition) => definition.textContent)).toEqual([
-      "1",
-      "30",
+      "1 книга",
+      "30 сторінок",
     ]);
   });
 
@@ -123,6 +140,75 @@ describe("ReadingDayDetails panel variant", () => {
     const title = await screen.findByText(DAY.bookTitle);
     expect(title).toHaveClass("truncate");
     expect(title).not.toHaveClass("line-clamp-2");
+  });
+
+  it("links the whole row of each book still in the library to its page", async () => {
+    renderWithProviders(<ReadingDayDetails date={DAY.date} variant="panel" />);
+
+    const link = await screen.findByRole("link", { name: new RegExp(DAY.bookTitle) });
+    expect(link).toHaveAttribute("href", expect.stringContaining(`/books/${statisticsIds.bookId}`));
+    expect(link).toHaveTextContent(DAY.bookTitle);
+    expect(link).toHaveTextContent("30 сторінок");
+  });
+
+  it("words the incomplete history note briefly in the panel", async () => {
+    dayResponse = () => jsonResponse({ ...DAY_DETAILS, historyQuality: "legacy_observed_only" });
+    renderWithProviders(<ReadingDayDetails date={DAY.date} variant="panel" />);
+
+    expect(await screen.findByText(dayText.legacyQualityShort)).toBeInTheDocument();
+    expect(screen.queryByText(dayText.legacyQuality)).not.toBeInTheDocument();
+  });
+
+  it("names a book removed from the library without linking to it", async () => {
+    dayResponse = () =>
+      jsonResponse({
+        ...DAY_DETAILS,
+        books: DAY_DETAILS.books.map((book) => ({ ...book, bookState: "soft_deleted" })),
+      });
+    renderWithProviders(<ReadingDayDetails date={DAY.date} variant="panel" />);
+
+    expect(await screen.findByText(DAY.bookTitle)).toBeInTheDocument();
+    expect(screen.getByText(dayText.deletedBook)).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("links no book in the popover and drawer details", async () => {
+    renderWithProviders(<ReadingDayDetails date={DAY.date} />);
+
+    expect(await screen.findByText(DAY.bookTitle)).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+});
+
+describe("ReadingDayDetails compact variant", () => {
+  it("sums up the day in one row of books and pages", async () => {
+    renderWithProviders(<ReadingDayDetails date={DAY.date} variant="compact" />);
+
+    const terms = await screen.findAllByRole("term");
+    expect(terms.map((term) => term.textContent)).toEqual([dayText.booksLabel, dayText.pagesLabel]);
+    expect(screen.getAllByRole("definition").map((definition) => definition.textContent)).toEqual([
+      "1 книга",
+      "30 сторінок",
+    ]);
+  });
+
+  it("words the incomplete history note briefly", async () => {
+    dayResponse = () => jsonResponse({ ...DAY_DETAILS, historyQuality: "legacy_observed_only" });
+    renderWithProviders(<ReadingDayDetails date={DAY.date} variant="compact" />);
+
+    expect(await screen.findByText(dayText.legacyQualityShort)).toBeInTheDocument();
+    expect(screen.queryByText(dayText.legacyQuality)).not.toBeInTheDocument();
+  });
+
+  it("keeps the calendar action as a small outline button", async () => {
+    renderWithProviders(
+      <ReadingDayDetails date={DAY.date} onShowInBooksCalendar={vi.fn()} variant="compact" />,
+    );
+
+    expect(await screen.findByRole("button", calendarAction)).toHaveAttribute(
+      "data-variant",
+      "outline",
+    );
   });
 });
 

@@ -9548,13 +9548,13 @@
         "currentStreakDefinition": "consecutive reading days up to today or yesterday"
       },
       "heatmap": {
-        "legendLess": "less",
-        "legendMore": "more",
+        "legendLess": "fewer",
+        "legendMore": "more pages",
         "dayEmpty": "{date}: no reading",
         "dayUnknown": "{date}: this day may be missing from the history",
         "daySummary": "{date}: {pages, plural, one {# page} other {# pages}}, {books, plural, one {# book} other {# books}}",
-        "intensityLegend": "Intensity by number of pages read",
-        "unknownLegend": "Unknown history"
+        "unknownLegend": "Unknown history",
+        "futureLegend": "Upcoming days"
       },
       "books": {
         "more": "+{count}",
@@ -9562,33 +9562,44 @@
         "emptyMonth": "No reading was recorded this month.",
         "emptyMonthUncertainTitle": "No saved records for this month.",
         "emptyMonthUncertainDescription": "Part of your reading history may not have been saved.",
+        "dayPanelEmpty": "No reading was recorded this month.",
+        "dayPanelEmptyUncertain": "No confirmed reading records.",
         "legacyMonthNote": "Part of this month predates full history tracking, so its records may be incomplete.",
         "previousMonth": "Previous month",
         "nextMonth": "Next month",
+        "dayDetailsTitle": "Day details",
+        "previousDay": "Previous day with books",
+        "nextDay": "Next day with books",
         "daySummary": "{date}: {pages, plural, one {# page} other {# pages}}, {books, plural, one {# book} other {# books}}",
         "dayEmpty": "{date}: no reading",
         "dayUnknown": "{date}: this day may be missing from the history",
         "dayFuture": "{date}: this day has not come yet",
         "diaryMeta": "{books, plural, one {# book} other {# books}} · {pages, plural, one {# page} other {# pages}}",
         "monthActiveDays": "Reading days",
-        "monthBooks": "Books with progress",
+        "monthBooks": "Books",
         "monthBooksLoading": "Getting the exact number of books this month",
         "monthBooksError": "Could not get the exact number of books this month",
         "monthBooksRetry": "Try again",
         "monthPages": "Pages read",
         "atLeast": "≥ {value}",
-        "pagesPerDayLegend": "Pages per day"
+        "unconfirmedValue": "—",
+        "unconfirmedValueHint": "No confirmed data. The history may be incomplete.",
+        "pagesShort": "{pages, plural, one {# page} other {# pages}}"
       }
     },
     "details": {
       "day": {
+        "eyebrow": "Activity for the day",
+        "close": "Close",
         "loading": "Loading the day",
         "error": "Could not load this day",
         "retry": "Try again",
         "empty": "No pages were read on this day.",
         "bookPages": "{pages, plural, one {# page} other {# pages}}",
+        "booksCount": "{books, plural, one {# book} other {# books}}",
         "deletedBook": "This book was removed from the library",
         "legacyQuality": "This day predates full history tracking, so it may be incomplete.",
+        "legacyQualityShort": "History for this day may be incomplete.",
         "booksLabel": "Books",
         "pagesLabel": "Pages",
         "showInBooksCalendar": "Show in the books calendar"
@@ -9840,8 +9851,10 @@
     "subtitle": "Your reading year day by day: activity and books.",
     "resultsLabel": "Calendar for the selected year",
     "activity": {
-      "title": "Activity calendar",
-      "description": "How many pages you read on each day of the year."
+      "title": "Reading intensity",
+      "quarterLabel": "{months} {year}",
+      "previousQuarter": "Previous quarter",
+      "nextQuarter": "Next quarter"
     },
     "books": {
       "title": "Books by day",

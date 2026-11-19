@@ -17,11 +17,7 @@ const translateBooks = createTranslator({
 
 const OVERFLOW_CHIP = /^\+\d+$/;
 
-const WIDTH_CLASS = {
-  oneCover: "@lg/month-grid:block",
-  twoCovers: "@2xl/month-grid:block",
-  twoCoversHidden: "@2xl/month-grid:hidden",
-} as const;
+const POSTER = { books: "[data-poster-books]", slot: "[data-poster-slot]" } as const;
 
 const BOOKS = {
   farthestShore: {
@@ -44,14 +40,20 @@ const BOOKS = {
   },
 } as const;
 
-const FIVE_BOOK_DAY: Partial<StatisticsCalendarDay> = {
-  booksCount: 5,
-  booksPreview: [BOOKS.wizard, BOOKS.tombs, BOOKS.farthestShore],
-  remainingBooksCount: 2,
-};
-
 function moreBooks(count: number): string {
   return translateBooks("more", { count });
+}
+
+function posterFrame() {
+  return document.querySelector(POSTER.books);
+}
+
+function posterImages() {
+  return document.querySelectorAll("img");
+}
+
+function posterSlots(): HTMLElement[] {
+  return Array.from(document.querySelectorAll<HTMLElement>(POSTER.slot));
 }
 
 function renderCovers(overrides: Partial<StatisticsCalendarDay>) {
@@ -66,72 +68,104 @@ function renderCovers(overrides: Partial<StatisticsCalendarDay>) {
   );
 }
 
-describe("ReadingBooksMonthCellCovers", () => {
+function slotImageSources(slot: HTMLElement): string[] {
+  return Array.from(slot.querySelectorAll("img")).map((image) => image.getAttribute("src") ?? "");
+}
+
+describe("ReadingBooksMonthCellCovers poster layout", () => {
   it("renders nothing for a day without a book preview", () => {
-    const view = renderCovers({ booksCount: 2, remainingBooksCount: 2 });
+    const { container } = renderCovers({ booksCount: 0, booksPreview: [] });
 
-    expect(view.container).toBeEmptyDOMElement();
+    expect(container).toBeEmptyDOMElement();
   });
 
-  it("shows at most the first two covers of a longer preview", () => {
-    renderCovers(FIVE_BOOK_DAY);
+  it("fills a one-book day with a single cropped cover and no blurred backdrop", () => {
+    renderCovers({ booksCount: 1, booksPreview: [BOOKS.wizard] });
 
-    expect(screen.getAllByRole("img")).toHaveLength(2);
-    expect(screen.getByRole("img", { name: BOOKS.wizard.title })).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: BOOKS.tombs.title })).toBeInTheDocument();
-    expect(screen.queryByRole("img", { name: BOOKS.farthestShore.title })).not.toBeInTheDocument();
+    const slots = posterSlots();
+    expect(slots).toHaveLength(1);
+    const [slot] = slots;
+    if (slot === undefined) throw new Error("no poster slot");
+    expect(slotImageSources(slot)).toEqual([BOOKS.wizard.coverThumbUrl]);
+    expect(posterImages()[0]).toHaveClass("object-cover");
+    expect(posterFrame()).toHaveClass("grid-cols-1");
+    expect(screen.queryByText(OVERFLOW_CHIP)).not.toBeInTheDocument();
   });
 
-  it.each([
-    { booksPreview: [BOOKS.wizard], hiddenCounts: [], remainingBooksCount: 0, total: 1 },
-    {
+  it("splits a two-book day into two equal halves in the preview order", () => {
+    renderCovers({
+      booksCount: 2,
       booksPreview: [BOOKS.wizard, BOOKS.tombs],
-      hiddenCounts: [1],
-      remainingBooksCount: 0,
-      total: 2,
-    },
-    {
-      booksPreview: [BOOKS.wizard, BOOKS.tombs],
-      hiddenCounts: [1, 2],
-      remainingBooksCount: 1,
-      total: 3,
-    },
-    {
+    });
+
+    expect(posterSlots().map((slot) => slot.dataset.posterSlot)).toEqual([
+      BOOKS.wizard.bookId,
+      BOOKS.tombs.bookId,
+    ]);
+    expect(posterFrame()).toHaveClass("grid-cols-2");
+    expect(screen.queryByText(OVERFLOW_CHIP)).not.toBeInTheDocument();
+  });
+
+  it("gives the first of three books the tall left slot and adds no count when exactly three were read", () => {
+    renderCovers({
+      booksCount: 3,
       booksPreview: [BOOKS.wizard, BOOKS.tombs, BOOKS.farthestShore],
-      hiddenCounts: [3, 4],
+    });
+
+    const [lead, top, bottom] = posterSlots();
+    expect(lead?.dataset.posterSlot).toBe(BOOKS.wizard.bookId);
+    expect(lead).toHaveClass("row-span-2");
+    expect(top).not.toHaveClass("row-span-2");
+    expect(bottom).not.toHaveClass("row-span-2");
+    expect(posterFrame()).toHaveClass("grid-cols-[55fr_45fr]");
+    expect(screen.queryByText(OVERFLOW_CHIP)).not.toBeInTheDocument();
+  });
+
+  it("shows three previews and counts the other two books of a five-book day", () => {
+    renderCovers({
+      booksCount: 5,
+      booksPreview: [BOOKS.wizard, BOOKS.tombs, BOOKS.farthestShore],
       remainingBooksCount: 2,
-      total: 5,
-    },
-  ])(
-    "counts only the books still hidden at each width for a $total-book day",
-    ({ booksPreview, hiddenCounts, remainingBooksCount, total }) => {
-      renderCovers({ booksCount: total, booksPreview, remainingBooksCount });
+    });
 
-      const chips = screen.queryAllByText(OVERFLOW_CHIP).map((chip) => chip.textContent);
-      expect(chips.sort()).toEqual(hiddenCounts.map(moreBooks).sort());
-    },
-  );
-
-  it("shows the count beside one cover only at the one-cover width", () => {
-    renderCovers(FIVE_BOOK_DAY);
-
-    expect(screen.getByText(moreBooks(4))).toHaveClass(
-      WIDTH_CLASS.oneCover,
-      WIDTH_CLASS.twoCoversHidden,
-    );
+    expect(posterSlots()).toHaveLength(3);
+    expect(screen.getByText(moreBooks(2))).toBeInTheDocument();
   });
 
-  it("shows the count beside two covers only from the two-cover width", () => {
-    renderCovers(FIVE_BOOK_DAY);
+  it("counts every book beyond the drawn previews when the preview is shorter than expected", () => {
+    renderCovers({
+      booksCount: 4,
+      booksPreview: [BOOKS.wizard, BOOKS.tombs],
+      remainingBooksCount: 2,
+    });
 
-    const chip = screen.getByText(moreBooks(3));
-    expect(chip).toHaveClass(WIDTH_CLASS.twoCovers);
-    expect(chip).not.toHaveClass(WIDTH_CLASS.oneCover);
+    expect(posterSlots()).toHaveLength(2);
+    expect(screen.getByText(moreBooks(2))).toBeInTheDocument();
+  });
+});
+
+describe("ReadingBooksMonthCellCovers missing covers", () => {
+  it("draws a neutral poster without the title when the only book has no cover", () => {
+    renderCovers({
+      booksCount: 1,
+      booksPreview: [{ ...BOOKS.wizard, coverThumbUrl: null }],
+    });
+
+    expect(posterImages()).toHaveLength(0);
+    expect(posterSlots()).toHaveLength(1);
+    expect(screen.queryByText(BOOKS.wizard.title)).not.toBeInTheDocument();
   });
 
-  it("drops the one-cover count of a two-book day once both covers fit", () => {
-    renderCovers({ booksCount: 2, booksPreview: [BOOKS.wizard, BOOKS.tombs] });
+  it("falls back only in the slot whose book has no cover", () => {
+    renderCovers({
+      booksCount: 2,
+      booksPreview: [BOOKS.wizard, { ...BOOKS.tombs, coverThumbUrl: null }],
+    });
 
-    expect(screen.getByText(moreBooks(1))).toHaveClass(WIDTH_CLASS.twoCoversHidden);
+    const [withCover, withoutCover] = posterSlots();
+    if (withCover === undefined || withoutCover === undefined) throw new Error("missing slots");
+    expect(slotImageSources(withCover)).toEqual([BOOKS.wizard.coverThumbUrl]);
+    expect(slotImageSources(withoutCover)).toEqual([]);
+    expect(screen.queryByText(BOOKS.tombs.title)).not.toBeInTheDocument();
   });
 });

@@ -1,4 +1,9 @@
-import type { ReadingDayDetails, ReadingStatisticsCalendarPage } from "@app/shared";
+import type {
+  ReadingDayDetails,
+  ReadingStatisticsCalendarPage,
+  StatisticsCalendarDay,
+} from "@app/shared";
+import type { ReactNode } from "react";
 
 import { defaultUserProfileSettings } from "@app/shared";
 import { NuqsTestingAdapter, type UrlUpdateEvent } from "nuqs/adapters/testing";
@@ -14,6 +19,22 @@ import {
   statisticsIds,
 } from "../../model/statistics.fixtures";
 import { ReadingCalendarPage } from "./reading-calendar-page";
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({
+    children,
+    className,
+    href,
+  }: {
+    children: ReactNode;
+    className?: string;
+    href: string;
+  }) => (
+    <a className={className} href={href}>
+      {children}
+    </a>
+  ),
+}));
 
 const text = messages.statistics;
 
@@ -49,7 +70,14 @@ const JUMP_HIGHLIGHT_WAIT = { removalTimeoutMs: 3000, testTimeoutMs: 10_000 } as
 
 const READING_DAYS_PATH = "/api/statistics/reading-days/";
 
-const INTENSITY_METER = { fillWidth: /^w-\d+$/, trackClass: "bg-border" } as const;
+const QUARTER_LABELS = {
+  q1of2025: /^січень\s+–\s+березень 2025 р\.$/u,
+  q1of2026: /^січень\s+–\s+березень 2026 р\.$/u,
+  q2of2025: /^квітень\s+–\s+червень 2025 р\.$/u,
+  q4of2025: /^жовтень\s+–\s+грудень 2025 р\.$/u,
+} as const;
+
+const QUARTERS_FROM_DECEMBER_TO_FEBRUARY = 3;
 
 let calendarResponse: (year: number) => Response = (year) => jsonResponse(calendarPage(year));
 
@@ -113,20 +141,12 @@ function calendarRequestYears(): string[] {
 }
 
 function dayButtons(label: string) {
-  const [heatmap, booksCalendar] = screen.getAllByRole("button", { name: label });
-  return { booksCalendar, heatmap };
-}
-
-function intensityFillWidths(scope: HTMLElement) {
-  return within(scope)
-    .getAllByRole("generic", { hidden: true })
-    .filter((element) => element.classList.contains(INTENSITY_METER.trackClass))
-    .map((track) =>
-      within(track)
-        .getByRole("generic", { hidden: true })
-        .className.split(" ")
-        .find((token) => INTENSITY_METER.fillWidth.test(token)),
-    );
+  const booksRegion = screen.getByRole("region", { name: pageText.books.title });
+  const buttons = screen.getAllByRole("button", { name: label });
+  return {
+    booksCalendar: buttons.find((button) => booksRegion.contains(button)),
+    heatmap: buttons.find((button) => !booksRegion.contains(button)),
+  };
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -152,6 +172,10 @@ async function jumpToBooksCalendar(
 
 function lastUrlUpdate(onUrlUpdate: ReturnType<typeof renderCalendar>["onUrlUpdate"]) {
   return onUrlUpdate.mock.calls.at(-1)?.[0];
+}
+
+function quarterLabel(pattern: RegExp) {
+  return screen.getByText((content) => pattern.test(content));
 }
 
 function readingDay(date: string) {
@@ -210,6 +234,27 @@ function renderCalendar(searchParams = "", { resetUrlUpdateQueueOnMount = true }
     </NuqsTestingAdapter>,
   );
   return { onUrlUpdate };
+}
+
+async function stepQuarterBack(user: ReturnType<typeof userEvent.setup>, times: number) {
+  for (let step = 0; step < times; step += 1) {
+    await user.click(screen.getByRole("button", { name: pageText.activity.previousQuarter }));
+  }
+}
+
+function withMarchDay(year: number, day: Partial<StatisticsCalendarDay>): Response {
+  const page = calendarPage(year);
+  const date = `${year}-03-03`;
+  return jsonResponse({
+    ...page,
+    calendar: {
+      ...page.calendar,
+      days: [
+        ...page.calendar.days,
+        calendarDayFixture({ date, drilldown: { date, kind: "reading_day" }, ...day }),
+      ],
+    },
+  });
 }
 
 describe("ReadingCalendarPage", () => {
@@ -381,6 +426,9 @@ describe("ReadingCalendarPage jump from the heatmap to the books calendar", () =
     const user = userEvent.setup();
     const { onUrlUpdate } = renderCalendar("?year=2025");
     await screen.findByText(MONTH_LABELS.december2025);
+    await stepQuarterBack(user, QUARTERS_FROM_DECEMBER_TO_FEBRUARY);
+    expect(quarterLabel(QUARTER_LABELS.q1of2025)).toBeInTheDocument();
+    expect(onUrlUpdate).not.toHaveBeenCalled();
 
     await jumpToBooksCalendar(user, JUMP_DAYS.february10);
 
@@ -406,6 +454,7 @@ describe("ReadingCalendarPage jump from the heatmap to the books calendar", () =
       const user = userEvent.setup();
       renderCalendar("?year=2025");
       await screen.findByText(MONTH_LABELS.december2025);
+      await stepQuarterBack(user, QUARTERS_FROM_DECEMBER_TO_FEBRUARY);
 
       await jumpToBooksCalendar(user, JUMP_DAYS.february10);
       await waitFor(() =>
@@ -467,6 +516,7 @@ describe("ReadingCalendarPage jump from the heatmap to the books calendar", () =
     const user = userEvent.setup();
     renderCalendar("?year=2025");
     await screen.findByText(MONTH_LABELS.december2025);
+    await stepQuarterBack(user, QUARTERS_FROM_DECEMBER_TO_FEBRUARY);
 
     await jumpToBooksCalendar(user, JUMP_DAYS.february12);
 
@@ -480,6 +530,7 @@ describe("ReadingCalendarPage jump from the heatmap to the books calendar", () =
     const user = userEvent.setup();
     renderCalendar("?year=2025");
     await screen.findByText(MONTH_LABELS.december2025);
+    await stepQuarterBack(user, QUARTERS_FROM_DECEMBER_TO_FEBRUARY);
     await jumpToBooksCalendar(user, JUMP_DAYS.february10);
     await waitFor(() =>
       expect(dayButtons(JUMP_DAYS.february10.label).booksCalendar).toHaveAttribute(
@@ -505,6 +556,7 @@ describe("ReadingCalendarPage jump from the heatmap to the books calendar", () =
     const user = userEvent.setup();
     const { onUrlUpdate } = renderCalendar("?year=2025");
     await screen.findByText(text.calendar.books.emptyMonth);
+    await stepQuarterBack(user, QUARTERS_FROM_DECEMBER_TO_FEBRUARY);
 
     const drawer = await jumpToBooksCalendar(user, JUMP_DAYS.february10);
     await waitFor(() => expect(drawer).toHaveAttribute("data-state", "closed"));
@@ -604,27 +656,22 @@ describe("ReadingCalendarPage books month with two reading days", () => {
   });
 });
 
-describe("ReadingCalendarPage books month legend on desktop", () => {
+describe("ReadingCalendarPage books month history note on desktop", () => {
   beforeEach(() => {
     vi.stubGlobal("innerWidth", 1280);
   });
 
-  it("explains the pages-per-day bars and leaves out the unknown-history item in a fully recorded month", async () => {
+  it("leaves out the unknown-history note in a fully recorded month", async () => {
     renderCalendar("?year=2025&month=2025-02");
     await screen.findByText(MONTH_LABELS.february2025);
 
     const booksRegion = screen.getByRole("region", { name: pageText.books.title });
     expect(
-      within(booksRegion).getByText(text.calendar.books.pagesPerDayLegend),
-    ).toBeInTheDocument();
-    expect(within(booksRegion).getByText(text.calendar.heatmap.legendLess)).toBeInTheDocument();
-    expect(within(booksRegion).getByText(text.calendar.heatmap.legendMore)).toBeInTheDocument();
-    expect(
       within(booksRegion).queryByText(text.calendar.heatmap.unknownLegend),
     ).not.toBeInTheDocument();
   });
 
-  it("adds the unknown-history item to the legend in a month with unknown days", async () => {
+  it("explains the unknown days in a month that has them", async () => {
     calendarResponse = (year) => {
       const page = calendarPage(year);
       const unknownDate = `${year}-02-03`;
@@ -648,17 +695,135 @@ describe("ReadingCalendarPage books month legend on desktop", () => {
     await screen.findByText(MONTH_LABELS.february2025);
 
     const booksRegion = screen.getByRole("region", { name: pageText.books.title });
-    expect(
-      within(booksRegion).getByText(text.calendar.books.pagesPerDayLegend),
-    ).toBeInTheDocument();
     expect(within(booksRegion).getByText(text.calendar.heatmap.unknownLegend)).toBeInTheDocument();
   });
+});
 
-  it("draws the pages-per-day scale as four meters filled from w-1 to w-4 in order", async () => {
+describe("ReadingCalendarPage reading intensity quarter", () => {
+  beforeEach(() => {
+    vi.stubGlobal("innerWidth", 1280);
+  });
+
+  it("opens on the quarter of the books month", async () => {
+    renderCalendar("?year=2025");
+    await screen.findByText(MONTH_LABELS.december2025);
+
+    expect(quarterLabel(QUARTER_LABELS.q4of2025)).toBeInTheDocument();
+  });
+
+  it("steps the quarter alone, writing nothing to the URL and keeping the books month and day", async () => {
+    const user = userEvent.setup();
+    const { onUrlUpdate } = renderCalendar("?year=2025&month=2025-02&day=2025-02-10");
+    await screen.findByText(MONTH_LABELS.february2025);
+
+    await user.click(screen.getByRole("button", { name: pageText.activity.nextQuarter }));
+
+    expect(quarterLabel(QUARTER_LABELS.q2of2025)).toBeInTheDocument();
+    expect(screen.getByText(MONTH_LABELS.february2025)).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: SELECTABLE_DAYS.february10.title }),
+    ).toBeInTheDocument();
+    expect(onUrlUpdate).not.toHaveBeenCalled();
+  });
+
+  it("draws only the days of the shown quarter", async () => {
+    const user = userEvent.setup();
+    renderCalendar("?year=2025&month=2025-02");
+    await screen.findByText(MONTH_LABELS.february2025);
+
+    expect(dayButtons(JUMP_DAYS.february10.label).heatmap).toBeDefined();
+
+    await user.click(screen.getByRole("button", { name: pageText.activity.nextQuarter }));
+
+    expect(dayButtons(JUMP_DAYS.february10.label).heatmap).toBeUndefined();
+  });
+
+  it("goes back to the quarter of the books month once the month changes", async () => {
+    const user = userEvent.setup();
+    renderCalendar("?year=2025&month=2025-02");
+    await screen.findByText(MONTH_LABELS.february2025);
+    await user.click(screen.getByRole("button", { name: pageText.activity.nextQuarter }));
+    expect(quarterLabel(QUARTER_LABELS.q2of2025)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: text.calendar.books.previousMonth }));
+
+    await screen.findByText(MONTH_LABELS.january2025);
+    expect(quarterLabel(QUARTER_LABELS.q1of2025)).toBeInTheDocument();
+  });
+
+  it("offers no step past the first quarter or into the future of the current year", async () => {
+    const user = userEvent.setup();
+    const { onUrlUpdate } = renderCalendar();
+    await screen.findByText(MONTH_LABELS.march2026);
+
+    const previous = screen.getByRole("button", { name: pageText.activity.previousQuarter });
+    const next = screen.getByRole("button", { name: pageText.activity.nextQuarter });
+    expect(quarterLabel(QUARTER_LABELS.q1of2026)).toBeInTheDocument();
+    expect(previous).toHaveAttribute("aria-disabled", "true");
+    expect(next).toHaveAttribute("aria-disabled", "true");
+
+    await user.click(next);
+
+    expect(quarterLabel(QUARTER_LABELS.q1of2026)).toBeInTheDocument();
+    expect(onUrlUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe("ReadingCalendarPage page controls", () => {
+  it("offers no way to clear the year", async () => {
+    renderCalendar("?year=2025");
+    await screen.findByText(MONTH_LABELS.december2025);
+
+    expect(screen.getByRole("button", { name: text.period.yearLabel })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: text.period.yearClear })).not.toBeInTheDocument();
+  });
+
+  it("links the book read on the selected day to its page", async () => {
+    vi.stubGlobal("innerWidth", 1280);
+    renderCalendar("?year=2025&month=2025-02");
+    await screen.findByText(MONTH_LABELS.february2025);
+
+    const panel = screen.getByRole("region", { name: SELECTABLE_DAYS.february10.title });
+    expect(await within(panel).findByRole("link", { name: /Чарівник Земномор'я/ })).toHaveAttribute(
+      "href",
+      `/books/${statisticsIds.bookId}`,
+    );
+  });
+
+  it("shows a dash with its explanation for each month figure nothing confirms", async () => {
+    vi.stubGlobal("innerWidth", 375);
+    calendarResponse = (year) => withMarchDay(year, { historyQuality: "legacy_observed_only" });
     renderCalendar("?year=2025&month=2025-03");
     await screen.findByText(MONTH_LABELS.march2025);
 
-    const booksRegion = screen.getByRole("region", { name: pageText.books.title });
-    expect(intensityFillWidths(booksRegion)).toEqual(["w-1", "w-2", "w-3", "w-4"]);
+    const definitions = screen.getAllByRole("definition");
+    expect(definitions).toHaveLength(3);
+    expect(definitions.map((definition) => definition.textContent)).toEqual(
+      Array.from({ length: 3 }, () => `—${text.calendar.books.unconfirmedValueHint}`),
+    );
+  });
+
+  it("shows a plain zero for each figure of a reliably empty month", async () => {
+    vi.stubGlobal("innerWidth", 375);
+    calendarResponse = (year) => withMarchDay(year, { historyQuality: "exact" });
+    renderCalendar("?year=2025&month=2025-03");
+    await screen.findByText(MONTH_LABELS.march2025);
+
+    expect(screen.getAllByRole("definition").map((definition) => definition.textContent)).toEqual([
+      "0",
+      "0",
+      "0",
+    ]);
+  });
+
+  it("requests no day details on a phone, where the diary replaces the day panel", async () => {
+    vi.stubGlobal("innerWidth", 375);
+    renderCalendar("?year=2025&month=2025-02");
+
+    await waitFor(() =>
+      expect(dayButtons(SELECTABLE_DAYS.february10.label).booksCalendar).toBeDefined(),
+    );
+    expect(screen.queryByRole("region", { name: SELECTABLE_DAYS.february10.title })).toBeNull();
+    expect(readingDayRequestDates()).toEqual([]);
   });
 });
