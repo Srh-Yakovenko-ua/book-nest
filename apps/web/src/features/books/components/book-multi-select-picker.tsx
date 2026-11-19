@@ -56,6 +56,7 @@ export function BookMultiSelectPicker({
   const results = (query.data?.pages ?? []).flatMap((page) => page.items);
   const selectableResults = results.filter((book) => !selectedIds.has(book.id));
   const searched = debouncedSearch.trim().length > 0;
+  const isAwaitingResults = query.isPending || (query.isPlaceholderData && results.length === 0);
 
   function toggle(book: BookView) {
     onSelectedChange(
@@ -100,7 +101,7 @@ export function BookMultiSelectPicker({
         <ScrollArea className={cn("h-72", BOOK_PICKER_SCROLL_AREA)}>
           <BookPickerResults
             emptyLabel={renderEmpty === undefined ? labels.empty : renderEmpty(searched)}
-            isPending={query.isPending}
+            isPending={isAwaitingResults}
             loadingLabel={tCommon("loading")}
             onToggle={toggle}
             readingLabel={(status) => tStatus(status)}
