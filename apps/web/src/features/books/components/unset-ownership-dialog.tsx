@@ -62,11 +62,11 @@ function UnsetOwnershipForm({ onDone }: { onDone: () => void }) {
   const debouncedSearch = useDebouncedValue(search, UNSET_OWNERSHIP.searchDebounceMs);
 
   const setOwnership = useBulkOwnershipStatus();
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isPending } = useLibraryBooks(
-    unsetOwnershipParams(debouncedSearch),
-  );
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isPending, isPlaceholderData } =
+    useLibraryBooks(unsetOwnershipParams(debouncedSearch));
 
   const results = (data?.pages ?? []).flatMap((page) => page.items);
+  const isAwaitingResults = isPending || (isPlaceholderData && results.length === 0);
   const selectedIds = new Set(selected.map((book) => book.id));
 
   const statusOptions = UNSET_OWNERSHIP.bulkStatuses.flatMap((value) => {
@@ -147,7 +147,7 @@ function UnsetOwnershipForm({ onDone }: { onDone: () => void }) {
         <ScrollArea className={cn("h-72", BOOK_PICKER_SCROLL_AREA)}>
           <BookPickerResults
             emptyLabel={t("empty")}
-            isPending={isPending}
+            isPending={isAwaitingResults}
             loadingLabel={tCommon("loading")}
             onToggle={toggle}
             readingLabel={(readingStatus) => tReading(readingStatus)}
