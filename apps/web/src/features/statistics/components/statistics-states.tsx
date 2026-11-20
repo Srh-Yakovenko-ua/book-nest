@@ -103,6 +103,29 @@ export function StatisticsPeriodEmpty({ onShowAllTime }: { onShowAllTime: () => 
   return <EmptyState onPrimary={onShowAllTime} state={entry} />;
 }
 
+export function StatisticsProgressSkeleton() {
+  const t = useTranslations("statistics.states");
+
+  return (
+    <div
+      aria-busy
+      aria-label={t("loading")}
+      className="@container flex flex-col gap-4"
+      data-testid="statistics-skeleton-progress"
+      role="status"
+    >
+      <div className="grid grid-cols-1 gap-4 @3xl:grid-cols-2">
+        <Skeleton className="h-68 w-full rounded-xl" />
+        <Skeleton className="h-68 w-full rounded-xl" />
+      </div>
+      <div className="grid grid-cols-1 gap-4 @3xl:grid-cols-2">
+        <Skeleton className="h-104 w-full rounded-xl" />
+        <Skeleton className="h-104 w-full rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
 export function StatisticsRefreshingNote({
   reason = "refetch",
 }: {

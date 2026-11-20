@@ -26,6 +26,12 @@ const goalText = messages.statistics.goal;
 
 const translateGoal = createTranslator({ locale: "uk", messages, namespace: "statistics.goal" });
 
+const translateHint = createTranslator({
+  locale: "uk",
+  messages,
+  namespace: "statistics.progressHint",
+});
+
 const VARIANTS = ["compact", "full"] as const;
 
 const LONG_NAME =
@@ -149,17 +155,26 @@ describe("ReadingGoalCard", () => {
       );
 
       expect(screen.getByText(formatDateLong("2026-12-20", "uk"))).toHaveTextContent(/2026/);
+      expect(screen.queryByText(goalText.forecastNoData)).not.toBeInTheDocument();
       expect(screen.queryByText(goalText.forecastUnavailable)).not.toBeInTheDocument();
     },
   );
 
   it.each(UNRELIABLE_FORECASTS)(
     "withholds the forecast date at $projectionConfidence confidence with date $projectedCompletionDate",
-    (metrics) => {
+    async (metrics) => {
       renderWithProviders(<ReadingGoalCard goal={goalWith({ metrics })} variant="full" />);
 
-      expect(screen.getByText(goalText.forecastUnavailable)).toBeInTheDocument();
+      expect(screen.getByText(goalText.forecastNoData)).toBeInTheDocument();
       expect(screen.queryByText(formatDateLong("2026-12-20", "uk"))).not.toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole("button", {
+          name: translateHint("label", { topic: goalText.forecast }),
+        }),
+      );
+
+      expect(await screen.findByText(goalText.forecastUnavailable)).toBeInTheDocument();
     },
   );
 
@@ -201,12 +216,59 @@ describe("ReadingGoalCard", () => {
     ).toBeInTheDocument();
   });
 
+  it.each(VARIANTS)("shows a goal with no books read yet at 0%% in the %s card", (variant) => {
+    renderWithProviders(
+      <ReadingGoalCard
+        goal={goalWith({
+          metrics: { completedCount: 0, progressPercent: 0, remainingCount: 5 },
+          primary: { targetCount: 5 },
+        })}
+        variant={variant}
+      />,
+    );
+
+    expect(screen.getByText("0%")).toBeInTheDocument();
+    expect(
+      screen.getByRole("progressbar", { name: translateGoal("progressLabel", { percent: 0 }) }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(goalText.empty)).not.toBeInTheDocument();
+  });
+
+  it("headlines the books read out of the target in the full card", () => {
+    renderWithProviders(
+      <ReadingGoalCard
+        goal={goalWith({
+          metrics: { completedCount: 0, progressPercent: 0, remainingCount: 5 },
+          primary: { targetCount: 5 },
+        })}
+        variant="full"
+      />,
+    );
+
+    expect(
+      screen.getByText((_, element) => element?.textContent === "0 із 5 книг"),
+    ).toBeInTheDocument();
+  });
+
   it.each(VARIANTS)("offers to create a goal when there is none in the %s card", (variant) => {
     renderWithProviders(
       <ReadingGoalCard goal={{ activeGoalsCount: 0, primaryGoal: null }} variant={variant} />,
     );
 
     expect(screen.getByRole("link", { name: goalText.create })).toHaveAttribute("href", "/goals");
+  });
+
+  it.each(VARIANTS)("shows no zero progress for a missing goal in the %s card", (variant) => {
+    renderWithProviders(
+      <ReadingGoalCard goal={{ activeGoalsCount: 0, primaryGoal: null }} variant={variant} />,
+    );
+
+    expect(screen.getByText(goalText.empty)).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    expect(screen.queryByText("0%")).not.toBeInTheDocument();
+    expect(
+      screen.queryAllByText((_, element) => element?.textContent?.includes("0 із 0") ?? false),
+    ).toHaveLength(0);
   });
 
   it.each(VARIANTS)("links the other active goals to the goals page in the %s card", (variant) => {
@@ -218,6 +280,17 @@ describe("ReadingGoalCard", () => {
       screen.getByRole("link", { name: translateGoal("otherGoals", { count: 2 }) }),
     ).toHaveAttribute("href", "/goals");
   });
+
+  it.each(VARIANTS)(
+    "links no other goals when the shown goal is the only active one in the %s card",
+    (variant) => {
+      renderWithProviders(
+        <ReadingGoalCard goal={goalWith({ activeGoalsCount: 1 })} variant={variant} />,
+      );
+
+      expect(screen.getByRole("link")).toHaveAttribute("href", `/goals/${statisticsIds.goalId}`);
+    },
+  );
 
   it.each(VARIANTS)("opens the shown goal from the %s card", (variant) => {
     renderWithProviders(<ReadingGoalCard goal={goalWith()} variant={variant} />);
