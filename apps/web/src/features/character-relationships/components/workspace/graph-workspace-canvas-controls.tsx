@@ -16,28 +16,31 @@ import {
 } from "lucide-react";
 import { useReducedMotion } from "motion/react";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef } from "react";
+import { use, useEffect, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 import type { RelationshipGraphPoint } from "../../model/relationship-graph-layout";
 import type { GraphSceneFlowEdge, GraphSceneFlowNode } from "./graph-scene-context";
+import type { GraphPersonControlsPosition } from "./use-graph-person-camera";
+
+import { GraphPersonSceneContext } from "./graph-person-scene-context";
+import { GRAPH_PERSON_CONTROLS_COVER, useGraphPersonCamera } from "./use-graph-person-camera";
 
 const CANVAS_CONTROLS = {
   durationMs: 250,
   fitMaxZoom: 1,
   fitPadding: 0.2,
   personButton: "relative after:absolute after:-inset-1 after:rounded-lg",
-  personFitPadding: 0.06,
   personPanel: {
     horizontal:
-      "flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-border bg-card/90 p-1 shadow-soft backdrop-blur-sm",
+      "flex items-center justify-center gap-0.5 rounded-2xl border border-border bg-card/90 p-1 shadow-soft backdrop-blur-sm",
     vertical:
       "flex flex-col items-center gap-1 rounded-2xl border border-border bg-card/90 p-1 shadow-soft backdrop-blur-sm",
   },
   personSeparator: {
-    horizontal: "mx-0.5 h-6 w-px bg-border",
+    horizontal: "h-6 w-px bg-border",
     vertical: "my-0.5 h-px w-6 bg-border",
   },
   reducedDurationMs: 0,
@@ -47,7 +50,7 @@ export type GraphWorkspaceCanvasControlsProps = {
   immersive: boolean;
   layout: Nullable<GraphWorkspaceCanvasLayout>;
   onToggleImmersive: () => void;
-  position: "bottom-center" | "top-left" | "top-right";
+  position: GraphPersonControlsPosition;
   rootId: Nullable<string>;
   sceneKey: string;
   viewport: Nullable<CharacterGraphViewport>;
@@ -78,8 +81,9 @@ export function GraphWorkspaceCanvasControls({
   const initialized = useNodesInitialized();
   const prefersReducedMotion = useReducedMotion();
   const fittedScene = useRef<Nullable<string>>(null);
-  const fitPadding =
-    rootId === null ? CANVAS_CONTROLS.fitPadding : CANVAS_CONTROLS.personFitPadding;
+  const camera = useGraphPersonCamera();
+  const personScene = use(GraphPersonSceneContext);
+  const personCover = personScene?.cover ?? GRAPH_PERSON_CONTROLS_COVER[position];
   const duration = prefersReducedMotion
     ? CANVAS_CONTROLS.reducedDurationMs
     : CANVAS_CONTROLS.durationMs;
@@ -87,22 +91,30 @@ export function GraphWorkspaceCanvasControls({
   useEffect(() => {
     if (!initialized || fittedScene.current === sceneKey) return;
     fittedScene.current = sceneKey;
-    if (viewport === null) {
-      void flow.fitView({ maxZoom: CANVAS_CONTROLS.fitMaxZoom, padding: fitPadding });
-    } else {
+    if (viewport !== null) {
       void flow.setViewport(viewport);
+      return;
     }
-  }, [fitPadding, flow, initialized, sceneKey, viewport]);
+    if (rootId === null) {
+      void flow.fitView({
+        maxZoom: CANVAS_CONTROLS.fitMaxZoom,
+        padding: CANVAS_CONTROLS.fitPadding,
+      });
+      return;
+    }
+    camera.initialize(personCover);
+  }, [camera, flow, initialized, personCover, rootId, sceneKey, viewport]);
 
   function fitAll() {
-    void flow.fitView({ duration, maxZoom: CANVAS_CONTROLS.fitMaxZoom, padding: fitPadding });
+    camera.fitAll({ cover: personCover, duration });
   }
 
   function centerRoot() {
-    const root = rootId === null ? undefined : flow.getNode(rootId);
-    if (root === undefined) return;
-    void flow.setCenter(root.position.x, root.position.y, {
+    if (rootId === null) return;
+    camera.center({
+      cover: personCover,
       duration,
+      id: rootId,
       zoom: Math.max(flow.getZoom(), CANVAS_CONTROLS.fitMaxZoom),
     });
   }

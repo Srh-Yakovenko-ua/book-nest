@@ -5,9 +5,10 @@ import type { LucideIcon } from "lucide-react";
 
 import { ChevronRight, Crown, Route, UserRound, Users, Waypoints } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useId } from "react";
+import { useId, useState } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { TruncatedText } from "@/components/truncated-text";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,10 @@ import type {
 import { GraphPersonRelationChip } from "./graph-person-relation-chip";
 import { useGraphPairLabel } from "./use-graph-pair-label";
 
+const PERSON_DETAILS = {
+  nearestPreview: 3,
+} as const;
+
 export type GraphPersonNearestItem = {
   connectionId: string;
   other: CharacterGraphNodeView;
@@ -34,14 +39,12 @@ type GraphPersonCharacterDetailsProps = {
   branch: Nullable<{ expanded: boolean; onToggle: () => void }>;
   isPartial: boolean;
   isRoot: boolean;
-  mapCharacters: Nullable<number>;
-  mapPairs: number;
+  mapCharacters: number;
   nearest: readonly GraphPersonNearestItem[];
   node: CharacterGraphNodeView;
   onFindPath: () => void;
   onMakeCenter: Nullable<() => void>;
   onOpenConnection: (connectionId: string) => void;
-  onShowAllConnections: Nullable<() => void>;
   reach: GraphCharacterReach;
 };
 
@@ -51,27 +54,29 @@ export function GraphPersonCharacterDetails({
   isPartial,
   isRoot,
   mapCharacters,
-  mapPairs,
   nearest,
   node,
   onFindPath,
   onMakeCenter,
   onOpenConnection,
-  onShowAllConnections,
   reach,
 }: GraphPersonCharacterDetailsProps) {
   const t = useTranslations("relationships.workspace.panel.character");
   const tPerson = useTranslations("relationships.workspace.panel.person");
-  const nearestId = useId();
   const tImportance = useTranslations("characters.importance");
+  const nearestId = useId();
+  const listId = useId();
+  const [showAll, setShowAll] = useState(false);
   const toLabel = useGraphPairLabel();
+  const visible = showAll ? nearest : nearest.slice(0, PERSON_DETAILS.nearestPreview);
+  const canExpand = nearest.length > PERSON_DETAILS.nearestPreview;
 
   return (
     <>
-      <div className="flex items-center gap-3 pr-8">
+      <div className="flex items-center gap-3">
         <Avatar
           className={cn(
-            "size-20 border-2 border-card",
+            "size-16 shrink-0 border-2 border-card sm:size-18",
             isRoot ? "ring-2 ring-primary ring-offset-2 ring-offset-card" : "ring-1 ring-border",
           )}
         >
@@ -83,18 +88,24 @@ export function GraphPersonCharacterDetails({
           </AvatarFallback>
         </Avatar>
         <div className="flex min-w-0 flex-col gap-1.5">
-          <p className="font-heading text-xl leading-tight font-semibold break-words text-ink">
-            {node.displayName}
-          </p>
+          <h3 className="flex min-w-0">
+            <TruncatedText
+              className="font-heading text-xl leading-tight font-semibold break-words text-ink"
+              lines={2}
+              text={node.displayName}
+            />
+          </h3>
           <div className="flex flex-wrap gap-1">
             {isRoot ? (
               <Badge variant="primary">
                 <Crown aria-hidden className="size-3" />
-                {t("root")}
+                {tPerson("root")}
               </Badge>
             ) : null}
-            {node.importance === null ? null : (
-              <Badge variant="outline">{tImportance(node.importance)}</Badge>
+            {node.importance === null || node.importance === "not_specified" ? null : (
+              <Badge variant="outline">
+                {tPerson("importance", { label: tImportance(node.importance) })}
+              </Badge>
             )}
             {node.isFavorite ? (
               <Badge variant="outline">
@@ -106,12 +117,7 @@ export function GraphPersonCharacterDetails({
         </div>
       </div>
       <section aria-label={tPerson("stats.label")} className="flex flex-col gap-1.5">
-        <dl
-          className={cn(
-            "grid divide-x divide-border rounded-xl border border-border bg-muted/40 py-2",
-            mapCharacters === null ? "grid-cols-2" : "grid-cols-3",
-          )}
-        >
+        <dl className="grid grid-cols-3 divide-x divide-border rounded-xl border border-border bg-muted/40 py-2">
           <StatTile
             count={reach.neighbors}
             icon={Users}
@@ -122,13 +128,11 @@ export function GraphPersonCharacterDetails({
             icon={Waypoints}
             label={tPerson("stats.relationships", { count: reach.relationships })}
           />
-          {mapCharacters === null ? null : (
-            <StatTile
-              count={mapCharacters}
-              icon={UserRound}
-              label={tPerson("stats.characters", { count: mapCharacters })}
-            />
-          )}
+          <StatTile
+            count={mapCharacters}
+            icon={UserRound}
+            label={tPerson("stats.characters", { count: mapCharacters })}
+          />
         </dl>
         <p className="text-xs text-muted-foreground">
           {tPerson(isPartial ? "stats.partial" : "stats.caption")}
@@ -138,11 +142,16 @@ export function GraphPersonCharacterDetails({
         {onMakeCenter === null ? null : (
           <Button className="w-full" onClick={onMakeCenter} type="button">
             <Crown aria-hidden />
-            {t("makeCenter")}
+            {tPerson("makeCenter")}
           </Button>
         )}
         <div className="grid grid-cols-2 gap-2">
-          <Button className="w-full" onClick={onFindPath} type="button" variant="outline">
+          <Button
+            className="w-full"
+            onClick={onFindPath}
+            type="button"
+            variant={onMakeCenter === null ? "default" : "outline"}
+          >
             <Route aria-hidden />
             {tPerson("findPath")}
           </Button>
@@ -165,25 +174,31 @@ export function GraphPersonCharacterDetails({
           <h3 className="font-heading text-base font-semibold text-ink" id={nearestId}>
             {tPerson("nearest")}
           </h3>
-          {onShowAllConnections !== null && mapPairs > nearest.length ? (
-            <Button onClick={onShowAllConnections} size="sm" type="button" variant="link">
-              {tPerson("nearestAll", { count: mapPairs })}
-              <ChevronRight aria-hidden />
+          {canExpand ? (
+            <Button
+              aria-controls={listId}
+              aria-expanded={showAll}
+              onClick={() => setShowAll((current) => !current)}
+              size="sm"
+              type="button"
+              variant="link"
+            >
+              {showAll ? tPerson("nearestLess") : tPerson("nearestAll", { count: nearest.length })}
             </Button>
           ) : null}
         </div>
         {nearest.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("noConnections")}</p>
         ) : (
-          <ul className="flex flex-col gap-1.5">
-            {nearest.map((item) => (
+          <ul className="flex flex-col gap-1.5" id={listId}>
+            {visible.map((item) => (
               <li key={item.connectionId}>
                 <button
                   aria-label={tPerson("openPair", {
                     label: toLabel(item.semantics),
                     name: item.other.displayName,
                   })}
-                  className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl border border-border bg-card px-2.5 py-2 text-left transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none"
+                  className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl border border-border bg-card px-2.5 py-1.5 text-left transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none"
                   onClick={() => onOpenConnection(item.connectionId)}
                   type="button"
                 >

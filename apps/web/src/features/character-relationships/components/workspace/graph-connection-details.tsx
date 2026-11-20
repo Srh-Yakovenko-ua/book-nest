@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 
 import type { RelationshipActions } from "../../model/relationship-adapter";
 import type { RelationshipScope } from "../../model/relationship-scope";
+import type { RelationshipDetailsLayout } from "../relationship-details-content";
 
 import { RelationshipDetailsContent } from "../relationship-details-content";
 import { useGraphEdgeLabel } from "./use-graph-edge-label";
@@ -19,6 +20,7 @@ type GraphConnectionDetailsProps = {
   actions: RelationshipActions;
   contentKey: string;
   edges: readonly CharacterGraphEdgeView[];
+  layout?: RelationshipDetailsLayout;
   names: { source: string; target: string };
   renderEdge?: (edge: CharacterGraphEdgeView, index: number) => ReactNode;
   scope: RelationshipScope;
@@ -28,6 +30,7 @@ export function GraphConnectionDetails({
   actions,
   contentKey,
   edges,
+  layout = "dialog",
   names,
   renderEdge,
   scope,
@@ -51,6 +54,8 @@ export function GraphConnectionDetails({
   const activeEdgeId = edges.length === 1 && single !== undefined ? single.id : selectedEdgeId;
 
   if (activeEdgeId !== null) {
+    const activeIndex = edges.findIndex((edge) => edge.id === activeEdgeId);
+    const activeEdge = edges[activeIndex];
     return (
       <>
         {edges.length > 1 ? (
@@ -66,9 +71,15 @@ export function GraphConnectionDetails({
             {t("back")}
           </Button>
         ) : null}
+        {edges.length > 1 && renderEdge !== undefined && activeEdge !== undefined ? (
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2 text-sm font-medium">
+            {renderEdge(activeEdge, activeIndex)}
+          </div>
+        ) : null}
         <RelationshipDetailsContent
           actions={actions}
           key={`${contentKey}:${activeEdgeId}`}
+          layout={layout}
           relationshipId={activeEdgeId}
           scope={scope}
         />

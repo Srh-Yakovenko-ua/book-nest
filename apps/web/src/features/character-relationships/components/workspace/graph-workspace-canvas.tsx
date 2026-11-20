@@ -38,6 +38,7 @@ import { GraphPersonEdge } from "./graph-person-edge";
 import { GraphPersonNode } from "./graph-person-node";
 import { GraphPersonRings } from "./graph-person-rings";
 import { GraphPersonSceneContext } from "./graph-person-scene-context";
+import { GraphPersonSelectionReveal } from "./graph-person-selection-reveal";
 import { GRAPH_SCENE_FLOW, GraphSceneContext } from "./graph-scene-context";
 import { GraphWorkspaceCanvasControls } from "./graph-workspace-canvas-controls";
 
@@ -198,7 +199,12 @@ export function GraphWorkspaceCanvas({
           style={WORKSPACE_CANVAS.style}
           zoomOnScroll={!isPerson}
         >
-          {isPerson ? <GraphPersonRings /> : null}
+          {person === null ? null : (
+            <>
+              <GraphPersonRings />
+              <GraphPersonSelectionReveal cover={person.cover} />
+            </>
+          )}
           <GraphWorkspaceCanvasControls {...controls} sceneKey={sceneKey} viewport={viewport} />
         </ReactFlow>
       </GraphPersonSceneContext>

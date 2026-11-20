@@ -91,7 +91,12 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
   const reader = toGraphReaderKey(book);
   const sceneRequest = toGraphWorkspaceSceneRequest(params);
   const scene = useGraphWorkspaceScene({ bookId, reader, request: sceneRequest });
-  const { element: container, ref: containerRef, widthClass } = useWorkspaceWidthClass();
+  const {
+    element: container,
+    personWidthClass,
+    ref: containerRef,
+    widthClass,
+  } = useWorkspaceWidthClass();
   const [immersive, setImmersive] = useState(false);
   const [treeOptions, setTreeOptions] = useState<TreeOptions>(TREE_SCENE.defaultOptions);
   const lastTrigger = useRef<Nullable<HTMLElement>>(null);
@@ -127,6 +132,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
   const [local, setLocal] = useState<WorkspaceLocalState>(() => createLocalState(identityKey));
   if (local.identityKey !== identityKey) setLocal(createLocalState(identityKey));
   const isPersonScene = params.view === "person" && !params.path;
+  const sceneWidthClass = isPersonScene ? personWidthClass : widthClass;
   const [personPanel, setPersonPanel] = useState<PersonPanelIntent>(() => ({
     intent: "auto",
     rootId: params.characterId,
@@ -135,7 +141,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
     setPersonPanel({ intent: "auto", rootId: params.characterId });
   }
   const isPersonPanelOpen =
-    personPanel.intent === "open" || (personPanel.intent === "auto" && widthClass === "wide");
+    personPanel.intent === "open" || (personPanel.intent === "auto" && sceneWidthClass === "wide");
 
   const presentation =
     scene.data === undefined || params.path
@@ -466,7 +472,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
               sceneValue={sceneValue}
               selection={selection}
               statusId={statusId}
-              widthClass={widthClass}
+              widthClass={sceneWidthClass}
             />
           )}
         </>

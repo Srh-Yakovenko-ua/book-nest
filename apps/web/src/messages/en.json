@@ -10505,7 +10505,7 @@
         "breadcrumb": "Breadcrumb",
         "characters": "Characters",
         "title": "Relationship map",
-        "personLead": "Explore a character’s closest circle: family, allies, rivals and other connections available at your point in the book."
+        "personLead": "A character’s closest circle: family, allies, rivals and other connections at your point in the book."
       },
       "views": {
         "label": "Map mode",
@@ -10706,17 +10706,25 @@
           },
           "findPath": "Find a path",
           "nearest": "Closest connections",
-          "nearestAll": "All on the map ({count})",
+          "nearestAll": "All ({count})",
           "openPair": "Open the connection with {name}: {label}",
           "profile": "Profile",
           "stats": {
             "caption": "Counted from the current map.",
             "characters": "{count, plural, one {character on the map} other {characters on the map}}",
             "label": "Counts on the map",
-            "neighbors": "{count, plural, one {neighbor} other {neighbors}}",
+            "neighbors": "{count, plural, one {direct neighbor} other {direct neighbors}}",
             "partial": "The map shows only part of the connections, so the counts cover only what is shown.",
-            "relationships": "{count, plural, one {connection} other {connections}}"
-          }
+            "relationships": "{count, plural, one {direct connection} other {direct connections}}"
+          },
+          "heading": {
+            "character": "Character",
+            "connection": "Relationship details"
+          },
+          "root": "Map center",
+          "importance": "Importance: {label}",
+          "makeCenter": "Make central",
+          "nearestLess": "Show fewer"
         }
       },
       "path": {
@@ -10752,7 +10760,9 @@
         "filteredOut": "(filtered out)",
         "masked": "Hidden",
         "mixed": "Mixed types",
-        "title": "Connection legend"
+        "title": "Connection legend",
+        "expand": "Show all",
+        "collapse": "Show less"
       },
       "pair": {
         "count": "{count, plural, one {# connection} other {# connections}}",
@@ -10765,13 +10775,14 @@
         "open": "Open the connection {names}: {label}",
         "pair": "{first} — {second}",
         "search": "Search shown connections",
-        "showAll": "Show all ({count})",
         "showLess": "Show fewer",
-        "title": "Connections on the map"
+        "title": "Connections on the map",
+        "showMore": "Show {count} more"
       },
       "rings": {
         "hop": "{hop, plural, one {# step} other {# steps}}"
-      }
+      },
+      "pathEntryShort": "Find a link"
     }
   }
 }

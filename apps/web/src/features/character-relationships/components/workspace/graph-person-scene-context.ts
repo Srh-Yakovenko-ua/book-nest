@@ -9,8 +9,10 @@ import type {
   GraphPersonFocus,
 } from "../../model/workspace/graph-person-emphasis";
 import type { GraphPairSemantics } from "../../model/workspace/graph-person-semantics";
+import type { GraphPersonCover } from "./use-graph-person-camera";
 
 export type GraphPersonCanvasScene = {
+  cover: GraphPersonCover;
   labelPairIds: ReadonlySet<string>;
   rootId: string;
   semantics: ReadonlyMap<string, GraphPairSemantics>;

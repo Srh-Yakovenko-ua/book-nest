@@ -2,10 +2,11 @@
 
 import type { CharacterGraphEdgeView, Nullable } from "@app/shared";
 
-import { useReducedMotion } from "motion/react";
 import { useTranslations } from "next-intl";
 import { useId } from "react";
 
+import { UiIcon } from "@/components/icons";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import type { RelationshipActions } from "../../model/relationship-adapter";
@@ -20,6 +21,7 @@ import type { GraphWorkspaceLayoutRestore } from "../../model/workspace/graph-wo
 import type { GraphWorkspaceState } from "../../model/workspace/use-graph-workspace-state";
 import type { GraphSceneSelection, GraphSceneValue } from "./graph-scene-context";
 import type { GraphWorkspaceCanvasLayout } from "./graph-workspace-canvas-controls";
+import type { GraphPersonControlsPosition } from "./use-graph-person-camera";
 import type { WorkspaceWidthClass } from "./use-workspace-width-class";
 
 import {
@@ -38,9 +40,19 @@ import { GraphPersonLegend } from "./graph-person-legend";
 import { GraphPersonPairHeader } from "./graph-person-pair-header";
 import { GraphSceneNotices } from "./graph-scene-notices";
 import { GraphWorkspaceCanvasLazy } from "./graph-workspace-canvas-lazy";
+import { GRAPH_PERSON_CONTROLS_COVER } from "./use-graph-person-camera";
 
 const PERSON_SCENE = {
-  nearestLimit: 5,
+  canvas: {
+    compact: "graph-person-canvas-compact",
+    immersive: "graph-person-canvas-immersive",
+    regular: "graph-person-canvas",
+  },
+  more: {
+    compact: "top-3 left-3",
+    regular: "bottom-3 left-3",
+  },
+  overlayCover: 392,
   partialNotices: ["overBudget", "truncated"],
 } as const;
 
@@ -99,8 +111,8 @@ export function GraphPersonScene(props: GraphPersonSceneProps) {
     selection,
     widthClass,
   } = props;
+  const t = useTranslations("relationships.workspace");
   const listId = useId();
-  const prefersReducedMotion = useReducedMotion();
   const semantics = toGraphPairSemanticsById({
     connections: presentation.connections,
     edges: presentation.edges,
@@ -108,19 +120,16 @@ export function GraphPersonScene(props: GraphPersonSceneProps) {
   const nameOf = (id: string) => presentation.characters.get(id)?.node.displayName ?? "";
   const entries = toGraphPairEntries({ connections: presentation.connections, nameOf, rootId });
   const target = toPanelTarget({ isOpen: personPanel.isOpen, rootId, selection });
-
-  function showAllConnections() {
-    const list = document.getElementById(listId);
-    list?.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth", block: "start" });
-    list?.querySelector("input")?.focus({ preventScroll: true });
-  }
+  const isCompact = widthClass === "compact";
+  const controlsPosition = toControlsPosition({ hasPanel: target !== null, widthClass });
+  const isOverlayOpen = widthClass === "medium" && target !== null;
+  const morePlacement = PERSON_SCENE.more[isCompact ? "compact" : "regular"];
 
   const panel = (
     <PersonPanel
       {...props}
       entries={entries}
       nameOf={nameOf}
-      onShowAllConnections={widthClass === "compact" ? null : showAllConnections}
       semantics={semantics}
       target={target}
     />
@@ -132,7 +141,7 @@ export function GraphPersonScene(props: GraphPersonSceneProps) {
         onConfirmOverwrite={props.onConfirmOverwrite}
         onDismissOverwrite={props.onDismissOverwrite}
         onMoreClusters={props.onMoreClusters}
-        onMoreHop={props.onMoreHop}
+        onMoreHop={null}
         onResetFilters={actions.resetFilters}
         pendingOverwrite={props.pendingOverwrite}
         presentation={presentation}
@@ -141,7 +150,7 @@ export function GraphPersonScene(props: GraphPersonSceneProps) {
         <div
           className={cn(
             "relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft",
-            widthClass === "compact" ? "graph-person-canvas-compact" : "graph-person-canvas",
+            PERSON_SCENE.canvas[toCanvasSize({ immersive, isCompact })],
           )}
         >
           <div className="relative min-h-0 flex-1 bg-radial from-card from-35% to-secondary/70">
@@ -152,12 +161,18 @@ export function GraphPersonScene(props: GraphPersonSceneProps) {
                 immersive,
                 layout,
                 onToggleImmersive,
-                position: toControlsPosition({ hasPanel: target !== null, widthClass }),
+                position: controlsPosition,
                 rootId,
               }}
               layoutKey={layoutKey}
               onPaneClick={onClearSelection}
               person={{
+                cover: {
+                  ...GRAPH_PERSON_CONTROLS_COVER[controlsPosition],
+                  right: isOverlayOpen
+                    ? PERSON_SCENE.overlayCover
+                    : GRAPH_PERSON_CONTROLS_COVER[controlsPosition].right,
+                },
                 labelPairIds: toGraphPersonLabelPairIds({
                   connections: presentation.connections,
                   rootId,
@@ -172,16 +187,30 @@ export function GraphPersonScene(props: GraphPersonSceneProps) {
               value={sceneValue}
               viewport={restore?.viewport ?? null}
             />
+            {presentation.moreHops.length > 0 ? (
+              <div className={cn("absolute z-10 flex flex-wrap gap-2", morePlacement)}>
+                {presentation.moreHops.map((hop) => (
+                  <Button
+                    className="bg-card/95 shadow-soft backdrop-blur-sm"
+                    key={hop}
+                    onClick={() => props.onMoreHop(hop)}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <UiIcon name="plus" size={14} />
+                    {t("more.ring", { hop })}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
+            {widthClass === "medium" ? panel : null}
           </div>
-          <GraphPersonLegend
-            activeCategories={params.categories}
-            collapsible={widthClass === "compact"}
-          />
-          {widthClass === "medium" ? panel : null}
+          <GraphPersonLegend activeCategories={params.categories} />
         </div>
         {widthClass === "compact" ? panel : null}
         {widthClass === "wide" && target !== null ? (
-          <div className="relative w-88 shrink-0">{panel}</div>
+          <div className="relative w-92 shrink-0">{panel}</div>
         ) : null}
       </div>
       <GraphPersonConnectionsList
@@ -204,7 +233,6 @@ function CharacterPanelContent({
   bookId,
   characterId,
   entries,
-  onShowAllConnections,
   presentation,
   sceneValue,
   semantics,
@@ -213,7 +241,6 @@ function CharacterPanelContent({
   bookId: string;
   characterId: string;
   entries: readonly GraphPairEntry[];
-  onShowAllConnections: Nullable<() => void>;
   presentation: GraphWorkspacePresentation;
   sceneValue: GraphSceneValue;
   semantics: ReadonlyMap<string, GraphPairSemantics>;
@@ -250,14 +277,13 @@ function CharacterPanelContent({
         )
       }
       isRoot={character.isRoot}
-      mapCharacters={character.isRoot ? presentation.characters.size : null}
-      mapPairs={entries.length}
-      nearest={nearest.slice(0, PERSON_SCENE.nearestLimit)}
+      key={characterId}
+      mapCharacters={presentation.characters.size}
+      nearest={nearest}
       node={character.node}
       onFindPath={() => actions.openPath(characterId)}
       onMakeCenter={character.isRoot ? null : () => actions.makeCenter(characterId)}
       onOpenConnection={sceneValue.onConnectionOpen}
-      onShowAllConnections={onShowAllConnections}
       reach={toGraphCharacterReach({ characterId, connections: presentation.connections })}
     />
   );
@@ -293,12 +319,13 @@ function PairPanelContent({
   return (
     <>
       <GraphPersonPairHeader first={first} nameOf={nameOf} second={second} semantics={pair} />
-      <div className="flex shrink-0 flex-col gap-4">
+      <div className="flex shrink-0 grow flex-col gap-4">
         <GraphConnectionDetails
           actions={relationshipActions}
           contentKey={JSON.stringify([bookId, reader, entry.connection.id])}
           edges={edges}
           key={entry.connection.id}
+          layout="panel"
           names={{ source: first.displayName, target: second.displayName }}
           renderEdge={(edge, index) => (
             <GraphPersonEdgeRow edge={edge} index={index} nameOf={nameOf} />
@@ -316,7 +343,6 @@ function PersonPanel({
   entries,
   nameOf,
   onRestoreFocus,
-  onShowAllConnections,
   personPanel,
   presentation,
   reader,
@@ -329,7 +355,6 @@ function PersonPanel({
 }: GraphPersonSceneProps & {
   entries: readonly GraphPairEntry[];
   nameOf: (id: string) => string;
-  onShowAllConnections: Nullable<() => void>;
   semantics: ReadonlyMap<string, GraphPairSemantics>;
   target: PersonPanelTarget;
 }) {
@@ -352,6 +377,7 @@ function PersonPanel({
     <GraphDetailsPanel
       appearance="person"
       autoFocus={selection !== null}
+      heading={t(`panel.person.heading.${pairEntry === undefined ? "character" : "connection"}`)}
       onClose={personPanel.onClose}
       onRestoreFocus={onRestoreFocus}
       open={character !== undefined || pairEntry !== undefined}
@@ -364,7 +390,6 @@ function PersonPanel({
           bookId={bookId}
           characterId={character.node.id}
           entries={entries}
-          onShowAllConnections={onShowAllConnections}
           presentation={presentation}
           sceneValue={sceneValue}
           semantics={semantics}
@@ -385,13 +410,24 @@ function PersonPanel({
   );
 }
 
+function toCanvasSize({
+  immersive,
+  isCompact,
+}: {
+  immersive: boolean;
+  isCompact: boolean;
+}): keyof typeof PERSON_SCENE.canvas {
+  if (isCompact) return "compact";
+  return immersive ? "immersive" : "regular";
+}
+
 function toControlsPosition({
   hasPanel,
   widthClass,
 }: {
   hasPanel: boolean;
   widthClass: WorkspaceWidthClass;
-}): "bottom-center" | "top-left" | "top-right" {
+}): GraphPersonControlsPosition {
   if (widthClass === "compact") return "bottom-center";
   return widthClass === "medium" && hasPanel ? "top-left" : "top-right";
 }

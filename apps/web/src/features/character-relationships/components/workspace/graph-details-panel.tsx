@@ -9,6 +9,7 @@ import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetHeader,
@@ -22,6 +23,7 @@ type GraphDetailsPanelProps = {
   appearance: "default" | "person";
   autoFocus: boolean;
   children: ReactNode;
+  heading?: string;
   onClose: () => void;
   onRestoreFocus: () => void;
   open: boolean;
@@ -30,6 +32,8 @@ type GraphDetailsPanelProps = {
 };
 
 const PANEL_STYLES = {
+  body: "flex min-h-0 flex-1 scroll-pb-20 flex-col gap-4 overflow-x-hidden overflow-y-auto overscroll-contain p-4",
+  close: "size-11 shrink-0",
   default: {
     medium:
       "absolute inset-y-2 right-2 z-10 w-full max-w-sm rounded-2xl border border-border bg-card shadow-lg",
@@ -40,12 +44,16 @@ const PANEL_STYLES = {
       "absolute inset-y-2 right-2 z-10 w-full max-w-sm rounded-2xl border border-border bg-card shadow-pop",
     wide: "absolute inset-0 rounded-2xl border border-border bg-card shadow-card",
   },
+  personHeader:
+    "flex shrink-0 items-center justify-between gap-2 border-b border-border py-1 pr-1.5 pl-4",
+  personHeading: "text-sm font-medium text-muted-foreground",
 } as const;
 
 export function GraphDetailsPanel({
   appearance,
   autoFocus,
   children,
+  heading,
   onClose,
   onRestoreFocus,
   open,
@@ -60,6 +68,47 @@ export function GraphDetailsPanel({
   useEffect(() => {
     if (shouldFocus) closeButton.current?.focus();
   }, [shouldFocus, title]);
+
+  if (widthClass === "compact" && appearance === "person") {
+    return (
+      <Sheet
+        onOpenChange={(next) => {
+          if (!next) onClose();
+        }}
+        open={open}
+      >
+        <SheetContent
+          className="max-h-4/5 gap-0 safe-bottom"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            onRestoreFocus();
+          }}
+          showCloseButton={false}
+          side="bottom"
+        >
+          <div className={PANEL_STYLES.personHeader}>
+            <p aria-hidden className={PANEL_STYLES.personHeading}>
+              {heading ?? title}
+            </p>
+            <SheetTitle className="sr-only">{title}</SheetTitle>
+            <SheetDescription className="sr-only">{t("description")}</SheetDescription>
+            <SheetClose asChild>
+              <Button
+                aria-label={t("close")}
+                className={PANEL_STYLES.close}
+                size="icon"
+                type="button"
+                variant="ghost"
+              >
+                <UiIcon name="x" size={18} />
+              </Button>
+            </SheetClose>
+          </div>
+          <div className={PANEL_STYLES.body}>{children}</div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
 
   if (widthClass === "compact") {
     return (
@@ -78,7 +127,7 @@ export function GraphDetailsPanel({
           side="bottom"
         >
           <SheetHeader className="text-left">
-            <SheetTitle className={cn(appearance === "person" && "sr-only")}>{title}</SheetTitle>
+            <SheetTitle>{title}</SheetTitle>
             <SheetDescription className="sr-only">{t("description")}</SheetDescription>
           </SheetHeader>
           <div className="flex flex-col gap-4 px-4 pb-4">{children}</div>
@@ -93,26 +142,26 @@ export function GraphDetailsPanel({
     return (
       <aside
         aria-label={title}
-        className={cn("relative flex flex-col overflow-hidden", PANEL_STYLES.person[widthClass])}
+        className={cn("flex min-h-0 flex-col overflow-hidden", PANEL_STYLES.person[widthClass])}
       >
-        <h2 className="sr-only">{title}</h2>
-        <Button
-          aria-label={t("close")}
-          className="absolute top-2 right-2 z-10"
-          onClick={() => {
-            onClose();
-            onRestoreFocus();
-          }}
-          ref={closeButton}
-          size="icon"
-          type="button"
-          variant="ghost"
-        >
-          <UiIcon name="x" size={16} />
-        </Button>
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto p-4">
-          {children}
+        <div className={PANEL_STYLES.personHeader}>
+          <h2 className={PANEL_STYLES.personHeading}>{heading ?? title}</h2>
+          <Button
+            aria-label={t("close")}
+            className={PANEL_STYLES.close}
+            onClick={() => {
+              onClose();
+              onRestoreFocus();
+            }}
+            ref={closeButton}
+            size="icon"
+            type="button"
+            variant="ghost"
+          >
+            <UiIcon name="x" size={18} />
+          </Button>
         </div>
+        <div className={PANEL_STYLES.body}>{children}</div>
       </aside>
     );
   }

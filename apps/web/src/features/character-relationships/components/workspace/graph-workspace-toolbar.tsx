@@ -159,7 +159,7 @@ export function GraphWorkspaceToolbar({
         variant="secondary"
       >
         <Route aria-hidden className="size-4" />
-        {t("pathEntry")}
+        {t(params.view === "person" ? "pathEntryShort" : "pathEntry")}
       </Button>
       <HelpControl />
     </div>

@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import type { GraphPersonCircle } from "../../model/workspace/graph-person-edge-geometry";
 import type { GraphSceneFlowEdge, GraphSceneFlowNode } from "./graph-scene-context";
 
+import { toGraphPersonDetailLevel } from "../../model/workspace/graph-person-camera";
 import { toGraphPersonEdgeGeometry } from "../../model/workspace/graph-person-edge-geometry";
 import { GraphPersonRelationChip } from "./graph-person-relation-chip";
 import { useGraphPersonScene } from "./graph-person-scene-context";
@@ -28,9 +29,8 @@ const PERSON_EDGE_STYLES = {
   hit: "cursor-pointer fill-none stroke-transparent outline-none",
   hitWidth: 24,
   labelCharWidth: 6.5,
-  labelMinZoom: 0.75,
   labelPadding: 40,
-  opacity: { dimmed: 0.18, emphasized: 1, idle: 1 },
+  opacity: { dimmed: 0.3, emphasized: 1, idle: 1 },
   width: { emphasized: 3, idle: 2, selected: 3.5 },
 } as const;
 
@@ -39,7 +39,7 @@ export function GraphPersonEdge({ id, source, target }: EdgeProps<GraphSceneFlow
   const { emphasis, labelPairIds, onFocusChange, semantics } = useGraphPersonScene();
   const toLabel = useGraphPairLabel();
   const zoomAllowsLabel = useStore(
-    (state) => state.transform[2] >= PERSON_EDGE_STYLES.labelMinZoom,
+    (state) => toGraphPersonDetailLevel(state.transform[2]) === "detail",
   );
   const connection = connections.get(id);
   const pair = semantics.get(id);

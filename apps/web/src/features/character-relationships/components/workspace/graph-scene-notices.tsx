@@ -1,5 +1,7 @@
 "use client";
 
+import type { Nullable } from "@app/shared";
+
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
@@ -12,7 +14,7 @@ type GraphSceneNoticesProps = {
   onConfirmOverwrite: () => void;
   onDismissOverwrite: () => void;
   onMoreClusters: () => void;
-  onMoreHop: (hop: number) => void;
+  onMoreHop: Nullable<(hop: number) => void>;
   onResetFilters: () => void;
   pendingOverwrite: boolean;
   presentation: GraphWorkspacePresentation;
@@ -28,6 +30,7 @@ export function GraphSceneNotices({
   presentation,
 }: GraphSceneNoticesProps) {
   const t = useTranslations("relationships.workspace");
+  const moreHops = onMoreHop === null ? [] : presentation.moreHops;
 
   return (
     <>
@@ -36,12 +39,12 @@ export function GraphSceneNotices({
         notices={presentation.notices}
         onResetFilters={onResetFilters}
       />
-      {presentation.moreHops.length > 0 || presentation.hasMoreClusters ? (
+      {moreHops.length > 0 || presentation.hasMoreClusters ? (
         <div className="flex flex-wrap gap-2">
-          {presentation.moreHops.map((hop) => (
+          {moreHops.map((hop) => (
             <Button
               key={hop}
-              onClick={() => onMoreHop(hop)}
+              onClick={() => onMoreHop?.(hop)}
               size="sm"
               type="button"
               variant="outline"

@@ -1,6 +1,6 @@
 "use client";
 
-import { Handle, type NodeProps, Position } from "@xyflow/react";
+import { Handle, type NodeProps, Position, useStore } from "@xyflow/react";
 import { Crown } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -11,13 +11,14 @@ import { cn } from "@/lib/utils";
 
 import type { GraphSceneFlowNode } from "./graph-scene-context";
 
+import { toGraphPersonDetailLevel } from "../../model/workspace/graph-person-camera";
 import { useGraphPersonScene } from "./graph-person-scene-context";
 import { useGraphScene } from "./graph-scene-context";
 import { useRevealOnFocus } from "./use-reveal-on-focus";
 
 const PERSON_NODE_STYLES = {
   avatar: "size-full border-2 border-card",
-  avatarDimmed: "opacity-35",
+  avatarDimmed: "opacity-50",
   branch:
     "nodrag nopan absolute -right-1 bottom-0 z-10 flex size-6 cursor-pointer items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-soft outline-none after:absolute after:-inset-2.5 after:rounded-full hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
   button:
@@ -47,13 +48,16 @@ export function GraphPersonNode({ id }: NodeProps<GraphSceneFlowNode>) {
   const { characters, onBranchToggle, onCharacterOpen, selection } = useGraphScene();
   const { emphasis, onFocusChange } = useGraphPersonScene();
   const revealOnFocus = useRevealOnFocus(id);
+  const level = useStore((state) => toGraphPersonDetailLevel(state.transform[2]));
   const presentation = characters.get(id);
   if (presentation === undefined) return null;
 
   const { canCollapse, canExpand, isRoot, node } = presentation;
   const variant = isRoot ? "root" : "default";
   const isSelected = selection?.kind === "character" && selection.id === id;
-  const isDimmed = emphasis !== null && !emphasis.characterIds.has(id);
+  const isEmphasized = emphasis?.characterIds.has(id) ?? false;
+  const isDimmed = emphasis !== null && !isEmphasized;
+  const showPlate = level !== "far" || isRoot || isSelected || isEmphasized;
   const name = node.displayName;
   const label = isRoot
     ? t("openRoot", { name })
@@ -73,7 +77,7 @@ export function GraphPersonNode({ id }: NodeProps<GraphSceneFlowNode>) {
         className={cn(
           PERSON_NODE_STYLES.button,
           PERSON_NODE_STYLES.frame[variant],
-          emphasis?.characterIds.has(id) && !isSelected && PERSON_NODE_STYLES.hovered,
+          isEmphasized && !isSelected && PERSON_NODE_STYLES.hovered,
           isSelected && PERSON_NODE_STYLES.selected,
         )}
         onBlur={() => onFocusChange(null)}
@@ -107,18 +111,20 @@ export function GraphPersonNode({ id }: NodeProps<GraphSceneFlowNode>) {
             <UiIcon name="heart-fill" size={10} />
           </span>
         ) : null}
-        <span aria-hidden className={PERSON_NODE_STYLES.plateWrap}>
-          <span
-            className={cn(
-              "flex items-center gap-1",
-              PERSON_NODE_STYLES.plate[variant],
-              isDimmed && PERSON_NODE_STYLES.plateDimmed,
-            )}
-          >
-            {isRoot ? <Crown aria-hidden className="size-3.5 shrink-0 text-primary" /> : null}
-            <TruncatedText lines={2} text={name} />
+        {showPlate ? (
+          <span aria-hidden className={PERSON_NODE_STYLES.plateWrap}>
+            <span
+              className={cn(
+                "flex items-center gap-1",
+                PERSON_NODE_STYLES.plate[variant],
+                isDimmed && PERSON_NODE_STYLES.plateDimmed,
+              )}
+            >
+              {isRoot ? <Crown aria-hidden className="size-3.5 shrink-0 text-primary" /> : null}
+              <TruncatedText lines={isRoot || level === "detail" ? 2 : 1} text={name} />
+            </span>
           </span>
-        </span>
+        ) : null}
       </button>
       {canExpand || canCollapse ? (
         <button

@@ -5,7 +5,9 @@ import type { RelationshipCategory } from "@app/shared";
 import { RelationshipCategorySchema } from "@app/shared";
 import { ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useId, useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 
@@ -18,36 +20,50 @@ const NEUTRAL_TONES = ["mixed", "masked"] as const satisfies readonly GraphPairT
 
 type GraphPersonLegendProps = {
   activeCategories: readonly RelationshipCategory[];
-  collapsible: boolean;
 };
 
-export function GraphPersonLegend({ activeCategories, collapsible }: GraphPersonLegendProps) {
+export function GraphPersonLegend({ activeCategories }: GraphPersonLegendProps) {
   const t = useTranslations("relationships.workspace.legend");
-
-  if (collapsible) {
-    return (
-      <Collapsible className="border-t border-border bg-card/80 px-3 py-1.5">
-        <CollapsibleTrigger className="group/legend flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 text-xs font-semibold text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
-          {t("title")}
-          <ChevronDown
-            aria-hidden
-            className="size-4 transition-transform group-data-[state=open]/legend:rotate-180 motion-reduce:transition-none"
-          />
-        </CollapsibleTrigger>
-        <CollapsibleContent className="pb-2">
-          <LegendList activeCategories={activeCategories} />
-        </CollapsibleContent>
-      </Collapsible>
-    );
-  }
+  const [open, setOpen] = useState(false);
+  const titleId = useId();
 
   return (
-    <div className="flex flex-col gap-2 border-t border-border bg-card/80 px-3 py-2.5">
-      <p aria-hidden className="text-xs font-semibold text-muted-foreground">
-        {t("title")}
-      </p>
-      <LegendList activeCategories={activeCategories} />
-    </div>
+    <Collapsible
+      className="shrink-0 border-t border-border bg-card/80 px-3 py-1"
+      onOpenChange={setOpen}
+      open={open}
+    >
+      <div className="flex min-h-10 items-center gap-3">
+        <p className="shrink-0 text-xs font-semibold text-muted-foreground" id={titleId}>
+          {t("title")}
+        </p>
+        {open ? null : (
+          <LegendList
+            activeCategories={activeCategories}
+            className="hidden h-4 min-w-0 flex-1 overflow-hidden sm:flex"
+            preview
+          />
+        )}
+        <CollapsibleTrigger asChild>
+          <Button
+            aria-describedby={titleId}
+            className="group/legend ml-auto shrink-0 text-muted-foreground"
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            {t(open ? "collapse" : "expand")}
+            <ChevronDown
+              aria-hidden
+              className="transition-transform group-data-[state=open]/legend:rotate-180 motion-reduce:transition-none"
+            />
+          </Button>
+        </CollapsibleTrigger>
+      </div>
+      <CollapsibleContent className="pb-2">
+        <LegendList activeCategories={activeCategories} className="flex" preview={false} />
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
@@ -93,13 +109,25 @@ function LegendItem({
   );
 }
 
-function LegendList({ activeCategories }: { activeCategories: readonly RelationshipCategory[] }) {
+function LegendList({
+  activeCategories,
+  className,
+  preview,
+}: {
+  activeCategories: readonly RelationshipCategory[];
+  className: string;
+  preview: boolean;
+}) {
   const t = useTranslations("relationships.workspace.legend");
   const labels = useRelationshipLabels();
   const isFiltered = activeCategories.length > 0;
 
   return (
-    <ul aria-label={t("title")} className="flex flex-wrap gap-x-4 gap-y-1.5">
+    <ul
+      aria-hidden={preview || undefined}
+      aria-label={preview ? undefined : t("title")}
+      className={cn("flex-wrap gap-x-4 gap-y-1.5", className)}
+    >
       {RelationshipCategorySchema.options.map((category) => {
         const isExcluded = isFiltered && !activeCategories.includes(category);
         return (

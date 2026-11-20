@@ -633,11 +633,15 @@
 }
 
 @utility graph-person-canvas {
-  min-height: max(32rem, calc(100dvh - var(--shell-header-height) - var(--spacing) * 40));
+  height: clamp(30rem, calc(100dvh - var(--shell-header-height) - var(--spacing) * 8), 45rem);
 }
 
 @utility graph-person-canvas-compact {
-  min-height: min(30rem, 68dvh);
+  height: min(30rem, 68dvh);
+}
+
+@utility graph-person-canvas-immersive {
+  height: max(30rem, calc(100dvh - var(--shell-header-height) - var(--spacing) * 48));
 }
 
 @utility graph-workspace-immersive {
