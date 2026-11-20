@@ -1,6 +1,7 @@
 "use client";
 
 import type { CharacterGraphEdgeView, Nullable } from "@app/shared";
+import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
@@ -19,6 +20,7 @@ type GraphConnectionDetailsProps = {
   contentKey: string;
   edges: readonly CharacterGraphEdgeView[];
   names: { source: string; target: string };
+  renderEdge?: (edge: CharacterGraphEdgeView, index: number) => ReactNode;
   scope: RelationshipScope;
 };
 
@@ -27,6 +29,7 @@ export function GraphConnectionDetails({
   contentKey,
   edges,
   names,
+  renderEdge,
   scope,
 }: GraphConnectionDetailsProps) {
   const t = useTranslations("relationships.workspace.panel.connection");
@@ -91,10 +94,16 @@ export function GraphConnectionDetails({
               type="button"
               variant="ghost"
             >
-              <span className="min-w-0 truncate">{toLabel(edge)}</span>
-              <span className="shrink-0 text-xs text-muted-foreground">
-                {t("item", { index: index + 1 })}
-              </span>
+              {renderEdge === undefined ? (
+                <>
+                  <span className="min-w-0 truncate">{toLabel(edge)}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {t("item", { index: index + 1 })}
+                  </span>
+                </>
+              ) : (
+                renderEdge(edge, index)
+              )}
             </Button>
           </li>
         ))}

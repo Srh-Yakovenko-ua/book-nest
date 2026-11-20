@@ -4,7 +4,6 @@ import type { CharacterGraphEdgeView, Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -15,15 +14,18 @@ import type { GraphReaderKey } from "../../model/workspace/graph-workspace-reque
 import type { GraphWorkspaceLayoutRestore } from "../../model/workspace/graph-workspace-signature";
 import type { GraphWorkspaceState } from "../../model/workspace/use-graph-workspace-state";
 import type { GraphCharacterConnectionItem } from "./graph-character-details";
+import type { GraphPersonPanelState } from "./graph-person-scene";
 import type { GraphSceneSelection, GraphSceneValue } from "./graph-scene-context";
 import type { GraphWorkspaceCanvasLayout } from "./graph-workspace-canvas-controls";
 import type { WorkspaceWidthClass } from "./use-workspace-width-class";
 
+import { withRestoredPositions } from "../../model/workspace/graph-workspace-signature";
 import { GraphCharacterDetails } from "./graph-character-details";
 import { GraphConnectionDetails } from "./graph-connection-details";
 import { GraphConnectionsList } from "./graph-connections-list";
 import { GraphDetailsPanel } from "./graph-details-panel";
-import { GraphSceneStatus } from "./graph-scene-status";
+import { GraphPersonScene } from "./graph-person-scene";
+import { GraphSceneNotices } from "./graph-scene-notices";
 import { GraphWorkspaceCanvasLazy } from "./graph-workspace-canvas-lazy";
 import { GraphWorkspaceMessage } from "./graph-workspace-message";
 import { useGraphCounterText } from "./use-graph-counter-text";
@@ -47,6 +49,7 @@ type GraphSceneSectionProps = {
   onToggleImmersive: () => void;
   params: GraphWorkspaceParams;
   pendingOverwrite: boolean;
+  personPanel: Nullable<GraphPersonPanelState>;
   placementKey: string;
   presentation: Nullable<GraphWorkspacePresentation>;
   reader: GraphReaderKey;
@@ -121,54 +124,22 @@ function ReadyScene({
   presentation: GraphWorkspacePresentation;
   sceneValue: GraphSceneValue;
 }) {
-  const t = useTranslations("relationships.workspace");
   const toLabel = useGraphEdgeLabel();
   const edgeById = new Map(presentation.edges.map((edge) => [edge.id, edge] as const));
   const panel = toPanelContent({ edgeById, presentation, selection });
-  const positions = new Map(presentation.positions);
-  for (const [id, point] of restore?.positions ?? []) positions.set(id, point);
+  const positions = withRestoredPositions({ positions: presentation.positions, restore });
 
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-3">
-      <GraphSceneStatus
-        empty={presentation.empty}
-        notices={presentation.notices}
+      <GraphSceneNotices
+        onConfirmOverwrite={onConfirmOverwrite}
+        onDismissOverwrite={onDismissOverwrite}
+        onMoreClusters={onMoreClusters}
+        onMoreHop={onMoreHop}
         onResetFilters={actions.resetFilters}
+        pendingOverwrite={pendingOverwrite}
+        presentation={presentation}
       />
-      {presentation.moreHops.length > 0 || presentation.hasMoreClusters ? (
-        <div className="flex flex-wrap gap-2">
-          {presentation.moreHops.map((hop) => (
-            <Button
-              key={hop}
-              onClick={() => onMoreHop(hop)}
-              size="sm"
-              type="button"
-              variant="outline"
-            >
-              {t("more.ring", { hop })}
-            </Button>
-          ))}
-          {presentation.hasMoreClusters ? (
-            <Button onClick={onMoreClusters} size="sm" type="button" variant="outline">
-              {t("more.clusters")}
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
-      {pendingOverwrite ? (
-        <div
-          className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted px-3 py-2 text-sm"
-          role="alert"
-        >
-          <span>{t("canvas.overwrite")}</span>
-          <Button onClick={onConfirmOverwrite} size="sm" type="button">
-            {t("canvas.confirmOverwrite")}
-          </Button>
-          <Button onClick={onDismissOverwrite} size="sm" type="button" variant="ghost">
-            {t("canvas.cancelOverwrite")}
-          </Button>
-        </div>
-      ) : null}
       <div className="flex min-h-80 flex-1 gap-3">
         <div className="relative min-w-0 flex-1 overflow-hidden rounded-2xl border border-border bg-card">
           <GraphWorkspaceCanvasLazy
@@ -179,9 +150,11 @@ function ReadyScene({
               layout,
               onToggleImmersive,
               position: widthClass === "medium" && panel !== null ? "top-left" : "top-right",
+              rootId: null,
             }}
             layoutKey={layoutKey}
             onPaneClick={onClearSelection}
+            person={null}
             placementKey={placementKey}
             positions={positions}
             sceneKey={sceneKey}
@@ -262,6 +235,18 @@ function SceneContent(props: GraphSceneSectionProps) {
     );
   }
 
+  if (props.personPanel !== null && presentation.rootId !== null) {
+    return (
+      <GraphPersonScene
+        {...props}
+        personPanel={props.personPanel}
+        presentation={presentation}
+        rootId={presentation.rootId}
+        sceneValue={sceneValue}
+      />
+    );
+  }
+
   return <ReadyScene {...props} presentation={presentation} sceneValue={sceneValue} />;
 }
 
@@ -305,6 +290,8 @@ function ScenePanel({
 
   return (
     <GraphDetailsPanel
+      appearance="default"
+      autoFocus
       onClose={onClearSelection}
       onRestoreFocus={onRestoreFocus}
       open={panel !== null}

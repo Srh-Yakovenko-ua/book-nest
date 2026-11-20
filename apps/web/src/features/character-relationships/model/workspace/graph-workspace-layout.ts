@@ -11,12 +11,19 @@ export const GRAPH_NODE_BOX = {
   root: { height: 128, width: 160 },
 } as const;
 
+export const PERSON_LAYOUT = {
+  firstAngle: -Math.PI / 2,
+  footprint: { height: 124, width: 132 },
+  minRingRadius: 240,
+  revision: "portrait-1",
+  ringGap: 64,
+  siblingGap: 20,
+} as const;
+
 const LAYOUT_SPACING = {
   clusterGap: 64,
   memberColumns: 4,
   memberGap: 24,
-  minRingRadius: 220,
-  ringGap: 72,
   rowGap: 96,
   siblingGap: 32,
   treeSweeps: 4,
@@ -113,16 +120,16 @@ export function layoutPersonScene(scene: PersonScene): GraphWorkspacePositions {
       .map((id) => ({ desired: desiredAngle({ angleById, hop, id, neighborsById, scene }), id }))
       .sort((left, right) => left.desired - right.desired || left.id.localeCompare(right.id));
     if (ring.length === 0) continue;
-    const arc = GRAPH_NODE_BOX.character.width + LAYOUT_SPACING.siblingGap;
+    const arc = PERSON_LAYOUT.footprint.width + PERSON_LAYOUT.siblingGap;
     const radius = Math.max(
-      LAYOUT_SPACING.minRingRadius * hop,
-      previousRadius + GRAPH_NODE_BOX.character.height + LAYOUT_SPACING.ringGap,
+      PERSON_LAYOUT.minRingRadius,
+      previousRadius + PERSON_LAYOUT.footprint.height + PERSON_LAYOUT.ringGap,
       (ring.length * arc) / (2 * Math.PI),
     );
     const minStep = arc / radius;
     const angles = spreadAngles({
       desired: ring.map((entry, index) =>
-        hop === 1 ? (2 * Math.PI * index) / ring.length : entry.desired,
+        hop === 1 ? PERSON_LAYOUT.firstAngle + (2 * Math.PI * index) / ring.length : entry.desired,
       ),
       minStep,
     });

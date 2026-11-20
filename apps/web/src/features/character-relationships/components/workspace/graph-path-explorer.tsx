@@ -240,6 +240,8 @@ export function GraphPathExplorer({
           ) : null}
         </div>
         <GraphDetailsPanel
+          appearance="default"
+          autoFocus
           onClose={() => setSelection(null)}
           onRestoreFocus={() => restoreTriggerFocus(lastTrigger.current)}
           open={selection !== null}

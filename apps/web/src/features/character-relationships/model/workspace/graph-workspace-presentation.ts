@@ -22,6 +22,7 @@ import { layoutNetworkScene, layoutPersonScene, layoutTreeScene } from "./graph-
 export type GraphPresentationCharacter = {
   canCollapse: boolean;
   canExpand: boolean;
+  hop: Nullable<number>;
   isRoot: boolean;
   node: CharacterGraphNodeView;
 };
@@ -35,6 +36,7 @@ export type GraphPresentationCluster = {
 export type GraphPresentationCounters =
   | { edges: number; kind: "expanded"; nodes: number }
   | { edges: number; kind: "people"; nodes: number }
+  | { edges: number; kind: "person"; nodes: number; pairs: number }
   | { groups: number; kind: "groups" };
 
 export type GraphPresentationEmpty = "filteredEmpty" | "networkEmpty" | "noRelations";
@@ -99,7 +101,7 @@ function buildNetworkPresentation({
     characters: new Map(
       scene.nodes.map((node): [string, GraphPresentationCharacter] => [
         node.id,
-        { canCollapse: false, canExpand: false, isRoot: false, node },
+        { canCollapse: false, canExpand: false, hop: null, isRoot: false, node },
       ]),
     ),
     clusters: new Map(
@@ -153,6 +155,7 @@ function buildPersonPresentation({
       return visibleIds.has(other) && scene.hopById.get(other) === hop + 1;
     });
   };
+  const connections = toGraphConnections(scene.edges);
   return {
     aggregates: [],
     characters: new Map(
@@ -163,6 +166,7 @@ function buildPersonPresentation({
           {
             canCollapse: !canExpand && node.id !== rootId && hasVisibleChildren(node.id),
             canExpand: canExpand && node.id !== rootId,
+            hop: scene.hopById.get(node.id) ?? null,
             isRoot: node.id === rootId,
             node,
           },
@@ -170,8 +174,13 @@ function buildPersonPresentation({
       }),
     ),
     clusters: new Map(),
-    connections: toGraphConnections(scene.edges),
-    counters: { edges: scene.edges.length, kind: "people", nodes: scene.nodes.length },
+    connections,
+    counters: {
+      edges: scene.edges.length,
+      kind: "person",
+      nodes: scene.nodes.length,
+      pairs: connections.length,
+    },
     edges: scene.edges,
     empty: data.graph.edges.length === 0 ? toEmptyReason({ empty: "noRelations", params }) : null,
     hasMoreClusters: false,
@@ -197,7 +206,13 @@ function buildTreePresentation({
     characters: new Map(
       scene.nodes.map((node): [string, GraphPresentationCharacter] => [
         node.id,
-        { canCollapse: false, canExpand: false, isRoot: node.id === scene.rootId, node },
+        {
+          canCollapse: false,
+          canExpand: false,
+          hop: null,
+          isRoot: node.id === scene.rootId,
+          node,
+        },
       ]),
     ),
     clusters: new Map(),

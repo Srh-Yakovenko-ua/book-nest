@@ -2,6 +2,7 @@ import type { CharacterGraphHiddenContentView, CharacterGraphView } from "@app/s
 
 import { describe, expect, it } from "vitest";
 
+import type { NetworkExpansion } from "./graph-network-scene";
 import type { GraphWorkspaceParams, GraphWorkspaceView } from "./graph-workspace-params";
 import type {
   GraphPresentationEmpty,
@@ -86,10 +87,33 @@ const LONE_GRAPH = makeRelationshipGraph({
 });
 
 describe("buildGraphWorkspacePresentation", () => {
-  it("counts the rendered characters and rendered raw relationships of the person view", () => {
+  it("counts the characters, raw relationships and character pairs of the person view", () => {
     const presentation = presentationFor({ graph: PERSON_GRAPH, params: PERSON_PARAMS });
 
-    expect(presentation?.counters).toEqual({ edges: 3, kind: "people", nodes: 3 });
+    expect(presentation?.counters).toEqual({ edges: 3, kind: "person", nodes: 3, pairs: 2 });
+  });
+
+  it("places the person root at hop 0 and its direct neighbours at hop 1", () => {
+    const characters = presentationFor({ graph: PERSON_GRAPH, params: PERSON_PARAMS })?.characters;
+
+    expect({
+      ciri: characters?.get(CHARACTER.ciri)?.hop,
+      geralt: characters?.get(CHARACTER.geralt)?.hop,
+      yennefer: characters?.get(CHARACTER.yennefer)?.hop,
+    }).toEqual({ ciri: 1, geralt: 0, yennefer: 1 });
+  });
+
+  it("leaves the hop of network characters unset", () => {
+    const params: GraphWorkspaceParams = { ...DEFAULT_PARAMS, view: "network" };
+    const collapsed = presentationFor({ graph: PERSON_GRAPH, params });
+    const network = {
+      ...EMPTY_NETWORK_EXPANSION,
+      expandedIds: new Set(collapsed?.clusters.keys()),
+    };
+    const presentation = presentationFor({ graph: PERSON_GRAPH, network, params });
+    const hops = [...(presentation?.characters.values() ?? [])].map((character) => character.hop);
+
+    expect(hops).toEqual([null, null, null, null, null]);
   });
 
   it("counts groups in the network view while no group is expanded", () => {
@@ -166,14 +190,16 @@ describe("buildGraphWorkspacePresentation", () => {
 
 function presentationFor({
   graph,
+  network = EMPTY_NETWORK_EXPANSION,
   params,
 }: {
   graph: CharacterGraphView;
+  network?: NetworkExpansion;
   params: GraphWorkspaceParams;
 }) {
   return buildGraphWorkspacePresentation({
     data: { graph, kind: "graph" },
-    network: EMPTY_NETWORK_EXPANSION,
+    network,
     params,
     person: EMPTY_PERSON_EXPANSION,
     treeOptions: TREE_SCENE.defaultOptions,

@@ -21,6 +21,8 @@ import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 import type { GraphSceneValue } from "./graph-scene-context";
 
 import {
+  makeRelationshipDetails,
+  makeRelationshipEdge,
   makeRelationshipGraph,
   makeRelationshipGraphEdge,
   makeRelationshipGraphNode,
@@ -41,6 +43,8 @@ vi.mock("@/i18n/navigation", () => ({
 
 const canvasMounts = vi.hoisted(() => ({ count: 0 }));
 
+const canvasPane = vi.hoisted(() => ({ label: "Empty canvas" }));
+
 vi.mock("./graph-workspace-canvas-lazy", async () => {
   const { useEffect } = await import("react");
   const { default: catalog } = await import("@/messages/uk.json");
@@ -48,9 +52,11 @@ vi.mock("./graph-workspace-canvas-lazy", async () => {
 
   function MountCountingCanvas({
     controls,
+    onPaneClick,
     value,
   }: {
     controls: { immersive: boolean; onToggleImmersive: () => void };
+    onPaneClick: () => void;
     value: GraphSceneValue;
   }) {
     useEffect(() => {
@@ -61,6 +67,9 @@ vi.mock("./graph-workspace-canvas-lazy", async () => {
       <>
         <button onClick={controls.onToggleImmersive} type="button">
           {controls.immersive ? canvasCopy.exitFullscreen : canvasCopy.enterFullscreen}
+        </button>
+        <button onClick={onPaneClick} type="button">
+          {canvasPane.label}
         </button>
         <ul>
           {[...value.characters.values()].map(({ node }) => (
@@ -111,6 +120,7 @@ const API = {
   graph: `/api/books/${BOOK.id}/character-graph`,
   layout: "/api/character-graph-layouts",
   path: "/api/character-relationships/path",
+  relationship: (relationshipId: string) => `/api/character-relationships/${relationshipId}`,
   summary: `/api/books/${BOOK.id}/character-summary`,
 } as const;
 
@@ -127,20 +137,29 @@ const PAGE = { current: 120, next: 200 } as const;
 const EXPECTED_TEXT = {
   componentsCounter: "На карті: 1 група",
   groupsCounter: "На карті: 2 групи",
-  peopleCounter: "На карті: 3 персонажі · 2 зв’язки",
+  peopleCounter: "На карті: 3 персонажі · 2 пари · 2 зв’язки",
   summaryHeading: "2 персонажі у книзі",
 } as const;
 
 const LABELS = {
   friendChip: copy.filters.remove.replace("{label}", messages.relationships.types.friend_of),
+  geraltCiriPanel: copy.panel.connection.title
+    .replace("{source}", GERALT.name)
+    .replace("{target}", CIRI.name),
+  openGeraltCiri: copy.personList.open
+    .replace(
+      "{names}",
+      copy.personList.pair.replace("{first}", GERALT.name).replace("{second}", CIRI.name),
+    )
+    .replace("{label}", messages.relationships.types.guardian_of),
   pickGeralt: copy.guided.pick.replace("{name}", GERALT.name),
   socialChip: copy.filters.remove.replace("{label}", messages.relationships.categories.social),
 } as const;
 
-const PHONE_WIDTH = 375;
+const CONTAINER_WIDTH = { phone: 375, wide: 1280 } as const;
 
 const EDGES = {
-  geraltCiri: makeRelationshipGraphEdge({ id: IDS.geraltCiri }),
+  geraltCiri: makeRelationshipGraphEdge({ id: IDS.geraltCiri, type: "guardian_of" }),
   geraltJaskier: makeRelationshipGraphEdge({
     category: "social",
     directionality: "symmetric",
@@ -207,7 +226,8 @@ const FAMILY_TREE: FamilyTreeGraphView = {
 
 const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
 
-class PhoneWidthResizeObserver implements ResizeObserver {
+abstract class FixedWidthResizeObserver implements ResizeObserver {
+  protected abstract readonly width: number;
   private readonly callback: ResizeObserverCallback;
   private readonly observed = new Set<Element>();
 
@@ -221,13 +241,21 @@ class PhoneWidthResizeObserver implements ResizeObserver {
 
   observe(target: Element) {
     this.observed.add(target);
-    Object.defineProperty(target, "clientWidth", { configurable: true, value: PHONE_WIDTH });
+    Object.defineProperty(target, "clientWidth", { configurable: true, value: this.width });
     this.callback([], this);
   }
 
   unobserve(target: Element) {
     this.observed.delete(target);
   }
+}
+
+class PhoneWidthResizeObserver extends FixedWidthResizeObserver {
+  protected readonly width = CONTAINER_WIDTH.phone;
+}
+
+class WideWidthResizeObserver extends FixedWidthResizeObserver {
+  protected readonly width = CONTAINER_WIDTH.wide;
 }
 
 function getRequests(pathname: string): URL[] {
@@ -314,6 +342,10 @@ function respond({
       return json({ message: "Layout not found" }, 404);
     case `GET ${API.path}`:
       return routes.path();
+    case `GET ${API.relationship(IDS.geraltCiri)}`:
+      return json(
+        makeRelationshipDetails({ relationship: makeRelationshipEdge({ id: IDS.geraltCiri }) }),
+      );
     case `GET ${API.summary}`:
       return json(
         makeBookCharacterSummary({
@@ -405,6 +437,19 @@ describe("GraphWorkspaceShell person view", () => {
     await userEvent.click(await screen.findByRole("button", { name: CIRI.name }));
 
     expect(await screen.findByRole("heading", { name: CIRI.name })).toBeInTheDocument();
+    expect(
+      urlState.updates.filter((update) => update.searchParams.get("characterId") !== GERALT.id),
+    ).toEqual([]);
+  });
+
+  it("opens a pair from the connections list without moving the center", async () => {
+    renderWorkspace({ search: SEARCH.person });
+
+    await userEvent.click(await screen.findByRole("button", { name: LABELS.openGeraltCiri }));
+
+    expect(
+      await screen.findByRole("complementary", { name: LABELS.geraltCiriPanel }),
+    ).toBeInTheDocument();
     expect(
       urlState.updates.filter((update) => update.searchParams.get("characterId") !== GERALT.id),
     ).toEqual([]);
@@ -596,6 +641,75 @@ describe("GraphWorkspaceShell details at different widths", () => {
     expect(await screen.findByRole("dialog", { name: CIRI.name })).toBeInTheDocument();
     expect(screen.queryByRole("complementary", { name: CIRI.name })).not.toBeInTheDocument();
   });
+
+  it("opens no dialog at phone width until a character is chosen", async () => {
+    vi.stubGlobal("ResizeObserver", PhoneWidthResizeObserver);
+    renderWorkspace({ search: SEARCH.person });
+
+    await screen.findByRole("button", { name: CIRI.name });
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("opens no details at the default width until a character is chosen", async () => {
+    renderWorkspace({ search: SEARCH.person });
+    const geralt = await screen.findByRole("button", { name: GERALT.name });
+
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+
+    await userEvent.click(geralt);
+
+    expect(await screen.findByRole("complementary", { name: GERALT.name })).toBeInTheDocument();
+  });
+
+  it("opens the central character's overview at wide width without taking focus", async () => {
+    vi.stubGlobal("ResizeObserver", WideWidthResizeObserver);
+    renderWorkspace({ search: SEARCH.person });
+
+    expect(await screen.findByRole("complementary", { name: GERALT.name })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: copy.panel.close })).not.toHaveFocus();
+  });
+});
+
+describe("GraphWorkspaceShell details panel at wide width", () => {
+  beforeEach(() => {
+    vi.stubGlobal("ResizeObserver", WideWidthResizeObserver);
+  });
+
+  it("returns from a chosen character to the central character's overview", async () => {
+    renderWorkspace({ search: SEARCH.person });
+    await userEvent.click(await screen.findByRole("button", { name: CIRI.name }));
+    await screen.findByRole("complementary", { name: CIRI.name });
+
+    await userEvent.click(screen.getByRole("button", { name: canvasPane.label }));
+
+    expect(await screen.findByRole("complementary", { name: GERALT.name })).toBeInTheDocument();
+    expect(screen.queryByRole("complementary", { name: CIRI.name })).not.toBeInTheDocument();
+  });
+
+  it("keeps closed details closed until a character is chosen again", async () => {
+    renderWorkspace({ search: SEARCH.person });
+    await screen.findByRole("complementary", { name: GERALT.name });
+    await userEvent.click(screen.getByRole("button", { name: copy.panel.close }));
+
+    await userEvent.click(screen.getByRole("button", { name: canvasPane.label }));
+
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: CIRI.name }));
+
+    expect(await screen.findByRole("complementary", { name: CIRI.name })).toBeInTheDocument();
+  });
+
+  it("closes the details on Escape without falling back to the overview", async () => {
+    renderWorkspace({ search: SEARCH.person });
+    await userEvent.click(await screen.findByRole("button", { name: CIRI.name }));
+    await screen.findByRole("complementary", { name: CIRI.name });
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+  });
 });
 
 describe("GraphWorkspaceShell focus", () => {
@@ -605,6 +719,17 @@ describe("GraphWorkspaceShell focus", () => {
     await userEvent.click(await screen.findByRole("button", { name: LABELS.pickGeralt }));
 
     const status = await screen.findByText(EXPECTED_TEXT.peopleCounter);
+    await waitFor(() => expect(status).toHaveFocus());
+  });
+
+  it("keeps focus on the map status when the wide overview opens by itself", async () => {
+    vi.stubGlobal("ResizeObserver", WideWidthResizeObserver);
+    renderWorkspace();
+
+    await userEvent.click(await screen.findByRole("button", { name: LABELS.pickGeralt }));
+    await screen.findByRole("complementary", { name: GERALT.name });
+
+    const status = screen.getByText(EXPECTED_TEXT.peopleCounter);
     await waitFor(() => expect(status).toHaveFocus());
   });
 

@@ -34,6 +34,7 @@ import {
   withPersonMore,
 } from "../../model/workspace/graph-person-scene";
 import { TREE_SCENE } from "../../model/workspace/graph-tree-scene";
+import { PERSON_LAYOUT } from "../../model/workspace/graph-workspace-layout";
 import { GRAPH_WORKSPACE_VIEWS } from "../../model/workspace/graph-workspace-params";
 import { buildGraphWorkspacePresentation } from "../../model/workspace/graph-workspace-presentation";
 import {
@@ -65,7 +66,16 @@ type LayoutSnapshot = {
   viewport: CharacterGraphViewport;
 };
 
+type PanelIntent = "auto" | "closed" | "open";
+
+type PersonPanelIntent = {
+  intent: PanelIntent;
+  rootId: Nullable<string>;
+};
+
 type WorkspaceLocalState = {
+  cameraRestored: boolean;
+  cameraSettled: boolean;
   identityKey: string;
   network: NetworkExpansion;
   pendingOverwrite: Nullable<LayoutSnapshot>;
@@ -116,6 +126,16 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
   const identityKey = toGraphSceneKey([bookId, reader, sceneRequest, params.networkGroup]);
   const [local, setLocal] = useState<WorkspaceLocalState>(() => createLocalState(identityKey));
   if (local.identityKey !== identityKey) setLocal(createLocalState(identityKey));
+  const isPersonScene = params.view === "person" && !params.path;
+  const [personPanel, setPersonPanel] = useState<PersonPanelIntent>(() => ({
+    intent: "auto",
+    rootId: params.characterId,
+  }));
+  if (personPanel.rootId !== params.characterId) {
+    setPersonPanel({ intent: "auto", rootId: params.characterId });
+  }
+  const isPersonPanelOpen =
+    personPanel.intent === "open" || (personPanel.intent === "auto" && widthClass === "wide");
 
   const presentation =
     scene.data === undefined || params.path
@@ -145,7 +165,11 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
     bookId,
     nodeIds: [...allowedIds],
     reader,
-    sceneKey: toGraphSceneKey([identityKey, params.view, treeOptions]),
+    sceneKey: toGraphSceneKey(
+      isPersonScene
+        ? [identityKey, params.view, treeOptions, PERSON_LAYOUT.revision]
+        : [identityKey, params.view, treeOptions],
+    ),
   });
   const restore = toRestoredGraphLayout({
     allowedIds,
@@ -155,6 +179,13 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
 
   const selection = reconcileSelection({ presentation, selection: local.selection });
   const isSceneReady = presentation !== null;
+  if (isPersonScene && isSceneReady && !local.cameraSettled && savedLayout.layout.isFetched) {
+    setLocal((current) => ({
+      ...current,
+      cameraRestored: restore !== null,
+      cameraSettled: true,
+    }));
+  }
 
   useEffect(() => {
     if (!isSceneReady || !focusSceneStatus.current) return;
@@ -170,14 +201,21 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
       if (document.querySelector('[role="dialog"][data-state="open"]') !== null) return;
       if (hasSelection) {
         setLocal((current) => ({ ...current, selection: null }));
-        focusTrigger(lastTrigger.current);
+        if (isPersonScene) setPersonPanel((current) => ({ ...current, intent: "closed" }));
+        focusTrigger(
+          toRestoreTarget({
+            fallbackId: statusId,
+            trigger: lastTrigger.current,
+            useFallback: isPersonScene,
+          }),
+        );
         return;
       }
       setImmersive(false);
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [hasSelection, immersive]);
+  }, [hasSelection, immersive, isPersonScene, statusId]);
 
   useEffect(() => {
     if (!immersive || container === null) return;
@@ -193,10 +231,24 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
       lastTrigger.current = document.activeElement;
     }
     setLocal((current) => ({ ...current, selection: next }));
+    if (next !== null && isPersonScene) {
+      setPersonPanel((current) => ({ ...current, intent: "open" }));
+    }
+  }
+
+  function closePersonPanel() {
+    setLocal((current) => ({ ...current, selection: null }));
+    setPersonPanel((current) => ({ ...current, intent: "closed" }));
   }
 
   function restoreFocus() {
-    focusTrigger(lastTrigger.current);
+    focusTrigger(
+      toRestoreTarget({
+        fallbackId: statusId,
+        trigger: lastTrigger.current,
+        useFallback: isPersonScene,
+      }),
+    );
   }
 
   function saveLayout(snapshot: LayoutSnapshot, confirmed: boolean) {
@@ -292,7 +344,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
       )}
       ref={containerRef}
     >
-      {immersive ? null : <GraphWorkspaceHeader book={book} />}
+      {immersive ? null : <GraphWorkspaceHeader book={book} decorated={isPersonScene} />}
       {params.path ? (
         <GraphPathExplorer
           actions={actions}
@@ -389,17 +441,28 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
               onToggleImmersive={() => setImmersive((current) => !current)}
               params={params}
               pendingOverwrite={local.pendingOverwrite !== null}
-              placementKey={toGraphSceneKey([
-                identityKey,
-                treeOptions,
-                local.relayout,
-                restore === null ? null : layoutVersion,
-              ])}
+              personPanel={
+                isPersonScene ? { isOpen: isPersonPanelOpen, onClose: closePersonPanel } : null
+              }
+              placementKey={toGraphSceneKey(
+                isPersonScene
+                  ? [identityKey, local.relayout, local.cameraRestored]
+                  : [
+                      identityKey,
+                      treeOptions,
+                      local.relayout,
+                      restore === null ? null : layoutVersion,
+                    ],
+              )}
               presentation={presentation}
               reader={reader}
               relationshipActions={authoring.actions}
               restore={restore}
-              sceneKey={toGraphSceneKey([identityKey, restore === null ? null : layoutVersion])}
+              sceneKey={toGraphSceneKey(
+                isPersonScene
+                  ? [identityKey, local.relayout, local.cameraRestored]
+                  : [identityKey, restore === null ? null : layoutVersion],
+              )}
               sceneValue={sceneValue}
               selection={selection}
               statusId={statusId}
@@ -415,6 +478,8 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
 
 function createLocalState(identityKey: string): WorkspaceLocalState {
   return {
+    cameraRestored: false,
+    cameraSettled: false,
     identityKey,
     network: EMPTY_NETWORK_EXPANSION,
     pendingOverwrite: null,
@@ -466,6 +531,19 @@ function reconcileSelection({
   return presentation.connections.some((connection) => connection.id === selection.id)
     ? selection
     : null;
+}
+
+function toRestoreTarget({
+  fallbackId,
+  trigger,
+  useFallback,
+}: {
+  fallbackId: string;
+  trigger: Nullable<HTMLElement>;
+  useFallback: boolean;
+}): Nullable<HTMLElement> {
+  if (trigger !== null && trigger.isConnected) return trigger;
+  return useFallback ? document.getElementById(fallbackId) : trigger;
 }
 
 function toRootParticipant({

@@ -5,12 +5,19 @@ import type { BookDetailsView } from "@app/shared";
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
+import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 
 import { getBookCharactersListPath } from "../../model/workspace/graph-workspace-routes";
 
-export function GraphWorkspaceHeader({ book }: { book: BookDetailsView }) {
+export function GraphWorkspaceHeader({
+  book,
+  decorated,
+}: {
+  book: BookDetailsView;
+  decorated: boolean;
+}) {
   const t = useTranslations("relationships.workspace.header");
   const charactersPath = getBookCharactersListPath(book.id);
 
@@ -34,7 +41,19 @@ export function GraphWorkspaceHeader({ book }: { book: BookDetailsView }) {
             <li aria-current="page">{t("title")}</li>
           </ol>
         </nav>
-        <h1 className="font-heading text-2xl font-medium">{t("title")}</h1>
+        {decorated ? (
+          <>
+            <div className="flex items-center gap-3">
+              <h1 className="font-heading text-2xl font-semibold text-ink sm:text-3xl">
+                {t("title")}
+              </h1>
+              <TitleLeaf />
+            </div>
+            <p className="max-w-2xl text-sm text-muted-foreground">{t("personLead")}</p>
+          </>
+        ) : (
+          <h1 className="font-heading text-2xl font-medium">{t("title")}</h1>
+        )}
       </div>
       <Button asChild className="self-start sm:self-auto" variant="outline">
         <Link href={charactersPath}>
