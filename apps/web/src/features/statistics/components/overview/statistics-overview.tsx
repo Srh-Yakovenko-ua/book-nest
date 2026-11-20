@@ -38,6 +38,7 @@ import { StatisticsFocusTarget } from "../statistics-focus-target";
 import {
   StatisticsError,
   StatisticsNote,
+  StatisticsProgressSkeleton,
   StatisticsRefreshingNote,
   StatisticsSectionState,
   StatisticsSkeleton,
@@ -136,6 +137,7 @@ function StatisticsBody({
   scope: StatisticsScopeState<ReadingStatisticsOverview>;
 }) {
   const t = useTranslations("statistics");
+  const { tab } = useStatisticsView(params.state);
   const overview = scope.data;
 
   if (scope.isInitialError) {
@@ -143,15 +145,17 @@ function StatisticsBody({
   }
 
   if (overview === undefined) {
-    return params.isRequestable ? (
-      <StatisticsSkeleton />
-    ) : (
-      <StatisticsSectionState
-        description={t("states.invalidRange.description")}
-        kind="insufficient"
-        title={t("states.invalidRange.title")}
-      />
-    );
+    if (!params.isRequestable) {
+      return (
+        <StatisticsSectionState
+          description={t("states.invalidRange.description")}
+          kind="insufficient"
+          title={t("states.invalidRange.title")}
+        />
+      );
+    }
+
+    return tab === "progress" ? <StatisticsProgressSkeleton /> : <StatisticsSkeleton />;
   }
 
   const isLowerBound = overview.meta.activityHistory.selectedPeriodQuality === "legacy_lower_bound";
@@ -186,6 +190,7 @@ function StatisticsTabs({
   params: UseStatisticsParamsResult;
 }) {
   const t = useTranslations("statistics.tabs");
+  const tProgressGroups = useTranslations("statistics.progressGroups");
   const view = useStatisticsView(params.state);
   const isComparisonLowerBound = isLowerBoundComparison({
     comparison: overview.comparison,
@@ -277,11 +282,21 @@ function StatisticsTabs({
         )}
       </PageTabsPanel>
 
-      <PageTabsPanel className="flex flex-col gap-6" value="progress">
-        <ReadingGoalCard goal={overview.goal} variant="full" />
-        <SeriesSection series={overview.series} />
-        <LibraryBalanceSection libraryBalance={overview.libraryBalance} />
-        <RecordsSection isLowerBound={isLowerBound} records={overview.records} />
+      <PageTabsPanel className="@container flex flex-col gap-4" value="progress">
+        <section
+          aria-label={tProgressGroups("snapshot")}
+          className="grid grid-cols-1 gap-4 @3xl:grid-cols-2"
+        >
+          <ReadingGoalCard goal={overview.goal} variant="full" />
+          <LibraryBalanceSection libraryBalance={overview.libraryBalance} />
+        </section>
+        <section
+          aria-label={tProgressGroups("period")}
+          className="grid grid-cols-1 gap-4 @3xl:grid-cols-2"
+        >
+          <SeriesSection series={overview.series} />
+          <RecordsSection isLowerBound={isLowerBound} records={overview.records} />
+        </section>
       </PageTabsPanel>
     </PageTabs>
   );

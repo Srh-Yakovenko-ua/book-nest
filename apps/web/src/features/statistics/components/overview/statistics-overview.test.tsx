@@ -155,6 +155,38 @@ describe("StatisticsOverview tabs", () => {
     await expectSections(SECTION_TITLES[tab]);
   });
 
+  it("groups the progress tab into today's state followed by the selected period", async () => {
+    renderStatistics("?tab=progress");
+    const panel = await activePanel();
+
+    const snapshot = await within(panel).findByRole("region", {
+      name: text.progressGroups.snapshot,
+    });
+    const period = within(panel).getByRole("region", { name: text.progressGroups.period });
+
+    expect(
+      within(snapshot).getByRole("heading", { level: 2, name: text.goal.title }),
+    ).toBeInTheDocument();
+    expect(
+      within(snapshot).getByRole("heading", { level: 2, name: text.libraryBalance.title }),
+    ).toBeInTheDocument();
+    expect(
+      within(period).getByRole("heading", { level: 2, name: text.series.title }),
+    ).toBeInTheDocument();
+    expect(
+      within(period).getByRole("heading", { level: 2, name: text.records.title }),
+    ).toBeInTheDocument();
+    expect(
+      within(snapshot).queryByRole("heading", { name: text.records.title }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(period).queryByRole("heading", { name: text.goal.title }),
+    ).not.toBeInTheDocument();
+    expect(snapshot.compareDocumentPosition(period) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
   it("stacks the activity tab as dynamics beside habits, then weekday activity and the calendar link, with no fifth section", async () => {
     renderStatistics("?tab=activity");
     const panel = await activePanel();
@@ -312,6 +344,25 @@ describe("StatisticsOverview tabs", () => {
     expect(await screen.findByText(text.states.lowerBound)).toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: text.tabs.progress }));
     expect(screen.getByText(text.states.lowerBound)).toBeInTheDocument();
+  });
+
+  it("shows the progress skeleton instead of the overview one while the progress tab loads", async () => {
+    overviewResponse = () => new Promise<Response>(() => undefined);
+    renderStatistics("?tab=progress");
+
+    const skeleton = await screen.findByTestId("statistics-skeleton-progress");
+
+    expect(skeleton).toHaveRole("status");
+    expect(skeleton).toHaveAccessibleName(text.states.loading);
+    expect(screen.queryByTestId("statistics-skeleton-hero")).not.toBeInTheDocument();
+  });
+
+  it("keeps the overview skeleton while the default tab loads", async () => {
+    overviewResponse = () => new Promise<Response>(() => undefined);
+    renderStatistics();
+
+    expect(await screen.findByTestId("statistics-skeleton-hero")).toBeInTheDocument();
+    expect(screen.queryByTestId("statistics-skeleton-progress")).not.toBeInTheDocument();
   });
 
   it("shows the first-load error without tabs", async () => {
