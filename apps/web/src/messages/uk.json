@@ -10504,7 +10504,8 @@
         "back": "До персонажів книги",
         "breadcrumb": "Навігація",
         "characters": "Персонажі",
-        "title": "Карта зв’язків"
+        "title": "Карта зв’язків",
+        "personLead": "Найближче оточення персонажа: родина, союзники, суперники та інші зв’язки у вашому контексті читання."
       },
       "views": {
         "label": "Режим карти",
@@ -10524,7 +10525,7 @@
       },
       "depth": {
         "label": "Коло зв’язків",
-        "option": "{depth, plural, one {Безпосередні (1 крок)} few {До # кроків} many {До # кроків} other {До # кроку}}"
+        "short": "{depth, plural, one {# крок} few {# кроки} many {# кроків} other {# кроку}}"
       },
       "generations": {
         "ancestors": "Предки",
@@ -10620,7 +10621,8 @@
       "counters": {
         "expanded": "Розгорнуто: {nodes, plural, one {# персонаж} few {# персонажі} many {# персонажів} other {# персонажа}} · {edges, plural, one {# зв’язок} few {# зв’язки} many {# зв’язків} other {# зв’язку}}",
         "groups": "На карті: {groups, plural, one {# група} few {# групи} many {# груп} other {# групи}}",
-        "people": "На карті: {nodes, plural, one {# персонаж} few {# персонажі} many {# персонажів} other {# персонажа}} · {edges, plural, one {# зв’язок} few {# зв’язки} many {# зв’язків} other {# зв’язку}}"
+        "people": "На карті: {nodes, plural, one {# персонаж} few {# персонажі} many {# персонажів} other {# персонажа}} · {edges, plural, one {# зв’язок} few {# зв’язки} many {# зв’язків} other {# зв’язку}}",
+        "person": "На карті: {nodes, plural, one {# персонаж} few {# персонажі} many {# персонажів} other {# персонажа}} · {pairs, plural, one {# пара} few {# пари} many {# пар} other {# пари}} · {relationships, plural, one {# зв’язок} few {# зв’язки} many {# зв’язків} other {# зв’язку}}"
       },
       "more": {
         "clusters": "Показати ще групи",
@@ -10665,7 +10667,13 @@
         "saved": "Розташування збережено",
         "saveError": "Не вдалося зберегти розташування",
         "zoomIn": "Наблизити",
-        "zoomOut": "Віддалити"
+        "zoomOut": "Віддалити",
+        "center": "До центрального персонажа",
+        "fitAll": "Показати всю мережу",
+        "miniMap": {
+          "label": "Мінікарта мережі: видима область і центральний персонаж",
+          "toggle": "Мінікарта"
+        }
       },
       "list": {
         "aggregate": "Між показаними персонажами «{source}» і «{target}» є зв’язки",
@@ -10693,7 +10701,38 @@
           "title": "{source} і {target}"
         },
         "description": "Деталі вибраного елемента карти.",
-        "title": "Деталі"
+        "title": "Деталі",
+        "person": {
+          "direction": {
+            "directed": "{source} → {target}",
+            "mixed": "Різні напрямки",
+            "symmetric": "Взаємний зв’язок",
+            "unknown": "Напрямок не розкрито"
+          },
+          "findPath": "Знайти шлях",
+          "nearest": "Найближчі зв’язки",
+          "nearestAll": "Усі ({count})",
+          "openPair": "Відкрити зв’язок із персонажем {name}: {label}",
+          "profile": "Профіль",
+          "stats": {
+            "caption": "Пораховано за поточною картою.",
+            "characters": "{count, plural, one {персонаж на карті} few {персонажі на карті} many {персонажів на карті} other {персонажа на карті}}",
+            "label": "Лічильники на карті",
+            "neighbors": "{count, plural, one {прямий сусід} few {прямі сусіди} many {прямих сусідів} other {прямого сусіда}}",
+            "partial": "Карта показує не всі зв’язки, тож лічильники стосуються лише показаного.",
+            "relationships": "{count, plural, one {прямий зв’язок} few {прямі зв’язки} many {прямих зв’язків} other {прямого зв’язку}}",
+            "about": "Як пораховано лічильники",
+            "aboutPartial": "Лічильники неповні: як їх пораховано"
+          },
+          "heading": {
+            "character": "Персонаж",
+            "connection": "Деталі зв’язку"
+          },
+          "root": "Центр карти",
+          "importance": "Важливість: {label}",
+          "makeCenter": "Зробити центральним",
+          "nearestLess": "Згорнути"
+        }
       },
       "path": {
         "back": "До карти",
@@ -10723,7 +10762,34 @@
         "to": "Персонаж Б",
         "unavailable": "Персонаж недоступний у цій книзі.",
         "unknown": "Не вдалося підтвердити, що пошук завершено повністю."
-      }
+      },
+      "legend": {
+        "filteredOut": "(прибрано фільтром)",
+        "masked": "Приховані",
+        "mixed": "Різні типи",
+        "title": "Легенда зв’язків",
+        "expand": "Показати всі",
+        "collapse": "Згорнути"
+      },
+      "pair": {
+        "count": "{count, plural, one {# зв’язок} few {# зв’язки} many {# зв’язків} other {# зв’язку}}",
+        "masked": "Приховано"
+      },
+      "personList": {
+        "clearSearch": "Очистити пошук",
+        "counts": "{pairs, plural, one {# пара персонажів} few {# пари персонажів} many {# пар персонажів} other {# пари персонажів}} · {relationships, plural, one {# зв’язок} few {# зв’язки} many {# зв’язків} other {# зв’язку}}",
+        "noMatches": "Серед показаних зв’язків нічого не знайдено.",
+        "open": "Відкрити зв’язок {names}: {label}",
+        "pair": "{first} — {second}",
+        "search": "Пошук серед показаних зв’язків",
+        "showLess": "Згорнути",
+        "title": "Зв’язки на карті",
+        "showMore": "Показати ще ({count})"
+      },
+      "rings": {
+        "hop": "{hop, plural, one {# крок} few {# кроки} many {# кроків} other {# кроку}}"
+      },
+      "pathEntryShort": "Знайти зв’язок"
     }
   }
 }

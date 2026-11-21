@@ -21,6 +21,12 @@ export function useGraphCounterText(
       return t("groups", { groups: counters.groups });
     case "people":
       return t("people", { edges: counters.edges, nodes: counters.nodes });
+    case "person":
+      return t("person", {
+        nodes: counters.nodes,
+        pairs: counters.pairs,
+        relationships: counters.edges,
+      });
     default:
       return assertNever(counters);
   }

@@ -37,8 +37,21 @@ import { RelationshipStateBadges } from "./relationship-state-badges";
 import { RelationshipTypeSection } from "./relationship-type-section";
 import { RelationshipsErrorState } from "./relationships-error-state";
 
+const DETAILS_LAYOUT = {
+  panelActions:
+    "sticky -bottom-4 z-10 -mx-4 mt-auto -mb-4 grid auto-cols-fr grid-flow-col gap-2 border-t border-border bg-card/95 px-4 py-3 backdrop-blur-sm",
+  region: {
+    dialog:
+      "-mx-1 flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto rounded-md px-1 pb-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+    panel: "flex flex-col gap-4",
+  },
+} as const;
+
+export type RelationshipDetailsLayout = keyof typeof DETAILS_LAYOUT.region;
+
 type RelationshipDetailsContentProps = {
   actions: RelationshipActions;
+  layout?: RelationshipDetailsLayout;
   relationshipId: string;
   scope: RelationshipScope;
 };
@@ -50,6 +63,7 @@ type RevealConfirmation = {
 
 export function RelationshipDetailsContent({
   actions,
+  layout = "dialog",
   relationshipId,
   scope,
 }: RelationshipDetailsContentProps) {
@@ -84,6 +98,23 @@ export function RelationshipDetailsContent({
   const details = (isRevealing ? revealed.data : undefined) ?? base.data;
   const isRevealFetching = isRevealing && revealed.isFetching;
   const { onDelete, onEdit } = actions;
+  const isPanel = layout === "panel";
+  const actionButtons = (
+    <>
+      {onEdit === undefined ? null : (
+        <Button onClick={() => onEdit(relationshipId)} type="button" variant="secondary">
+          <UiIcon name="edit" size={16} />
+          {t("actions.edit")}
+        </Button>
+      )}
+      {onDelete === undefined ? null : (
+        <Button onClick={() => onDelete(relationshipId)} type="button" variant="destructive">
+          <UiIcon name="trash" size={16} />
+          {t("actions.delete")}
+        </Button>
+      )}
+    </>
+  );
 
   function requestReveal(request: RelationshipRevealRequest) {
     setConfirmation({ open: true, request });
@@ -98,15 +129,17 @@ export function RelationshipDetailsContent({
     <>
       <div
         aria-label={t("title")}
-        className="-mx-1 flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto rounded-md px-1 pb-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        className={DETAILS_LAYOUT.region[layout]}
         role="region"
-        tabIndex={0}
+        tabIndex={isPanel ? undefined : 0}
       >
-        <RelationshipParticipants
-          edge={details.relationship}
-          focusCharacterId={toRelationshipFocusCharacterId(scope)}
-          size="dialog"
-        />
+        {isPanel ? null : (
+          <RelationshipParticipants
+            edge={details.relationship}
+            focusCharacterId={toRelationshipFocusCharacterId(scope)}
+            size="dialog"
+          />
+        )}
 
         {isRevealing && revealed.isError ? (
           <div
@@ -154,21 +187,11 @@ export function RelationshipDetailsContent({
         />
       </div>
 
-      {hasRelationshipActions(actions) ? (
-        <DialogFooter>
-          {onEdit === undefined ? null : (
-            <Button onClick={() => onEdit(relationshipId)} type="button" variant="secondary">
-              <UiIcon name="edit" size={16} />
-              {t("actions.edit")}
-            </Button>
-          )}
-          {onDelete === undefined ? null : (
-            <Button onClick={() => onDelete(relationshipId)} type="button" variant="destructive">
-              <UiIcon name="trash" size={16} />
-              {t("actions.delete")}
-            </Button>
-          )}
-        </DialogFooter>
+      {hasRelationshipActions(actions) && isPanel ? (
+        <div className={DETAILS_LAYOUT.panelActions}>{actionButtons}</div>
+      ) : null}
+      {hasRelationshipActions(actions) && !isPanel ? (
+        <DialogFooter>{actionButtons}</DialogFooter>
       ) : null}
 
       {confirmation === null ? null : (

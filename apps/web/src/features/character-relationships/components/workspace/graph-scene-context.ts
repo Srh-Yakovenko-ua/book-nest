@@ -16,16 +16,22 @@ export const GRAPH_SCENE_FLOW = {
   characterNode: "workspace-character",
   clusterNode: "workspace-cluster",
   connectionEdge: "connection",
+  personEdge: "person-connection",
+  personNode: "workspace-person",
 } as const;
 
 export type GraphSceneFlowEdge = Edge<
   GraphSceneEdgeData,
-  typeof GRAPH_SCENE_FLOW.aggregateEdge | typeof GRAPH_SCENE_FLOW.connectionEdge
+  | typeof GRAPH_SCENE_FLOW.aggregateEdge
+  | typeof GRAPH_SCENE_FLOW.connectionEdge
+  | typeof GRAPH_SCENE_FLOW.personEdge
 >;
 
 export type GraphSceneFlowNode = Node<
   Record<string, never>,
-  typeof GRAPH_SCENE_FLOW.characterNode | typeof GRAPH_SCENE_FLOW.clusterNode
+  | typeof GRAPH_SCENE_FLOW.characterNode
+  | typeof GRAPH_SCENE_FLOW.clusterNode
+  | typeof GRAPH_SCENE_FLOW.personNode
 >;
 
 export type GraphSceneSelection =

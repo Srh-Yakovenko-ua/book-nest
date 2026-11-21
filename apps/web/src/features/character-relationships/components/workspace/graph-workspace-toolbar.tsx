@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Segmented } from "@/components/ui/segmented";
 import {
   Select,
   SelectContent,
@@ -102,22 +103,21 @@ export function GraphWorkspaceToolbar({
         </div>
       ) : null}
       {params.view === "person" ? (
-        <Select
-          disabled={params.characterId === null}
-          onValueChange={(value) => actions.setDepth(Number(value))}
-          value={String(params.depth)}
-        >
-          <SelectTrigger aria-label={t("depth.label")} className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {TOOLBAR.depthOptions.map((depth) => (
-              <SelectItem key={depth} value={String(depth)}>
-                {t("depth.option", { depth })}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <span aria-hidden className="hidden text-sm text-muted-foreground @3xl/workspace:inline">
+            {t("depth.label")}
+          </span>
+          <Segmented
+            disabled={params.characterId === null}
+            label={t("depth.label")}
+            onValueChange={(value) => actions.setDepth(Number(value))}
+            options={TOOLBAR.depthOptions.map((depth) => ({
+              label: t("depth.short", { depth }),
+              value: String(depth),
+            }))}
+            value={String(params.depth)}
+          />
+        </div>
       ) : null}
       {params.view === "tree" ? (
         <>
@@ -159,7 +159,7 @@ export function GraphWorkspaceToolbar({
         variant="secondary"
       >
         <Route aria-hidden className="size-4" />
-        {t("pathEntry")}
+        {t(params.view === "person" ? "pathEntryShort" : "pathEntry")}
       </Button>
       <HelpControl />
     </div>

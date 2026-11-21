@@ -10504,7 +10504,8 @@
         "back": "To book characters",
         "breadcrumb": "Breadcrumb",
         "characters": "Characters",
-        "title": "Relationship map"
+        "title": "Relationship map",
+        "personLead": "A character’s closest circle: family, allies, rivals and other connections at your point in the book."
       },
       "views": {
         "label": "Map mode",
@@ -10524,7 +10525,7 @@
       },
       "depth": {
         "label": "Circle of connections",
-        "option": "{depth, plural, one {Direct (1 step)} other {Up to # steps}}"
+        "short": "{depth, plural, one {# step} other {# steps}}"
       },
       "generations": {
         "ancestors": "Ancestors",
@@ -10620,7 +10621,8 @@
       "counters": {
         "expanded": "Expanded: {nodes, plural, one {# character} other {# characters}} · {edges, plural, one {# connection} other {# connections}}",
         "groups": "On the map: {groups, plural, one {# group} other {# groups}}",
-        "people": "On the map: {nodes, plural, one {# character} other {# characters}} · {edges, plural, one {# connection} other {# connections}}"
+        "people": "On the map: {nodes, plural, one {# character} other {# characters}} · {edges, plural, one {# connection} other {# connections}}",
+        "person": "On the map: {nodes, plural, one {# character} other {# characters}} · {pairs, plural, one {# pair} other {# pairs}} · {relationships, plural, one {# connection} other {# connections}}"
       },
       "more": {
         "clusters": "Show more groups",
@@ -10665,7 +10667,13 @@
         "saved": "Layout saved",
         "saveError": "Could not save the layout",
         "zoomIn": "Zoom in",
-        "zoomOut": "Zoom out"
+        "zoomOut": "Zoom out",
+        "center": "Back to the central character",
+        "fitAll": "Show the whole network",
+        "miniMap": {
+          "label": "Network mini map: visible area and central character",
+          "toggle": "Mini map"
+        }
       },
       "list": {
         "aggregate": "The shown characters of “{source}” and “{target}” are connected",
@@ -10693,7 +10701,38 @@
           "title": "{source} and {target}"
         },
         "description": "Details of the selected map element.",
-        "title": "Details"
+        "title": "Details",
+        "person": {
+          "direction": {
+            "directed": "{source} → {target}",
+            "mixed": "Mixed directions",
+            "symmetric": "Mutual connection",
+            "unknown": "Direction not revealed"
+          },
+          "findPath": "Find a path",
+          "nearest": "Closest connections",
+          "nearestAll": "All ({count})",
+          "openPair": "Open the connection with {name}: {label}",
+          "profile": "Profile",
+          "stats": {
+            "caption": "Counted from the current map.",
+            "characters": "{count, plural, one {character on the map} other {characters on the map}}",
+            "label": "Counts on the map",
+            "neighbors": "{count, plural, one {direct neighbor} other {direct neighbors}}",
+            "partial": "The map shows only part of the connections, so the counts cover only what is shown.",
+            "relationships": "{count, plural, one {direct connection} other {direct connections}}",
+            "about": "How these counts are calculated",
+            "aboutPartial": "These counts are partial: how they are calculated"
+          },
+          "heading": {
+            "character": "Character",
+            "connection": "Relationship details"
+          },
+          "root": "Map center",
+          "importance": "Importance: {label}",
+          "makeCenter": "Make central",
+          "nearestLess": "Show fewer"
+        }
       },
       "path": {
         "back": "To the map",
@@ -10723,7 +10762,34 @@
         "to": "Character B",
         "unavailable": "The character is unavailable in this book.",
         "unknown": "Could not confirm that the search finished completely."
-      }
+      },
+      "legend": {
+        "filteredOut": "(filtered out)",
+        "masked": "Hidden",
+        "mixed": "Mixed types",
+        "title": "Connection legend",
+        "expand": "Show all",
+        "collapse": "Show less"
+      },
+      "pair": {
+        "count": "{count, plural, one {# connection} other {# connections}}",
+        "masked": "Hidden"
+      },
+      "personList": {
+        "clearSearch": "Clear search",
+        "counts": "{pairs, plural, one {# character pair} other {# character pairs}} · {relationships, plural, one {# connection} other {# connections}}",
+        "noMatches": "No shown connection matches.",
+        "open": "Open the connection {names}: {label}",
+        "pair": "{first} — {second}",
+        "search": "Search shown connections",
+        "showLess": "Show fewer",
+        "title": "Connections on the map",
+        "showMore": "Show {count} more"
+      },
+      "rings": {
+        "hop": "{hop, plural, one {# step} other {# steps}}"
+      },
+      "pathEntryShort": "Find a link"
     }
   }
 }

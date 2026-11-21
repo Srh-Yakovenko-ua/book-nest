@@ -34,6 +34,7 @@ import {
   withPersonMore,
 } from "../../model/workspace/graph-person-scene";
 import { TREE_SCENE } from "../../model/workspace/graph-tree-scene";
+import { PERSON_LAYOUT } from "../../model/workspace/graph-workspace-layout";
 import { GRAPH_WORKSPACE_VIEWS } from "../../model/workspace/graph-workspace-params";
 import { buildGraphWorkspacePresentation } from "../../model/workspace/graph-workspace-presentation";
 import {
@@ -54,6 +55,7 @@ import { GraphPathExplorer } from "./graph-path-explorer";
 import { GraphSceneSection } from "./graph-scene-section";
 import { GraphWorkspaceHeader } from "./graph-workspace-header";
 import { GraphWorkspaceToolbar } from "./graph-workspace-toolbar";
+import { useGraphCounterText } from "./use-graph-counter-text";
 import { useWorkspaceWidthClass } from "./use-workspace-width-class";
 
 type GraphWorkspaceShellProps = {
@@ -65,7 +67,16 @@ type LayoutSnapshot = {
   viewport: CharacterGraphViewport;
 };
 
+type PanelIntent = "auto" | "closed" | "open";
+
+type PersonPanelIntent = {
+  intent: PanelIntent;
+  rootId: Nullable<string>;
+};
+
 type WorkspaceLocalState = {
+  cameraRestored: boolean;
+  cameraSettled: boolean;
   identityKey: string;
   network: NetworkExpansion;
   pendingOverwrite: Nullable<LayoutSnapshot>;
@@ -81,7 +92,12 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
   const reader = toGraphReaderKey(book);
   const sceneRequest = toGraphWorkspaceSceneRequest(params);
   const scene = useGraphWorkspaceScene({ bookId, reader, request: sceneRequest });
-  const { element: container, ref: containerRef, widthClass } = useWorkspaceWidthClass();
+  const {
+    element: container,
+    personWidthClass,
+    ref: containerRef,
+    widthClass,
+  } = useWorkspaceWidthClass();
   const [immersive, setImmersive] = useState(false);
   const [treeOptions, setTreeOptions] = useState<TreeOptions>(TREE_SCENE.defaultOptions);
   const lastTrigger = useRef<Nullable<HTMLElement>>(null);
@@ -116,6 +132,17 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
   const identityKey = toGraphSceneKey([bookId, reader, sceneRequest, params.networkGroup]);
   const [local, setLocal] = useState<WorkspaceLocalState>(() => createLocalState(identityKey));
   if (local.identityKey !== identityKey) setLocal(createLocalState(identityKey));
+  const isPersonScene = params.view === "person" && !params.path;
+  const sceneWidthClass = isPersonScene ? personWidthClass : widthClass;
+  const [personPanel, setPersonPanel] = useState<PersonPanelIntent>(() => ({
+    intent: "auto",
+    rootId: params.characterId,
+  }));
+  if (personPanel.rootId !== params.characterId) {
+    setPersonPanel({ intent: "auto", rootId: params.characterId });
+  }
+  const isPersonPanelOpen =
+    personPanel.intent === "open" || (personPanel.intent === "auto" && sceneWidthClass === "wide");
 
   const presentation =
     scene.data === undefined || params.path
@@ -132,6 +159,9 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
   const isUnavailable =
     isGraphWorkspaceNotFound(scene.error) ||
     (scene.isSuccess && presentation === null && !params.path);
+  const isSceneError = (scene.isError && scene.data === undefined) || isUnavailable;
+  const isStatusInline = isPersonScene && sceneRequest !== null;
+  const counterText = useGraphCounterText(presentation);
 
   const storageKey: RelationshipGraphLayoutKey = {
     contextBookId: null,
@@ -145,7 +175,11 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
     bookId,
     nodeIds: [...allowedIds],
     reader,
-    sceneKey: toGraphSceneKey([identityKey, params.view, treeOptions]),
+    sceneKey: toGraphSceneKey(
+      isPersonScene
+        ? [identityKey, params.view, treeOptions, PERSON_LAYOUT.revision]
+        : [identityKey, params.view, treeOptions],
+    ),
   });
   const restore = toRestoredGraphLayout({
     allowedIds,
@@ -155,6 +189,13 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
 
   const selection = reconcileSelection({ presentation, selection: local.selection });
   const isSceneReady = presentation !== null;
+  if (isPersonScene && isSceneReady && !local.cameraSettled && savedLayout.layout.isFetched) {
+    setLocal((current) => ({
+      ...current,
+      cameraRestored: restore !== null,
+      cameraSettled: true,
+    }));
+  }
 
   useEffect(() => {
     if (!isSceneReady || !focusSceneStatus.current) return;
@@ -162,22 +203,30 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
     document.getElementById(statusId)?.focus();
   }, [isSceneReady, identityKey, statusId]);
   const hasSelection = selection !== null;
+  const hasPersonPanel = isPersonScene && isSceneReady && isPersonPanelOpen;
 
   useEffect(() => {
-    if (!hasSelection && !immersive) return;
+    if (!hasSelection && !hasPersonPanel && !immersive) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || event.defaultPrevented) return;
       if (document.querySelector('[role="dialog"][data-state="open"]') !== null) return;
-      if (hasSelection) {
+      if (hasSelection || hasPersonPanel) {
         setLocal((current) => ({ ...current, selection: null }));
-        focusTrigger(lastTrigger.current);
+        if (isPersonScene) setPersonPanel((current) => ({ ...current, intent: "closed" }));
+        focusTrigger(
+          toRestoreTarget({
+            fallbackId: statusId,
+            trigger: hasSelection ? lastTrigger.current : null,
+            useFallback: isPersonScene,
+          }),
+        );
         return;
       }
       setImmersive(false);
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [hasSelection, immersive]);
+  }, [hasPersonPanel, hasSelection, immersive, isPersonScene, statusId]);
 
   useEffect(() => {
     if (!immersive || container === null) return;
@@ -193,10 +242,24 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
       lastTrigger.current = document.activeElement;
     }
     setLocal((current) => ({ ...current, selection: next }));
+    if (next !== null && isPersonScene) {
+      setPersonPanel((current) => ({ ...current, intent: "open" }));
+    }
+  }
+
+  function closePersonPanel() {
+    setLocal((current) => ({ ...current, selection: null }));
+    setPersonPanel((current) => ({ ...current, intent: "closed" }));
   }
 
   function restoreFocus() {
-    focusTrigger(lastTrigger.current);
+    focusTrigger(
+      toRestoreTarget({
+        fallbackId: statusId,
+        trigger: lastTrigger.current,
+        useFallback: isPersonScene,
+      }),
+    );
   }
 
   function saveLayout(snapshot: LayoutSnapshot, confirmed: boolean) {
@@ -283,16 +346,39 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
           selection,
         };
 
+  const viewSwitch = (
+    <Segmented
+      block={widthClass === "compact"}
+      label={t("views.label")}
+      onValueChange={(next) => {
+        const view = GRAPH_WORKSPACE_VIEWS.find((entry) => entry === next);
+        if (view !== undefined) actions.setView(view);
+      }}
+      options={GRAPH_WORKSPACE_VIEWS.map((view) => ({
+        label: (
+          <>
+            <span className="@lg/workspace:hidden">{t(`views.short.${view}`)}</span>
+            <span className="hidden @lg/workspace:inline">{t(`views.${view}`)}</span>
+          </>
+        ),
+        value: view,
+      }))}
+      tone="accent"
+      value={params.view}
+    />
+  );
+
   return (
     <div
       className={cn(
-        "@container/workspace flex flex-col gap-4",
+        "@container/workspace flex flex-col",
+        isPersonScene ? "gap-3" : "gap-4",
         isSceneMode && "graph-workspace-viewport",
         immersive && "graph-workspace-immersive overflow-y-auto bg-background p-3 sm:p-4",
       )}
       ref={containerRef}
     >
-      {immersive ? null : <GraphWorkspaceHeader book={book} />}
+      {immersive ? null : <GraphWorkspaceHeader book={book} decorated={isPersonScene} />}
       {params.path ? (
         <GraphPathExplorer
           actions={actions}
@@ -304,26 +390,19 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
         />
       ) : (
         <>
-          <div className="flex flex-col gap-3">
-            <Segmented
-              block={widthClass === "compact"}
-              label={t("views.label")}
-              onValueChange={(next) => {
-                const view = GRAPH_WORKSPACE_VIEWS.find((entry) => entry === next);
-                if (view !== undefined) actions.setView(view);
-              }}
-              options={GRAPH_WORKSPACE_VIEWS.map((view) => ({
-                label: (
-                  <>
-                    <span className="@lg/workspace:hidden">{t(`views.short.${view}`)}</span>
-                    <span className="hidden @lg/workspace:inline">{t(`views.${view}`)}</span>
-                  </>
-                ),
-                value: view,
-              }))}
-              tone="accent"
-              value={params.view}
-            />
+          <div className={cn("flex flex-col", isPersonScene ? "gap-2" : "gap-3")}>
+            {isStatusInline ? (
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                {viewSwitch}
+                {isSceneError ? null : (
+                  <p aria-hidden className="text-sm text-muted-foreground">
+                    {counterText ?? t("states.loading")}
+                  </p>
+                )}
+              </div>
+            ) : (
+              viewSwitch
+            )}
             <GraphWorkspaceToolbar
               actions={actions}
               bookId={bookId}
@@ -349,7 +428,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
               actions={actions}
               bookId={bookId}
               immersive={immersive}
-              isError={(scene.isError && scene.data === undefined) || isUnavailable}
+              isError={isSceneError}
               isNotFound={isUnavailable}
               layout={{
                 canSave: presentation !== null && !scene.isFetching,
@@ -389,21 +468,33 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
               onToggleImmersive={() => setImmersive((current) => !current)}
               params={params}
               pendingOverwrite={local.pendingOverwrite !== null}
-              placementKey={toGraphSceneKey([
-                identityKey,
-                treeOptions,
-                local.relayout,
-                restore === null ? null : layoutVersion,
-              ])}
+              personPanel={
+                isPersonScene ? { isOpen: isPersonPanelOpen, onClose: closePersonPanel } : null
+              }
+              placementKey={toGraphSceneKey(
+                isPersonScene
+                  ? [identityKey, local.relayout, local.cameraRestored]
+                  : [
+                      identityKey,
+                      treeOptions,
+                      local.relayout,
+                      restore === null ? null : layoutVersion,
+                    ],
+              )}
               presentation={presentation}
               reader={reader}
               relationshipActions={authoring.actions}
               restore={restore}
-              sceneKey={toGraphSceneKey([identityKey, restore === null ? null : layoutVersion])}
+              sceneKey={toGraphSceneKey(
+                isPersonScene
+                  ? [identityKey, local.relayout, local.cameraRestored]
+                  : [identityKey, restore === null ? null : layoutVersion],
+              )}
               sceneValue={sceneValue}
               selection={selection}
               statusId={statusId}
-              widthClass={widthClass}
+              statusInline={isStatusInline}
+              widthClass={sceneWidthClass}
             />
           )}
         </>
@@ -415,6 +506,8 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
 
 function createLocalState(identityKey: string): WorkspaceLocalState {
   return {
+    cameraRestored: false,
+    cameraSettled: false,
     identityKey,
     network: EMPTY_NETWORK_EXPANSION,
     pendingOverwrite: null,
@@ -466,6 +559,19 @@ function reconcileSelection({
   return presentation.connections.some((connection) => connection.id === selection.id)
     ? selection
     : null;
+}
+
+function toRestoreTarget({
+  fallbackId,
+  trigger,
+  useFallback,
+}: {
+  fallbackId: string;
+  trigger: Nullable<HTMLElement>;
+  useFallback: boolean;
+}): Nullable<HTMLElement> {
+  if (trigger !== null && trigger.isConnected) return trigger;
+  return useFallback ? document.getElementById(fallbackId) : trigger;
 }
 
 function toRootParticipant({
