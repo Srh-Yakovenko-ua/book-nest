@@ -18,7 +18,7 @@ import { useRevealOnFocus } from "./use-reveal-on-focus";
 
 const PERSON_NODE_STYLES = {
   avatar: "size-full border-2 border-card",
-  avatarDimmed: "opacity-50",
+  avatarDimmed: "opacity-60",
   branch:
     "nodrag nopan absolute -right-1 bottom-0 z-10 flex size-6 cursor-pointer items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-soft outline-none after:absolute after:-inset-2.5 after:rounded-full hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
   button:
@@ -56,7 +56,7 @@ export function GraphPersonNode({ id }: NodeProps<GraphSceneFlowNode>) {
   const variant = isRoot ? "root" : "default";
   const isSelected = selection?.kind === "character" && selection.id === id;
   const isEmphasized = emphasis?.characterIds.has(id) ?? false;
-  const isDimmed = emphasis !== null && !isEmphasized;
+  const isDimmed = emphasis !== null && !isEmphasized && !isRoot;
   const showPlate = level !== "far" || isRoot || isSelected || isEmphasized;
   const name = node.displayName;
   const label = isRoot

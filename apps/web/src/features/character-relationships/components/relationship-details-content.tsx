@@ -43,7 +43,7 @@ const DETAILS_LAYOUT = {
   region: {
     dialog:
       "-mx-1 flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto rounded-md px-1 pb-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-    panel: "flex flex-col gap-5",
+    panel: "flex flex-col gap-4",
   },
 } as const;
 

@@ -3,7 +3,7 @@
 import type { CharacterGraphEdgeView, Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
-import { useId } from "react";
+import { useId, useState } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,7 @@ const PERSON_SCENE = {
     immersive: "graph-person-canvas-immersive",
     regular: "graph-person-canvas",
   },
+  miniMapFrom: 12,
   more: {
     compact: "top-3 left-3",
     regular: "bottom-3 left-3",
@@ -113,6 +114,7 @@ export function GraphPersonScene(props: GraphPersonSceneProps) {
   } = props;
   const t = useTranslations("relationships.workspace");
   const listId = useId();
+  const [isMiniMapOpen, setMiniMapOpen] = useState(true);
   const semantics = toGraphPairSemanticsById({
     connections: presentation.connections,
     edges: presentation.edges,
@@ -124,6 +126,8 @@ export function GraphPersonScene(props: GraphPersonSceneProps) {
   const controlsPosition = toControlsPosition({ hasPanel: target !== null, widthClass });
   const isOverlayOpen = widthClass === "medium" && target !== null;
   const morePlacement = PERSON_SCENE.more[isCompact ? "compact" : "regular"];
+  const hasMiniMap =
+    !isCompact && !isOverlayOpen && presentation.characters.size >= PERSON_SCENE.miniMapFrom;
 
   const panel = (
     <PersonPanel
@@ -136,7 +140,7 @@ export function GraphPersonScene(props: GraphPersonSceneProps) {
   );
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col gap-4">
+    <section className="flex min-h-0 flex-1 flex-col gap-3">
       <GraphSceneNotices
         onConfirmOverwrite={props.onConfirmOverwrite}
         onDismissOverwrite={props.onDismissOverwrite}
@@ -178,6 +182,12 @@ export function GraphPersonScene(props: GraphPersonSceneProps) {
                   rootId,
                   semantics,
                 }),
+                miniMap: hasMiniMap
+                  ? {
+                      isOpen: isMiniMapOpen,
+                      onToggle: () => setMiniMapOpen((current) => !current),
+                    }
+                  : null,
                 rootId,
                 semantics,
               }}
@@ -210,7 +220,7 @@ export function GraphPersonScene(props: GraphPersonSceneProps) {
         </div>
         {widthClass === "compact" ? panel : null}
         {widthClass === "wide" && target !== null ? (
-          <div className="relative w-92 shrink-0">{panel}</div>
+          <div className="relative w-90 shrink-0">{panel}</div>
         ) : null}
       </div>
       <GraphPersonConnectionsList

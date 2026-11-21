@@ -49,7 +49,7 @@ export function GraphWorkspaceHeader({
               </h1>
               <TitleLeaf />
             </div>
-            <p className="max-w-2xl text-sm text-muted-foreground">{t("personLead")}</p>
+            <p className="max-w-3xl text-sm text-muted-foreground">{t("personLead")}</p>
           </>
         ) : (
           <h1 className="font-heading text-2xl font-medium">{t("title")}</h1>

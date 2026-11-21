@@ -89,7 +89,10 @@ export function GraphConnectionDetails({
 
   return (
     <section aria-labelledby="graph-connection-group" className="flex flex-col gap-2">
-      <h3 className="text-sm font-medium" id="graph-connection-group">
+      <h3
+        className={layout === "panel" ? "sr-only" : "text-sm font-medium"}
+        id="graph-connection-group"
+      >
         {t("group", names)}
       </h3>
       <ul className="flex flex-col gap-1">

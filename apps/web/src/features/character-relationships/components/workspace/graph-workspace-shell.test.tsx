@@ -158,6 +158,8 @@ const LABELS = {
 
 const CONTAINER_WIDTH = { phone: 375, wide: 1280 } as const;
 
+const ANNOUNCED_ONLY = { ignore: "[aria-hidden='true'], script, style" } as const;
+
 const EDGES = {
   geraltCiri: makeRelationshipGraphEdge({ id: IDS.geraltCiri, type: "guardian_of" }),
   geraltJaskier: makeRelationshipGraphEdge({
@@ -427,7 +429,9 @@ describe("GraphWorkspaceShell person view", () => {
   it("counts only the characters the map draws", async () => {
     renderWorkspace({ search: SEARCH.person });
 
-    expect(await screen.findByText(EXPECTED_TEXT.peopleCounter)).toBeInTheDocument();
+    expect(
+      await screen.findByText(EXPECTED_TEXT.peopleCounter, ANNOUNCED_ONLY),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: JASKIER.name })).not.toBeInTheDocument();
   });
 
@@ -479,7 +483,7 @@ describe("GraphWorkspaceShell person view", () => {
 
     await waitFor(() => expect(getRequests(API.graph)).toHaveLength(2));
     expect(screen.queryByText(CIRI.name)).not.toBeInTheDocument();
-    expect(screen.getByText(copy.states.loading)).toBeInTheDocument();
+    expect(screen.getByText(copy.states.loading, ANNOUNCED_ONLY)).toBeInTheDocument();
 
     nextGraph.release(GRAPHS.nextPage);
 
@@ -710,6 +714,17 @@ describe("GraphWorkspaceShell details panel at wide width", () => {
 
     expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
   });
+
+  it("closes the overview that opened by itself on Escape and moves focus to the map status", async () => {
+    renderWorkspace({ search: SEARCH.person });
+    await screen.findByRole("complementary", { name: GERALT.name });
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+    const status = screen.getByText(EXPECTED_TEXT.peopleCounter, ANNOUNCED_ONLY);
+    await waitFor(() => expect(status).toHaveFocus());
+  });
 });
 
 describe("GraphWorkspaceShell focus", () => {
@@ -718,7 +733,7 @@ describe("GraphWorkspaceShell focus", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: LABELS.pickGeralt }));
 
-    const status = await screen.findByText(EXPECTED_TEXT.peopleCounter);
+    const status = await screen.findByText(EXPECTED_TEXT.peopleCounter, ANNOUNCED_ONLY);
     await waitFor(() => expect(status).toHaveFocus());
   });
 
@@ -729,7 +744,7 @@ describe("GraphWorkspaceShell focus", () => {
     await userEvent.click(await screen.findByRole("button", { name: LABELS.pickGeralt }));
     await screen.findByRole("complementary", { name: GERALT.name });
 
-    const status = screen.getByText(EXPECTED_TEXT.peopleCounter);
+    const status = screen.getByText(EXPECTED_TEXT.peopleCounter, ANNOUNCED_ONLY);
     await waitFor(() => expect(status).toHaveFocus());
   });
 

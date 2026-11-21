@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { Panel, useNodesInitialized, useReactFlow } from "@xyflow/react";
 import {
   LocateFixed,
+  MapIcon,
   Maximize2,
   Minimize2,
   RotateCcw,
@@ -32,7 +33,8 @@ const CANVAS_CONTROLS = {
   durationMs: 250,
   fitMaxZoom: 1,
   fitPadding: 0.2,
-  personButton: "relative after:absolute after:-inset-1 after:rounded-lg",
+  personButton:
+    "relative after:absolute after:-inset-1 after:rounded-lg aria-pressed:bg-primary/10 aria-pressed:text-primary",
   personPanel: {
     horizontal:
       "flex items-center justify-center gap-0.5 rounded-2xl border border-border bg-card/90 p-1 shadow-soft backdrop-blur-sm",
@@ -84,6 +86,7 @@ export function GraphWorkspaceCanvasControls({
   const camera = useGraphPersonCamera();
   const personScene = use(GraphPersonSceneContext);
   const personCover = personScene?.cover ?? GRAPH_PERSON_CONTROLS_COVER[position];
+  const miniMap = personScene?.miniMap ?? null;
   const duration = prefersReducedMotion
     ? CANVAS_CONTROLS.reducedDurationMs
     : CANVAS_CONTROLS.durationMs;
@@ -146,7 +149,7 @@ export function GraphWorkspaceCanvasControls({
         >
           <ZoomOut aria-hidden />
         </PersonControl>
-        <PersonControl label={t("fit")} onClick={fitAll} side={tooltipSide}>
+        <PersonControl label={t("fitAll")} onClick={fitAll} side={tooltipSide}>
           <Scan aria-hidden />
         </PersonControl>
         <PersonControl label={t("center")} onClick={centerRoot} side={tooltipSide}>
@@ -159,6 +162,16 @@ export function GraphWorkspaceCanvasControls({
         >
           {immersive ? <Minimize2 aria-hidden /> : <Maximize2 aria-hidden />}
         </PersonControl>
+        {miniMap === null ? null : (
+          <PersonControl
+            label={t("miniMap.toggle")}
+            onClick={miniMap.onToggle}
+            pressed={miniMap.isOpen}
+            side={tooltipSide}
+          >
+            <MapIcon aria-hidden />
+          </PersonControl>
+        )}
         {layout === null ? null : (
           <>
             <span aria-hidden className={CANVAS_CONTROLS.personSeparator[orientation]} />
@@ -264,12 +277,14 @@ function PersonControl({
   disabled = false,
   label,
   onClick,
+  pressed,
   side,
 }: {
   children: ReactNode;
   disabled?: boolean;
   label: string;
   onClick: () => void;
+  pressed?: boolean;
   side: "left" | "top";
 }) {
   return (
@@ -277,6 +292,7 @@ function PersonControl({
       <TooltipTrigger asChild>
         <Button
           aria-label={label}
+          aria-pressed={pressed}
           className={CANVAS_CONTROLS.personButton}
           disabled={disabled}
           onClick={onClick}

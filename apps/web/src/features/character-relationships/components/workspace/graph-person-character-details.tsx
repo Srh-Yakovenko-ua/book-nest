@@ -3,7 +3,16 @@
 import type { CharacterGraphNodeView, Nullable } from "@app/shared";
 import type { LucideIcon } from "lucide-react";
 
-import { ChevronRight, Crown, Route, UserRound, Users, Waypoints } from "lucide-react";
+import {
+  ChevronRight,
+  CircleAlert,
+  Crown,
+  Info,
+  Route,
+  UserRound,
+  Users,
+  Waypoints,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 
@@ -12,6 +21,7 @@ import { TruncatedText } from "@/components/truncated-text";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { getCharacterDetailsPath } from "@/features/characters";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
@@ -76,7 +86,7 @@ export function GraphPersonCharacterDetails({
       <div className="flex items-center gap-3">
         <Avatar
           className={cn(
-            "size-16 shrink-0 border-2 border-card sm:size-18",
+            "size-14 shrink-0 border-2 border-card",
             isRoot ? "ring-2 ring-primary ring-offset-2 ring-offset-card" : "ring-1 ring-border",
           )}
         >
@@ -116,7 +126,7 @@ export function GraphPersonCharacterDetails({
           </div>
         </div>
       </div>
-      <section aria-label={tPerson("stats.label")} className="flex flex-col gap-1.5">
+      <section aria-label={tPerson("stats.label")} className="relative">
         <dl className="grid grid-cols-3 divide-x divide-border rounded-xl border border-border bg-muted/40 py-2">
           <StatTile
             count={reach.neighbors}
@@ -134,9 +144,31 @@ export function GraphPersonCharacterDetails({
             label={tPerson("stats.characters", { count: mapCharacters })}
           />
         </dl>
-        <p className="text-xs text-muted-foreground">
-          {tPerson(isPartial ? "stats.partial" : "stats.caption")}
-        </p>
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              aria-label={tPerson(isPartial ? "stats.aboutPartial" : "stats.about")}
+              className={cn(
+                "absolute top-1 right-1 flex size-6 cursor-pointer items-center justify-center rounded-full outline-none after:absolute after:-inset-2.5 after:rounded-full hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50",
+                isPartial ? "text-warning" : "text-muted-foreground",
+              )}
+              type="button"
+            >
+              {isPartial ? (
+                <CircleAlert aria-hidden className="size-3.5" />
+              ) : (
+                <Info aria-hidden className="size-3.5" />
+              )}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="end"
+            aria-label={tPerson(isPartial ? "stats.aboutPartial" : "stats.about")}
+            className="w-64 text-sm text-muted-foreground"
+          >
+            {tPerson(isPartial ? "stats.partial" : "stats.caption")}
+          </PopoverContent>
+        </Popover>
       </section>
       <div className="flex flex-col gap-2">
         {onMakeCenter === null ? null : (

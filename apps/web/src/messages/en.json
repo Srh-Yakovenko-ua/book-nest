@@ -10668,7 +10668,12 @@
         "saveError": "Could not save the layout",
         "zoomIn": "Zoom in",
         "zoomOut": "Zoom out",
-        "center": "Back to the central character"
+        "center": "Back to the central character",
+        "fitAll": "Show the whole network",
+        "miniMap": {
+          "label": "Network mini map: visible area and central character",
+          "toggle": "Mini map"
+        }
       },
       "list": {
         "aggregate": "The shown characters of “{source}” and “{target}” are connected",
@@ -10715,7 +10720,9 @@
             "label": "Counts on the map",
             "neighbors": "{count, plural, one {direct neighbor} other {direct neighbors}}",
             "partial": "The map shows only part of the connections, so the counts cover only what is shown.",
-            "relationships": "{count, plural, one {direct connection} other {direct connections}}"
+            "relationships": "{count, plural, one {direct connection} other {direct connections}}",
+            "about": "How these counts are calculated",
+            "aboutPartial": "These counts are partial: how they are calculated"
           },
           "heading": {
             "character": "Character",

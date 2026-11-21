@@ -8,6 +8,7 @@ import type {
   GraphPersonArea,
   GraphPersonBox,
   GraphPersonOuterRing,
+  GraphPersonViewport,
 } from "../../model/workspace/graph-person-camera";
 import type { GraphSceneFlowEdge, GraphSceneFlowNode } from "./graph-scene-context";
 
@@ -109,17 +110,17 @@ export function useGraphPersonCamera() {
     );
   }
 
-  function reveal({
+  function toReveal({
     cover,
-    duration,
     ids,
+    viewport,
   }: {
     cover: GraphPersonCover;
-    duration: number;
     ids: ReadonlySet<string>;
-  }) {
+    viewport: GraphPersonViewport;
+  }): Nullable<GraphPersonViewport> {
     const margin = PERSON_CAMERA_VIEW.revealMargin;
-    const viewport = toGraphPersonRevealViewport({
+    return toGraphPersonRevealViewport({
       area: toArea({
         bottom: cover.bottom + margin,
         left: cover.left + margin,
@@ -127,9 +128,8 @@ export function useGraphPersonCamera() {
         top: cover.top + margin,
       }),
       boxes: toBoxes(ids),
-      viewport: flow.getViewport(),
+      viewport,
     });
-    if (viewport !== null) void flow.setViewport(viewport, { duration });
   }
 
   function center({
@@ -156,5 +156,5 @@ export function useGraphPersonCamera() {
     );
   }
 
-  return { center, fitAll, initialize, reveal };
+  return { center, fitAll, initialize, toReveal };
 }

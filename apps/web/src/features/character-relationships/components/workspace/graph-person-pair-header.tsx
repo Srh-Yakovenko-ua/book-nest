@@ -29,18 +29,28 @@ export function GraphPersonPairHeader({
 }: GraphPersonPairHeaderProps) {
   const t = useTranslations("relationships.workspace.panel");
   const isMasked = semantics.tone === "masked";
+  const isMixed = !isMasked && semantics.direction.kind === "mixed";
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2">
       <h3 className="sr-only">
         {t("connection.title", { source: first.displayName, target: second.displayName })}
       </h3>
+      {isMasked || isMixed ? null : (
+        <p className="sr-only">
+          {semantics.direction.kind === "directed"
+            ? t("person.direction.directed", {
+                source: nameOf(semantics.direction.sourceId),
+                target: nameOf(semantics.direction.targetId),
+              })
+            : t(`person.direction.${semantics.direction.kind}`)}
+        </p>
+      )}
       <div aria-hidden className="flex items-start gap-2">
         <PairParticipant node={first} />
         <span
-          aria-hidden
           className={cn(
-            "mt-5 flex shrink-0 items-center justify-center rounded-full border border-border bg-card p-1.5",
+            "mt-2.5 flex shrink-0 items-center justify-center rounded-full border border-border bg-card p-1.5",
             GRAPH_PERSON_TONES[semantics.tone].iconColor,
           )}
         >
@@ -48,18 +58,11 @@ export function GraphPersonPairHeader({
         </span>
         <PairParticipant node={second} />
       </div>
-      <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center">
+      <div className="flex flex-col items-center gap-1">
         <GraphPersonRelationChip semantics={semantics} />
-        {isMasked ? null : (
-          <span className="text-xs text-muted-foreground">
-            {semantics.direction.kind === "directed"
-              ? t("person.direction.directed", {
-                  source: nameOf(semantics.direction.sourceId),
-                  target: nameOf(semantics.direction.targetId),
-                })
-              : t(`person.direction.${semantics.direction.kind}`)}
-          </span>
-        )}
+        {isMixed ? (
+          <p className="text-xs text-muted-foreground">{t("person.direction.mixed")}</p>
+        ) : null}
       </div>
     </div>
   );
@@ -79,17 +82,17 @@ function PairConnector({ firstId, semantics }: { firstId: string; semantics: Gra
 
 function PairParticipant({ node }: { node: CharacterGraphNodeView }) {
   return (
-    <span className="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center">
-      <Avatar className="size-14 border-2 border-card ring-1 ring-border">
+    <span className="flex min-w-0 flex-1 flex-col items-center gap-1 text-center">
+      <Avatar className="size-12 border-2 border-card ring-1 ring-border">
         {node.displayMedia === null ? null : (
           <AvatarImage alt="" className="object-cover" src={node.displayMedia.urls.thumb} />
         )}
-        <AvatarFallback className="font-heading text-lg">
+        <AvatarFallback className="font-heading text-base">
           {node.displayName.trim().charAt(0).toUpperCase()}
         </AvatarFallback>
       </Avatar>
       <TruncatedText
-        className="font-heading text-base leading-tight font-semibold break-words text-ink"
+        className="font-heading text-sm leading-tight font-semibold break-words text-ink"
         lines={2}
         text={node.displayName}
       />

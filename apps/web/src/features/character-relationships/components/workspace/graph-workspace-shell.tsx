@@ -55,6 +55,7 @@ import { GraphPathExplorer } from "./graph-path-explorer";
 import { GraphSceneSection } from "./graph-scene-section";
 import { GraphWorkspaceHeader } from "./graph-workspace-header";
 import { GraphWorkspaceToolbar } from "./graph-workspace-toolbar";
+import { useGraphCounterText } from "./use-graph-counter-text";
 import { useWorkspaceWidthClass } from "./use-workspace-width-class";
 
 type GraphWorkspaceShellProps = {
@@ -158,6 +159,9 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
   const isUnavailable =
     isGraphWorkspaceNotFound(scene.error) ||
     (scene.isSuccess && presentation === null && !params.path);
+  const isSceneError = (scene.isError && scene.data === undefined) || isUnavailable;
+  const isStatusInline = isPersonScene && sceneRequest !== null;
+  const counterText = useGraphCounterText(presentation);
 
   const storageKey: RelationshipGraphLayoutKey = {
     contextBookId: null,
@@ -199,19 +203,20 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
     document.getElementById(statusId)?.focus();
   }, [isSceneReady, identityKey, statusId]);
   const hasSelection = selection !== null;
+  const hasPersonPanel = isPersonScene && isSceneReady && isPersonPanelOpen;
 
   useEffect(() => {
-    if (!hasSelection && !immersive) return;
+    if (!hasSelection && !hasPersonPanel && !immersive) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || event.defaultPrevented) return;
       if (document.querySelector('[role="dialog"][data-state="open"]') !== null) return;
-      if (hasSelection) {
+      if (hasSelection || hasPersonPanel) {
         setLocal((current) => ({ ...current, selection: null }));
         if (isPersonScene) setPersonPanel((current) => ({ ...current, intent: "closed" }));
         focusTrigger(
           toRestoreTarget({
             fallbackId: statusId,
-            trigger: lastTrigger.current,
+            trigger: hasSelection ? lastTrigger.current : null,
             useFallback: isPersonScene,
           }),
         );
@@ -221,7 +226,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [hasSelection, immersive, isPersonScene, statusId]);
+  }, [hasPersonPanel, hasSelection, immersive, isPersonScene, statusId]);
 
   useEffect(() => {
     if (!immersive || container === null) return;
@@ -341,10 +346,33 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
           selection,
         };
 
+  const viewSwitch = (
+    <Segmented
+      block={widthClass === "compact"}
+      label={t("views.label")}
+      onValueChange={(next) => {
+        const view = GRAPH_WORKSPACE_VIEWS.find((entry) => entry === next);
+        if (view !== undefined) actions.setView(view);
+      }}
+      options={GRAPH_WORKSPACE_VIEWS.map((view) => ({
+        label: (
+          <>
+            <span className="@lg/workspace:hidden">{t(`views.short.${view}`)}</span>
+            <span className="hidden @lg/workspace:inline">{t(`views.${view}`)}</span>
+          </>
+        ),
+        value: view,
+      }))}
+      tone="accent"
+      value={params.view}
+    />
+  );
+
   return (
     <div
       className={cn(
-        "@container/workspace flex flex-col gap-4",
+        "@container/workspace flex flex-col",
+        isPersonScene ? "gap-3" : "gap-4",
         isSceneMode && "graph-workspace-viewport",
         immersive && "graph-workspace-immersive overflow-y-auto bg-background p-3 sm:p-4",
       )}
@@ -362,26 +390,19 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
         />
       ) : (
         <>
-          <div className="flex flex-col gap-3">
-            <Segmented
-              block={widthClass === "compact"}
-              label={t("views.label")}
-              onValueChange={(next) => {
-                const view = GRAPH_WORKSPACE_VIEWS.find((entry) => entry === next);
-                if (view !== undefined) actions.setView(view);
-              }}
-              options={GRAPH_WORKSPACE_VIEWS.map((view) => ({
-                label: (
-                  <>
-                    <span className="@lg/workspace:hidden">{t(`views.short.${view}`)}</span>
-                    <span className="hidden @lg/workspace:inline">{t(`views.${view}`)}</span>
-                  </>
-                ),
-                value: view,
-              }))}
-              tone="accent"
-              value={params.view}
-            />
+          <div className={cn("flex flex-col", isPersonScene ? "gap-2" : "gap-3")}>
+            {isStatusInline ? (
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                {viewSwitch}
+                {isSceneError ? null : (
+                  <p aria-hidden className="text-sm text-muted-foreground">
+                    {counterText ?? t("states.loading")}
+                  </p>
+                )}
+              </div>
+            ) : (
+              viewSwitch
+            )}
             <GraphWorkspaceToolbar
               actions={actions}
               bookId={bookId}
@@ -407,7 +428,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
               actions={actions}
               bookId={bookId}
               immersive={immersive}
-              isError={(scene.isError && scene.data === undefined) || isUnavailable}
+              isError={isSceneError}
               isNotFound={isUnavailable}
               layout={{
                 canSave: presentation !== null && !scene.isFetching,
@@ -472,6 +493,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
               sceneValue={sceneValue}
               selection={selection}
               statusId={statusId}
+              statusInline={isStatusInline}
               widthClass={sceneWidthClass}
             />
           )}

@@ -59,6 +59,7 @@ type GraphSceneSectionProps = {
   sceneValue: Nullable<GraphSceneValue>;
   selection: GraphSceneSelection;
   statusId: string;
+  statusInline: boolean;
   widthClass: WorkspaceWidthClass;
 };
 
@@ -84,7 +85,7 @@ export function GraphSceneSection(props: GraphSceneSectionProps) {
         aria-live="polite"
         className={cn(
           "pb-2 text-sm text-muted-foreground outline-none",
-          announcement === "" && "sr-only",
+          (announcement === "" || props.statusInline) && "sr-only",
         )}
         id={props.statusId}
         tabIndex={-1}

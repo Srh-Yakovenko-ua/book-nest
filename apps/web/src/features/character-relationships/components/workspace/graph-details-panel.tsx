@@ -32,7 +32,7 @@ type GraphDetailsPanelProps = {
 };
 
 const PANEL_STYLES = {
-  body: "flex min-h-0 flex-1 scroll-pb-20 flex-col gap-4 overflow-x-hidden overflow-y-auto overscroll-contain p-4",
+  body: "flex min-h-0 flex-1 scroll-pb-20 flex-col gap-3.5 overflow-x-hidden overflow-y-auto overscroll-contain p-4",
   close: "size-11 shrink-0",
   default: {
     medium:

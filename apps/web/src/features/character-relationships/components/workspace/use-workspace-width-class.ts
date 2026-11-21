@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 
 const WORKSPACE_WIDTH = {
   compactBelow: 640,
-  person: { borders: 2, gap: 12, graphMin: 850, panel: 368 },
+  person: { gap: 12, graphMin: 820, panel: 360 },
   wideFrom: 1180,
 } as const;
 
@@ -14,8 +14,8 @@ export type WorkspaceWidthClass = "compact" | "medium" | "wide";
 
 export function toPersonWidthClass(innerWidth: number): WorkspaceWidthClass {
   if (innerWidth < WORKSPACE_WIDTH.compactBelow) return "compact";
-  const { borders, gap, graphMin, panel } = WORKSPACE_WIDTH.person;
-  return innerWidth >= graphMin + borders + gap + panel ? "wide" : "medium";
+  const { gap, graphMin, panel } = WORKSPACE_WIDTH.person;
+  return innerWidth >= graphMin + gap + panel ? "wide" : "medium";
 }
 
 export function toWorkspaceWidthClass(width: number): WorkspaceWidthClass {

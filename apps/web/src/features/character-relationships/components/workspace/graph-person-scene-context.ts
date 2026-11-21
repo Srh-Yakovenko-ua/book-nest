@@ -14,8 +14,14 @@ import type { GraphPersonCover } from "./use-graph-person-camera";
 export type GraphPersonCanvasScene = {
   cover: GraphPersonCover;
   labelPairIds: ReadonlySet<string>;
+  miniMap: Nullable<GraphPersonMiniMapState>;
   rootId: string;
   semantics: ReadonlyMap<string, GraphPairSemantics>;
+};
+
+export type GraphPersonMiniMapState = {
+  isOpen: boolean;
+  onToggle: () => void;
 };
 
 export type GraphPersonSceneValue = GraphPersonCanvasScene & {

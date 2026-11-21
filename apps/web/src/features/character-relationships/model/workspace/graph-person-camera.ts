@@ -22,9 +22,27 @@ export type GraphPersonDetailLevel = "detail" | "far" | "normal";
 
 export type GraphPersonOuterRing = { center: RelationshipGraphPoint; radius: number };
 
+export type GraphPersonPaneSize = { height: number; width: number };
+
 export type GraphPersonViewport = { x: number; y: number; zoom: number };
 
 type ZoomRange = { maxZoom: number; minZoom: number };
+
+export function anchorGraphPersonViewport({
+  next,
+  previous,
+  viewport,
+}: {
+  next: GraphPersonPaneSize;
+  previous: GraphPersonPaneSize;
+  viewport: GraphPersonViewport;
+}): GraphPersonViewport {
+  return {
+    x: viewport.x + (next.width - previous.width) / 2,
+    y: viewport.y + (next.height - previous.height) / 2,
+    zoom: viewport.zoom,
+  };
+}
 
 export function fitGraphPersonBounds({
   area,

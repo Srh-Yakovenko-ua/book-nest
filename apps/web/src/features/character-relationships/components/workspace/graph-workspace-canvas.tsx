@@ -34,11 +34,12 @@ import { toGraphPersonEmphasis } from "../../model/workspace/graph-person-emphas
 import { GraphCharacterNode } from "./graph-character-node";
 import { GraphClusterNode } from "./graph-cluster-node";
 import { GraphAggregateEdge, GraphConnectionEdge } from "./graph-connection-edge";
+import { GraphPersonCameraFollow } from "./graph-person-camera-follow";
 import { GraphPersonEdge } from "./graph-person-edge";
+import { GraphPersonMiniMap, withGraphPersonMiniMapCover } from "./graph-person-mini-map";
 import { GraphPersonNode } from "./graph-person-node";
 import { GraphPersonRings } from "./graph-person-rings";
 import { GraphPersonSceneContext } from "./graph-person-scene-context";
-import { GraphPersonSelectionReveal } from "./graph-person-selection-reveal";
 import { GRAPH_SCENE_FLOW, GraphSceneContext } from "./graph-scene-context";
 import { GraphWorkspaceCanvasControls } from "./graph-workspace-canvas-controls";
 
@@ -202,7 +203,12 @@ export function GraphWorkspaceCanvas({
           {person === null ? null : (
             <>
               <GraphPersonRings />
-              <GraphPersonSelectionReveal cover={person.cover} />
+              <GraphPersonCameraFollow
+                cover={
+                  person.miniMap?.isOpen ? withGraphPersonMiniMapCover(person.cover) : person.cover
+                }
+              />
+              {person.miniMap?.isOpen ? <GraphPersonMiniMap /> : null}
             </>
           )}
           <GraphWorkspaceCanvasControls {...controls} sceneKey={sceneKey} viewport={viewport} />

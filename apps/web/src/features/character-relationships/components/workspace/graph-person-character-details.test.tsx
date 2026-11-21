@@ -99,9 +99,10 @@ describe("GraphPersonCharacterDetails", () => {
   it("shows 3 nearest connections without a toggle when there are no more", () => {
     renderDetails({ nearest: NEAREST.slice(0, 3) });
 
+    const section = screen.getByRole("region", { name: person.nearest });
     expect(nearestRows()).toHaveLength(3);
-    expect(screen.queryByRole("button", { expanded: false })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { expanded: true })).not.toBeInTheDocument();
+    expect(within(section).queryByRole("button", { expanded: false })).not.toBeInTheDocument();
+    expect(within(section).queryByRole("button", { expanded: true })).not.toBeInTheDocument();
   });
 
   it("opens the clicked nearest connection by its id", async () => {
@@ -125,6 +126,26 @@ describe("GraphPersonCharacterDetails", () => {
       translatePerson("stats.characters", { count: 6 }),
     ]);
     expect(definitions.map((definition) => definition.textContent)).toEqual(["5", "7", "6"]);
+  });
+
+  it("keeps the counting note behind an info toggle instead of under the counters", async () => {
+    renderDetails();
+
+    expect(screen.queryByText(person.stats.caption)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: person.stats.about }));
+
+    expect(await screen.findByText(person.stats.caption)).toBeVisible();
+  });
+
+  it("warns behind the info toggle that a partial map undercounts", async () => {
+    renderDetails({ isPartial: true });
+
+    expect(screen.queryByRole("button", { name: person.stats.about })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: person.stats.aboutPartial }));
+
+    expect(await screen.findByText(person.stats.partial)).toBeVisible();
+    expect(screen.queryByText(person.stats.caption)).not.toBeInTheDocument();
   });
 
   it("titles the panel with the character name", () => {

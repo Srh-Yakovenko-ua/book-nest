@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { GraphPersonArea, GraphPersonBox } from "./graph-person-camera";
 
 import {
+  anchorGraphPersonViewport,
   fitGraphPersonBounds,
   toGraphPersonBounds,
   toGraphPersonDetailLevel,
@@ -18,6 +19,31 @@ const NEAR_BOXES: readonly GraphPersonBox[] = [
   { height: 24, hop: 0, width: 40, x: 0, y: 0 },
   { height: 24, hop: 1, width: 40, x: 96, y: 24 },
 ];
+
+describe("anchorGraphPersonViewport", () => {
+  it("keeps the flow point under the pane centre when an inline panel narrows the pane", () => {
+    const viewport = { x: 120, y: 40, zoom: 0.8 };
+    const previous = { height: 590, width: 1206 };
+    const next = { height: 590, width: 834 };
+
+    const anchored = anchorGraphPersonViewport({ next, previous, viewport });
+
+    expect(anchored).toEqual({ x: -66, y: 40, zoom: 0.8 });
+    expect((previous.width / 2 - viewport.x) / viewport.zoom).toBeCloseTo(
+      (next.width / 2 - anchored.x) / anchored.zoom,
+    );
+  });
+
+  it("moves the view back when the panel closes and the pane grows again", () => {
+    const anchored = anchorGraphPersonViewport({
+      next: { height: 640, width: 1206 },
+      previous: { height: 590, width: 834 },
+      viewport: { x: -66, y: 40, zoom: 0.8 },
+    });
+
+    expect(anchored).toEqual({ x: 120, y: 65, zoom: 0.8 });
+  });
+});
 
 describe("toGraphPersonDetailLevel", () => {
   it.each([

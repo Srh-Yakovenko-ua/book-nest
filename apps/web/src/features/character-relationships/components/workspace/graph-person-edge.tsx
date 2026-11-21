@@ -30,7 +30,7 @@ const PERSON_EDGE_STYLES = {
   hitWidth: 24,
   labelCharWidth: 6.5,
   labelPadding: 40,
-  opacity: { dimmed: 0.3, emphasized: 1, idle: 1 },
+  opacity: { dimmed: 0.35, emphasized: 1, idle: 1 },
   width: { emphasized: 3, idle: 2, selected: 3.5 },
 } as const;
 
