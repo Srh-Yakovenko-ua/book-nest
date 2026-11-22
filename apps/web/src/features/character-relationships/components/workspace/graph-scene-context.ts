@@ -18,6 +18,8 @@ export const GRAPH_SCENE_FLOW = {
   connectionEdge: "connection",
   personEdge: "person-connection",
   personNode: "workspace-person",
+  treeEdge: "tree-connection",
+  treeNode: "workspace-tree",
 } as const;
 
 export type GraphSceneFlowEdge = Edge<
@@ -25,6 +27,7 @@ export type GraphSceneFlowEdge = Edge<
   | typeof GRAPH_SCENE_FLOW.aggregateEdge
   | typeof GRAPH_SCENE_FLOW.connectionEdge
   | typeof GRAPH_SCENE_FLOW.personEdge
+  | typeof GRAPH_SCENE_FLOW.treeEdge
 >;
 
 export type GraphSceneFlowNode = Node<
@@ -32,6 +35,7 @@ export type GraphSceneFlowNode = Node<
   | typeof GRAPH_SCENE_FLOW.characterNode
   | typeof GRAPH_SCENE_FLOW.clusterNode
   | typeof GRAPH_SCENE_FLOW.personNode
+  | typeof GRAPH_SCENE_FLOW.treeNode
 >;
 
 export type GraphSceneSelection =

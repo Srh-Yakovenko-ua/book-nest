@@ -8,7 +8,9 @@ import type {
 import type { GraphConnection } from "./graph-connections";
 import type { NetworkAggregate, NetworkBucket, NetworkExpansion } from "./graph-network-scene";
 import type { PersonExpansion } from "./graph-person-scene";
-import type { TreeOptions } from "./graph-tree-scene";
+import type { TreeLayoutRow } from "./graph-tree-layout";
+import type { TreePairSemantics } from "./graph-tree-pairs";
+import type { TreeOptions, TreeScene } from "./graph-tree-scene";
 import type { GraphWorkspacePositions } from "./graph-workspace-layout";
 import type { GraphWorkspaceParams } from "./graph-workspace-params";
 import type { GraphWorkspaceSceneData } from "./graph-workspace-request";
@@ -16,8 +18,10 @@ import type { GraphWorkspaceSceneData } from "./graph-workspace-request";
 import { toGraphConnections } from "./graph-connections";
 import { buildNetworkScene } from "./graph-network-scene";
 import { buildPersonScene } from "./graph-person-scene";
+import { layoutTreeScene } from "./graph-tree-layout";
+import { toTreePairSemanticsById } from "./graph-tree-pairs";
 import { buildTreeScene } from "./graph-tree-scene";
-import { layoutNetworkScene, layoutPersonScene, layoutTreeScene } from "./graph-workspace-layout";
+import { layoutNetworkScene, layoutPersonScene } from "./graph-workspace-layout";
 
 export type GraphPresentationCharacter = {
   canCollapse: boolean;
@@ -35,14 +39,31 @@ export type GraphPresentationCluster = {
 
 export type GraphPresentationCounters =
   | { edges: number; kind: "expanded"; nodes: number }
-  | { edges: number; kind: "people"; nodes: number }
   | { edges: number; kind: "person"; nodes: number; pairs: number }
+  | { edges: number; kind: "tree"; nodes: number; pairs: number }
   | { groups: number; kind: "groups" };
 
-export type GraphPresentationEmpty = "filteredEmpty" | "networkEmpty" | "noRelations";
+export type GraphPresentationEmpty =
+  "filteredEmpty" | "networkEmpty" | "noRelations" | "treeFiltered" | "treeRootOnly";
 
 export type GraphPresentationNotice =
-  "fallbackComponents" | "irregular" | "locked" | "noAncestry" | "overBudget" | "truncated";
+  | "fallbackComponents"
+  | "locked"
+  | "noAncestry"
+  | "overBudget"
+  | "treeConflicts"
+  | "treeFewerAncestors"
+  | "treeFewerDescendants"
+  | "treeMultiLine"
+  | "treeTruncated"
+  | "truncated";
+
+export type GraphTreePresentation = {
+  arcPairIds: ReadonlySet<string>;
+  pairs: ReadonlyMap<string, TreePairSemantics>;
+  rows: readonly TreeLayoutRow[];
+  scene: TreeScene;
+};
 
 export type GraphWorkspacePresentation = {
   aggregates: readonly NetworkAggregate[];
@@ -57,6 +78,7 @@ export type GraphWorkspacePresentation = {
   notices: readonly GraphPresentationNotice[];
   positions: GraphWorkspacePositions;
   rootId: Nullable<string>;
+  tree: Nullable<GraphTreePresentation>;
 };
 
 type BuildPresentationInput = {
@@ -129,6 +151,7 @@ function buildNetworkPresentation({
     ],
     positions: layoutNetworkScene(scene),
     rootId: null,
+    tree: null,
   };
 }
 
@@ -191,6 +214,7 @@ function buildPersonPresentation({
     ],
     positions: layoutPersonScene(scene),
     rootId,
+    tree: null,
   };
 }
 
@@ -199,8 +223,13 @@ function buildTreePresentation({
   treeOptions,
 }: BuildPresentationInput): Nullable<GraphWorkspacePresentation> {
   if (data.kind !== "tree") return null;
-  const scene = buildTreeScene({ options: treeOptions, tree: data.tree });
+  const { tree } = data;
+  const scene = buildTreeScene({ options: treeOptions, tree });
   if (!scene.nodes.some((node) => node.id === scene.rootId)) return null;
+  const connections = toGraphConnections(scene.edges);
+  const pairs = toTreePairSemanticsById({ connections, entryByEdgeId: scene.entryByEdgeId });
+  const layout = layoutTreeScene({ connections, pairs, scene });
+  const hasLineage = scene.lineage.length > 0;
   return {
     aggregates: [],
     characters: new Map(
@@ -216,19 +245,32 @@ function buildTreePresentation({
       ]),
     ),
     clusters: new Map(),
-    connections: toGraphConnections(scene.edges),
-    counters: { edges: scene.edges.length, kind: "people", nodes: scene.nodes.length },
+    connections,
+    counters: {
+      edges: scene.edges.length,
+      kind: "tree",
+      nodes: scene.nodes.length,
+      pairs: connections.length,
+    },
     edges: scene.edges,
-    empty: null,
+    empty: toTreeEmpty({ shown: scene.edges.length, total: tree.edges.length }),
     hasMoreClusters: false,
     moreHops: [],
     notices: [
-      ...baseNotices(data.tree.hiddenContent),
-      ...(data.tree.lineage.length === 0 ? (["noAncestry"] as const) : []),
-      ...(scene.hasIrregularGenerations ? (["irregular"] as const) : []),
+      ...(tree.hiddenContent.truncated ? (["treeTruncated"] as const) : []),
+      ...(scene.hasConflicts ? (["treeConflicts"] as const) : []),
+      ...(!hasLineage && scene.edges.length > 0 ? (["noAncestry"] as const) : []),
+      ...(hasLineage && scene.reach.ancestors < tree.ancestors
+        ? (["treeFewerAncestors"] as const)
+        : []),
+      ...(hasLineage && scene.reach.descendants < tree.descendants
+        ? (["treeFewerDescendants"] as const)
+        : []),
+      ...(scene.hasMultiLineLinks ? (["treeMultiLine"] as const) : []),
     ],
-    positions: layoutTreeScene(scene),
+    positions: layout.positions,
     rootId: scene.rootId,
+    tree: { arcPairIds: layout.arcPairIds, pairs, rows: layout.rows, scene },
   };
 }
 
@@ -240,4 +282,15 @@ function toEmptyReason({
   params: GraphWorkspaceParams;
 }): GraphPresentationEmpty {
   return params.categories.length > 0 || params.types.length > 0 ? "filteredEmpty" : empty;
+}
+
+function toTreeEmpty({
+  shown,
+  total,
+}: {
+  shown: number;
+  total: number;
+}): Nullable<GraphPresentationEmpty> {
+  if (shown > 0) return null;
+  return total > 0 ? "treeFiltered" : "treeRootOnly";
 }

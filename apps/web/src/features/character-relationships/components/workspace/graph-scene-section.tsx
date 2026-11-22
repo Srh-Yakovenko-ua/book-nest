@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 import type { RelationshipActions } from "../../model/relationship-adapter";
+import type { TreeOptions } from "../../model/workspace/graph-tree-scene";
 import type { GraphWorkspaceParams } from "../../model/workspace/graph-workspace-params";
 import type { GraphWorkspacePresentation } from "../../model/workspace/graph-workspace-presentation";
 import type { GraphReaderKey } from "../../model/workspace/graph-workspace-request";
@@ -16,6 +17,7 @@ import type { GraphWorkspaceState } from "../../model/workspace/use-graph-worksp
 import type { GraphCharacterConnectionItem } from "./graph-character-details";
 import type { GraphPersonPanelState } from "./graph-person-scene";
 import type { GraphSceneSelection, GraphSceneValue } from "./graph-scene-context";
+import type { GraphTreePanelState } from "./graph-tree-scene";
 import type { GraphWorkspaceCanvasLayout } from "./graph-workspace-canvas-controls";
 import type { WorkspaceWidthClass } from "./use-workspace-width-class";
 
@@ -26,6 +28,7 @@ import { GraphConnectionsList } from "./graph-connections-list";
 import { GraphDetailsPanel } from "./graph-details-panel";
 import { GraphPersonScene } from "./graph-person-scene";
 import { GraphSceneNotices } from "./graph-scene-notices";
+import { GraphTreeScene } from "./graph-tree-scene";
 import { GraphWorkspaceCanvasLazy } from "./graph-workspace-canvas-lazy";
 import { GraphWorkspaceMessage } from "./graph-workspace-message";
 import { useGraphCounterText } from "./use-graph-counter-text";
@@ -60,6 +63,8 @@ type GraphSceneSectionProps = {
   selection: GraphSceneSelection;
   statusId: string;
   statusInline: boolean;
+  treeOptions: TreeOptions;
+  treePanel: Nullable<GraphTreePanelState>;
   widthClass: WorkspaceWidthClass;
 };
 
@@ -244,6 +249,19 @@ function SceneContent(props: GraphSceneSectionProps) {
         presentation={presentation}
         rootId={presentation.rootId}
         sceneValue={sceneValue}
+      />
+    );
+  }
+
+  if (props.treePanel !== null && presentation.tree !== null && presentation.rootId !== null) {
+    return (
+      <GraphTreeScene
+        {...props}
+        presentation={presentation}
+        rootId={presentation.rootId}
+        sceneValue={sceneValue}
+        tree={presentation.tree}
+        treePanel={props.treePanel}
       />
     );
   }

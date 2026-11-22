@@ -16,7 +16,7 @@ import {
   makeCharacterSummary,
 } from "@/features/characters/model/characters.fixtures";
 import messages from "@/messages/uk.json";
-import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
+import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import type { GraphSceneValue } from "./graph-scene-context";
 
@@ -130,6 +130,7 @@ const SEARCH = {
   path: `?path=1&from=${GERALT.id}&to=${CIRI.id}`,
   person: `?characterId=${GERALT.id}`,
   tree: `?view=tree&characterId=${CIRI.id}&categories=social`,
+  treeNoLinks: `?view=tree&characterId=${CIRI.id}&categories=social&treeLinks=none`,
 } as const;
 
 const PAGE = { current: 120, next: 200 } as const;
@@ -142,10 +143,20 @@ const EXPECTED_TEXT = {
 } as const;
 
 const LABELS = {
+  ciriYenneferPair: copy.personList.pair
+    .replace("{first}", CIRI.name)
+    .replace("{second}", YENNEFER.name),
+  filtersTrigger: new RegExp(`^${copy.filters.trigger}`),
   friendChip: copy.filters.remove.replace("{label}", messages.relationships.types.friend_of),
   geraltCiriPanel: copy.panel.connection.title
     .replace("{source}", GERALT.name)
     .replace("{target}", CIRI.name),
+  openCiriYennefer: copy.personList.open
+    .replace(
+      "{names}",
+      copy.personList.pair.replace("{first}", CIRI.name).replace("{second}", YENNEFER.name),
+    )
+    .replace("{label}", copy.tree.lineageKinds.adoptive),
   openGeraltCiri: copy.personList.open
     .replace(
       "{names}",
@@ -279,6 +290,11 @@ function json(body: unknown, status = 200): Promise<Response> {
   return Promise.resolve(toResponse(body, status));
 }
 
+async function openTreeOptions(enabled: number): Promise<HTMLElement> {
+  await userEvent.click(treeOptionsTrigger(enabled));
+  return screen.findByRole("dialog", { name: copy.treeOptions.trigger });
+}
+
 function pathView(
   overrides: Partial<CharacterRelationshipPathView> = {},
 ): CharacterRelationshipPathView {
@@ -380,6 +396,14 @@ function toResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
     status,
+  });
+}
+
+function treeOptionsTrigger(enabled: number): HTMLElement {
+  return screen.getByRole("button", {
+    name: copy.treeOptions.triggerLabel
+      .replace("{enabled}", String(enabled))
+      .replace("{total}", "5"),
   });
 }
 
@@ -502,14 +526,177 @@ describe("GraphWorkspaceShell family tree view", () => {
     ]);
   });
 
-  it("keeps the category filters dormant and says so", async () => {
+  it("offers no relationship filters even when the link carries a category", async () => {
     serve({ graph: () => json(FAMILY_TREE) });
     renderWorkspace({ search: SEARCH.tree });
 
     await screen.findByRole("button", { name: YENNEFER.name });
 
-    expect(screen.getByText(copy.filters.treeDormant)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: LABELS.filtersTrigger })).not.toBeInTheDocument();
     expect(screen.queryByRole("group", { name: copy.filters.active })).not.toBeInTheDocument();
+  });
+
+  it("lists five optional links and keeps parents and children always on", async () => {
+    serve({ graph: () => json(FAMILY_TREE) });
+    renderWorkspace({ search: SEARCH.tree });
+    await screen.findByRole("button", { name: YENNEFER.name });
+
+    const options = await openTreeOptions(4);
+
+    expect(within(options).getByText(copy.treeOptions.lineageTitle)).toBeInTheDocument();
+    expect(
+      within(options).queryByRole("checkbox", { name: copy.treeOptions.lineageTitle }),
+    ).not.toBeInTheDocument();
+    expect(within(options).getAllByRole("checkbox")).toHaveLength(5);
+    for (const name of [
+      copy.treeOptions.marriages,
+      copy.treeOptions.siblings,
+      copy.treeOptions.guardians,
+      copy.treeOptions.distant,
+      copy.treeOptions.exUnions,
+    ]) {
+      expect(within(options).getByRole("checkbox", { name })).toBeInTheDocument();
+    }
+  });
+
+  it("starts with every link but former marriages on and nothing to reset", async () => {
+    serve({ graph: () => json(FAMILY_TREE) });
+    renderWorkspace({ search: SEARCH.tree });
+    await screen.findByRole("button", { name: YENNEFER.name });
+
+    const options = await openTreeOptions(4);
+
+    expect(within(options).getAllByRole("checkbox", { checked: true })).toHaveLength(4);
+    expect(within(options).getByRole("checkbox", { checked: false })).toHaveAccessibleName(
+      copy.treeOptions.exUnions,
+    );
+    expect(within(options).getByRole("button", { name: copy.treeOptions.reset })).toBeDisabled();
+  });
+
+  it("drops marriages from the link once they are unchecked", async () => {
+    serve({ graph: () => json(FAMILY_TREE) });
+    renderWorkspace({ search: SEARCH.tree });
+    await screen.findByRole("button", { name: YENNEFER.name });
+    const options = await openTreeOptions(4);
+
+    await userEvent.click(
+      within(options).getByRole("checkbox", { name: copy.treeOptions.marriages }),
+    );
+
+    await waitFor(() =>
+      expect(urlState.search.get("treeLinks")).toBe("siblings,guardians,distant"),
+    );
+  });
+
+  it("counts no shown links and offers the reset when the link turns them all off", async () => {
+    serve({ graph: () => json(FAMILY_TREE) });
+    renderWorkspace({ search: SEARCH.treeNoLinks });
+    await screen.findByRole("button", { name: YENNEFER.name });
+
+    expect(treeOptionsTrigger(0)).toHaveTextContent("0/5");
+
+    const options = await openTreeOptions(0);
+
+    expect(within(options).getByRole("button", { name: copy.treeOptions.reset })).toBeEnabled();
+  });
+
+  it("picks one to three generations up and down with switches instead of dropdowns", async () => {
+    serve({ graph: () => json(FAMILY_TREE) });
+    renderWorkspace({ search: SEARCH.tree });
+    await screen.findByRole("button", { name: YENNEFER.name });
+
+    const generations = screen.getByRole("group", { name: copy.generations.label });
+    const ancestors = within(generations).getByRole("radiogroup", {
+      name: copy.generations.ancestorsLabel,
+    });
+    const descendants = within(generations).getByRole("radiogroup", {
+      name: copy.generations.descendantsLabel,
+    });
+
+    expect(within(generations).queryByRole("combobox")).not.toBeInTheDocument();
+    expect(
+      within(ancestors)
+        .getAllByRole("radio")
+        .map((radio) => radio.textContent),
+    ).toEqual(["1", "2", "3"]);
+    expect(
+      within(descendants)
+        .getAllByRole("radio")
+        .map((radio) => radio.textContent),
+    ).toEqual(["1", "2", "3"]);
+  });
+
+  it("asks for three generations of ancestors once 3 is chosen above", async () => {
+    serve({ graph: () => json(FAMILY_TREE) });
+    renderWorkspace({ search: SEARCH.tree });
+    await screen.findByRole("button", { name: YENNEFER.name });
+    const generations = screen.getByRole("group", { name: copy.generations.label });
+    const ancestors = within(generations).getByRole("radiogroup", {
+      name: copy.generations.ancestorsLabel,
+    });
+
+    await userEvent.click(within(ancestors).getByRole("radio", { name: "3" }));
+
+    await waitFor(() => expect(urlState.search.get("treeUp")).toBe("3"));
+    expect(urlState.search.get("treeDown")).toBeNull();
+    await waitFor(() =>
+      expect(requestParams(API.graph).at(-1)).toEqual({
+        ancestors: "3",
+        descendants: "2",
+        focusCharacterId: CIRI.id,
+        projection: "family_tree",
+      }),
+    );
+  });
+
+  it("opens a relative's details with the actions to center, profile and path", async () => {
+    serve({ graph: () => json(FAMILY_TREE) });
+    renderWorkspace({ search: SEARCH.tree });
+
+    await userEvent.click(await screen.findByRole("button", { name: YENNEFER.name }));
+
+    const details = await screen.findByRole("complementary", { name: YENNEFER.name });
+    expect(
+      within(details).getByRole("heading", { name: copy.tree.panel.heading.character }),
+    ).toBeInTheDocument();
+    expect(
+      within(details).getByRole("button", { name: copy.tree.panel.makeCenter }),
+    ).toBeInTheDocument();
+    expect(
+      within(details).getByRole("link", { name: copy.tree.panel.profile }),
+    ).toBeInTheDocument();
+    expect(
+      within(details).getByRole("button", { name: copy.tree.panel.findPath }),
+    ).toBeInTheDocument();
+  });
+
+  it("offers no make-center action in the central character's details", async () => {
+    serve({ graph: () => json(FAMILY_TREE) });
+    renderWorkspace({ search: SEARCH.tree });
+
+    await userEvent.click(await screen.findByRole("button", { name: CIRI.name }));
+
+    const details = await screen.findByRole("complementary", { name: CIRI.name });
+    expect(
+      within(details).queryByRole("button", { name: copy.tree.panel.makeCenter }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(details).getByRole("link", { name: copy.tree.panel.profile }),
+    ).toBeInTheDocument();
+    expect(
+      within(details).getByRole("button", { name: copy.tree.panel.findPath }),
+    ).toBeInTheDocument();
+  });
+
+  it("lists the tree's pairs with the kind of parenthood that links them", async () => {
+    serve({ graph: () => json(FAMILY_TREE) });
+    renderWorkspace({ search: SEARCH.tree });
+
+    const list = await screen.findByRole("region", { name: copy.tree.list.title });
+    const pair = within(list).getByRole("button", { name: LABELS.openCiriYennefer });
+
+    expect(within(pair).getByText(LABELS.ciriYenneferPair)).toBeInTheDocument();
+    expect(within(pair).getByText(copy.tree.lineageKinds.adoptive)).toBeInTheDocument();
   });
 });
 

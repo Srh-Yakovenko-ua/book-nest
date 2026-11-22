@@ -9,6 +9,8 @@ import {
   needsGraphWorkspaceCanonicalReplace,
   normalizeGraphWorkspaceFilters,
   toAllowedGraphWorkspaceTypes,
+  toTreeLinks,
+  toTreeOptions,
 } from "./graph-workspace-params";
 
 const CHARACTER = {
@@ -104,6 +106,9 @@ describe("needsGraphWorkspaceCanonicalReplace", () => {
     "depth=1",
     "categories=social,family",
     `from=${CHARACTER.geralt}`,
+    "treeLinks=siblings,marriages",
+    "treeLinks=marriages,siblings,guardians,distant",
+    "treeLinks=foo",
   ])("asks for a replace when the URL reads '%s'", (query) => {
     expect(needsReplaceFor(query)).toBe(true);
   });
@@ -113,8 +118,77 @@ describe("needsGraphWorkspaceCanonicalReplace", () => {
     `characterId=${CHARACTER.geralt}&depth=3`,
     "categories=family,social&types=spouse_of,friend_of&view=network",
     `from=${CHARACTER.geralt}&path=1&to=${CHARACTER.ciri}&view=tree`,
+    "treeLinks=marriages,siblings&view=tree",
+    "treeLinks=none&view=tree",
   ])("leaves the canonical URL '%s' alone", (query) => {
     expect(needsReplaceFor(query)).toBe(false);
+  });
+});
+
+describe("treeLinks", () => {
+  it("shows marriages, siblings, guardians and distant relatives when the URL names none", () => {
+    expect(loadGraphWorkspaceParams(new URLSearchParams()).treeLinks).toEqual([
+      "marriages",
+      "siblings",
+      "guardians",
+      "distant",
+    ]);
+  });
+
+  it("shows no tree links for treeLinks=none", () => {
+    expect(loadGraphWorkspaceParams(new URLSearchParams("treeLinks=none")).treeLinks).toEqual([]);
+  });
+
+  it("reads the tree links in the canonical order", () => {
+    const params = loadGraphWorkspaceParams(new URLSearchParams("treeLinks=siblings,marriages"));
+
+    expect(params.treeLinks).toEqual(["marriages", "siblings"]);
+  });
+
+  it.each(["treeLinks=foo", "treeLinks=marriages,foo"])(
+    "falls back to the default tree links for '%s'",
+    (query) => {
+      expect(loadGraphWorkspaceParams(new URLSearchParams(query)).treeLinks).toEqual([
+        "marriages",
+        "siblings",
+        "guardians",
+        "distant",
+      ]);
+    },
+  );
+
+  it("leaves the relationship filters untouched", () => {
+    const canonical = canonicalizeGraphWorkspaceParams(
+      loadGraphWorkspaceParams(new URLSearchParams("categories=family&treeLinks=siblings")),
+    );
+
+    expect(canonical).toMatchObject({ categories: ["family"], treeLinks: ["siblings"], types: [] });
+  });
+});
+
+describe("toTreeOptions", () => {
+  it("switches on exactly the listed tree links", () => {
+    expect(toTreeOptions(["siblings", "exUnions"])).toEqual({
+      distant: false,
+      exUnions: true,
+      guardians: false,
+      marriages: false,
+      siblings: true,
+    });
+  });
+});
+
+describe("toTreeLinks", () => {
+  it("lists the switched-on tree links in the canonical order", () => {
+    expect(
+      toTreeLinks({
+        distant: true,
+        exUnions: false,
+        guardians: false,
+        marriages: true,
+        siblings: true,
+      }),
+    ).toEqual(["marriages", "siblings", "distant"]);
   });
 });
 

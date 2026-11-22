@@ -1,14 +1,10 @@
-import type { Nullable } from "@app/shared";
-
 import type { RelationshipGraphPoint } from "../relationship-graph-layout";
 import type { NetworkScene } from "./graph-network-scene";
 import type { PersonScene } from "./graph-person-scene";
-import type { TreeScene } from "./graph-tree-scene";
 
 export const GRAPH_NODE_BOX = {
   character: { height: 112, width: 144 },
   cluster: { height: 96, width: 176 },
-  root: { height: 128, width: 160 },
 } as const;
 
 export const PERSON_LAYOUT = {
@@ -24,9 +20,6 @@ const LAYOUT_SPACING = {
   clusterGap: 64,
   memberColumns: 4,
   memberGap: 24,
-  rowGap: 96,
-  siblingGap: 32,
-  treeSweeps: 4,
 } as const;
 
 export type GraphWorkspacePositions = ReadonlyMap<string, RelationshipGraphPoint>;
@@ -142,92 +135,6 @@ export function layoutPersonScene(scene: PersonScene): GraphWorkspacePositions {
   }
 
   return positions;
-}
-
-export function layoutTreeScene(scene: TreeScene): GraphWorkspacePositions {
-  const generationById = new Map(scene.generationById);
-  for (const [sideId, anchorId] of scene.sideAnchorById) {
-    generationById.set(sideId, generationById.get(anchorId) ?? 0);
-  }
-  const visibleIds = new Set(scene.nodes.map((node) => node.id));
-  const rows = new Map<number, string[]>();
-  for (const id of [...visibleIds].sort()) {
-    const generation = generationById.get(id) ?? 0;
-    rows.set(generation, [...(rows.get(generation) ?? []), id]);
-  }
-  const generations = [...rows.keys()].sort((left, right) => left - right);
-  const orderIndex = new Map<string, number>();
-  const assignOrder = (generation: number) =>
-    (rows.get(generation) ?? []).forEach((id, index) => orderIndex.set(id, index));
-  generations.forEach(assignOrder);
-
-  const childrenById = new Map<string, string[]>();
-  for (const [childId, parents] of scene.lineageParentsById) {
-    for (const parentId of parents) {
-      childrenById.set(parentId, [...(childrenById.get(parentId) ?? []), childId]);
-    }
-  }
-  const barycenter = (ids: readonly string[]): Nullable<number> => {
-    const indexes = ids.flatMap((id) => {
-      const index = orderIndex.get(id);
-      return index === undefined ? [] : [index];
-    });
-    return indexes.length === 0
-      ? null
-      : indexes.reduce((sum, value) => sum + value, 0) / indexes.length;
-  };
-
-  for (let sweep = 0; sweep < LAYOUT_SPACING.treeSweeps; sweep += 1) {
-    const ordered = sweep % 2 === 0 ? generations : [...generations].reverse();
-    for (const generation of ordered) {
-      const row = rows.get(generation) ?? [];
-      const keyed = row.map((id) => {
-        const relatives =
-          sweep % 2 === 0 ? (scene.lineageParentsById.get(id) ?? []) : (childrenById.get(id) ?? []);
-        const anchor = scene.sideAnchorById.get(id);
-        const center = anchor === undefined ? barycenter(relatives) : barycenter([anchor]);
-        return { center: center ?? orderIndex.get(id) ?? 0, id, isSide: anchor !== undefined };
-      });
-      keyed.sort(
-        (left, right) =>
-          left.center - right.center ||
-          Number(left.isSide) - Number(right.isSide) ||
-          left.id.localeCompare(right.id),
-      );
-      rows.set(
-        generation,
-        keyed.map((entry) => entry.id),
-      );
-      assignOrder(generation);
-    }
-  }
-
-  const positions = new Map<string, RelationshipGraphPoint>();
-  for (const generation of generations) {
-    const row = rows.get(generation) ?? [];
-    const boxes = row.map((id) =>
-      id === scene.rootId ? GRAPH_NODE_BOX.root : GRAPH_NODE_BOX.character,
-    );
-    const totalWidth =
-      boxes.reduce((sum, box) => sum + box.width, 0) +
-      Math.max(0, row.length - 1) * LAYOUT_SPACING.siblingGap;
-    let cursor = -totalWidth / 2;
-    const y = generation * (GRAPH_NODE_BOX.root.height + LAYOUT_SPACING.rowGap);
-    row.forEach((id, index) => {
-      const box = boxes[index] ?? GRAPH_NODE_BOX.character;
-      positions.set(id, { x: cursor + box.width / 2, y });
-      cursor += box.width + LAYOUT_SPACING.siblingGap;
-    });
-  }
-  const rootPoint = positions.get(scene.rootId);
-  if (rootPoint === undefined || rootPoint.x === 0) return positions;
-  const rootRow = generationById.get(scene.rootId) ?? 0;
-  return new Map(
-    [...positions.entries()].map(([id, point]) => [
-      id,
-      (generationById.get(id) ?? 0) === rootRow ? { x: point.x - rootPoint.x, y: point.y } : point,
-    ]),
-  );
 }
 
 function desiredAngle({

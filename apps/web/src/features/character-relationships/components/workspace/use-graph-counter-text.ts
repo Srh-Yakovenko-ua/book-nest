@@ -19,10 +19,14 @@ export function useGraphCounterText(
       return t("expanded", { edges: counters.edges, nodes: counters.nodes });
     case "groups":
       return t("groups", { groups: counters.groups });
-    case "people":
-      return t("people", { edges: counters.edges, nodes: counters.nodes });
     case "person":
       return t("person", {
+        nodes: counters.nodes,
+        pairs: counters.pairs,
+        relationships: counters.edges,
+      });
+    case "tree":
+      return t("tree", {
         nodes: counters.nodes,
         pairs: counters.pairs,
         relationships: counters.edges,

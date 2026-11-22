@@ -23,6 +23,7 @@ const DEFAULT_PARAMS: GraphWorkspaceParams = {
   path: false,
   to: null,
   treeDown: 2,
+  treeLinks: ["marriages", "siblings", "guardians", "distant"],
   treeUp: 2,
   types: [],
   view: "person",

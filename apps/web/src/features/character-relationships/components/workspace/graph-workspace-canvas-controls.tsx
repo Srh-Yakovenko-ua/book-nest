@@ -27,7 +27,9 @@ import type { GraphSceneFlowEdge, GraphSceneFlowNode } from "./graph-scene-conte
 import type { GraphPersonControlsPosition } from "./use-graph-person-camera";
 
 import { GraphPersonSceneContext } from "./graph-person-scene-context";
+import { GraphTreeSceneContext } from "./graph-tree-scene-context";
 import { GRAPH_PERSON_CONTROLS_COVER, useGraphPersonCamera } from "./use-graph-person-camera";
+import { useGraphTreeCamera } from "./use-graph-tree-camera";
 
 const CANVAS_CONTROLS = {
   durationMs: 250,
@@ -84,9 +86,12 @@ export function GraphWorkspaceCanvasControls({
   const prefersReducedMotion = useReducedMotion();
   const fittedScene = useRef<Nullable<string>>(null);
   const camera = useGraphPersonCamera();
+  const treeCamera = useGraphTreeCamera();
   const personScene = use(GraphPersonSceneContext);
-  const personCover = personScene?.cover ?? GRAPH_PERSON_CONTROLS_COVER[position];
-  const miniMap = personScene?.miniMap ?? null;
+  const treeScene = use(GraphTreeSceneContext);
+  const personCover =
+    treeScene?.cover ?? personScene?.cover ?? GRAPH_PERSON_CONTROLS_COVER[position];
+  const miniMap = treeScene?.miniMap ?? personScene?.miniMap ?? null;
   const duration = prefersReducedMotion
     ? CANVAS_CONTROLS.reducedDurationMs
     : CANVAS_CONTROLS.durationMs;
@@ -105,15 +110,27 @@ export function GraphWorkspaceCanvasControls({
       });
       return;
     }
+    if (treeScene !== null) {
+      treeCamera.initialize({ cover: personCover, focusIds: treeScene.focusIds, rootId });
+      return;
+    }
     camera.initialize(personCover);
-  }, [camera, flow, initialized, personCover, rootId, sceneKey, viewport]);
+  }, [camera, flow, initialized, personCover, rootId, sceneKey, treeCamera, treeScene, viewport]);
 
   function fitAll() {
+    if (treeScene !== null) {
+      treeCamera.fitAll({ cover: personCover, duration });
+      return;
+    }
     camera.fitAll({ cover: personCover, duration });
   }
 
   function centerRoot() {
     if (rootId === null) return;
+    if (treeScene !== null) {
+      treeCamera.center({ cover: personCover, duration, rootId });
+      return;
+    }
     camera.center({
       cover: personCover,
       duration,
@@ -149,7 +166,11 @@ export function GraphWorkspaceCanvasControls({
         >
           <ZoomOut aria-hidden />
         </PersonControl>
-        <PersonControl label={t("fitAll")} onClick={fitAll} side={tooltipSide}>
+        <PersonControl
+          label={t(treeScene === null ? "fitAll" : "fitTree")}
+          onClick={fitAll}
+          side={tooltipSide}
+        >
           <Scan aria-hidden />
         </PersonControl>
         <PersonControl label={t("center")} onClick={centerRoot} side={tooltipSide}>

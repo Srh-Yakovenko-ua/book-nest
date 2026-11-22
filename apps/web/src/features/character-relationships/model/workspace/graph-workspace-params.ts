@@ -20,6 +20,10 @@ import {
 } from "nuqs/server";
 import { z } from "zod";
 
+import type { TreeOptionKey, TreeOptions } from "./graph-tree-scene";
+
+import { TREE_OPTION_KEYS, TREE_SCENE } from "./graph-tree-scene";
+
 export const GRAPH_WORKSPACE_VIEWS = ["person", "tree", "network"] as const;
 
 export const NETWORK_GROUPINGS = ["group", "components", "importance"] as const;
@@ -31,6 +35,30 @@ export type GraphWorkspaceView = (typeof GRAPH_WORKSPACE_VIEWS)[number];
 export type NetworkGrouping = (typeof NETWORK_GROUPINGS)[number];
 
 const UuidSchema = z.uuid();
+
+const TREE_LINKS = {
+  none: "none",
+  separator: ",",
+} as const;
+
+const parseAsTreeLinks = createParser<TreeOptionKey[]>({
+  eq: (left, right) =>
+    left.length === right.length && left.every((key, index) => key === right[index]),
+  parse: (value: string) => {
+    if (value === TREE_LINKS.none) return [];
+    const tokens = value.split(TREE_LINKS.separator);
+    const keys = TREE_OPTION_KEYS.filter((key) => tokens.includes(key));
+    return tokens.every((token) => keys.some((key) => key === token)) ? keys : null;
+  },
+  serialize: (keys: readonly TreeOptionKey[]) => {
+    const ordered = TREE_OPTION_KEYS.filter((key) => keys.includes(key));
+    return ordered.length === 0 ? TREE_LINKS.none : ordered.join(TREE_LINKS.separator);
+  },
+});
+
+export const TREE_LINKS_DEFAULT: TreeOptionKey[] = TREE_OPTION_KEYS.filter(
+  (key) => TREE_SCENE.defaultOptions[key],
+);
 
 const parseAsUuid = createParser({
   parse: (value: string) => (UuidSchema.safeParse(value).success ? value.toLowerCase() : null),
@@ -72,6 +100,7 @@ export const graphWorkspaceParsers = {
   path: parseAsPathFlag.withDefault(false),
   to: parseAsUuid,
   treeDown: generationsParser,
+  treeLinks: parseAsTreeLinks.withDefault(TREE_LINKS_DEFAULT),
   treeUp: generationsParser,
   types: parseAsArrayOf(parseAsStringLiteral(RelationshipTypeSchema.options)).withDefault([]),
   view: parseAsStringLiteral(GRAPH_WORKSPACE_VIEWS).withDefault("person"),
@@ -142,4 +171,18 @@ export function toAllowedGraphWorkspaceTypes(
 ): Nullable<ReadonlySet<RelationshipType>> {
   if (categories.length === 0) return null;
   return new Set(categories.flatMap((category) => RELATIONSHIP_CATEGORY_TYPES[category]));
+}
+
+export function toTreeLinks(options: TreeOptions): TreeOptionKey[] {
+  return TREE_OPTION_KEYS.filter((key) => options[key]);
+}
+
+export function toTreeOptions(links: readonly TreeOptionKey[]): TreeOptions {
+  return {
+    distant: links.includes("distant"),
+    exUnions: links.includes("exUnions"),
+    guardians: links.includes("guardians"),
+    marriages: links.includes("marriages"),
+    siblings: links.includes("siblings"),
+  };
 }

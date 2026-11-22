@@ -1,4 +1,9 @@
-import type { CharacterGraphHiddenContentView, CharacterGraphView } from "@app/shared";
+import type {
+  CharacterGraphHiddenContentView,
+  CharacterGraphView,
+  FamilyTreeGraphView,
+  FamilyTreeLineageView,
+} from "@app/shared";
 
 import { describe, expect, it } from "vitest";
 
@@ -48,6 +53,7 @@ const DEFAULT_PARAMS: GraphWorkspaceParams = {
   path: false,
   to: null,
   treeDown: 2,
+  treeLinks: ["marriages", "siblings", "guardians", "distant"],
   treeUp: 2,
   types: [],
   view: "person",
@@ -85,6 +91,56 @@ const LONE_GRAPH = makeRelationshipGraph({
   edges: [],
   nodes: [makeRelationshipGraphNode({ id: CHARACTER.geralt })],
 });
+
+const KIN = {
+  child: "d1d1d1d1-0000-4000-8000-000000000001",
+  parent: "d1d1d1d1-0000-4000-8000-000000000002",
+  root: "d1d1d1d1-0000-4000-8000-000000000003",
+  spouse: "d1d1d1d1-0000-4000-8000-000000000004",
+} as const;
+
+const KIN_EDGE = {
+  child: makeRelationshipGraphEdge({
+    id: "d2d2d2d2-0000-4000-8000-000000000001",
+    source: KIN.root,
+    target: KIN.child,
+    type: "biological_parent_of",
+  }),
+  guardian: makeRelationshipGraphEdge({
+    id: "d2d2d2d2-0000-4000-8000-000000000002",
+    source: KIN.parent,
+    target: KIN.root,
+    type: "guardian_of",
+  }),
+  parent: makeRelationshipGraphEdge({
+    id: "d2d2d2d2-0000-4000-8000-000000000003",
+    source: KIN.parent,
+    target: KIN.root,
+    type: "biological_parent_of",
+  }),
+  spouse: makeRelationshipGraphEdge({
+    directionality: "symmetric",
+    id: "d2d2d2d2-0000-4000-8000-000000000004",
+    source: KIN.root,
+    target: KIN.spouse,
+    type: "spouse_of",
+  }),
+};
+
+const KIN_LINK = {
+  child: {
+    childId: KIN.child,
+    kind: "biological",
+    parentId: KIN.root,
+    relationshipId: KIN_EDGE.child.id,
+  },
+  parent: {
+    childId: KIN.root,
+    kind: "biological",
+    parentId: KIN.parent,
+    relationshipId: KIN_EDGE.parent.id,
+  },
+} satisfies Record<string, FamilyTreeLineageView>;
 
 describe("buildGraphWorkspacePresentation", () => {
   it("counts the characters, raw relationships and character pairs of the person view", () => {
@@ -186,7 +242,97 @@ describe("buildGraphWorkspacePresentation", () => {
 
     expect(presentationFor({ graph, params: PERSON_PARAMS })?.notices).toEqual(notices);
   });
+
+  it.each<GraphWorkspaceView>(["person", "network"])(
+    "carries no family tree in the %s view",
+    (view) => {
+      const params = { ...PERSON_PARAMS, view };
+
+      expect(presentationFor({ graph: PERSON_GRAPH, params })?.tree).toBeNull();
+    },
+  );
 });
+
+describe("buildGraphWorkspacePresentation for the family tree", () => {
+  it("counts characters, character pairs and individual relationships separately", () => {
+    const presentation = treePresentationFor(
+      makeTree({
+        edges: [KIN_EDGE.parent, KIN_EDGE.guardian, KIN_EDGE.spouse],
+        lineage: [KIN_LINK.parent],
+      }),
+    );
+
+    expect(presentation?.counters).toEqual({ edges: 3, kind: "tree", nodes: 3, pairs: 2 });
+  });
+
+  it("carries the family tree scene rooted at the focus character", () => {
+    const presentation = treePresentationFor(
+      makeTree({ edges: [KIN_EDGE.parent], lineage: [KIN_LINK.parent] }),
+    );
+
+    expect(presentation?.tree?.scene.rootId).toBe(KIN.root);
+  });
+
+  it("explains a tree with only its root as treeRootOnly", () => {
+    const presentation = treePresentationFor(makeTree({ edges: [], lineage: [] }));
+
+    expect(presentation?.empty).toBe("treeRootOnly");
+  });
+
+  it("tells hidden relatives apart from missing ones when the options hide every link", () => {
+    const presentation = treePresentationFor(makeTree({ edges: [KIN_EDGE.spouse], lineage: [] }), {
+      ...TREE_SCENE.defaultOptions,
+      marriages: false,
+    });
+
+    expect(presentation?.empty).toBe("treeFiltered");
+    expect(presentation?.counters).toEqual({ edges: 0, kind: "tree", nodes: 1, pairs: 0 });
+  });
+
+  it.each<{ label: string; notices: GraphPresentationNotice[]; tree: FamilyTreeGraphView }>([
+    {
+      label: "a truncated tree",
+      notices: ["treeTruncated"],
+      tree: makeTree({
+        hiddenContent: { hasHiddenEdges: false, hasLockedEdges: false, truncated: true },
+      }),
+    },
+    {
+      label: "a spouse without any lineage",
+      notices: ["noAncestry"],
+      tree: makeTree({ edges: [KIN_EDGE.spouse], lineage: [] }),
+    },
+    {
+      label: "fewer ancestors than requested",
+      notices: ["treeFewerAncestors"],
+      tree: makeTree({ ancestors: 3 }),
+    },
+    {
+      label: "a tree that reaches as far as requested",
+      notices: [],
+      tree: makeTree(),
+    },
+  ])("shows the tree notices for $label", ({ notices, tree }) => {
+    expect(treePresentationFor(tree)?.notices).toEqual(notices);
+  });
+});
+
+function makeTree(overrides: Partial<FamilyTreeGraphView> = {}): FamilyTreeGraphView {
+  return {
+    ancestors: 1,
+    descendants: 1,
+    diagnostics: [],
+    edges: [KIN_EDGE.parent, KIN_EDGE.child],
+    focusCharacterId: KIN.root,
+    graphVersion: "tree-v1",
+    hiddenContent: { hasHiddenEdges: false, hasLockedEdges: false, truncated: false },
+    lineage: [KIN_LINK.parent, KIN_LINK.child],
+    nodes: Object.values(KIN).map((id) => makeRelationshipGraphNode({ id })),
+    projection: "family_tree",
+    updatedAt: null,
+    ...overrides,
+  };
+}
 
 function presentationFor({
   graph,
@@ -203,5 +349,15 @@ function presentationFor({
     params,
     person: EMPTY_PERSON_EXPANSION,
     treeOptions: TREE_SCENE.defaultOptions,
+  });
+}
+
+function treePresentationFor(tree: FamilyTreeGraphView, treeOptions = TREE_SCENE.defaultOptions) {
+  return buildGraphWorkspacePresentation({
+    data: { kind: "tree", tree },
+    network: EMPTY_NETWORK_EXPANSION,
+    params: { ...DEFAULT_PARAMS, characterId: tree.focusCharacterId, view: "tree" },
+    person: EMPTY_PERSON_EXPANSION,
+    treeOptions,
   });
 }

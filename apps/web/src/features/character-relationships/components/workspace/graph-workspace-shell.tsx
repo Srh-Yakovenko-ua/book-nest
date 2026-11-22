@@ -15,6 +15,7 @@ import type { RelationshipScope } from "../../model/relationship-scope";
 import type { NetworkExpansion } from "../../model/workspace/graph-network-scene";
 import type { PersonExpansion } from "../../model/workspace/graph-person-scene";
 import type { TreeOptions } from "../../model/workspace/graph-tree-scene";
+import type { GraphWorkspaceParams } from "../../model/workspace/graph-workspace-params";
 import type { GraphWorkspacePresentation } from "../../model/workspace/graph-workspace-presentation";
 import type { GraphSceneSelection, GraphSceneValue } from "./graph-scene-context";
 
@@ -33,9 +34,10 @@ import {
   withPersonBranch,
   withPersonMore,
 } from "../../model/workspace/graph-person-scene";
+import { TREE_LAYOUT } from "../../model/workspace/graph-tree-layout";
 import { TREE_SCENE } from "../../model/workspace/graph-tree-scene";
 import { PERSON_LAYOUT } from "../../model/workspace/graph-workspace-layout";
-import { GRAPH_WORKSPACE_VIEWS } from "../../model/workspace/graph-workspace-params";
+import { GRAPH_WORKSPACE_VIEWS, toTreeOptions } from "../../model/workspace/graph-workspace-params";
 import { buildGraphWorkspacePresentation } from "../../model/workspace/graph-workspace-presentation";
 import {
   toGraphReaderKey,
@@ -82,6 +84,7 @@ type WorkspaceLocalState = {
   pendingOverwrite: Nullable<LayoutSnapshot>;
   person: PersonExpansion;
   relayout: number;
+  rootId: Nullable<string>;
   selection: GraphSceneSelection;
 };
 
@@ -99,7 +102,6 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
     widthClass,
   } = useWorkspaceWidthClass();
   const [immersive, setImmersive] = useState(false);
-  const [treeOptions, setTreeOptions] = useState<TreeOptions>(TREE_SCENE.defaultOptions);
   const lastTrigger = useRef<Nullable<HTMLElement>>(null);
   const focusSceneStatus = useRef(false);
   const statusId = useId();
@@ -130,10 +132,23 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
   });
 
   const identityKey = toGraphSceneKey([bookId, reader, sceneRequest, params.networkGroup]);
-  const [local, setLocal] = useState<WorkspaceLocalState>(() => createLocalState(identityKey));
-  if (local.identityKey !== identityKey) setLocal(createLocalState(identityKey));
   const isPersonScene = params.view === "person" && !params.path;
-  const sceneWidthClass = isPersonScene ? personWidthClass : widthClass;
+  const isTreeScene = params.view === "tree" && !params.path;
+  const isPanelScene = isPersonScene || isTreeScene;
+  const treeOptions = isTreeScene ? toTreeOptions(params.treeLinks) : TREE_SCENE.defaultOptions;
+  const [local, setLocal] = useState<WorkspaceLocalState>(() =>
+    createLocalState({ identityKey, rootId: params.characterId, selection: null }),
+  );
+  if (local.identityKey !== identityKey) {
+    setLocal(
+      createLocalState({
+        identityKey,
+        rootId: params.characterId,
+        selection: isTreeScene && local.rootId === params.characterId ? local.selection : null,
+      }),
+    );
+  }
+  const sceneWidthClass = isPanelScene ? personWidthClass : widthClass;
   const [personPanel, setPersonPanel] = useState<PersonPanelIntent>(() => ({
     intent: "auto",
     rootId: params.characterId,
@@ -160,7 +175,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
     isGraphWorkspaceNotFound(scene.error) ||
     (scene.isSuccess && presentation === null && !params.path);
   const isSceneError = (scene.isError && scene.data === undefined) || isUnavailable;
-  const isStatusInline = isPersonScene && sceneRequest !== null;
+  const isStatusInline = isPanelScene && sceneRequest !== null;
   const counterText = useGraphCounterText(presentation);
 
   const storageKey: RelationshipGraphLayoutKey = {
@@ -175,11 +190,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
     bookId,
     nodeIds: [...allowedIds],
     reader,
-    sceneKey: toGraphSceneKey(
-      isPersonScene
-        ? [identityKey, params.view, treeOptions, PERSON_LAYOUT.revision]
-        : [identityKey, params.view, treeOptions],
-    ),
+    sceneKey: toGraphSceneKey(toLayoutSceneParts({ identityKey, params, treeOptions })),
   });
   const restore = toRestoredGraphLayout({
     allowedIds,
@@ -203,7 +214,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
     document.getElementById(statusId)?.focus();
   }, [isSceneReady, identityKey, statusId]);
   const hasSelection = selection !== null;
-  const hasPersonPanel = isPersonScene && isSceneReady && isPersonPanelOpen;
+  const hasPersonPanel = isPanelScene && isSceneReady && isPersonPanelOpen;
 
   useEffect(() => {
     if (!hasSelection && !hasPersonPanel && !immersive) return;
@@ -212,12 +223,12 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
       if (document.querySelector('[role="dialog"][data-state="open"]') !== null) return;
       if (hasSelection || hasPersonPanel) {
         setLocal((current) => ({ ...current, selection: null }));
-        if (isPersonScene) setPersonPanel((current) => ({ ...current, intent: "closed" }));
+        if (isPanelScene) setPersonPanel((current) => ({ ...current, intent: "closed" }));
         focusTrigger(
           toRestoreTarget({
             fallbackId: statusId,
             trigger: hasSelection ? lastTrigger.current : null,
-            useFallback: isPersonScene,
+            useFallback: isPanelScene,
           }),
         );
         return;
@@ -226,7 +237,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [hasPersonPanel, hasSelection, immersive, isPersonScene, statusId]);
+  }, [hasPersonPanel, hasSelection, immersive, isPanelScene, statusId]);
 
   useEffect(() => {
     if (!immersive || container === null) return;
@@ -242,7 +253,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
       lastTrigger.current = document.activeElement;
     }
     setLocal((current) => ({ ...current, selection: next }));
-    if (next !== null && isPersonScene) {
+    if (next !== null && isPanelScene) {
       setPersonPanel((current) => ({ ...current, intent: "open" }));
     }
   }
@@ -257,7 +268,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
       toRestoreTarget({
         fallbackId: statusId,
         trigger: lastTrigger.current,
-        useFallback: isPersonScene,
+        useFallback: isPanelScene,
       }),
     );
   }
@@ -407,19 +418,21 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
               actions={actions}
               bookId={bookId}
               filtersTriggerId={filtersTriggerId}
-              onTreeOptionsChange={setTreeOptions}
+              onTreeOptionsChange={actions.setTreeOptions}
+              onTreeOptionsReset={actions.resetTreeLinks}
               params={params}
               rootParticipant={toRootParticipant({ presentation, rootId: params.characterId })}
               treeOptions={treeOptions}
             />
-            <GraphActiveFilters
-              categories={params.categories}
-              dormant={params.view === "tree"}
-              filtersTriggerId={filtersTriggerId}
-              onChange={actions.setFilters}
-              onReset={actions.resetFilters}
-              types={params.types}
-            />
+            {isTreeScene ? null : (
+              <GraphActiveFilters
+                categories={params.categories}
+                filtersTriggerId={filtersTriggerId}
+                onChange={actions.setFilters}
+                onReset={actions.resetFilters}
+                types={params.types}
+              />
+            )}
           </div>
           {sceneRequest === null && params.view !== "network" ? (
             <GraphGuidedStart book={book} onChoose={actions.chooseCharacter} view={params.view} />
@@ -494,6 +507,10 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
               selection={selection}
               statusId={statusId}
               statusInline={isStatusInline}
+              treeOptions={treeOptions}
+              treePanel={
+                isTreeScene ? { isOpen: isPersonPanelOpen, onClose: closePersonPanel } : null
+              }
               widthClass={sceneWidthClass}
             />
           )}
@@ -504,7 +521,15 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
   );
 }
 
-function createLocalState(identityKey: string): WorkspaceLocalState {
+function createLocalState({
+  identityKey,
+  rootId,
+  selection,
+}: {
+  identityKey: string;
+  rootId: Nullable<string>;
+  selection: GraphSceneSelection;
+}): WorkspaceLocalState {
   return {
     cameraRestored: false,
     cameraSettled: false,
@@ -513,7 +538,8 @@ function createLocalState(identityKey: string): WorkspaceLocalState {
     pendingOverwrite: null,
     person: EMPTY_PERSON_EXPANSION,
     relayout: 0,
-    selection: null,
+    rootId,
+    selection,
   };
 }
 
@@ -559,6 +585,23 @@ function reconcileSelection({
   return presentation.connections.some((connection) => connection.id === selection.id)
     ? selection
     : null;
+}
+
+function toLayoutSceneParts({
+  identityKey,
+  params,
+  treeOptions,
+}: {
+  identityKey: string;
+  params: GraphWorkspaceParams;
+  treeOptions: TreeOptions;
+}): readonly unknown[] {
+  if (params.path) return [identityKey, params.view, treeOptions];
+  if (params.view === "person") {
+    return [identityKey, params.view, treeOptions, PERSON_LAYOUT.revision];
+  }
+  if (params.view === "tree") return [identityKey, params.view, treeOptions, TREE_LAYOUT.revision];
+  return [identityKey, params.view, treeOptions];
 }
 
 function toRestoreTarget({
