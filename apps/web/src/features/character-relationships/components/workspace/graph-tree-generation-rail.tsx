@@ -2,7 +2,12 @@
 
 import { useStore, ViewportPortal } from "@xyflow/react";
 
-import { GENEALOGY_CAMERA } from "../../model/workspace/graph-genealogy-camera";
+import { cn } from "@/lib/utils";
+
+import {
+  isKeyGeneration,
+  toGenealogyLabelStep,
+} from "../../model/workspace/graph-genealogy-camera";
 import { TREE_CAMERA } from "../../model/workspace/graph-tree-camera";
 import { TREE_LAYOUT } from "../../model/workspace/graph-tree-layout";
 import { useGraphTreeScene } from "./graph-tree-scene-context";
@@ -20,6 +25,7 @@ export function GraphTreeGenerationRail() {
   const { genealogy, rows } = useGraphTreeScene();
   const labels = useGraphTreeLabels();
   const translateX = useStore((state) => state.transform[0]);
+  const translateY = useStore((state) => state.transform[1]);
   const zoom = useStore((state) => state.transform[2]);
   const extent = useStore((state) => {
     let left = Number.POSITIVE_INFINITY;
@@ -40,49 +46,60 @@ export function GraphTreeGenerationRail() {
     row.generation === null ? [] : [{ generation: row.generation, row: row.row, y: row.y }],
   );
   const isGenealogy = genealogy !== null;
-  const showLabels =
-    TREE_LAYOUT.rowStep * zoom >=
-    (isGenealogy ? GENEALOGY_CAMERA.railLabelMinRow : GENERATION_RAIL.minRowHeight);
+  const rowHeight = TREE_LAYOUT.rowStep * zoom;
+  const step = isGenealogy ? toGenealogyLabelStep(rowHeight) : 1;
+  const showLabels = isGenealogy || rowHeight >= GENERATION_RAIL.minRowHeight;
+  const labelled = confirmed.filter(
+    (row) => step === 1 || isKeyGeneration({ generation: row.generation, step }),
+  );
   const labelLeft = Math.max(
     GENERATION_RAIL.labelInset,
     left * zoom + translateX + GENERATION_RAIL.labelGap,
   );
 
   return (
-    <ViewportPortal>
-      <div aria-hidden className="pointer-events-none">
-        {confirmed.map((row) => (
-          <div
-            className="absolute -z-10 rounded-3xl bg-secondary/40 dark:bg-secondary/25"
-            key={row.row}
-            style={{ height, left, top: row.y - height / 2, width }}
-          />
-        ))}
-        {showLabels
-          ? confirmed.map((row) => (
-              <div
-                className="absolute -z-5 flex origin-left flex-col gap-0.5 rounded-xl bg-card/85 px-2.5 py-1 whitespace-nowrap shadow-soft"
-                key={`label-${row.row}`}
-                style={{
-                  left: (labelLeft - translateX) / zoom,
-                  top: row.y,
-                  transform: `translateY(-50%) scale(${1 / zoom})`,
-                }}
-              >
-                <span className="font-heading text-sm leading-tight font-semibold text-ink">
-                  {isGenealogy
-                    ? labels.ordinalGeneration(row.generation)
-                    : labels.generation(row.generation)}
-                </span>
-                {isGenealogy ? null : (
-                  <span className="text-xs leading-tight text-muted-foreground">
-                    {labels.generationCaption(row.generation)}
-                  </span>
+    <>
+      <ViewportPortal>
+        <div aria-hidden className="pointer-events-none">
+          {confirmed.map((row) => (
+            <div
+              className="absolute -z-10 rounded-3xl bg-secondary/40 dark:bg-secondary/25"
+              key={row.row}
+              style={{ height, left, top: row.y - height / 2, width }}
+            />
+          ))}
+        </div>
+      </ViewportPortal>
+      {showLabels ? (
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-5 overflow-hidden">
+          {labelled.map((row) => (
+            <div
+              className={cn(
+                "absolute flex -translate-y-1/2 flex-col gap-0.5 border border-border/70 bg-card/95 whitespace-nowrap shadow-soft",
+                step === 1 ? "rounded-xl px-2.5 py-1" : "rounded-lg px-2 py-0.5",
+              )}
+              key={`label-${row.row}`}
+              style={{ left: labelLeft, top: row.y * zoom + translateY }}
+            >
+              <span
+                className={cn(
+                  "font-heading leading-tight font-semibold text-ink",
+                  step === 1 ? "text-sm" : "text-xs",
                 )}
-              </div>
-            ))
-          : null}
-      </div>
-    </ViewportPortal>
+              >
+                {isGenealogy
+                  ? labels.ordinalGeneration(row.generation)
+                  : labels.generation(row.generation)}
+              </span>
+              {isGenealogy ? null : (
+                <span className="text-xs leading-tight text-muted-foreground">
+                  {labels.generationCaption(row.generation)}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </>
   );
 }

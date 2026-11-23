@@ -3,6 +3,7 @@
 import type { Nullable } from "@app/shared";
 
 import { useReactFlow, useStoreApi } from "@xyflow/react";
+import { use } from "react";
 
 import type {
   GraphPersonArea,
@@ -19,6 +20,7 @@ import {
   toTreeInitialViewport,
   TREE_CAMERA,
 } from "../../model/workspace/graph-tree-camera";
+import { GRAPH_CAMERA_STATE, GraphCameraStateContext } from "./graph-camera-state-context";
 
 const TREE_CAMERA_VIEW = {
   revealMargin: 12,
@@ -27,6 +29,20 @@ const TREE_CAMERA_VIEW = {
 export function useGraphTreeCamera() {
   const flow = useReactFlow<GraphSceneFlowNode, GraphSceneFlowEdge>();
   const store = useStoreApi<GraphSceneFlowNode, GraphSceneFlowEdge>();
+  const cameraStateRef = use(GraphCameraStateContext);
+
+  function move(viewport: GraphPersonViewport, duration: number) {
+    if (cameraStateRef !== null) {
+      cameraStateRef.current = {
+        ...cameraStateRef.current,
+        target:
+          duration > 0
+            ? { until: performance.now() + duration + GRAPH_CAMERA_STATE.targetSlackMs, viewport }
+            : null,
+      };
+    }
+    void flow.setViewport(viewport, { duration });
+  }
 
   function toBoxes(ids: Nullable<ReadonlySet<string>>): TreeCameraBox[] {
     return [...store.getState().nodeLookup.values()].flatMap((node) => {
@@ -69,7 +85,7 @@ export function useGraphTreeCamera() {
       rootId,
       zoom: toZoomRange(),
     });
-    if (viewport !== null) void flow.setViewport(viewport);
+    if (viewport !== null) move(viewport, 0);
   }
 
   function fitAll({ cover, duration }: { cover: GraphPersonCover; duration: number }) {
@@ -79,7 +95,7 @@ export function useGraphTreeCamera() {
       withRail: true,
       zoom: { maxZoom: TREE_CAMERA.maxZoom, minZoom: store.getState().minZoom },
     });
-    if (viewport !== null) void flow.setViewport(viewport, { duration });
+    if (viewport !== null) move(viewport, duration);
   }
 
   function center({
@@ -93,20 +109,20 @@ export function useGraphTreeCamera() {
   }) {
     const [root] = toBoxes(new Set([rootId]));
     if (root === undefined) return;
-    void flow.setViewport(
+    move(
       toTreeCenterViewport({
         area: toArea(cover),
         box: root,
         zoom: Math.max(flow.getZoom(), TREE_CAMERA.focusZoom),
       }),
-      { duration },
+      duration,
     );
   }
 
   function centerAt({ cover, id, zoom }: { cover: GraphPersonCover; id: string; zoom: number }) {
     const [box] = toBoxes(new Set([id]));
     if (box === undefined) return;
-    void flow.setViewport(toTreeCenterViewport({ area: toArea(cover), box, zoom }));
+    move(toTreeCenterViewport({ area: toArea(cover), box, zoom }), 0);
   }
 
   function focus({
@@ -124,13 +140,13 @@ export function useGraphTreeCamera() {
     const [single] = boxes;
     if (single === undefined) return false;
     if (boxes.length === 1) {
-      void flow.setViewport(
+      move(
         toTreeCenterViewport({
           area: toArea(cover),
           box: single,
           zoom: Math.max(flow.getZoom(), zoom),
         }),
-        { duration },
+        duration,
       );
       return true;
     }
@@ -140,7 +156,7 @@ export function useGraphTreeCamera() {
       withRail: false,
       zoom: { maxZoom: TREE_CAMERA.maxZoom, minZoom: store.getState().minZoom },
     });
-    if (viewport !== null) void flow.setViewport(viewport, { duration });
+    if (viewport !== null) move(viewport, duration);
     return true;
   }
 
@@ -166,5 +182,5 @@ export function useGraphTreeCamera() {
     });
   }
 
-  return { center, centerAt, fitAll, focus, initialize, toReveal };
+  return { center, centerAt, fitAll, focus, initialize, move, toReveal };
 }

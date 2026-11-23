@@ -110,6 +110,7 @@ const IDS = {
   geraltCiri: "a1a1a1a1-0000-4000-8000-000000000011",
   geraltJaskier: "a2a2a2a2-0000-4000-8000-000000000012",
   geraltYennefer: "a3a3a3a3-0000-4000-8000-000000000013",
+  geraltYenneferMarriage: "a5a5a5a5-0000-4000-8000-000000000015",
   lodge: "b1b1b1b1-0000-4000-8000-000000000021",
   witchers: "b2b2b2b2-0000-4000-8000-000000000022",
   yenneferCiri: "a4a4a4a4-0000-4000-8000-000000000014",
@@ -151,6 +152,7 @@ const LABELS = {
   geraltCiriPanel: copy.panel.connection.title
     .replace("{source}", GERALT.name)
     .replace("{target}", CIRI.name),
+  geraltFiltered: copy.tree.hiddenSelection.filtered.replace("{name}", GERALT.name),
   openCiriYennefer: copy.personList.open
     .replace(
       "{names}",
@@ -186,6 +188,12 @@ const EDGES = {
     id: IDS.geraltYennefer,
     target: YENNEFER.id,
     type: "partner_of",
+  }),
+  geraltYenneferMarriage: makeRelationshipGraphEdge({
+    directionality: "symmetric",
+    id: IDS.geraltYenneferMarriage,
+    target: YENNEFER.id,
+    type: "spouse_of",
   }),
   yenneferCiri: makeRelationshipGraphEdge({
     id: IDS.yenneferCiri,
@@ -235,6 +243,12 @@ const FAMILY_TREE: FamilyTreeGraphView = {
   nodes: [CIRI, YENNEFER].map((character) => makeRelationshipGraphNode(character)),
   projection: "family_tree",
   updatedAt: null,
+};
+
+const FAMILY_TREE_WITH_SPOUSE: FamilyTreeGraphView = {
+  ...FAMILY_TREE,
+  edges: [EDGES.yenneferCiri, EDGES.geraltYenneferMarriage],
+  nodes: [CIRI, YENNEFER, GERALT].map((character) => makeRelationshipGraphNode(character)),
 };
 
 const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
@@ -400,11 +414,10 @@ function toResponse(body: unknown, status = 200): Response {
 }
 
 function treeOptionsTrigger(enabled: number): HTMLElement {
-  return screen.getByRole("button", {
-    name: copy.treeOptions.triggerLabel
-      .replace("{enabled}", String(enabled))
-      .replace("{total}", "5"),
-  });
+  const label = copy.treeOptions.triggerLabel
+    .replace("{enabled}", String(enabled))
+    .replace("{total}", "5");
+  return screen.getByRole("button", { name: (name) => name.startsWith(label) });
 }
 
 function workspace({ book = readingBook(PAGE.current), search = "" }: WorkspaceSetup) {
@@ -570,7 +583,10 @@ describe("GraphWorkspaceShell family tree view", () => {
     expect(within(options).getByRole("checkbox", { checked: false })).toHaveAccessibleName(
       copy.treeOptions.exUnions,
     );
-    expect(within(options).getByRole("button", { name: copy.treeOptions.reset })).toBeDisabled();
+    expect(within(options).getByRole("button", { name: copy.treeOptions.reset })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
   });
 
   it("drops marriages from the link once they are unchecked", async () => {
@@ -594,10 +610,19 @@ describe("GraphWorkspaceShell family tree view", () => {
     await screen.findByRole("button", { name: YENNEFER.name });
 
     expect(treeOptionsTrigger(0)).toHaveTextContent("0/5");
+    expect(treeOptionsTrigger(0)).toHaveAccessibleName(
+      copy.treeOptions.triggerLabelChanged
+        .replace("{enabled}", "0")
+        .replace("{total}", "5")
+        .replace("{changed}", "4"),
+    );
 
     const options = await openTreeOptions(0);
 
-    expect(within(options).getByRole("button", { name: copy.treeOptions.reset })).toBeEnabled();
+    expect(within(options).getByRole("button", { name: copy.treeOptions.reset })).toHaveAttribute(
+      "aria-disabled",
+      "false",
+    );
   });
 
   it("picks one to three generations up and down with switches instead of dropdowns", async () => {
@@ -667,6 +692,25 @@ describe("GraphWorkspaceShell family tree view", () => {
     ).toBeInTheDocument();
     expect(
       within(details).getByRole("button", { name: copy.tree.panel.findPath }),
+    ).toBeInTheDocument();
+  });
+
+  it("closes a spouse's details and names them once marriages are hidden", async () => {
+    serve({ graph: () => json(FAMILY_TREE_WITH_SPOUSE) });
+    renderWorkspace({ search: SEARCH.tree });
+    await userEvent.click(await screen.findByRole("button", { name: GERALT.name }));
+    await screen.findByRole("complementary", { name: GERALT.name });
+    const options = await openTreeOptions(4);
+
+    await userEvent.click(
+      within(options).getByRole("checkbox", { name: copy.treeOptions.marriages }),
+    );
+
+    const notice = await screen.findByText(LABELS.geraltFiltered);
+    expect(screen.getAllByRole("status").some((region) => region.contains(notice))).toBe(true);
+    expect(screen.queryByRole("complementary", { name: GERALT.name })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: copy.tree.hiddenSelection.action.filtered }),
     ).toBeInTheDocument();
   });
 

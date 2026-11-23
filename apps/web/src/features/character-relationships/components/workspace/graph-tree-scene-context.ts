@@ -6,15 +6,20 @@ import { createContext, use } from "react";
 
 import type { TreeLayoutRow } from "../../model/workspace/graph-tree-layout";
 import type { TreePairSemantics } from "../../model/workspace/graph-tree-pairs";
+import type { GraphGenealogyBranch } from "./graph-genealogy-branches";
 import type { GraphPersonCover } from "./use-graph-person-camera";
 
 export type GraphGenealogyCanvas = {
+  activeBranch: Nullable<GraphGenealogyBranch>;
   collapsedIds: ReadonlySet<string>;
   focusRequest: Nullable<GraphGenealogyFocusRequest>;
   frames: readonly GraphGenealogyFrameLabel[];
   hiddenDescendantsById: ReadonlyMap<string, number>;
   highlightIds: Nullable<ReadonlySet<string>>;
   houseById: ReadonlyMap<string, GraphGenealogyHouseMark>;
+  landmarks: readonly GraphGenealogyBranch[];
+  onBranch: (branchId: Nullable<string>) => void;
+  onClearBranch: () => void;
   onExpand: (characterId: string) => void;
 };
 

@@ -19,6 +19,9 @@ import type { TreeOptions } from "../../model/workspace/graph-tree-scene";
 import type { GraphWorkspaceParams } from "../../model/workspace/graph-workspace-params";
 import type { GraphWorkspacePresentation } from "../../model/workspace/graph-workspace-presentation";
 import type { GraphSceneSelection, GraphSceneValue } from "./graph-scene-context";
+import type { GraphGenealogyFocusRequest } from "./graph-tree-scene-context";
+import type { GraphHiddenSelection } from "./graph-tree-status";
+import type { GraphToolbarGenealogy } from "./graph-workspace-toolbar";
 
 import {
   isGraphWorkspaceNotFound,
@@ -47,6 +50,7 @@ import { PERSON_LAYOUT } from "../../model/workspace/graph-workspace-layout";
 import { GRAPH_WORKSPACE_VIEWS, toTreeOptions } from "../../model/workspace/graph-workspace-params";
 import { buildGraphWorkspacePresentation } from "../../model/workspace/graph-workspace-presentation";
 import {
+  type GraphWorkspaceSceneData,
   toGraphReaderKey,
   toGraphWorkspaceSceneRequest,
 } from "../../model/workspace/graph-workspace-request";
@@ -59,11 +63,17 @@ import {
 import { useGraphWorkspaceState } from "../../model/workspace/use-graph-workspace-state";
 import { useRelationshipAuthoring } from "../use-relationship-authoring";
 import { GraphActiveFilters } from "./graph-active-filters";
+import {
+  toGenealogyBranches,
+  toGenealogyBranchMembers,
+  toGenealogyHiddenIds,
+  toGenealogyHouseMarks,
+} from "./graph-genealogy-branches";
 import { GraphGuidedStart } from "./graph-guided-start";
 import { GraphPathExplorer } from "./graph-path-explorer";
 import { GraphSceneSection } from "./graph-scene-section";
 import { GraphWorkspaceHeader } from "./graph-workspace-header";
-import { GraphWorkspaceToolbar } from "./graph-workspace-toolbar";
+import { GraphTreeScopeSwitch, GraphWorkspaceToolbar } from "./graph-workspace-toolbar";
 import { useGraphCounterText } from "./use-graph-counter-text";
 import { useWorkspaceWidthClass } from "./use-workspace-width-class";
 
@@ -84,8 +94,10 @@ type PersonPanelIntent = {
 };
 
 type WorkspaceLocalState = {
+  branchId: Nullable<string>;
   cameraRestored: boolean;
   cameraSettled: boolean;
+  focusRequest: Nullable<GraphGenealogyFocusRequest>;
   genealogy: GenealogyExpansion;
   identityKey: string;
   network: NetworkExpansion;
@@ -111,9 +123,11 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
   } = useWorkspaceWidthClass();
   const [immersive, setImmersive] = useState(false);
   const lastTrigger = useRef<Nullable<HTMLElement>>(null);
+  const focusNonce = useRef(0);
   const focusSceneStatus = useRef(false);
   const statusId = useId();
   const filtersTriggerId = useId();
+  const branchesTriggerId = useId();
   const scope: RelationshipScope = { bookId, kind: "book" };
   const authoring = useRelationshipAuthoring({
     bookOptions: [{ id: bookId, title: book.title }],
@@ -276,6 +290,13 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
     }
   }
 
+  function requestGenealogyFocus(ids: readonly string[]) {
+    if (ids.length === 0) return;
+    focusNonce.current += 1;
+    const request = { ids, nonce: focusNonce.current };
+    setLocal((current) => ({ ...current, focusRequest: request }));
+  }
+
   function revealCharacter(characterId: string) {
     setLocal((current) => ({
       ...current,
@@ -286,6 +307,33 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
       }),
     }));
     select({ id: characterId, kind: "character" });
+  }
+
+  function chooseBranch(branchId: Nullable<string>) {
+    setLocal((current) => ({ ...current, branchId }));
+    const genealogy = presentation?.genealogy ?? null;
+    if (branchId !== null && genealogy !== null) {
+      requestGenealogyFocus(toGenealogyBranchMembers({ branchId, genealogy }));
+    }
+  }
+
+  function clearBranch() {
+    chooseBranch(null);
+    focusTrigger(document.getElementById(branchesTriggerId));
+  }
+
+  function findCharacter(characterId: string) {
+    setLocal((current) => ({ ...current, branchId: null }));
+    revealCharacter(characterId);
+    requestGenealogyFocus([characterId]);
+  }
+
+  function toggleBranch(characterId: string) {
+    setLocal((current) => ({
+      ...current,
+      genealogy: toggleGenealogyBranch({ expansion: current.genealogy, id: characterId }),
+    }));
+    requestGenealogyFocus([characterId]);
   }
 
   function closePersonPanel() {
@@ -387,6 +435,42 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
           selection,
         };
 
+  const genealogyPresentation = presentation?.genealogy ?? null;
+  const genealogyBranches =
+    presentation === null || genealogyPresentation === null
+      ? []
+      : toGenealogyBranches({
+          genealogy: genealogyPresentation,
+          houseMarks: toGenealogyHouseMarks(genealogyPresentation),
+          nameOf: (id) => presentation.characters.get(id)?.node.displayName ?? "",
+          t,
+        });
+  const activeBranchId = genealogyBranches.some((branch) => branch.id === local.branchId)
+    ? local.branchId
+    : null;
+  const toolbarGenealogy: Nullable<GraphToolbarGenealogy> =
+    presentation === null || genealogyPresentation === null
+      ? null
+      : {
+          activeBranchId,
+          branches: genealogyBranches,
+          branchesTriggerId,
+          characters: genealogyPresentation.allNodes,
+          collapsedBranches: genealogyPresentation.scene.collapsedIds.size,
+          hiddenCount: genealogyPresentation.scene.hiddenCount,
+          hiddenIds: toGenealogyHiddenIds({
+            genealogy: genealogyPresentation,
+            isVisible: (id) => presentation.characters.has(id),
+          }),
+          onBranch: chooseBranch,
+          onExpandAll: () =>
+            setLocal((current) => ({ ...current, genealogy: EMPTY_GENEALOGY_EXPANSION })),
+          onFind: findCharacter,
+        };
+  const hiddenSelection = isTreeScene
+    ? toHiddenSelection({ data: scene.data ?? null, presentation, selection: local.selection })
+    : null;
+
   const viewSwitch = (
     <Segmented
       block={widthClass === "compact"}
@@ -396,7 +480,12 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
         if (view !== undefined) actions.setView(view);
       }}
       options={GRAPH_WORKSPACE_VIEWS.map((view) => ({
-        label: (
+        label: isTreeScene ? (
+          <>
+            <span className="@6xl/workspace:hidden">{t(`views.short.${view}`)}</span>
+            <span className="hidden @6xl/workspace:inline">{t(`views.${view}`)}</span>
+          </>
+        ) : (
           <>
             <span className="@lg/workspace:hidden">{t(`views.short.${view}`)}</span>
             <span className="hidden @lg/workspace:inline">{t(`views.${view}`)}</span>
@@ -408,12 +497,21 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
       value={params.view}
     />
   );
+  const modeSwitch =
+    params.view === "tree" ? (
+      <div className="flex flex-wrap items-center gap-2">
+        {viewSwitch}
+        <GraphTreeScopeSwitch actions={actions} params={params} />
+      </div>
+    ) : (
+      viewSwitch
+    );
 
   return (
     <div
       className={cn(
         "@container/workspace flex flex-col",
-        isPersonScene ? "gap-3" : "gap-4",
+        isPanelScene ? "gap-3" : "gap-4",
         isSceneMode && "graph-workspace-viewport",
         immersive && "graph-workspace-immersive overflow-y-auto bg-background p-3 sm:p-4",
       )}
@@ -431,10 +529,10 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
         />
       ) : (
         <>
-          <div className={cn("flex flex-col", isPersonScene ? "gap-2" : "gap-3")}>
-            {isStatusInline ? (
+          <div className={cn("flex flex-col", isPanelScene ? "gap-2" : "gap-3")}>
+            {immersive && isTreeScene ? null : isStatusInline ? (
               <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                {viewSwitch}
+                {modeSwitch}
                 {isSceneError ? null : (
                   <p aria-hidden className="text-sm text-muted-foreground">
                     {counterText ?? t("states.loading")}
@@ -442,17 +540,19 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
                 )}
               </div>
             ) : (
-              viewSwitch
+              modeSwitch
             )}
             <GraphWorkspaceToolbar
               actions={actions}
               bookId={bookId}
               filtersTriggerId={filtersTriggerId}
+              genealogy={isGenealogyScene ? toolbarGenealogy : null}
               onTreeOptionsChange={actions.setTreeOptions}
               onTreeOptionsReset={actions.resetTreeLinks}
               params={params}
               rootParticipant={toRootParticipant({ presentation, rootId: params.characterId })}
               treeOptions={treeOptions}
+              widthClass={sceneWidthClass}
             />
             {isTreeScene ? null : (
               <GraphActiveFilters
@@ -470,6 +570,14 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
             <GraphSceneSection
               actions={actions}
               bookId={bookId}
+              genealogyNav={{
+                activeBranchId,
+                branches: genealogyBranches,
+                focusRequest: local.focusRequest,
+                onBranch: chooseBranch,
+                onClearBranch: clearBranch,
+              }}
+              hiddenSelection={hiddenSelection}
               immersive={immersive}
               isError={isSceneError}
               isNotFound={isUnavailable}
@@ -491,11 +599,12 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
               onConfirmOverwrite={() => {
                 if (local.pendingOverwrite !== null) saveLayout(local.pendingOverwrite, true);
               }}
+              onDismissHiddenSelection={() => {
+                select(null);
+                focusTrigger(document.getElementById(statusId));
+              }}
               onDismissOverwrite={() =>
                 setLocal((current) => ({ ...current, pendingOverwrite: null }))
-              }
-              onExpandAllBranches={() =>
-                setLocal((current) => ({ ...current, genealogy: EMPTY_GENEALOGY_EXPANSION }))
               }
               onMoreClusters={() =>
                 setLocal((current) => ({
@@ -511,16 +620,8 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
               }
               onRestoreFocus={restoreFocus}
               onRetry={() => void scene.refetch()}
-              onRevealCharacter={revealCharacter}
-              onToggleBranch={(characterId) =>
-                setLocal((current) => ({
-                  ...current,
-                  genealogy: toggleGenealogyBranch({
-                    expansion: current.genealogy,
-                    id: characterId,
-                  }),
-                }))
-              }
+              onRevealCharacter={findCharacter}
+              onToggleBranch={toggleBranch}
               onToggleImmersive={() => setImmersive((current) => !current)}
               params={params}
               pendingOverwrite={local.pendingOverwrite !== null}
@@ -575,8 +676,10 @@ function createLocalState({
   selection: GraphSceneSelection;
 }): WorkspaceLocalState {
   return {
+    branchId: null,
     cameraRestored: false,
     cameraSettled: false,
+    focusRequest: null,
     genealogy: EMPTY_GENEALOGY_EXPANSION,
     identityKey,
     network: EMPTY_NETWORK_EXPANSION,
@@ -632,6 +735,24 @@ function reconcileSelection({
     : null;
 }
 
+function toHiddenSelection({
+  data,
+  presentation,
+  selection,
+}: {
+  data: Nullable<GraphWorkspaceSceneData>;
+  presentation: Nullable<GraphWorkspacePresentation>;
+  selection: GraphSceneSelection;
+}): Nullable<GraphHiddenSelection> {
+  if (data === null || presentation === null || selection?.kind !== "character") return null;
+  if (presentation.characters.has(selection.id)) return null;
+  const node = toSceneNodes(data).find((entry) => entry.id === selection.id);
+  if (node === undefined) return null;
+  const isCollapsed =
+    presentation.genealogy?.allNodes.some((entry) => entry.id === selection.id) === true;
+  return { id: node.id, name: node.displayName, reason: isCollapsed ? "collapsed" : "filtered" };
+}
+
 function toLayoutSceneParts({
   identityKey,
   params,
@@ -680,4 +801,9 @@ function toRootParticipant({
     id: root.id,
     name: root.displayName,
   };
+}
+
+function toSceneNodes(data: GraphWorkspaceSceneData) {
+  if (data.kind === "genealogy") return data.genealogy.nodes;
+  return data.kind === "tree" ? data.tree.nodes : data.graph.nodes;
 }
