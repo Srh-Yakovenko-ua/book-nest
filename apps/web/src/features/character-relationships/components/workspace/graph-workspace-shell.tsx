@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import type { RelationshipGraphPoint } from "../../model/relationship-graph-layout";
 import type { RelationshipGraphLayoutKey } from "../../model/relationship-graph-scope";
 import type { RelationshipScope } from "../../model/relationship-scope";
+import type { GenealogyExpansion } from "../../model/workspace/graph-genealogy-scene";
 import type { NetworkExpansion } from "../../model/workspace/graph-network-scene";
 import type { PersonExpansion } from "../../model/workspace/graph-person-scene";
 import type { TreeOptions } from "../../model/workspace/graph-tree-scene";
@@ -24,6 +25,12 @@ import {
   useGraphWorkspaceScene,
 } from "../../api/use-graph-workspace-queries";
 import { useRelationshipGraphLayout } from "../../api/use-relationship-graph-layout";
+import { GENEALOGY_LAYOUT } from "../../model/workspace/graph-genealogy-layout";
+import {
+  revealGenealogyCharacter,
+  toggleGenealogyBranch,
+} from "../../model/workspace/graph-genealogy-navigation";
+import { EMPTY_GENEALOGY_EXPANSION } from "../../model/workspace/graph-genealogy-scene";
 import {
   EMPTY_NETWORK_EXPANSION,
   toggleNetworkCluster,
@@ -79,6 +86,7 @@ type PersonPanelIntent = {
 type WorkspaceLocalState = {
   cameraRestored: boolean;
   cameraSettled: boolean;
+  genealogy: GenealogyExpansion;
   identityKey: string;
   network: NetworkExpansion;
   pendingOverwrite: Nullable<LayoutSnapshot>;
@@ -106,6 +114,30 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
   const focusSceneStatus = useRef(false);
   const statusId = useId();
   const filtersTriggerId = useId();
+  const scope: RelationshipScope = { bookId, kind: "book" };
+  const authoring = useRelationshipAuthoring({
+    bookOptions: [{ id: bookId, title: book.title }],
+    scope,
+  });
+
+  const identityKey = toGraphSceneKey([bookId, reader, sceneRequest, params.networkGroup]);
+  const isPersonScene = params.view === "person" && !params.path;
+  const isTreeScene = params.view === "tree" && !params.path;
+  const isGenealogyScene = isTreeScene && params.treeScope === "full";
+  const isPanelScene = isPersonScene || isTreeScene;
+  const treeOptions = isTreeScene ? toTreeOptions(params.treeLinks) : TREE_SCENE.defaultOptions;
+  const [local, setLocal] = useState<WorkspaceLocalState>(() =>
+    createLocalState({ identityKey, rootId: params.characterId, selection: null }),
+  );
+  if (local.identityKey !== identityKey) {
+    setLocal(
+      createLocalState({
+        identityKey,
+        rootId: params.characterId,
+        selection: isTreeScene && local.rootId === params.characterId ? local.selection : null,
+      }),
+    );
+  }
   const actions = {
     ...urlActions,
     chooseCharacter: (characterId: string) => {
@@ -124,30 +156,15 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
       focusSceneStatus.current = true;
       urlActions.makeCenter(characterId);
     },
+    setTreeScope: (scope: Parameters<typeof urlActions.setTreeScope>[0]) => {
+      const selected = local.selection?.kind === "character" ? local.selection.id : null;
+      urlActions.setTreeScope({
+        characterId:
+          scope.treeScope === "branch" ? (selected ?? scope.characterId) : scope.characterId,
+        treeScope: scope.treeScope,
+      });
+    },
   };
-  const scope: RelationshipScope = { bookId, kind: "book" };
-  const authoring = useRelationshipAuthoring({
-    bookOptions: [{ id: bookId, title: book.title }],
-    scope,
-  });
-
-  const identityKey = toGraphSceneKey([bookId, reader, sceneRequest, params.networkGroup]);
-  const isPersonScene = params.view === "person" && !params.path;
-  const isTreeScene = params.view === "tree" && !params.path;
-  const isPanelScene = isPersonScene || isTreeScene;
-  const treeOptions = isTreeScene ? toTreeOptions(params.treeLinks) : TREE_SCENE.defaultOptions;
-  const [local, setLocal] = useState<WorkspaceLocalState>(() =>
-    createLocalState({ identityKey, rootId: params.characterId, selection: null }),
-  );
-  if (local.identityKey !== identityKey) {
-    setLocal(
-      createLocalState({
-        identityKey,
-        rootId: params.characterId,
-        selection: isTreeScene && local.rootId === params.characterId ? local.selection : null,
-      }),
-    );
-  }
   const sceneWidthClass = isPanelScene ? personWidthClass : widthClass;
   const [personPanel, setPersonPanel] = useState<PersonPanelIntent>(() => ({
     intent: "auto",
@@ -164,6 +181,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
       ? null
       : buildGraphWorkspacePresentation({
           data: scene.data,
+          genealogy: local.genealogy,
           network: local.network,
           params,
           person: local.person,
@@ -180,7 +198,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
 
   const storageKey: RelationshipGraphLayoutKey = {
     contextBookId: null,
-    mode: params.view,
+    mode: isGenealogyScene ? "genealogy" : params.view,
     scopeId: bookId,
     scopeType: "book",
   };
@@ -188,7 +206,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
   const allowedIds = new Set(presentation?.positions.keys() ?? []);
   const layoutVersion = toGraphLayoutVersion({
     bookId,
-    nodeIds: [...allowedIds],
+    nodeIds: presentation?.genealogy?.allNodes.map((node) => node.id) ?? [...allowedIds],
     reader,
     sceneKey: toGraphSceneKey(toLayoutSceneParts({ identityKey, params, treeOptions })),
   });
@@ -256,6 +274,18 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
     if (next !== null && isPanelScene) {
       setPersonPanel((current) => ({ ...current, intent: "open" }));
     }
+  }
+
+  function revealCharacter(characterId: string) {
+    setLocal((current) => ({
+      ...current,
+      genealogy: revealGenealogyCharacter({
+        expansion: current.genealogy,
+        id: characterId,
+        lineage: presentation?.genealogy?.allLineage ?? [],
+      }),
+    }));
+    select({ id: characterId, kind: "character" });
   }
 
   function closePersonPanel() {
@@ -464,6 +494,9 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
               onDismissOverwrite={() =>
                 setLocal((current) => ({ ...current, pendingOverwrite: null }))
               }
+              onExpandAllBranches={() =>
+                setLocal((current) => ({ ...current, genealogy: EMPTY_GENEALOGY_EXPANSION }))
+              }
               onMoreClusters={() =>
                 setLocal((current) => ({
                   ...current,
@@ -478,6 +511,16 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
               }
               onRestoreFocus={restoreFocus}
               onRetry={() => void scene.refetch()}
+              onRevealCharacter={revealCharacter}
+              onToggleBranch={(characterId) =>
+                setLocal((current) => ({
+                  ...current,
+                  genealogy: toggleGenealogyBranch({
+                    expansion: current.genealogy,
+                    id: characterId,
+                  }),
+                }))
+              }
               onToggleImmersive={() => setImmersive((current) => !current)}
               params={params}
               pendingOverwrite={local.pendingOverwrite !== null}
@@ -492,6 +535,7 @@ export function GraphWorkspaceShell({ book }: GraphWorkspaceShellProps) {
                       treeOptions,
                       local.relayout,
                       restore === null ? null : layoutVersion,
+                      [...local.genealogy.collapsedIds].sort(),
                     ],
               )}
               presentation={presentation}
@@ -533,6 +577,7 @@ function createLocalState({
   return {
     cameraRestored: false,
     cameraSettled: false,
+    genealogy: EMPTY_GENEALOGY_EXPANSION,
     identityKey,
     network: EMPTY_NETWORK_EXPANSION,
     pendingOverwrite: null,
@@ -599,6 +644,9 @@ function toLayoutSceneParts({
   if (params.path) return [identityKey, params.view, treeOptions];
   if (params.view === "person") {
     return [identityKey, params.view, treeOptions, PERSON_LAYOUT.revision];
+  }
+  if (params.view === "tree" && params.treeScope === "full") {
+    return [identityKey, "genealogy", treeOptions, GENEALOGY_LAYOUT.revision];
   }
   if (params.view === "tree") return [identityKey, params.view, treeOptions, TREE_LAYOUT.revision];
   return [identityKey, params.view, treeOptions];

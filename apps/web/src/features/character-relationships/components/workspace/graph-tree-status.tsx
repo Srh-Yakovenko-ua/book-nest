@@ -1,5 +1,6 @@
 "use client";
 
+import { BOOK_FAMILY_TREE } from "@app/shared";
 import { CircleAlert, Info } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -8,7 +9,12 @@ import { cn } from "@/lib/utils";
 
 import type { GraphPresentationNotice } from "../../model/workspace/graph-workspace-presentation";
 
-const WARNING_NOTICES = ["treeConflicts", "treeTruncated", "truncated"] as const;
+const WARNING_NOTICES = [
+  "genealogyTruncated",
+  "treeConflicts",
+  "treeTruncated",
+  "truncated",
+] as const;
 
 type GraphTreeStatusProps = {
   notices: readonly GraphPresentationNotice[];
@@ -50,7 +56,7 @@ export function GraphTreeStatus({
                       isWarning ? "text-warning" : "text-muted-foreground",
                     )}
                   />
-                  <span>{t(`notices.${notice}`)}</span>
+                  <span>{t(`notices.${notice}`, { limit: BOOK_FAMILY_TREE.nodeLimit })}</span>
                 </li>
               );
             })}

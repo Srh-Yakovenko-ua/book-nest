@@ -61,6 +61,7 @@ async function generateOpenApi(): Promise<void> {
   const document = buildOpenApiDocument(app);
   normalizeParameters(document);
   normalizeExclusiveBounds(document);
+  normalizeNullableTypes(document);
   dropUnsupportedKeywords(document);
   await writeFile(outputPath, `${JSON.stringify(document, null, 2)}\n`, "utf8");
 
@@ -120,6 +121,40 @@ function normalizeExclusiveBounds(node: unknown): void {
 
   for (const value of Object.values(node)) {
     normalizeExclusiveBounds(value);
+  }
+}
+
+function normalizeNullableTypes(node: unknown): void {
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      normalizeNullableTypes(item);
+    }
+    return;
+  }
+
+  if (!isRecord(node)) {
+    return;
+  }
+
+  if (Array.isArray(node.type)) {
+    const types = node.type.filter((type) => type !== "null");
+    if (types.length < node.type.length) {
+      node.nullable = true;
+    }
+    const [single] = types;
+    if (types.length === 1) {
+      node.type = single;
+    } else {
+      delete node.type;
+    }
+    if (types.length > 1) {
+      const existing = Array.isArray(node.anyOf) ? node.anyOf : [];
+      node.anyOf = [...existing, ...types.map((type) => ({ type }))];
+    }
+  }
+
+  for (const value of Object.values(node)) {
+    normalizeNullableTypes(value);
   }
 }
 

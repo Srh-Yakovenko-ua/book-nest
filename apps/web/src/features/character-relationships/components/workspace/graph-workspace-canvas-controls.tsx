@@ -26,6 +26,7 @@ import type { RelationshipGraphPoint } from "../../model/relationship-graph-layo
 import type { GraphSceneFlowEdge, GraphSceneFlowNode } from "./graph-scene-context";
 import type { GraphPersonControlsPosition } from "./use-graph-person-camera";
 
+import { GENEALOGY_CAMERA } from "../../model/workspace/graph-genealogy-camera";
 import { GraphPersonSceneContext } from "./graph-person-scene-context";
 import { GraphTreeSceneContext } from "./graph-tree-scene-context";
 import { GRAPH_PERSON_CONTROLS_COVER, useGraphPersonCamera } from "./use-graph-person-camera";
@@ -103,6 +104,14 @@ export function GraphWorkspaceCanvasControls({
       void flow.setViewport(viewport);
       return;
     }
+    if (treeScene !== null && treeScene.genealogy !== null) {
+      if (rootId === null) {
+        treeCamera.fitAll({ cover: personCover, duration: 0 });
+        return;
+      }
+      treeCamera.centerAt({ cover: personCover, id: rootId, zoom: GENEALOGY_CAMERA.initialZoom });
+      return;
+    }
     if (rootId === null) {
       void flow.fitView({
         maxZoom: CANVAS_CONTROLS.fitMaxZoom,
@@ -147,7 +156,7 @@ export function GraphWorkspaceCanvasControls({
     });
   }
 
-  if (rootId !== null) {
+  if (rootId !== null || treeScene !== null) {
     const orientation = position === "bottom-center" ? "horizontal" : "vertical";
     const tooltipSide = orientation === "horizontal" ? "top" : "left";
     return (
@@ -173,7 +182,12 @@ export function GraphWorkspaceCanvasControls({
         >
           <Scan aria-hidden />
         </PersonControl>
-        <PersonControl label={t("center")} onClick={centerRoot} side={tooltipSide}>
+        <PersonControl
+          disabled={rootId === null}
+          label={t(treeScene !== null && treeScene.genealogy !== null ? "focusSelected" : "center")}
+          onClick={centerRoot}
+          side={tooltipSide}
+        >
           <LocateFixed aria-hidden />
         </PersonControl>
         <PersonControl

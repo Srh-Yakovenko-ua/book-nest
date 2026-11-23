@@ -16,6 +16,7 @@ export const GRAPH_SCENE_FLOW = {
   characterNode: "workspace-character",
   clusterNode: "workspace-cluster",
   connectionEdge: "connection",
+  genealogyNode: "workspace-genealogy",
   personEdge: "person-connection",
   personNode: "workspace-person",
   treeEdge: "tree-connection",
@@ -34,6 +35,7 @@ export type GraphSceneFlowNode = Node<
   Record<string, never>,
   | typeof GRAPH_SCENE_FLOW.characterNode
   | typeof GRAPH_SCENE_FLOW.clusterNode
+  | typeof GRAPH_SCENE_FLOW.genealogyNode
   | typeof GRAPH_SCENE_FLOW.personNode
   | typeof GRAPH_SCENE_FLOW.treeNode
 >;

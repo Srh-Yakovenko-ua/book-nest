@@ -90,12 +90,25 @@ export function useGraphTreeLabels() {
     return t("generation.label", { value: formatGeneration(value) });
   }
 
+  function ordinalGeneration(value: number): string {
+    return t("generation.ordinal", { value: value + 1 });
+  }
+
   function generationCaption(value: number): string {
     const caption = GENERATION_CAPTIONS.get(value);
     return caption === undefined ? "" : t(`generation.captions.${caption}`);
   }
 
-  return { entry, generation, generationCaption, lineageShort, pair, role, style };
+  return {
+    entry,
+    generation,
+    generationCaption,
+    lineageShort,
+    ordinalGeneration,
+    pair,
+    role,
+    style,
+  };
 }
 
 function formatGeneration(value: number): string {

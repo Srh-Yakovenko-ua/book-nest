@@ -84,6 +84,38 @@ export const TREE_SCENE = {
   optionTypes: Record<TreeOptionKey, readonly RelationshipType[]>;
 };
 
+export function anchorTreeSideRelatives({
+  entries,
+  generationById,
+}: {
+  entries: readonly TreeEdgeEntry[];
+  generationById: ReadonlyMap<string, number>;
+}): { rowById: ReadonlyMap<string, number>; sideAnchorById: ReadonlyMap<string, string> } {
+  const rowById = new Map(generationById);
+  const sideAnchorById = new Map<string, string>();
+  const pending = [...entries].sort((left, right) => left.edge.id.localeCompare(right.edge.id));
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const entry of pending) {
+      const { source, target } = entry.edge;
+      const sourceRow = rowById.get(source);
+      const targetRow = rowById.get(target);
+      if (sourceRow === undefined && targetRow !== undefined) {
+        rowById.set(source, targetRow);
+        sideAnchorById.set(source, target);
+        changed = true;
+      }
+      if (targetRow === undefined && sourceRow !== undefined) {
+        rowById.set(target, sourceRow);
+        sideAnchorById.set(target, source);
+        changed = true;
+      }
+    }
+  }
+  return { rowById, sideAnchorById };
+}
+
 export function buildTreeScene({
   options,
   tree,
@@ -102,9 +134,9 @@ export function buildTreeScene({
       parentId: link.parentId,
     }));
   const layering = toTreeGenerations({ lineage, rootId });
-  const entries = toEdgeEntries({ edges: tree.edges, lineage });
+  const entries = toTreeEdgeEntries({ edges: tree.edges, lineage });
   const candidates = entries.filter((entry) => entry.kind !== "auxiliary" || options[entry.group]);
-  const { rowById, sideAnchorById } = anchorSideRelatives({
+  const { rowById, sideAnchorById } = anchorTreeSideRelatives({
     entries: candidates,
     generationById: layering.generationById,
   });
@@ -134,6 +166,35 @@ export function buildTreeScene({
 
 export function countEnabledTreeOptions(options: TreeOptions): number {
   return TREE_OPTION_KEYS.filter((key) => options[key]).length;
+}
+
+export function toTreeEdgeEntries({
+  edges,
+  lineage,
+}: {
+  edges: readonly CharacterGraphEdgeView[];
+  lineage: readonly TreeLineageLink[];
+}): TreeEdgeEntry[] {
+  const linkByEdgeId = new Map(lineage.map((link) => [link.edgeId, link] as const));
+  return edges.flatMap((edge): TreeEdgeEntry[] => {
+    if (edge.source === edge.target) return [];
+    const link = linkByEdgeId.get(edge.id);
+    if (link !== undefined) {
+      return [
+        {
+          childId: link.childId,
+          edge,
+          kind: "lineage",
+          lineageKind: link.kind,
+          parentId: link.parentId,
+        },
+      ];
+    }
+    if (edge.typeHidden || edge.type === null) return [];
+    if (isLineageType(edge.type)) return [{ edge, kind: "conflict" }];
+    const group = toTreeOptionGroup(edge.type);
+    return group === undefined ? [] : [{ edge, group, kind: "auxiliary" }];
+  });
 }
 
 export function toTreeGenerations({
@@ -196,67 +257,6 @@ export function toTreeOptionGroup(type: RelationshipType): TreeOptionKey | undef
   );
 }
 
-function anchorSideRelatives({
-  entries,
-  generationById,
-}: {
-  entries: readonly TreeEdgeEntry[];
-  generationById: ReadonlyMap<string, number>;
-}): { rowById: ReadonlyMap<string, number>; sideAnchorById: ReadonlyMap<string, string> } {
-  const rowById = new Map(generationById);
-  const sideAnchorById = new Map<string, string>();
-  const pending = [...entries].sort((left, right) => left.edge.id.localeCompare(right.edge.id));
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const entry of pending) {
-      const { source, target } = entry.edge;
-      const sourceRow = rowById.get(source);
-      const targetRow = rowById.get(target);
-      if (sourceRow === undefined && targetRow !== undefined) {
-        rowById.set(source, targetRow);
-        sideAnchorById.set(source, target);
-        changed = true;
-      }
-      if (targetRow === undefined && sourceRow !== undefined) {
-        rowById.set(target, sourceRow);
-        sideAnchorById.set(target, source);
-        changed = true;
-      }
-    }
-  }
-  return { rowById, sideAnchorById };
-}
-
 function isLineageType(type: RelationshipType): boolean {
   return TREE_SCENE.lineageTypes.some((candidate) => candidate === type);
-}
-
-function toEdgeEntries({
-  edges,
-  lineage,
-}: {
-  edges: readonly CharacterGraphEdgeView[];
-  lineage: readonly TreeLineageLink[];
-}): TreeEdgeEntry[] {
-  const linkByEdgeId = new Map(lineage.map((link) => [link.edgeId, link] as const));
-  return edges.flatMap((edge): TreeEdgeEntry[] => {
-    if (edge.source === edge.target) return [];
-    const link = linkByEdgeId.get(edge.id);
-    if (link !== undefined) {
-      return [
-        {
-          childId: link.childId,
-          edge,
-          kind: "lineage",
-          lineageKind: link.kind,
-          parentId: link.parentId,
-        },
-      ];
-    }
-    if (edge.typeHidden || edge.type === null) return [];
-    if (isLineageType(edge.type)) return [{ edge, kind: "conflict" }];
-    const group = toTreeOptionGroup(edge.type);
-    return group === undefined ? [] : [{ edge, group, kind: "auxiliary" }];
-  });
 }

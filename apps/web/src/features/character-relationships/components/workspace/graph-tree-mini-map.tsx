@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import type { GraphSceneFlowNode } from "./graph-scene-context";
 import type { GraphPersonCover } from "./use-graph-person-camera";
 
+import { toGraphGenealogyHouseTone } from "./graph-genealogy-tones";
 import { useGraphTreeScene } from "./graph-tree-scene-context";
 
 const TREE_MINI_MAP = {
@@ -24,7 +25,7 @@ const TREE_MINI_MAP = {
 
 export function GraphTreeMiniMap() {
   const t = useTranslations("relationships.workspace.tree");
-  const { rootId } = useGraphTreeScene();
+  const { genealogy, rootId } = useGraphTreeScene();
   const { colors } = TREE_MINI_MAP;
 
   return (
@@ -36,7 +37,11 @@ export function GraphTreeMiniMap() {
       maskStrokeColor={colors.maskStroke}
       maskStrokeWidth={1.5}
       nodeBorderRadius={TREE_MINI_MAP.nodeRadius}
-      nodeColor={(node) => (node.id === rootId ? colors.root : colors.node)}
+      nodeColor={(node) => {
+        if (node.id === rootId) return colors.root;
+        const house = genealogy?.houseById.get(node.id);
+        return house === undefined ? colors.node : toGraphGenealogyHouseTone(house.tone).miniMap;
+      }}
       pannable
       position="bottom-right"
       style={TREE_MINI_MAP.size}

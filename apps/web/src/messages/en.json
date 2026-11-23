@@ -10629,6 +10629,14 @@
         "treeFiltered": {
           "title": "All family links are hidden",
           "description": "This character has no parents or children here, and the other available links are switched off in “Show links”."
+        },
+        "genealogyEmpty": {
+          "description": "Parents, children, marriages and other family links will appear here once they are available in your reading context.",
+          "title": "This book has no family links yet"
+        },
+        "genealogyFiltered": {
+          "title": "All family links are hidden right now",
+          "description": "This book has no parent and child records, and the other links are switched off in “Show links”. Turn on marriages or other links to see the genealogy."
         }
       },
       "notices": {
@@ -10641,13 +10649,18 @@
         "treeFewerAncestors": "There are no more ancestors in the available records.",
         "treeFewerDescendants": "There are no more descendants in the available records.",
         "treeMultiLine": "Some relatives are linked to this character through several lines of descent of different length, so a few lines cross more than one generation.",
-        "treeTruncated": "Only part of the available family tree is shown. Choose another central character to explore the rest."
+        "treeTruncated": "Only part of the available family tree is shown. Choose another central character to explore the rest.",
+        "genealogyCollapsed": "Some branches are collapsed. Characters that another visible branch needs are never hidden.",
+        "genealogyComponents": "This genealogy holds several unrelated families. They are shown side by side, with no invented common ancestors.",
+        "genealogyTruncated": "The genealogy exceeds the limit of {limit} characters. The largest families are shown until the limit is reached; smaller families or parts of them are left out.",
+        "genealogyMultiLine": "Some marriages join people of different generations, so a few lines from parents to children cross more than one generation."
       },
       "counters": {
         "expanded": "Expanded: {nodes, plural, one {# character} other {# characters}} · {edges, plural, one {# connection} other {# connections}}",
         "groups": "On the map: {groups, plural, one {# group} other {# groups}}",
         "person": "On the map: {nodes, plural, one {# character} other {# characters}} · {pairs, plural, one {# pair} other {# pairs}} · {relationships, plural, one {# connection} other {# connections}}",
-        "tree": "In the tree: {nodes, plural, one {# character} other {# characters}} · {pairs, plural, one {# pair} other {# pairs}} · {relationships, plural, one {# relationship} other {# relationships}}"
+        "tree": "In the tree: {nodes, plural, one {# character} other {# characters}} · {pairs, plural, one {# pair} other {# pairs}} · {relationships, plural, one {# relationship} other {# relationships}}",
+        "genealogy": "Genealogy: {generations, plural, one {# generation} other {# generations}} · {nodes, plural, one {# character} other {# characters}} · {pairs, plural, one {# pair} other {# pairs}}"
       },
       "more": {
         "clusters": "Show more groups",
@@ -10699,7 +10712,8 @@
           "label": "Network mini map: visible area and central character",
           "toggle": "Mini map"
         },
-        "fitTree": "Show the whole tree"
+        "fitTree": "Show the whole tree",
+        "focusSelected": "Focus the selected character"
       },
       "list": {
         "aggregate": "The shown characters of “{source}” and “{target}” are connected",
@@ -10828,12 +10842,16 @@
             "parents": "Parents",
             "root": "Central character"
           },
-          "label": "Generation {value}"
+          "label": "Generation {value}",
+          "ordinal": "Generation {value}"
         },
         "help": {
           "generations": "Generations are counted from the central character: ancestors above, descendants below, up to three each way.",
           "lines": "Solid brown lines lead from each confirmed parent to the child. Marriages, siblings and guardianship never change a generation.",
-          "links": "Parents and children are always shown. Use “Show links” to add or hide marriages, siblings, guardians and distant relatives."
+          "links": "Parents and children are always shown. Use “Show links” to add or hide marriages, siblings, guardians and distant relatives.",
+          "collapse": "Collapse a branch from the character panel to hide that character’s descendants. Shared relatives that another visible branch needs stay on the map.",
+          "genealogy": "“Whole genealogy” shows every available generation of the book. Unrelated families stand side by side and get no invented common ancestors.",
+          "navigation": "Drag the canvas to move around. Zoom with the buttons, Ctrl + wheel or a pinch. A plain scroll moves the page."
         },
         "legend": {
           "caption": "Line style, icon and label always tell the type apart, not colour alone.",
@@ -10875,7 +10893,8 @@
           "openRoot": "Open details of the central character {name}",
           "openSide": "Open details of {name}, an extra relative without a confirmed generation",
           "root": "Centre",
-          "side": "Extra relative"
+          "side": "Extra relative",
+          "openFavorite": "Open details of {name}, a favourite character"
         },
         "pairCount": "{count, plural, one {# relationship} other {# relationships}}",
         "panel": {
@@ -10914,6 +10933,49 @@
           "marriages": "Marriage",
           "siblings": "Siblings"
         }
+      },
+      "genealogy": {
+        "bar": {
+          "branchActive": "Branch: {name}",
+          "branches": "Family branches",
+          "clearBranch": "Clear the branch highlight",
+          "expandAll": "Expand all branches",
+          "expandAllCount": "Expand all branches ({count})",
+          "families": "Unrelated families",
+          "houses": "Houses",
+          "members": "{count, plural, one {# person} other {# people}}"
+        },
+        "family": "{name} family · {count, plural, one {# person} other {# people}}",
+        "familyHouse": "{name} · {count, plural, one {# person} other {# people}}",
+        "node": {
+          "collapsedState": "branch collapsed, {count, plural, one {# descendant hidden} other {# descendants hidden}}",
+          "expand": "+{count}, expand the branch of {name}: {count, plural, one {# hidden descendant} other {# hidden descendants}}",
+          "hidden": "+{count}",
+          "open": "Open details of {name}",
+          "openFavorite": "Open details of {name}, a favourite character",
+          "side": "Extra relative"
+        },
+        "panel": {
+          "collapse": "Collapse the descendants",
+          "expand": "Expand the branch ({count})",
+          "findPath": "Find a link",
+          "profile": "Profile",
+          "showBranch": "Show this character’s branch"
+        },
+        "search": {
+          "empty": "No one found",
+          "hint": "Search among {count, plural, one {# character} other {# characters}} of the genealogy",
+          "label": "Search the genealogy",
+          "placeholder": "Character name",
+          "results": "Characters",
+          "trigger": "Find a character",
+          "found": "{count, plural, =0 {No matches} one {# character found} other {# characters found}}"
+        }
+      },
+      "treeScope": {
+        "branch": "Character branch",
+        "full": "Whole genealogy",
+        "label": "Family tree scope"
       }
     }
   }

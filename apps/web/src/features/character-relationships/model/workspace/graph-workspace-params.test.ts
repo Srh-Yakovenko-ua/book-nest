@@ -109,6 +109,8 @@ describe("needsGraphWorkspaceCanonicalReplace", () => {
     "treeLinks=siblings,marriages",
     "treeLinks=marriages,siblings,guardians,distant",
     "treeLinks=foo",
+    "treeScope=branch&view=tree",
+    "treeScope=bogus&view=tree",
   ])("asks for a replace when the URL reads '%s'", (query) => {
     expect(needsReplaceFor(query)).toBe(true);
   });
@@ -120,6 +122,7 @@ describe("needsGraphWorkspaceCanonicalReplace", () => {
     `from=${CHARACTER.geralt}&path=1&to=${CHARACTER.ciri}&view=tree`,
     "treeLinks=marriages,siblings&view=tree",
     "treeLinks=none&view=tree",
+    "treeScope=full&view=tree",
   ])("leaves the canonical URL '%s' alone", (query) => {
     expect(needsReplaceFor(query)).toBe(false);
   });
@@ -164,6 +167,25 @@ describe("treeLinks", () => {
 
     expect(canonical).toMatchObject({ categories: ["family"], treeLinks: ["siblings"], types: [] });
   });
+});
+
+describe("treeScope", () => {
+  it("shows a branch of the tree when the URL names no scope", () => {
+    expect(loadGraphWorkspaceParams(new URLSearchParams("view=tree")).treeScope).toBe("branch");
+  });
+
+  it("shows the whole genealogy for treeScope=full", () => {
+    const params = loadGraphWorkspaceParams(new URLSearchParams("treeScope=full&view=tree"));
+
+    expect(params.treeScope).toBe("full");
+  });
+
+  it.each(["treeScope=bogus", "treeScope=whole"])(
+    "falls back to a branch of the tree for '%s'",
+    (query) => {
+      expect(loadGraphWorkspaceParams(new URLSearchParams(query)).treeScope).toBe("branch");
+    },
+  );
 });
 
 describe("toTreeOptions", () => {

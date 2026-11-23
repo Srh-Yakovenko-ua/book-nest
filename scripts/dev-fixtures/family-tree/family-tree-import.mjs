@@ -22,6 +22,12 @@ const IMPORT_SETTINGS = {
   },
   expectedCounts: { characters: 176, relationships: 335 },
   forbiddenCharacterNames: ["jon snow"],
+  houses: {
+    groupType: "house",
+    membersPerCreate: 100,
+    namePrefix: "Дім ",
+    notHouses: ["dothraki", "rivers", "unknown", "waters"],
+  },
   maxPages: 200,
   mutationDelayMs: 1100,
   pageSize: 100,
@@ -50,6 +56,9 @@ const digitsOnly = (value) => String(value ?? "").replace(/\D/g, "");
 const isNonEmptyString = (value) => typeof value === "string" && value.trim().length > 0;
 
 const isKnownHouse = (value) => isNonEmptyString(value) && normalizeText(value) !== "unknown";
+
+const isHouseGroup = (value) =>
+  isNonEmptyString(value) && !IMPORT_SETTINGS.houses.notHouses.includes(normalizeText(value));
 
 const withQuery = (path, params) => `${path}?${new globalThis.URLSearchParams(params).toString()}`;
 
@@ -251,12 +260,75 @@ async function createBook({ onProgress, request, validated }) {
   return created.id;
 }
 
+async function ensureHouses({ bookId, onProgress, request, validated }) {
+  const state = await readBookState(request, bookId);
+  const idByKey = resolveUniqueIds({ characters: validated.characters, roster: state.roster });
+  const summary = { created: 0, membersAdded: 0, reused: 0 };
+  for (const house of toFixtureHouses(validated.characters)) {
+    const memberIds = house.keys.flatMap((key) => {
+      const id = idByKey.get(key);
+      return id === undefined ? [] : [id];
+    });
+    const existing = await findHouseGroup({ name: house.name, request });
+    let groupId = existing?.id ?? null;
+    let present = new Set();
+    if (groupId === null) {
+      const initial = memberIds.slice(0, IMPORT_SETTINGS.houses.membersPerCreate);
+      const created = await withRetry({
+        label: `house ${house.name}`,
+        onProgress,
+        operation: () =>
+          request("POST", "/api/character-groups", {
+            members: initial.map((characterId) => ({ bookId, characterId })),
+            name: house.name,
+            type: IMPORT_SETTINGS.houses.groupType,
+          }),
+        recheck: () => findHouseGroup({ name: house.name, request }),
+      });
+      groupId = created.id;
+      present = new Set(initial);
+      summary.created += 1;
+      summary.membersAdded += initial.length;
+      await sleep(IMPORT_SETTINGS.mutationDelayMs);
+    } else {
+      const details = await request("GET", `/api/character-groups/${groupId}`);
+      present = new Set(
+        (Array.isArray(details?.members) ? details.members : []).map(
+          (member) => member.characterId,
+        ),
+      );
+      summary.reused += 1;
+    }
+    for (const characterId of memberIds.filter((id) => !present.has(id))) {
+      await withRetry({
+        label: `house ${house.name} member ${characterId}`,
+        onProgress,
+        operation: () =>
+          request("PUT", `/api/character-groups/${groupId}/members/${characterId}`, { bookId }),
+        recheck: () => Promise.resolve(null),
+      });
+      summary.membersAdded += 1;
+      await sleep(IMPORT_SETTINGS.mutationDelayMs);
+    }
+    onProgress(`house ${house.name}: ${memberIds.length} members`);
+  }
+  return summary;
+}
+
 async function findCharacterInBook({ bookId, name, request }) {
   const found = await listAllPages(request, `/api/books/${bookId}/characters`, {
     search: name.trim().slice(0, IMPORT_SETTINGS.characterSearchMax),
   });
   const exact = found.filter((item) => exactName(item?.name) === exactName(name));
   return exact.length === 1 ? { id: exact[0].characterId } : null;
+}
+
+async function findHouseGroup({ name, request }) {
+  const groups = await listAllPages(request, "/api/character-groups", {
+    q: name,
+    type: IMPORT_SETTINGS.houses.groupType,
+  });
+  return groups.find((group) => normalizeText(group?.name) === normalizeText(name)) ?? null;
 }
 
 async function findRelationshipInBook({ bookId, edge, idByKey, request }) {
@@ -569,6 +641,21 @@ async function runApply({ onProgress, request, validated }) {
     };
   }
 
+  let houses;
+  try {
+    houses = await ensureHouses({ bookId, onProgress, request, validated });
+  } catch (error) {
+    return {
+      bookId,
+      created: { characters: createdCharacterKeys.size, relationships: createdEdgeKeys.size },
+      error: describeError(error),
+      mode: "apply",
+      plan: planSummary,
+      stage: "houses",
+      status: "stopped",
+    };
+  }
+
   onProgress("re-reading the book to verify");
   let actual;
   try {
@@ -590,6 +677,7 @@ async function runApply({ onProgress, request, validated }) {
     actual,
     bookId,
     created: { characters: createdCharacterKeys.size, relationships: createdEdgeKeys.size },
+    houses,
     mode: "apply",
     plan: planSummary,
     status: isComplete ? "completed" : "incomplete",
@@ -613,8 +701,17 @@ async function runDryRun({ request, validated }) {
   const publisher = isNewBook
     ? (await resolvePublisher(request, validated.book.publisher)).resolution
     : null;
+  const houses = toFixtureHouses(validated.characters);
+  const existingHouses = await Promise.all(
+    houses.map((house) => findHouseGroup({ name: house.name, request })),
+  );
   return {
     bookId: target.id,
+    houses: {
+      create: existingHouses.filter((group) => group === null).length,
+      planned: houses.length,
+      reuse: existingHouses.filter((group) => group !== null).length,
+    },
     mode: "dry-run",
     plan: summarizePlan({ bookMode: target.mode, plan }),
     resolution: { authors, publisher },
@@ -629,6 +726,20 @@ function summarizePlan({ bookMode, plan }) {
     characters: { create: plan.charactersToCreate.length, skip: plan.charactersSkipped },
     relationships: { create: plan.relationshipsToCreate.length, skip: plan.relationshipsSkipped },
   };
+}
+
+function toFixtureHouses(characters) {
+  const keysByHouse = new Map();
+  for (const character of characters) {
+    if (!isHouseGroup(character.house)) {
+      continue;
+    }
+    const house = exactName(character.house);
+    keysByHouse.set(house, [...(keysByHouse.get(house) ?? []), character.key]);
+  }
+  return [...keysByHouse]
+    .map(([house, keys]) => ({ keys, name: `${IMPORT_SETTINGS.houses.namePrefix}${house}` }))
+    .sort((left, right) => left.name.localeCompare(right.name));
 }
 
 function validateBookMetadata(book, problems) {

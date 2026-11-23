@@ -124,6 +124,7 @@ export function GraphTreeScene(props: GraphTreeSceneProps) {
     arcPairIds: tree.arcPairIds,
     cover: hasMiniMap && isMiniMapOpen ? withGraphTreeMiniMapCover(baseCover) : baseCover,
     focusIds: toFocusIds({ rootId, tree }),
+    genealogy: null,
     generationById: tree.scene.generationById,
     miniMap: hasMiniMap
       ? { isOpen: isMiniMapOpen, onToggle: () => setMiniMapOpen((current) => !current) }

@@ -37,7 +37,7 @@ import {
   TREE_OPTION_KEYS,
   TREE_SCENE,
 } from "../../model/workspace/graph-tree-scene";
-import { NETWORK_GROUPINGS } from "../../model/workspace/graph-workspace-params";
+import { GRAPH_TREE_SCOPES, NETWORK_GROUPINGS } from "../../model/workspace/graph-workspace-params";
 import { RelationshipParticipantPicker } from "../relationship-participant-picker";
 import { GraphWorkspaceFilters } from "./graph-workspace-filters";
 
@@ -75,10 +75,27 @@ export function GraphWorkspaceToolbar({
   treeOptions,
 }: GraphWorkspaceToolbarProps) {
   const t = useTranslations("relationships.workspace");
-  const usesRoot = params.view !== "network";
+  const isGenealogy = params.view === "tree" && params.treeScope === "full";
+  const usesRoot = params.view !== "network" && !isGenealogy;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      {params.view === "tree" ? (
+        <Segmented
+          label={t("treeScope.label")}
+          onValueChange={(value) => {
+            const treeScope = GRAPH_TREE_SCOPES.find((scope) => scope === value);
+            if (treeScope !== undefined) {
+              actions.setTreeScope({ characterId: params.characterId, treeScope });
+            }
+          }}
+          options={GRAPH_TREE_SCOPES.map((scope) => ({
+            label: t(`treeScope.${scope}`),
+            value: scope,
+          }))}
+          value={params.treeScope}
+        />
+      ) : null}
       {usesRoot ? (
         <div className="flex w-full min-w-0 items-center gap-1 sm:w-72">
           <label className="sr-only" htmlFor={TOOLBAR.pickerId}>
@@ -127,7 +144,7 @@ export function GraphWorkspaceToolbar({
       ) : null}
       {params.view === "tree" ? (
         <>
-          <GenerationsControl actions={actions} params={params} />
+          {isGenealogy ? null : <GenerationsControl actions={actions} params={params} />}
           <TreeOptionsControl
             onChange={onTreeOptionsChange}
             onReset={onTreeOptionsReset}
@@ -172,7 +189,7 @@ export function GraphWorkspaceToolbar({
         <Route aria-hidden className="size-4" />
         {t(params.view === "person" ? "pathEntryShort" : "pathEntry")}
       </Button>
-      <HelpControl view={params.view} />
+      <HelpControl isGenealogy={isGenealogy} view={params.view} />
     </div>
   );
 }
@@ -246,7 +263,13 @@ function GenerationsControl({
   );
 }
 
-function HelpControl({ view }: { view: GraphWorkspaceParams["view"] }) {
+function HelpControl({
+  isGenealogy,
+  view,
+}: {
+  isGenealogy: boolean;
+  view: GraphWorkspaceParams["view"];
+}) {
   const t = useTranslations("relationships.workspace.help");
   const tTree = useTranslations("relationships.workspace.tree.help");
 
@@ -259,14 +282,23 @@ function HelpControl({ view }: { view: GraphWorkspaceParams["view"] }) {
       </PopoverTrigger>
       <PopoverContent align="end" className="flex w-80 flex-col gap-2 text-sm">
         <p className="font-medium">{t("title")}</p>
-        {view === "tree" ? (
+        {isGenealogy ? (
+          <>
+            <p className="text-muted-foreground">{tTree("genealogy")}</p>
+            <p className="text-muted-foreground">{tTree("navigation")}</p>
+            <p className="text-muted-foreground">{tTree("collapse")}</p>
+            <p className="text-muted-foreground">{t("spoilers")}</p>
+          </>
+        ) : null}
+        {view === "tree" && !isGenealogy ? (
           <>
             <p className="text-muted-foreground">{tTree("generations")}</p>
             <p className="text-muted-foreground">{tTree("links")}</p>
             <p className="text-muted-foreground">{tTree("lines")}</p>
             <p className="text-muted-foreground">{t("spoilers")}</p>
           </>
-        ) : (
+        ) : null}
+        {view === "tree" ? null : (
           <>
             <p className="text-muted-foreground">{t("depth")}</p>
             <p className="text-muted-foreground">{t("filters")}</p>

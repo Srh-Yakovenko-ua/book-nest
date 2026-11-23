@@ -6,22 +6,36 @@ import type {
 } from "@app/shared";
 
 import type { GraphConnection } from "./graph-connections";
+import type { GenealogyFrame } from "./graph-genealogy-layout";
+import type { GenealogyExpansion, GenealogyScene } from "./graph-genealogy-scene";
 import type { NetworkAggregate, NetworkBucket, NetworkExpansion } from "./graph-network-scene";
 import type { PersonExpansion } from "./graph-person-scene";
 import type { TreeLayoutRow } from "./graph-tree-layout";
 import type { TreePairSemantics } from "./graph-tree-pairs";
-import type { TreeOptions, TreeScene } from "./graph-tree-scene";
+import type { TreeLineageLink, TreeOptions, TreeScene } from "./graph-tree-scene";
 import type { GraphWorkspacePositions } from "./graph-workspace-layout";
 import type { GraphWorkspaceParams } from "./graph-workspace-params";
 import type { GraphWorkspaceSceneData } from "./graph-workspace-request";
 
 import { toGraphConnections } from "./graph-connections";
+import { layoutGenealogyScene } from "./graph-genealogy-layout";
+import { buildGenealogyScene } from "./graph-genealogy-scene";
 import { buildNetworkScene } from "./graph-network-scene";
 import { buildPersonScene } from "./graph-person-scene";
 import { layoutTreeScene } from "./graph-tree-layout";
 import { toTreePairSemanticsById } from "./graph-tree-pairs";
 import { buildTreeScene } from "./graph-tree-scene";
 import { layoutNetworkScene, layoutPersonScene } from "./graph-workspace-layout";
+
+export type GraphGenealogyPresentation = {
+  allLineage: readonly TreeLineageLink[];
+  allNodes: readonly CharacterGraphNodeView[];
+  arcPairIds: ReadonlySet<string>;
+  frames: readonly GenealogyFrame[];
+  pairs: ReadonlyMap<string, TreePairSemantics>;
+  rows: readonly TreeLayoutRow[];
+  scene: GenealogyScene;
+};
 
 export type GraphPresentationCharacter = {
   canCollapse: boolean;
@@ -38,16 +52,27 @@ export type GraphPresentationCluster = {
 };
 
 export type GraphPresentationCounters =
+  | { edges: number; generations: number; kind: "genealogy"; nodes: number; pairs: number }
   | { edges: number; kind: "expanded"; nodes: number }
   | { edges: number; kind: "person"; nodes: number; pairs: number }
   | { edges: number; kind: "tree"; nodes: number; pairs: number }
   | { groups: number; kind: "groups" };
 
 export type GraphPresentationEmpty =
-  "filteredEmpty" | "networkEmpty" | "noRelations" | "treeFiltered" | "treeRootOnly";
+  | "filteredEmpty"
+  | "genealogyEmpty"
+  | "genealogyFiltered"
+  | "networkEmpty"
+  | "noRelations"
+  | "treeFiltered"
+  | "treeRootOnly";
 
 export type GraphPresentationNotice =
   | "fallbackComponents"
+  | "genealogyCollapsed"
+  | "genealogyComponents"
+  | "genealogyMultiLine"
+  | "genealogyTruncated"
   | "locked"
   | "noAncestry"
   | "overBudget"
@@ -73,6 +98,7 @@ export type GraphWorkspacePresentation = {
   counters: GraphPresentationCounters;
   edges: readonly CharacterGraphEdgeView[];
   empty: Nullable<GraphPresentationEmpty>;
+  genealogy: Nullable<GraphGenealogyPresentation>;
   hasMoreClusters: boolean;
   moreHops: readonly number[];
   notices: readonly GraphPresentationNotice[];
@@ -83,6 +109,7 @@ export type GraphWorkspacePresentation = {
 
 type BuildPresentationInput = {
   data: GraphWorkspaceSceneData;
+  genealogy: GenealogyExpansion;
   network: NetworkExpansion;
   params: GraphWorkspaceParams;
   person: PersonExpansion;
@@ -94,6 +121,7 @@ export function buildGraphWorkspacePresentation(
 ): Nullable<GraphWorkspacePresentation> {
   const { data, params } = input;
   if (data.kind === "tree") return buildTreePresentation(input);
+  if (data.kind === "genealogy") return buildGenealogyPresentation(input);
   if (params.view === "network") return buildNetworkPresentation(input);
   if (params.characterId === null) return null;
   return buildPersonPresentation({ ...input, rootId: params.characterId });
@@ -104,6 +132,66 @@ function baseNotices(hiddenContent: CharacterGraphHiddenContentView): GraphPrese
     ...(hiddenContent.truncated ? (["truncated"] as const) : []),
     ...(hiddenContent.hasLockedEdges ? (["locked"] as const) : []),
   ];
+}
+
+function buildGenealogyPresentation({
+  data,
+  genealogy: expansion,
+  treeOptions,
+}: BuildPresentationInput): Nullable<GraphWorkspacePresentation> {
+  if (data.kind !== "genealogy") return null;
+  const tree = data.genealogy;
+  const scene = buildGenealogyScene({ expansion, options: treeOptions, tree });
+  const connections = toGraphConnections(scene.edges);
+  const pairs = toTreePairSemanticsById({ connections, entryByEdgeId: scene.entryByEdgeId });
+  const layout = layoutGenealogyScene({ connections, pairs, scene });
+  const generations = new Set(scene.generationById.values()).size;
+  return {
+    aggregates: [],
+    characters: new Map(
+      scene.nodes.map((node): [string, GraphPresentationCharacter] => [
+        node.id,
+        { canCollapse: false, canExpand: false, hop: null, isRoot: false, node },
+      ]),
+    ),
+    clusters: new Map(),
+    connections,
+    counters: {
+      edges: scene.edges.length,
+      generations,
+      kind: "genealogy",
+      nodes: scene.nodes.length,
+      pairs: connections.length,
+    },
+    edges: scene.edges,
+    empty: toGenealogyEmpty({ shown: scene.nodes.length, total: tree.edges.length }),
+    genealogy: {
+      allLineage: tree.lineage.map((link) => ({
+        childId: link.childId,
+        edgeId: link.relationshipId,
+        kind: link.kind,
+        parentId: link.parentId,
+      })),
+      allNodes: tree.nodes.filter((node) => scene.reachableIds.has(node.id)),
+      arcPairIds: layout.arcPairIds,
+      frames: layout.frames,
+      pairs,
+      rows: layout.rows,
+      scene,
+    },
+    hasMoreClusters: false,
+    moreHops: [],
+    notices: [
+      ...(tree.hiddenContent.truncated ? (["genealogyTruncated"] as const) : []),
+      ...(scene.hasConflicts ? (["treeConflicts"] as const) : []),
+      ...(scene.components.length > 1 ? (["genealogyComponents"] as const) : []),
+      ...(scene.hiddenCount > 0 ? (["genealogyCollapsed"] as const) : []),
+      ...(scene.hasMultiLineLinks ? (["genealogyMultiLine"] as const) : []),
+    ],
+    positions: layout.positions,
+    rootId: null,
+    tree: null,
+  };
 }
 
 function buildNetworkPresentation({
@@ -142,6 +230,7 @@ function buildNetworkPresentation({
       : { groups: scene.buckets.length, kind: "groups" },
     edges: scene.edges,
     empty: data.graph.edges.length === 0 ? toEmptyReason({ empty: "networkEmpty", params }) : null,
+    genealogy: null,
     hasMoreClusters: scene.hasMoreBuckets,
     moreHops: [],
     notices: [
@@ -206,6 +295,7 @@ function buildPersonPresentation({
     },
     edges: scene.edges,
     empty: data.graph.edges.length === 0 ? toEmptyReason({ empty: "noRelations", params }) : null,
+    genealogy: null,
     hasMoreClusters: false,
     moreHops: [...scene.moreByHop].sort((left, right) => left - right),
     notices: [
@@ -254,6 +344,7 @@ function buildTreePresentation({
     },
     edges: scene.edges,
     empty: toTreeEmpty({ shown: scene.edges.length, total: tree.edges.length }),
+    genealogy: null,
     hasMoreClusters: false,
     moreHops: [],
     notices: [
@@ -282,6 +373,17 @@ function toEmptyReason({
   params: GraphWorkspaceParams;
 }): GraphPresentationEmpty {
   return params.categories.length > 0 || params.types.length > 0 ? "filteredEmpty" : empty;
+}
+
+function toGenealogyEmpty({
+  shown,
+  total,
+}: {
+  shown: number;
+  total: number;
+}): Nullable<GraphPresentationEmpty> {
+  if (shown > 0) return null;
+  return total > 0 ? "genealogyFiltered" : "genealogyEmpty";
 }
 
 function toTreeEmpty({

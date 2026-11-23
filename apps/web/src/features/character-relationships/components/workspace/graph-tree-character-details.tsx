@@ -29,6 +29,7 @@ type GraphTreeCharacterDetailsProps = {
   node: CharacterGraphNodeView;
   nodeOf: (id: string) => CharacterGraphNodeView | undefined;
   onOpenConnection: (connectionId: string) => void;
+  ordinal?: boolean;
   relatives: readonly TreeRelative[];
   treeCharacters: number;
 };
@@ -40,6 +41,7 @@ export function GraphTreeCharacterDetails({
   node,
   nodeOf,
   onOpenConnection,
+  ordinal = false,
   relatives,
   treeCharacters,
 }: GraphTreeCharacterDetailsProps) {
@@ -84,7 +86,12 @@ export function GraphTreeCharacterDetails({
               </Badge>
             ) : null}
             <Badge variant="outline">
-              {generation === null ? t("generationUnconfirmed") : labels.generation(generation)}
+              {toGenerationText({
+                generation,
+                labels,
+                ordinal,
+                unconfirmed: t("generationUnconfirmed"),
+              })}
             </Badge>
             {node.isFavorite ? (
               <Badge variant="outline">
@@ -198,4 +205,19 @@ function StatTile({
       </dd>
     </div>
   );
+}
+
+function toGenerationText({
+  generation,
+  labels,
+  ordinal,
+  unconfirmed,
+}: {
+  generation: Nullable<number>;
+  labels: ReturnType<typeof useGraphTreeLabels>;
+  ordinal: boolean;
+  unconfirmed: string;
+}): string {
+  if (generation === null) return unconfirmed;
+  return ordinal ? labels.ordinalGeneration(generation) : labels.generation(generation);
 }

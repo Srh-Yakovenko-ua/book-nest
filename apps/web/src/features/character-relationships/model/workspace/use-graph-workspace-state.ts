@@ -8,6 +8,7 @@ import { useEffect, useRef } from "react";
 
 import type { TreeOptions } from "./graph-tree-scene";
 import type {
+  GraphTreeScope,
   GraphWorkspaceParams,
   GraphWorkspaceView,
   NetworkGrouping,
@@ -49,6 +50,7 @@ type GraphWorkspaceActions = {
   setNetworkGroup: (grouping: NetworkGrouping) => void;
   setPathEndpoints: (endpoints: { from: Nullable<string>; to: Nullable<string> }) => void;
   setTreeOptions: (options: TreeOptions) => void;
+  setTreeScope: (scope: { characterId: Nullable<string>; treeScope: GraphTreeScope }) => void;
   setView: (view: GraphWorkspaceView) => void;
 };
 
@@ -82,7 +84,11 @@ export function useGraphWorkspaceState(): GraphWorkspaceState {
       ),
     makeCenter: (characterId) =>
       void setParams(
-        { characterId, view: params.view === "network" ? "person" : params.view },
+        {
+          characterId,
+          treeScope: "branch",
+          view: params.view === "network" ? "person" : params.view,
+        },
         HISTORY.push,
       ),
     openPath: (fromId) => void setParams({ from: fromId, path: true, to: null }, HISTORY.push),
@@ -96,6 +102,7 @@ export function useGraphWorkspaceState(): GraphWorkspaceState {
     setPathEndpoints: (endpoints) => void setParams(endpoints, HISTORY.replace),
     setTreeOptions: (options) =>
       void setParams({ treeLinks: toTreeLinks(options) }, HISTORY.replace),
+    setTreeScope: (scope) => void setParams(scope, HISTORY.push),
     setView: (view) => void setParams({ view }, HISTORY.push),
   };
 

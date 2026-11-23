@@ -28,6 +28,11 @@ export type TreeLayoutRow = {
   y: number;
 };
 
+export type TreeLayoutScene = Pick<
+  TreeScene,
+  "edges" | "entryByEdgeId" | "generationById" | "lineage" | "nodes" | "rowById" | "sideAnchorById"
+> & { rootId: Nullable<string> };
+
 export function layoutTreeScene({
   connections,
   pairs,
@@ -35,7 +40,7 @@ export function layoutTreeScene({
 }: {
   connections: readonly GraphConnection[];
   pairs: ReadonlyMap<string, TreePairSemantics>;
-  scene: TreeScene;
+  scene: TreeLayoutScene;
 }): TreeLayout {
   const visibleIds = scene.nodes.map((node) => node.id).sort();
   const parentsById = new Map<string, string[]>();
@@ -62,6 +67,7 @@ export function layoutTreeScene({
     (order.get(row) ?? []).forEach((id, index) => indexOf.set(id, index));
   rowNumbers.forEach(syncIndexes);
 
+  const siblingSideIds = toSiblingSideIds(scene);
   for (let pass = 0; pass < TREE_LAYOUT.passes; pass += 1) {
     const downward = pass % 2 === 0;
     for (const row of downward ? rowNumbers : [...rowNumbers].reverse()) {
@@ -74,6 +80,7 @@ export function layoutTreeScene({
           indexOf,
           relativesOf,
           scene,
+          siblingSideIds,
           units,
         }),
       );
@@ -103,8 +110,8 @@ export function layoutTreeScene({
     }
   }
 
-  const rootX = xById.get(scene.rootId) ?? 0;
-  const rootRow = scene.rowById.get(scene.rootId) ?? 0;
+  const rootX = scene.rootId === null ? 0 : (xById.get(scene.rootId) ?? 0);
+  const rootRow = scene.rootId === null ? 0 : (scene.rowById.get(scene.rootId) ?? 0);
   const positions = new Map<string, RelationshipGraphPoint>(
     visibleIds.map((id) => [
       id,
@@ -132,19 +139,6 @@ export function toTreeNodeBox(isRoot: boolean): { height: number; width: number 
   return isRoot ? TREE_LAYOUT.node.root : TREE_LAYOUT.node.default;
 }
 
-function isSiblingSide({ id, scene }: { id: string; scene: TreeScene }): boolean {
-  const anchor = scene.sideAnchorById.get(id);
-  return scene.edges.some((edge) => {
-    const entry = scene.entryByEdgeId.get(edge.id);
-    return (
-      entry?.kind === "auxiliary" &&
-      entry.group === "siblings" &&
-      ((edge.source === id && edge.target === anchor) ||
-        (edge.target === id && edge.source === anchor))
-    );
-  });
-}
-
 function mean(values: readonly number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
@@ -154,12 +148,14 @@ function orderRow({
   indexOf,
   relativesOf,
   scene,
+  siblingSideIds,
   units,
 }: {
   ids: readonly string[];
   indexOf: ReadonlyMap<string, number>;
   relativesOf: (id: string) => readonly string[];
-  scene: TreeScene;
+  scene: TreeLayoutScene;
+  siblingSideIds: ReadonlySet<string>;
   units: ReadonlyMap<string, number>;
 }): string[] {
   const centerOf = (id: string): number => {
@@ -186,8 +182,8 @@ function orderRow({
       const sides = members.filter((id) => scene.sideAnchorById.has(id)).sort();
       const arranged = core.flatMap((id) => {
         const attached = sides.filter((sideId) => scene.sideAnchorById.get(sideId) === id);
-        const before = attached.filter((sideId) => isSiblingSide({ id: sideId, scene }));
-        const after = attached.filter((sideId) => !isSiblingSide({ id: sideId, scene }));
+        const before = attached.filter((sideId) => siblingSideIds.has(sideId));
+        const after = attached.filter((sideId) => !siblingSideIds.has(sideId));
         return [...before, id, ...after];
       });
       const rest = sides.filter((id) => !arranged.includes(id));
@@ -196,7 +192,7 @@ function orderRow({
         center: mean(members.map(centerOf)),
         first: ordered[0] ?? "",
         ordered,
-        rootFirst: members.includes(scene.rootId),
+        rootFirst: scene.rootId !== null && members.includes(scene.rootId),
       };
     })
     .sort(
@@ -217,7 +213,7 @@ function placeRow({
 }: {
   desired: ReadonlyMap<string, number>;
   ids: readonly string[];
-  rootId: string;
+  rootId: Nullable<string>;
   units: ReadonlyMap<string, number>;
   xById: Map<string, number>;
 }): void {
@@ -284,7 +280,7 @@ function toArcPairIds({
   connections: readonly GraphConnection[];
   indexOf: ReadonlyMap<string, number>;
   pairs: ReadonlyMap<string, TreePairSemantics>;
-  scene: TreeScene;
+  scene: TreeLayoutScene;
 }): ReadonlySet<string> {
   return new Set(
     connections
@@ -302,6 +298,17 @@ function toArcPairIds({
   );
 }
 
+function toSiblingSideIds(scene: TreeLayoutScene): ReadonlySet<string> {
+  const ids = new Set<string>();
+  for (const edge of scene.edges) {
+    const entry = scene.entryByEdgeId.get(edge.id);
+    if (entry?.kind !== "auxiliary" || entry.group !== "siblings") continue;
+    if (scene.sideAnchorById.get(edge.source) === edge.target) ids.add(edge.source);
+    if (scene.sideAnchorById.get(edge.target) === edge.source) ids.add(edge.target);
+  }
+  return ids;
+}
+
 function toUnits({
   childrenById,
   connections,
@@ -312,7 +319,7 @@ function toUnits({
   childrenById: ReadonlyMap<string, readonly string[]>;
   connections: readonly GraphConnection[];
   pairs: ReadonlyMap<string, TreePairSemantics>;
-  scene: TreeScene;
+  scene: TreeLayoutScene;
   visibleIds: readonly string[];
 }): ReadonlyMap<string, number> {
   const parent = new Map(visibleIds.map((id) => [id, id] as const));

@@ -103,6 +103,47 @@ export function useGraphTreeCamera() {
     );
   }
 
+  function centerAt({ cover, id, zoom }: { cover: GraphPersonCover; id: string; zoom: number }) {
+    const [box] = toBoxes(new Set([id]));
+    if (box === undefined) return;
+    void flow.setViewport(toTreeCenterViewport({ area: toArea(cover), box, zoom }));
+  }
+
+  function focus({
+    cover,
+    duration,
+    ids,
+    zoom,
+  }: {
+    cover: GraphPersonCover;
+    duration: number;
+    ids: ReadonlySet<string>;
+    zoom: number;
+  }): boolean {
+    const boxes = toBoxes(ids);
+    const [single] = boxes;
+    if (single === undefined) return false;
+    if (boxes.length === 1) {
+      void flow.setViewport(
+        toTreeCenterViewport({
+          area: toArea(cover),
+          box: single,
+          zoom: Math.max(flow.getZoom(), zoom),
+        }),
+        { duration },
+      );
+      return true;
+    }
+    const viewport = toTreeFitViewport({
+      area: toArea(cover),
+      boxes,
+      withRail: false,
+      zoom: { maxZoom: TREE_CAMERA.maxZoom, minZoom: store.getState().minZoom },
+    });
+    if (viewport !== null) void flow.setViewport(viewport, { duration });
+    return true;
+  }
+
   function toReveal({
     cover,
     ids,
@@ -125,5 +166,5 @@ export function useGraphTreeCamera() {
     });
   }
 
-  return { center, fitAll, initialize, toReveal };
+  return { center, centerAt, fitAll, focus, initialize, toReveal };
 }

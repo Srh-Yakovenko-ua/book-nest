@@ -1,4 +1,5 @@
 import type {
+  BookFamilyTreeView,
   CharacterGraphHiddenContentView,
   CharacterGraphView,
   FamilyTreeGraphView,
@@ -7,7 +8,9 @@ import type {
 
 import { describe, expect, it } from "vitest";
 
+import type { GenealogyExpansion } from "./graph-genealogy-scene";
 import type { NetworkExpansion } from "./graph-network-scene";
+import type { TreeOptions } from "./graph-tree-scene";
 import type { GraphWorkspaceParams, GraphWorkspaceView } from "./graph-workspace-params";
 import type {
   GraphPresentationEmpty,
@@ -19,6 +22,7 @@ import {
   makeRelationshipGraphEdge,
   makeRelationshipGraphNode,
 } from "../relationships.fixtures";
+import { EMPTY_GENEALOGY_EXPANSION } from "./graph-genealogy-scene";
 import { EMPTY_NETWORK_EXPANSION } from "./graph-network-scene";
 import { EMPTY_PERSON_EXPANSION } from "./graph-person-scene";
 import { TREE_SCENE } from "./graph-tree-scene";
@@ -54,6 +58,7 @@ const DEFAULT_PARAMS: GraphWorkspaceParams = {
   to: null,
   treeDown: 2,
   treeLinks: ["marriages", "siblings", "guardians", "distant"],
+  treeScope: "branch",
   treeUp: 2,
   types: [],
   view: "person",
@@ -139,6 +144,73 @@ const KIN_LINK = {
     kind: "biological",
     parentId: KIN.parent,
     relationshipId: KIN_EDGE.parent.id,
+  },
+} satisfies Record<string, FamilyTreeLineageView>;
+
+const LINE = {
+  child: "b5b5b5b5-0000-4000-8000-000000000002",
+  founder: "b5b5b5b5-0000-4000-8000-000000000001",
+  grandchild: "b5b5b5b5-0000-4000-8000-000000000003",
+  spouse: "b5b5b5b5-0000-4000-8000-000000000004",
+} as const;
+
+const OUTSIDER = {
+  child: "c5c5c5c5-0000-4000-8000-000000000002",
+  parent: "c5c5c5c5-0000-4000-8000-000000000001",
+} as const;
+
+const LINE_EDGE = {
+  child: makeRelationshipGraphEdge({
+    id: "b6b6b6b6-0000-4000-8000-000000000001",
+    source: LINE.founder,
+    target: LINE.child,
+    type: "biological_parent_of",
+  }),
+  grandchild: makeRelationshipGraphEdge({
+    id: "b6b6b6b6-0000-4000-8000-000000000002",
+    source: LINE.child,
+    target: LINE.grandchild,
+    type: "biological_parent_of",
+  }),
+  guardian: makeRelationshipGraphEdge({
+    id: "b6b6b6b6-0000-4000-8000-000000000003",
+    source: LINE.founder,
+    target: LINE.child,
+    type: "guardian_of",
+  }),
+  outsider: makeRelationshipGraphEdge({
+    id: "b6b6b6b6-0000-4000-8000-000000000004",
+    source: OUTSIDER.parent,
+    target: OUTSIDER.child,
+    type: "biological_parent_of",
+  }),
+  spouse: makeRelationshipGraphEdge({
+    directionality: "symmetric",
+    id: "b6b6b6b6-0000-4000-8000-000000000005",
+    source: LINE.child,
+    target: LINE.spouse,
+    type: "spouse_of",
+  }),
+};
+
+const LINE_LINK = {
+  child: {
+    childId: LINE.child,
+    kind: "biological",
+    parentId: LINE.founder,
+    relationshipId: LINE_EDGE.child.id,
+  },
+  grandchild: {
+    childId: LINE.grandchild,
+    kind: "biological",
+    parentId: LINE.child,
+    relationshipId: LINE_EDGE.grandchild.id,
+  },
+  outsider: {
+    childId: OUTSIDER.child,
+    kind: "biological",
+    parentId: OUTSIDER.parent,
+    relationshipId: LINE_EDGE.outsider.id,
   },
 } satisfies Record<string, FamilyTreeLineageView>;
 
@@ -317,6 +389,104 @@ describe("buildGraphWorkspacePresentation for the family tree", () => {
   });
 });
 
+describe("buildGraphWorkspacePresentation for the whole genealogy", () => {
+  it("counts characters, generations, character pairs and individual relationships", () => {
+    expect(genealogyPresentationFor(makeGenealogy())?.counters).toEqual({
+      edges: 4,
+      generations: 3,
+      kind: "genealogy",
+      nodes: 4,
+      pairs: 3,
+    });
+  });
+
+  it("carries the genealogy scene with no root and no branch tree", () => {
+    const presentation = genealogyPresentationFor(makeGenealogy());
+
+    expect({
+      genealogyNodes: presentation?.genealogy?.scene.nodes.length,
+      rootId: presentation?.rootId,
+      tree: presentation?.tree,
+    }).toEqual({ genealogyNodes: 4, rootId: null, tree: null });
+  });
+
+  it("explains a genealogy without relationships as genealogyEmpty", () => {
+    const presentation = genealogyPresentationFor(makeGenealogy({ edges: [], lineage: [] }));
+
+    expect(presentation?.empty).toBe("genealogyEmpty");
+  });
+
+  it.each<{
+    expansion: GenealogyExpansion;
+    genealogy: BookFamilyTreeView;
+    label: string;
+    notices: GraphPresentationNotice[];
+  }>([
+    {
+      expansion: EMPTY_GENEALOGY_EXPANSION,
+      genealogy: makeGenealogy({
+        edges: [LINE_EDGE.child, LINE_EDGE.grandchild, LINE_EDGE.outsider],
+        lineage: [LINE_LINK.child, LINE_LINK.grandchild, LINE_LINK.outsider],
+      }),
+      label: "two unrelated families",
+      notices: ["genealogyComponents"],
+    },
+    {
+      expansion: EMPTY_GENEALOGY_EXPANSION,
+      genealogy: makeGenealogy({
+        hiddenContent: { hasHiddenEdges: false, hasLockedEdges: false, truncated: true },
+      }),
+      label: "a truncated genealogy",
+      notices: ["genealogyTruncated"],
+    },
+    {
+      expansion: { collapsedIds: new Set([LINE.child]) },
+      genealogy: makeGenealogy(),
+      label: "a collapsed branch",
+      notices: ["genealogyCollapsed"],
+    },
+    {
+      expansion: EMPTY_GENEALOGY_EXPANSION,
+      genealogy: makeGenealogy(),
+      label: "one complete family",
+      notices: [],
+    },
+  ])("shows the genealogy notices for $label", ({ expansion, genealogy, notices }) => {
+    expect(genealogyPresentationFor(genealogy, expansion)?.notices).toEqual(notices);
+  });
+});
+
+function genealogyPresentationFor(
+  genealogy: BookFamilyTreeView,
+  expansion: GenealogyExpansion = EMPTY_GENEALOGY_EXPANSION,
+) {
+  return buildGraphWorkspacePresentation({
+    data: { genealogy, kind: "genealogy" },
+    genealogy: expansion,
+    network: EMPTY_NETWORK_EXPANSION,
+    params: { ...DEFAULT_PARAMS, treeScope: "full", view: "tree" },
+    person: EMPTY_PERSON_EXPANSION,
+    treeOptions: TREE_SCENE.defaultOptions,
+  });
+}
+
+function makeGenealogy(overrides: Partial<BookFamilyTreeView> = {}): BookFamilyTreeView {
+  return {
+    diagnostics: [],
+    edges: [LINE_EDGE.child, LINE_EDGE.guardian, LINE_EDGE.grandchild, LINE_EDGE.spouse],
+    graphVersion: "genealogy-v1",
+    hiddenContent: { hasHiddenEdges: false, hasLockedEdges: false, truncated: false },
+    houses: [],
+    lineage: [LINE_LINK.child, LINE_LINK.grandchild],
+    nodes: [...Object.values(LINE), ...Object.values(OUTSIDER)].map((id) =>
+      makeRelationshipGraphNode({ id }),
+    ),
+    scope: "book",
+    updatedAt: null,
+    ...overrides,
+  };
+}
+
 function makeTree(overrides: Partial<FamilyTreeGraphView> = {}): FamilyTreeGraphView {
   return {
     ancestors: 1,
@@ -345,6 +515,7 @@ function presentationFor({
 }) {
   return buildGraphWorkspacePresentation({
     data: { graph, kind: "graph" },
+    genealogy: EMPTY_GENEALOGY_EXPANSION,
     network,
     params,
     person: EMPTY_PERSON_EXPANSION,
@@ -352,9 +523,13 @@ function presentationFor({
   });
 }
 
-function treePresentationFor(tree: FamilyTreeGraphView, treeOptions = TREE_SCENE.defaultOptions) {
+function treePresentationFor(
+  tree: FamilyTreeGraphView,
+  treeOptions: TreeOptions = TREE_SCENE.defaultOptions,
+) {
   return buildGraphWorkspacePresentation({
     data: { kind: "tree", tree },
+    genealogy: EMPTY_GENEALOGY_EXPANSION,
     network: EMPTY_NETWORK_EXPANSION,
     params: { ...DEFAULT_PARAMS, characterId: tree.focusCharacterId, view: "tree" },
     person: EMPTY_PERSON_EXPANSION,

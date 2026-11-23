@@ -26,7 +26,11 @@ import { TREE_OPTION_KEYS, TREE_SCENE } from "./graph-tree-scene";
 
 export const GRAPH_WORKSPACE_VIEWS = ["person", "tree", "network"] as const;
 
+export const GRAPH_TREE_SCOPES = ["branch", "full"] as const;
+
 export const NETWORK_GROUPINGS = ["group", "components", "importance"] as const;
+
+export type GraphTreeScope = (typeof GRAPH_TREE_SCOPES)[number];
 
 export type GraphWorkspaceParams = inferParserType<typeof graphWorkspaceParsers>;
 
@@ -101,6 +105,7 @@ export const graphWorkspaceParsers = {
   to: parseAsUuid,
   treeDown: generationsParser,
   treeLinks: parseAsTreeLinks.withDefault(TREE_LINKS_DEFAULT),
+  treeScope: parseAsStringLiteral(GRAPH_TREE_SCOPES).withDefault("branch"),
   treeUp: generationsParser,
   types: parseAsArrayOf(parseAsStringLiteral(RelationshipTypeSchema.options)).withDefault([]),
   view: parseAsStringLiteral(GRAPH_WORKSPACE_VIEWS).withDefault("person"),

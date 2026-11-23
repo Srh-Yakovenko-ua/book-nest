@@ -26,6 +26,7 @@ import { GraphCharacterDetails } from "./graph-character-details";
 import { GraphConnectionDetails } from "./graph-connection-details";
 import { GraphConnectionsList } from "./graph-connections-list";
 import { GraphDetailsPanel } from "./graph-details-panel";
+import { GraphGenealogyScene } from "./graph-genealogy-scene";
 import { GraphPersonScene } from "./graph-person-scene";
 import { GraphSceneNotices } from "./graph-scene-notices";
 import { GraphTreeScene } from "./graph-tree-scene";
@@ -45,10 +46,13 @@ type GraphSceneSectionProps = {
   onClearSelection: () => void;
   onConfirmOverwrite: () => void;
   onDismissOverwrite: () => void;
+  onExpandAllBranches: () => void;
   onMoreClusters: () => void;
   onMoreHop: (hop: number) => void;
   onRestoreFocus: () => void;
   onRetry: () => void;
+  onRevealCharacter: (characterId: string) => void;
+  onToggleBranch: (characterId: string) => void;
   onToggleImmersive: () => void;
   params: GraphWorkspaceParams;
   pendingOverwrite: boolean;
@@ -249,6 +253,21 @@ function SceneContent(props: GraphSceneSectionProps) {
         presentation={presentation}
         rootId={presentation.rootId}
         sceneValue={sceneValue}
+      />
+    );
+  }
+
+  if (props.treePanel !== null && presentation.genealogy !== null) {
+    return (
+      <GraphGenealogyScene
+        {...props}
+        focusId={props.params.characterId}
+        genealogy={presentation.genealogy}
+        onExpandAll={props.onExpandAllBranches}
+        onReveal={props.onRevealCharacter}
+        presentation={presentation}
+        sceneValue={sceneValue}
+        treePanel={props.treePanel}
       />
     );
   }

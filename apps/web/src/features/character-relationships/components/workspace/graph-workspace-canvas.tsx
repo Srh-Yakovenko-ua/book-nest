@@ -12,6 +12,7 @@ import {
   type NodeOrigin,
   type NodeTypes,
   ReactFlow,
+  type Viewport,
 } from "@xyflow/react";
 import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
@@ -30,11 +31,15 @@ import type {
 import type { GraphTreeCanvasScene } from "./graph-tree-scene-context";
 import type { GraphWorkspaceCanvasControlsProps } from "./graph-workspace-canvas-controls";
 
+import { GENEALOGY_CAMERA } from "../../model/workspace/graph-genealogy-camera";
 import { isNetworkClusterId } from "../../model/workspace/graph-network-scene";
 import { toGraphPersonEmphasis } from "../../model/workspace/graph-person-emphasis";
 import { GraphCharacterNode } from "./graph-character-node";
 import { GraphClusterNode } from "./graph-cluster-node";
 import { GraphAggregateEdge, GraphConnectionEdge } from "./graph-connection-edge";
+import { GraphGenealogyCameraFocus } from "./graph-genealogy-camera-focus";
+import { GraphGenealogyFrames } from "./graph-genealogy-frames";
+import { GraphGenealogyNode } from "./graph-genealogy-node";
 import { GraphPersonCameraFollow } from "./graph-person-camera-follow";
 import { GraphPersonEdge } from "./graph-person-edge";
 import { GraphPersonMiniMap, withGraphPersonMiniMapCover } from "./graph-person-mini-map";
@@ -58,12 +63,14 @@ const WORKSPACE_CANVAS = {
     [GRAPH_SCENE_FLOW.treeEdge]: GraphTreeEdge,
   },
   fitViewOptions: { maxZoom: 1, padding: 0.2 },
+  genealogyViewport: { x: 0, y: 0, zoom: GENEALOGY_CAMERA.minZoom },
   maxZoom: 2,
   minZoom: 0.1,
   nodeOrigin: [0.5, 0.5],
   nodeTypes: {
     [GRAPH_SCENE_FLOW.characterNode]: GraphCharacterNode,
     [GRAPH_SCENE_FLOW.clusterNode]: GraphClusterNode,
+    [GRAPH_SCENE_FLOW.genealogyNode]: GraphGenealogyNode,
     [GRAPH_SCENE_FLOW.personNode]: GraphPersonNode,
     [GRAPH_SCENE_FLOW.treeNode]: GraphTreeNode,
   },
@@ -71,6 +78,7 @@ const WORKSPACE_CANVAS = {
 } satisfies {
   edgeTypes: EdgeTypes;
   fitViewOptions: FitViewOptions;
+  genealogyViewport: Viewport;
   maxZoom: number;
   minZoom: number;
   nodeOrigin: NodeOrigin;
@@ -93,16 +101,18 @@ export type GraphWorkspaceCanvasProps = {
   viewport: Nullable<CharacterGraphViewport>;
 };
 
-type CanvasMode = "default" | "person" | "tree";
+type CanvasMode = "default" | "genealogy" | "person" | "tree";
 
 const CANVAS_EDGE_TYPES = {
   default: GRAPH_SCENE_FLOW.connectionEdge,
+  genealogy: GRAPH_SCENE_FLOW.treeEdge,
   person: GRAPH_SCENE_FLOW.personEdge,
   tree: GRAPH_SCENE_FLOW.treeEdge,
 } as const satisfies Record<CanvasMode, GraphSceneFlowEdge["type"]>;
 
 const CANVAS_NODE_TYPES = {
   default: GRAPH_SCENE_FLOW.characterNode,
+  genealogy: GRAPH_SCENE_FLOW.genealogyNode,
   person: GRAPH_SCENE_FLOW.personNode,
   tree: GRAPH_SCENE_FLOW.treeNode,
 } as const satisfies Record<CanvasMode, GraphSceneFlowNode["type"]>;
@@ -198,6 +208,7 @@ export function GraphWorkspaceCanvas({
               "node.a11yDescription.keyboardDisabled": t("a11yNode"),
             }}
             colorMode={resolvedTheme === "dark" ? "dark" : "light"}
+            defaultViewport={mode === "genealogy" ? WORKSPACE_CANVAS.genealogyViewport : undefined}
             deleteKeyCode={null}
             disableKeyboardA11y
             edges={edges}
@@ -206,7 +217,7 @@ export function GraphWorkspaceCanvas({
             elementsSelectable={false}
             fitViewOptions={WORKSPACE_CANVAS.fitViewOptions}
             maxZoom={WORKSPACE_CANVAS.maxZoom}
-            minZoom={WORKSPACE_CANVAS.minZoom}
+            minZoom={mode === "genealogy" ? GENEALOGY_CAMERA.minZoom : WORKSPACE_CANVAS.minZoom}
             multiSelectionKeyCode={null}
             nodeOrigin={WORKSPACE_CANVAS.nodeOrigin}
             nodes={synced.nodes}
@@ -245,6 +256,12 @@ export function GraphWorkspaceCanvas({
                 <GraphTreeGenerationRail />
                 <GraphTreeCameraFollow />
                 {tree.miniMap?.isOpen ? <GraphTreeMiniMap /> : null}
+                {tree.genealogy === null ? null : (
+                  <>
+                    <GraphGenealogyFrames />
+                    <GraphGenealogyCameraFocus />
+                  </>
+                )}
               </>
             )}
             <GraphWorkspaceCanvasControls {...controls} sceneKey={sceneKey} viewport={viewport} />
@@ -283,7 +300,7 @@ function toCanvasMode({
   person: Nullable<GraphPersonCanvasScene>;
   tree: Nullable<GraphTreeCanvasScene>;
 }): CanvasMode {
-  if (tree !== null) return "tree";
+  if (tree !== null) return tree.genealogy === null ? "tree" : "genealogy";
   return person === null ? "default" : "person";
 }
 

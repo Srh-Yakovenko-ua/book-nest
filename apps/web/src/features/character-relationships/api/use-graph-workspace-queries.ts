@@ -1,4 +1,5 @@
 import {
+  BookFamilyTreeViewSchema,
   type CharacterDetailsView,
   CharacterDetailsViewSchema,
   CharacterGraphViewSchema,
@@ -13,6 +14,7 @@ import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 import { ApiError } from "@/lib/http-client";
 import {
   bookCharacterGraphControllerGet,
+  bookCharacterGraphControllerGetFamilyTree,
   characterRelationshipsControllerFindPath,
 } from "@/shared/api/generated/endpoints/character-relationships/character-relationships";
 import { bookCharactersControllerGetById } from "@/shared/api/generated/endpoints/characters/characters";
@@ -124,6 +126,14 @@ export function useGraphWorkspaceScene({
       reader === null || request === null
         ? skipToken
         : async ({ signal }): Promise<GraphWorkspaceSceneData> => {
+            if (request.kind === "genealogy") {
+              return {
+                genealogy: BookFamilyTreeViewSchema.parse(
+                  await bookCharacterGraphControllerGetFamilyTree(bookId, undefined, { signal }),
+                ),
+                kind: "genealogy",
+              };
+            }
             const response = await bookCharacterGraphControllerGet(
               bookId,
               toBookGraphRequestParams(request),
