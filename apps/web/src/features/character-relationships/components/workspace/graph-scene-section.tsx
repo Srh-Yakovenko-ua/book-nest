@@ -15,9 +15,12 @@ import type { GraphReaderKey } from "../../model/workspace/graph-workspace-reque
 import type { GraphWorkspaceLayoutRestore } from "../../model/workspace/graph-workspace-signature";
 import type { GraphWorkspaceState } from "../../model/workspace/use-graph-workspace-state";
 import type { GraphCharacterConnectionItem } from "./graph-character-details";
+import type { GraphGenealogyBranch } from "./graph-genealogy-branches";
 import type { GraphPersonPanelState } from "./graph-person-scene";
 import type { GraphSceneSelection, GraphSceneValue } from "./graph-scene-context";
 import type { GraphTreePanelState } from "./graph-tree-scene";
+import type { GraphGenealogyFocusRequest } from "./graph-tree-scene-context";
+import type { GraphHiddenSelection } from "./graph-tree-status";
 import type { GraphWorkspaceCanvasLayout } from "./graph-workspace-canvas-controls";
 import type { WorkspaceWidthClass } from "./use-workspace-width-class";
 
@@ -35,9 +38,19 @@ import { GraphWorkspaceMessage } from "./graph-workspace-message";
 import { useGraphCounterText } from "./use-graph-counter-text";
 import { useGraphEdgeLabel } from "./use-graph-edge-label";
 
+export type GraphGenealogyNavigation = {
+  activeBranchId: Nullable<string>;
+  branches: readonly GraphGenealogyBranch[];
+  focusRequest: Nullable<GraphGenealogyFocusRequest>;
+  onBranch: (branchId: Nullable<string>) => void;
+  onClearBranch: () => void;
+};
+
 type GraphSceneSectionProps = {
   actions: GraphWorkspaceState["actions"];
   bookId: string;
+  genealogyNav: GraphGenealogyNavigation;
+  hiddenSelection: Nullable<GraphHiddenSelection>;
   immersive: boolean;
   isError: boolean;
   isNotFound: boolean;
@@ -45,8 +58,8 @@ type GraphSceneSectionProps = {
   layoutKey: string;
   onClearSelection: () => void;
   onConfirmOverwrite: () => void;
+  onDismissHiddenSelection: () => void;
   onDismissOverwrite: () => void;
-  onExpandAllBranches: () => void;
   onMoreClusters: () => void;
   onMoreHop: (hop: number) => void;
   onRestoreFocus: () => void;
@@ -263,8 +276,6 @@ function SceneContent(props: GraphSceneSectionProps) {
         {...props}
         focusId={props.params.characterId}
         genealogy={presentation.genealogy}
-        onExpandAll={props.onExpandAllBranches}
-        onReveal={props.onRevealCharacter}
         presentation={presentation}
         sceneValue={sceneValue}
         treePanel={props.treePanel}

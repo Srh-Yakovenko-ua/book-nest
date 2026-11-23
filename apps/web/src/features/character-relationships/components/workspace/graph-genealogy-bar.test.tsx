@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
 
-import type { GraphGenealogyBranch } from "./graph-genealogy-bar";
+import type { GraphGenealogyBranch } from "./graph-genealogy-branches";
 
 import { makeRelationshipGraphNode } from "../../model/relationships.fixtures";
 import { GraphGenealogyBar } from "./graph-genealogy-bar";
@@ -94,10 +94,11 @@ function renderBar(overrides: Partial<ComponentProps<typeof GraphGenealogyBar>> 
     <GraphGenealogyBar
       activeBranchId={null}
       branches={[STARK, LANNISTER, SNOW]}
+      branchesTriggerId="genealogy-branches"
       characters={[CERSEI, SANSA, JON, ARYA]}
-      hiddenCount={0}
+      compact={false}
+      hiddenIds={new Set()}
       onBranch={vi.fn()}
-      onExpandAll={vi.fn()}
       onFind={vi.fn()}
       {...overrides}
     />,
@@ -204,27 +205,47 @@ describe("GraphGenealogyBar", () => {
     expect(screen.queryByRole("menuitem", { name: copy.bar.clearBranch })).not.toBeInTheDocument();
   });
 
-  it("keeps expand all focusable but inert when no branch is collapsed", async () => {
-    const onExpandAll = vi.fn();
-    renderBar({ hiddenCount: 0, onExpandAll });
+  it("names the results list in the reader language", async () => {
+    renderBar();
 
-    const expandAll = screen.getByRole("button", { name: copy.bar.expandAll });
-    expect(expandAll).toHaveAttribute("aria-disabled", "true");
-    await userEvent.click(expandAll);
+    await userEvent.type(await openSearch(), "star");
 
-    expect(onExpandAll).not.toHaveBeenCalled();
+    expect(screen.getByRole("listbox", { name: copy.search.listLabel })).toBeInTheDocument();
   });
 
-  it("expands all branches when some characters are hidden", async () => {
-    const onExpandAll = vi.fn();
-    renderBar({ hiddenCount: 14, onExpandAll });
+  it("suggests the language of the record when nobody matches", async () => {
+    renderBar();
 
-    const expandAll = screen.getByRole("button", {
-      name: translateGenealogy("bar.expandAllCount", { count: 14 }),
-    });
-    expect(expandAll).toHaveAttribute("aria-disabled", "false");
-    await userEvent.click(expandAll);
+    await userEvent.type(await openSearch(), "Арія");
 
-    expect(onExpandAll).toHaveBeenCalledOnce();
+    expect(await screen.findByText(copy.search.emptyHint)).toBeInTheDocument();
+  });
+
+  it("marks a match hidden in a collapsed branch and still finds it", async () => {
+    const onFind = vi.fn();
+    renderBar({ hiddenIds: new Set([SANSA.id]), onFind });
+
+    await userEvent.type(await openSearch(), "stark");
+
+    expect(
+      within(characterOption(copy.search.collapsed)).getByText(SANSA.name),
+    ).toBeInTheDocument();
+    expect(
+      within(characterOption(ARYA.name)).queryByText(copy.search.collapsed),
+    ).not.toBeInTheDocument();
+    await userEvent.click(characterOption(copy.search.collapsed));
+
+    expect(onFind).toHaveBeenCalledExactlyOnceWith(SANSA.id);
+  });
+
+  it("shrinks to an icon search and a short branches label when compact", async () => {
+    renderBar({ compact: true });
+
+    expect(screen.getByRole("button", { name: copy.search.trigger })).not.toHaveTextContent(
+      copy.search.trigger,
+    );
+    await openBranches(copy.bar.branchesShort);
+
+    expect(branchItem(STARK.label)).toBeInTheDocument();
   });
 });

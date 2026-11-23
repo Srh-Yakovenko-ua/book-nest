@@ -10554,7 +10554,11 @@
         "reset": "Defaults",
         "siblings": "Siblings",
         "trigger": "Show links",
-        "triggerLabel": "Show links: {enabled} of {total} on"
+        "triggerLabel": "Show links: {enabled} of {total} on",
+        "triggerLabelChanged": "Show links: {enabled} of {total} on, {changed} changed from the defaults",
+        "changedOff": "on by default",
+        "changedOn": "off by default",
+        "hidesCharacters": "Turning a type off also hides characters that only links of that type connect to the tree."
       },
       "grouping": {
         "components": "By connectivity",
@@ -10650,7 +10654,7 @@
         "treeFewerDescendants": "There are no more descendants in the available records.",
         "treeMultiLine": "Some relatives are linked to this character through several lines of descent of different length, so a few lines cross more than one generation.",
         "treeTruncated": "Only part of the available family tree is shown. Choose another central character to explore the rest.",
-        "genealogyCollapsed": "Some branches are collapsed. Characters that another visible branch needs are never hidden.",
+        "genealogyCollapsed": "{branches, plural, one {# branch} other {# branches}} collapsed, {hidden, plural, one {# character hidden} other {# characters hidden}}. Characters that another visible branch needs are never hidden.",
         "genealogyComponents": "This genealogy holds several unrelated families. They are shown side by side, with no invented common ancestors.",
         "genealogyTruncated": "The genealogy exceeds the limit of {limit} characters. The largest families are shown until the limit is reached; smaller families or parts of them are left out.",
         "genealogyMultiLine": "Some marriages join people of different generations, so a few lines from parents to children cross more than one generation."
@@ -10710,10 +10714,13 @@
         "fitAll": "Show the whole network",
         "miniMap": {
           "label": "Network mini map: visible area and central character",
-          "toggle": "Mini map"
+          "toggle": "Mini map",
+          "show": "Show the mini map",
+          "hide": "Hide the mini map"
         },
         "fitTree": "Show the whole tree",
-        "focusSelected": "Focus the selected character"
+        "focusSelected": "Focus the selected character",
+        "more": "More canvas actions"
       },
       "list": {
         "aggregate": "The shown characters of “{source}” and “{target}” are connected",
@@ -10932,6 +10939,15 @@
           "lineage": "Parent and child",
           "marriages": "Marriage",
           "siblings": "Siblings"
+        },
+        "hiddenSelection": {
+          "filtered": "{name} is hidden by the current link filters, so the panel is closed.",
+          "collapsed": "{name} is in a collapsed branch, so the panel is closed.",
+          "action": {
+            "filtered": "Default links",
+            "collapsed": "Show"
+          },
+          "dismiss": "Dismiss the message"
         }
       },
       "genealogy": {
@@ -10943,21 +10959,24 @@
           "expandAllCount": "Expand all branches ({count})",
           "families": "Unrelated families",
           "houses": "Houses",
-          "members": "{count, plural, one {# person} other {# people}}"
+          "members": "{count, plural, one {# person} other {# people}}",
+          "expandAllLabel": "Expand all branches ({branches}): {hidden, plural, one {# character hidden} other {# characters hidden}}",
+          "hiddenCharacters": "{count, plural, one {# character hidden} other {# characters hidden}}",
+          "branchesShort": "Branches"
         },
         "family": "{name} family · {count, plural, one {# person} other {# people}}",
         "familyHouse": "{name} · {count, plural, one {# person} other {# people}}",
         "node": {
           "collapsedState": "branch collapsed, {count, plural, one {# descendant hidden} other {# descendants hidden}}",
-          "expand": "+{count}, expand the branch of {name}: {count, plural, one {# hidden descendant} other {# hidden descendants}}",
-          "hidden": "+{count}",
+          "expand": "+{count, plural, one {# descendant} other {# descendants}}: expand the branch of {name}",
+          "hidden": "+{count, plural, one {# descendant} other {# descendants}}",
           "open": "Open details of {name}",
           "openFavorite": "Open details of {name}, a favourite character",
           "side": "Extra relative"
         },
         "panel": {
           "collapse": "Collapse the descendants",
-          "expand": "Expand the branch ({count})",
+          "expand": "Show {count, plural, one {# hidden descendant} other {# hidden descendants}}",
           "findPath": "Find a link",
           "profile": "Profile",
           "showBranch": "Show this character’s branch"
@@ -10969,13 +10988,27 @@
           "placeholder": "Character name",
           "results": "Characters",
           "trigger": "Find a character",
-          "found": "{count, plural, =0 {No matches} one {# character found} other {# characters found}}"
+          "found": "{count, plural, =0 {No matches} one {# character found} other {# characters found}}",
+          "listLabel": "Characters found in the genealogy",
+          "emptyHint": "Names are matched as the book records them. Try the language of the record, for example the Latin alphabet.",
+          "collapsed": "in a collapsed branch"
+        },
+        "landmarks": {
+          "label": "Go to a branch",
+          "jump": "Go to the branch {name}",
+          "active": "In focus: {name}",
+          "activeHouseHint": "{count, plural, one {# house member highlighted} other {# house members highlighted}}, the rest dimmed",
+          "activeFamilyHint": "{count, plural, one {# family member highlighted} other {# family members highlighted}}, the rest dimmed",
+          "clear": "Clear the focus on the branch {name}"
         }
       },
       "treeScope": {
         "branch": "Character branch",
         "full": "Whole genealogy",
         "label": "Family tree scope"
+      },
+      "toolbar": {
+        "more": "More actions"
       }
     }
   }

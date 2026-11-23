@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { Nullable } from "@app/shared";
+import type { ReactNode, RefObject } from "react";
 
 import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
@@ -23,6 +24,8 @@ type GraphDetailsPanelProps = {
   appearance: "default" | "person";
   autoFocus: boolean;
   children: ReactNode;
+  focusKey?: string;
+  focusMemoryRef?: RefObject<Nullable<string>>;
   footer?: ReactNode;
   heading?: string;
   onClose: () => void;
@@ -55,6 +58,8 @@ export function GraphDetailsPanel({
   appearance,
   autoFocus,
   children,
+  focusKey,
+  focusMemoryRef,
   footer,
   heading,
   onClose,
@@ -67,10 +72,19 @@ export function GraphDetailsPanel({
   const closeButton = useRef<HTMLButtonElement>(null);
   const isInline = open && widthClass !== "compact";
   const shouldFocus = isInline && autoFocus;
+  const memoryKey = focusKey ?? title;
 
   useEffect(() => {
-    if (shouldFocus) closeButton.current?.focus();
-  }, [shouldFocus, title]);
+    if (!shouldFocus) {
+      if (focusMemoryRef !== undefined) focusMemoryRef.current = null;
+      return;
+    }
+    if (focusMemoryRef !== undefined) {
+      if (focusMemoryRef.current === memoryKey) return;
+      focusMemoryRef.current = memoryKey;
+    }
+    closeButton.current?.focus();
+  }, [focusMemoryRef, memoryKey, shouldFocus]);
 
   if (widthClass === "compact" && appearance === "person") {
     return (

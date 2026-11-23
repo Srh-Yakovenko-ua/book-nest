@@ -4,7 +4,7 @@ import type { Nullable } from "@app/shared";
 
 import { ChevronsDownUp, ChevronsUpDown, Network, Route, UserRound } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useId, useState } from "react";
+import { type RefObject, useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { getCharacterDetailsPath } from "@/features/characters";
@@ -20,14 +20,11 @@ import type {
 import type { GraphReaderKey } from "../../model/workspace/graph-workspace-request";
 import type { GraphWorkspaceLayoutRestore } from "../../model/workspace/graph-workspace-signature";
 import type { GraphWorkspaceState } from "../../model/workspace/use-graph-workspace-state";
-import type { GraphGenealogyBranch } from "./graph-genealogy-bar";
 import type { GraphSceneSelection, GraphSceneValue } from "./graph-scene-context";
+import type { GraphGenealogyNavigation } from "./graph-scene-section";
 import type { GraphTreePanelState } from "./graph-tree-scene";
-import type {
-  GraphGenealogyFocusRequest,
-  GraphGenealogyHouseMark,
-  GraphTreeCanvasScene,
-} from "./graph-tree-scene-context";
+import type { GraphTreeCanvasScene } from "./graph-tree-scene-context";
+import type { GraphHiddenSelection } from "./graph-tree-status";
 import type { GraphWorkspaceCanvasLayout } from "./graph-workspace-canvas-controls";
 import type { GraphPersonControlsPosition } from "./use-graph-person-camera";
 import type { WorkspaceWidthClass } from "./use-workspace-width-class";
@@ -36,7 +33,11 @@ import { toGraphPairEntries } from "../../model/workspace/graph-person-semantics
 import { toTreeRelatives } from "../../model/workspace/graph-tree-relatives";
 import { withRestoredPositions } from "../../model/workspace/graph-workspace-signature";
 import { GraphDetailsPanel } from "./graph-details-panel";
-import { GraphGenealogyBar } from "./graph-genealogy-bar";
+import {
+  toGenealogyBranchMembers,
+  toGenealogyFamilyLabel,
+  toGenealogyHouseMarks,
+} from "./graph-genealogy-branches";
 import { GraphTreeCharacterDetails } from "./graph-tree-character-details";
 import { GraphTreeConnectionsList } from "./graph-tree-connections-list";
 import { GraphTreeLegend } from "./graph-tree-legend";
@@ -44,7 +45,9 @@ import { withGraphTreeMiniMapCover } from "./graph-tree-mini-map";
 import { GraphTreePairDetails } from "./graph-tree-pair-details";
 import { GraphTreeStatus } from "./graph-tree-status";
 import { GraphWorkspaceCanvasLazy } from "./graph-workspace-canvas-lazy";
+import { useCanvasFitHeight } from "./use-canvas-fit-height";
 import { GRAPH_PERSON_CONTROLS_COVER } from "./use-graph-person-camera";
+import { useIsShortViewport } from "./use-is-short-viewport";
 
 const GENEALOGY_SCENE_VIEW = {
   canvas: {
@@ -52,6 +55,8 @@ const GENEALOGY_SCENE_VIEW = {
     immersive: "graph-person-canvas-immersive",
     regular: "graph-person-canvas",
   },
+  landmarkCover: 56,
+  landmarks: 4,
   overlayCover: 392,
 } as const;
 
@@ -63,15 +68,17 @@ type GraphGenealogySceneProps = {
   bookId: string;
   focusId: Nullable<string>;
   genealogy: GraphGenealogyPresentation;
+  genealogyNav: GraphGenealogyNavigation;
+  hiddenSelection: Nullable<GraphHiddenSelection>;
   immersive: boolean;
   layout: GraphWorkspaceCanvasLayout;
   layoutKey: string;
   onClearSelection: () => void;
   onConfirmOverwrite: () => void;
+  onDismissHiddenSelection: () => void;
   onDismissOverwrite: () => void;
-  onExpandAll: () => void;
   onRestoreFocus: () => void;
-  onReveal: (characterId: string) => void;
+  onRevealCharacter: (characterId: string) => void;
   onToggleBranch: (characterId: string) => void;
   onToggleImmersive: () => void;
   pendingOverwrite: boolean;
@@ -92,6 +99,7 @@ export function GraphGenealogyScene(props: GraphGenealogySceneProps) {
   const {
     focusId,
     genealogy,
+    genealogyNav,
     immersive,
     layout,
     layoutKey,
@@ -109,21 +117,26 @@ export function GraphGenealogyScene(props: GraphGenealogySceneProps) {
   } = props;
   const t = useTranslations("relationships.workspace");
   const listId = useId();
+  const isShort = useIsShortViewport();
   const [isMiniMapOpen, setMiniMapOpen] = useState(true);
-  const [activeBranchId, setActiveBranchId] = useState<Nullable<string>>(null);
-  const [focusRequest, setFocusRequest] = useState<Nullable<GraphGenealogyFocusRequest>>(null);
+  const panelFocus = useRef<Nullable<string>>(null);
   const { scene } = genealogy;
   const liveFocusId = focusId !== null && presentation.characters.has(focusId) ? focusId : null;
   const nameOf = (id: string) => presentation.characters.get(id)?.node.displayName ?? "";
-  const houseMarks = toHouseMarks(genealogy);
-  const branches = toBranches({ genealogy, houseMarks, nameOf, t });
-  const activeBranch = branches.find((branch) => branch.id === activeBranchId) ?? null;
+  const houseMarks = toGenealogyHouseMarks(genealogy);
+  const activeBranch =
+    genealogyNav.branches.find((branch) => branch.id === genealogyNav.activeBranchId) ?? null;
   const highlightIds =
     activeBranch === null
       ? null
-      : new Set(toBranchMembers({ branchId: activeBranch.id, genealogy }));
+      : new Set(toGenealogyBranchMembers({ branchId: activeBranch.id, genealogy }));
   const target = toPanelTarget({ focusId: liveFocusId, isOpen: treePanel.isOpen, selection });
+  const hasTarget = target !== null;
+  useEffect(() => {
+    if (!hasTarget) panelFocus.current = null;
+  }, [hasTarget]);
   const isCompact = widthClass === "compact";
+  const fitRef = useCanvasFitHeight(immersive || !isCompact);
   const isOverlayOpen = widthClass === "medium" && target !== null;
   const hasMiniMap = !isCompact && !isOverlayOpen && presentation.characters.size > 1;
   const controlsPosition = toControlsPosition({ hasPanel: target !== null, widthClass });
@@ -132,29 +145,27 @@ export function GraphGenealogyScene(props: GraphGenealogySceneProps) {
     right: isOverlayOpen
       ? GENEALOGY_SCENE_VIEW.overlayCover
       : GRAPH_PERSON_CONTROLS_COVER[controlsPosition].right,
+    top: isCompact ? 0 : GENEALOGY_SCENE_VIEW.landmarkCover,
   };
   const selectedId = selection?.kind === "character" ? selection.id : null;
-
-  function requestFocus(ids: readonly string[]) {
-    if (ids.length === 0) return;
-    setFocusRequest((current) => ({ ids, nonce: (current?.nonce ?? 0) + 1 }));
-  }
-
-  function toggleBranch(characterId: string) {
-    props.onToggleBranch(characterId);
-    requestFocus([characterId]);
-  }
 
   const canvasTree: GraphTreeCanvasScene = {
     arcPairIds: genealogy.arcPairIds,
     cover: hasMiniMap && isMiniMapOpen ? withGraphTreeMiniMapCover(baseCover) : baseCover,
     focusIds: new Set(liveFocusId === null ? [] : [liveFocusId]),
     genealogy: {
+      activeBranch,
       collapsedIds: scene.collapsedIds,
-      focusRequest,
+      focusRequest: genealogyNav.focusRequest,
       frames: genealogy.frames.map((frame) => ({
         componentId: frame.componentId,
-        label: toFamilyLabel({ componentId: frame.componentId, genealogy, houseMarks, nameOf, t }),
+        label: toGenealogyFamilyLabel({
+          componentId: frame.componentId,
+          genealogy,
+          houseMarks,
+          nameOf,
+          t,
+        }),
         left: frame.left,
         top: frame.top,
       })),
@@ -166,7 +177,15 @@ export function GraphGenealogyScene(props: GraphGenealogySceneProps) {
           return mark === undefined ? [] : [[id, mark] as const];
         }),
       ),
-      onExpand: toggleBranch,
+      landmarks: isCompact
+        ? []
+        : genealogyNav.branches
+            .filter((branch) => branch.kind === "house")
+            .sort((left, right) => right.count - left.count)
+            .slice(0, GENEALOGY_SCENE_VIEW.landmarks),
+      onBranch: genealogyNav.onBranch,
+      onClearBranch: genealogyNav.onClearBranch,
+      onExpand: props.onToggleBranch,
     },
     generationById: scene.generationById,
     miniMap: hasMiniMap
@@ -178,34 +197,32 @@ export function GraphGenealogyScene(props: GraphGenealogySceneProps) {
     sideIds: new Set(scene.sideAnchorById.keys()),
   };
   const panel = (
-    <GenealogyPanel {...props} nameOf={nameOf} onToggle={toggleBranch} target={target} />
+    <GenealogyPanel
+      {...props}
+      focusMemoryRef={panelFocus}
+      nameOf={nameOf}
+      onToggle={props.onToggleBranch}
+      target={target}
+    />
   );
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col gap-3">
+    <section className="flex min-h-0 flex-1 flex-col gap-2">
       <GraphTreeStatus
+        collapsed={
+          scene.collapsedIds.size === 0
+            ? null
+            : { branches: scene.collapsedIds.size, hidden: scene.hiddenCount }
+        }
+        hiddenSelection={props.hiddenSelection}
+        immersive={immersive}
         notices={presentation.notices}
         onConfirmOverwrite={props.onConfirmOverwrite}
+        onDismissHiddenSelection={props.onDismissHiddenSelection}
         onDismissOverwrite={props.onDismissOverwrite}
+        onResetLinks={props.actions.resetTreeLinks}
+        onRevealSelection={props.onRevealCharacter}
         pendingOverwrite={props.pendingOverwrite}
-      />
-      <GraphGenealogyBar
-        activeBranchId={activeBranch?.id ?? null}
-        branches={branches}
-        characters={genealogy.allNodes}
-        hiddenCount={scene.hiddenCount}
-        onBranch={(branchId) => {
-          setActiveBranchId(branchId);
-          if (branchId !== null) {
-            requestFocus(toBranchMembers({ branchId, genealogy }));
-          }
-        }}
-        onExpandAll={props.onExpandAll}
-        onFind={(characterId) => {
-          setActiveBranchId(null);
-          props.onReveal(characterId);
-          requestFocus([characterId]);
-        }}
       />
       <div className="flex gap-3">
         <div
@@ -213,6 +230,7 @@ export function GraphGenealogyScene(props: GraphGenealogySceneProps) {
             "relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft",
             GENEALOGY_SCENE_VIEW.canvas[toCanvasSize({ immersive, isCompact })],
           )}
+          ref={fitRef}
         >
           <div className="relative min-h-0 flex-1 bg-radial from-card from-35% to-secondary/70">
             <GraphWorkspaceCanvasLazy
@@ -253,7 +271,7 @@ export function GraphGenealogyScene(props: GraphGenealogySceneProps) {
             </div>
             {widthClass === "medium" ? panel : null}
           </div>
-          <GraphTreeLegend options={treeOptions} />
+          {immersive && isShort ? null : <GraphTreeLegend options={treeOptions} />}
         </div>
         {widthClass === "compact" ? panel : null}
         {widthClass === "wide" && target !== null ? (
@@ -338,6 +356,7 @@ function CharacterActions({
 function GenealogyPanel({
   actions,
   bookId,
+  focusMemoryRef,
   genealogy,
   nameOf,
   onRestoreFocus,
@@ -351,6 +370,7 @@ function GenealogyPanel({
   treePanel,
   widthClass,
 }: GraphGenealogySceneProps & {
+  focusMemoryRef: RefObject<Nullable<string>>;
   nameOf: (id: string) => string;
   onToggle: (characterId: string) => void;
   target: GenealogyPanelTarget;
@@ -383,6 +403,8 @@ function GenealogyPanel({
     <GraphDetailsPanel
       appearance="person"
       autoFocus={selection !== null}
+      focusKey={toTargetKey(target)}
+      focusMemoryRef={focusMemoryRef}
       footer={
         characterId === undefined ? undefined : (
           <CharacterActions
@@ -436,56 +458,6 @@ function GenealogyPanel({
   );
 }
 
-function toBranches({
-  genealogy,
-  houseMarks,
-  nameOf,
-  t,
-}: {
-  genealogy: GraphGenealogyPresentation;
-  houseMarks: ReadonlyMap<string, GraphGenealogyHouseMark>;
-  nameOf: (id: string) => string;
-  t: ReturnType<typeof useTranslations<"relationships.workspace">>;
-}): GraphGenealogyBranch[] {
-  const houses = genealogy.scene.houses.flatMap((house): GraphGenealogyBranch[] => {
-    const mark = houseMarks.get(house.id);
-    if (mark === undefined || house.memberIds.length === 0) return [];
-    return [
-      {
-        count: house.memberIds.length,
-        id: house.id,
-        kind: "house",
-        label: mark.name,
-        tone: mark.tone,
-      },
-    ];
-  });
-  const families =
-    genealogy.scene.components.length < 2
-      ? []
-      : genealogy.scene.components.map((component): GraphGenealogyBranch => ({
-          count: component.memberIds.length,
-          id: component.id,
-          kind: "family",
-          label: toFamilyLabel({ componentId: component.id, genealogy, houseMarks, nameOf, t }),
-          tone:
-            component.houseId === null ? null : (houseMarks.get(component.houseId)?.tone ?? null),
-        }));
-  return [...houses, ...families];
-}
-
-function toBranchMembers({
-  branchId,
-  genealogy,
-}: {
-  branchId: string;
-  genealogy: GraphGenealogyPresentation;
-}): readonly string[] {
-  const house = genealogy.scene.houses.find((entry) => entry.id === branchId);
-  if (house !== undefined) return house.memberIds;
-  return genealogy.scene.components.find((entry) => entry.id === branchId)?.memberIds ?? [];
-}
-
 function toCanvasSize({
   immersive,
   isCompact,
@@ -508,40 +480,6 @@ function toControlsPosition({
   return widthClass === "medium" && hasPanel ? "top-left" : "top-right";
 }
 
-function toFamilyLabel({
-  componentId,
-  genealogy,
-  houseMarks,
-  nameOf,
-  t,
-}: {
-  componentId: string;
-  genealogy: GraphGenealogyPresentation;
-  houseMarks: ReadonlyMap<string, GraphGenealogyHouseMark>;
-  nameOf: (id: string) => string;
-  t: ReturnType<typeof useTranslations<"relationships.workspace">>;
-}): string {
-  const component = genealogy.scene.components.find((entry) => entry.id === componentId);
-  if (component === undefined) return "";
-  const house = component.houseId === null ? undefined : houseMarks.get(component.houseId);
-  return house === undefined
-    ? t("genealogy.family", { count: component.memberIds.length, name: nameOf(component.titleId) })
-    : t("genealogy.familyHouse", { count: component.memberIds.length, name: house.name });
-}
-
-function toHouseMarks(
-  genealogy: GraphGenealogyPresentation,
-): ReadonlyMap<string, GraphGenealogyHouseMark> {
-  const ranked = [...genealogy.scene.houses].sort(
-    (left, right) => right.size - left.size || left.id.localeCompare(right.id),
-  );
-  return new Map(
-    ranked.flatMap((house, index) =>
-      house.name === null ? [] : [[house.id, { name: house.name, tone: index }] as const],
-    ),
-  );
-}
-
 function toPanelTarget({
   focusId,
   isOpen,
@@ -554,4 +492,11 @@ function toPanelTarget({
   if (selection?.kind === "connection") return { connectionId: selection.id, kind: "connection" };
   if (selection?.kind === "character") return { id: selection.id, kind: "character" };
   return isOpen && focusId !== null ? { id: focusId, kind: "character" } : null;
+}
+
+function toTargetKey(target: GenealogyPanelTarget): string {
+  if (target === null) return "";
+  return target.kind === "connection"
+    ? `connection:${target.connectionId}`
+    : `character:${target.id}`;
 }

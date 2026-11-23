@@ -4,7 +4,7 @@ import type { Nullable } from "@app/shared";
 
 import { Crown, Route, UserRound } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useId, useState } from "react";
+import { type RefObject, useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { getCharacterDetailsPath } from "@/features/characters";
@@ -22,6 +22,7 @@ import type { GraphWorkspaceLayoutRestore } from "../../model/workspace/graph-wo
 import type { GraphWorkspaceState } from "../../model/workspace/use-graph-workspace-state";
 import type { GraphSceneSelection, GraphSceneValue } from "./graph-scene-context";
 import type { GraphTreeCanvasScene } from "./graph-tree-scene-context";
+import type { GraphHiddenSelection } from "./graph-tree-status";
 import type { GraphWorkspaceCanvasLayout } from "./graph-workspace-canvas-controls";
 import type { GraphPersonControlsPosition } from "./use-graph-person-camera";
 import type { WorkspaceWidthClass } from "./use-workspace-width-class";
@@ -37,7 +38,9 @@ import { withGraphTreeMiniMapCover } from "./graph-tree-mini-map";
 import { GraphTreePairDetails } from "./graph-tree-pair-details";
 import { GraphTreeStatus } from "./graph-tree-status";
 import { GraphWorkspaceCanvasLazy } from "./graph-workspace-canvas-lazy";
+import { useCanvasFitHeight } from "./use-canvas-fit-height";
 import { GRAPH_PERSON_CONTROLS_COVER } from "./use-graph-person-camera";
+import { useIsShortViewport } from "./use-is-short-viewport";
 
 const TREE_SCENE_VIEW = {
   canvas: {
@@ -57,13 +60,16 @@ export type GraphTreePanelState = {
 type GraphTreeSceneProps = {
   actions: GraphWorkspaceState["actions"];
   bookId: string;
+  hiddenSelection: Nullable<GraphHiddenSelection>;
   immersive: boolean;
   layout: GraphWorkspaceCanvasLayout;
   layoutKey: string;
   onClearSelection: () => void;
   onConfirmOverwrite: () => void;
+  onDismissHiddenSelection: () => void;
   onDismissOverwrite: () => void;
   onRestoreFocus: () => void;
+  onRevealCharacter: (characterId: string) => void;
   onToggleImmersive: () => void;
   pendingOverwrite: boolean;
   placementKey: string;
@@ -105,11 +111,18 @@ export function GraphTreeScene(props: GraphTreeSceneProps) {
   } = props;
   const t = useTranslations("relationships.workspace");
   const listId = useId();
+  const isShort = useIsShortViewport();
   const [isMiniMapOpen, setMiniMapOpen] = useState(true);
+  const panelFocus = useRef<Nullable<string>>(null);
   const nameOf = (id: string) => presentation.characters.get(id)?.node.displayName ?? "";
   const entries = toGraphPairEntries({ connections: presentation.connections, nameOf, rootId });
   const target = toPanelTarget({ isOpen: treePanel.isOpen, rootId, selection });
+  const hasTarget = target !== null;
+  useEffect(() => {
+    if (!hasTarget) panelFocus.current = null;
+  }, [hasTarget]);
   const isCompact = widthClass === "compact";
+  const fitRef = useCanvasFitHeight(immersive || !isCompact);
   const controlsPosition = toControlsPosition({ hasPanel: target !== null, widthClass });
   const isOverlayOpen = widthClass === "medium" && target !== null;
   const hasMiniMap =
@@ -134,14 +147,22 @@ export function GraphTreeScene(props: GraphTreeSceneProps) {
     rows: tree.rows,
     sideIds: new Set(tree.scene.sideAnchorById.keys()),
   };
-  const panel = <TreePanel {...props} nameOf={nameOf} target={target} />;
+  const panel = (
+    <TreePanel {...props} focusMemoryRef={panelFocus} nameOf={nameOf} target={target} />
+  );
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col gap-3">
+    <section className="flex min-h-0 flex-1 flex-col gap-2">
       <GraphTreeStatus
+        collapsed={null}
+        hiddenSelection={props.hiddenSelection}
+        immersive={immersive}
         notices={presentation.notices}
         onConfirmOverwrite={props.onConfirmOverwrite}
+        onDismissHiddenSelection={props.onDismissHiddenSelection}
         onDismissOverwrite={props.onDismissOverwrite}
+        onResetLinks={props.actions.resetTreeLinks}
+        onRevealSelection={props.onRevealCharacter}
         pendingOverwrite={props.pendingOverwrite}
       />
       <div className="flex gap-3">
@@ -150,6 +171,7 @@ export function GraphTreeScene(props: GraphTreeSceneProps) {
             "relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft",
             TREE_SCENE_VIEW.canvas[toCanvasSize({ immersive, isCompact })],
           )}
+          ref={fitRef}
         >
           <div className="relative min-h-0 flex-1 bg-radial from-card from-35% to-secondary/70">
             <GraphWorkspaceCanvasLazy
@@ -189,7 +211,7 @@ export function GraphTreeScene(props: GraphTreeSceneProps) {
             </div>
             {widthClass === "medium" ? panel : null}
           </div>
-          <GraphTreeLegend options={treeOptions} />
+          {immersive && isShort ? null : <GraphTreeLegend options={treeOptions} />}
         </div>
         {widthClass === "compact" ? panel : null}
         {widthClass === "wide" && target !== null ? (
@@ -307,9 +329,17 @@ function toPanelTarget({
   return isOpen ? { id: rootId, kind: "character" } : null;
 }
 
+function toTargetKey(target: TreePanelTarget): string {
+  if (target === null) return "";
+  return target.kind === "connection"
+    ? `connection:${target.connectionId}`
+    : `character:${target.id}`;
+}
+
 function TreePanel({
   actions,
   bookId,
+  focusMemoryRef,
   nameOf,
   onRestoreFocus,
   presentation,
@@ -322,6 +352,7 @@ function TreePanel({
   treePanel,
   widthClass,
 }: GraphTreeSceneProps & {
+  focusMemoryRef: RefObject<Nullable<string>>;
   nameOf: (id: string) => string;
   target: TreePanelTarget;
 }) {
@@ -352,6 +383,8 @@ function TreePanel({
     <GraphDetailsPanel
       appearance="person"
       autoFocus={selection !== null}
+      focusKey={toTargetKey(target)}
+      focusMemoryRef={focusMemoryRef}
       footer={
         character === undefined ? undefined : (
           <CharacterActions

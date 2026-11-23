@@ -7,12 +7,26 @@ import {
   CHARACTER_GRAPH_DEPTH_MIN,
   FAMILY_TREE_GENERATIONS,
 } from "@app/shared";
-import { Lock, RotateCcw, Route, SlidersHorizontal, UsersRound } from "lucide-react";
+import {
+  Lock,
+  RotateCcw,
+  Route,
+  SlidersHorizontal,
+  TriangleAlert,
+  UnfoldVertical,
+  UsersRound,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Segmented } from "@/components/ui/segmented";
@@ -23,6 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 import type { RelationshipParticipant } from "../../model/relationship-form-schema";
 import type { TreeOptionKey, TreeOptions } from "../../model/workspace/graph-tree-scene";
@@ -31,6 +46,8 @@ import type {
   NetworkGrouping,
 } from "../../model/workspace/graph-workspace-params";
 import type { GraphWorkspaceState } from "../../model/workspace/use-graph-workspace-state";
+import type { GraphGenealogyBarProps } from "./graph-genealogy-bar";
+import type { WorkspaceWidthClass } from "./use-workspace-width-class";
 
 import {
   countEnabledTreeOptions,
@@ -39,7 +56,9 @@ import {
 } from "../../model/workspace/graph-tree-scene";
 import { GRAPH_TREE_SCOPES, NETWORK_GROUPINGS } from "../../model/workspace/graph-workspace-params";
 import { RelationshipParticipantPicker } from "../relationship-participant-picker";
+import { GraphGenealogyBar } from "./graph-genealogy-bar";
 import { GraphWorkspaceFilters } from "./graph-workspace-filters";
+import { useIsShortViewport } from "./use-is-short-viewport";
 
 const TOOLBAR = {
   depthOptions: Array.from(
@@ -53,49 +72,74 @@ const TOOLBAR = {
   pickerId: "graph-workspace-root-picker",
 } as const;
 
+export type GraphToolbarGenealogy = Omit<GraphGenealogyBarProps, "compact"> & {
+  collapsedBranches: number;
+  hiddenCount: number;
+  onExpandAll: () => void;
+};
+
 type GraphWorkspaceToolbarProps = {
   actions: GraphWorkspaceState["actions"];
   bookId: string;
   filtersTriggerId: string;
+  genealogy: Nullable<GraphToolbarGenealogy>;
   onTreeOptionsChange: (options: TreeOptions) => void;
   onTreeOptionsReset: () => void;
   params: GraphWorkspaceParams;
   rootParticipant: Nullable<RelationshipParticipant>;
   treeOptions: TreeOptions;
+  widthClass: WorkspaceWidthClass;
 };
+
+export function GraphTreeScopeSwitch({
+  actions,
+  params,
+}: {
+  actions: GraphWorkspaceState["actions"];
+  params: GraphWorkspaceParams;
+}) {
+  const t = useTranslations("relationships.workspace.treeScope");
+
+  return (
+    <Segmented
+      label={t("label")}
+      onValueChange={(value) => {
+        const treeScope = GRAPH_TREE_SCOPES.find((scope) => scope === value);
+        if (treeScope !== undefined) {
+          actions.setTreeScope({ characterId: params.characterId, treeScope });
+        }
+      }}
+      options={GRAPH_TREE_SCOPES.map((scope) => ({ label: t(scope), value: scope }))}
+      value={params.treeScope}
+    />
+  );
+}
 
 export function GraphWorkspaceToolbar({
   actions,
   bookId,
   filtersTriggerId,
+  genealogy,
   onTreeOptionsChange,
   onTreeOptionsReset,
   params,
   rootParticipant,
   treeOptions,
+  widthClass,
 }: GraphWorkspaceToolbarProps) {
   const t = useTranslations("relationships.workspace");
-  const isGenealogy = params.view === "tree" && params.treeScope === "full";
+  const isShort = useIsShortViewport();
+  const isTree = params.view === "tree";
+  const isGenealogy = isTree && params.treeScope === "full";
   const usesRoot = params.view !== "network" && !isGenealogy;
+  const grouped = isTree && (isShort || widthClass === "compact");
+  const openPath = () => actions.openPath(params.view === "network" ? null : params.characterId);
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {params.view === "tree" ? (
-        <Segmented
-          label={t("treeScope.label")}
-          onValueChange={(value) => {
-            const treeScope = GRAPH_TREE_SCOPES.find((scope) => scope === value);
-            if (treeScope !== undefined) {
-              actions.setTreeScope({ characterId: params.characterId, treeScope });
-            }
-          }}
-          options={GRAPH_TREE_SCOPES.map((scope) => ({
-            label: t(`treeScope.${scope}`),
-            value: scope,
-          }))}
-          value={params.treeScope}
-        />
-      ) : null}
+      {genealogy === null ? null : (
+        <GraphGenealogyBar {...genealogy} compact={grouped && widthClass === "compact"} />
+      )}
       {usesRoot ? (
         <div className="flex w-full min-w-0 items-center gap-1 sm:w-72">
           <label className="sr-only" htmlFor={TOOLBAR.pickerId}>
@@ -142,10 +186,11 @@ export function GraphWorkspaceToolbar({
           />
         </div>
       ) : null}
-      {params.view === "tree" ? (
+      {isTree ? (
         <>
           {isGenealogy ? null : <GenerationsControl actions={actions} params={params} />}
           <TreeOptionsControl
+            compact={grouped && widthClass === "compact"}
             onChange={onTreeOptionsChange}
             onReset={onTreeOptionsReset}
             options={treeOptions}
@@ -181,16 +226,45 @@ export function GraphWorkspaceToolbar({
           types={params.types}
         />
       )}
-      <Button
-        onClick={() => actions.openPath(params.view === "network" ? null : params.characterId)}
-        type="button"
-        variant="secondary"
-      >
-        <Route aria-hidden className="size-4" />
-        {t(params.view === "person" ? "pathEntryShort" : "pathEntry")}
-      </Button>
+      {grouped ? (
+        <MoreActions genealogy={genealogy} onOpenPath={openPath} />
+      ) : (
+        <>
+          {genealogy === null ? null : <ExpandAllButton genealogy={genealogy} />}
+          <Button onClick={openPath} type="button" variant="secondary">
+            <Route aria-hidden className="size-4" />
+            {t(params.view === "network" ? "pathEntry" : "pathEntryShort")}
+          </Button>
+        </>
+      )}
       <HelpControl isGenealogy={isGenealogy} view={params.view} />
     </div>
+  );
+}
+
+function ExpandAllButton({ genealogy }: { genealogy: GraphToolbarGenealogy }) {
+  const t = useTranslations("relationships.workspace.genealogy.bar");
+  const { collapsedBranches, hiddenCount, onExpandAll } = genealogy;
+  const isInert = collapsedBranches === 0;
+
+  return (
+    <Button
+      aria-disabled={isInert}
+      aria-label={
+        isInert
+          ? t("expandAll")
+          : t("expandAllLabel", { branches: collapsedBranches, hidden: hiddenCount })
+      }
+      className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+      onClick={() => {
+        if (!isInert) onExpandAll();
+      }}
+      type="button"
+      variant="outline"
+    >
+      <UnfoldVertical aria-hidden className="size-4" />
+      {isInert ? t("expandAll") : t("expandAllCount", { count: collapsedBranches })}
+    </Button>
   );
 }
 
@@ -234,7 +308,7 @@ function GenerationsControl({
     <>
       <div
         aria-label={t("label")}
-        className="hidden items-center gap-3 rounded-full border border-border bg-card px-3 py-1 @3xl/workspace:flex"
+        className="hidden items-center gap-3 rounded-full border border-border bg-card px-3 py-1 @7xl/workspace:flex"
         role="group"
       >
         <span className="flex items-center gap-1.5 text-sm font-medium">
@@ -246,7 +320,7 @@ function GenerationsControl({
       <Popover>
         <PopoverTrigger asChild>
           <Button
-            className="@3xl/workspace:hidden"
+            className="@7xl/workspace:hidden"
             disabled={disabled}
             type="button"
             variant="outline"
@@ -295,6 +369,7 @@ function HelpControl({
             <p className="text-muted-foreground">{tTree("generations")}</p>
             <p className="text-muted-foreground">{tTree("links")}</p>
             <p className="text-muted-foreground">{tTree("lines")}</p>
+            <p className="text-muted-foreground">{tTree("navigation")}</p>
             <p className="text-muted-foreground">{t("spoilers")}</p>
           </>
         ) : null}
@@ -311,11 +386,59 @@ function HelpControl({
   );
 }
 
+function MoreActions({
+  genealogy,
+  onOpenPath,
+}: {
+  genealogy: Nullable<GraphToolbarGenealogy>;
+  onOpenPath: () => void;
+}) {
+  const t = useTranslations("relationships.workspace");
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button aria-label={t("toolbar.more")} size="icon" type="button" variant="outline">
+          <UiIcon name="more" size={18} />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72">
+        {genealogy === null ? null : (
+          <DropdownMenuItem
+            disabled={genealogy.collapsedBranches === 0}
+            onSelect={genealogy.onExpandAll}
+          >
+            <UnfoldVertical aria-hidden />
+            <span className="flex min-w-0 flex-col">
+              <span>
+                {genealogy.collapsedBranches === 0
+                  ? t("genealogy.bar.expandAll")
+                  : t("genealogy.bar.expandAllCount", { count: genealogy.collapsedBranches })}
+              </span>
+              {genealogy.collapsedBranches === 0 ? null : (
+                <span className="text-xs text-muted-foreground">
+                  {t("genealogy.bar.hiddenCharacters", { count: genealogy.hiddenCount })}
+                </span>
+              )}
+            </span>
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onSelect={onOpenPath}>
+          <Route aria-hidden />
+          {t("pathEntry")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function TreeOptionsControl({
+  compact,
   onChange,
   onReset,
   options,
 }: {
+  compact: boolean;
   onChange: (options: TreeOptions) => void;
   onReset: () => void;
   options: TreeOptions;
@@ -323,20 +446,35 @@ function TreeOptionsControl({
   const t = useTranslations("relationships.workspace.treeOptions");
   const enabled = countEnabledTreeOptions(options);
   const total = TREE_OPTION_KEYS.length;
-  const isDefault = TREE_OPTION_KEYS.every(
-    (key) => options[key] === TREE_SCENE.defaultOptions[key],
+  const changedKeys = TREE_OPTION_KEYS.filter(
+    (key) => options[key] !== TREE_SCENE.defaultOptions[key],
   );
+  const isDefault = changedKeys.length === 0;
   const toggle = (key: TreeOptionKey, checked: boolean) => onChange({ ...options, [key]: checked });
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button aria-label={t("triggerLabel", { enabled, total })} type="button" variant="outline">
+        <Button
+          aria-label={
+            isDefault
+              ? t("triggerLabel", { enabled, total })
+              : t("triggerLabelChanged", { changed: changedKeys.length, enabled, total })
+          }
+          type="button"
+          variant="outline"
+        >
           <SlidersHorizontal aria-hidden className="size-4" />
-          {t("trigger")}
-          <span className="rounded-full bg-muted px-1.5 text-xs font-semibold text-muted-foreground tabular-nums">
+          <span className={cn(compact && "sr-only")}>{t("trigger")}</span>
+          <span
+            className={cn(
+              "rounded-full px-1.5 text-xs font-semibold tabular-nums",
+              isDefault ? "bg-muted text-muted-foreground" : "bg-primary/15 text-primary",
+            )}
+          >
             {t("count", { enabled, total })}
           </span>
+          {isDefault ? null : <span aria-hidden className="size-1.5 rounded-full bg-primary" />}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" aria-label={t("trigger")} className="flex w-80 flex-col gap-3">
@@ -348,27 +486,50 @@ function TreeOptionsControl({
           </div>
         </div>
         <ul className="flex flex-col gap-2.5">
-          {TREE_OPTION_KEYS.map((key) => (
-            <li className="flex items-start gap-2" key={key}>
-              <Checkbox
-                aria-describedby={`tree-option-${key}-hint`}
-                checked={options[key]}
-                className="mt-0.5"
-                id={`tree-option-${key}`}
-                onCheckedChange={(checked) => toggle(key, checked === true)}
-              />
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <Label htmlFor={`tree-option-${key}`}>{t(key)}</Label>
-                <span className="text-xs text-muted-foreground" id={`tree-option-${key}-hint`}>
-                  {t(`hints.${key}`)}
-                </span>
-              </div>
-            </li>
-          ))}
+          {TREE_OPTION_KEYS.map((key) => {
+            const isChanged = options[key] !== TREE_SCENE.defaultOptions[key];
+            return (
+              <li className="flex items-start gap-2" key={key}>
+                <Checkbox
+                  aria-describedby={`tree-option-${key}-hint`}
+                  checked={options[key]}
+                  className="mt-0.5"
+                  id={`tree-option-${key}`}
+                  onCheckedChange={(checked) => toggle(key, checked === true)}
+                />
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <Label htmlFor={`tree-option-${key}`}>{t(key)}</Label>
+                    {isChanged ? (
+                      <span className="rounded-full bg-primary/10 px-1.5 text-xs text-primary">
+                        {t(TREE_SCENE.defaultOptions[key] ? "changedOff" : "changedOn")}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="text-xs text-muted-foreground" id={`tree-option-${key}-hint`}>
+                    {t(`hints.${key}`)}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
         </ul>
+        <p className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 px-2.5 py-2 text-xs text-foreground">
+          <TriangleAlert aria-hidden className="mt-px size-3.5 shrink-0 text-warning" />
+          {t("hidesCharacters")}
+        </p>
         <div className="flex items-center justify-between gap-2 border-t border-border pt-2">
           <p className="text-xs text-muted-foreground">{t("partners")}</p>
-          <Button disabled={isDefault} onClick={onReset} size="sm" type="button" variant="ghost">
+          <Button
+            aria-disabled={isDefault}
+            className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+            onClick={() => {
+              if (!isDefault) onReset();
+            }}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
             <RotateCcw aria-hidden />
             {t("reset")}
           </Button>

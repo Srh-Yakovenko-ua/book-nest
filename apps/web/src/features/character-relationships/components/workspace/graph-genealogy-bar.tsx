@@ -2,7 +2,7 @@
 
 import type { CharacterGraphNodeView, Nullable } from "@app/shared";
 
-import { ChevronsUpDown, GitBranch, Search, UnfoldVertical } from "lucide-react";
+import { ChevronsUpDown, GitBranch, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 
@@ -28,34 +28,30 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
+import type { GraphGenealogyBranch } from "./graph-genealogy-branches";
+
 import { searchGenealogyCharacters } from "../../model/workspace/graph-genealogy-navigation";
 import { toGraphGenealogyHouseTone } from "./graph-genealogy-tones";
 
-export type GraphGenealogyBranch = {
-  count: number;
-  id: string;
-  kind: "family" | "house";
-  label: string;
-  tone: Nullable<number>;
-};
-
-type GraphGenealogyBarProps = {
+export type GraphGenealogyBarProps = {
   activeBranchId: Nullable<string>;
   branches: readonly GraphGenealogyBranch[];
+  branchesTriggerId: string;
   characters: readonly CharacterGraphNodeView[];
-  hiddenCount: number;
+  compact: boolean;
+  hiddenIds: ReadonlySet<string>;
   onBranch: (branchId: Nullable<string>) => void;
-  onExpandAll: () => void;
   onFind: (characterId: string) => void;
 };
 
 export function GraphGenealogyBar({
   activeBranchId,
   branches,
+  branchesTriggerId,
   characters,
-  hiddenCount,
+  compact,
+  hiddenIds,
   onBranch,
-  onExpandAll,
   onFind,
 }: GraphGenealogyBarProps) {
   const t = useTranslations("relationships.workspace.genealogy.bar");
@@ -64,15 +60,27 @@ export function GraphGenealogyBar({
   const active = branches.find((branch) => branch.id === activeBranchId);
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <CharacterSearch characters={characters} onFind={onFind} />
+    <>
+      <CharacterSearch
+        characters={characters}
+        compact={compact}
+        hiddenIds={hiddenIds}
+        onFind={onFind}
+      />
       {branches.length === 0 ? null : (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button className="max-w-full" type="button" variant="outline">
+            <Button
+              className={cn("min-w-0", compact ? "max-w-40" : "max-w-60")}
+              id={branchesTriggerId}
+              type="button"
+              variant="outline"
+            >
               <GitBranch aria-hidden className="size-4" />
               <span className="truncate">
-                {active === undefined ? t("branches") : t("branchActive", { name: active.label })}
+                {active === undefined
+                  ? t(compact ? "branchesShort" : "branches")
+                  : t("branchActive", { name: active.label })}
               </span>
               <ChevronsUpDown aria-hidden className="size-4 text-muted-foreground" />
             </Button>
@@ -108,19 +116,7 @@ export function GraphGenealogyBar({
           </DropdownMenuContent>
         </DropdownMenu>
       )}
-      <Button
-        aria-disabled={hiddenCount === 0}
-        className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
-        onClick={() => {
-          if (hiddenCount > 0) onExpandAll();
-        }}
-        type="button"
-        variant="outline"
-      >
-        <UnfoldVertical aria-hidden className="size-4" />
-        {hiddenCount === 0 ? t("expandAll") : t("expandAllCount", { count: hiddenCount })}
-      </Button>
-    </div>
+    </>
   );
 }
 
@@ -154,9 +150,13 @@ function BranchItem({
 
 function CharacterSearch({
   characters,
+  compact,
+  hiddenIds,
   onFind,
 }: {
   characters: readonly CharacterGraphNodeView[];
+  compact: boolean;
+  hiddenIds: ReadonlySet<string>;
   onFind: (characterId: string) => void;
 }) {
   const t = useTranslations("relationships.workspace.genealogy.search");
@@ -174,10 +174,16 @@ function CharacterSearch({
       open={open}
     >
       <PopoverTrigger asChild>
-        <Button className="w-full justify-start sm:w-64" type="button" variant="outline">
-          <Search aria-hidden className="size-4" />
-          <span className="truncate text-muted-foreground">{t("trigger")}</span>
-        </Button>
+        {compact ? (
+          <Button aria-label={t("trigger")} size="icon" type="button" variant="outline">
+            <Search aria-hidden className="size-4" />
+          </Button>
+        ) : (
+          <Button className="w-full justify-start sm:w-52" type="button" variant="outline">
+            <Search aria-hidden className="size-4" />
+            <span className="truncate text-muted-foreground">{t("trigger")}</span>
+          </Button>
+        )}
       </PopoverTrigger>
       <PopoverContent
         align="start"
@@ -198,33 +204,46 @@ function CharacterSearch({
           <p className="sr-only" role="status">
             {query.trim().length === 0 ? "" : t("found", { count: matches.length })}
           </p>
-          <CommandList>
-            {query.trim().length === 0 ? null : <CommandEmpty>{t("empty")}</CommandEmpty>}
+          <CommandList label={t("listLabel")}>
+            {query.trim().length === 0 ? null : (
+              <CommandEmpty className="flex flex-col gap-1 px-3 py-4 text-left text-sm">
+                <span className="font-medium">{t("empty")}</span>
+                <span className="text-muted-foreground">{t("emptyHint")}</span>
+              </CommandEmpty>
+            )}
             {matches.length === 0 ? null : (
               <CommandGroup heading={t("results")}>
-                {matches.map((node) => (
-                  <CommandItem
-                    className="cursor-pointer"
-                    key={node.id}
-                    onSelect={() => {
-                      picked.current = true;
-                      onFind(node.id);
-                      setOpen(false);
-                      setQuery("");
-                    }}
-                    value={node.id}
-                  >
-                    <Avatar size="sm">
-                      {node.displayMedia === null ? null : (
-                        <AvatarImage alt="" src={node.displayMedia.urls.thumb} />
-                      )}
-                      <AvatarFallback>
-                        {node.displayName.trim().charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="truncate">{node.displayName}</span>
-                  </CommandItem>
-                ))}
+                {matches.map((node) => {
+                  const isHidden = hiddenIds.has(node.id);
+                  return (
+                    <CommandItem
+                      className="cursor-pointer"
+                      key={node.id}
+                      onSelect={() => {
+                        picked.current = true;
+                        onFind(node.id);
+                        setOpen(false);
+                        setQuery("");
+                      }}
+                      value={node.id}
+                    >
+                      <Avatar size="sm">
+                        {node.displayMedia === null ? null : (
+                          <AvatarImage alt="" src={node.displayMedia.urls.thumb} />
+                        )}
+                        <AvatarFallback>
+                          {node.displayName.trim().charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span className="line-clamp-2">{node.displayName}</span>
+                        {isHidden ? (
+                          <span className="text-xs text-muted-foreground">{t("collapsed")}</span>
+                        ) : null}
+                      </span>
+                    </CommandItem>
+                  );
+                })}
               </CommandGroup>
             )}
           </CommandList>

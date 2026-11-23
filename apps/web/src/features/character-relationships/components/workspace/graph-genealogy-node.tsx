@@ -31,7 +31,7 @@ const GENEALOGY_NODE_STYLES = {
     "relative flex size-full cursor-pointer items-center overflow-hidden rounded-full border bg-card text-left shadow-soft transition-shadow outline-none hover:shadow-hover focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring motion-reduce:transition-none",
   chip: "inline-flex max-w-full items-center gap-1 rounded-full px-2 py-px text-xs leading-tight text-foreground",
   collapsed:
-    "absolute -bottom-7 left-1/2 flex min-h-6 -translate-x-1/2 cursor-pointer items-center gap-1 rounded-full border border-border bg-card px-2.5 py-0.5 text-xs font-semibold text-foreground shadow-soft outline-none hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+    "absolute -bottom-7 left-1/2 flex min-h-6 -translate-x-1/2 cursor-pointer items-center gap-1 rounded-full whitespace-nowrap border border-border bg-card px-2.5 py-0.5 text-xs font-semibold text-foreground shadow-soft outline-none hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
   frame: {
     default: "border-border",
     focus: "border-2 border-primary bg-primary/10",
@@ -160,6 +160,7 @@ function NodeContent({
     displayName: node.displayName,
     houseName: house?.name ?? null,
   });
+  const caption = shortName.qualifier ?? house?.name ?? null;
 
   return (
     <span aria-hidden className="flex size-full min-w-0 items-center gap-2.5 pr-4 pl-3">
@@ -184,11 +185,11 @@ function NodeContent({
       {level === "exploration" ? (
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="truncate font-heading text-2xl leading-tight font-semibold text-ink">
-            {shortName}
+            {shortName.name}
           </span>
-          {house === null ? null : (
+          {caption === null ? null : (
             <span className="truncate text-base leading-tight text-muted-foreground">
-              {house.name}
+              {caption}
             </span>
           )}
         </span>
