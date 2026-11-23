@@ -22,5 +22,6 @@ export interface BookFamilyTreeViewDto {
   lineage: BookFamilyTreeViewDtoLineageItem[];
   nodes: BookFamilyTreeViewDtoNodesItem[];
   scope: BookFamilyTreeViewDtoScope;
-  updatedAt: string[];
+  /** @nullable */
+  updatedAt: string | null;
 }
