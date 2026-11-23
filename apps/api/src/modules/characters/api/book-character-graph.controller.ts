@@ -1,6 +1,6 @@
-import type { CharacterGraphView, FamilyTreeGraphView } from "@app/shared";
+import type { BookFamilyTreeView, CharacterGraphView, FamilyTreeGraphView } from "@app/shared";
 
-import { BookCharacterGraphQuerySchema } from "@app/shared";
+import { BookCharacterGraphQuerySchema, BookFamilyTreeQuerySchema } from "@app/shared";
 import { Controller, Get, Param, ParseUUIDPipe, Query } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
@@ -11,6 +11,7 @@ import {
   ApiParam,
   ApiQuery,
   ApiTags,
+  ApiUnprocessableEntityResponse,
   getSchemaPath,
 } from "@nestjs/swagger";
 
@@ -20,6 +21,8 @@ import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { CharacterGraphService } from "../application/character-graph.service.js";
 import { BookCharacterGraphQueryDto } from "./input-dto/book-character-graph-query.input-dto.js";
+import { BookFamilyTreeQueryDto } from "./input-dto/book-family-tree-query.input-dto.js";
+import { BookFamilyTreeViewDto } from "./view-dto/book-family-tree.view-dto.js";
 import { CharacterGraphViewDto } from "./view-dto/character-graph.view-dto.js";
 import { FamilyTreeGraphViewDto } from "./view-dto/family-tree-graph.view-dto.js";
 
@@ -91,5 +94,38 @@ export class BookCharacterGraphController {
     @Query(new ZodQueryPipe(BookCharacterGraphQuerySchema)) query: BookCharacterGraphQueryDto,
   ): Promise<CharacterGraphView | FamilyTreeGraphView> {
     return this.graphService.getForBook({ bookId, query, userId: user.id });
+  }
+
+  @ApiBadRequestResponse({ description: "Book id is not a UUID" })
+  @ApiNotFoundResponse({ description: "Book not found" })
+  @ApiOkResponse({
+    description: "Whole-book family genealogy with its houses, spoiler-masked, no generation limit",
+    type: BookFamilyTreeViewDto,
+  })
+  @ApiOperation({ summary: "Build the spoiler-safe family tree of every character in a book" })
+  @ApiParam({ description: "Book id", name: "bookId" })
+  @ApiQuery({
+    description: "Reader chapter within the book for page-level spoiler masking",
+    name: "contextChapter",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reader page within the book for page-level spoiler masking",
+    name: "contextPage",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reader audiobook seconds within the book for page-level spoiler masking",
+    name: "contextAudioSeconds",
+    required: false,
+  })
+  @ApiUnprocessableEntityResponse({ description: "Invalid reading position" })
+  @Get("family-tree")
+  getFamilyTree(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("bookId", ParseUUIDPipe) bookId: string,
+    @Query(new ZodQueryPipe(BookFamilyTreeQuerySchema)) query: BookFamilyTreeQueryDto,
+  ): Promise<BookFamilyTreeView> {
+    return this.graphService.getBookFamilyTree({ bookId, query, userId: user.id });
   }
 }

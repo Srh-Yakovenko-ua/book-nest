@@ -60,6 +60,11 @@ const AUXILIARY_TYPES: ReadonlySet<RelationshipType> = new Set<RelationshipType>
   "ward_of",
 ]);
 
+export type LineageLink = {
+  edge: PreparedEdge;
+  view: FamilyTreeLineageView;
+};
+
 type BuildFamilyTreeInput = {
   ancestors: number;
   descendants: number;
@@ -70,11 +75,6 @@ type BuildFamilyTreeInput = {
   nodes: GraphNodeSource[];
   partNumberById: Map<string, Nullable<number>>;
   readerContext: RelationshipReaderContext;
-};
-
-type LineageLink = {
-  edge: PreparedEdge;
-  view: FamilyTreeLineageView;
 };
 
 type LineageRule = {
@@ -89,15 +89,11 @@ type RankedNode = {
 
 export function buildFamilyTreeGraph(input: BuildFamilyTreeInput): FamilyTreeGraphView {
   const nodeById = new Map(input.nodes.map((node) => [node.id, node]));
-  const familyEdges = computeVisibleGraphEdges({
-    categoryFilter: new Set<RelationshipCategory>(["family"]),
+  const familyEdges = collectVisibleFamilyEdges({
     edges: input.edges,
-    mode: "all",
     nodes: input.nodes,
     readerContext: input.readerContext,
-    revealEdgeIds: new Set(),
-    typeFilter: null,
-  }).filter((edge) => !edge.typeHidden && edge.type !== null);
+  });
   const links = collectLineageLinks(familyEdges);
   const ranked = nodeById.has(input.focusCharacterId)
     ? rankLineageNodes({
@@ -185,7 +181,7 @@ export function buildFamilyTreeGraph(input: BuildFamilyTreeInput): FamilyTreeGra
   };
 }
 
-function collectLineageLinks(edges: PreparedEdge[]): LineageLink[] {
+export function collectLineageLinks(edges: PreparedEdge[]): LineageLink[] {
   const links: LineageLink[] = [];
   for (const edge of edges) {
     const rule = edge.type === null ? undefined : LINEAGE_RULES.get(edge.type);
@@ -205,11 +201,69 @@ function collectLineageLinks(edges: PreparedEdge[]): LineageLink[] {
   return links;
 }
 
-function compareTreeNodes(left: CharacterGraphNodeView, right: CharacterGraphNodeView): number {
+export function collectVisibleFamilyEdges({
+  edges,
+  nodes,
+  readerContext,
+}: {
+  edges: GraphEdgeSource[];
+  nodes: GraphNodeSource[];
+  readerContext: RelationshipReaderContext;
+}): PreparedEdge[] {
+  return computeVisibleGraphEdges({
+    categoryFilter: new Set<RelationshipCategory>(["family"]),
+    edges,
+    mode: "all",
+    nodes,
+    readerContext,
+    revealEdgeIds: new Set(),
+    typeFilter: null,
+  }).filter((edge) => !edge.typeHidden && edge.type !== null);
+}
+
+export function compareTreeNodes(
+  left: CharacterGraphNodeView,
+  right: CharacterGraphNodeView,
+): number {
   return (
     UKRAINIAN_COLLATION.compare(left.displayName, right.displayName) ||
     left.id.localeCompare(right.id)
   );
+}
+
+export function isAuxiliaryEdge(edge: PreparedEdge): boolean {
+  return edge.type !== null && AUXILIARY_TYPES.has(edge.type);
+}
+
+export function separateLineageConflicts(links: LineageLink[]): {
+  diagnostics: CharacterRelationshipDiagnosticView[];
+  lineage: FamilyTreeLineageView[];
+} {
+  const diagnostics: CharacterRelationshipDiagnosticView[] = [];
+  let remaining = links;
+  for (let attempt = 0; attempt < links.length; attempt += 1) {
+    const ancestryEdges: AncestryEdge[] = remaining.map((link) => ({
+      ancestorId: link.view.parentId,
+      descendantId: link.view.childId,
+    }));
+    const cycle = findAncestryCycle(ancestryEdges);
+    if (cycle === null) {
+      break;
+    }
+    const cycleSteps = new Set(
+      cycle.map((id, index) => `${id}>${cycle[(index + 1) % cycle.length]}`),
+    );
+    remaining = remaining.filter(
+      (link) => !cycleSteps.has(`${link.view.parentId}>${link.view.childId}`),
+    );
+    diagnostics.push({
+      characterIds: cycle,
+      code: CHARACTER_RELATIONSHIP_ERROR_CODES.familyCycleDetected,
+      message: "The visible parent and child relationships form a cycle",
+      severity: "conflict",
+    });
+  }
+  return { diagnostics, lineage: remaining.map((link) => link.view) };
 }
 
 function computeFamilyTreeVersion({
@@ -262,10 +316,6 @@ function indexLinks({
     entries.sort((left, right) => left.edge.id.localeCompare(right.edge.id));
   }
   return index;
-}
-
-function isAuxiliaryEdge(edge: PreparedEdge): boolean {
-  return edge.type !== null && AUXILIARY_TYPES.has(edge.type);
 }
 
 function rankLineageNodes({
@@ -324,35 +374,4 @@ function rankLineageNodes({
   return [...distanceById.entries()]
     .map(([id, distance]) => ({ distance, id }))
     .sort((left, right) => left.distance - right.distance || left.id.localeCompare(right.id));
-}
-
-function separateLineageConflicts(links: LineageLink[]): {
-  diagnostics: CharacterRelationshipDiagnosticView[];
-  lineage: FamilyTreeLineageView[];
-} {
-  const diagnostics: CharacterRelationshipDiagnosticView[] = [];
-  let remaining = links;
-  for (let attempt = 0; attempt < links.length; attempt += 1) {
-    const ancestryEdges: AncestryEdge[] = remaining.map((link) => ({
-      ancestorId: link.view.parentId,
-      descendantId: link.view.childId,
-    }));
-    const cycle = findAncestryCycle(ancestryEdges);
-    if (cycle === null) {
-      break;
-    }
-    const cycleSteps = new Set(
-      cycle.map((id, index) => `${id}>${cycle[(index + 1) % cycle.length]}`),
-    );
-    remaining = remaining.filter(
-      (link) => !cycleSteps.has(`${link.view.parentId}>${link.view.childId}`),
-    );
-    diagnostics.push({
-      characterIds: cycle,
-      code: CHARACTER_RELATIONSHIP_ERROR_CODES.familyCycleDetected,
-      message: "The visible parent and child relationships form a cycle",
-      severity: "conflict",
-    });
-  }
-  return { diagnostics, lineage: remaining.map((link) => link.view) };
 }

@@ -6,7 +6,9 @@ import { useSearchParams } from "next/navigation";
 import { useQueryStates } from "nuqs";
 import { useEffect, useRef } from "react";
 
+import type { TreeOptions } from "./graph-tree-scene";
 import type {
+  GraphTreeScope,
   GraphWorkspaceParams,
   GraphWorkspaceView,
   NetworkGrouping,
@@ -19,6 +21,8 @@ import {
   loadGraphWorkspaceParams,
   needsGraphWorkspaceCanonicalReplace,
   normalizeGraphWorkspaceFilters,
+  toTreeLinks,
+  TREE_LINKS_DEFAULT,
 } from "./graph-workspace-params";
 
 const HISTORY = {
@@ -39,11 +43,14 @@ type GraphWorkspaceActions = {
   makeCenter: (characterId: string) => void;
   openPath: (fromId: Nullable<string>) => void;
   resetFilters: () => void;
+  resetTreeLinks: () => void;
   setDepth: (depth: number) => void;
   setFilters: (filters: { categories: RelationshipCategory[]; types: RelationshipType[] }) => void;
   setGenerations: (generations: { treeDown: number; treeUp: number }) => void;
   setNetworkGroup: (grouping: NetworkGrouping) => void;
   setPathEndpoints: (endpoints: { from: Nullable<string>; to: Nullable<string> }) => void;
+  setTreeOptions: (options: TreeOptions) => void;
+  setTreeScope: (scope: { characterId: Nullable<string>; treeScope: GraphTreeScope }) => void;
   setView: (view: GraphWorkspaceView) => void;
 };
 
@@ -77,17 +84,25 @@ export function useGraphWorkspaceState(): GraphWorkspaceState {
       ),
     makeCenter: (characterId) =>
       void setParams(
-        { characterId, view: params.view === "network" ? "person" : params.view },
+        {
+          characterId,
+          treeScope: "branch",
+          view: params.view === "network" ? "person" : params.view,
+        },
         HISTORY.push,
       ),
     openPath: (fromId) => void setParams({ from: fromId, path: true, to: null }, HISTORY.push),
     resetFilters: () => void setParams(GRAPH_WORKSPACE_FILTERS_RESET, HISTORY.replace),
+    resetTreeLinks: () => void setParams({ treeLinks: TREE_LINKS_DEFAULT }, HISTORY.replace),
     setDepth: (depth) => void setParams({ depth }, HISTORY.replace),
     setFilters: (filters) =>
       void setParams(normalizeGraphWorkspaceFilters(filters), HISTORY.replace),
     setGenerations: (generations) => void setParams(generations, HISTORY.replace),
     setNetworkGroup: (networkGroup) => void setParams({ networkGroup }, HISTORY.replace),
     setPathEndpoints: (endpoints) => void setParams(endpoints, HISTORY.replace),
+    setTreeOptions: (options) =>
+      void setParams({ treeLinks: toTreeLinks(options) }, HISTORY.replace),
+    setTreeScope: (scope) => void setParams(scope, HISTORY.push),
     setView: (view) => void setParams({ view }, HISTORY.push),
   };
 

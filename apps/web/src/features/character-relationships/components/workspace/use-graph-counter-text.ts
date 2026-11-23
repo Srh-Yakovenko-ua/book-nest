@@ -17,12 +17,22 @@ export function useGraphCounterText(
   switch (counters.kind) {
     case "expanded":
       return t("expanded", { edges: counters.edges, nodes: counters.nodes });
+    case "genealogy":
+      return t("genealogy", {
+        generations: counters.generations,
+        nodes: counters.nodes,
+        pairs: counters.pairs,
+      });
     case "groups":
       return t("groups", { groups: counters.groups });
-    case "people":
-      return t("people", { edges: counters.edges, nodes: counters.nodes });
     case "person":
       return t("person", {
+        nodes: counters.nodes,
+        pairs: counters.pairs,
+        relationships: counters.edges,
+      });
+    case "tree":
+      return t("tree", {
         nodes: counters.nodes,
         pairs: counters.pairs,
         relationships: counters.edges,

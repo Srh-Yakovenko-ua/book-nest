@@ -54,6 +54,12 @@ export type AncestryEdge = {
   descendantId: string;
 };
 
+export type ClusterComputeInput = {
+  allowedBookIds: ReadonlySet<string>;
+  memberships: GraphMembershipSource[];
+  nodes: CharacterGraphNodeView[];
+};
+
 export type GraphCapPolicy = "connected" | "legacy";
 
 export type GraphEdgeSource = {
@@ -107,6 +113,13 @@ export type GraphNodeSource = {
   updatedAt: Date;
 };
 
+export type GroupClusterResult = {
+  clusterIdByNodeId: Map<string, string>;
+  clusters: GroupClusterView[];
+};
+
+export type GroupClusterView = Extract<CharacterGraphClusterView, { kind: "group" }>;
+
 export type PreparedEdge = {
   category: Nullable<RelationshipCategory>;
   description: Nullable<string>;
@@ -142,12 +155,6 @@ type BuildCharacterGraphInput = {
   readerContext: RelationshipReaderContext;
   revealEdgeIds: Set<string>;
   typeFilter: Nullable<Set<RelationshipType>>;
-};
-
-type ClusterComputeInput = {
-  allowedBookIds: Set<string>;
-  memberships: GraphMembershipSource[];
-  nodes: CharacterGraphNodeView[];
 };
 
 type ClusterResult = {
@@ -257,6 +264,57 @@ export function computeDegrees(edges: PreparedEdge[]): Map<string, number> {
     degrees.set(edge.target, (degrees.get(edge.target) ?? 0) + 1);
   }
   return degrees;
+}
+
+export function computeGroupClusters({
+  allowedBookIds,
+  memberships,
+  nodes,
+}: ClusterComputeInput): GroupClusterResult {
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  const context = { allowedBookIds, unreachableCharacterIds: new Set<string>() };
+
+  const visibleByCharacter = new Map<string, GraphMembershipSource[]>();
+  for (const membership of memberships) {
+    if (!nodeIds.has(membership.characterId) || membership.group.isSpoiler) {
+      continue;
+    }
+    if (!isMembershipVisibleInContext({ context, membership })) {
+      continue;
+    }
+    const current = visibleByCharacter.get(membership.characterId) ?? [];
+    current.push(membership);
+    visibleByCharacter.set(membership.characterId, current);
+  }
+
+  const clusterIdByNodeId = new Map<string, string>();
+  const accumulator = new Map<string, { group: GraphMembershipGroup; size: number }>();
+  for (const node of nodes) {
+    const visible = visibleByCharacter.get(node.id);
+    if (visible === undefined) {
+      continue;
+    }
+    const representative = pickRepresentativeMembership(visible);
+    clusterIdByNodeId.set(node.id, representative.group.id);
+    const entry = accumulator.get(representative.group.id);
+    if (entry === undefined) {
+      accumulator.set(representative.group.id, { group: representative.group, size: 1 });
+    } else {
+      entry.size += 1;
+    }
+  }
+
+  const clusters: GroupClusterView[] = [...accumulator.values()]
+    .map(({ group, size }) => ({
+      groupType: CharacterGroupTypeSchema.parse(group.type),
+      id: group.id,
+      kind: "group" as const,
+      name: group.name,
+      size,
+    }))
+    .sort((left, right) => right.size - left.size || left.id.localeCompare(right.id));
+
+  return { clusterIdByNodeId, clusters };
 }
 
 export function computeUpdatedAt({
@@ -698,57 +756,6 @@ function computeGraphVersion({
     edgeSignature,
   ].join("|");
   return createHash("sha256").update(serialized).digest("hex").slice(0, GRAPH_VERSION_LENGTH);
-}
-
-function computeGroupClusters({
-  allowedBookIds,
-  memberships,
-  nodes,
-}: ClusterComputeInput): ClusterResult {
-  const nodeIds = new Set(nodes.map((node) => node.id));
-  const context = { allowedBookIds, unreachableCharacterIds: new Set<string>() };
-
-  const visibleByCharacter = new Map<string, GraphMembershipSource[]>();
-  for (const membership of memberships) {
-    if (!nodeIds.has(membership.characterId) || membership.group.isSpoiler) {
-      continue;
-    }
-    if (!isMembershipVisibleInContext({ context, membership })) {
-      continue;
-    }
-    const current = visibleByCharacter.get(membership.characterId) ?? [];
-    current.push(membership);
-    visibleByCharacter.set(membership.characterId, current);
-  }
-
-  const clusterIdByNodeId = new Map<string, string>();
-  const accumulator = new Map<string, { group: GraphMembershipGroup; size: number }>();
-  for (const node of nodes) {
-    const visible = visibleByCharacter.get(node.id);
-    if (visible === undefined) {
-      continue;
-    }
-    const representative = pickRepresentativeMembership(visible);
-    clusterIdByNodeId.set(node.id, representative.group.id);
-    const entry = accumulator.get(representative.group.id);
-    if (entry === undefined) {
-      accumulator.set(representative.group.id, { group: representative.group, size: 1 });
-    } else {
-      entry.size += 1;
-    }
-  }
-
-  const clusters: CharacterGraphClusterView[] = [...accumulator.values()]
-    .map(({ group, size }) => ({
-      groupType: CharacterGroupTypeSchema.parse(group.type),
-      id: group.id,
-      kind: "group" as const,
-      name: group.name,
-      size,
-    }))
-    .sort((left, right) => right.size - left.size || left.id.localeCompare(right.id));
-
-  return { clusterIdByNodeId, clusters };
 }
 
 function computeImportanceClusters({ nodes }: { nodes: CharacterGraphNodeView[] }): ClusterResult {

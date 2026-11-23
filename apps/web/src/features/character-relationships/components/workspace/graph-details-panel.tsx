@@ -23,6 +23,7 @@ type GraphDetailsPanelProps = {
   appearance: "default" | "person";
   autoFocus: boolean;
   children: ReactNode;
+  footer?: ReactNode;
   heading?: string;
   onClose: () => void;
   onRestoreFocus: () => void;
@@ -39,6 +40,7 @@ const PANEL_STYLES = {
       "absolute inset-y-2 right-2 z-10 w-full max-w-sm rounded-2xl border border-border bg-card shadow-lg",
     wide: "w-96 shrink-0 rounded-2xl border border-border bg-card",
   },
+  footer: "flex shrink-0 flex-col gap-2 border-t border-border bg-card p-3",
   person: {
     medium:
       "absolute inset-y-2 right-2 z-10 w-full max-w-sm rounded-2xl border border-border bg-card shadow-pop",
@@ -53,6 +55,7 @@ export function GraphDetailsPanel({
   appearance,
   autoFocus,
   children,
+  footer,
   heading,
   onClose,
   onRestoreFocus,
@@ -105,6 +108,7 @@ export function GraphDetailsPanel({
             </SheetClose>
           </div>
           <div className={PANEL_STYLES.body}>{children}</div>
+          {footer === undefined ? null : <div className={PANEL_STYLES.footer}>{footer}</div>}
         </SheetContent>
       </Sheet>
     );
@@ -162,6 +166,7 @@ export function GraphDetailsPanel({
           </Button>
         </div>
         <div className={PANEL_STYLES.body}>{children}</div>
+        {footer === undefined ? null : <div className={PANEL_STYLES.footer}>{footer}</div>}
       </aside>
     );
   }

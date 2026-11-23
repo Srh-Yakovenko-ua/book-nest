@@ -3,6 +3,7 @@
   "ignoreExportsUsedInFile": true,
   "workspaces": {
     ".": {
+      "entry": ["scripts/dev-fixtures/family-tree/run-in-node.mjs"],
       "ignore": ["api/**", ".claude/**"]
     },
     "apps/web": {
