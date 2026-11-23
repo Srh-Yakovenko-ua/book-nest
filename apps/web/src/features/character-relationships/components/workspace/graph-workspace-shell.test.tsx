@@ -414,11 +414,10 @@ function toResponse(body: unknown, status = 200): Response {
 }
 
 function treeOptionsTrigger(enabled: number): HTMLElement {
-  return screen.getByRole("button", {
-    name: copy.treeOptions.triggerLabel
-      .replace("{enabled}", String(enabled))
-      .replace("{total}", "5"),
-  });
+  const label = copy.treeOptions.triggerLabel
+    .replace("{enabled}", String(enabled))
+    .replace("{total}", "5");
+  return screen.getByRole("button", { name: (name) => name.startsWith(label) });
 }
 
 function workspace({ book = readingBook(PAGE.current), search = "" }: WorkspaceSetup) {
@@ -611,6 +610,12 @@ describe("GraphWorkspaceShell family tree view", () => {
     await screen.findByRole("button", { name: YENNEFER.name });
 
     expect(treeOptionsTrigger(0)).toHaveTextContent("0/5");
+    expect(treeOptionsTrigger(0)).toHaveAccessibleName(
+      copy.treeOptions.triggerLabelChanged
+        .replace("{enabled}", "0")
+        .replace("{total}", "5")
+        .replace("{changed}", "4"),
+    );
 
     const options = await openTreeOptions(0);
 
