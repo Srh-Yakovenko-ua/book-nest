@@ -110,6 +110,19 @@ bash_case deny  'git commit -m "feat(api): add thing — fast"'
 bash_case deny  'git commit -m "update stuff"'
 bash_case deny  'git commit -m "ops: tweak deploy"'
 bash_case deny  "git commit -m \"\$(cat <<'EOF'${NL}feat(web): add list${NL}${NL}Co-Authored-By: Claude <noreply@anthropic.com>${NL}EOF${NL})\""
+bash_case deny  "git.exe reset --hard HEAD~1"
+bash_case deny  '"/c/Program Files/Git/cmd/git.exe" reset --hard'
+bash_case deny  '"/mingw64/bin/git" reset --hard'
+bash_case ask   '"/c/Program Files/GitHub CLI/gh" pr merge 12 --merge'
+bash_case deny  "/mingw64/bin/git.exe clean -fdx"
+bash_case deny  "git.exe push --force origin dev"
+bash_case deny  '"C:/Program Files/Git/cmd/git.exe" push origin HEAD:prod'
+bash_case deny  'git.exe commit --no-verify -m "feat: x"'
+bash_case deny  'git.exe commit -m "feat(api): add thing — fast"'
+bash_case deny  "git.exe checkout -b claude/notes"
+bash_case deny  "git.exe -C /tmp/x branch -m old claude/new"
+bash_case allow "git.exe status --short"
+bash_case allow 'git commit -m "fix(agents): deny git.exe reset --hard"'
 bash_case deny  'gh pr create --title "feat(web): list" --body "Adds a list — nice"'
 bash_case deny  'gh.exe pr create --title "feat(web): list" --body "Adds a list — nice"'
 bash_case deny  '"/c/Program Files/GitHub CLI/gh.exe" pr create --title "feat(web): list" --body "Adds a list — nice"'
@@ -282,6 +295,9 @@ bash_case deny  "turbo run test" "$AGENT"
 bash_case deny  "pnpm format" "$AGENT"
 bash_case deny  'git commit -m "feat: x"' "$AGENT"
 bash_case deny  "git stash" "$AGENT"
+bash_case deny  "git.exe stash" "$AGENT"
+bash_case deny  '"/c/Program Files/Git/cmd/git.exe" checkout dev' "$AGENT"
+bash_case allow "git.exe diff --stat" "$AGENT"
 bash_case deny  "git checkout dev" "$AGENT"
 bash_case deny  'gh pr create --title "feat: x" --body y' "$AGENT"
 bash_case deny  'gh.exe pr create --title "feat: x" --body y' "$AGENT"

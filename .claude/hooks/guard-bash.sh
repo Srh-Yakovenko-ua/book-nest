@@ -13,7 +13,8 @@ PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 
 CODE="$(printf '%s' "$RAW" | perl -0777 -pe '
   s/<<-?\s*([\x27"]?)(\w+)\1([^\n]*)\n.*?\n[ \t]*\2[ \t]*(?=\n|$)/<<$2$3/gs;
-  s/(["\x27])(?:[^"\x27\n]*[\/\\])?gh\.exe\1/gh.exe/g;
+  s/(["\x27])(?:[^"\x27\n]*[\/\\])?(gh|git)\.exe\1/$2.exe/g;
+  s/(["\x27])[^"\x27\n]*[\/\\](gh|git)\1/$2/g;
   s/\x27[^\x27]*\x27/\x27\x27/g;
   s/"(?:[^"\\]|\\.)*"/""/gs;
 ')"
@@ -28,7 +29,7 @@ in_raw_i() { printf '%s' "$RAW" | grep -qiE -- "$1"; }
 
 Q="[\"']?"
 S='(^|[;&|(`]|\$\()[[:space:]]*([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*'
-G='git([[:space:]]+(-C|-c)[[:space:]]+[^[:space:]]+|[[:space:]]+--no-pager|[[:space:]]+--(git-dir|work-tree)[= ][^[:space:]]+)*[[:space:]]+'
+G='git(\.exe)?([[:space:]]+(-C|-c)[[:space:]]+[^[:space:]]+|[[:space:]]+--no-pager|[[:space:]]+--(git-dir|work-tree)[= ][^[:space:]]+)*[[:space:]]+'
 A='([^|;&]*[[:space:]])?'
 GH='gh(\.exe)?[[:space:]]+'
 PNPM_OPTS='([[:space:]]+(-w|-r|-s|--recursive|--workspace-root|--silent|--filter[= ][^[:space:]]+|-F[[:space:]]+[^[:space:]]+|-C[[:space:]]+[^[:space:]]+|--dir[= ][^[:space:]]+))*'
@@ -278,7 +279,7 @@ check_ref_names() {
   local -a words positionals
   while IFS= read -r segment; do
     [ -n "$segment" ] || continue
-    dir="$(printf '%s' "$segment" | perl -ne 'print $1 if /^git\s+(?:(?:-c\s+\S+|--no-pager)\s+)*-C\s+(\S+)/')"
+    dir="$(printf '%s' "$segment" | perl -ne 'print $1 if /^git(?:\.exe)?\s+(?:(?:-c\s+\S+|--no-pager)\s+)*-C\s+(\S+)/')"
     case "$dir" in '' | /* | [A-Za-z]:*) ;; *) dir="${CWD:-$PROJECT_DIR}/$dir" ;; esac
     read -r -a words <<< "$(printf '%s' "$segment" | sed -E "s/^${G}//")"
     [ "${#words[@]}" -gt 0 ] || continue
