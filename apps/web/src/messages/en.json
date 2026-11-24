@@ -10915,18 +10915,19 @@
         "genealogyCollapsed": "{branches, plural, one {# branch} other {# branches}} collapsed, {hidden, plural, one {# character hidden} other {# characters hidden}}. Characters that another visible branch needs are never hidden.",
         "genealogyComponents": "This genealogy holds several unrelated families. They are shown side by side, with no invented common ancestors.",
         "genealogyTruncated": "The genealogy exceeds the limit of {limit} characters. The largest families are shown until the limit is reached; smaller families or parts of them are left out.",
-        "genealogyMultiLine": "Some marriages join people of different generations, so a few lines from parents to children cross more than one generation."
+        "genealogyMultiLine": "Some marriages join people of different generations, so a few lines from parents to children cross more than one generation.",
+        "importanceUnknown": "No character in this network has an importance set, so they all share one group. Importance is never guessed from the number of relationships.",
+        "networkTruncated": "The network is too large, so only part of it was received. All counts, groups and pairs describe the received part only, not the whole network of the book.",
+        "singleComponent": "All characters in the network are connected, so grouping by connectivity gives a single group."
       },
       "counters": {
-        "expanded": "Expanded: {nodes, plural, one {# character} other {# characters}} · {edges, plural, one {# connection} other {# connections}}",
-        "groups": "On the map: {groups, plural, one {# group} other {# groups}}",
         "person": "On the map: {nodes, plural, one {# character} other {# characters}} · {pairs, plural, one {# pair} other {# pairs}} · {relationships, plural, one {# connection} other {# connections}}",
         "tree": "In the tree: {nodes, plural, one {# character} other {# characters}} · {pairs, plural, one {# pair} other {# pairs}} · {relationships, plural, one {# relationship} other {# relationships}}",
-        "genealogy": "Genealogy: {generations, plural, one {# generation} other {# generations}} · {nodes, plural, one {# character} other {# characters}} · {pairs, plural, one {# pair} other {# pairs}}"
+        "genealogy": "Genealogy: {generations, plural, one {# generation} other {# generations}} · {nodes, plural, one {# character} other {# characters}} · {pairs, plural, one {# pair} other {# pairs}}",
+        "networkOverview": "Received: {characters, plural, one {# character} other {# characters}}, {pairs, plural, one {# unique pair} other {# unique pairs}}, {relations, plural, one {# relation record} other {# relation records}} · {shownGroups} of {groups, plural, one {# group} other {# groups}} on the map",
+        "networkFocus": "“{group}” · Group members on the map: {shownMembers} of {members} · {pairs, plural, one {# unique pair} other {# unique pairs}} among them · {neighborGroups, plural, one {# linked group} other {# linked groups}}"
       },
       "more": {
-        "clusters": "Show more groups",
-        "members": "Show more characters",
         "ring": "Show more at step {hop}"
       },
       "node": {
@@ -10937,12 +10938,9 @@
         "openRoot": "Open details of the central character {name}"
       },
       "cluster": {
-        "collapse": "Collapse group “{name}”, {count, plural, one {# character} other {# characters}}",
-        "expand": "Expand group “{name}”, {count, plural, one {# character} other {# characters}}",
         "fragment": "Network fragment {index}",
         "groupHidden": "Group",
         "importanceUnknown": "Importance not set",
-        "members": "{count, plural, one {# character} other {# characters}} on the map",
         "ungrouped": "No group specified"
       },
       "connection": {
@@ -10957,7 +10955,6 @@
         "confirmOverwrite": "Replace",
         "enterFullscreen": "Full screen",
         "exitFullscreen": "Exit full screen",
-        "fit": "Fit the map",
         "label": "Relationship map canvas",
         "overwrite": "A different layout is already saved for this mode. Replace it?",
         "relayout": "Rearrange",
@@ -10981,8 +10978,6 @@
         "more": "More canvas actions"
       },
       "list": {
-        "aggregate": "The shown characters of “{source}” and “{target}” are connected",
-        "item": "{source} — {target}",
         "title": "Connections on the map ({count})"
       },
       "panel": {
@@ -11267,6 +11262,155 @@
       },
       "toolbar": {
         "more": "More actions"
+      },
+      "networkPanel": {
+        "list": {
+          "clearFilter": "Clear filter",
+          "filter": "Filter by name",
+          "noMatches": "Nothing found",
+          "showAll": "Show all ({count})",
+          "showLess": "Show fewer",
+          "showMore": "Show {count} more",
+          "shown": "Showing {shown} of {total}"
+        },
+        "character": {
+          "group": "Group: {name}",
+          "stats": {
+            "label": "Character counts",
+            "pairsOnMap": "{count, plural, one {pair on the map} other {pairs on the map}}",
+            "pairsAvailable": "{count, plural, one {available pair} other {available pairs}}",
+            "relationsAvailable": "{count, plural, one {relation record} other {relation records}}",
+            "caption": "Available means this character’s safe pairs and relation records under the current filters, including those not on the map right now."
+          },
+          "actions": {
+            "focus": "Focus on the map",
+            "around": "Around this character",
+            "path": "Path between characters",
+            "profile": "Profile"
+          },
+          "pairs": {
+            "title": "Character pairs",
+            "empty": "This character has no safe pairs under the current filters.",
+            "open": "Open the pair with {name}: {label}",
+            "openOffMap": "Open the pair with {name}: {label}. This pair is not on the map",
+            "nameInGroup": "{name} ({group})",
+            "offMap": "not on the map"
+          }
+        },
+        "aggregate": {
+          "title": "Links between {source} and {target}",
+          "stats": {
+            "label": "Group link counts",
+            "relations": "{count, plural, one {relation record} other {relation records}}",
+            "pairs": "{count, plural, one {unique character pair} other {unique character pairs}}"
+          },
+          "explore": "Open “{group}”",
+          "categories": {
+            "title": "By category",
+            "count": "{count, plural, one {# record} other {# records}}"
+          },
+          "masked": "Some link details are hidden.",
+          "pairs": {
+            "title": "Character pairs",
+            "empty": "No pairs to show.",
+            "names": "{first} — {second}",
+            "open": "Open the pair {names}: {label}"
+          }
+        },
+        "members": {
+          "count": "{count, plural, one {# character in this group} other {# characters in this group}}",
+          "empty": "No one found",
+          "found": "{count, plural, =0 {No matches} one {# character found} other {# characters found}}",
+          "label": "Characters in {name}",
+          "listLabel": "Group characters",
+          "onMap": "on the map",
+          "pairs": "{count, plural, one {# pair} other {# pairs}}",
+          "placeholder": "Filter by name"
+        }
+      },
+      "networkSearch": {
+        "blocked": "Hidden by filters",
+        "blockedMeta": "Character · doesn’t match the current filters",
+        "characterInGroupMeta": "Character · {group}",
+        "characterMeta": "Character",
+        "characters": "Characters",
+        "empty": "Nothing found",
+        "emptyHint": "Names are matched as the book records them. Try the language of the record, for example the Latin alphabet.",
+        "found": "{count, plural, =0 {No matches} one {# result found} other {# results found}}",
+        "groupMeta": "Group · {count, plural, one {# character} other {# characters}}",
+        "groups": "Groups",
+        "hint": "Searches every group and character in the network, including those not on the map right now.",
+        "label": "Search the network",
+        "listLabel": "Network search results",
+        "placeholder": "Character name or group name",
+        "trigger": "Find a group or character"
+      },
+      "network": {
+        "cluster": {
+          "members": "{count, plural, one {# character} other {# characters}}",
+          "open": "Open group “{name}”: {count, plural, one {# character} other {# characters}}, {pairs, plural, one {# pair inside} other {# pairs inside}}, {linked, plural, one {# linked group} other {# linked groups}}",
+          "openNeighbor": "Go to group “{name}”: {count, plural, one {# character} other {# characters}}, {pairs, plural, one {# pair with the current group} other {# pairs with the current group}}",
+          "summary": "{pairs, plural, one {# pair inside} other {# pairs inside}} · {linked, plural, one {# linked group} other {# linked groups}}",
+          "withFocus": "{count, plural, one {# pair with the group} other {# pairs with the group}}"
+        },
+        "controls": {
+          "focusSelection": "Show the selection on the map"
+        },
+        "focus": {
+          "allMembers": "All members ({count})",
+          "breadcrumb": "Network navigation",
+          "hiddenNeighbors": "{count, plural, one {# more linked group not shown} other {# more linked groups not shown}}",
+          "moreMembers": "Show {count} more",
+          "overview": "Whole network",
+          "shown": "Showing {shown} of {total}"
+        },
+        "legend": {
+          "aggregate": "Links between groups, thickness is the number of pairs",
+          "count": "Number on a line: unique character pairs",
+          "dimmed": "Faded: not related to the selection",
+          "group": "Group of characters",
+          "pair": "Relationship between two characters",
+          "title": "Network legend"
+        },
+        "list": {
+          "aggregate": "{source} ↔ {target}: {pairs, plural, one {# unique pair} other {# unique pairs}}, {relations, plural, one {# relation record} other {# relation records}}",
+          "pair": "{source} — {target}: {relations, plural, one {# relation record} other {# relation records}}"
+        },
+        "miniMap": "Network minimap: visible area and the groups and characters shown",
+        "node": {
+          "open": "Open details of {name}, {pairs, plural, one {# pair} other {# pairs}}",
+          "openFavorite": "Open details of {name}, in favorites, {pairs, plural, one {# pair} other {# pairs}}",
+          "pairs": "{count, plural, one {# pair} other {# pairs}}"
+        },
+        "notices": {
+          "blocked": "“{name}” is hidden by the current relationship filters. Reset the filters to show this character on the map.",
+          "dismiss": "Dismiss notice",
+          "focusMissing": "The group from the link is not in the current network, so the overview is shown.",
+          "layoutStale": "The saved layout belongs to another part of the network, other filters or grouping, or is out of date, so an automatic layout is shown here.",
+          "resetBlocked": "Reset filters and show “{name}”",
+          "staleSelection": {
+            "aggregate": "The selected link between groups is not available with the current filters or grouping, so the panel was closed.",
+            "character": "The selected character is not in the network with the current filters, so the panel was closed.",
+            "connection": "The selected pair is not in the network with the current filters, so the panel was closed.",
+            "members": "The selected group is not available with the current filters or grouping, so the panel was closed."
+          },
+          "useGroups": "Group by “Groups”"
+        },
+        "overview": {
+          "hint": {
+            "components": "Groups are separate parts of the network with no links between them. Select a group to see its characters.",
+            "group": "Groups are the factions from the book. Select a group to see its characters.",
+            "importance": "Groups are characters with the same stated importance. Select a group to see its characters."
+          },
+          "links": "{count, plural, =0 {No links between the groups shown.} one {# link between groups on the map.} other {# links between groups on the map.}}",
+          "moreGroups": "Show more groups ({count})"
+        },
+        "panel": {
+          "heading": {
+            "aggregate": "Group link",
+            "members": "Group members"
+          }
+        }
       }
     }
   }

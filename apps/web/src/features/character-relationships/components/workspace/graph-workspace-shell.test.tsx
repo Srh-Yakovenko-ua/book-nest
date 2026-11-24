@@ -1,11 +1,13 @@
 import type {
   BookDetailsView,
+  CharacterGraphClusterView,
   CharacterRelationshipPathView,
   FamilyTreeGraphView,
 } from "@app/shared";
 import type { UrlUpdateEvent } from "nuqs/adapters/testing";
 import type { ComponentProps } from "react";
 
+import { createTranslator } from "next-intl";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -48,6 +50,7 @@ const canvasPane = vi.hoisted(() => ({ label: "Empty canvas" }));
 vi.mock("./graph-workspace-canvas-lazy", async () => {
   const { useEffect } = await import("react");
   const { default: catalog } = await import("@/messages/uk.json");
+  const { useNetworkBucketLabel } = await import("./use-network-bucket-label");
   const canvasCopy = catalog.relationships.workspace.canvas;
 
   function MountCountingCanvas({
@@ -59,6 +62,8 @@ vi.mock("./graph-workspace-canvas-lazy", async () => {
     onPaneClick: () => void;
     value: GraphSceneValue;
   }) {
+    const toBucketLabel = useNetworkBucketLabel();
+
     useEffect(() => {
       canvasMounts.count += 1;
     }, []);
@@ -80,6 +85,15 @@ vi.mock("./graph-workspace-canvas-lazy", async () => {
             </li>
           ))}
         </ul>
+        <ul>
+          {[...value.clusters.values()].map(({ bucket }) => (
+            <li key={bucket.id}>
+              <button onClick={() => value.onClusterOpen(bucket.id)} type="button">
+                {toBucketLabel(bucket.label)}
+              </button>
+            </li>
+          ))}
+        </ul>
       </>
     );
   }
@@ -88,7 +102,7 @@ vi.mock("./graph-workspace-canvas-lazy", async () => {
 });
 
 type GraphRoutes = {
-  graph: () => Promise<Response>;
+  graph: (url: URL) => Promise<Response>;
   path: () => Promise<Response>;
 };
 
@@ -99,7 +113,15 @@ type WorkspaceSetup = {
 
 const copy = messages.relationships.workspace;
 
+const translate = createTranslator({
+  locale: "uk",
+  messages,
+  namespace: "relationships.workspace",
+});
+
 const { book: BOOK, ciri: CIRI, geralt: GERALT, yennefer: YENNEFER } = RELATIONSHIP_FIXTURE;
+
+const GROUPS = { lodge: "Ложа чародійок", witchers: "Школа Вовка" } as const;
 
 const JASKIER = { id: "d4d4d4d4-0000-4000-8000-000000000005", name: "Любисток" } as const;
 
@@ -128,6 +150,7 @@ const API = {
 const SEARCH = {
   filters: "?categories=social&types=friend_of",
   network: "?view=network",
+  networkFamily: "?view=network&categories=family",
   path: `?path=1&from=${GERALT.id}&to=${CIRI.id}`,
   person: `?characterId=${GERALT.id}`,
   tree: `?view=tree&characterId=${CIRI.id}&categories=social`,
@@ -137,22 +160,53 @@ const SEARCH = {
 const PAGE = { current: 120, next: 200 } as const;
 
 const EXPECTED_TEXT = {
-  componentsCounter: "На карті: 1 група",
-  groupsCounter: "На карті: 2 групи",
+  componentsCounter: translate("counters.networkOverview", {
+    characters: 3,
+    groups: 1,
+    pairs: 2,
+    relations: 2,
+    shownGroups: 1,
+  }),
+  groupsCounter: translate("counters.networkOverview", {
+    characters: 3,
+    groups: 2,
+    pairs: 2,
+    relations: 2,
+    shownGroups: 2,
+  }),
   peopleCounter: "На карті: 3 персонажі · 2 пари · 2 зв’язки",
   summaryHeading: "2 персонажі у книзі",
+  witchersCounter: translate("counters.networkFocus", {
+    group: GROUPS.witchers,
+    members: 2,
+    neighborGroups: 1,
+    pairs: 1,
+    shownMembers: 2,
+  }),
 } as const;
 
 const LABELS = {
   ciriYenneferPair: copy.personList.pair
     .replace("{first}", CIRI.name)
     .replace("{second}", YENNEFER.name),
+  familyChip: copy.filters.remove.replace("{label}", messages.relationships.categories.family),
   filtersTrigger: new RegExp(`^${copy.filters.trigger}`),
   friendChip: copy.filters.remove.replace("{label}", messages.relationships.types.friend_of),
   geraltCiriPanel: copy.panel.connection.title
     .replace("{source}", GERALT.name)
     .replace("{target}", CIRI.name),
   geraltFiltered: copy.tree.hiddenSelection.filtered.replace("{name}", GERALT.name),
+  lodgeWitchersLink: translate("network.list.aggregate", {
+    pairs: 1,
+    relations: 2,
+    source: GROUPS.lodge,
+    target: GROUPS.witchers,
+  }),
+  lodgeWitchersPanel: translate("networkPanel.aggregate.title", {
+    source: GROUPS.lodge,
+    target: GROUPS.witchers,
+  }),
+  networkLinks: translate("list.title", { count: 1 }),
   openCiriYennefer: copy.personList.open
     .replace(
       "{names}",
@@ -166,7 +220,9 @@ const LABELS = {
     )
     .replace("{label}", messages.relationships.types.guardian_of),
   pickGeralt: copy.guided.pick.replace("{name}", GERALT.name),
+  resetYennefer: translate("network.notices.resetBlocked", { name: YENNEFER.name }),
   socialChip: copy.filters.remove.replace("{label}", messages.relationships.categories.social),
+  yenneferFilteredOut: translate("network.notices.blocked", { name: YENNEFER.name }),
 } as const;
 
 const CONTAINER_WIDTH = { phone: 375, wide: 1280 } as const;
@@ -203,19 +259,47 @@ const EDGES = {
   }),
 };
 
+const CLUSTERS = {
+  lodge: {
+    groupType: "organization",
+    id: IDS.lodge,
+    kind: "group",
+    name: GROUPS.lodge,
+    size: 1,
+  },
+  witchers: {
+    groupType: "order",
+    id: IDS.witchers,
+    kind: "group",
+    name: GROUPS.witchers,
+    size: 2,
+  },
+} satisfies Record<string, CharacterGraphClusterView>;
+
+const NETWORK_NODES = {
+  ciri: makeRelationshipGraphNode({ ...CIRI, clusterId: IDS.witchers }),
+  geralt: makeRelationshipGraphNode({ ...GERALT, clusterId: IDS.witchers }),
+  yennefer: makeRelationshipGraphNode({ ...YENNEFER, clusterId: IDS.lodge }),
+};
+
 const GRAPHS = {
   network: makeRelationshipGraph({
     clusterBy: "group",
-    clusters: [
-      { groupType: "order", id: IDS.witchers, kind: "group", name: "Школа Вовка", size: 2 },
-      { groupType: "organization", id: IDS.lodge, kind: "group", name: "Ложа чародійок", size: 1 },
-    ],
+    clusters: [CLUSTERS.witchers, CLUSTERS.lodge],
     edges: [EDGES.geraltCiri, EDGES.geraltYennefer],
-    nodes: [
-      makeRelationshipGraphNode({ ...GERALT, clusterId: IDS.witchers }),
-      makeRelationshipGraphNode({ ...CIRI, clusterId: IDS.witchers }),
-      makeRelationshipGraphNode({ ...YENNEFER, clusterId: IDS.lodge }),
-    ],
+    nodes: [NETWORK_NODES.geralt, NETWORK_NODES.ciri, NETWORK_NODES.yennefer],
+  }),
+  networkFamily: makeRelationshipGraph({
+    clusterBy: "group",
+    clusters: [CLUSTERS.witchers],
+    edges: [EDGES.geraltCiri],
+    nodes: [NETWORK_NODES.geralt, NETWORK_NODES.ciri],
+  }),
+  networkLinked: makeRelationshipGraph({
+    clusterBy: "group",
+    clusters: [CLUSTERS.witchers, CLUSTERS.lodge],
+    edges: [EDGES.geraltCiri, EDGES.geraltYennefer, EDGES.geraltYenneferMarriage],
+    nodes: [NETWORK_NODES.geralt, NETWORK_NODES.ciri, NETWORK_NODES.yennefer],
   }),
   nextPage: makeRelationshipGraph({
     edges: [EDGES.geraltJaskier],
@@ -304,6 +388,21 @@ function json(body: unknown, status = 200): Promise<Response> {
   return Promise.resolve(toResponse(body, status));
 }
 
+function networkByFilters(url: URL): Promise<Response> {
+  return json(url.searchParams.has("categories") ? GRAPHS.networkFamily : GRAPHS.network);
+}
+
+async function openGroup(name: string): Promise<HTMLElement> {
+  await userEvent.click(await screen.findByRole("button", { name }));
+  return screen.findByRole("navigation", { name: copy.network.focus.breadcrumb });
+}
+
+async function openGroupLink(): Promise<HTMLElement> {
+  await userEvent.click(await screen.findByRole("button", { name: LABELS.networkLinks }));
+  await userEvent.click(await screen.findByRole("button", { name: LABELS.lodgeWitchersLink }));
+  return screen.findByRole("complementary", { name: LABELS.lodgeWitchersPanel });
+}
+
 async function openTreeOptions(enabled: number): Promise<HTMLElement> {
   await userEvent.click(treeOptionsTrigger(enabled));
   return screen.findByRole("dialog", { name: copy.treeOptions.trigger });
@@ -313,6 +412,16 @@ function pathView(
   overrides: Partial<CharacterRelationshipPathView> = {},
 ): CharacterRelationshipPathView {
   return { edges: [], found: false, fromId: GERALT.id, nodes: [], toId: CIRI.id, ...overrides };
+}
+
+async function pickFilteredOutCharacter(name: string) {
+  await userEvent.click(await screen.findByRole("button", { name: copy.networkSearch.trigger }));
+  await userEvent.type(
+    await screen.findByRole("combobox", { name: copy.networkSearch.label }),
+    name,
+  );
+  const filteredOut = await screen.findByRole("group", { name: copy.networkSearch.blocked });
+  await userEvent.click(within(filteredOut).getByText(name));
 }
 
 function readingBook(currentPage: number): BookDetailsView {
@@ -369,7 +478,7 @@ function respond({
   }
   switch (route) {
     case `GET ${API.graph}`:
-      return routes.graph();
+      return routes.graph(url);
     case `GET ${API.layout}`:
       return json({ message: "Layout not found" }, 404);
     case `GET ${API.path}`:
@@ -763,6 +872,145 @@ describe("GraphWorkspaceShell network view", () => {
 
     expect(await screen.findByText(EXPECTED_TEXT.componentsCounter)).toBeInTheDocument();
     expect(getRequests(API.graph)).toHaveLength(1);
+  });
+
+  it("starts on an overview of group cards without any character card", async () => {
+    serve({ graph: () => json(GRAPHS.network) });
+    renderWorkspace({ search: SEARCH.network });
+
+    expect(await screen.findByRole("button", { name: GROUPS.witchers })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: GROUPS.lodge })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: GERALT.name })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: CIRI.name })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: YENNEFER.name })).not.toBeInTheDocument();
+  });
+
+  it("enters a clicked group as a new history entry that stays in the network", async () => {
+    serve({ graph: () => json(GRAPHS.network) });
+    renderWorkspace({ search: SEARCH.network });
+
+    await openGroup(GROUPS.witchers);
+
+    expect(
+      urlState.updates.map(({ options, searchParams }) => ({
+        focus: searchParams.get("networkFocus"),
+        history: options.history,
+        view: searchParams.get("view"),
+      })),
+    ).toContainEqual({ focus: IDS.witchers, history: "push", view: "network" });
+  });
+
+  it("shows the opened group's members under a breadcrumb back to the whole network", async () => {
+    serve({ graph: () => json(GRAPHS.network) });
+    renderWorkspace({ search: SEARCH.network });
+
+    const breadcrumb = await openGroup(GROUPS.witchers);
+
+    expect(
+      within(breadcrumb).getByRole("button", { name: copy.network.focus.overview }),
+    ).toBeInTheDocument();
+    expect(within(breadcrumb).getByRole("link", { name: GROUPS.witchers })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(screen.getByRole("button", { name: GERALT.name })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: CIRI.name })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: YENNEFER.name })).not.toBeInTheDocument();
+  });
+
+  it("counts the opened group's shown members, their pairs and its linked groups", async () => {
+    serve({ graph: () => json(GRAPHS.network) });
+    renderWorkspace({ search: SEARCH.network });
+
+    await openGroup(GROUPS.witchers);
+
+    expect(await screen.findByText(EXPECTED_TEXT.witchersCounter)).toBeInTheDocument();
+  });
+
+  it("returns to the overview from the breadcrumb without asking for the graph again", async () => {
+    serve({ graph: () => json(GRAPHS.network) });
+    renderWorkspace({ search: SEARCH.network });
+    const breadcrumb = await openGroup(GROUPS.witchers);
+
+    await userEvent.click(
+      within(breadcrumb).getByRole("button", { name: copy.network.focus.overview }),
+    );
+
+    expect(await screen.findByRole("button", { name: GROUPS.witchers })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("navigation", { name: copy.network.focus.breadcrumb }),
+    ).not.toBeInTheDocument();
+    expect(urlState.search.get("networkFocus")).toBeNull();
+    expect(getRequests(API.graph)).toHaveLength(1);
+  });
+
+  it("opens a link between groups with relation records and pairs counted apart", async () => {
+    serve({ graph: () => json(GRAPHS.networkLinked) });
+    renderWorkspace({ search: SEARCH.network });
+
+    const panel = await openGroupLink();
+
+    const stats = within(panel).getByRole("region", {
+      name: copy.networkPanel.aggregate.stats.label,
+    });
+    expect(
+      within(stats)
+        .getAllByRole("term")
+        .map((term) => term.textContent),
+    ).toEqual([
+      translate("networkPanel.aggregate.stats.relations", { count: 2 }),
+      translate("networkPanel.aggregate.stats.pairs", { count: 1 }),
+    ]);
+    expect(
+      within(stats)
+        .getAllByRole("definition")
+        .map((definition) => definition.textContent),
+    ).toEqual(["2", "1"]);
+  });
+
+  it("keeps both groups collapsed on the overview while their link is open", async () => {
+    serve({ graph: () => json(GRAPHS.networkLinked) });
+    renderWorkspace({ search: SEARCH.network });
+
+    await openGroupLink();
+
+    expect(screen.getByRole("button", { name: GROUPS.witchers })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: GROUPS.lodge })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: GERALT.name })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: YENNEFER.name })).not.toBeInTheDocument();
+    expect(urlState.search.get("networkFocus")).toBeNull();
+  });
+
+  it("explains that a searched character is filtered out and offers a filter reset", async () => {
+    serve({ graph: networkByFilters });
+    renderWorkspace({ search: SEARCH.networkFamily });
+
+    await pickFilteredOutCharacter(YENNEFER.name);
+
+    expect(await screen.findByText(LABELS.yenneferFilteredOut)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: LABELS.resetYennefer })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: copy.filters.reset })).toBeInTheDocument();
+  });
+
+  it("keeps the filters when a character hidden by them is picked in the search", async () => {
+    serve({ graph: networkByFilters });
+    renderWorkspace({ search: SEARCH.networkFamily });
+
+    await pickFilteredOutCharacter(YENNEFER.name);
+    await screen.findByText(LABELS.yenneferFilteredOut);
+
+    expect(screen.getByRole("button", { name: LABELS.familyChip })).toBeInTheDocument();
+    expect(urlState.search.get("categories")).toBe("family");
+  });
+
+  it("drops the filters once the hidden character's own reset is clicked", async () => {
+    serve({ graph: networkByFilters });
+    renderWorkspace({ search: SEARCH.networkFamily });
+    await pickFilteredOutCharacter(YENNEFER.name);
+
+    await userEvent.click(await screen.findByRole("button", { name: LABELS.resetYennefer }));
+
+    await waitFor(() => expect(urlState.search.get("categories")).toBeNull());
   });
 });
 

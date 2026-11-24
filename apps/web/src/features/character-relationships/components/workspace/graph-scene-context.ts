@@ -41,17 +41,22 @@ export type GraphSceneFlowNode = Node<
 >;
 
 export type GraphSceneSelection =
-  null | { id: string; kind: "character" } | { id: string; kind: "connection" };
+  | null
+  | { id: string; kind: "aggregate" }
+  | { id: string; kind: "character" }
+  | { id: string; kind: "connection" }
+  | { id: string; kind: "members" };
+
+export type GraphSceneSelectionKind = NonNullable<GraphSceneSelection>["kind"];
 
 export type GraphSceneValue = {
   characters: ReadonlyMap<string, GraphPresentationCharacter>;
   clusters: ReadonlyMap<string, GraphPresentationCluster>;
   connections: ReadonlyMap<string, GraphConnection>;
-  onAggregateOpen: (sourceId: string, targetId: string) => void;
+  onAggregateOpen: (aggregateId: string) => void;
   onBranchToggle: (characterId: string) => void;
   onCharacterOpen: (characterId: string) => void;
-  onClusterMore: (bucketId: string) => void;
-  onClusterToggle: (bucketId: string) => void;
+  onClusterOpen: (bucketId: string) => void;
   onConnectionOpen: (connectionId: string) => void;
   selection: GraphSceneSelection;
 };

@@ -251,14 +251,8 @@ export function GraphPathExplorer({
           {selection?.kind === "character" ? (
             <GraphCharacterDetails
               bookId={bookId}
-              branch={null}
-              connections={[]}
-              isRoot={false}
               node={selection.node}
               onExplore={() => actions.exploreFromPath(selection.node.id)}
-              onFindPath={null}
-              onMakeCenter={null}
-              onOpenConnection={() => undefined}
             />
           ) : null}
           {selection?.kind === "step" ? (

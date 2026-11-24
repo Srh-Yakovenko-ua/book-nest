@@ -1,6 +1,6 @@
 "use client";
 
-import type { CharacterGraphEdgeView, Nullable } from "@app/shared";
+import type { Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 
@@ -14,8 +14,8 @@ import type { GraphWorkspacePresentation } from "../../model/workspace/graph-wor
 import type { GraphReaderKey } from "../../model/workspace/graph-workspace-request";
 import type { GraphWorkspaceLayoutRestore } from "../../model/workspace/graph-workspace-signature";
 import type { GraphWorkspaceState } from "../../model/workspace/use-graph-workspace-state";
-import type { GraphCharacterConnectionItem } from "./graph-character-details";
 import type { GraphGenealogyBranch } from "./graph-genealogy-branches";
+import type { GraphNetworkNavigation } from "./graph-network-scene";
 import type { GraphPersonPanelState } from "./graph-person-scene";
 import type { GraphSceneSelection, GraphSceneValue } from "./graph-scene-context";
 import type { GraphTreePanelState } from "./graph-tree-scene";
@@ -24,19 +24,12 @@ import type { GraphHiddenSelection } from "./graph-tree-status";
 import type { GraphWorkspaceCanvasLayout } from "./graph-workspace-canvas-controls";
 import type { WorkspaceWidthClass } from "./use-workspace-width-class";
 
-import { withRestoredPositions } from "../../model/workspace/graph-workspace-signature";
-import { GraphCharacterDetails } from "./graph-character-details";
-import { GraphConnectionDetails } from "./graph-connection-details";
-import { GraphConnectionsList } from "./graph-connections-list";
-import { GraphDetailsPanel } from "./graph-details-panel";
 import { GraphGenealogyScene } from "./graph-genealogy-scene";
+import { GraphNetworkScene } from "./graph-network-scene";
 import { GraphPersonScene } from "./graph-person-scene";
-import { GraphSceneNotices } from "./graph-scene-notices";
 import { GraphTreeScene } from "./graph-tree-scene";
-import { GraphWorkspaceCanvasLazy } from "./graph-workspace-canvas-lazy";
 import { GraphWorkspaceMessage } from "./graph-workspace-message";
 import { useGraphCounterText } from "./use-graph-counter-text";
-import { useGraphEdgeLabel } from "./use-graph-edge-label";
 
 export type GraphGenealogyNavigation = {
   activeBranchId: Nullable<string>;
@@ -56,11 +49,11 @@ type GraphSceneSectionProps = {
   isNotFound: boolean;
   layout: GraphWorkspaceCanvasLayout;
   layoutKey: string;
+  networkNav: Nullable<GraphNetworkNavigation>;
   onClearSelection: () => void;
   onConfirmOverwrite: () => void;
   onDismissHiddenSelection: () => void;
   onDismissOverwrite: () => void;
-  onMoreClusters: () => void;
   onMoreHop: (hop: number) => void;
   onRestoreFocus: () => void;
   onRetry: () => void;
@@ -85,17 +78,6 @@ type GraphSceneSectionProps = {
   widthClass: WorkspaceWidthClass;
 };
 
-type PanelContent =
-  | null
-  | {
-      edges: CharacterGraphEdgeView[];
-      id: string;
-      kind: "connection";
-      sourceId: string;
-      targetId: string;
-    }
-  | { id: string; kind: "character" };
-
 export function GraphSceneSection(props: GraphSceneSectionProps) {
   const t = useTranslations("relationships.workspace");
   const counterText = useGraphCounterText(props.presentation);
@@ -116,117 +98,6 @@ export function GraphSceneSection(props: GraphSceneSectionProps) {
       </p>
       <SceneContent {...props} />
     </div>
-  );
-}
-
-function ReadyScene({
-  actions,
-  bookId,
-  immersive,
-  layout,
-  layoutKey,
-  onClearSelection,
-  onConfirmOverwrite,
-  onDismissOverwrite,
-  onMoreClusters,
-  onMoreHop,
-  onRestoreFocus,
-  onToggleImmersive,
-  params,
-  pendingOverwrite,
-  placementKey,
-  presentation,
-  reader,
-  relationshipActions,
-  restore,
-  sceneKey,
-  sceneValue,
-  selection,
-  widthClass,
-}: GraphSceneSectionProps & {
-  presentation: GraphWorkspacePresentation;
-  sceneValue: GraphSceneValue;
-}) {
-  const toLabel = useGraphEdgeLabel();
-  const edgeById = new Map(presentation.edges.map((edge) => [edge.id, edge] as const));
-  const panel = toPanelContent({ edgeById, presentation, selection });
-  const positions = withRestoredPositions({ positions: presentation.positions, restore });
-
-  return (
-    <section className="flex min-h-0 flex-1 flex-col gap-3">
-      <GraphSceneNotices
-        onConfirmOverwrite={onConfirmOverwrite}
-        onDismissOverwrite={onDismissOverwrite}
-        onMoreClusters={onMoreClusters}
-        onMoreHop={onMoreHop}
-        onResetFilters={actions.resetFilters}
-        pendingOverwrite={pendingOverwrite}
-        presentation={presentation}
-      />
-      <div className="flex min-h-80 flex-1 gap-3">
-        <div className="relative min-w-0 flex-1 overflow-hidden rounded-2xl border border-border bg-card">
-          <GraphWorkspaceCanvasLazy
-            aggregates={presentation.aggregates}
-            connections={presentation.connections}
-            controls={{
-              immersive,
-              layout,
-              onToggleImmersive,
-              position: widthClass === "medium" && panel !== null ? "top-left" : "top-right",
-              rootId: null,
-            }}
-            layoutKey={layoutKey}
-            onPaneClick={onClearSelection}
-            person={null}
-            placementKey={placementKey}
-            positions={positions}
-            sceneKey={sceneKey}
-            value={sceneValue}
-            viewport={restore?.viewport ?? null}
-          />
-          {widthClass === "medium" ? (
-            <ScenePanel
-              actions={actions}
-              bookId={bookId}
-              onClearSelection={onClearSelection}
-              onRestoreFocus={onRestoreFocus}
-              panel={panel}
-              params={params}
-              presentation={presentation}
-              reader={reader}
-              relationshipActions={relationshipActions}
-              sceneValue={sceneValue}
-              toLabel={toLabel}
-              widthClass={widthClass}
-            />
-          ) : null}
-        </div>
-        {widthClass === "medium" ? null : (
-          <ScenePanel
-            actions={actions}
-            bookId={bookId}
-            onClearSelection={onClearSelection}
-            onRestoreFocus={onRestoreFocus}
-            panel={panel}
-            params={params}
-            presentation={presentation}
-            reader={reader}
-            relationshipActions={relationshipActions}
-            sceneValue={sceneValue}
-            toLabel={toLabel}
-            widthClass={widthClass}
-          />
-        )}
-      </div>
-      <GraphConnectionsList
-        aggregates={presentation.aggregates}
-        characters={presentation.characters}
-        clusters={presentation.clusters}
-        connections={presentation.connections}
-        onAggregateOpen={sceneValue.onAggregateOpen}
-        onConnectionOpen={sceneValue.onConnectionOpen}
-      />
-    </section>
   );
 }
 
@@ -296,137 +167,17 @@ function SceneContent(props: GraphSceneSectionProps) {
     );
   }
 
-  return <ReadyScene {...props} presentation={presentation} sceneValue={sceneValue} />;
-}
+  if (props.networkNav !== null && presentation.network !== null) {
+    return (
+      <GraphNetworkScene
+        {...props}
+        network={presentation.network}
+        networkNav={props.networkNav}
+        presentation={presentation}
+        sceneValue={sceneValue}
+      />
+    );
+  }
 
-function ScenePanel({
-  actions,
-  bookId,
-  onClearSelection,
-  onRestoreFocus,
-  panel,
-  params,
-  presentation,
-  reader,
-  relationshipActions,
-  sceneValue,
-  toLabel,
-  widthClass,
-}: {
-  actions: GraphWorkspaceState["actions"];
-  bookId: string;
-  onClearSelection: () => void;
-  onRestoreFocus: () => void;
-  panel: PanelContent;
-  params: GraphWorkspaceParams;
-  presentation: GraphWorkspacePresentation;
-  reader: GraphReaderKey;
-  relationshipActions: RelationshipActions;
-  sceneValue: GraphSceneValue;
-  toLabel: (edge: CharacterGraphEdgeView) => string;
-  widthClass: WorkspaceWidthClass;
-}) {
-  const t = useTranslations("relationships.workspace");
-  const nameOf = (id: string) => presentation.characters.get(id)?.node.displayName ?? "";
-  const character = panel?.kind === "character" ? presentation.characters.get(panel.id) : undefined;
-  const title =
-    panel?.kind === "connection"
-      ? t("panel.connection.title", {
-          source: nameOf(panel.sourceId),
-          target: nameOf(panel.targetId),
-        })
-      : (character?.node.displayName ?? t("panel.title"));
-
-  return (
-    <GraphDetailsPanel
-      appearance="default"
-      autoFocus
-      onClose={onClearSelection}
-      onRestoreFocus={onRestoreFocus}
-      open={panel !== null}
-      title={title}
-      widthClass={widthClass}
-    >
-      {character === undefined ? null : (
-        <GraphCharacterDetails
-          bookId={bookId}
-          branch={
-            character.canExpand || character.canCollapse
-              ? {
-                  expanded: character.canCollapse,
-                  onToggle: () => sceneValue.onBranchToggle(character.node.id),
-                }
-              : null
-          }
-          connections={presentation.connections
-            .filter(
-              (connection) =>
-                connection.sourceId === character.node.id ||
-                connection.targetId === character.node.id,
-            )
-            .map((connection): GraphCharacterConnectionItem => {
-              const otherId =
-                connection.sourceId === character.node.id
-                  ? connection.targetId
-                  : connection.sourceId;
-              const [firstEdgeId] = connection.edgeIds;
-              const firstEdge = presentation.edges.find((edge) => edge.id === firstEdgeId);
-              return {
-                connectionId: connection.id,
-                label:
-                  connection.edgeIds.length > 1 || firstEdge === undefined
-                    ? t("connection.many")
-                    : toLabel(firstEdge),
-                otherName: nameOf(otherId),
-              };
-            })}
-          isRoot={character.isRoot}
-          node={character.node}
-          onExplore={null}
-          onFindPath={() => actions.openPath(character.node.id)}
-          onMakeCenter={
-            character.isRoot && params.view !== "network"
-              ? null
-              : () => actions.makeCenter(character.node.id)
-          }
-          onOpenConnection={sceneValue.onConnectionOpen}
-        />
-      )}
-      {panel?.kind === "connection" ? (
-        <GraphConnectionDetails
-          actions={relationshipActions}
-          contentKey={JSON.stringify([bookId, reader, panel.id])}
-          edges={panel.edges}
-          key={panel.id}
-          names={{ source: nameOf(panel.sourceId), target: nameOf(panel.targetId) }}
-          scope={{ bookId, kind: "book" }}
-        />
-      ) : null}
-    </GraphDetailsPanel>
-  );
-}
-
-function toPanelContent({
-  edgeById,
-  presentation,
-  selection,
-}: {
-  edgeById: ReadonlyMap<string, CharacterGraphEdgeView>;
-  presentation: GraphWorkspacePresentation;
-  selection: GraphSceneSelection;
-}): PanelContent {
-  if (selection === null) return null;
-  if (selection.kind === "character") return { id: selection.id, kind: "character" };
-  const connection = presentation.connections.find((entry) => entry.id === selection.id);
-  if (connection === undefined) return null;
-  return {
-    edges: connection.edgeIds.flatMap((id) => {
-      const edge = edgeById.get(id);
-      return edge === undefined ? [] : [edge];
-    }),
-    id: connection.id,
-    kind: "connection",
-    sourceId: connection.sourceId,
-    targetId: connection.targetId,
-  };
+  return null;
 }

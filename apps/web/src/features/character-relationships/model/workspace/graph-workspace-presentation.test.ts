@@ -1,17 +1,23 @@
 import type {
   BookFamilyTreeView,
+  CharacterGraphClusterView,
   CharacterGraphHiddenContentView,
   CharacterGraphView,
   FamilyTreeGraphView,
   FamilyTreeLineageView,
+  Nullable,
 } from "@app/shared";
 
 import { describe, expect, it } from "vitest";
 
 import type { GenealogyExpansion } from "./graph-genealogy-scene";
-import type { NetworkExpansion } from "./graph-network-scene";
+import type { NetworkExpansion, NetworkScene } from "./graph-network-scene";
 import type { TreeOptions } from "./graph-tree-scene";
-import type { GraphWorkspaceParams, GraphWorkspaceView } from "./graph-workspace-params";
+import type {
+  GraphWorkspaceParams,
+  GraphWorkspaceView,
+  NetworkGrouping,
+} from "./graph-workspace-params";
 import type {
   GraphPresentationEmpty,
   GraphPresentationNotice,
@@ -37,8 +43,7 @@ const CHARACTER = {
 } as const;
 
 const GROUP = {
-  north: "f1f1f1f1-0000-4000-8000-000000000001",
-  south: "f2f2f2f2-0000-4000-8000-000000000002",
+  shouting: "F1F1F1F1-0000-4000-8000-00000000000A",
 } as const;
 
 const RELATIONSHIP = {
@@ -53,6 +58,7 @@ const DEFAULT_PARAMS: GraphWorkspaceParams = {
   characterId: null,
   depth: 1,
   from: null,
+  networkFocus: null,
   networkGroup: "group",
   path: false,
   to: null,
@@ -65,6 +71,8 @@ const DEFAULT_PARAMS: GraphWorkspaceParams = {
 };
 
 const PERSON_PARAMS: GraphWorkspaceParams = { ...DEFAULT_PARAMS, characterId: CHARACTER.geralt };
+
+const NETWORK_PARAMS: GraphWorkspaceParams = { ...DEFAULT_PARAMS, view: "network" };
 
 const PERSON_GRAPH = makeRelationshipGraph({
   edges: [
@@ -95,6 +103,32 @@ const PERSON_GRAPH = makeRelationshipGraph({
 const LONE_GRAPH = makeRelationshipGraph({
   edges: [],
   nodes: [makeRelationshipGraphNode({ id: CHARACTER.geralt })],
+});
+
+const OVERVIEW_GRAPH = makeGroupedGraph({
+  links: [
+    ["g01-01", "g02-01"],
+    ["g02-01", "g01-01"],
+    ["g01-01", "g03-01"],
+  ],
+  memberIds: numbered("g", 1, 14).map((groupId) => `${groupId}-01`),
+});
+
+const FOCUS_PARTNER_IDS = [
+  ...numbered("north-", 2, 14),
+  ...numbered("s", 1, 11).map((groupId) => `${groupId}-01`),
+];
+
+const FOCUS_GRAPH = makeGroupedGraph({
+  links: FOCUS_PARTNER_IDS.map((id): [string, string] => ["north-01", id]),
+  memberIds: ["north-01", ...FOCUS_PARTNER_IDS],
+});
+
+const UNRANKED_GRAPH = makeRelationshipGraph({
+  nodes: [
+    makeRelationshipGraphNode({ id: CHARACTER.geralt, importance: null }),
+    makeRelationshipGraphNode({ id: CHARACTER.ciri, importance: "not_specified" }),
+  ],
 });
 
 const KIN = {
@@ -232,40 +266,212 @@ describe("buildGraphWorkspacePresentation", () => {
   });
 
   it("leaves the hop of network characters unset", () => {
-    const params: GraphWorkspaceParams = { ...DEFAULT_PARAMS, view: "network" };
-    const collapsed = presentationFor({ graph: PERSON_GRAPH, params });
-    const network = {
-      ...EMPTY_NETWORK_EXPANSION,
-      expandedIds: new Set(collapsed?.clusters.keys()),
-    };
-    const presentation = presentationFor({ graph: PERSON_GRAPH, network, params });
+    const presentation = presentationFor({
+      graph: FOCUS_GRAPH,
+      networkFocus: "north",
+      params: NETWORK_PARAMS,
+    });
     const hops = [...(presentation?.characters.values() ?? [])].map((character) => character.hop);
 
-    expect(hops).toEqual([null, null, null, null, null]);
+    expect(hops).toEqual(Array.from({ length: 12 }, () => null));
   });
 
-  it("counts groups in the network view while no group is expanded", () => {
-    const graph = makeRelationshipGraph({
-      clusters: [
-        { groupType: "family", id: GROUP.north, kind: "group", name: "Kaer Morhen", size: 2 },
-        { groupType: "family", id: GROUP.south, kind: "group", name: "Vengerberg", size: 1 },
-      ],
-      edges: [
-        makeRelationshipGraphEdge({
-          id: RELATIONSHIP.geraltToCiri,
-          source: CHARACTER.geralt,
-          target: CHARACTER.ciri,
-        }),
-      ],
-      nodes: [
-        makeRelationshipGraphNode({ clusterId: GROUP.north, id: CHARACTER.ciri }),
-        makeRelationshipGraphNode({ clusterId: GROUP.north, id: CHARACTER.geralt }),
-        makeRelationshipGraphNode({ clusterId: GROUP.south, id: CHARACTER.yennefer }),
-      ],
-    });
-    const presentation = presentationFor({ graph, params: { ...DEFAULT_PARAMS, view: "network" } });
+  it("draws groups without characters or character pairs in the network overview", () => {
+    const presentation = presentationFor({ graph: OVERVIEW_GRAPH, params: NETWORK_PARAMS });
 
-    expect(presentation?.counters).toEqual({ groups: 2, kind: "groups" });
+    expect({
+      characters: presentation?.characters.size,
+      clusters: presentation?.clusters.size,
+      connections: presentation?.connections,
+      edges: presentation?.edges,
+    }).toEqual({ characters: 0, clusters: 12, connections: [], edges: [] });
+  });
+
+  it("counts every received character, group, pair and relation next to the shown groups", () => {
+    const presentation = presentationFor({ graph: OVERVIEW_GRAPH, params: NETWORK_PARAMS });
+
+    expect(presentation?.counters).toEqual({
+      characters: 14,
+      groups: 14,
+      kind: "networkOverview",
+      pairs: 2,
+      relations: 3,
+      shownGroups: 12,
+    });
+  });
+
+  it.each<{ extraClusters: number; hasMoreBuckets: boolean }>([
+    { extraClusters: 0, hasMoreBuckets: true },
+    { extraClusters: 1, hasMoreBuckets: false },
+  ])("offers more groups as $hasMoreBuckets after $extraClusters extra pages", (row) => {
+    const network = { ...EMPTY_NETWORK_EXPANSION, extraClusters: row.extraClusters };
+    const scene = presentationFor({
+      graph: OVERVIEW_GRAPH,
+      network,
+      params: NETWORK_PARAMS,
+    })?.network?.scene;
+
+    expect(scene).toMatchObject({ hasMoreBuckets: row.hasMoreBuckets, kind: "overview" });
+  });
+
+  it("counts relation records and character pairs of each group link separately", () => {
+    const presentation = presentationFor({ graph: OVERVIEW_GRAPH, params: NETWORK_PARAMS });
+    const aggregates = presentation?.aggregates.map(({ edgeCount, id, pairCount }) => ({
+      edgeCount,
+      id,
+      pairCount,
+    }));
+
+    expect(aggregates).toEqual([
+      { edgeCount: 2, id: "aggregate:cluster:group:g01:cluster:group:g02", pairCount: 1 },
+      { edgeCount: 1, id: "aggregate:cluster:group:g01:cluster:group:g03", pairCount: 1 },
+    ]);
+  });
+
+  it("counts the shown members and their pairs apart from the whole focused group", () => {
+    const presentation = presentationFor({
+      graph: FOCUS_GRAPH,
+      networkFocus: "north",
+      params: NETWORK_PARAMS,
+    });
+
+    expect(presentation?.counters).toEqual({
+      kind: "networkFocus",
+      members: 14,
+      neighborGroups: 11,
+      pairs: 11,
+      shownMembers: 12,
+    });
+  });
+
+  it("places every shown member and neighbour group of the focused group", () => {
+    const presentation = presentationFor({
+      graph: FOCUS_GRAPH,
+      networkFocus: "north",
+      params: NETWORK_PARAMS,
+    });
+
+    expect([...(presentation?.positions.keys() ?? [])].sort()).toEqual([
+      ...numbered("cluster:group:s", 1, 10),
+      ...numbered("north-", 1, 12),
+    ]);
+  });
+
+  it.each<{
+    focusMissing: boolean;
+    kind: NetworkScene["kind"];
+    label: string;
+    networkFocus: Nullable<string>;
+  }>([
+    { focusMissing: false, kind: "focus", label: "a group on the map", networkFocus: "north" },
+    {
+      focusMissing: true,
+      kind: "overview",
+      label: "a group missing from the map",
+      networkFocus: "missing",
+    },
+    { focusMissing: false, kind: "overview", label: "no group", networkFocus: null },
+  ])("shows the network $kind for $label", ({ focusMissing, kind, networkFocus }) => {
+    const presentation = presentationFor({
+      graph: FOCUS_GRAPH,
+      networkFocus,
+      params: NETWORK_PARAMS,
+    });
+
+    expect({
+      focusMissing: presentation?.network?.focusMissing,
+      kind: presentation?.network?.scene.kind,
+    }).toEqual({ focusMissing, kind });
+  });
+
+  it("focuses a group whose id arrives in upper case", () => {
+    const cluster: CharacterGraphClusterView = {
+      groupType: "family",
+      id: GROUP.shouting,
+      kind: "group",
+      name: "Kaer Morhen",
+      size: 2,
+    };
+    const graph = makeRelationshipGraph({
+      clusters: [cluster],
+      nodes: [CHARACTER.geralt, CHARACTER.ciri].map((id) =>
+        makeRelationshipGraphNode({ clusterId: GROUP.shouting, id }),
+      ),
+    });
+    const presentation = presentationFor({
+      graph,
+      networkFocus: "f1f1f1f1-0000-4000-8000-00000000000a",
+      params: NETWORK_PARAMS,
+    });
+
+    expect(presentation?.network?.scene.kind).toBe("focus");
+  });
+
+  it("focuses a connected fragment when the network has no named group", () => {
+    const presentation = presentationFor({
+      graph: PERSON_GRAPH,
+      networkFocus: CHARACTER.strangerFirst,
+      params: NETWORK_PARAMS,
+    });
+
+    expect(presentation?.network?.scene).toMatchObject({
+      kind: "focus",
+      memberIds: [CHARACTER.strangerFirst, CHARACTER.strangerSecond],
+    });
+  });
+
+  it.each<{
+    graph: CharacterGraphView;
+    label: string;
+    networkGroup: NetworkGrouping;
+    notices: GraphPresentationNotice[];
+  }>([
+    {
+      graph: {
+        ...OVERVIEW_GRAPH,
+        hiddenContent: { hasHiddenEdges: false, hasLockedEdges: false, truncated: true },
+      },
+      label: "a truncated network",
+      networkGroup: "group",
+      notices: ["networkTruncated"],
+    },
+    {
+      graph: {
+        ...OVERVIEW_GRAPH,
+        hiddenContent: { hasHiddenEdges: false, hasLockedEdges: true, truncated: false },
+      },
+      label: "a network with locked relationships",
+      networkGroup: "group",
+      notices: ["locked"],
+    },
+    {
+      graph: PERSON_GRAPH,
+      label: "a network without named groups",
+      networkGroup: "group",
+      notices: ["fallbackComponents"],
+    },
+    {
+      graph: UNRANKED_GRAPH,
+      label: "a network without known importance",
+      networkGroup: "importance",
+      notices: ["importanceUnknown"],
+    },
+    {
+      graph: makeRelationshipGraph(),
+      label: "a network of one fragment",
+      networkGroup: "components",
+      notices: ["singleComponent"],
+    },
+    {
+      graph: OVERVIEW_GRAPH,
+      label: "a complete grouped network",
+      networkGroup: "group",
+      notices: [],
+    },
+  ])("shows the network notices for $label", ({ graph, networkGroup, notices }) => {
+    const params = { ...NETWORK_PARAMS, networkGroup };
+
+    expect(presentationFor({ graph, params })?.notices).toEqual(notices);
   });
 
   it.each<{
@@ -464,6 +670,7 @@ function genealogyPresentationFor(
     data: { genealogy, kind: "genealogy" },
     genealogy: expansion,
     network: EMPTY_NETWORK_EXPANSION,
+    networkFocus: null,
     params: { ...DEFAULT_PARAMS, treeScope: "full", view: "tree" },
     person: EMPTY_PERSON_EXPANSION,
     treeOptions: TREE_SCENE.defaultOptions,
@@ -487,6 +694,29 @@ function makeGenealogy(overrides: Partial<BookFamilyTreeView> = {}): BookFamilyT
   };
 }
 
+function makeGroupedGraph({
+  links,
+  memberIds,
+}: {
+  links: readonly (readonly [string, string])[];
+  memberIds: readonly string[];
+}): CharacterGraphView {
+  const groupOf = (id: string) => id.slice(0, id.lastIndexOf("-"));
+  return makeRelationshipGraph({
+    clusters: [...new Set(memberIds.map(groupOf))].map((id): CharacterGraphClusterView => ({
+      groupType: "family",
+      id,
+      kind: "group",
+      name: id,
+      size: 1,
+    })),
+    edges: links.map(([source, target]) =>
+      makeRelationshipGraphEdge({ id: `edge:${source}:${target}`, source, target }),
+    ),
+    nodes: memberIds.map((id) => makeRelationshipGraphNode({ clusterId: groupOf(id), id })),
+  });
+}
+
 function makeTree(overrides: Partial<FamilyTreeGraphView> = {}): FamilyTreeGraphView {
   return {
     ancestors: 1,
@@ -504,19 +734,29 @@ function makeTree(overrides: Partial<FamilyTreeGraphView> = {}): FamilyTreeGraph
   };
 }
 
+function numbered(prefix: string, first: number, last: number): string[] {
+  return Array.from(
+    { length: last - first + 1 },
+    (_, offset) => `${prefix}${String(first + offset).padStart(2, "0")}`,
+  );
+}
+
 function presentationFor({
   graph,
   network = EMPTY_NETWORK_EXPANSION,
+  networkFocus = null,
   params,
 }: {
   graph: CharacterGraphView;
   network?: NetworkExpansion;
+  networkFocus?: Nullable<string>;
   params: GraphWorkspaceParams;
 }) {
   return buildGraphWorkspacePresentation({
     data: { graph, kind: "graph" },
     genealogy: EMPTY_GENEALOGY_EXPANSION,
     network,
+    networkFocus,
     params,
     person: EMPTY_PERSON_EXPANSION,
     treeOptions: TREE_SCENE.defaultOptions,
@@ -531,6 +771,7 @@ function treePresentationFor(
     data: { kind: "tree", tree },
     genealogy: EMPTY_GENEALOGY_EXPANSION,
     network: EMPTY_NETWORK_EXPANSION,
+    networkFocus: null,
     params: { ...DEFAULT_PARAMS, characterId: tree.focusCharacterId, view: "tree" },
     person: EMPTY_PERSON_EXPANSION,
     treeOptions,

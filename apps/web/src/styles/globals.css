@@ -7,6 +7,9 @@
 @import "@fontsource-variable/geist-mono";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant zoom-overview (&:is([data-zoom-band="overview"] *));
+@custom-variant zoom-exploration (&:is([data-zoom-band="exploration"] *));
+@custom-variant zoom-details (&:is([data-zoom-band="details"] *));
 
 @theme inline {
   --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;

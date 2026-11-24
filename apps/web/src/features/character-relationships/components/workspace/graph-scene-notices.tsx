@@ -13,7 +13,6 @@ import { GraphSceneStatus } from "./graph-scene-status";
 type GraphSceneNoticesProps = {
   onConfirmOverwrite: () => void;
   onDismissOverwrite: () => void;
-  onMoreClusters: () => void;
   onMoreHop: Nullable<(hop: number) => void>;
   onResetFilters: () => void;
   pendingOverwrite: boolean;
@@ -23,7 +22,6 @@ type GraphSceneNoticesProps = {
 export function GraphSceneNotices({
   onConfirmOverwrite,
   onDismissOverwrite,
-  onMoreClusters,
   onMoreHop,
   onResetFilters,
   pendingOverwrite,
@@ -39,7 +37,7 @@ export function GraphSceneNotices({
         notices={presentation.notices}
         onResetFilters={onResetFilters}
       />
-      {moreHops.length > 0 || presentation.hasMoreClusters ? (
+      {moreHops.length > 0 ? (
         <div className="flex flex-wrap gap-2">
           {moreHops.map((hop) => (
             <Button
@@ -52,11 +50,6 @@ export function GraphSceneNotices({
               {t("more.ring", { hop })}
             </Button>
           ))}
-          {presentation.hasMoreClusters ? (
-            <Button onClick={onMoreClusters} size="sm" type="button" variant="outline">
-              {t("more.clusters")}
-            </Button>
-          ) : null}
         </div>
       ) : null}
       {pendingOverwrite ? (

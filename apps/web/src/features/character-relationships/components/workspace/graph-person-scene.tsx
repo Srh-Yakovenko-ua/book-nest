@@ -71,7 +71,6 @@ type GraphPersonSceneProps = {
   onClearSelection: () => void;
   onConfirmOverwrite: () => void;
   onDismissOverwrite: () => void;
-  onMoreClusters: () => void;
   onMoreHop: (hop: number) => void;
   onRestoreFocus: () => void;
   onToggleImmersive: () => void;
@@ -144,7 +143,6 @@ export function GraphPersonScene(props: GraphPersonSceneProps) {
       <GraphSceneNotices
         onConfirmOverwrite={props.onConfirmOverwrite}
         onDismissOverwrite={props.onDismissOverwrite}
-        onMoreClusters={props.onMoreClusters}
         onMoreHop={null}
         onResetFilters={actions.resetFilters}
         pendingOverwrite={props.pendingOverwrite}

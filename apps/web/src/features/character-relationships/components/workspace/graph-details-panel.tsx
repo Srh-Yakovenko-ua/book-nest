@@ -100,6 +100,7 @@ export function GraphDetailsPanel({
             event.preventDefault();
             onRestoreFocus();
           }}
+          onEscapeKeyDown={keepOpenWhileClearingField}
           showCloseButton={false}
           side="bottom"
         >
@@ -142,6 +143,7 @@ export function GraphDetailsPanel({
             event.preventDefault();
             onRestoreFocus();
           }}
+          onEscapeKeyDown={keepOpenWhileClearingField}
           side="bottom"
         >
           <SheetHeader className="text-left">
@@ -209,4 +211,12 @@ export function GraphDetailsPanel({
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">{children}</div>
     </aside>
   );
+}
+
+function keepOpenWhileClearingField(event: KeyboardEvent): void {
+  const { target } = event;
+  const isFilledField =
+    (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) &&
+    target.value !== "";
+  if (isFilledField) event.preventDefault();
 }

@@ -7,8 +7,10 @@ import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
 
 import type { GraphWorkspaceState } from "../../model/workspace/use-graph-workspace-state";
-import type { GraphToolbarGenealogy } from "./graph-workspace-toolbar";
+import type { GraphToolbarGenealogy, GraphToolbarNetworkSearch } from "./graph-workspace-toolbar";
 
+import { makeRelationshipGraph } from "../../model/relationships.fixtures";
+import { buildNetworkIndex } from "../../model/workspace/graph-network-index";
 import { TREE_SCENE } from "../../model/workspace/graph-tree-scene";
 import { loadGraphWorkspaceParams } from "../../model/workspace/graph-workspace-params";
 import { GraphTreeScopeSwitch, GraphWorkspaceToolbar } from "./graph-workspace-toolbar";
@@ -27,12 +29,18 @@ const CHARACTER_ID = "f0f0f0f0-0000-4000-8000-000000000000";
 
 const GENEALOGY_SEARCH = { treeScope: "full", view: "tree" };
 
+const NETWORK_SEARCH = { view: "network" };
+
+const NETWORK_SEARCH_TRIGGER_ID = "graph-network-search";
+
 function makeActions(): GraphWorkspaceState["actions"] {
   return {
     chooseCharacter: vi.fn(),
     clearCharacter: vi.fn(),
+    clearNetworkFocus: vi.fn(),
     closePath: vi.fn(),
     exploreFromPath: vi.fn(),
+    focusNetworkGroup: vi.fn(),
     makeCenter: vi.fn(),
     openPath: vi.fn(),
     resetFilters: vi.fn(),
@@ -64,6 +72,19 @@ function makeGenealogy(overrides: Partial<GraphToolbarGenealogy> = {}): GraphToo
   };
 }
 
+function makeNetworkSearch(): GraphToolbarNetworkSearch {
+  return {
+    blockedNodes: [],
+    index: buildNetworkIndex({ graph: makeRelationshipGraph(), grouping: "group" }),
+    labelOf: (bucket) => bucket.key,
+    onOpenChange: vi.fn(),
+    onPickBlocked: vi.fn(),
+    onPickCharacter: vi.fn(),
+    onPickGroup: vi.fn(),
+    triggerId: NETWORK_SEARCH_TRIGGER_ID,
+  };
+}
+
 function renderToolbar({
   actions = makeActions(),
   search,
@@ -77,6 +98,7 @@ function renderToolbar({
       bookId={BOOK_ID}
       filtersTriggerId="graph-workspace-filters"
       genealogy={null}
+      networkSearch={null}
       onTreeOptionsChange={vi.fn()}
       onTreeOptionsReset={vi.fn()}
       params={loadGraphWorkspaceParams(new URLSearchParams(search))}
@@ -242,5 +264,46 @@ describe("GraphWorkspaceToolbar", () => {
 
     expect(onTreeOptionsReset).not.toHaveBeenCalled();
     expect(within(options).queryByText(copy.treeOptions.changedOff)).not.toBeInTheDocument();
+  });
+
+  it("offers the network search with a visible label next to the grouping", () => {
+    stubScreenHeight(false);
+    renderToolbar({ networkSearch: makeNetworkSearch(), search: NETWORK_SEARCH });
+
+    const trigger = screen.getByRole("button", { name: copy.networkSearch.trigger });
+    expect(trigger).toHaveTextContent(copy.networkSearch.trigger);
+    expect(screen.getByRole("combobox", { name: copy.grouping.label })).toBeInTheDocument();
+  });
+
+  it("shrinks the network search to an icon button at compact width", () => {
+    stubScreenHeight(false);
+    renderToolbar({
+      networkSearch: makeNetworkSearch(),
+      search: NETWORK_SEARCH,
+      widthClass: "compact",
+    });
+
+    const trigger = screen.getByRole("button", { name: copy.networkSearch.trigger });
+    expect(trigger).not.toHaveTextContent(copy.networkSearch.trigger);
+  });
+
+  it("puts the network search id on its trigger so the focus can return there", () => {
+    stubScreenHeight(false);
+    renderToolbar({ networkSearch: makeNetworkSearch(), search: NETWORK_SEARCH });
+
+    expect(screen.getByRole("button", { name: copy.networkSearch.trigger })).toHaveAttribute(
+      "id",
+      NETWORK_SEARCH_TRIGGER_ID,
+    );
+  });
+
+  it("leaves the network search out while the map offers none", () => {
+    stubScreenHeight(false);
+    renderToolbar({ networkSearch: null, search: NETWORK_SEARCH });
+
+    expect(screen.getByRole("combobox", { name: copy.grouping.label })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: copy.networkSearch.trigger }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -3,7 +3,7 @@
 import type { CharacterGraphViewport, Nullable } from "@app/shared";
 import type { ReactNode } from "react";
 
-import { Panel, useNodesInitialized, useReactFlow, useStore } from "@xyflow/react";
+import { Panel, useNodesInitialized, useReactFlow, useStore, useStoreApi } from "@xyflow/react";
 import {
   LocateFixed,
   MapIcon,
@@ -37,6 +37,7 @@ import type { GraphPersonControlsPosition } from "./use-graph-person-camera";
 
 import { GENEALOGY_CAMERA } from "../../model/workspace/graph-genealogy-camera";
 import { GraphCameraStateContext } from "./graph-camera-state-context";
+import { GraphNetworkSceneContext } from "./graph-network-scene-context";
 import { GraphPersonSceneContext } from "./graph-person-scene-context";
 import { GraphTreeSceneContext } from "./graph-tree-scene-context";
 import { GRAPH_PERSON_CONTROLS_COVER, useGraphPersonCamera } from "./use-graph-person-camera";
@@ -93,7 +94,9 @@ export function GraphWorkspaceCanvasControls({
   viewport,
 }: GraphWorkspaceCanvasControlsProps) {
   const t = useTranslations("relationships.workspace.canvas");
+  const tNetwork = useTranslations("relationships.workspace.network.controls");
   const flow = useReactFlow<GraphSceneFlowNode, GraphSceneFlowEdge>();
+  const store = useStoreApi<GraphSceneFlowNode, GraphSceneFlowEdge>();
   const initialized = useNodesInitialized();
   const prefersReducedMotion = useReducedMotion();
   const fittedScene = useRef<Nullable<string>>(null);
@@ -101,12 +104,16 @@ export function GraphWorkspaceCanvasControls({
   const treeCamera = useGraphTreeCamera();
   const personScene = use(GraphPersonSceneContext);
   const treeScene = use(GraphTreeSceneContext);
+  const networkScene = use(GraphNetworkSceneContext);
   const cameraStateRef = use(GraphCameraStateContext);
   const paneWidth = useStore((state) => state.width);
   const paneHeight = useStore((state) => state.height);
   const personCover =
-    treeScene?.cover ?? personScene?.cover ?? GRAPH_PERSON_CONTROLS_COVER[position];
-  const miniMap = treeScene?.miniMap ?? personScene?.miniMap ?? null;
+    treeScene?.cover ??
+    personScene?.cover ??
+    networkScene?.cover ??
+    GRAPH_PERSON_CONTROLS_COVER[position];
+  const miniMap = treeScene?.miniMap ?? personScene?.miniMap ?? networkScene?.miniMap ?? null;
   const duration = prefersReducedMotion
     ? CANVAS_CONTROLS.reducedDurationMs
     : CANVAS_CONTROLS.durationMs;
@@ -117,6 +124,7 @@ export function GraphWorkspaceCanvasControls({
 
   useEffect(() => {
     if (!initialized || fittedScene.current === sceneKey) return;
+    if (networkScene !== null && !store.getState().nodesInitialized) return;
     fittedScene.current = sceneKey;
     if (cameraStateRef !== null) cameraStateRef.current = { mode: "manual", target: null };
     if (viewport !== null) {
@@ -131,6 +139,12 @@ export function GraphWorkspaceCanvasControls({
         return;
       }
       treeCamera.centerAt({ cover: personCover, id: rootId, zoom: GENEALOGY_CAMERA.initialZoom });
+      return;
+    }
+    if (networkScene !== null) {
+      camera.fitAll({ cover: personCover, duration: 0 });
+      if (cameraStateRef !== null)
+        cameraStateRef.current = { ...cameraStateRef.current, mode: "auto" };
       return;
     }
     if (rootId === null) {
@@ -150,15 +164,22 @@ export function GraphWorkspaceCanvasControls({
     cameraStateRef,
     flow,
     initialized,
+    networkScene,
     personCover,
     rootId,
     sceneKey,
+    store,
     treeCamera,
     treeScene,
     viewport,
   ]);
 
   function fitAll() {
+    if (networkScene !== null) {
+      camera.fitAll({ cover: personCover, duration });
+      setCameraMode("auto");
+      return;
+    }
     if (treeScene !== null) {
       treeCamera.fitAll({ cover: personCover, duration });
       setCameraMode("auto");
@@ -195,205 +216,136 @@ export function GraphWorkspaceCanvasControls({
     });
   }
 
-  if (rootId !== null || treeScene !== null) {
-    const orientation = position === "bottom-center" ? "horizontal" : "vertical";
-    const tooltipSide = orientation === "horizontal" ? "top" : "left";
-    const isCompact =
-      treeScene !== null &&
-      (orientation === "vertical"
-        ? paneHeight < CANVAS_CONTROLS.compactBelow.vertical
-        : paneWidth < CANVAS_CONTROLS.compactBelow.horizontal);
-    const focusLabel = t(
-      treeScene !== null && treeScene.genealogy !== null ? "focusSelected" : "center",
-    );
-    const resetLabel = layout === null ? "" : t(layout.hasSaved ? "reset" : "relayout");
-    return (
-      <Panel className={CANVAS_CONTROLS.personPanel[orientation]} position={position}>
-        <PersonControl label={t("zoomIn")} onClick={() => zoomBy("in")} side={tooltipSide}>
-          <ZoomIn aria-hidden />
-        </PersonControl>
-        <PersonControl label={t("zoomOut")} onClick={() => zoomBy("out")} side={tooltipSide}>
-          <ZoomOut aria-hidden />
-        </PersonControl>
+  function focusTarget() {
+    if (networkScene === null) {
+      centerRoot();
+      return;
+    }
+    networkScene.onFocusSelected?.();
+  }
+
+  const orientation = position === "bottom-center" ? "horizontal" : "vertical";
+  const tooltipSide = orientation === "horizontal" ? "top" : "left";
+  const isCompact =
+    (treeScene !== null || networkScene !== null) &&
+    (orientation === "vertical"
+      ? paneHeight < CANVAS_CONTROLS.compactBelow.vertical
+      : paneWidth < CANVAS_CONTROLS.compactBelow.horizontal);
+  const focusLabel =
+    networkScene === null
+      ? t(treeScene !== null && treeScene.genealogy !== null ? "focusSelected" : "center")
+      : tNetwork("focusSelection");
+  const canFocus = networkScene === null ? rootId !== null : networkScene.onFocusSelected !== null;
+  const resetLabel = layout === null ? "" : t(layout.hasSaved ? "reset" : "relayout");
+  return (
+    <Panel className={CANVAS_CONTROLS.personPanel[orientation]} position={position}>
+      <PersonControl label={t("zoomIn")} onClick={() => zoomBy("in")} side={tooltipSide}>
+        <ZoomIn aria-hidden />
+      </PersonControl>
+      <PersonControl label={t("zoomOut")} onClick={() => zoomBy("out")} side={tooltipSide}>
+        <ZoomOut aria-hidden />
+      </PersonControl>
+      <PersonControl
+        label={t(treeScene === null ? "fitAll" : "fitTree")}
+        onClick={fitAll}
+        side={tooltipSide}
+      >
+        <Scan aria-hidden />
+      </PersonControl>
+      {isCompact ? null : (
         <PersonControl
-          label={t(treeScene === null ? "fitAll" : "fitTree")}
-          onClick={fitAll}
+          disabled={!canFocus}
+          label={focusLabel}
+          onClick={focusTarget}
           side={tooltipSide}
         >
-          <Scan aria-hidden />
+          <LocateFixed aria-hidden />
         </PersonControl>
-        {isCompact ? null : (
-          <PersonControl
-            disabled={rootId === null}
-            label={focusLabel}
-            onClick={centerRoot}
-            side={tooltipSide}
-          >
-            <LocateFixed aria-hidden />
-          </PersonControl>
-        )}
-        <PersonControl
-          label={t(immersive ? "exitFullscreen" : "enterFullscreen")}
-          onClick={onToggleImmersive}
-          side={tooltipSide}
-        >
-          {immersive ? <Minimize2 aria-hidden /> : <Maximize2 aria-hidden />}
-        </PersonControl>
-        {isCompact ? (
-          <DropdownMenu>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    aria-label={t("more")}
-                    className={CANVAS_CONTROLS.personButton}
-                    size="icon-lg"
-                    type="button"
-                    variant="ghost"
-                  >
-                    <UiIcon name="more" size={18} />
-                  </Button>
-                </DropdownMenuTrigger>
-              </TooltipTrigger>
-              <TooltipContent side={tooltipSide}>{t("more")}</TooltipContent>
-            </Tooltip>
-            <DropdownMenuContent align="end" side={tooltipSide}>
-              <DropdownMenuItem disabled={rootId === null} onSelect={centerRoot}>
-                <LocateFixed aria-hidden />
-                {focusLabel}
-              </DropdownMenuItem>
-              {miniMap === null ? null : (
-                <DropdownMenuItem onSelect={miniMap.onToggle}>
-                  <MapIcon aria-hidden />
-                  {t(miniMap.isOpen ? "miniMap.hide" : "miniMap.show")}
-                </DropdownMenuItem>
-              )}
-              {layout === null ? null : (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    disabled={!layout.canSave || layout.isBusy}
-                    onSelect={saveLayout}
-                  >
-                    <Save aria-hidden />
-                    {t("save")}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem disabled={layout.isBusy} onSelect={layout.onReset}>
-                    <RotateCcw aria-hidden />
-                    {resetLabel}
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : (
-          <>
+      )}
+      <PersonControl
+        label={t(immersive ? "exitFullscreen" : "enterFullscreen")}
+        onClick={onToggleImmersive}
+        side={tooltipSide}
+      >
+        {immersive ? <Minimize2 aria-hidden /> : <Maximize2 aria-hidden />}
+      </PersonControl>
+      {isCompact ? (
+        <DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  aria-label={t("more")}
+                  className={CANVAS_CONTROLS.personButton}
+                  size="icon-lg"
+                  type="button"
+                  variant="ghost"
+                >
+                  <UiIcon name="more" size={18} />
+                </Button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent side={tooltipSide}>{t("more")}</TooltipContent>
+          </Tooltip>
+          <DropdownMenuContent align="end" side={tooltipSide}>
+            <DropdownMenuItem disabled={!canFocus} onSelect={focusTarget}>
+              <LocateFixed aria-hidden />
+              {focusLabel}
+            </DropdownMenuItem>
             {miniMap === null ? null : (
-              <PersonControl
-                label={t("miniMap.toggle")}
-                onClick={miniMap.onToggle}
-                pressed={miniMap.isOpen}
-                side={tooltipSide}
-              >
+              <DropdownMenuItem onSelect={miniMap.onToggle}>
                 <MapIcon aria-hidden />
-              </PersonControl>
+                {t(miniMap.isOpen ? "miniMap.hide" : "miniMap.show")}
+              </DropdownMenuItem>
             )}
             {layout === null ? null : (
               <>
-                <span aria-hidden className={CANVAS_CONTROLS.personSeparator[orientation]} />
-                <PersonControl
-                  disabled={!layout.canSave || layout.isBusy}
-                  label={t("save")}
-                  onClick={saveLayout}
-                  side={tooltipSide}
-                >
+                <DropdownMenuSeparator />
+                <DropdownMenuItem disabled={!layout.canSave || layout.isBusy} onSelect={saveLayout}>
                   <Save aria-hidden />
-                </PersonControl>
-                <PersonControl
-                  disabled={layout.isBusy}
-                  label={resetLabel}
-                  onClick={layout.onReset}
-                  side={tooltipSide}
-                >
+                  {t("save")}
+                </DropdownMenuItem>
+                <DropdownMenuItem disabled={layout.isBusy} onSelect={layout.onReset}>
                   <RotateCcw aria-hidden />
-                </PersonControl>
+                  {resetLabel}
+                </DropdownMenuItem>
               </>
             )}
-          </>
-        )}
-      </Panel>
-    );
-  }
-
-  return (
-    <Panel className="flex flex-wrap items-center justify-end gap-1" position={position}>
-      <Button
-        aria-label={t("zoomOut")}
-        onClick={() => void flow.zoomOut({ duration })}
-        size="icon"
-        type="button"
-        variant="secondary"
-      >
-        <ZoomOut aria-hidden className="size-4" />
-      </Button>
-      <Button
-        aria-label={t("zoomIn")}
-        onClick={() => void flow.zoomIn({ duration })}
-        size="icon"
-        type="button"
-        variant="secondary"
-      >
-        <ZoomIn aria-hidden className="size-4" />
-      </Button>
-      <Button
-        aria-label={t("fit")}
-        onClick={() =>
-          void flow.fitView({
-            duration,
-            maxZoom: CANVAS_CONTROLS.fitMaxZoom,
-            padding: CANVAS_CONTROLS.fitPadding,
-          })
-        }
-        size="icon"
-        type="button"
-        variant="secondary"
-      >
-        <Scan aria-hidden className="size-4" />
-      </Button>
-      <Button
-        aria-label={t(immersive ? "exitFullscreen" : "enterFullscreen")}
-        aria-pressed={immersive}
-        onClick={onToggleImmersive}
-        size="icon"
-        type="button"
-        variant="secondary"
-      >
-        {immersive ? (
-          <Minimize2 aria-hidden className="size-4" />
-        ) : (
-          <Maximize2 aria-hidden className="size-4" />
-        )}
-      </Button>
-      {layout === null ? null : (
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
         <>
-          <Button
-            disabled={!layout.canSave || layout.isBusy}
-            onClick={saveLayout}
-            size="sm"
-            type="button"
-            variant="secondary"
-          >
-            {t("save")}
-          </Button>
-          <Button
-            disabled={layout.isBusy}
-            onClick={layout.onReset}
-            size="sm"
-            type="button"
-            variant="ghost"
-          >
-            {t(layout.hasSaved ? "reset" : "relayout")}
-          </Button>
+          {miniMap === null ? null : (
+            <PersonControl
+              label={t("miniMap.toggle")}
+              onClick={miniMap.onToggle}
+              pressed={miniMap.isOpen}
+              side={tooltipSide}
+            >
+              <MapIcon aria-hidden />
+            </PersonControl>
+          )}
+          {layout === null ? null : (
+            <>
+              <span aria-hidden className={CANVAS_CONTROLS.personSeparator[orientation]} />
+              <PersonControl
+                disabled={!layout.canSave || layout.isBusy}
+                label={t("save")}
+                onClick={saveLayout}
+                side={tooltipSide}
+              >
+                <Save aria-hidden />
+              </PersonControl>
+              <PersonControl
+                disabled={layout.isBusy}
+                label={resetLabel}
+                onClick={layout.onReset}
+                side={tooltipSide}
+              >
+                <RotateCcw aria-hidden />
+              </PersonControl>
+            </>
+          )}
         </>
       )}
     </Panel>

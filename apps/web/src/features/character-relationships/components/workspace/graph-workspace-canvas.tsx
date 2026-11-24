@@ -20,20 +20,23 @@ import { type CSSProperties, useRef, useState } from "react";
 
 import type { RelationshipGraphPoint } from "../../model/relationship-graph-layout";
 import type { GraphConnection } from "../../model/workspace/graph-connections";
-import type { NetworkAggregate } from "../../model/workspace/graph-network-scene";
+import type { NetworkAggregateLink } from "../../model/workspace/graph-network-index";
 import type { GraphPersonFocus } from "../../model/workspace/graph-person-emphasis";
 import type { GraphCameraState } from "./graph-camera-state-context";
+import type { GraphNetworkCanvasScene } from "./graph-network-scene-context";
+import type { NetworkZoomBand } from "./graph-network-zoom";
 import type { GraphPersonCanvasScene } from "./graph-person-scene-context";
 import type {
   GraphSceneFlowEdge,
   GraphSceneFlowNode,
+  GraphSceneSelection,
   GraphSceneValue,
 } from "./graph-scene-context";
 import type { GraphTreeCanvasScene } from "./graph-tree-scene-context";
 import type { GraphWorkspaceCanvasControlsProps } from "./graph-workspace-canvas-controls";
 
 import { GENEALOGY_CAMERA } from "../../model/workspace/graph-genealogy-camera";
-import { isNetworkClusterId } from "../../model/workspace/graph-network-scene";
+import { isNetworkClusterId } from "../../model/workspace/graph-network-index";
 import { toGraphPersonEmphasis } from "../../model/workspace/graph-person-emphasis";
 import { GraphCameraStateContext } from "./graph-camera-state-context";
 import { GraphCharacterNode } from "./graph-character-node";
@@ -43,6 +46,10 @@ import { GraphGenealogyCameraFocus } from "./graph-genealogy-camera-focus";
 import { GraphGenealogyFrames } from "./graph-genealogy-frames";
 import { GraphGenealogyLandmarks } from "./graph-genealogy-landmarks";
 import { GraphGenealogyNode } from "./graph-genealogy-node";
+import { GraphNetworkCameraFocus } from "./graph-network-camera-focus";
+import { GraphNetworkMiniMap } from "./graph-network-mini-map";
+import { GraphNetworkSceneContext } from "./graph-network-scene-context";
+import { NETWORK_ZOOM, toNetworkZoomBand } from "./graph-network-zoom";
 import { GraphPersonCameraFollow } from "./graph-person-camera-follow";
 import { GraphPersonEdge } from "./graph-person-edge";
 import { GraphPersonMiniMap, withGraphPersonMiniMapCover } from "./graph-person-mini-map";
@@ -90,10 +97,11 @@ const WORKSPACE_CANVAS = {
 };
 
 export type GraphWorkspaceCanvasProps = {
-  aggregates: readonly NetworkAggregate[];
+  aggregates: readonly NetworkAggregateLink[];
   connections: readonly GraphConnection[];
   controls: Omit<GraphWorkspaceCanvasControlsProps, "sceneKey" | "viewport">;
   layoutKey: string;
+  network?: Nullable<GraphNetworkCanvasScene>;
   onPaneClick: () => void;
   person: Nullable<GraphPersonCanvasScene>;
   placementKey: string;
@@ -104,18 +112,18 @@ export type GraphWorkspaceCanvasProps = {
   viewport: Nullable<CharacterGraphViewport>;
 };
 
-type CanvasMode = "default" | "genealogy" | "person" | "tree";
+type CanvasMode = "genealogy" | "network" | "person" | "tree";
 
 const CANVAS_EDGE_TYPES = {
-  default: GRAPH_SCENE_FLOW.connectionEdge,
   genealogy: GRAPH_SCENE_FLOW.treeEdge,
+  network: GRAPH_SCENE_FLOW.connectionEdge,
   person: GRAPH_SCENE_FLOW.personEdge,
   tree: GRAPH_SCENE_FLOW.treeEdge,
 } as const satisfies Record<CanvasMode, GraphSceneFlowEdge["type"]>;
 
 const CANVAS_NODE_TYPES = {
-  default: GRAPH_SCENE_FLOW.characterNode,
   genealogy: GRAPH_SCENE_FLOW.genealogyNode,
+  network: GRAPH_SCENE_FLOW.characterNode,
   person: GRAPH_SCENE_FLOW.personNode,
   tree: GRAPH_SCENE_FLOW.treeNode,
 } as const satisfies Record<CanvasMode, GraphSceneFlowNode["type"]>;
@@ -131,6 +139,7 @@ export function GraphWorkspaceCanvas({
   connections,
   controls,
   layoutKey,
+  network = null,
   onPaneClick,
   person,
   placementKey,
@@ -144,8 +153,9 @@ export function GraphWorkspaceCanvas({
   const { resolvedTheme } = useTheme();
   const [focus, setFocus] = useState<GraphPersonFocus>(null);
   const cameraStateRef = useRef<GraphCameraState>({ mode: "manual", target: null });
+  const [zoomBand, setZoomBand] = useState<NetworkZoomBand>(NETWORK_ZOOM.initialBand);
   const mode = toCanvasMode({ person, tree });
-  const capturesWheel = mode === "default";
+  const capturesWheel = mode === "network";
   const [synced, setSynced] = useState<SyncedNodes>(() => ({
     layoutKey,
     nodes: reconcileNodes({ current: [], keepPlaced: false, mode, positions }),
@@ -191,7 +201,7 @@ export function GraphWorkspaceCanvas({
           ...person,
           emphasis: toGraphPersonEmphasis({
             connections,
-            focus: toLiveFocus({ focus, value }) ?? value.selection,
+            focus: toLiveFocus({ focus, value }) ?? toSelectionFocus(value.selection),
           }),
           onFocusChange: setFocus,
         };
@@ -205,79 +215,97 @@ export function GraphWorkspaceCanvas({
       <GraphCameraStateContext value={cameraStateRef}>
         <GraphTreeSceneContext value={tree}>
           <GraphPersonSceneContext value={personValue}>
-            <ReactFlow
-              aria-label={t("label")}
-              ariaLabelConfig={{
-                "edge.a11yDescription.default": t("a11yEdge"),
-                "node.a11yDescription.default": t("a11yNode"),
-                "node.a11yDescription.keyboardDisabled": t("a11yNode"),
-              }}
-              colorMode={resolvedTheme === "dark" ? "dark" : "light"}
-              defaultViewport={
-                mode === "genealogy" ? WORKSPACE_CANVAS.genealogyViewport : undefined
-              }
-              deleteKeyCode={null}
-              disableKeyboardA11y
-              edges={edges}
-              edgesFocusable={false}
-              edgeTypes={WORKSPACE_CANVAS.edgeTypes}
-              elementsSelectable={false}
-              fitViewOptions={WORKSPACE_CANVAS.fitViewOptions}
-              maxZoom={WORKSPACE_CANVAS.maxZoom}
-              minZoom={mode === "genealogy" ? GENEALOGY_CAMERA.minZoom : WORKSPACE_CANVAS.minZoom}
-              multiSelectionKeyCode={null}
-              nodeOrigin={WORKSPACE_CANVAS.nodeOrigin}
-              nodes={synced.nodes}
-              nodesConnectable={false}
-              nodesFocusable={false}
-              nodeTypes={WORKSPACE_CANVAS.nodeTypes}
-              onEdgeClick={(_event, edge) => {
-                if (edge.type === GRAPH_SCENE_FLOW.aggregateEdge) {
-                  value.onAggregateOpen(edge.source, edge.target);
-                  return;
+            <GraphNetworkSceneContext value={network}>
+              <ReactFlow
+                aria-label={t("label")}
+                ariaLabelConfig={{
+                  "edge.a11yDescription.default": t("a11yEdge"),
+                  "node.a11yDescription.default": t("a11yNode"),
+                  "node.a11yDescription.keyboardDisabled": t("a11yNode"),
+                }}
+                colorMode={resolvedTheme === "dark" ? "dark" : "light"}
+                data-zoom-band={network === null ? undefined : zoomBand}
+                defaultViewport={
+                  mode === "genealogy" ? WORKSPACE_CANVAS.genealogyViewport : undefined
                 }
-                value.onConnectionOpen(edge.id);
-              }}
-              onMoveStart={(event) => {
-                if (event instanceof Event)
-                  cameraStateRef.current = { mode: "manual", target: null };
-              }}
-              onNodesChange={changeNodes}
-              onPaneClick={onPaneClick}
-              preventScrolling={capturesWheel}
-              selectionKeyCode={null}
-              style={WORKSPACE_CANVAS.style}
-              zoomOnScroll={capturesWheel}
-            >
-              {person === null ? null : (
-                <>
-                  <GraphPersonRings />
-                  <GraphPersonCameraFollow
-                    cover={
-                      person.miniMap?.isOpen
-                        ? withGraphPersonMiniMapCover(person.cover)
-                        : person.cover
-                    }
-                  />
-                  {person.miniMap?.isOpen ? <GraphPersonMiniMap /> : null}
-                </>
-              )}
-              {tree === null ? null : (
-                <>
-                  <GraphTreeGenerationRail />
-                  <GraphTreeCameraFollow />
-                  {tree.miniMap?.isOpen ? <GraphTreeMiniMap /> : null}
-                  {tree.genealogy === null ? null : (
-                    <>
-                      <GraphGenealogyFrames />
-                      <GraphGenealogyCameraFocus />
-                      <GraphGenealogyLandmarks />
-                    </>
-                  )}
-                </>
-              )}
-              <GraphWorkspaceCanvasControls {...controls} sceneKey={sceneKey} viewport={viewport} />
-            </ReactFlow>
+                deleteKeyCode={null}
+                disableKeyboardA11y
+                edges={edges}
+                edgesFocusable={false}
+                edgeTypes={WORKSPACE_CANVAS.edgeTypes}
+                elementsSelectable={false}
+                fitViewOptions={WORKSPACE_CANVAS.fitViewOptions}
+                maxZoom={WORKSPACE_CANVAS.maxZoom}
+                minZoom={mode === "genealogy" ? GENEALOGY_CAMERA.minZoom : WORKSPACE_CANVAS.minZoom}
+                multiSelectionKeyCode={null}
+                nodeOrigin={WORKSPACE_CANVAS.nodeOrigin}
+                nodes={synced.nodes}
+                nodesConnectable={false}
+                nodesFocusable={false}
+                nodeTypes={WORKSPACE_CANVAS.nodeTypes}
+                onEdgeClick={(_event, edge) => {
+                  if (edge.type === GRAPH_SCENE_FLOW.aggregateEdge) {
+                    value.onAggregateOpen(edge.id);
+                    return;
+                  }
+                  value.onConnectionOpen(edge.id);
+                }}
+                onMove={(_event, next) => {
+                  if (network === null) return;
+                  setZoomBand((current) => toNetworkZoomBand({ current, zoom: next.zoom }));
+                }}
+                onMoveEnd={(_event, next) => network?.onCameraChange(next)}
+                onMoveStart={(event) => {
+                  if (event instanceof Event)
+                    cameraStateRef.current = { mode: "manual", target: null };
+                }}
+                onNodesChange={changeNodes}
+                onPaneClick={onPaneClick}
+                preventScrolling={capturesWheel}
+                selectionKeyCode={null}
+                style={WORKSPACE_CANVAS.style}
+                zoomOnScroll={capturesWheel}
+              >
+                {person === null ? null : (
+                  <>
+                    <GraphPersonRings />
+                    <GraphPersonCameraFollow
+                      cover={
+                        person.miniMap?.isOpen
+                          ? withGraphPersonMiniMapCover(person.cover)
+                          : person.cover
+                      }
+                    />
+                    {person.miniMap?.isOpen ? <GraphPersonMiniMap /> : null}
+                  </>
+                )}
+                {network === null ? null : (
+                  <>
+                    <GraphNetworkCameraFocus />
+                    {network.miniMap?.isOpen ? <GraphNetworkMiniMap /> : null}
+                  </>
+                )}
+                {tree === null ? null : (
+                  <>
+                    <GraphTreeGenerationRail />
+                    <GraphTreeCameraFollow />
+                    {tree.miniMap?.isOpen ? <GraphTreeMiniMap /> : null}
+                    {tree.genealogy === null ? null : (
+                      <>
+                        <GraphGenealogyFrames />
+                        <GraphGenealogyCameraFocus />
+                        <GraphGenealogyLandmarks />
+                      </>
+                    )}
+                  </>
+                )}
+                <GraphWorkspaceCanvasControls
+                  {...controls}
+                  sceneKey={sceneKey}
+                  viewport={viewport}
+                />
+              </ReactFlow>
+            </GraphNetworkSceneContext>
           </GraphPersonSceneContext>
         </GraphTreeSceneContext>
       </GraphCameraStateContext>
@@ -314,7 +342,7 @@ function toCanvasMode({
   tree: Nullable<GraphTreeCanvasScene>;
 }): CanvasMode {
   if (tree !== null) return tree.genealogy === null ? "tree" : "genealogy";
-  return person === null ? "default" : "person";
+  return person === null ? "network" : "person";
 }
 
 function toLiveFocus({
@@ -333,4 +361,9 @@ function toLiveFocus({
 function toNodeType({ id, mode }: { id: string; mode: CanvasMode }): GraphSceneFlowNode["type"] {
   if (isNetworkClusterId(id)) return GRAPH_SCENE_FLOW.clusterNode;
   return CANVAS_NODE_TYPES[mode];
+}
+
+function toSelectionFocus(selection: GraphSceneSelection): GraphPersonFocus {
+  if (selection?.kind === "character" || selection?.kind === "connection") return selection;
+  return null;
 }

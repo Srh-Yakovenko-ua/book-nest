@@ -8,7 +8,13 @@ import type {
 import type { GraphConnection } from "./graph-connections";
 import type { GenealogyFrame } from "./graph-genealogy-layout";
 import type { GenealogyExpansion, GenealogyScene } from "./graph-genealogy-scene";
-import type { NetworkAggregate, NetworkBucket, NetworkExpansion } from "./graph-network-scene";
+import type {
+  NetworkAggregateLink,
+  NetworkBucket,
+  NetworkBucketSummary,
+  NetworkIndex,
+} from "./graph-network-index";
+import type { NetworkExpansion, NetworkScene } from "./graph-network-scene";
 import type { PersonExpansion } from "./graph-person-scene";
 import type { TreeLayoutRow } from "./graph-tree-layout";
 import type { TreePairSemantics } from "./graph-tree-pairs";
@@ -20,12 +26,14 @@ import type { GraphWorkspaceSceneData } from "./graph-workspace-request";
 import { toGraphConnections } from "./graph-connections";
 import { layoutGenealogyScene } from "./graph-genealogy-layout";
 import { buildGenealogyScene } from "./graph-genealogy-scene";
+import { buildNetworkIndex, toNetworkBucketId } from "./graph-network-index";
+import { layoutNetworkScene } from "./graph-network-layout";
 import { buildNetworkScene } from "./graph-network-scene";
 import { buildPersonScene } from "./graph-person-scene";
 import { layoutTreeScene } from "./graph-tree-layout";
 import { toTreePairSemanticsById } from "./graph-tree-pairs";
 import { buildTreeScene } from "./graph-tree-scene";
-import { layoutNetworkScene, layoutPersonScene } from "./graph-workspace-layout";
+import { layoutPersonScene } from "./graph-workspace-layout";
 
 export type GraphGenealogyPresentation = {
   allLineage: readonly TreeLineageLink[];
@@ -35,6 +43,12 @@ export type GraphGenealogyPresentation = {
   pairs: ReadonlyMap<string, TreePairSemantics>;
   rows: readonly TreeLayoutRow[];
   scene: GenealogyScene;
+};
+
+export type GraphNetworkPresentation = {
+  focusMissing: boolean;
+  index: NetworkIndex;
+  scene: NetworkScene;
 };
 
 export type GraphPresentationCharacter = {
@@ -47,16 +61,30 @@ export type GraphPresentationCharacter = {
 
 export type GraphPresentationCluster = {
   bucket: NetworkBucket;
-  hasMoreMembers: boolean;
-  isExpanded: boolean;
+  focusPairCount: Nullable<number>;
+  role: "neighbor" | "overview";
+  summary: NetworkBucketSummary;
 };
 
 export type GraphPresentationCounters =
+  | {
+      characters: number;
+      groups: number;
+      kind: "networkOverview";
+      pairs: number;
+      relations: number;
+      shownGroups: number;
+    }
   | { edges: number; generations: number; kind: "genealogy"; nodes: number; pairs: number }
-  | { edges: number; kind: "expanded"; nodes: number }
   | { edges: number; kind: "person"; nodes: number; pairs: number }
   | { edges: number; kind: "tree"; nodes: number; pairs: number }
-  | { groups: number; kind: "groups" };
+  | {
+      kind: "networkFocus";
+      members: number;
+      neighborGroups: number;
+      pairs: number;
+      shownMembers: number;
+    };
 
 export type GraphPresentationEmpty =
   | "filteredEmpty"
@@ -73,9 +101,12 @@ export type GraphPresentationNotice =
   | "genealogyComponents"
   | "genealogyMultiLine"
   | "genealogyTruncated"
+  | "importanceUnknown"
   | "locked"
+  | "networkTruncated"
   | "noAncestry"
   | "overBudget"
+  | "singleComponent"
   | "treeConflicts"
   | "treeFewerAncestors"
   | "treeFewerDescendants"
@@ -91,7 +122,7 @@ export type GraphTreePresentation = {
 };
 
 export type GraphWorkspacePresentation = {
-  aggregates: readonly NetworkAggregate[];
+  aggregates: readonly NetworkAggregateLink[];
   characters: ReadonlyMap<string, GraphPresentationCharacter>;
   clusters: ReadonlyMap<string, GraphPresentationCluster>;
   connections: readonly GraphConnection[];
@@ -99,8 +130,8 @@ export type GraphWorkspacePresentation = {
   edges: readonly CharacterGraphEdgeView[];
   empty: Nullable<GraphPresentationEmpty>;
   genealogy: Nullable<GraphGenealogyPresentation>;
-  hasMoreClusters: boolean;
   moreHops: readonly number[];
+  network: Nullable<GraphNetworkPresentation>;
   notices: readonly GraphPresentationNotice[];
   positions: GraphWorkspacePositions;
   rootId: Nullable<string>;
@@ -111,6 +142,7 @@ type BuildPresentationInput = {
   data: GraphWorkspaceSceneData;
   genealogy: GenealogyExpansion;
   network: NetworkExpansion;
+  networkFocus: Nullable<string>;
   params: GraphWorkspaceParams;
   person: PersonExpansion;
   treeOptions: TreeOptions;
@@ -179,8 +211,8 @@ function buildGenealogyPresentation({
       rows: layout.rows,
       scene,
     },
-    hasMoreClusters: false,
     moreHops: [],
+    network: null,
     notices: [
       ...(tree.hiddenContent.truncated ? (["genealogyTruncated"] as const) : []),
       ...(scene.hasConflicts ? (["treeConflicts"] as const) : []),
@@ -197,46 +229,53 @@ function buildGenealogyPresentation({
 function buildNetworkPresentation({
   data,
   network,
+  networkFocus,
   params,
 }: BuildPresentationInput): Nullable<GraphWorkspacePresentation> {
   if (data.kind !== "graph") return null;
-  const scene = buildNetworkScene({
-    expansion: network,
-    graph: data.graph,
-    grouping: params.networkGroup,
-  });
-  const hasExpanded = scene.shownMembersByBucket.size > 0;
+  const { hiddenContent } = data.graph;
+  const index = buildNetworkIndex({ graph: data.graph, grouping: params.networkGroup });
+  const focusBucketId =
+    networkFocus === null
+      ? null
+      : toNetworkBucketId({ grouping: index.effectiveGrouping, key: networkFocus });
+  const scene = buildNetworkScene({ expansion: network, focusBucketId, index });
+  const connections: readonly GraphConnection[] = scene.kind === "focus" ? scene.connections : [];
+  const memberIds: readonly string[] = scene.kind === "focus" ? scene.memberIds : [];
   return {
-    aggregates: scene.aggregates,
+    aggregates: scene.links,
     characters: new Map(
-      scene.nodes.map((node): [string, GraphPresentationCharacter] => [
-        node.id,
-        { canCollapse: false, canExpand: false, hop: null, isRoot: false, node },
-      ]),
+      memberIds.flatMap((memberId): [string, GraphPresentationCharacter][] => {
+        const node = index.nodeById.get(memberId);
+        if (node === undefined) return [];
+        return [
+          [memberId, { canCollapse: false, canExpand: false, hop: null, isRoot: false, node }],
+        ];
+      }),
     ),
-    clusters: new Map(
-      scene.buckets.map((bucket): [string, GraphPresentationCluster] => [
-        bucket.id,
-        {
-          bucket,
-          hasMoreMembers: scene.moreMembersIds.has(bucket.id),
-          isExpanded: scene.shownMembersByBucket.has(bucket.id),
-        },
-      ]),
+    clusters: toNetworkClusters({ index, scene }),
+    connections,
+    counters: toNetworkCounters({ index, scene }),
+    edges: connections.flatMap((connection) =>
+      connection.edgeIds.flatMap((edgeId) => {
+        const edge = index.edgeById.get(edgeId);
+        return edge === undefined ? [] : [edge];
+      }),
     ),
-    connections: toGraphConnections(scene.edges),
-    counters: hasExpanded
-      ? { edges: scene.edges.length, kind: "expanded", nodes: scene.nodes.length }
-      : { groups: scene.buckets.length, kind: "groups" },
-    edges: scene.edges,
     empty: data.graph.edges.length === 0 ? toEmptyReason({ empty: "networkEmpty", params }) : null,
     genealogy: null,
-    hasMoreClusters: scene.hasMoreBuckets,
     moreHops: [],
+    network: {
+      focusMissing: focusBucketId !== null && !index.bucketById.has(focusBucketId),
+      index,
+      scene,
+    },
     notices: [
-      ...baseNotices(data.graph.hiddenContent),
-      ...(scene.usedFallback ? (["fallbackComponents"] as const) : []),
-      ...(scene.overSoftLimit ? (["overBudget"] as const) : []),
+      ...(hiddenContent.truncated ? (["networkTruncated"] as const) : []),
+      ...(hiddenContent.hasLockedEdges ? (["locked"] as const) : []),
+      ...(index.usedFallback ? (["fallbackComponents"] as const) : []),
+      ...(index.isImportanceUnknown ? (["importanceUnknown"] as const) : []),
+      ...(index.isSingleComponent ? (["singleComponent"] as const) : []),
     ],
     positions: layoutNetworkScene(scene),
     rootId: null,
@@ -296,8 +335,8 @@ function buildPersonPresentation({
     edges: scene.edges,
     empty: data.graph.edges.length === 0 ? toEmptyReason({ empty: "noRelations", params }) : null,
     genealogy: null,
-    hasMoreClusters: false,
     moreHops: [...scene.moreByHop].sort((left, right) => left - right),
+    network: null,
     notices: [
       ...baseNotices(data.graph.hiddenContent),
       ...(scene.overSoftLimit ? (["overBudget"] as const) : []),
@@ -345,8 +384,8 @@ function buildTreePresentation({
     edges: scene.edges,
     empty: toTreeEmpty({ shown: scene.edges.length, total: tree.edges.length }),
     genealogy: null,
-    hasMoreClusters: false,
     moreHops: [],
+    network: null,
     notices: [
       ...(tree.hiddenContent.truncated ? (["treeTruncated"] as const) : []),
       ...(scene.hasConflicts ? (["treeConflicts"] as const) : []),
@@ -384,6 +423,71 @@ function toGenealogyEmpty({
 }): Nullable<GraphPresentationEmpty> {
   if (shown > 0) return null;
   return total > 0 ? "genealogyFiltered" : "genealogyEmpty";
+}
+
+function toNetworkClusters({
+  index,
+  scene,
+}: {
+  index: NetworkIndex;
+  scene: NetworkScene;
+}): Map<string, GraphPresentationCluster> {
+  const summaryOf = (bucketId: string): NetworkBucketSummary =>
+    index.summaryByBucketId.get(bucketId) ?? {
+      externalPairCount: 0,
+      internalPairCount: 0,
+      linkedBucketCount: 0,
+    };
+  if (scene.kind === "overview") {
+    return new Map(
+      scene.buckets.map((bucket): [string, GraphPresentationCluster] => [
+        bucket.id,
+        { bucket, focusPairCount: null, role: "overview", summary: summaryOf(bucket.id) },
+      ]),
+    );
+  }
+  const focusPairsByBucketId = new Map<string, number>();
+  for (const link of index.bucketLinks) {
+    if (link.sourceId === scene.bucket.id) focusPairsByBucketId.set(link.targetId, link.pairCount);
+    if (link.targetId === scene.bucket.id) focusPairsByBucketId.set(link.sourceId, link.pairCount);
+  }
+  return new Map(
+    scene.neighbors.map((bucket): [string, GraphPresentationCluster] => [
+      bucket.id,
+      {
+        bucket,
+        focusPairCount: focusPairsByBucketId.get(bucket.id) ?? 0,
+        role: "neighbor",
+        summary: summaryOf(bucket.id),
+      },
+    ]),
+  );
+}
+
+function toNetworkCounters({
+  index,
+  scene,
+}: {
+  index: NetworkIndex;
+  scene: NetworkScene;
+}): GraphPresentationCounters {
+  if (scene.kind === "overview") {
+    return {
+      characters: index.totals.characters,
+      groups: index.totals.groups,
+      kind: "networkOverview",
+      pairs: index.totals.pairs,
+      relations: index.totals.relations,
+      shownGroups: scene.buckets.length,
+    };
+  }
+  return {
+    kind: "networkFocus",
+    members: scene.bucket.memberIds.length,
+    neighborGroups: scene.neighbors.length + scene.hiddenNeighborCount,
+    pairs: scene.connections.length,
+    shownMembers: scene.memberIds.length,
+  };
 }
 
 function toTreeEmpty({

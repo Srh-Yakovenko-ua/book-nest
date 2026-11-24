@@ -9,28 +9,49 @@ import { cn } from "@/lib/utils";
 
 import type { GraphSceneFlowNode } from "./graph-scene-context";
 
+import { useGraphNetworkScene } from "./graph-network-scene-context";
 import { useGraphScene } from "./graph-scene-context";
 import { useNetworkBucketLabel } from "./use-network-bucket-label";
 import { useRevealOnFocus } from "./use-reveal-on-focus";
 
 const CLUSTER_NODE_STYLES = {
-  card: "flex h-24 w-44 cursor-pointer items-center gap-2 rounded-2xl border border-border bg-muted px-3 text-left text-foreground shadow-sm outline-none hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-  expanded: "border-primary bg-card",
+  card: "flex h-24 w-44 cursor-pointer flex-col justify-center gap-1 rounded-2xl border px-3 text-left text-foreground shadow-sm transition outline-none hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none",
+  count: "text-xs font-medium",
+  dimmed: {
+    neighbor: "border-border/50 bg-card/50 text-muted-foreground shadow-none",
+    overview: "border-border/50 bg-muted/50 text-muted-foreground shadow-none",
+  },
+  emphasized: "border-primary ring-2 ring-primary/30",
   handle: "opacity-0",
-  more: "nodrag nopan absolute -bottom-3 left-1/2 -translate-x-1/2 h-6 cursor-pointer rounded-full border border-border bg-background px-2.5 text-xs whitespace-nowrap text-muted-foreground shadow-sm outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
+  name: "flex min-w-0 items-start gap-1.5 text-sm leading-tight font-semibold zoom-overview:text-base",
+  role: {
+    neighbor: "border-dashed border-border bg-card/90",
+    overview: "border-border bg-muted",
+  },
+  selected: "border-primary",
+  summary: "text-xs text-muted-foreground zoom-overview:hidden",
 } as const;
 
 export function GraphClusterNode({ id }: NodeProps<GraphSceneFlowNode>) {
-  const t = useTranslations("relationships.workspace.cluster");
-  const tMore = useTranslations("relationships.workspace.more");
-  const { clusters, onClusterMore, onClusterToggle } = useGraphScene();
+  const t = useTranslations("relationships.workspace.network.cluster");
+  const { clusters, onClusterOpen, selection } = useGraphScene();
+  const { emphasis } = useGraphNetworkScene();
   const toLabel = useNetworkBucketLabel();
   const revealOnFocus = useRevealOnFocus(id);
   const cluster = clusters.get(id);
   if (cluster === undefined) return null;
 
-  const label = toLabel(cluster.bucket.label);
+  const name = toLabel(cluster.bucket.label);
   const count = cluster.bucket.memberIds.length;
+  const { internalPairCount, linkedBucketCount } = cluster.summary;
+  const focusPairs = cluster.focusPairCount ?? 0;
+  const isSelected = selection?.kind === "members" && selection.id === id;
+  const isEmphasized = emphasis?.characterIds.has(id) ?? false;
+  const isDimmed = emphasis !== null && !isEmphasized && !isSelected;
+  const label =
+    cluster.role === "neighbor"
+      ? t("openNeighbor", { count, name, pairs: focusPairs })
+      : t("open", { count, linked: linkedBucketCount, name, pairs: internalPairCount });
 
   return (
     <div className="relative">
@@ -41,38 +62,35 @@ export function GraphClusterNode({ id }: NodeProps<GraphSceneFlowNode>) {
         type="target"
       />
       <button
-        aria-expanded={cluster.isExpanded}
-        aria-label={t(cluster.isExpanded ? "collapse" : "expand", { count, name: label })}
-        className={cn(CLUSTER_NODE_STYLES.card, cluster.isExpanded && CLUSTER_NODE_STYLES.expanded)}
-        onClick={() => onClusterToggle(id)}
+        aria-label={label}
+        className={cn(
+          CLUSTER_NODE_STYLES.card,
+          CLUSTER_NODE_STYLES.role[cluster.role],
+          isSelected && CLUSTER_NODE_STYLES.selected,
+          isEmphasized && CLUSTER_NODE_STYLES.emphasized,
+          isDimmed && CLUSTER_NODE_STYLES.dimmed[cluster.role],
+        )}
+        onClick={() => onClusterOpen(id)}
         onFocus={revealOnFocus}
         type="button"
       >
-        <UiIcon className="shrink-0 text-muted-foreground" name="users-round" size={18} />
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-sm font-medium">
-            <TruncatedText lines={2} text={label} />
-          </span>
-          <span className="text-xs text-muted-foreground">{t("members", { count })}</span>
+        <span aria-hidden className={CLUSTER_NODE_STYLES.name}>
+          <UiIcon
+            className="mt-0.5 shrink-0 text-muted-foreground zoom-overview:hidden"
+            name="users-round"
+            size={14}
+          />
+          <TruncatedText lines={2} text={name} />
         </span>
-        <UiIcon
-          className="shrink-0 text-muted-foreground"
-          name={cluster.isExpanded ? "chevron-up" : "chevron-down"}
-          size={14}
-        />
+        <span aria-hidden className={CLUSTER_NODE_STYLES.count}>
+          {t("members", { count })}
+        </span>
+        <span aria-hidden className={CLUSTER_NODE_STYLES.summary}>
+          {cluster.role === "neighbor"
+            ? t("withFocus", { count: focusPairs })
+            : t("summary", { linked: linkedBucketCount, pairs: internalPairCount })}
+        </span>
       </button>
-      {cluster.isExpanded && cluster.hasMoreMembers ? (
-        <button
-          className={CLUSTER_NODE_STYLES.more}
-          onClick={(event) => {
-            event.stopPropagation();
-            onClusterMore(id);
-          }}
-          type="button"
-        >
-          {tMore("members")}
-        </button>
-      ) : null}
       <Handle
         className={CLUSTER_NODE_STYLES.handle}
         isConnectable={false}

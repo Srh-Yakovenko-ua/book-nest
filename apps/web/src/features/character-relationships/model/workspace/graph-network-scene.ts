@@ -1,289 +1,286 @@
+import type { Nullable, RelationshipCategory } from "@app/shared";
+
+import type { GraphConnection } from "./graph-connections";
 import type {
-  BookCharacterImportance,
-  CharacterGraphEdgeView,
-  CharacterGraphNodeView,
-  CharacterGraphView,
-  Nullable,
-} from "@app/shared";
+  NetworkAggregateLink,
+  NetworkBucket,
+  NetworkIndex,
+  NetworkLinkPair,
+} from "./graph-network-index";
 
-import { assertNever } from "@/lib/assert-never";
-
-import type { NetworkGrouping } from "./graph-workspace-params";
-
-import { comparePersonPriority, toDegrees } from "./graph-person-scene";
+import { toNetworkAggregateLinks } from "./graph-network-index";
 
 export const NETWORK_SCENE_BUDGET = {
   clusters: 12,
-  membersPerCluster: 12,
-  softVisibleMembers: 60,
+  focusMembers: 12,
+  focusNeighbors: 10,
 } as const;
 
-export type NetworkAggregate = {
-  id: string;
-  sourceId: string;
-  targetId: string;
+export type NetworkExpansion = { extraClusters: number; focus: NetworkFocusExpansion };
+
+export type NetworkFocusExpansion = {
+  bucketId: Nullable<string>;
+  pages: number;
+  revealedIds: readonly string[];
 };
 
-export type NetworkBucket = {
-  id: string;
-  label: NetworkBucketLabel;
-  memberIds: readonly string[];
-};
+export type NetworkScene =
+  | {
+      bucket: NetworkBucket;
+      connections: readonly GraphConnection[];
+      hasMoreMembers: boolean;
+      hiddenMemberCount: number;
+      hiddenNeighborCount: number;
+      kind: "focus";
+      links: readonly NetworkAggregateLink[];
+      memberIds: readonly string[];
+      neighbors: readonly NetworkBucket[];
+    }
+  | {
+      buckets: readonly NetworkBucket[];
+      hasMoreBuckets: boolean;
+      hiddenBucketCount: number;
+      kind: "overview";
+      links: readonly NetworkAggregateLink[];
+    };
 
-export type NetworkBucketLabel =
-  | { importance: Nullable<BookCharacterImportance>; kind: "importance" }
-  | { index: number; kind: "fragment" }
-  | { kind: "group"; name: Nullable<string> }
-  | { kind: "ungrouped" };
-
-export type NetworkExpansion = {
-  expandedIds: ReadonlySet<string>;
-  extraClusters: number;
-  extraMembersById: ReadonlyMap<string, number>;
-};
-
-export type NetworkScene = {
-  aggregates: NetworkAggregate[];
-  buckets: NetworkBucket[];
-  edges: CharacterGraphEdgeView[];
-  effectiveGrouping: NetworkGrouping;
-  hasMoreBuckets: boolean;
-  moreMembersIds: ReadonlySet<string>;
-  nodes: CharacterGraphNodeView[];
-  overSoftLimit: boolean;
-  shownMembersByBucket: ReadonlyMap<string, readonly string[]>;
-  usedFallback: boolean;
+type FocusPairTally = {
+  connectionIds: ReadonlySet<string>;
+  linkPairs: readonly NetworkLinkPair[];
+  neighborPairs: ReadonlyMap<string, { shown: number; total: number }>;
 };
 
 export const EMPTY_NETWORK_EXPANSION: NetworkExpansion = {
-  expandedIds: new Set(),
   extraClusters: 0,
-  extraMembersById: new Map(),
+  focus: { bucketId: null, pages: 0, revealedIds: [] },
 };
-
-const CLUSTER_ID = {
-  prefix: "cluster",
-  unassigned: "unassigned",
-  ungrouped: "none",
-} as const;
 
 export function buildNetworkScene({
   expansion,
-  graph,
-  grouping,
+  focusBucketId,
+  index,
 }: {
   expansion: NetworkExpansion;
-  graph: CharacterGraphView;
-  grouping: NetworkGrouping;
+  focusBucketId: Nullable<string>;
+  index: NetworkIndex;
 }): NetworkScene {
-  const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));
-  const degreeById = toDegrees(graph.edges);
-  const comparePriority = (left: string, right: string) =>
-    comparePersonPriority({ degreeById, left, nodeById, right });
-  const hasNamedGroups = graph.clusters.some((cluster) => cluster.kind === "group");
-  const usedFallback = grouping === "group" && !hasNamedGroups;
-  const effectiveGrouping: NetworkGrouping = usedFallback ? "components" : grouping;
+  const bucket = focusBucketId === null ? undefined : index.bucketById.get(focusBucketId);
+  if (bucket === undefined) return buildOverviewScene({ expansion, index });
+  return buildFocusScene({ bucket, expansion, index });
+}
 
-  const buckets = toBuckets({ effectiveGrouping, graph })
-    .map((bucket) => ({ ...bucket, memberIds: [...bucket.memberIds].sort(comparePriority) }))
-    .sort(
-      (left, right) =>
-        right.memberIds.length - left.memberIds.length || left.id.localeCompare(right.id),
-    );
-  const bucketLimit = NETWORK_SCENE_BUDGET.clusters * (1 + expansion.extraClusters);
-  const shownBuckets = buckets.slice(0, bucketLimit);
-  const shownBucketIds = new Set(shownBuckets.map((bucket) => bucket.id));
-
-  const bucketByNodeId = new Map<string, string>();
-  for (const bucket of buckets) {
-    for (const memberId of bucket.memberIds) bucketByNodeId.set(memberId, bucket.id);
-  }
-
-  const shownMembersByBucket = new Map<string, readonly string[]>();
-  const moreMembersIds = new Set<string>();
-  for (const bucket of shownBuckets) {
-    if (!expansion.expandedIds.has(bucket.id)) continue;
-    const limit =
-      NETWORK_SCENE_BUDGET.membersPerCluster *
-      (1 + (expansion.extraMembersById.get(bucket.id) ?? 0));
-    shownMembersByBucket.set(bucket.id, bucket.memberIds.slice(0, limit));
-    if (bucket.memberIds.length > limit) moreMembersIds.add(bucket.id);
-  }
-  const shownMemberIds = new Set([...shownMembersByBucket.values()].flat());
-
-  const elementOf = (nodeId: string): Nullable<string> => {
-    if (shownMemberIds.has(nodeId)) return nodeId;
-    const bucketId = bucketByNodeId.get(nodeId);
-    return bucketId !== undefined && shownBucketIds.has(bucketId) ? bucketId : null;
-  };
-
-  const edges: CharacterGraphEdgeView[] = [];
-  const aggregates = new Map<string, NetworkAggregate>();
-  for (const edge of graph.edges) {
-    const source = elementOf(edge.source);
-    const target = elementOf(edge.target);
-    if (source === null || target === null || source === target) continue;
-    const isRealEdge = source === edge.source && target === edge.target;
-    const isInsideOneBucket =
-      (bucketByNodeId.get(source) ?? source) === (bucketByNodeId.get(target) ?? target);
-    if (!isRealEdge && isInsideOneBucket) continue;
-    if (isRealEdge) {
-      edges.push(edge);
-      continue;
+export function summarizeNetworkLink({
+  index,
+  link,
+}: {
+  index: NetworkIndex;
+  link: NetworkAggregateLink;
+}): {
+  categories: readonly { category: RelationshipCategory; count: number }[];
+  hasMaskedDetails: boolean;
+} {
+  const countByCategory = new Map<RelationshipCategory, number>();
+  let hasMaskedDetails = false;
+  for (const connectionId of link.connectionIds) {
+    for (const edgeId of index.connectionById.get(connectionId)?.edgeIds ?? []) {
+      const edge = index.edgeById.get(edgeId);
+      if (edge === undefined) continue;
+      if (edge.typeHidden || edge.category === null) {
+        hasMaskedDetails = true;
+        continue;
+      }
+      countByCategory.set(edge.category, (countByCategory.get(edge.category) ?? 0) + 1);
     }
-    const [first, second] = source < target ? [source, target] : [target, source];
-    const id = `aggregate:${first}:${second}`;
-    if (!aggregates.has(id)) aggregates.set(id, { id, sourceId: first, targetId: second });
   }
-
   return {
-    aggregates: [...aggregates.values()].sort((left, right) => left.id.localeCompare(right.id)),
-    buckets: shownBuckets,
-    edges,
-    effectiveGrouping,
-    hasMoreBuckets: buckets.length > shownBuckets.length,
-    moreMembersIds,
-    nodes: [...shownMemberIds]
-      .map((id) => nodeById.get(id))
-      .filter((node): node is CharacterGraphNodeView => node !== undefined),
-    overSoftLimit: shownMemberIds.size > NETWORK_SCENE_BUDGET.softVisibleMembers,
-    shownMembersByBucket,
-    usedFallback,
+    categories: [...countByCategory.entries()]
+      .map(([category, count]) => ({ category, count }))
+      .sort(
+        (left, right) => right.count - left.count || left.category.localeCompare(right.category),
+      ),
+    hasMaskedDetails,
   };
 }
 
-export function isNetworkClusterId(id: string): boolean {
-  return id.startsWith(`${CLUSTER_ID.prefix}:`);
-}
-
-export function toggleNetworkCluster({
+export function toNetworkLinkExplore({
   bucketId,
-  expansion,
+  index,
+  link,
 }: {
   bucketId: string;
-  expansion: NetworkExpansion;
-}): NetworkExpansion {
-  const expandedIds = new Set(expansion.expandedIds);
-  if (expandedIds.has(bucketId)) {
-    expandedIds.delete(bucketId);
-  } else {
-    expandedIds.add(bucketId);
+  index: NetworkIndex;
+  link: NetworkAggregateLink;
+}): Nullable<{ bucketId: string; revealIds: readonly string[] }> {
+  if (bucketId !== link.sourceId && bucketId !== link.targetId) return null;
+  const bucket = index.bucketById.get(bucketId);
+  if (bucket === undefined) return null;
+  const pairsByMemberId = new Map<string, number>();
+  for (const connectionId of link.connectionIds) {
+    const connection = index.connectionById.get(connectionId);
+    if (connection === undefined) continue;
+    for (const nodeId of [connection.sourceId, connection.targetId]) {
+      if (index.bucketIdByNodeId.get(nodeId) !== bucketId) continue;
+      pairsByMemberId.set(nodeId, (pairsByMemberId.get(nodeId) ?? 0) + 1);
+    }
   }
-  return { ...expansion, expandedIds };
+  const revealIds = bucket.memberIds
+    .map((id, order) => ({ id, order, pairs: pairsByMemberId.get(id) ?? 0 }))
+    .filter((member) => member.pairs > 0)
+    .sort((left, right) => right.pairs - left.pairs || left.order - right.order)
+    .slice(0, NETWORK_SCENE_BUDGET.focusMembers)
+    .map((member) => member.id);
+  return { bucketId, revealIds };
 }
 
-export function withMoreNetworkMembers({
+export function withMoreNetworkMembers(expansion: NetworkExpansion): NetworkExpansion {
+  return { ...expansion, focus: { ...expansion.focus, pages: expansion.focus.pages + 1 } };
+}
+
+export function withNetworkFocus({
   bucketId,
   expansion,
+  revealIds = [],
 }: {
-  bucketId: string;
+  bucketId: Nullable<string>;
   expansion: NetworkExpansion;
+  revealIds?: readonly string[];
 }): NetworkExpansion {
-  const current = expansion.extraMembersById.get(bucketId) ?? 0;
-  return {
-    ...expansion,
-    extraMembersById: new Map(expansion.extraMembersById).set(bucketId, current + 1),
-  };
+  const isSameBucket = expansion.focus.bucketId === bucketId;
+  const focus: NetworkFocusExpansion = isSameBucket
+    ? expansion.focus
+    : { bucketId, pages: 0, revealedIds: [] };
+  const knownIds = new Set(focus.revealedIds);
+  const addedIds: string[] = [];
+  for (const id of revealIds) {
+    if (knownIds.has(id)) continue;
+    knownIds.add(id);
+    addedIds.push(id);
+  }
+  if (isSameBucket && addedIds.length === 0) return expansion;
+  return { ...expansion, focus: { ...focus, revealedIds: [...focus.revealedIds, ...addedIds] } };
 }
 
-function clusterId(strategy: NetworkGrouping, key: string): string {
-  return `${CLUSTER_ID.prefix}:${strategy}:${key}`;
-}
-
-function toBuckets({
-  effectiveGrouping,
-  graph,
+function buildFocusScene({
+  bucket,
+  expansion,
+  index,
 }: {
-  effectiveGrouping: NetworkGrouping;
-  graph: CharacterGraphView;
-}): NetworkBucket[] {
-  switch (effectiveGrouping) {
-    case "components":
-      return toComponentBuckets(graph);
-    case "group":
-      return toGroupBuckets(graph);
-    case "importance":
-      return toImportanceBuckets(graph);
-    default:
-      return assertNever(effectiveGrouping);
-  }
-}
-
-function toComponentBuckets(graph: CharacterGraphView): NetworkBucket[] {
-  const parentById = new Map(graph.nodes.map((node) => [node.id, node.id]));
-  const find = (id: string): string => {
-    let current = id;
-    let parent = parentById.get(current) ?? current;
-    while (parent !== current) {
-      const grandparent = parentById.get(parent) ?? parent;
-      parentById.set(current, grandparent);
-      current = parent;
-      parent = grandparent;
-    }
-    return current;
-  };
-  for (const edge of graph.edges) {
-    if (!parentById.has(edge.source) || !parentById.has(edge.target)) continue;
-    const left = find(edge.source);
-    const right = find(edge.target);
-    if (left !== right) parentById.set(left < right ? right : left, left < right ? left : right);
-  }
-  const membersByRoot = new Map<string, string[]>();
-  for (const node of graph.nodes) {
-    const root = find(node.id);
-    membersByRoot.set(root, [...(membersByRoot.get(root) ?? []), node.id]);
-  }
-  return [...membersByRoot.values()]
-    .map((memberIds) => ({ anchor: [...memberIds].sort()[0] ?? "", memberIds }))
+  bucket: NetworkBucket;
+  expansion: NetworkExpansion;
+  index: NetworkIndex;
+}): NetworkScene {
+  const memberIds = toShownMemberIds({ bucket, expansion, index });
+  const tally = tallyFocusPairs({ bucket, index, shownIds: new Set(memberIds) });
+  const rankedNeighbors = [...tally.neighborPairs.entries()]
     .sort(
-      (left, right) =>
-        right.memberIds.length - left.memberIds.length || left.anchor.localeCompare(right.anchor),
+      ([leftId, left], [rightId, right]) =>
+        right.shown - left.shown || right.total - left.total || leftId.localeCompare(rightId),
     )
-    .map(({ anchor, memberIds }, index): NetworkBucket => ({
-      id: clusterId("components", anchor),
-      label: { index: index + 1, kind: "fragment" },
-      memberIds,
-    }));
-}
-
-function toGroupBuckets(graph: CharacterGraphView): NetworkBucket[] {
-  const nameById = new Map(
-    graph.clusters.flatMap((cluster) =>
-      cluster.kind === "group" ? [[cluster.id, cluster.name] as const] : [],
-    ),
-  );
-  const membersByKey = new Map<string, string[]>();
-  for (const node of graph.nodes) {
-    const key =
-      node.clusterId !== null && nameById.has(node.clusterId)
-        ? node.clusterId
-        : CLUSTER_ID.ungrouped;
-    membersByKey.set(key, [...(membersByKey.get(key) ?? []), node.id]);
-  }
-  return [...membersByKey.entries()].map(([key, memberIds]): NetworkBucket => ({
-    id: clusterId("group", key.toLowerCase()),
-    label:
-      key === CLUSTER_ID.ungrouped
-        ? { kind: "ungrouped" }
-        : { kind: "group", name: nameById.get(key) ?? null },
+    .flatMap(([bucketId]) => {
+      const neighbor = index.bucketById.get(bucketId);
+      return neighbor === undefined ? [] : [neighbor];
+    });
+  const neighbors = rankedNeighbors.slice(0, NETWORK_SCENE_BUDGET.focusNeighbors);
+  const neighborIds = new Set(neighbors.map((neighbor) => neighbor.id));
+  const hiddenMemberCount = bucket.memberIds.length - memberIds.length;
+  return {
+    bucket,
+    connections: [...tally.connectionIds]
+      .sort((left, right) => left.localeCompare(right))
+      .flatMap((connectionId) => {
+        const connection = index.connectionById.get(connectionId);
+        return connection === undefined ? [] : [connection];
+      }),
+    hasMoreMembers: hiddenMemberCount > 0,
+    hiddenMemberCount,
+    hiddenNeighborCount: rankedNeighbors.length - neighbors.length,
+    kind: "focus",
+    links: toNetworkAggregateLinks(tally.linkPairs.filter((pair) => neighborIds.has(pair.rightId))),
     memberIds,
-  }));
+    neighbors,
+  };
 }
 
-function toImportanceBuckets(graph: CharacterGraphView): NetworkBucket[] {
-  const membersByKey = new Map<
-    string,
-    { ids: string[]; importance: Nullable<BookCharacterImportance> }
-  >();
-  for (const node of graph.nodes) {
-    const key = node.importance ?? CLUSTER_ID.unassigned;
-    const current = membersByKey.get(key) ?? { ids: [], importance: node.importance };
-    current.ids.push(node.id);
-    membersByKey.set(key, current);
+function buildOverviewScene({
+  expansion,
+  index,
+}: {
+  expansion: NetworkExpansion;
+  index: NetworkIndex;
+}): NetworkScene {
+  const buckets = index.buckets.slice(
+    0,
+    NETWORK_SCENE_BUDGET.clusters * (1 + expansion.extraClusters),
+  );
+  const shownIds = new Set(buckets.map((bucket) => bucket.id));
+  const hiddenBucketCount = index.buckets.length - buckets.length;
+  return {
+    buckets,
+    hasMoreBuckets: hiddenBucketCount > 0,
+    hiddenBucketCount,
+    kind: "overview",
+    links: index.bucketLinks.filter(
+      (link) => shownIds.has(link.sourceId) && shownIds.has(link.targetId),
+    ),
+  };
+}
+
+function tallyFocusPairs({
+  bucket,
+  index,
+  shownIds,
+}: {
+  bucket: NetworkBucket;
+  index: NetworkIndex;
+  shownIds: ReadonlySet<string>;
+}): FocusPairTally {
+  const connectionIds = new Set<string>();
+  const linkPairs: NetworkLinkPair[] = [];
+  const neighborPairs = new Map<string, { shown: number; total: number }>();
+  for (const memberId of bucket.memberIds) {
+    const isShown = shownIds.has(memberId);
+    for (const connectionId of index.connectionIdsByNodeId.get(memberId) ?? []) {
+      const connection = index.connectionById.get(connectionId);
+      if (connection === undefined) continue;
+      const otherId = connection.sourceId === memberId ? connection.targetId : connection.sourceId;
+      const otherBucketId = index.bucketIdByNodeId.get(otherId);
+      if (otherBucketId === undefined) continue;
+      if (otherBucketId === bucket.id) {
+        if (isShown && shownIds.has(otherId)) connectionIds.add(connectionId);
+        continue;
+      }
+      const pairs = neighborPairs.get(otherBucketId) ?? { shown: 0, total: 0 };
+      neighborPairs.set(otherBucketId, {
+        shown: pairs.shown + (isShown ? 1 : 0),
+        total: pairs.total + 1,
+      });
+      if (!isShown) continue;
+      linkPairs.push({ connection, leftId: memberId, rightId: otherBucketId });
+    }
   }
-  return [...membersByKey.entries()].map(([key, entry]): NetworkBucket => ({
-    id: clusterId("importance", key),
-    label: { importance: entry.importance, kind: "importance" },
-    memberIds: entry.ids,
-  }));
+  return { connectionIds, linkPairs, neighborPairs };
+}
+
+function toShownMemberIds({
+  bucket,
+  expansion,
+  index,
+}: {
+  bucket: NetworkBucket;
+  expansion: NetworkExpansion;
+  index: NetworkIndex;
+}): string[] {
+  const focus =
+    expansion.focus.bucketId === bucket.id ? expansion.focus : EMPTY_NETWORK_EXPANSION.focus;
+  const memberIds = bucket.memberIds.slice(
+    0,
+    NETWORK_SCENE_BUDGET.focusMembers * (1 + focus.pages),
+  );
+  const shownIds = new Set(memberIds);
+  for (const id of focus.revealedIds) {
+    if (shownIds.has(id) || index.bucketIdByNodeId.get(id) !== bucket.id) continue;
+    shownIds.add(id);
+    memberIds.push(id);
+  }
+  return memberIds;
 }
