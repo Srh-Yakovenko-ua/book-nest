@@ -704,7 +704,10 @@
         "series_order_issue": "Series reading order needs a look: {items}",
         "series_order_issue_series": "Check the reading order in “{title}”",
         "queue_deadline": "Queue target date is close: {items}",
-        "queue_deadline_book": "Queue target date is close: “{title}”"
+        "queue_deadline_book": "Queue target date is close: “{title}”",
+        "delivery_pickup_expired": "Past the pickup date: {items}",
+        "series_order_issue_broken": "Series reading order is broken: {items}",
+        "series_order_issue_series_broken": "The reading order in “{title}” is broken"
       },
       "detail": {
         "expired": "Past the pickup date: {count}",
@@ -722,7 +725,8 @@
       "error": {
         "title": "Couldn't check what needs attention",
         "retry": "Try again"
-      }
+      },
+      "overdueSince": "Overdue since {date}"
     }
   },
   "notFound": {

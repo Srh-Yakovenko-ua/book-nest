@@ -704,7 +704,10 @@
         "series_order_issue": "Перевір порядок читання серій: {items}",
         "series_order_issue_series": "Перевір порядок читання в «{title}»",
         "queue_deadline": "Наближається бажана дата з черги: {items}",
-        "queue_deadline_book": "Наближається бажана дата: «{title}»"
+        "queue_deadline_book": "Наближається бажана дата: «{title}»",
+        "delivery_pickup_expired": "Термін зберігання минув: {items}",
+        "series_order_issue_broken": "Порушено порядок читання серій: {items}",
+        "series_order_issue_series_broken": "Порушено порядок читання в «{title}»"
       },
       "detail": {
         "expired": "Термін зберігання минув: {count}",
@@ -722,7 +725,8 @@
       "error": {
         "title": "Не вдалося перевірити, що потребує уваги",
         "retry": "Спробувати ще раз"
-      }
+      },
+      "overdueSince": "Прострочено з {date}"
     }
   },
   "notFound": {

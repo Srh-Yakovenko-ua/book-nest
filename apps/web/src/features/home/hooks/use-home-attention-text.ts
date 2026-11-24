@@ -12,6 +12,8 @@ type HomeAttentionText = {
   title: string;
 };
 
+type SeriesOrderGroup = Extract<HomeAttentionGroup, { reason: "series_order_issue" }>;
+
 export function useHomeAttentionText(group: HomeAttentionGroup): HomeAttentionText {
   const t = useTranslations("home.attention");
   const locale = useLocale();
@@ -31,6 +33,9 @@ export function useHomeAttentionText(group: HomeAttentionGroup): HomeAttentionTe
         title: t("reason.delivery_delayed", { items }),
       };
     case "delivery_pickup_expiring":
+      if (group.expiredCount >= group.count) {
+        return { detail: null, title: t("reason.delivery_pickup_expired", { items }) };
+      }
       return {
         detail: group.expiredCount > 0 ? t("detail.expired", { count: group.expiredCount }) : due,
         title: t("reason.delivery_pickup_expiring", { items }),
@@ -50,7 +55,13 @@ export function useHomeAttentionText(group: HomeAttentionGroup): HomeAttentionTe
         }),
       };
     case "loan_overdue":
-      return { detail: due, title: t(`reason.loan_overdue.${group.direction}`, { items }) };
+      return {
+        detail:
+          group.dueDate === null
+            ? null
+            : t("overdueSince", { date: formatDateShort(group.dueDate, locale) }),
+        title: t(`reason.loan_overdue.${group.direction}`, { items }),
+      };
     case "loan_return_soon":
       return { detail: due, title: t(`reason.loan_return_soon.${group.direction}`, { items }) };
     case "queue_deadline":
@@ -70,14 +81,28 @@ export function useHomeAttentionText(group: HomeAttentionGroup): HomeAttentionTe
             : t("reason.reading_stale", { items }),
       };
     case "series_order_issue":
-      return {
-        detail: null,
-        title:
-          group.seriesTitle === null
-            ? t("reason.series_order_issue", { items })
-            : t("reason.series_order_issue_series", { title: group.seriesTitle }),
-      };
+      return { detail: null, title: seriesOrderTitle({ group, items, t }) };
     default:
       return assertNever(group);
   }
+}
+
+function seriesOrderTitle({
+  group,
+  items,
+  t,
+}: {
+  group: SeriesOrderGroup;
+  items: string;
+  t: ReturnType<typeof useTranslations<"home.attention">>;
+}): string {
+  const isBroken = group.severity !== "low";
+  if (group.seriesTitle === null) {
+    return isBroken
+      ? t("reason.series_order_issue_broken", { items })
+      : t("reason.series_order_issue", { items });
+  }
+  return isBroken
+    ? t("reason.series_order_issue_series_broken", { title: group.seriesTitle })
+    : t("reason.series_order_issue_series", { title: group.seriesTitle });
 }

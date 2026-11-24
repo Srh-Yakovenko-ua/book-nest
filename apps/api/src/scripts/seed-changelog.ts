@@ -1615,6 +1615,30 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Помилки завантаження та повторна спроба",
     version: null,
   },
+  {
+    bodyEn:
+      "The home page has been rebuilt around your reading day. It greets you by the time of day, shows four counters for your books, reading, finished and favorites that open those books, and has an Add a book button. Currently reading shows your books in progress with page and percent, lets you update progress right from the card, turns into a carousel when there are several, marks a reread and gently reminds you after a week without progress. This week marks the days you read, counts the pages read this week and your days in a row, and opens the calendar. Reading goal shows your nearest goal with progress, pace and days left, or lets you set one right on the home page. What to read next suggests one book at a time, first from your reading queue, then the next book of a favorite series, then your library, says why it picked it and offers Another book. When you start a book from the queue, you still choose whether to remove it from the queue. Book memory of the day brings back one of your quotes or book notes, hides spoilers until you choose to show them and lets you mark the memory as a favorite. Needs attention collects overdue loans, parcels ready for pickup or running late, goals at risk, books without progress, series order issues and close queue target dates, and anything critical shows as a banner at the top. Recently on the shelf shows the books added in the last 30 days, and a new empty library opens with a welcome screen that helps you add your first book.",
+    bodyUk:
+      "Головну сторінку перебудовано навколо вашого читацького дня. Вона вітає вас відповідно до пори доби, показує чотири лічильники: книги, читаю, прочитано й улюблені, кожен з яких відкриває ці книги, а також кнопку «Додати книгу». У блоці «Зараз читаю» видно книги в процесі зі сторінкою та відсотком: прогрес можна оновити просто з картки, кілька книг гортаються каруселлю, перечитування позначене, а після тижня без прогресу з'являється м'яке нагадування. «Цей тиждень» позначає дні з читанням, рахує сторінки за тиждень і дні поспіль та веде до календаря. «Читацька ціль» показує найближчу ціль із прогресом, темпом і кількістю днів, що лишилися, або дає поставити ціль просто з головної. «Що читати далі» радить по одній книзі: спершу з черги читання, потім наступну книгу улюбленої серії, потім щось із бібліотеки, пояснює свій вибір і пропонує «Інша книга». Якщо почати читати книгу з черги, ви, як і раніше, вирішуєте, чи прибрати її з черги. «Книжковий спогад дня» щодня повертає одну з ваших цитат чи нотаток до книги, ховає спойлери, доки ви не захочете їх побачити, і дає позначити спогад як улюблений. «Потребує уваги» збирає прострочені позики, посилки, які можна забирати або які затримуються, цілі під загрозою, книги без прогресу, порушений порядок серій і близькі бажані дати з черги, а щось критичне показується банером угорі. «Нещодавно на полиці» показує книги, додані за останні 30 днів, а нова порожня бібліотека відкривається вітальним екраном, який допоможе додати першу книгу.",
+    category: "feature",
+    publishedAt: "2026-11-24T00:00:02.000Z",
+    slug: "home-reading-day",
+    titleEn: "New home page",
+    titleUk: "Нова головна сторінка",
+    version: null,
+  },
+  {
+    bodyEn:
+      "A goal's page is now easier to read. A compact header and a progress block at the top show where you are and where the plan says you should be today. The Overview tab shows your pace and expected finish, lists every risk reason, including the new warning that at the current pace the goal may finish late, and shows a checkpoint timeline that tells a checkpoint reached late from a missed one. On the Books tab, each filter shows how many books it holds, and books in progress show their page progress. The Activity tab groups events by day. A goal without a name now gets the same short title everywhere, such as Read 5 books, and on a phone Archive and Delete move into a menu.",
+    bodyUk:
+      "Сторінку цілі стало легше читати. Компактна шапка й блок прогресу вгорі показують, де ви зараз і де мали б бути сьогодні за планом. Вкладка «Огляд» показує темп і прогноз завершення, усі причини ризику, зокрема нове попередження, що за поточним темпом ціль може завершитися із запізненням, а також шкалу контрольних точок, де видно, яку точку досягнуто із запізненням, а яку пропущено. На вкладці «Книги» кожен фільтр показує, скільки в ньому книг, а для книг у процесі видно прогрес за сторінками. На вкладці «Історія» події згруповано за днями. Ціль без назви тепер скрізь має однакову коротку назву, наприклад «Прочитати 5 книг», а на телефоні «Архівувати» й «Видалити» перенесено в меню.",
+    category: "improvement",
+    publishedAt: "2026-11-24T00:00:01.000Z",
+    slug: "reading-goal-page-rework",
+    titleEn: "Reading goal page",
+    titleUk: "Сторінка читацької цілі",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

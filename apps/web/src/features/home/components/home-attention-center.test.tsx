@@ -134,6 +134,55 @@ describe("HomeAttentionCenter rows", () => {
   });
 });
 
+describe("HomeAttentionCenter wording", () => {
+  it("says the pickup date has passed when every expiring parcel is past it", () => {
+    showAttention({
+      groups: [
+        {
+          count: 1,
+          dueDate: null,
+          expiredCount: 1,
+          id: "delivery_pickup_expiring",
+          reason: "delivery_pickup_expiring",
+          severity: "high",
+          unit: "parcels",
+        },
+      ],
+      unavailableSources: [],
+    });
+
+    expect(
+      screen.getByRole("link", { name: /Термін зберігання минув: 1 посилка/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /Скоро завершиться зберігання/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("dates an overdue loan from the day it became overdue", () => {
+    showAttention({ groups: [overdueLoanGroup], unavailableSources: [] });
+
+    expect(screen.getByText("Прострочено з 20 лист.")).toBeInTheDocument();
+  });
+
+  it("tells a broken series order apart from one worth checking", () => {
+    showAttention({
+      groups: [
+        { ...seriesGroup, id: "series_order_issue:medium", severity: "medium" },
+        seriesGroup,
+      ],
+      unavailableSources: [],
+    });
+
+    expect(
+      screen.getByRole("link", { name: /Порушено порядок читання в «Дискосвіт»/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Перевір порядок читання в «Дискосвіт»/ }),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("HomeAttentionCenter overflow", () => {
   it("shows three rows and a more control for the remaining two", () => {
     showAttention({ groups: FIVE_GROUPS, unavailableSources: [] });
