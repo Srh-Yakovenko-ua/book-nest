@@ -13,6 +13,7 @@ PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 
 CODE="$(printf '%s' "$RAW" | perl -0777 -pe '
   s/<<-?\s*([\x27"]?)(\w+)\1([^\n]*)\n.*?\n[ \t]*\2[ \t]*(?=\n|$)/<<$2$3/gs;
+  s/(["\x27])(?:[^"\x27\n]*[\/\\])?gh\.exe\1/gh.exe/g;
   s/\x27[^\x27]*\x27/\x27\x27/g;
   s/"(?:[^"\\]|\\.)*"/""/gs;
 ')"
@@ -29,12 +30,13 @@ Q="[\"']?"
 S='(^|[;&|(`]|\$\()[[:space:]]*([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*'
 G='git([[:space:]]+(-C|-c)[[:space:]]+[^[:space:]]+|[[:space:]]+--no-pager|[[:space:]]+--(git-dir|work-tree)[= ][^[:space:]]+)*[[:space:]]+'
 A='([^|;&]*[[:space:]])?'
+GH='gh(\.exe)?[[:space:]]+'
 PNPM_OPTS='([[:space:]]+(-w|-r|-s|--recursive|--workspace-root|--silent|--filter[= ][^[:space:]]+|-F[[:space:]]+[^[:space:]]+|-C[[:space:]]+[^[:space:]]+|--dir[= ][^[:space:]]+))*'
 
 IS_COMMIT=0
 IS_PROSE=0
 in_code "${G}commit([[:space:]]|$)" && IS_COMMIT=1
-in_code "gh[[:space:]]+(pr|issue|release)[[:space:]]+(create|edit|comment|review)|${G}tag[[:space:]]+${A}-[amF]|${G}merge[[:space:]]+${A}-m|${G}commit-tree[[:space:]]+${A}-m" && IS_PROSE=1
+in_code "${GH}(pr|issue|release)[[:space:]]+(create|edit|comment|review)|${G}tag[[:space:]]+${A}-[amF]|${G}merge[[:space:]]+${A}-m|${G}commit-tree[[:space:]]+${A}-m" && IS_PROSE=1
 
 names_assistant() { printf '%s' "$1" | LC_ALL=C grep -qiE 'claude|(^|[^a-z])anthropic'; }
 
@@ -114,14 +116,14 @@ check_git() {
   if in_code "${G}push([[:space:]]|$)"; then
     check_push
   fi
-  if in_code "gh[[:space:]]+repo[[:space:]]+(delete|archive|edit|rename)" \
-    || in_code "gh[[:space:]]+api[[:space:]]+${A}(-X|--method)[[:space:]]*DELETE" \
-    || in_code "gh[[:space:]]+release[[:space:]]+delete"; then
+  if in_code "${GH}repo[[:space:]]+(delete|archive|edit|rename)" \
+    || in_code "${GH}api[[:space:]]+${A}(-X|--method)[[:space:]]*DELETE" \
+    || in_code "${GH}release[[:space:]]+delete"; then
     deny "Repository settings, deletions and releases are changed by the user, not from a session."
   fi
-  if in_code "gh[[:space:]]+pr[[:space:]]+merge${A}--admin"; then
+  if in_code "${GH}pr[[:space:]]+merge${A}--admin"; then
     ask "Merges a PR past branch protection (--admin)."
-  elif in_code "gh[[:space:]]+pr[[:space:]]+merge"; then
+  elif in_code "${GH}pr[[:space:]]+merge"; then
     ask "Merges a PR. Merging is the user's call."
   fi
 }
@@ -161,7 +163,7 @@ check_subagent_limits() {
   [ -z "$AGENT_ID" ] && return 0
   [ "$AGENT_TYPE" = "release-manager" ] && return 0
   local tooling="(${S}pnpm${PNPM_OPTS}[[:space:]]+(run[[:space:]]+|exec[[:space:]]+|dlx[[:space:]]+)?(typecheck|lint|format|test|build|knip|vitest|tsc|eslint|prettier|prisma|storybook|turbo|tsx|db|seed|gen|generate|backfill|dev|start|install|add|remove|update)([[:space:]:]|$)|${S}(npx|pnpx|bunx|npm|yarn)[[:space:]]|${S}(\./)?(node_modules/\.bin/)?(turbo|vitest|tsc|eslint|prettier|prisma|knip|tsx)([[:space:]]|$)|node[[:space:]]+${A}--import[[:space:]]+@swc-node|${S}((ba)?sh[[:space:]]+)?([^[:space:];&|]*/)?gates\.sh([[:space:]]|$))"
-  local vcs_write="(${G}(commit|push|pull|merge|rebase|reset|checkout|switch|restore|stash|cherry-pick|revert|tag|am|add|clean)([[:space:]]|$)|${G}branch[[:space:]]+${A}(-[dDmMcCf]|--delete|--move|--copy|--force)|${G}worktree[[:space:]]+(remove|prune)|gh[[:space:]]+(pr|issue|release|repo|workflow|run)[[:space:]]+(create|merge|edit|close|reopen|comment|review|delete|rerun|cancel|run|enable|disable|ready)|gh[[:space:]]+api[[:space:]]+${A}(-X|--method)[[:space:]]*(POST|PATCH|PUT|DELETE))"
+  local vcs_write="(${G}(commit|push|pull|merge|rebase|reset|checkout|switch|restore|stash|cherry-pick|revert|tag|am|add|clean)([[:space:]]|$)|${G}branch[[:space:]]+${A}(-[dDmMcCf]|--delete|--move|--copy|--force)|${G}worktree[[:space:]]+(remove|prune)|${GH}(pr|issue|release|repo|workflow|run)[[:space:]]+(create|merge|edit|close|reopen|comment|review|delete|rerun|cancel|run|enable|disable|ready)|${GH}api[[:space:]]+${A}(-X|--method)[[:space:]]*(POST|PATCH|PUT|DELETE))"
   if in_code "$tooling"; then
     deny "Subagents do not run gates, builds, codegen or package-manager tasks. Do not retry another way. Finish the edit, then list the check in your report under NOT_VERIFIED as 'MAIN: <exact command>'; the main loop runs it."
   fi
@@ -216,7 +218,7 @@ check_main_loop_gates() {
     deny "The user's last message says not to run: ${refused}. Run only the checks it asked for."
     return 0
   fi
-  printf '%s' "$last" | grep -qiE '(^|[[:space:]])/[a-z]|commit|push|коммит|коміт|пуш|прогон|прогна|gate|гейт|typecheck|lint|линт|лінт|тест|test|knip|vitest|ревью|review|релиз|реліз|release|build|билд|білд|провер|перевір|check|verify|ci([^a-z]|$)' \
+  printf '%s' "$last" | grep -qiE '(^|[[:space:]])/[a-z]|(^|[^a-z])(ship|prs?)([^a-z]|$)|merge|мёрдж|мер(д)?ж|доведи|commit|push|коммит|коміт|пуш|прогон|прогна|gate|гейт|typecheck|lint|линт|лінт|тест|test|knip|vitest|ревью|review|релиз|реліз|release|build|билд|білд|провер|перевір|check|verify|ci([^a-z]|$)' \
     || deny "No gates during development: they run once, when the user says commit / push / прогони. List it under NOT_VERIFIED as 'MAIN: <exact command>' for that moment."
 }
 
@@ -264,7 +266,7 @@ commit_message() {
   fi
   printf '%s' "$RAW" | perl -0777 -ne '
     my @parts;
-    my $short = /\bgh\s+(?:pr|issue|release)\s+\w+/ ? "|-[tbn]" : "";
+    my $short = /\bgh(?:\.exe)?["\x27]?\s+(?:pr|issue|release)\s+\w+/ ? "|-[tbn]" : "";
     while (/(?:^|\s)(?:-[a-zA-Z]*m|--message|--title|--body|--notes|--trailer$short)(?:=|\s+)(?:"((?:[^"\\]|\\.)*)"|\x27([^\x27]*)\x27|(\S+))/gs) {
       push @parts, defined $1 ? $1 : defined $2 ? $2 : $3;
     }
