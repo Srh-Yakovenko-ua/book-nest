@@ -8915,7 +8915,7 @@
     }
   },
   "goals": {
-    "fallbackName": "Read {count, plural, one {# book} other {# books}} by {date}",
+    "fallbackTitle": "Read {count, plural, one {# book} other {# books}}",
     "sidebar": {
       "title": "List goal",
       "emptyDescription": "Turn this themed list into a reading challenge.",
@@ -8926,6 +8926,7 @@
       "create": "Create a goal",
       "createNew": "Create a new goal",
       "view": "View the goal",
+      "deadline": "By {date}",
       "progress": "{completed} of {target} done",
       "progressLabel": "Goal progress: {percent}%",
       "remaining": "{count, plural, one {# book} other {# books}} to go",
@@ -8988,20 +8989,39 @@
       "metaTitle": "Reading goal",
       "back": "Back to “{name}”",
       "backToGoals": "Back to goals",
-      "deadline": "by {date}",
-      "daysLeft": "{count, plural, =0 {last day today} one {# day left} other {# days left}}",
-      "daysOverdue": "{count, plural, one {# day} other {# days}} overdue",
-      "completedOn": "finished {date}",
       "progress": "{completed} of {target, plural, one {# book} other {# books}}",
       "progressLabel": "Goal progress: {percent}%",
-      "remaining": "{count, plural, one {# book} other {# books}} to go",
       "countedEmpty": "No book has been counted yet",
       "countedEmptyHint": "Books that were in the list when the goal was created count once finished, from the day it was created through the deadline day, inclusive.",
       "finishedOn": "finished {date}",
-      "coverAlt": "Cover of “{title}”",
       "edit": "Edit the goal",
       "archive": "Archive",
       "delete": "Delete",
+      "moreActions": "More goal actions",
+      "meta": {
+        "deadline": "Deadline: {date}",
+        "list": "List: <link>{name}</link>"
+      },
+      "hero": {
+        "counted": "{remaining, plural, =0 {counted} one {counted · # book to go} other {counted · # books to go}}",
+        "actual": "Actual · {percent}%",
+        "plan": "Plan for today · {percent}%",
+        "daysLeft": "{count, plural, =0 {Last day today} one {# day to the deadline} other {# days to the deadline}}",
+        "elapsed": "{elapsed} of {total, plural, one {# day} other {# days}} passed",
+        "overdue": "{count, plural, one {# day} other {# days}} overdue",
+        "expired": "The deadline has passed",
+        "completedOn": "Reached on {date}",
+        "completed": "Goal reached",
+        "archivedOn": "Archived on {date}",
+        "archived": "Archived goal",
+        "closeToPlan": "Close to plan",
+        "gap": {
+          "ahead": "{count, plural, one {# book} other {# books}} more than needed: {expected, plural, one {# book was} other {# books were}} due by today.",
+          "onPlan": "Exactly as many as needed: {expected, plural, one {# book was} other {# books were}} due by today.",
+          "closeBehind": "A small lag of {count, plural, one {# book} other {# books}}: {expected, plural, one {# book was} other {# books were}} due by today.",
+          "behind": "{count, plural, =0 {The deadline is close} one {# book fewer than needed} other {# books fewer than needed}}: {expected, plural, one {# book was} other {# books were}} due by today."
+        }
+      },
       "tabs": {
         "label": "Goal sections",
         "overview": "Overview",
@@ -9009,68 +9029,66 @@
         "activity": "Activity"
       },
       "overview": {
-        "stats": {
-          "title": "Progress and time",
-          "counted": "Counted",
-          "countedValue": "{completed} of {target}",
-          "remaining": "To go",
-          "remainingValue": "{count, plural, one {# book} other {# books}}",
-          "elapsed": "Elapsed",
-          "elapsedValue": "{elapsed} of {total, plural, one {# day} other {# days}}",
-          "deadline": "Deadline"
-        },
         "pace": {
-          "title": "Pace",
-          "unavailable": "Pace is tracked only while the goal is active.",
-          "ahead": "{count, plural, one {# book} other {# books}} ahead",
-          "behind": "{count, plural, one {# book} other {# books}} behind",
-          "actual": "Your pace",
+          "title": "Pace and forecast",
+          "titleClosed": "Reading pace",
+          "actual": "Current pace",
           "required": "Pace needed",
           "booksPerDay": "{count, plural, one {# book} other {# books}} a day",
-          "daysPerBook": "{count, plural, one {# day} other {# days}} per book",
+          "daysPerBook": "{count, plural, =1 {1 book a day} one {1 book every # day} other {1 book every # days}}",
           "noData": "Not enough data yet",
           "lastCounted": "Last counted book",
           "noneCounted": "None yet",
           "daysAgo": "{count, plural, =0 {today} one {# day ago} other {# days ago}}"
         },
         "risk": {
-          "title": "Risks",
+          "title": "Goal status",
           "none": "No risks detected.",
           "reasons": {
             "behind_schedule": "Progress is behind the planned schedule",
             "deadline_soon": "The deadline is very close",
             "no_recent_progress": "No new book has been counted in a while",
-            "required_pace_high": "Making it in time needs a much faster reading pace"
-          }
+            "required_pace_high": "Making it in time needs a much faster reading pace",
+            "projected_late": "At the current pace, the goal may be finished {count, plural, one {# day} other {# days}} late"
+          },
+          "projectedLateUnknown": "At the current pace, the goal may be finished late",
+          "onTrackProjectedLate": "Close to plan on current progress, but the forecast shows a risk of finishing late",
+          "nextStep": "What you can do",
+          "requiredRate": "To reach the goal, read roughly {count, plural, =1 {1 book a day} one {1 book every # day} other {1 book every # days}}.",
+          "showRemaining": "See the books not counted yet"
         },
         "projection": {
-          "title": "Forecast",
-          "date": "At the current pace, you will reach the goal on {date}",
+          "title": "Expected finish",
           "early": "{count, plural, one {# day} other {# days}} before the deadline",
           "late": "{count, plural, one {# day} other {# days}} after the deadline",
-          "onDeadline": "right on the deadline day",
+          "onDeadline": "Right on the deadline day",
           "confidence": {
-            "high": "High-confidence forecast",
-            "medium": "Medium-confidence forecast"
+            "high": "Confidence: high",
+            "medium": "Confidence: medium"
           },
-          "low": "The forecast is rough for now: too few books are counted to name a date.",
-          "none": "Not enough data for a forecast yet."
+          "basis": "This is an estimate based on {count, plural, one {# counted book} other {# counted books}}, so the date may shift as your pace changes.",
+          "insufficient": "The forecast needs more counted books"
         },
         "checkpoints": {
           "title": "Checkpoints",
-          "target": "{count, plural, one {# book} other {# books}} by {date}",
+          "count": "{count, plural, one {# book} other {# books}}",
+          "due": "by {date}",
+          "summary": "{reached} of {total} reached",
+          "summaryWithLate": "{reached} of {total} reached, {late} late",
           "current": "{current} of {target} counted",
           "achievedOn": "reached on {date}",
-          "achievedLate": "late: reached afterwards, on {date}",
+          "achievedLate": "reached on {date}, {count, plural, one {# day} other {# days}} late",
           "status": {
             "achieved": "Reached",
+            "achieved_late": "Reached late",
             "upcoming": "Upcoming",
             "missed": "Missed"
           }
         },
         "recentActivity": {
           "title": "Recent events",
-          "showAll": "Full activity"
+          "showAll": "Full activity",
+          "empty": "No events for this goal yet."
         }
       },
       "books": {
@@ -9080,13 +9098,16 @@
           "counted": "Counted",
           "remaining": "Not counted yet"
         },
+        "snapshotSummary": "The goal's books were fixed when it was created.",
+        "snapshotMore": "Learn more",
         "snapshotHint": "The books were fixed when the goal was created, so later changes to the list don't affect it. A book counts if you finish it from the day the goal was created through the deadline day, inclusive.",
         "listLabel": "Goal books",
         "counted": "Counted",
         "notCounted": "Not counted",
         "finishedOutsideWindow": "finished {date}, outside the goal period",
         "finishedWithoutDate": "no finish date set",
-        "pages": "p. {current} of {total}",
+        "pages": "p. {current} of {total} · {percent}%",
+        "pagesProgressLabel": "{percent}% of the book read",
         "pagesWithoutTotal": "p. {current}",
         "loadMoreError": "Couldn't load more books",
         "empty": {
@@ -9110,6 +9131,7 @@
         "filterLabel": "Event type",
         "allTypes": "All events",
         "listLabel": "Goal history",
+        "recordedAt": "Event recorded at {time}",
         "loadMoreError": "Couldn't load more events",
         "empty": {
           "title": "No events yet",
@@ -9150,7 +9172,7 @@
       "errorDescription": "Check your connection and try again.",
       "archiveDialog": {
         "title": "Archive this goal?",
-        "description": "The goal will disappear from the list sidebar and stay reachable only by direct link. The list will be free to take a new goal.",
+        "description": "The goal will leave the list sidebar but stay in the goals catalog under “Archived”, read-only. The list will be free to take a new goal.",
         "cancel": "Cancel",
         "confirm": "Archive"
       },
@@ -9270,8 +9292,6 @@
       },
       "attention": {
         "title": "Need attention",
-        "listGoal": "Goal for the “{name}” list",
-        "untitled": "Untitled goal",
         "remaining": "{count, plural, one {# book} other {# books}} left",
         "reasons": {
           "behindSchedule": "Behind plan",
@@ -9279,12 +9299,13 @@
           "deadlineSoonDays": "{count, plural, =0 {Deadline is today} one {# day to the deadline} other {# days to the deadline}}",
           "noRecentProgress": "No newly counted books for a while",
           "noRecentProgressDays": "{count, plural, one {# day without a newly counted book} other {# days without a newly counted book}}",
-          "requiredPaceHigh": "Needs a high reading pace"
+          "requiredPaceHigh": "Needs a high reading pace",
+          "projectedLate": "At the current pace, the goal may be finished late",
+          "projectedLateDays": "At the current pace, the goal may be finished {count, plural, one {# day} other {# days}} late"
         }
       },
       "bestResult": {
         "title": "Best result",
-        "fallbackName": "Goal of {count, plural, one {# book} other {# books}}",
         "summary": "Reached on {date}, {count, plural, =0 {on the deadline day} one {# day before the deadline} other {# days before the deadline}}"
       }
     },
@@ -9767,7 +9788,7 @@
       "create": "Create a goal",
       "deadline": "By {date}",
       "deadlineLabel": "Deadline",
-      "fallbackName": "{count, plural, one {# book} other {# books}}",
+      "listLabel": "List",
       "progress": "{completed} of {target}",
       "progressLabel": "Goal progress: {percent}%",
       "progressBooks": "<num>{completed}</num> of <num>{target}</num> {target, plural, one {book} other {books}}",

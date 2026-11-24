@@ -299,6 +299,43 @@ describe("calculateReadingGoalMetrics rounding", () => {
   });
 });
 
+describe("calculateReadingGoalMetrics projected lateness", () => {
+  const onTrackButLate = {
+    goal: {
+      ...baseGoal,
+      createdDay: new Date("2026-09-01T00:00:00.000Z"),
+      deadline: parseIsoDate("2026-11-12"),
+    },
+    snapshotBooks: snapshotBooks(["2026-09-11", "2026-10-01", null, null, null]),
+    today: new Date("2026-10-05T12:00:00.000Z"),
+  } satisfies MetricsInput;
+
+  it("keeps the pace on_track for a goal two of five books in, thirty-five days into seventy-three", () => {
+    expect(calculateMetrics(onTrackButLate)).toMatchObject({
+      daysLeft: 38,
+      elapsedDays: 35,
+      pace: "on_track",
+      paceDeltaBooks: -0.4,
+      totalDays: 73,
+    });
+  });
+
+  it("forecasts that goal fifteen days late at medium confidence", () => {
+    expect(calculateMetrics(onTrackButLate)).toMatchObject({
+      projectedCompletionDate: "2026-11-27",
+      projectedDaysDelta: -15,
+      projectionConfidence: "medium",
+    });
+  });
+
+  it("rates that goal high on projected_late alone", () => {
+    expect(calculateMetrics(onTrackButLate)).toMatchObject({
+      riskLevel: "high",
+      riskReasons: ["projected_late"],
+    });
+  });
+});
+
 describe("calculateReadingGoalMetrics contract", () => {
   it("returns every metric the shared contract declares and nothing else", () => {
     const metrics = calculateMetrics({});
@@ -325,7 +362,7 @@ describe("calculateReadingGoalMetrics contract", () => {
       requiredBooksPerDay: 0.273,
       requiredDaysPerBook: 3.7,
       riskLevel: "medium",
-      riskReasons: ["behind_schedule"],
+      riskReasons: ["behind_schedule", "projected_late"],
       totalDays: 20,
     });
   });

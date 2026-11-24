@@ -11,7 +11,7 @@ import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { GOAL_SIGNAL_TONE, goalDisplayPercent } from "@/features/reading-goals";
+import { GOAL_SIGNAL_TONE, goalDisplayPercent, useGoalTitle } from "@/features/reading-goals";
 import { Link } from "@/i18n/navigation";
 import { formatDateLong } from "@/lib/format";
 
@@ -101,6 +101,9 @@ function GoalFacts({ primary }: { primary: GoalPrimary }) {
 
   return (
     <dl className="flex min-w-0 flex-wrap gap-x-4 gap-y-2 text-xs">
+      {primary.listName === null ? null : (
+        <GoalFact icon="list" label={t("listLabel")} value={primary.listName} />
+      )}
       <GoalFact
         icon="calendar"
         label={t("deadlineLabel")}
@@ -131,14 +134,13 @@ function GoalFacts({ primary }: { primary: GoalPrimary }) {
 
 function GoalHeadline({ primary }: { primary: GoalPrimary }) {
   const t = useTranslations("statistics.goal");
+  const goalTitle = useGoalTitle();
   const percent = goalDisplayPercent(primary.metrics);
   const pace = primary.metrics.pace;
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-sm font-medium break-words text-foreground">
-        {primary.name ?? primary.listName ?? t("fallbackName", { count: primary.targetCount })}
-      </span>
+      <span className="text-sm font-medium break-words text-foreground">{goalTitle(primary)}</span>
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <p className="text-base font-medium text-foreground">
           {t.rich("progressBooks", {
@@ -167,7 +169,14 @@ function GoalHeadline({ primary }: { primary: GoalPrimary }) {
           </Badge>
         </div>
       </div>
-      <Progress aria-label={t("progressLabel", { percent })} className="h-2" value={percent} />
+      <Progress
+        aria-label={t("progressLabel", { percent })}
+        aria-valuemax={100}
+        aria-valuemin={0}
+        aria-valuenow={percent}
+        className="h-2"
+        value={percent}
+      />
     </div>
   );
 }

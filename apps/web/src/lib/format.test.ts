@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { formatRelativeTime } from "@/lib/format";
+import { formatRelativeTime, formatTimeInZone } from "@/lib/format";
 
 const REFERENCE_INSTANT = new Date(2026, 6, 30, 12, 0, 0);
 
@@ -81,5 +81,39 @@ describe("formatRelativeTime", () => {
 
   it("counts calendar days back to a date-only string", () => {
     expect(formatRelativeTime("2026-07-27", "uk")).toBe("3 дні тому");
+  });
+});
+
+describe("formatTimeInZone", () => {
+  it.each([
+    { expected: "9:05", timeZone: "Europe/Kyiv" },
+    { expected: "7:05", timeZone: "UTC" },
+  ])("shows the same instant as $expected on the $timeZone clock", ({ expected, timeZone }) => {
+    const time = formatTimeInZone({ instant: "2026-11-24T07:05:00.000Z", locale: "uk", timeZone });
+
+    expect(time).toBe(expected);
+  });
+
+  it.each([
+    { expected: "15:30", locale: "uk" },
+    { expected: "3:30 PM", locale: "en" },
+  ])("writes an afternoon time as $expected in $locale", ({ expected, locale }) => {
+    const time = formatTimeInZone({
+      instant: "2026-11-24T13:30:00.000Z",
+      locale,
+      timeZone: "Europe/Kyiv",
+    });
+
+    expect(time).toBe(expected);
+  });
+
+  it("writes a morning time with AM in en", () => {
+    const time = formatTimeInZone({
+      instant: "2026-11-24T07:05:00.000Z",
+      locale: "en",
+      timeZone: "America/New_York",
+    });
+
+    expect(time).toBe("2:05 AM");
   });
 });

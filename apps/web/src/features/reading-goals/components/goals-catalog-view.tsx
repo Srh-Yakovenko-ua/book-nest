@@ -126,7 +126,8 @@ function GoalsContent({
     case "empty": {
       const emptyState: EmptyStateEntry = {
         desc: t("empty.description"),
-        illu: "empty-lists",
+        illu: "reading-goals/goal-first-goal-empty-state",
+        illuSize: "sm",
         primary: { icon: "plus", label: t("empty.create") },
         title: t("empty.title"),
       };

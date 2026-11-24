@@ -286,6 +286,58 @@ describe("ReadingGoalActivityRecorder.recordUpdate", () => {
     });
   });
 
+  it("writes a deadline change's uncount before its count and numbers the count after the uncount", async () => {
+    const { activityRepository, recorder } = buildRecorder([
+      { bookId: bookId(0), qualifiedFinishedAt: parseIsoDate("2026-08-05") },
+      { bookId: bookId(1), qualifiedFinishedAt: null },
+      { bookId: bookId(2), qualifiedFinishedAt: parseIsoDate("2026-08-03") },
+    ]);
+
+    await recorder.recordUpdate({
+      changes: [
+        {
+          bookId: bookId(1),
+          previousQualifiedFinishedAt: parseIsoDate("2026-08-25"),
+          qualifiedFinishedAt: null,
+        },
+        {
+          bookId: bookId(2),
+          previousQualifiedFinishedAt: null,
+          qualifiedFinishedAt: parseIsoDate("2026-08-03"),
+        },
+      ],
+      goal: goal({ deadline: parseIsoDate("2026-08-20"), targetCount: 5 }),
+      previous: goal({ targetCount: 5 }),
+      timeZone: TIME_ZONE,
+      today: TODAY,
+      tx: TX,
+    });
+
+    expect(rowsOf(activityRepository)).toEqual([
+      {
+        bookId: null,
+        goalId: GOAL_ID,
+        metadata: { from: "2026-09-01", to: "2026-08-20" },
+        type: "deadline_changed",
+        userId: USER_ID,
+      },
+      {
+        bookId: bookId(1),
+        goalId: GOAL_ID,
+        metadata: { previousFinishedAt: "2026-08-25", reason: "deadline_changed" },
+        type: "book_uncounted",
+        userId: USER_ID,
+      },
+      {
+        bookId: bookId(2),
+        goalId: GOAL_ID,
+        metadata: { completedCount: 2, finishedAt: "2026-08-03", targetCount: 5 },
+        type: "book_counted",
+        userId: USER_ID,
+      },
+    ]);
+  });
+
   it("treats a moved finished date as neither counted nor uncounted", async () => {
     const { activityRepository, recorder } = buildRecorder([
       { bookId: bookId(0), qualifiedFinishedAt: parseIsoDate("2026-08-14") },

@@ -4,7 +4,7 @@ import type { Nullable, ReadingGoalActivityView } from "@app/shared";
 import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
@@ -28,12 +28,10 @@ import type { GoalActivityType } from "../model/goal-detail-query";
 import { useGoalActivity } from "../api/use-goal-activity";
 import { resolveGoalCursorContent } from "../model/goal-cursor-content";
 import { GOAL_DETAIL_QUERY } from "../model/goal-detail-query";
-import { GoalActivityRow, GoalActivityRowSkeleton } from "./goal-activity-row";
+import { GoalActivityTimeline, GoalActivityTimelineSkeleton } from "./goal-activity-timeline";
 
 const GOAL_ACTIVITY_TAB = {
   allTypes: "all",
-  list: "flex flex-col divide-y divide-border rounded-xl border border-border bg-card",
-  skeletonCount: 6,
 } as const;
 
 type GoalActivityContentProps = {
@@ -47,12 +45,14 @@ type GoalActivityContentProps = {
 
 type GoalActivityTabProps = {
   activityType: Nullable<GoalActivityType>;
+  focusListOnMount: boolean;
   goalId: string;
   onActivityTypeChange: (activityType: Nullable<GoalActivityType>) => void;
 };
 
 export function GoalActivityTab({
   activityType,
+  focusListOnMount,
   goalId,
   onActivityTypeChange,
 }: GoalActivityTabProps) {
@@ -62,6 +62,10 @@ export function GoalActivityTab({
   const activity = useGoalActivity({ activityType, goalId });
   const listRegionRef = useRef<HTMLElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(listRegionRef);
+  const [attachListRegion] = useState(() => (element: Nullable<HTMLElement>) => {
+    listRegionRef.current = element;
+    if (focusListOnMount) element?.focus();
+  });
 
   const content = resolveGoalCursorContent({
     hasNextPage: activity.hasNextPage,
@@ -111,7 +115,7 @@ export function GoalActivityTab({
       <section
         aria-label={t("listLabel")}
         className={cn("flex min-w-0 flex-col gap-4", RETRY_FOCUS_RING.onTarget)}
-        ref={listRegionRef}
+        ref={attachListRegion}
         tabIndex={-1}
       >
         <GoalActivityContent
@@ -174,11 +178,7 @@ function GoalActivityContent({
     case "items":
       return (
         <>
-          <ul className={GOAL_ACTIVITY_TAB.list}>
-            {content.items.map((item) => (
-              <GoalActivityRow item={item} key={item.id} />
-            ))}
-          </ul>
+          <GoalActivityTimeline items={content.items} />
           <InfiniteScrollFooter
             errorLabel={t("loadMoreError")}
             onLoadMore={onLoadMore}
@@ -187,13 +187,7 @@ function GoalActivityContent({
         </>
       );
     case "loading":
-      return (
-        <ul aria-busy className={GOAL_ACTIVITY_TAB.list}>
-          {Array.from({ length: GOAL_ACTIVITY_TAB.skeletonCount }, (_, index) => (
-            <GoalActivityRowSkeleton key={index} />
-          ))}
-        </ul>
-      );
+      return <GoalActivityTimelineSkeleton />;
     default:
       return assertNever(content);
   }

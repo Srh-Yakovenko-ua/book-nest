@@ -32,6 +32,8 @@ const translateHint = createTranslator({
   namespace: "statistics.progressHint",
 });
 
+const translateReadingGoals = createTranslator({ locale: "uk", messages, namespace: "goals" });
+
 const VARIANTS = ["compact", "full"] as const;
 
 const LONG_NAME =
@@ -98,6 +100,23 @@ describe("ReadingGoalCard", () => {
 
     expect(await screen.findByRole("tooltip")).toHaveTextContent(LONG_NAME);
   });
+
+  it.each(VARIANTS)(
+    "titles an unnamed goal by its target and names its list apart in the %s card",
+    (variant) => {
+      renderWithProviders(
+        <ReadingGoalCard
+          goal={goalWith({ primary: { listName: "Класика", name: null, targetCount: 12 } })}
+          variant={variant}
+        />,
+      );
+
+      expect(
+        screen.getByText(translateReadingGoals("fallbackTitle", { count: 12 })),
+      ).toBeInTheDocument();
+      expect(screen.getByText("Класика")).toBeInTheDocument();
+    },
+  );
 
   it("labels the pace instead of repeating the goal status", () => {
     renderWithProviders(<ReadingGoalCard goal={goalWith()} variant="full" />);
@@ -192,9 +211,12 @@ describe("ReadingGoalCard", () => {
       );
 
       expect(screen.getByText("99%")).toBeInTheDocument();
-      expect(
-        screen.getByRole("progressbar", { name: translateGoal("progressLabel", { percent: 99 }) }),
-      ).toBeInTheDocument();
+      const bar = screen.getByRole("progressbar", {
+        name: translateGoal("progressLabel", { percent: 99 }),
+      });
+      expect(bar).toHaveAttribute("aria-valuenow", "99");
+      expect(bar).toHaveAttribute("aria-valuemin", "0");
+      expect(bar).toHaveAttribute("aria-valuemax", "100");
       expect(screen.queryByText("100%")).not.toBeInTheDocument();
     },
   );
@@ -211,9 +233,12 @@ describe("ReadingGoalCard", () => {
     );
 
     expect(screen.getByText("100%")).toBeInTheDocument();
-    expect(
-      screen.getByRole("progressbar", { name: translateGoal("progressLabel", { percent: 100 }) }),
-    ).toBeInTheDocument();
+    const bar = screen.getByRole("progressbar", {
+      name: translateGoal("progressLabel", { percent: 100 }),
+    });
+    expect(bar).toHaveAttribute("aria-valuenow", "100");
+    expect(bar).toHaveAttribute("aria-valuemin", "0");
+    expect(bar).toHaveAttribute("aria-valuemax", "100");
   });
 
   it.each(VARIANTS)("shows a goal with no books read yet at 0%% in the %s card", (variant) => {
@@ -228,9 +253,12 @@ describe("ReadingGoalCard", () => {
     );
 
     expect(screen.getByText("0%")).toBeInTheDocument();
-    expect(
-      screen.getByRole("progressbar", { name: translateGoal("progressLabel", { percent: 0 }) }),
-    ).toBeInTheDocument();
+    const bar = screen.getByRole("progressbar", {
+      name: translateGoal("progressLabel", { percent: 0 }),
+    });
+    expect(bar).toHaveAttribute("aria-valuenow", "0");
+    expect(bar).toHaveAttribute("aria-valuemin", "0");
+    expect(bar).toHaveAttribute("aria-valuemax", "100");
     expect(screen.queryByText(goalText.empty)).not.toBeInTheDocument();
   });
 

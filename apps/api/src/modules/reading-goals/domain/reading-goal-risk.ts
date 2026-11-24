@@ -1,12 +1,13 @@
 import type {
   Nullable,
   ReadingGoalPace,
+  ReadingGoalProjectionConfidence,
   ReadingGoalRiskLevel,
   ReadingGoalRiskReason,
   ReadingGoalStatus,
 } from "@app/shared";
 
-import { ReadingGoalRiskReasonSchema } from "@app/shared";
+import { ReadingGoalRiskLevelSchema, ReadingGoalRiskReasonSchema } from "@app/shared";
 
 import { READING_GOAL_RISK } from "./reading-goal.constants.js";
 
@@ -15,6 +16,14 @@ export type ReadingGoalRiskAssessment = {
   riskReasons: ReadingGoalRiskReason[];
 };
 
+type ProjectedLatenessInput = {
+  projectedDaysDelta: Nullable<number>;
+  projectionConfidence: ReadingGoalProjectionConfidence;
+  status: ReadingGoalStatus;
+};
+
+type ProjectedLatenessRiskLevel = Exclude<ReadingGoalRiskLevel, "critical">;
+
 type RequiredPaceInput = {
   actualBooksPerDay: number;
   elapsedPercent: number;
@@ -22,14 +31,13 @@ type RequiredPaceInput = {
   requiredBooksPerDay: Nullable<number>;
 };
 
-type RiskInput = RequiredPaceInput & {
-  daysLeft: Nullable<number>;
-  daysSinceLastCounted: Nullable<number>;
-  elapsedDays: number;
-  pace: Nullable<ReadingGoalPace>;
-  projectedDaysDelta: Nullable<number>;
-  status: ReadingGoalStatus;
-};
+type RiskInput = ProjectedLatenessInput &
+  RequiredPaceInput & {
+    daysLeft: Nullable<number>;
+    daysSinceLastCounted: Nullable<number>;
+    elapsedDays: number;
+    pace: Nullable<ReadingGoalPace>;
+  };
 
 type RiskLevelInput = {
   pace: Nullable<ReadingGoalPace>;
@@ -38,13 +46,52 @@ type RiskLevelInput = {
   status: ReadingGoalStatus;
 };
 
+const PROJECTED_LATE_REASON = ReadingGoalRiskReasonSchema.enum.projected_late;
+
 export function calculateReadingGoalRisk(input: RiskInput): ReadingGoalRiskAssessment {
   const { pace, projectedDaysDelta, status } = input;
-  const riskReasons = collectRiskReasons(input);
+  const projectedLatenessLevel = resolveProjectedLatenessRiskLevel(input);
+  const riskReasons = collectRiskReasons({ ...input, projectedLatenessLevel });
+  const reasonsRiskLevel = resolveReasonsRiskLevel({
+    pace,
+    projectedDaysDelta,
+    riskReasons: riskReasons.filter((reason) => reason !== PROJECTED_LATE_REASON),
+    status,
+  });
   return {
-    riskLevel: resolveRiskLevel({ pace, projectedDaysDelta, riskReasons, status }),
+    riskLevel: strongerRiskLevel({ left: reasonsRiskLevel, right: projectedLatenessLevel }),
     riskReasons,
   };
+}
+
+export function resolveProjectedLateDays({
+  projectedDaysDelta,
+  projectionConfidence,
+  status,
+}: ProjectedLatenessInput): Nullable<number> {
+  if (
+    status !== "active" ||
+    !READING_GOAL_RISK.projectedLateTrustedConfidence[projectionConfidence] ||
+    projectedDaysDelta === null ||
+    projectedDaysDelta >= 0
+  ) {
+    return null;
+  }
+  return Math.abs(projectedDaysDelta);
+}
+
+export function resolveProjectedLatenessRiskLevel(
+  input: ProjectedLatenessInput,
+): ProjectedLatenessRiskLevel {
+  const lateDays = resolveProjectedLateDays(input);
+  const { high, low, medium } = READING_GOAL_RISK.projectedLateMinimumDays;
+  if (lateDays === null || lateDays < low) {
+    return "none";
+  }
+  if (lateDays >= high) {
+    return "high";
+  }
+  return lateDays >= medium ? "medium" : "low";
 }
 
 function collectRiskReasons({
@@ -54,10 +101,13 @@ function collectRiskReasons({
   elapsedDays,
   elapsedPercent,
   pace,
+  projectedLatenessLevel,
   remainingCount,
   requiredBooksPerDay,
   status,
-}: RiskInput): ReadingGoalRiskReason[] {
+}: RiskInput & {
+  projectedLatenessLevel: ProjectedLatenessRiskLevel;
+}): ReadingGoalRiskReason[] {
   const isActive = status === "active";
   const hasRemainingBooks = remainingCount > 0;
   const isPresent: Record<ReadingGoalRiskReason, boolean> = {
@@ -73,6 +123,7 @@ function collectRiskReasons({
       elapsedDays >= READING_GOAL_RISK.noRecentProgressElapsedDays &&
       daysSinceLastCounted !== null &&
       daysSinceLastCounted >= READING_GOAL_RISK.noRecentProgressDays,
+    projected_late: projectedLatenessLevel !== "none",
     required_pace_high:
       isActive &&
       hasHighRequiredPace({
@@ -114,7 +165,7 @@ function hasLowRisk({
   );
 }
 
-function resolveRiskLevel({
+function resolveReasonsRiskLevel({
   pace,
   projectedDaysDelta,
   riskReasons,
@@ -135,4 +186,15 @@ function resolveRiskLevel({
     return "low";
   }
   return "none";
+}
+
+function strongerRiskLevel({
+  left,
+  right,
+}: {
+  left: ReadingGoalRiskLevel;
+  right: ReadingGoalRiskLevel;
+}): ReadingGoalRiskLevel {
+  const severity = ReadingGoalRiskLevelSchema.options;
+  return severity.indexOf(right) > severity.indexOf(left) ? right : left;
 }

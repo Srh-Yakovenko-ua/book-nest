@@ -1,7 +1,11 @@
 import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
-import { ReadingGoalDetailSchema, ReadingGoalsOverviewSchema } from "@app/shared";
+import {
+  ReadingGoalActivityResponseSchema,
+  ReadingGoalDetailSchema,
+  ReadingGoalsOverviewSchema,
+} from "@app/shared";
 import { subDays } from "date-fns";
 import { Client } from "pg";
 import request from "supertest";
@@ -85,6 +89,25 @@ const KYIV_NIGHT = Object.freeze({
   openDeadline: "2026-11-20",
   timezone: "Europe/Kyiv",
   utcDay: "2026-11-15",
+});
+
+const LATE_FORECAST = Object.freeze({
+  countedFinishDays: ["2026-03-11", "2026-03-26"],
+  createdAt: new Date("2026-03-01T12:00:00.000Z"),
+  credentials: { email: "late-forecast-reader@example.com", password: "Supersecret123!" },
+  deadline: "2026-05-12",
+  listName: "Late forecast list",
+  onTrackDeadline: "2026-05-04",
+  targetCount: 5,
+  today: new Date("2026-04-04T12:00:00.000Z"),
+});
+
+const SAME_DAY_FINISHES = Object.freeze({
+  deadline: "2026-07-10",
+  finishedDay: "2026-06-10",
+  firstFinishAt: new Date("2026-06-10T09:01:00.000Z"),
+  goalCreatedAt: new Date("2026-06-10T09:00:00.000Z"),
+  secondFinishAt: new Date("2026-06-10T09:02:00.000Z"),
 });
 
 const CURSOR_PAGE_SCHEMA = Object.freeze({
@@ -394,6 +417,35 @@ function getOverview(accessToken: string) {
     .set("Authorization", `Bearer ${accessToken}`);
 }
 
+async function loginWith(credentials: { email: string; password: string }): Promise<string> {
+  const response = await request(app.getHttpServer()).post("/api/auth/login").send(credentials);
+  return z.object({ accessToken: z.string() }).parse(response.body).accessToken;
+}
+
+async function markBookFinished({
+  bookId,
+  finishedIsoDate,
+  userId,
+}: {
+  bookId: string;
+  finishedIsoDate: string;
+  userId: string;
+}): Promise<void> {
+  await prisma.bookReadingProgress.create({
+    data: { bookId, finishedAt: parseIsoDate(finishedIsoDate) },
+  });
+  await insertFinishedReadingCycle(prisma, { bookId, finishedIsoDate, userId });
+}
+
+function orderUuids({ first, second }: { first: string; second: string }): {
+  higher: string;
+  lower: string;
+} {
+  return first.localeCompare(second) < 0
+    ? { higher: second, lower: first }
+    : { higher: first, lower: second };
+}
+
 function patchGoal({
   accessToken,
   body,
@@ -442,6 +494,24 @@ function readActivityTypes(body: unknown): string[] {
 
 function readBookTitles(body: unknown): string[] {
   return CURSOR_PAGE_SCHEMA.books.parse(body).items.map((item) => item.title);
+}
+
+async function readCountedOrdinals({
+  accessToken,
+  goalId,
+}: {
+  accessToken: string;
+  goalId: string;
+}): Promise<{ bookId: Nullable<string>; completedCount: unknown }[]> {
+  const response = await getGoalActivity({
+    accessToken,
+    goalId,
+    query: { type: "book_counted" },
+  });
+  return ReadingGoalActivityResponseSchema.parse(response.body).items.map((item) => ({
+    bookId: item.book?.id ?? null,
+    completedCount: item.metadata?.completedCount,
+  }));
 }
 
 function readItemIds(body: unknown): string[] {
@@ -640,6 +710,46 @@ async function seedOverviewGoals(user: AuthenticatedUser): Promise<{
     expired: expired.goalId,
     medium: medium.goalId,
   };
+}
+
+async function seedProjectedLateGoals(): Promise<{
+  accessToken: string;
+  lateGoalId: string;
+  onTrackGoalId: string;
+}> {
+  vi.useFakeTimers({ now: LATE_FORECAST.createdAt, toFake: ["Date"] });
+  const reader = await registerReaderInTimezone({
+    context,
+    overrides: LATE_FORECAST.credentials,
+    timezone: "UTC",
+  });
+  const lateListId = await createList(reader.userId, LATE_FORECAST.listName);
+  for (let index = 0; index < LATE_FORECAST.targetCount; index += 1) {
+    await addBookToList({
+      finishedIsoDate: LATE_FORECAST.countedFinishDays[index],
+      listId: lateListId,
+      position: index,
+      title: `Late forecast book ${String(index)}`,
+      userId: reader.userId,
+    });
+  }
+  const lateGoalId = await createGoalOrThrow({
+    accessToken: reader.accessToken,
+    deadline: LATE_FORECAST.deadline,
+    listId: lateListId,
+    targetCount: LATE_FORECAST.targetCount,
+  });
+
+  vi.setSystemTime(LATE_FORECAST.today);
+  const accessToken = await loginWith(LATE_FORECAST.credentials);
+  const onTrackListId = await seedList({ bookCount: 1, user: reader });
+  const onTrackGoalId = await createGoalOrThrow({
+    accessToken,
+    deadline: LATE_FORECAST.onTrackDeadline,
+    listId: onTrackListId,
+    targetCount: 1,
+  });
+  return { accessToken, lateGoalId, onTrackGoalId };
 }
 
 function snapshotRows(goalId: string) {
@@ -2010,6 +2120,68 @@ describe("GET /api/goals/overview", () => {
   });
 });
 
+describe("a goal whose forecast finishes fifteen days after its deadline", () => {
+  let accessToken: string;
+  let lateGoalId: string;
+  let onTrackGoalId: string;
+
+  beforeEach(async () => {
+    ({ accessToken, lateGoalId, onTrackGoalId } = await seedProjectedLateGoals());
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("keeps the pace on track while the late forecast alone raises the risk to high", async () => {
+    const response = await getGoal({ accessToken, goalId: lateGoalId });
+    const detail = ReadingGoalDetailSchema.parse(response.body);
+
+    expect(detail).toMatchObject({
+      completedCount: 2,
+      daysLeft: 38,
+      elapsedPercent: 47.9,
+      pace: "on_track",
+      projectedCompletionDate: "2026-05-27",
+      projectedDaysDelta: -15,
+      projectionConfidence: "medium",
+      riskLevel: "high",
+      riskReasons: ["projected_late"],
+    });
+  });
+
+  it("puts the goal into the attention block with the late days of its forecast", async () => {
+    const response = await getOverview(accessToken);
+    const overview = ReadingGoalsOverviewSchema.parse(response.body);
+
+    expect(overview.attention).toEqual([
+      expect.objectContaining({
+        goalId: lateGoalId,
+        messageData: {
+          daysLeft: 38,
+          lateDays: 15,
+          projectedCompletionDate: "2026-05-27",
+          remainingCount: 3,
+          targetCount: 5,
+        },
+        reason: "projected_late",
+        severity: "high",
+      }),
+    ]);
+    expect(overview.active).toEqual({ needsAttention: 1, onTrack: 1, total: 2 });
+  });
+
+  it("ranks it above an on-track goal without risk that has fewer days left", async () => {
+    const response = await getGoals({ accessToken, query: { sort: "risk_desc" } });
+    const { items } = CURSOR_PAGE_SCHEMA.metrics.parse(response.body);
+
+    expect(items.map(({ id, riskLevel }) => ({ id, riskLevel }))).toEqual([
+      { id: lateGoalId, riskLevel: "high" },
+      { id: onTrackGoalId, riskLevel: "none" },
+    ]);
+  });
+});
+
 describe("catalog query load", () => {
   it("keeps the goal catalog query count flat as the number of goals grows", async () => {
     await seedGoals({ count: CATALOG_QUERY_LOAD.lightGoalCount, user: owner });
@@ -2140,6 +2312,40 @@ describe("GET /api/goals/:goalId/books", () => {
     ]);
   });
 
+  it("pages same-day counted books by snapshot position before book id, each once", async () => {
+    const listId = await createList(owner.userId);
+    const first = await createBook({
+      finishedIsoDate: TODAY,
+      title: "Same day one",
+      userId: owner.userId,
+    });
+    const second = await createBook({
+      finishedIsoDate: TODAY,
+      title: "Same day two",
+      userId: owner.userId,
+    });
+    const { higher, lower } = orderUuids({ first, second });
+    await prisma.bookListItem.create({ data: { bookId: higher, listId, position: 0 } });
+    await prisma.bookListItem.create({ data: { bookId: lower, listId, position: 1 } });
+    await addBookToList({ listId, position: 2, title: "Still unread", userId: owner.userId });
+    const goalId = await createGoalOrThrow({
+      accessToken: owner.accessToken,
+      listId,
+      targetCount: 3,
+    });
+
+    const collected = await collectPages((cursor) =>
+      getGoalBooks({
+        accessToken: owner.accessToken,
+        goalId,
+        query: { limit: 1, scope: "counted", ...(cursor === null ? {} : { cursor }) },
+      }),
+    );
+
+    expect(collected.ids).toEqual([higher, lower]);
+    expect(collected.pages).toBe(2);
+  });
+
   it("rejects a forged cursor", async () => {
     const { goalId } = await seedDetailFixture(owner);
 
@@ -2203,6 +2409,82 @@ describe("GET /api/goals/:goalId/activity", () => {
 
     expect(collected.types.length).toBeGreaterThanOrEqual(4);
     expect(collected.pages).toBeGreaterThan(1);
+  });
+
+  describe("books finished on the same day", () => {
+    let goalId: string;
+    let higher: string;
+    let lower: string;
+    let reader: AuthenticatedUser;
+
+    beforeEach(async () => {
+      vi.useFakeTimers({ now: SAME_DAY_FINISHES.goalCreatedAt, toFake: ["Date"] });
+      reader = await registerReaderInTimezone({ context, timezone: "UTC" });
+      const listId = await createList(reader.userId);
+      const first = await addBookToList({
+        listId,
+        position: 0,
+        title: "Same day one",
+        userId: reader.userId,
+      });
+      const second = await addBookToList({
+        listId,
+        position: 1,
+        title: "Same day two",
+        userId: reader.userId,
+      });
+      await addBookToList({ listId, position: 2, title: "Still unread", userId: reader.userId });
+      ({ higher, lower } = orderUuids({ first, second }));
+      goalId = await createGoalOrThrow({
+        accessToken: reader.accessToken,
+        deadline: SAME_DAY_FINISHES.deadline,
+        listId,
+        targetCount: 3,
+      });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("lists the later finish on top with completed count 2 even when its book id sorts first", async () => {
+      vi.setSystemTime(SAME_DAY_FINISHES.firstFinishAt);
+      await markBookFinished({
+        bookId: higher,
+        finishedIsoDate: SAME_DAY_FINISHES.finishedDay,
+        userId: reader.userId,
+      });
+      await syncService.syncBooks({ bookIds: [higher], userId: reader.userId });
+      vi.setSystemTime(SAME_DAY_FINISHES.secondFinishAt);
+      await markBookFinished({
+        bookId: lower,
+        finishedIsoDate: SAME_DAY_FINISHES.finishedDay,
+        userId: reader.userId,
+      });
+      await syncService.syncBooks({ bookIds: [lower], userId: reader.userId });
+
+      expect(await readCountedOrdinals({ accessToken: reader.accessToken, goalId })).toEqual([
+        { bookId: lower, completedCount: 2 },
+        { bookId: higher, completedCount: 1 },
+      ]);
+    });
+
+    it("lists two books counted by one sync with the higher completed count on top", async () => {
+      vi.setSystemTime(SAME_DAY_FINISHES.firstFinishAt);
+      for (const bookId of [lower, higher]) {
+        await markBookFinished({
+          bookId,
+          finishedIsoDate: SAME_DAY_FINISHES.finishedDay,
+          userId: reader.userId,
+        });
+      }
+      await syncService.syncBooks({ bookIds: [lower, higher], userId: reader.userId });
+
+      expect(await readCountedOrdinals({ accessToken: reader.accessToken, goalId })).toEqual([
+        { bookId: higher, completedCount: 2 },
+        { bookId: lower, completedCount: 1 },
+      ]);
+    });
   });
 });
 

@@ -173,7 +173,7 @@
   /* Semantic colors provide small points of visual variety */
   --success: oklch(0.49 0.1 145);
   --success-soft: oklch(0.95 0.04 145);
-  --warning: oklch(0.56 0.12 70);
+  --warning: oklch(0.54 0.12 70);
   --warning-soft: oklch(0.96 0.045 82);
   --error: oklch(0.485 0.181 29.9);
   --error-soft: oklch(0.951 0.024 23.8);

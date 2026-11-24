@@ -30,6 +30,8 @@ export type EmptyStateIllustration =
   | "empty-search"
   | "empty-series"
   | "empty-tags"
-  | "error-generic";
+  | "error-generic"
+  | "reading-goals/goal-first-goal-empty-state"
+  | "reading-goals/goal-no-counted-books-yet";
 
 export type EmptyStateIllustrationSize = "lg" | "md" | "sm";

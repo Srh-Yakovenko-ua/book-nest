@@ -1,6 +1,7 @@
 import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
+import { ReadingGoalActivityResponseSchema } from "@app/shared";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -30,6 +31,19 @@ const TODAY = toIsoDate(new Date());
 const TOMORROW = addDaysToIsoDate(TODAY, 1);
 const NEXT_WEEK = addDaysToIsoDate(TODAY, 7);
 const NEXT_MONTH = addDaysToIsoDate(TODAY, 30);
+
+const BOOK_ID = {
+  alpha: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  beta: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+  delta: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+  gamma: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+} as const;
+
+type HistoryEntry = {
+  completedCount: unknown;
+  title: Nullable<string>;
+  type: string;
+};
 
 type SnapshotEntry = {
   bookId: string;
@@ -66,6 +80,27 @@ function activityCount({ goalId, type }: { goalId: string; type: string }): Prom
   return prisma.readingGoalActivity.count({ where: { goalId, type } });
 }
 
+async function activityHistory({
+  goalId,
+  type,
+}: {
+  goalId: string;
+  type?: string;
+}): Promise<HistoryEntry[]> {
+  const response = await request(app.getHttpServer())
+    .get(`/api/goals/${goalId}/activity`)
+    .query(type === undefined ? {} : { type })
+    .set("Authorization", `Bearer ${owner.accessToken}`);
+  if (response.status !== 200) {
+    throw new Error(`activity history failed with ${String(response.status)}`);
+  }
+  return ReadingGoalActivityResponseSchema.parse(response.body).items.map((item) => ({
+    completedCount: item.metadata?.completedCount ?? null,
+    title: item.book?.title ?? null,
+    type: item.type,
+  }));
+}
+
 async function activityMetadata({
   goalId,
   type,
@@ -84,28 +119,32 @@ async function activityTypes(goalId: string): Promise<string[]> {
 
 async function addBookToList({
   finishedIsoDate,
+  id,
   listId,
   position,
   title,
   userId,
 }: {
   finishedIsoDate?: string;
+  id?: string;
   listId: string;
   position: number;
   title: string;
   userId: string;
 }): Promise<string> {
-  const bookId = await createBook({ finishedIsoDate, title, userId });
+  const bookId = await createBook({ finishedIsoDate, id, title, userId });
   await prisma.bookListItem.create({ data: { bookId, listId, position } });
   return bookId;
 }
 
 async function createBook({
   finishedIsoDate,
+  id,
   title,
   userId,
 }: {
   finishedIsoDate?: string;
+  id?: string;
   title: string;
   userId: string;
 }): Promise<string> {
@@ -113,6 +152,7 @@ async function createBook({
     data: {
       firstAuthorName: "",
       genres: [],
+      id,
       readingStatus: finishedIsoDate === undefined ? "not_started" : "finished",
       title,
       userId,
@@ -187,6 +227,16 @@ async function restoreBook(title: string): Promise<void> {
 
 function runSync(bookIds: string[]): Promise<void> {
   return syncService.syncBooks({ bookIds, userId: owner.userId });
+}
+
+async function seedGoalWithBooks(
+  books: { finishedIsoDate?: string; id: string; title: string }[],
+): Promise<string> {
+  const listId = await createList(owner.userId);
+  for (const [position, book] of books.entries()) {
+    await addBookToList({ ...book, listId, position, userId: owner.userId });
+  }
+  return createGoalOrThrow({ accessToken: owner.accessToken, listId, targetCount: 5 });
 }
 
 async function seedTwoBookGoal({
@@ -426,5 +476,90 @@ describe("ReadingGoalSyncService.syncBooks", () => {
     const afterRestore = await qualifiedDate({ bookId: alphaId, goalId });
 
     expect({ afterRestore, afterTrash }).toEqual({ afterRestore: TODAY, afterTrash: null });
+  });
+});
+
+describe("ReadingGoalSyncService.syncBooks book_counted ordinals", () => {
+  it("numbers two books finished on the same day in the order they were recorded", async () => {
+    const goalId = await seedGoalWithBooks([
+      { id: BOOK_ID.beta, title: "Beta" },
+      { id: BOOK_ID.alpha, title: "Alpha" },
+    ]);
+
+    await setFinishedAt({ bookId: BOOK_ID.beta, isoDate: TODAY });
+    await runSync([BOOK_ID.beta]);
+    await setFinishedAt({ bookId: BOOK_ID.alpha, isoDate: TODAY });
+    await runSync([BOOK_ID.alpha]);
+
+    expect(await activityHistory({ goalId, type: "book_counted" })).toEqual([
+      { completedCount: 2, title: "Alpha", type: "book_counted" },
+      { completedCount: 1, title: "Beta", type: "book_counted" },
+    ]);
+  });
+
+  it("gives a book finished before the already counted ones the next count, not its date position", async () => {
+    const goalId = await seedGoalWithBooks([
+      { id: BOOK_ID.alpha, title: "Alpha" },
+      { finishedIsoDate: TOMORROW, id: BOOK_ID.beta, title: "Beta" },
+      { finishedIsoDate: NEXT_WEEK, id: BOOK_ID.gamma, title: "Gamma" },
+    ]);
+
+    await setFinishedAt({ bookId: BOOK_ID.alpha, isoDate: TODAY });
+    await runSync([BOOK_ID.alpha]);
+
+    expect(await activityHistory({ goalId, type: "book_counted" })).toEqual([
+      { completedCount: 3, title: "Alpha", type: "book_counted" },
+      { completedCount: 2, title: "Gamma", type: "book_counted" },
+      { completedCount: 1, title: "Beta", type: "book_counted" },
+    ]);
+  });
+
+  it("recounts an uncounted book at the count it brings the goal back to", async () => {
+    const goalId = await seedGoalWithBooks([
+      { finishedIsoDate: TODAY, id: BOOK_ID.alpha, title: "Alpha" },
+      { finishedIsoDate: TOMORROW, id: BOOK_ID.beta, title: "Beta" },
+    ]);
+
+    await setFinishedAt({ bookId: BOOK_ID.alpha, isoDate: null });
+    await runSync([BOOK_ID.alpha]);
+    await setFinishedAt({ bookId: BOOK_ID.alpha, isoDate: TODAY });
+    await runSync([BOOK_ID.alpha]);
+
+    expect(await activityHistory({ goalId })).toEqual([
+      { completedCount: 2, title: "Alpha", type: "book_counted" },
+      { completedCount: null, title: "Alpha", type: "book_uncounted" },
+      { completedCount: 2, title: "Beta", type: "book_counted" },
+      { completedCount: 1, title: "Alpha", type: "book_counted" },
+      { completedCount: null, title: null, type: "goal_created" },
+    ]);
+  });
+
+  it("lists books counted by one sync newest first, counting down from the goal's completed count", async () => {
+    const goalId = await seedGoalWithBooks([
+      { finishedIsoDate: TODAY, id: BOOK_ID.delta, title: "Delta" },
+      { id: BOOK_ID.alpha, title: "Alpha" },
+      { id: BOOK_ID.beta, title: "Beta" },
+      { id: BOOK_ID.gamma, title: "Gamma" },
+    ]);
+
+    await setFinishedAt({ bookId: BOOK_ID.alpha, isoDate: TODAY });
+    await setFinishedAt({ bookId: BOOK_ID.beta, isoDate: TODAY });
+    await setFinishedAt({ bookId: BOOK_ID.gamma, isoDate: TODAY });
+    await runSync([BOOK_ID.gamma, BOOK_ID.alpha, BOOK_ID.beta]);
+    const goalResponse = await getGoal({ accessToken: owner.accessToken, goalId });
+    const goalCount: unknown = goalResponse.body.completedCount;
+
+    expect({
+      goalCount,
+      history: await activityHistory({ goalId, type: "book_counted" }),
+    }).toEqual({
+      goalCount: 4,
+      history: [
+        { completedCount: 4, title: "Gamma", type: "book_counted" },
+        { completedCount: 3, title: "Beta", type: "book_counted" },
+        { completedCount: 2, title: "Alpha", type: "book_counted" },
+        { completedCount: 1, title: "Delta", type: "book_counted" },
+      ],
+    });
   });
 });

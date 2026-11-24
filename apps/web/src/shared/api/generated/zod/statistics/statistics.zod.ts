@@ -5807,6 +5807,7 @@ export const StatisticsControllerGetOverviewResponse = zod.object({
                 "deadline_soon",
                 "no_recent_progress",
                 "required_pace_high",
+                "projected_late",
               ]),
             ),
             totalDays: zod

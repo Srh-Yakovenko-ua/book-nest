@@ -121,6 +121,15 @@ describe("ListGoalCard states", () => {
     expect(screen.queryByRole("button", { name: "Створити ціль" })).not.toBeInTheDocument();
   });
 
+  it("titles an unnamed goal by its target and dates it on a line of its own", async () => {
+    respondToGoal = () => jsonResponse(makeReadingGoalView({ name: null, targetCount: 8 }));
+
+    renderCard();
+
+    expect(await screen.findByText("Прочитати 8 книг")).toBeInTheDocument();
+    expect(screen.getByText("До 30 лист.")).toBeInTheDocument();
+  });
+
   it("holds the progress at 99% while one book of the goal is still unread", async () => {
     respondToGoal = () =>
       jsonResponse(

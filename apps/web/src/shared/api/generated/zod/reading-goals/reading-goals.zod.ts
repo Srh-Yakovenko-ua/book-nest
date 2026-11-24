@@ -368,7 +368,13 @@ export const ReadingGoalsControllerListResponse = zod.object({
         .nullable(),
       riskLevel: zod.enum(["none", "low", "medium", "high", "critical"]),
       riskReasons: zod.array(
-        zod.enum(["behind_schedule", "deadline_soon", "no_recent_progress", "required_pace_high"]),
+        zod.enum([
+          "behind_schedule",
+          "deadline_soon",
+          "no_recent_progress",
+          "required_pace_high",
+          "projected_late",
+        ]),
       ),
       totalDays: zod
         .int()
@@ -444,6 +450,7 @@ export const ReadingGoalsControllerOverviewResponse = zod.object({
         "deadline_soon",
         "no_recent_progress",
         "required_pace_high",
+        "projected_late",
       ]),
       severity: zod.enum(["medium", "high", "critical"]),
     }),
@@ -725,7 +732,13 @@ export const ReadingGoalsControllerFindOneResponse = zod.object({
     .nullable(),
   riskLevel: zod.enum(["none", "low", "medium", "high", "critical"]),
   riskReasons: zod.array(
-    zod.enum(["behind_schedule", "deadline_soon", "no_recent_progress", "required_pace_high"]),
+    zod.enum([
+      "behind_schedule",
+      "deadline_soon",
+      "no_recent_progress",
+      "required_pace_high",
+      "projected_late",
+    ]),
   ),
   totalDays: zod
     .int()
