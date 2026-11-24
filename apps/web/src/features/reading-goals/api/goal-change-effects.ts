@@ -3,22 +3,23 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { QueryKeyMatcher } from "@/lib/query-keys";
 
 import { matchesStatisticsKey } from "@/features/statistics/api/statistics-keys";
-import { matchesAnyKeyPrefix, retireQueries } from "@/lib/query-keys";
+import { matchesAnyKeyPrefix, matchesApiRoot, retireQueries } from "@/lib/query-keys";
 
 import { goalKeys } from "./goal-keys";
 
 const GOAL_KEY_FAMILIES = {
   goals: matchesAnyKeyPrefix(goalKeys.root),
+  home: matchesApiRoot("/api/home"),
   statistics: matchesStatisticsKey,
 } as const satisfies Record<string, QueryKeyMatcher>;
 
 type GoalKeyFamily = keyof typeof GOAL_KEY_FAMILIES;
 
 const GOAL_CHANGE_EFFECTS = {
-  archived: ["goals", "statistics"],
-  created: ["goals", "statistics"],
-  deleted: ["goals", "statistics"],
-  updated: ["goals", "statistics"],
+  archived: ["goals", "statistics", "home"],
+  created: ["goals", "statistics", "home"],
+  deleted: ["goals", "statistics", "home"],
+  updated: ["goals", "statistics", "home"],
 } as const satisfies Record<string, readonly GoalKeyFamily[]>;
 
 type GoalChange = keyof typeof GOAL_CHANGE_EFFECTS;

@@ -197,6 +197,15 @@ const AttentionShipmentsRowSchema = z.object({
   withoutTrackingShipmentsCount: z.number().int(),
 });
 
+const ReadyForPickupNotExpiringRowSchema = z.object({
+  count: z.number().int(),
+  nearestPickupUntil: z.iso.date().nullable(),
+});
+
+export type ReadyForPickupNotExpiringRow = z.infer<typeof ReadyForPickupNotExpiringRowSchema>;
+
+const NO_READY_FOR_PICKUP: ReadyForPickupNotExpiringRow = { count: 0, nearestPickupUntil: null };
+
 const AwaitingDispatchRowSchema = z.object({
   awaitingDispatchOrdersCount: z.number().int(),
   earliestAwaitingOrderDate: z.iso.date().nullable(),
@@ -813,6 +822,34 @@ export class DeliveryReadRepository {
       sameDayCount: Math.max(sameDayTotal - 1, 0),
       shipment: datedShipment,
     };
+  }
+
+  async readyForPickupNotExpiring({
+    bounds,
+    userId,
+  }: {
+    bounds: DeliveryDateBounds;
+    userId: string;
+  }): Promise<ReadyForPickupNotExpiringRow> {
+    const categories = shipmentScopedCategorySql(toIsoBounds(bounds));
+    const readyNotExpiring = Prisma.sql`(${categories.readyForPickup} AND NOT ${categories.pickupExpiring})`;
+    const rows = await this.prisma.$queryRaw(Prisma.sql`
+      SELECT
+        (count(*) FILTER (WHERE ${readyNotExpiring}))::int AS "count",
+        (min(shipment.pickup_until) FILTER (WHERE ${readyNotExpiring}))::text AS "nearestPickupUntil"
+      FROM shipments shipment
+      JOIN book_orders book_order ON book_order.id = shipment.order_id
+      WHERE book_order.user_id = ${userId}::uuid
+        AND shipment.status = ANY(${[...SHIPMENT_ACTIVE_STATUSES]}::text[])
+        AND EXISTS (
+          SELECT 1
+          FROM book_order_items item
+          JOIN books book ON book.id = item.book_id
+          WHERE item.shipment_id = shipment.id AND ${ACTIVE_ITEM_SQL}
+        )
+    `);
+
+    return z.array(ReadyForPickupNotExpiringRowSchema).parse(rows)[0] ?? NO_READY_FOR_PICKUP;
   }
 
   private async loadRowsInOrder({

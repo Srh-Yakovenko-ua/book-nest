@@ -57,15 +57,14 @@ export function useIgnoreSeriesOrderIssue() {
   return useMutation<SeriesOrderIssuesView, ApiError, string>({
     mutationFn: async (fingerprint) =>
       SeriesOrderIssuesViewSchema.parse(await seriesOrderCheckControllerIgnoreIssue(fingerprint)),
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: readingQueueKeys.seriesOrderIssues.all }),
+    onSettled: () => bookChangeEffects.seriesOrderChanged(queryClient),
   });
 }
 
 export function useInvalidateSeriesOrderIssues() {
   const queryClient = useQueryClient();
 
-  return () => queryClient.invalidateQueries({ queryKey: readingQueueKeys.seriesOrderIssues.all });
+  return () => bookChangeEffects.seriesOrderChanged(queryClient);
 }
 
 export function useSeriesOrderCheckPreference(seriesId: string) {
@@ -122,7 +121,7 @@ export function useSetSeriesOrderCheckPreference() {
         await seriesOrderPreferenceControllerSetPreference(seriesId, { enabled }),
       ),
     onSuccess: (_data, { seriesId }) => {
-      void queryClient.invalidateQueries({ queryKey: readingQueueKeys.seriesOrderIssues.all });
+      void bookChangeEffects.seriesOrderChanged(queryClient);
       void queryClient.invalidateQueries({
         queryKey: seriesKeys.orderCheckPreference(seriesId),
       });

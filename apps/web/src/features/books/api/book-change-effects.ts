@@ -17,7 +17,7 @@ import { goalKeys } from "@/features/reading-goals/api/goal-keys";
 import { matchesSeriesKey } from "@/features/series/api/series-keys";
 import { matchesStatisticsKey } from "@/features/statistics/api/statistics-keys";
 import { matchesTagAggregateKey, matchesTagPickerKey } from "@/features/tags/api/tags-keys";
-import { matchesAnyKeyPrefix, retireQueries } from "@/lib/query-keys";
+import { matchesAnyKeyPrefix, matchesApiRoot, retireQueries } from "@/lib/query-keys";
 
 import { bookKeys, matchesBookDetail, matchesBookKey } from "./book-keys";
 import {
@@ -32,6 +32,7 @@ const BOOK_KEY_FAMILIES = {
   delivery: matchesDeliveryKey,
   genreDerived: matchesGenreDerivedKey,
   goals: matchesAnyKeyPrefix(goalKeys.root),
+  home: matchesApiRoot("/api/home"),
   lists: matchesAnyKeyPrefix(listKeys.root),
   loans: matchesLoans,
   publisherCatalog: matchesPublisherCatalogKey,
@@ -63,6 +64,7 @@ const BOOK_CHANGE_EFFECTS = {
     "tagPickers",
     "delivery",
     "loans",
+    "home",
   ],
   dedicationFavorited: ["books"],
   edited: [
@@ -78,10 +80,11 @@ const BOOK_CHANGE_EFFECTS = {
     "recentGenres",
     "characters",
     "delivery",
+    "home",
   ],
-  favorited: ["books", "lists", "series"],
-  listed: ["books", "lists", "statistics", "goals"],
-  listEdited: ["books"],
+  favorited: ["books", "lists", "series", "home"],
+  listed: ["books", "lists", "statistics", "goals", "home"],
+  listEdited: ["books", "home"],
   loanChanged: [
     "books",
     "readingQueue",
@@ -91,10 +94,19 @@ const BOOK_CHANGE_EFFECTS = {
     "publisherCatalog",
     "genreDerived",
     "loans",
+    "home",
   ],
-  pagesCounted: ["books", "readingQueue", "lists", "series", "statistics"],
-  queueChanged: ["books", "readingQueue", "lists", "series", "publisherCatalog", "genreDerived"],
-  queueReordered: ["books", "readingQueue"],
+  pagesCounted: ["books", "readingQueue", "lists", "series", "statistics", "home"],
+  queueChanged: [
+    "books",
+    "readingQueue",
+    "lists",
+    "series",
+    "publisherCatalog",
+    "genreDerived",
+    "home",
+  ],
+  queueReordered: ["books", "readingQueue", "home"],
   removed: [
     "books",
     "readingQueue",
@@ -109,6 +121,7 @@ const BOOK_CHANGE_EFFECTS = {
     "characters",
     "delivery",
     "loans",
+    "home",
   ],
   seriesChanged: [
     "books",
@@ -118,6 +131,7 @@ const BOOK_CHANGE_EFFECTS = {
     "statistics",
     "publisherCatalog",
     "characters",
+    "home",
   ],
   seriesCreated: ["series", "statistics"],
   statusChanged: [
@@ -130,9 +144,10 @@ const BOOK_CHANGE_EFFECTS = {
     "publisherCatalog",
     "genreDerived",
     "delivery",
+    "home",
   ],
   tagged: ["books", "lists", "tagAggregates", "tagPickers"],
-  thumbnailReady: ["books"],
+  thumbnailReady: ["books", "home"],
   wishlistOutdated: ["books", "wishlist"],
 } as const satisfies Record<string, readonly BookKeyFamily[]>;
 
@@ -201,4 +216,21 @@ function readingQueueChanged(
   });
 }
 
-export const bookChangeEffects = { bookSaved, booksChanged, booksRemoved, readingQueueChanged };
+function seriesOrderChanged(queryClient: QueryClient): Promise<void> {
+  const seriesOrderViews = [
+    matchesAnyKeyPrefix(readingQueueKeys.seriesOrderIssues.all),
+    BOOK_KEY_FAMILIES.home,
+  ];
+
+  return queryClient.invalidateQueries({
+    predicate: (query) => seriesOrderViews.some((matches) => matches(query)),
+  });
+}
+
+export const bookChangeEffects = {
+  bookSaved,
+  booksChanged,
+  booksRemoved,
+  readingQueueChanged,
+  seriesOrderChanged,
+};

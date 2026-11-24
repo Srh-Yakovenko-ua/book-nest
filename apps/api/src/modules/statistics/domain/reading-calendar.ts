@@ -100,6 +100,16 @@ export function countEligibleDays({ from, to }: { from: string; to: string }): n
   return differenceInCalendarDays(parseISO(to), parseISO(from)) + 1;
 }
 
+export function enumerateDays({ from, to }: { from: string; to: string }): string[] {
+  const days: string[] = [];
+  let cursor = from;
+  while (cursor <= to) {
+    days.push(cursor);
+    cursor = format(addDays(parseISO(cursor), 1), ISO_DAY_FORMAT);
+  }
+  return days;
+}
+
 export function findMostActiveWeekday(activity: DayActivity[]): Nullable<MostActiveWeekday> {
   const totals = new Map<number, MostActiveWeekday>();
 
@@ -141,16 +151,6 @@ function compareWeekdays(left: MostActiveWeekday, right: MostActiveWeekday): num
     return right.activeDays - left.activeDays;
   }
   return left.weekday - right.weekday;
-}
-
-function enumerateDays({ from, to }: { from: string; to: string }): string[] {
-  const days: string[] = [];
-  let cursor = from;
-  while (cursor <= to) {
-    days.push(cursor);
-    cursor = format(addDays(parseISO(cursor), 1), ISO_DAY_FORMAT);
-  }
-  return days;
 }
 
 function groupPreviews(

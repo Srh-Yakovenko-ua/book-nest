@@ -10,9 +10,9 @@ import type { SummaryErrorState } from "./summary-error";
 import { SummaryError } from "./summary-error";
 
 const { summaryError } = messages.common;
-const customTitle = messages.home.delivery.error.title;
-const customRetryLabel = messages.home.delivery.error.retry;
-const customRegionLabel = messages.home.delivery.title;
+const customTitle = messages.home.memory.error.title;
+const customRetryLabel = messages.home.summary.retry;
+const customRegionLabel = messages.home.summary.label;
 const summaryText = messages.books.library.summary.total;
 const skeletonText = messages.common.loading;
 
