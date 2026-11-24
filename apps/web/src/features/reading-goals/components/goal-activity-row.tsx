@@ -7,10 +7,12 @@ import { useLocale, useTranslations } from "next-intl";
 import type { UiIconName } from "@/components/icons";
 
 import { UiIcon } from "@/components/icons";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useProfileTimeZone } from "@/features/settings";
 import { Link } from "@/i18n/navigation";
 import { assertNever } from "@/lib/assert-never";
-import { formatDate, formatTime } from "@/lib/format";
+import { formatDate, formatTimeInZone } from "@/lib/format";
+import { instantToIsoDay } from "@/lib/iso-day";
+import { cn } from "@/lib/utils";
 
 import type { GoalActivityDetail } from "../model/goal-activity-detail";
 
@@ -28,58 +30,63 @@ const GOAL_ACTIVITY_ROW = {
     goal_renamed: "edit",
     target_changed: "hash",
   } satisfies Record<ReadingGoalActivityType, UiIconName>,
-  iconBadge: "mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-accent text-icon",
+  iconBadge: "grid size-8 shrink-0 place-items-center rounded-full bg-accent text-icon",
   iconSize: 16,
 } as const;
+
+type GoalActivityIconProps = {
+  className?: string;
+  type: ReadingGoalActivityType;
+};
 
 type GoalActivityRowProps = {
   item: ReadingGoalActivityView;
 };
 
+export function GoalActivityIcon({ className, type }: GoalActivityIconProps) {
+  return (
+    <span className={cn(GOAL_ACTIVITY_ROW.iconBadge, className)}>
+      <UiIcon aria-hidden name={GOAL_ACTIVITY_ROW.icon[type]} size={GOAL_ACTIVITY_ROW.iconSize} />
+    </span>
+  );
+}
+
 export function GoalActivityRow({ item }: GoalActivityRowProps) {
-  const tType = useTranslations("goals.activityType");
   const locale = useLocale();
-  const detail = toGoalActivityDetail(item);
+  const timeZone = useProfileTimeZone();
+  const day = formatDate(instantToIsoDay({ instant: item.createdAt, timeZone }), locale);
+  const time = formatTimeInZone({ instant: item.createdAt, locale, timeZone });
 
   return (
     <li className="flex items-start gap-3 px-4 py-3">
-      <span className={GOAL_ACTIVITY_ROW.iconBadge}>
-        <UiIcon
-          aria-hidden
-          name={GOAL_ACTIVITY_ROW.icon[item.type]}
-          size={GOAL_ACTIVITY_ROW.iconSize}
-        />
-      </span>
+      <GoalActivityIcon className="mt-0.5" type={item.type} />
       <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <p className="text-sm font-medium text-ink">{tType(item.type)}</p>
-          {item.book === null ? null : (
-            <Link
-              className="w-fit max-w-full rounded-sm text-sm break-words text-muted-foreground no-underline outline-none hover:text-primary hover:underline focus-visible:text-primary focus-visible:ring-3 focus-visible:ring-ring/50"
-              href={`/books/${item.book.id}`}
-            >
-              {item.book.title}
-            </Link>
-          )}
-          {detail === null ? null : <GoalActivityDetailText detail={detail} />}
-        </div>
+        <GoalActivitySummary item={item} />
         <time className="shrink-0 text-xs text-muted-foreground" dateTime={item.createdAt}>
-          {`${formatDate(item.createdAt, locale)} · ${formatTime(item.createdAt, locale)}`}
+          {`${day} · ${time}`}
         </time>
       </div>
     </li>
   );
 }
 
-export function GoalActivityRowSkeleton() {
+export function GoalActivitySummary({ item }: GoalActivityRowProps) {
+  const tType = useTranslations("goals.activityType");
+  const detail = toGoalActivityDetail(item);
+
   return (
-    <li className="flex items-start gap-3 px-4 py-3">
-      <Skeleton className="size-8 shrink-0 rounded-full" />
-      <div className="flex flex-1 flex-col gap-2">
-        <Skeleton className="h-4 w-1/3 rounded-md" />
-        <Skeleton className="h-3 w-2/3 rounded-md" />
-      </div>
-    </li>
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <p className="text-sm font-medium text-ink">{tType(item.type)}</p>
+      {item.book === null ? null : (
+        <Link
+          className="w-fit max-w-full rounded-sm text-sm break-words text-muted-foreground no-underline outline-none hover:text-primary hover:underline focus-visible:text-primary focus-visible:ring-3 focus-visible:ring-ring/50"
+          href={`/books/${item.book.id}`}
+        >
+          {item.book.title}
+        </Link>
+      )}
+      {detail === null ? null : <GoalActivityDetailText detail={detail} />}
+    </div>
   );
 }
 

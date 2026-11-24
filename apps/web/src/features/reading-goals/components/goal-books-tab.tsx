@@ -1,10 +1,10 @@
 "use client";
 
-import type { ReadingGoalBookView } from "@app/shared";
+import type { Nullable, ReadingGoalBookView } from "@app/shared";
 import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import type { EmptyStateAction, EmptyStateEntry } from "@/lib/empty-states";
 
@@ -12,11 +12,13 @@ import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { ChipGroup } from "@/components/ui/chip-group";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { assertNever } from "@/lib/assert-never";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 import { cn } from "@/lib/utils";
 
+import type { GoalBooksScopeCounts } from "../model/goal-books-scope-counts";
 import type { GoalCursorContent } from "../model/goal-cursor-content";
 import type { GoalBooksScope } from "../model/goal-detail-query";
 
@@ -25,7 +27,7 @@ import { resolveGoalCursorContent } from "../model/goal-cursor-content";
 import { GoalBookRow, GoalBookRowSkeleton } from "./goal-book-row";
 
 const GOAL_BOOKS_TAB = {
-  list: "flex flex-col gap-2",
+  list: "grid grid-cols-1 gap-2 xl:grid-cols-2",
   scopes: ["all", "counted", "remaining"],
   skeletonCount: 6,
 } as const;
@@ -40,16 +42,28 @@ type GoalBooksContentProps = {
 };
 
 type GoalBooksTabProps = {
+  counts: GoalBooksScopeCounts;
+  focusListOnMount: boolean;
   goalId: string;
   onScopeChange: (scope: GoalBooksScope) => void;
   scope: GoalBooksScope;
 };
 
-export function GoalBooksTab({ goalId, onScopeChange, scope }: GoalBooksTabProps) {
+export function GoalBooksTab({
+  counts,
+  focusListOnMount,
+  goalId,
+  onScopeChange,
+  scope,
+}: GoalBooksTabProps) {
   const t = useTranslations("goals.detail.books");
   const books = useGoalBooks({ goalId, scope });
   const listRegionRef = useRef<HTMLElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(listRegionRef);
+  const [attachListRegion] = useState(() => (element: Nullable<HTMLElement>) => {
+    listRegionRef.current = element;
+    if (focusListOnMount) element?.focus();
+  });
 
   const content = resolveGoalCursorContent({
     hasNextPage: books.hasNextPage,
@@ -77,6 +91,7 @@ export function GoalBooksTab({ goalId, onScopeChange, scope }: GoalBooksTabProps
             if (nextScope !== undefined) onScopeChange(nextScope);
           }}
           options={GOAL_BOOKS_TAB.scopes.map((option) => ({
+            count: counts[option],
             label: t(`scope.${option}`),
             value: option,
           }))}
@@ -85,15 +100,12 @@ export function GoalBooksTab({ goalId, onScopeChange, scope }: GoalBooksTabProps
         />
       </div>
 
-      <p className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
-        <UiIcon aria-hidden className="mt-0.5 shrink-0 text-icon" name="info" size={14} />
-        {t("snapshotHint")}
-      </p>
+      <GoalBooksSnapshotNote />
 
       <section
         aria-label={t("listLabel")}
         className={cn("flex min-w-0 flex-col gap-4", RETRY_FOCUS_RING.onTarget)}
-        ref={listRegionRef}
+        ref={attachListRegion}
         tabIndex={-1}
       >
         <GoalBooksContent
@@ -180,7 +192,7 @@ function GoalBooksEmpty({ onShowAll, scope }: Pick<GoalBooksContentProps, "onSho
       case "counted":
         return {
           desc: t("countedEmptyHint"),
-          illu: "empty-queue",
+          illu: "reading-goals/goal-no-counted-books-yet",
           illuSize: "sm",
           primary: showAll,
           title: t("countedEmpty"),
@@ -199,4 +211,29 @@ function GoalBooksEmpty({ onShowAll, scope }: Pick<GoalBooksContentProps, "onSho
   }
 
   return <EmptyState onPrimary={onShowAll} state={emptyState()} />;
+}
+
+function GoalBooksSnapshotNote() {
+  const t = useTranslations("goals.detail.books");
+
+  return (
+    <Collapsible className="flex flex-col gap-1 text-xs leading-relaxed text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <UiIcon aria-hidden className="shrink-0 text-icon" name="info" size={14} />
+        <span>{t("snapshotSummary")}</span>
+        <CollapsibleTrigger className="group inline-flex min-h-6 cursor-pointer items-center gap-1 rounded-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50">
+          {t("snapshotMore")}
+          <UiIcon
+            aria-hidden
+            className="group-data-[state=open]:rotate-180 motion-safe:transition-transform"
+            name="chevron-down"
+            size={14}
+          />
+        </CollapsibleTrigger>
+      </div>
+      <CollapsibleContent>
+        <p className="pl-5.5">{t("snapshotHint")}</p>
+      </CollapsibleContent>
+    </Collapsible>
+  );
 }

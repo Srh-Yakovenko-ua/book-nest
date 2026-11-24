@@ -14,4 +14,5 @@ export const ReadingGoalListResponseDtoItemsItemRiskReasonsItem = {
   deadline_soon: "deadline_soon",
   no_recent_progress: "no_recent_progress",
   required_pace_high: "required_pace_high",
+  projected_late: "projected_late",
 } as const;

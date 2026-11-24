@@ -14,8 +14,10 @@ import {
   within,
 } from "@/test-utils";
 
+import type { GoalBooksScopeCounts } from "../model/goal-books-scope-counts";
 import type { GoalBooksScope } from "../model/goal-detail-query";
 
+import { goalBooksScopeCounts } from "../model/goal-books-scope-counts";
 import { makeReadingGoalBook } from "../model/reading-goals.fixtures";
 import { GoalBooksTab } from "./goal-books-tab";
 
@@ -30,6 +32,7 @@ vi.mock("@/i18n/navigation", () => ({
 const GOAL_ID = "goal-1";
 const BOOKS_PATH = `/api/goals/${GOAL_ID}/books`;
 const NETWORK_LATENCY_MS = 10;
+const ONE_COUNTED_BOOK: GoalBooksScopeCounts = { all: 1, counted: 1, remaining: 0 };
 
 const fetchMock = vi.fn();
 const viewport = mockIntersectionObserver();
@@ -44,6 +47,20 @@ function booksRequests(): URL[] {
   return fetchMock.mock.calls
     .map(([input]) => new URL(String(input), "http://localhost"))
     .filter((url) => url.pathname === BOOKS_PATH);
+}
+
+function inProgressBook(pagesCount: Nullable<number>): ReadingGoalBookView {
+  return makeReadingGoalBook({
+    countedFinishedAt: null,
+    qualifies: false,
+    reading: {
+      currentPage: 123,
+      finishedAt: null,
+      pagesCount,
+      startedAt: "2026-10-01",
+      status: "reading",
+    },
+  });
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -61,10 +78,20 @@ function numberedBook(position: number): ReadingGoalBookView {
   });
 }
 
-function renderBooksTab(scope: GoalBooksScope = "all") {
+function renderBooksTab(
+  scope: GoalBooksScope = "all",
+  counts: GoalBooksScopeCounts = ONE_COUNTED_BOOK,
+  focusListOnMount = false,
+) {
   const onScopeChange = vi.fn();
   renderWithProviders(
-    <GoalBooksTab goalId={GOAL_ID} onScopeChange={onScopeChange} scope={scope} />,
+    <GoalBooksTab
+      counts={counts}
+      focusListOnMount={focusListOnMount}
+      goalId={GOAL_ID}
+      onScopeChange={onScopeChange}
+      scope={scope}
+    />,
   );
   return { onScopeChange };
 }
@@ -157,9 +184,55 @@ describe("GoalBooksTab scope", () => {
     const { onScopeChange } = renderBooksTab();
     await screen.findByText("Бігуни");
 
-    await userEvent.click(screen.getByRole("radio", { name: "Ще не зараховані" }));
+    await userEvent.click(screen.getByRole("radio", { name: /^Ще не зараховані/ }));
 
     expect(onScopeChange).toHaveBeenCalledWith("remaining");
+  });
+
+  it("counts every snapshot book, the counted ones and the rest on the scope chips", async () => {
+    renderBooksTab("all", goalBooksScopeCounts({ completedCount: 2, snapshotBookCount: 5 }));
+    await screen.findByText("Бігуни");
+
+    expect(within(screen.getByRole("radio", { name: /^Усі/ })).getByText("5")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("radio", { name: /^Зараховані/ })).getByText("2"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("radio", { name: /^Ще не зараховані/ })).getByText("3"),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the snapshot note to one line and opens the full explanation from the keyboard", async () => {
+    renderBooksTab();
+    await screen.findByText("Бігуни");
+    const snapshotHint =
+      "Склад книг зафіксовано під час створення цілі, тож пізніші зміни списку на неї не впливають. Книга зараховується, якщо її дочитано з дня створення цілі по день дедлайну включно.";
+    const more = screen.getByRole("button", { name: "Докладніше" });
+
+    expect(screen.getByText("Книги цілі зафіксовано під час її створення.")).toBeInTheDocument();
+    expect(screen.queryByText(snapshotHint)).not.toBeInTheDocument();
+
+    more.focus();
+    await userEvent.keyboard("{Enter}");
+
+    expect(await screen.findByText(snapshotHint)).toBeInTheDocument();
+    expect(more).toHaveAttribute("aria-expanded", "true");
+  });
+});
+
+describe("GoalBooksTab focus", () => {
+  it("moves focus to the list of goal books when asked to on mount", async () => {
+    renderBooksTab("all", ONE_COUNTED_BOOK, true);
+    await screen.findByText("Бігуни");
+
+    expect(screen.getByRole("region", { name: "Книги цілі" })).toHaveFocus();
+  });
+
+  it("leaves focus where it was when not asked to focus the list", async () => {
+    renderBooksTab();
+    await screen.findByText("Бігуни");
+
+    expect(screen.getByRole("region", { name: "Книги цілі" })).not.toHaveFocus();
   });
 });
 
@@ -223,6 +296,29 @@ describe("GoalBooksTab rows", () => {
     expect(await screen.findByText("стор. 120")).toBeInTheDocument();
     expect(screen.getByText("Читаю")).toBeInTheDocument();
   });
+
+  it("measures a book in progress against its page count without counting it", async () => {
+    respondToBooks = () => jsonResponse(booksPage([inProgressBook(368)]));
+
+    renderBooksTab();
+
+    const pagesBar = await screen.findByRole("progressbar", { name: "Прочитано 33% книги" });
+    expect(pagesBar).toHaveAttribute("aria-valuenow", "33");
+    expect(pagesBar).toHaveAttribute("aria-valuemin", "0");
+    expect(pagesBar).toHaveAttribute("aria-valuemax", "100");
+    expect(screen.getByText("стор. 123 із 368 · 33%")).toBeInTheDocument();
+    expect(screen.getByText("Читаю")).toBeInTheDocument();
+    expect(screen.queryByText("Зараховано")).not.toBeInTheDocument();
+  });
+
+  it("shows only the page reached when the book has no page count", async () => {
+    respondToBooks = () => jsonResponse(booksPage([inProgressBook(null)]));
+
+    renderBooksTab();
+
+    expect(await screen.findByText("стор. 123")).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+  });
 });
 
 describe("GoalBooksTab states", () => {
@@ -245,6 +341,24 @@ describe("GoalBooksTab states", () => {
     const { onScopeChange } = renderBooksTab("remaining");
 
     expect(await screen.findByText("Незарахованих книг немає")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Показати всі книги" }));
+
+    expect(onScopeChange).toHaveBeenCalledWith("all");
+  });
+
+  it("illustrates an empty counted scope and offers every book instead", async () => {
+    respondToBooks = () => jsonResponse(booksPage([]));
+    const { onScopeChange } = renderBooksTab("counted", { all: 3, counted: 0, remaining: 3 });
+
+    expect(
+      await screen.findByRole("heading", { name: "Ще жодної книги не зараховано" }),
+    ).toBeInTheDocument();
+    const booksRegion = screen.getByRole("region", { name: "Книги цілі" });
+    expect(within(booksRegion).getByRole("presentation")).toHaveAttribute(
+      "src",
+      expect.stringContaining("goal-no-counted-books-yet"),
+    );
 
     await userEvent.click(screen.getByRole("button", { name: "Показати всі книги" }));
 

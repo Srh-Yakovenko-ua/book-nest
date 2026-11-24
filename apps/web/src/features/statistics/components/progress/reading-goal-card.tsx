@@ -8,7 +8,7 @@ import { UiIcon } from "@/components/icons";
 import { TruncatedText } from "@/components/truncated-text";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { goalDisplayPercent } from "@/features/reading-goals";
+import { goalDisplayPercent, useGoalTitle } from "@/features/reading-goals";
 import { Link } from "@/i18n/navigation";
 import { formatDateShort } from "@/lib/format";
 
@@ -59,6 +59,7 @@ function CompactGoalCaption({ metrics }: { metrics: ReadingGoalMetrics }) {
 function CompactReadingGoal({ goal }: { goal: ReadingStatisticsGoalSection }) {
   const locale = useLocale();
   const t = useTranslations("statistics.goal");
+  const goalTitle = useGoalTitle();
   const primary = goal.primaryGoal;
 
   if (primary === null) {
@@ -79,13 +80,24 @@ function CompactReadingGoal({ goal }: { goal: ReadingStatisticsGoalSection }) {
 
   const percent = goalDisplayPercent(primary.metrics);
   const links = toContextActionLinks(primary.contextActions);
-  const name =
-    primary.name ?? primary.listName ?? t("fallbackName", { count: primary.targetCount });
 
   return (
     <StatisticsSection title={t("currentTitle")}>
       <div className="flex flex-col gap-3">
-        <TruncatedText className="text-sm font-medium text-foreground" lines={1} text={name} />
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <TruncatedText
+            className="text-sm font-medium text-foreground"
+            lines={1}
+            text={goalTitle(primary)}
+          />
+          {primary.listName === null ? null : (
+            <p className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+              <UiIcon aria-hidden className="shrink-0 text-icon" name="list" size={14} />
+              <span className="sr-only">{t("listLabel")}</span>
+              <TruncatedText lines={1} text={primary.listName} />
+            </p>
+          )}
+        </div>
         <div className="flex flex-col gap-2">
           <div className="flex items-baseline justify-between gap-3">
             <span className="font-heading text-3xl leading-none font-semibold text-ink tabular-nums">
@@ -98,7 +110,14 @@ function CompactReadingGoal({ goal }: { goal: ReadingStatisticsGoalSection }) {
               {percent}%
             </span>
           </div>
-          <Progress aria-label={t("progressLabel", { percent })} className="h-2" value={percent} />
+          <Progress
+            aria-label={t("progressLabel", { percent })}
+            aria-valuemax={100}
+            aria-valuemin={0}
+            aria-valuenow={percent}
+            className="h-2"
+            value={percent}
+          />
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <CompactGoalCaption metrics={primary.metrics} />
             <span className="shrink-0 text-xs text-muted-foreground">

@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 
 import { useListGoal } from "../api/use-list-goal";
 import { goalDisplayPercent } from "../model/goal-display-percent";
+import { useGoalTitle } from "../model/use-goal-title";
 import { GoalFormDialog } from "./goal-form-dialog";
 
 const NO_BOOKS_HINT_ID = "list-goal-no-books-hint";
@@ -75,7 +76,7 @@ export function ListGoalCard({ bookCount, listId, listName }: ListGoalCardProps)
 
 function ActiveGoalBody({ goal }: { goal: ReadingGoalView }) {
   const t = useTranslations("goals.sidebar");
-  const tGoals = useTranslations("goals");
+  const goalTitle = useGoalTitle();
   const locale = useLocale();
   const percent = goalDisplayPercent({
     progressPercent: (goal.completedCount / goal.targetCount) * 100,
@@ -84,13 +85,12 @@ function ActiveGoalBody({ goal }: { goal: ReadingGoalView }) {
 
   return (
     <>
-      <p className="font-heading text-sm leading-snug font-medium text-ink">
-        {goal.name ??
-          tGoals("fallbackName", {
-            count: goal.targetCount,
-            date: formatDateShort(goal.deadline, locale),
-          })}
-      </p>
+      <div className="flex flex-col gap-0.5">
+        <p className="font-heading text-sm leading-snug font-medium text-ink">{goalTitle(goal)}</p>
+        <p className="text-xs text-muted-foreground">
+          {t("deadline", { date: formatDateShort(goal.deadline, locale) })}
+        </p>
+      </div>
       <p className="text-xs text-muted-foreground tabular-nums">
         {t("progress", { completed: goal.completedCount, target: goal.targetCount })}
       </p>
@@ -100,7 +100,7 @@ function ActiveGoalBody({ goal }: { goal: ReadingGoalView }) {
           aria-valuemax={100}
           aria-valuemin={0}
           aria-valuenow={percent}
-          className="h-2 flex-1"
+          className="h-2 flex-1 *:motion-reduce:transition-none"
           value={percent}
         />
         <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{percent}%</span>

@@ -215,7 +215,7 @@ function GoalForm({
 
   const form = useForm<GoalFormValues, unknown, GoalFormValues>({
     defaultValues: defaults,
-    mode: "onTouched",
+    mode: "onChange",
     resolver: zodResolver(
       createGoalFormSchema({
         bookCount,
@@ -237,7 +237,7 @@ function GoalForm({
 
   const {
     control,
-    formState: { errors, isDirty },
+    formState: { errors, isDirty, isValid },
     handleSubmit,
     register,
     setValue,
@@ -252,7 +252,6 @@ function GoalForm({
     name: ["deadline", "name", "targetCount"],
   });
   const isPending = createGoal.isPending || updateGoal.isPending;
-  const isDeadlineBlocked = deadline === "" || errors.deadline !== undefined;
   const isUnchanged =
     mode.kind === "edit" &&
     !hasGoalChanges(
@@ -336,6 +335,7 @@ function GoalForm({
                   errors.targetCount ? FIELD_ID.targetCountError : FIELD_ID.targetCountHint
                 }
                 aria-invalid={errors.targetCount !== undefined}
+                aria-required
                 autoComplete="off"
                 className="h-10 w-24"
                 id={FIELD_ID.targetCount}
@@ -363,10 +363,13 @@ function GoalForm({
             value={targetCount}
           />
         </div>
-        <span className="text-xs text-muted-foreground" id={FIELD_ID.targetCountHint}>
-          {t(copy.hint, { count: bookCount })}
-        </span>
-        <FieldError error={errors.targetCount} id={FIELD_ID.targetCountError} />
+        {errors.targetCount ? (
+          <FieldError error={errors.targetCount} id={FIELD_ID.targetCountError} />
+        ) : (
+          <span className="text-xs text-muted-foreground" id={FIELD_ID.targetCountHint}>
+            {t(copy.hint, { count: bookCount })}
+          </span>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">
@@ -409,11 +412,7 @@ function GoalForm({
         <Button disabled={isPending} onClick={onCancel} type="button" variant="secondary">
           {t("cancel")}
         </Button>
-        <Button
-          disabled={isPending || isDeadlineBlocked || isUnchanged}
-          loading={isPending}
-          type="submit"
-        >
+        <Button disabled={!isValid || isPending || isUnchanged} loading={isPending} type="submit">
           {mode.kind === "edit" ? t("save") : t("submit")}
         </Button>
       </DialogFooter>

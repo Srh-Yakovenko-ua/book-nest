@@ -144,19 +144,34 @@ describe("GoalFormDialog validation", () => {
   });
 
   it("caps the target at the books fixed in the goal", async () => {
-    const dialog = openEditDialog(makeReadingGoalView(), 8);
+    const dialog = openEditDialog(makeReadingGoalView({ targetCount: 3 }), 5);
     const target = within(dialog).getByLabelText("Прочитати книг");
 
-    expect(target).toHaveAttribute("max", "8");
-    expect(target).toHaveAccessibleDescription("У цілі 8 книг");
+    expect(target).toHaveAttribute("max", "5");
+    expect(target).toHaveAccessibleDescription("У цілі 5 книг");
 
     await userEvent.clear(target);
-    await userEvent.type(target, "9");
-    await userEvent.click(within(dialog).getByRole("button", { name: "Зберегти" }));
+    await userEvent.type(target, "6");
 
-    await waitFor(() => expect(target).toHaveAccessibleDescription("У цілі лише 8 книг"));
+    await waitFor(() => expect(target).toHaveAccessibleDescription("У цілі лише 5 книг"));
     expect(target).toHaveAttribute("aria-invalid", "true");
+    expect(within(dialog).queryByText("У цілі 5 книг")).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Зберегти" })).toBeDisabled();
     expect(updateCall()).toBeUndefined();
+  });
+
+  it("flags a target of zero books inline and keeps save locked", async () => {
+    const dialog = openEditDialog(makeReadingGoalView({ targetCount: 3 }), 5);
+    const target = within(dialog).getByLabelText("Прочитати книг");
+
+    await userEvent.clear(target);
+    await userEvent.type(target, "0");
+
+    await waitFor(() =>
+      expect(target).toHaveAccessibleDescription(messages.goals.form.errors.targetMin),
+    );
+    expect(within(dialog).queryByText("У цілі 5 книг")).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Зберегти" })).toBeDisabled();
   });
 
   it("shows a deadline the server rejected right next to its own field", async () => {
@@ -366,6 +381,46 @@ describe("GoalFormDialog with unsaved changes", () => {
     ).toBeInTheDocument();
     expect(dialog).toBeInTheDocument();
     expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("drops a changed target from the cancel button only after confirming, without saving", async () => {
+    const dialog = openEditDialog(makeReadingGoalView({ targetCount: 8 }));
+    const target = within(dialog).getByLabelText("Прочитати книг");
+
+    await userEvent.clear(target);
+    await userEvent.type(target, "6");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Скасувати" }));
+    const discard = await screen.findByRole("alertdialog", {
+      name: messages.common.discardChanges.title,
+    });
+
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      within(discard).getByRole("button", { name: messages.common.discardChanges.confirm }),
+    );
+
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+    expect(updateCall()).toBeUndefined();
+  });
+
+  it("returns focus to the cancel button when the reader keeps editing", async () => {
+    const dialog = openEditDialog(makeReadingGoalView());
+    const cancel = within(dialog).getByRole("button", { name: "Скасувати" });
+
+    await userEvent.type(within(dialog).getByLabelText(/Назва цілі/), "Осінній забіг");
+    await userEvent.click(cancel);
+    const discard = await screen.findByRole("alertdialog", {
+      name: messages.common.discardChanges.title,
+    });
+    await userEvent.click(
+      within(discard).getByRole("button", { name: messages.common.discardChanges.cancel }),
+    );
+
+    await waitFor(() => expect(cancel).toHaveFocus());
+    expect(within(dialog).getByLabelText(/Назва цілі/)).toHaveValue("Осінній забіг");
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(updateCall()).toBeUndefined();
   });
 });
 
