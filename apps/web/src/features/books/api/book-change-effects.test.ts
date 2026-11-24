@@ -23,6 +23,7 @@ const KEYS = {
   characterSuggestions: characterKeys.suggestions("book-1", { q: "" }),
   deliverySummary: deliveryKeys.inTransit.summary,
   filteredQueue: ["/api/reading-queue", { author: ["author-1"] }],
+  homeReading: ["/api/home/reading"],
   listDetail: ["/api/lists", "detail", "list-1"],
   listIndex: ["/api/lists", "list", { page: 1 }],
   loansSummary: loanKeys.summary,
@@ -188,6 +189,27 @@ describe("bookChangeEffects", () => {
     await bookChangeEffects.booksChanged(client, { changes: ["seriesCreated"] });
 
     expect(staleFlags(client, keys)).toEqual([true, true, false, false, false, false, false]);
+  });
+
+  it.each(["statusChanged", "queueChanged", "loanChanged", "listEdited"] as const)(
+    "%s refreshes the home reading view",
+    async (change) => {
+      const keys = [KEYS.homeReading, KEYS.unrelated];
+      const client = seededClient(keys);
+
+      await bookChangeEffects.booksChanged(client, { changes: [change] });
+
+      expect(staleFlags(client, keys)).toEqual([true, false]);
+    },
+  );
+
+  it("seriesCreated leaves the home reading view fresh", async () => {
+    const keys = [KEYS.homeReading, KEYS.seriesSearch];
+    const client = seededClient(keys);
+
+    await bookChangeEffects.booksChanged(client, { changes: ["seriesCreated"] });
+
+    expect(staleFlags(client, keys)).toEqual([false, true]);
   });
 
   it("writes a saved book into its cached detail and keeps the note and quote counts", async () => {

@@ -1,4 +1,9 @@
-import type { Nullable, StatisticsStreakSpan } from "@app/shared";
+import type {
+  Nullable,
+  ReadingStatisticsDateRange,
+  StatisticsCurrentStreak,
+  StatisticsStreakSpan,
+} from "@app/shared";
 
 import { addDays, format, parseISO } from "date-fns";
 
@@ -72,6 +77,38 @@ export function findLongestStreak(activeDays: string[]): StatisticsStreakSpan {
   }
 
   return best;
+}
+
+export function resolveCurrentStreak({
+  activeBeforeRange,
+  activeDays,
+  metricRange,
+  reliableFrom,
+  today,
+}: {
+  activeBeforeRange: boolean;
+  activeDays: string[];
+  metricRange: ReadingStatisticsDateRange;
+  reliableFrom: string;
+  today: string;
+}): StatisticsCurrentStreak {
+  if (metricRange.to !== today) {
+    return { availability: "unavailable", data: null, reason: "PERIOD_NOT_CURRENT" };
+  }
+  if (shiftDay(today, -1) < reliableFrom) {
+    return { availability: "unavailable", data: null, reason: "LEGACY_HISTORY_INCOMPLETE" };
+  }
+
+  return {
+    availability: "available",
+    data: findCurrentStreak({
+      activeBeforeRange,
+      activeDays,
+      rangeFrom: metricRange.from,
+      reliableFrom,
+      today,
+    }),
+  };
 }
 
 function shiftDay(isoDay: string, offset: number): string {

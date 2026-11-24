@@ -455,36 +455,273 @@
     "expandSidebar": "Expand sidebar"
   },
   "home": {
-    "eyebrow": "My library",
     "title": "Book Nest",
     "description": "Your personal book library — track your reading and organize your collection.",
-    "greeting": "Hi, {name}!",
-    "greetingFallback": "Welcome to Book Nest!",
-    "subtitle": "Here's a quick snapshot of your library.",
-    "progress": {
-      "title": "Reading progress",
-      "label": "{finished} of {total} read"
+    "greeting": {
+      "named": {
+        "morning": "Good morning, {name}!",
+        "day": "Good afternoon, {name}!",
+        "evening": "Good evening, {name}!",
+        "night": "Burning the midnight oil, {name}?",
+        "neutral": "Hello, {name}!"
+      },
+      "anonymous": {
+        "morning": "Good morning!",
+        "day": "Good afternoon!",
+        "evening": "Good evening!",
+        "night": "Burning the midnight oil?",
+        "neutral": "Hello!"
+      }
+    },
+    "subtitle": {
+      "emptyLibrary": "Your shelf is still empty. Let's start with your first book.",
+      "readToday": "Today's reading already counts. Keep it up!",
+      "activeBooks": "Your books are waiting for the next chapter.",
+      "noActiveBooks": "A good moment to pick your next book.",
+      "neutral": "Glad to see you back in your reading nook."
     },
     "actions": {
-      "addBook": "Add a book",
-      "library": "Open library"
+      "addBook": "Add a book"
     },
-    "empty": {
-      "title": "Your library is empty",
-      "description": "Add your first book to see your stats here.",
+    "summary": {
+      "label": "Library summary",
+      "counts": {
+        "total": "{count, plural, one {book} other {books}}",
+        "reading": "reading",
+        "finished": "finished",
+        "favorites": "{count, plural, one {favorite} other {favorites}}"
+      },
+      "unavailable": "no data",
+      "error": "Couldn't refresh the summary",
+      "retry": "Try again to load the library summary"
+    },
+    "onboarding": {
+      "title": "Let's start your library",
+      "description": "Add your first book, and your reading, new arrivals and book memories will show up here.",
       "action": "Add your first book"
     },
-    "delivery": {
-      "title": "Deliveries in transit",
-      "viewAll": "View all",
-      "active": "Active",
-      "expectedThisWeek": "This week",
-      "delayed": "Delayed",
-      "loading": "Loading deliveries…",
-      "empty": "No deliveries in transit",
+    "memory": {
+      "title": "Book memory of the day",
+      "quoteText": "“{text}”",
+      "page": "p. {page}",
+      "savedAge": "Saved {age}",
+      "openFull": "Open in full",
+      "favorite": "Favorite memory",
+      "spoiler": {
+        "title": "This memory contains a spoiler",
+        "description": "It may reveal important events of the book.",
+        "reveal": "Show memory"
+      },
       "error": {
-        "title": "Couldn't load deliveries",
-        "retry": "Try again to load deliveries"
+        "title": "Couldn't load today's book memory",
+        "retry": "Try again"
+      }
+    },
+    "recent": {
+      "title": "Recently on the shelf",
+      "allBooks": "All books",
+      "added": "Added {when}",
+      "error": {
+        "title": "Couldn't load new books",
+        "retry": "Try again"
+      }
+    },
+    "stale": {
+      "message": "Showing the last loaded data.",
+      "retry": "Refresh"
+    },
+    "reading": {
+      "title": "Currently reading",
+      "all": "All ({count})",
+      "rereading": "Rereading",
+      "seriesPart": "{name}, book {part}",
+      "updateProgress": "Update progress",
+      "updated": "Progress updated {when}",
+      "staleHint": "No updates for a while. Pick it up whenever you feel like it.",
+      "menu": {
+        "label": "More actions for “{title}”",
+        "open": "Open book",
+        "pause": "Pause reading",
+        "finish": "Finish reading"
+      },
+      "progress": {
+        "percent": "{percent}%",
+        "page": "Page {current}",
+        "pagesOf": "{current} of {total} pages",
+        "label": "Reading progress: {percent}%"
+      },
+      "carousel": {
+        "label": "Books you are reading",
+        "roleDescription": "carousel",
+        "slide": "{current} of {total}",
+        "slideRoleDescription": "slide",
+        "position": "{current} of {total}",
+        "range": "{first}–{last} of {total}",
+        "previous": "Previous book",
+        "next": "Next book"
+      },
+      "dialog": {
+        "errorTitle": "Couldn't open the book",
+        "errorDescription": "The book details didn't load. Try again in a moment.",
+        "close": "Close",
+        "retry": "Try again"
+      },
+      "error": {
+        "title": "Couldn't load the books you are reading",
+        "retry": "Try again"
+      },
+      "empty": {
+        "description": "Nothing on the go right now. Your next book is waiting.",
+        "toQueue": "Open the reading queue",
+        "toCatalogue": "Browse your library"
+      }
+    },
+    "week": {
+      "title": "This week",
+      "calendar": "Calendar",
+      "range": "{from} – {to}",
+      "streak": "{count, plural, one {# day in a row} other {# days in a row}}",
+      "quiet": "A quiet week so far. Even a few pages count.",
+      "summary": {
+        "exactPages": "{count, plural, one {# page this week} other {# pages this week}}",
+        "minimumPages": "{count, plural, one {At least # page this week} other {At least # pages this week}}",
+        "activeDays": "{count, plural, one {# reading day this week} other {# reading days this week}}"
+      },
+      "day": {
+        "label": "{date}: {status}",
+        "today": "today",
+        "pages": "{count, plural, one {# page} other {# pages}}",
+        "books": "{count, plural, one {# book} other {# books}}",
+        "status": {
+          "active": "read",
+          "inactive": "no reading",
+          "unknown": "no reliable data",
+          "future": "not yet"
+        }
+      },
+      "error": {
+        "title": "Couldn't load this week's reading",
+        "retry": "Try again"
+      }
+    },
+    "goal": {
+      "title": "Reading goal",
+      "all": "All goals ({count})",
+      "progress": "{completed} of {target}",
+      "percent": "{percent}%",
+      "progressLabel": "Goal progress: {percent}%",
+      "remaining": "{count, plural, =0 {Nothing left to read} one {# book to go} other {# books to go}}",
+      "deadline": "By {date}",
+      "daysLeft": "{count, plural, =0 {last day} one {# day left} other {# days left}}",
+      "paceUnknown": "Pace not known yet",
+      "create": "Set a goal",
+      "recentCompletion": "Goal reached on {date}: {name}",
+      "empty": {
+        "description": "No active goal right now. A small one is a good start."
+      },
+      "error": {
+        "title": "Couldn't load your reading goal",
+        "retry": "Try again"
+      }
+    },
+    "nextRead": {
+      "title": "What to read next",
+      "another": "Another book",
+      "startError": "Couldn't start reading. Try again.",
+      "started": "Started reading “{title}”",
+      "pages": "{count, plural, one {# page} other {# pages}}",
+      "queuePosition": "#{position} in your reading queue",
+      "queuePositionWithDate": "#{position} in your reading queue, target {date}",
+      "seriesPart": "{name}, book {part}",
+      "resumeProgress": "Paused at {percent}%",
+      "action": {
+        "start": "Start reading",
+        "continueSeries": "Continue the series",
+        "resume": "Resume reading"
+      },
+      "reason": {
+        "queue_next": "Next in your reading queue",
+        "favorite_series": "The next book in a favorite series",
+        "favorite_planned": "A favorite you planned to read",
+        "planned": "On your want-to-read list",
+        "favorite_on_shelf": "A favorite waiting on your shelf",
+        "long_on_shelf": "On your shelf for over a year",
+        "discovery": "Something from your library"
+      },
+      "incomplete": {
+        "note": "Some sources didn't load, so this may not be your top pick.",
+        "empty": "Couldn't check everything to suggest your next book"
+      },
+      "empty": {
+        "description": "No book to suggest yet. Add one to your queue or library.",
+        "toQueue": "Reading queue",
+        "toCatalogue": "Library"
+      },
+      "error": {
+        "title": "Couldn't load a suggestion",
+        "retry": "Try again"
+      }
+    },
+    "attention": {
+      "title": "Needs attention",
+      "bannerLabel": "Urgent",
+      "more": "{count} more",
+      "moreTitle": "Everything that needs attention",
+      "moreDescription": "{count, plural, one {# more thing needs your attention} other {# more things need your attention}}",
+      "incomplete": "Some sources couldn't be checked, so this list may be incomplete.",
+      "due": "Due {date}",
+      "goalFallback": "your reading goal",
+      "units": {
+        "parcels": "{count, plural, one {# parcel} other {# parcels}}",
+        "orders": "{count, plural, one {# order} other {# orders}}",
+        "books": "{count, plural, one {# book} other {# books}}",
+        "goals": "{count, plural, one {# goal} other {# goals}}",
+        "issues": "{count, plural, one {# issue} other {# issues}}"
+      },
+      "severity": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "critical": "Critical"
+      },
+      "reason": {
+        "delivery_pickup_expiring": "Pickup deadline is close: {items}",
+        "delivery_ready_for_pickup": "Ready for pickup: {items}",
+        "delivery_delayed": "Running late: {items}",
+        "delivery_awaiting_dispatch": "Not shipped yet: {items}",
+        "delivery_unassigned_books": "Not assigned to a parcel: {items}",
+        "loan_overdue": {
+          "borrowed_from_someone": "Borrowed and overdue: {items}",
+          "lent_to_someone": "Lent out and overdue: {items}"
+        },
+        "loan_return_soon": {
+          "borrowed_from_someone": "Borrowed, due back soon: {items}",
+          "lent_to_someone": "Lent out, due back soon: {items}"
+        },
+        "goal_at_risk": "Goal at risk: {name}",
+        "reading_stale": "No progress for a week or more: {items}",
+        "reading_stale_book": "No progress for a while: “{title}”",
+        "series_order_issue": "Series reading order needs a look: {items}",
+        "series_order_issue_series": "Check the reading order in “{title}”",
+        "queue_deadline": "Queue target date is close: {items}",
+        "queue_deadline_book": "Queue target date is close: “{title}”"
+      },
+      "detail": {
+        "expired": "Past the pickup date: {count}",
+        "delayed": "{count, plural, one {Up to # day late} other {Up to # days late}}",
+        "waiting": "{count, plural, one {Waiting up to # day} other {Waiting up to # days}}",
+        "orders": "{count, plural, one {In # order} other {Across # orders}}",
+        "goalRisk": {
+          "behind_schedule": "Behind schedule",
+          "deadline_soon": "The deadline is close",
+          "no_recent_progress": "No recent progress",
+          "required_pace_high": "The required pace is high",
+          "projected_late": "At the current pace it may finish late"
+        }
+      },
+      "error": {
+        "title": "Couldn't check what needs attention",
+        "retry": "Try again"
       }
     }
   },

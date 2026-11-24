@@ -455,36 +455,273 @@
     "expandSidebar": "Розгорнути бічну панель"
   },
   "home": {
-    "eyebrow": "Моя бібліотека",
     "title": "Book Nest",
     "description": "Ваша особиста бібліотека: стежте за читанням і впорядковуйте колекцію книг.",
-    "greeting": "Привіт, {name}!",
-    "greetingFallback": "Вітаємо у Book Nest!",
-    "subtitle": "Ось коротке зведення вашої бібліотеки.",
-    "progress": {
-      "title": "Прогрес читання",
-      "label": "Прочитано {finished} з {total}"
+    "greeting": {
+      "named": {
+        "morning": "Доброго ранку, {name}!",
+        "day": "Добрий день, {name}!",
+        "evening": "Добрий вечір, {name}!",
+        "night": "Доброї ночі, {name}!",
+        "neutral": "Привіт, {name}!"
+      },
+      "anonymous": {
+        "morning": "Доброго ранку!",
+        "day": "Добрий день!",
+        "evening": "Добрий вечір!",
+        "night": "Доброї ночі!",
+        "neutral": "Привіт!"
+      }
+    },
+    "subtitle": {
+      "emptyLibrary": "Твоя полиця ще порожня. Почнімо з першої книги.",
+      "readToday": "Сьогоднішнє читання вже зараховано. Так тримати!",
+      "activeBooks": "Твої книги чекають на продовження.",
+      "noActiveBooks": "Саме час обрати наступну книгу.",
+      "neutral": "Радію знову бачити тебе у твоєму книжковому просторі."
     },
     "actions": {
-      "addBook": "Додати книгу",
-      "library": "До бібліотеки"
+      "addBook": "Додати книгу"
     },
-    "empty": {
-      "title": "Бібліотека поки порожня",
-      "description": "Додайте першу книгу, щоб побачити статистику тут.",
+    "summary": {
+      "label": "Підсумок бібліотеки",
+      "counts": {
+        "total": "{count, plural, one {книга} few {книги} many {книг} other {книги}}",
+        "reading": "читаю",
+        "finished": "прочитано",
+        "favorites": "{count, plural, one {улюблена} few {улюблені} many {улюблених} other {улюбленої}}"
+      },
+      "unavailable": "немає даних",
+      "error": "Не вдалося оновити підсумок",
+      "retry": "Повторити завантаження підсумку бібліотеки"
+    },
+    "onboarding": {
+      "title": "Почнімо твою бібліотеку",
+      "description": "Додай першу книгу, і тут з’являться твоє читання, нові надходження та спогади з книжок.",
       "action": "Додати першу книгу"
     },
-    "delivery": {
-      "title": "Доставки в дорозі",
-      "viewAll": "Переглянути всі",
-      "active": "Активні",
-      "expectedThisWeek": "Цього тижня",
-      "delayed": "Затримка",
-      "loading": "Завантажуємо доставки…",
-      "empty": "Немає доставок у дорозі",
+    "memory": {
+      "title": "Книжковий спогад дня",
+      "quoteText": "«{text}»",
+      "page": "с. {page}",
+      "savedAge": "Збережено {age}",
+      "openFull": "Відкрити повністю",
+      "favorite": "Улюблений спогад",
+      "spoiler": {
+        "title": "Цей спогад містить спойлер",
+        "description": "Він може розкрити важливі події книги.",
+        "reveal": "Показати спогад"
+      },
       "error": {
-        "title": "Не вдалося завантажити доставки",
-        "retry": "Спробувати ще раз завантажити доставки"
+        "title": "Не вдалося завантажити спогад дня",
+        "retry": "Спробувати ще раз"
+      }
+    },
+    "recent": {
+      "title": "Нещодавно на полиці",
+      "allBooks": "Усі книги",
+      "added": "Додано {when}",
+      "error": {
+        "title": "Не вдалося завантажити нові книги",
+        "retry": "Спробувати ще раз"
+      }
+    },
+    "stale": {
+      "message": "Показано останні завантажені дані.",
+      "retry": "Оновити"
+    },
+    "reading": {
+      "title": "Зараз читаю",
+      "all": "Усі ({count})",
+      "rereading": "Перечитую",
+      "seriesPart": "{name}, книга {part}",
+      "updateProgress": "Оновити прогрес",
+      "updated": "Прогрес оновлено {when}",
+      "staleHint": "Давно без оновлень. Повертайся до неї, коли захочеш.",
+      "menu": {
+        "label": "Більше дій для «{title}»",
+        "open": "Відкрити книгу",
+        "pause": "Призупинити читання",
+        "finish": "Завершити читання"
+      },
+      "progress": {
+        "percent": "{percent}%",
+        "page": "Сторінка {current}",
+        "pagesOf": "{current} з {total} с.",
+        "label": "Прогрес читання: {percent}%"
+      },
+      "carousel": {
+        "label": "Книги, які ти читаєш",
+        "roleDescription": "карусель",
+        "slide": "{current} з {total}",
+        "slideRoleDescription": "слайд",
+        "position": "{current} з {total}",
+        "range": "{first}–{last} з {total}",
+        "previous": "Попередня книга",
+        "next": "Наступна книга"
+      },
+      "dialog": {
+        "errorTitle": "Не вдалося відкрити книгу",
+        "errorDescription": "Дані книги не завантажилися. Спробуй ще раз за мить.",
+        "close": "Закрити",
+        "retry": "Спробувати ще раз"
+      },
+      "error": {
+        "title": "Не вдалося завантажити книги, які ти читаєш",
+        "retry": "Спробувати ще раз"
+      },
+      "empty": {
+        "description": "Зараз нічого не читаєш. Наступна книга вже чекає.",
+        "toQueue": "Відкрити чергу читання",
+        "toCatalogue": "Перейти до бібліотеки"
+      }
+    },
+    "week": {
+      "title": "Цей тиждень",
+      "calendar": "Календар",
+      "range": "{from} – {to}",
+      "streak": "{count, plural, one {# день поспіль} few {# дні поспіль} many {# днів поспіль} other {# дня поспіль}}",
+      "quiet": "Поки що тихий тиждень. Навіть кілька сторінок рахуються.",
+      "summary": {
+        "exactPages": "{count, plural, one {# сторінка за тиждень} few {# сторінки за тиждень} many {# сторінок за тиждень} other {# сторінки за тиждень}}",
+        "minimumPages": "{count, plural, one {Щонайменше # сторінка за тиждень} few {Щонайменше # сторінки за тиждень} many {Щонайменше # сторінок за тиждень} other {Щонайменше # сторінки за тиждень}}",
+        "activeDays": "{count, plural, one {# день із читанням за тиждень} few {# дні з читанням за тиждень} many {# днів із читанням за тиждень} other {# дня з читанням за тиждень}}"
+      },
+      "day": {
+        "label": "{date}: {status}",
+        "today": "сьогодні",
+        "pages": "{count, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінки}}",
+        "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
+        "status": {
+          "active": "було читання",
+          "inactive": "без читання",
+          "unknown": "немає надійних даних",
+          "future": "ще попереду"
+        }
+      },
+      "error": {
+        "title": "Не вдалося завантажити читання за тиждень",
+        "retry": "Спробувати ще раз"
+      }
+    },
+    "goal": {
+      "title": "Читацька ціль",
+      "all": "Усі цілі ({count})",
+      "progress": "{completed} з {target}",
+      "percent": "{percent}%",
+      "progressLabel": "Прогрес цілі: {percent}%",
+      "remaining": "{count, plural, =0 {Більше нічого не залишилося} one {Залишилася # книга} few {Залишилося # книги} many {Залишилося # книг} other {Залишилося # книги}}",
+      "deadline": "До {date}",
+      "daysLeft": "{count, plural, =0 {останній день} one {залишився # день} few {залишилося # дні} many {залишилося # днів} other {залишилося # дня}}",
+      "paceUnknown": "Темп поки невідомий",
+      "create": "Поставити ціль",
+      "recentCompletion": "Ціль досягнуто {date}: {name}",
+      "empty": {
+        "description": "Зараз немає активної цілі. Невелика ціль — добрий початок."
+      },
+      "error": {
+        "title": "Не вдалося завантажити читацьку ціль",
+        "retry": "Спробувати ще раз"
+      }
+    },
+    "nextRead": {
+      "title": "Що читати далі",
+      "another": "Інша книга",
+      "startError": "Не вдалося почати читання. Спробуй ще раз.",
+      "started": "Почато читання «{title}»",
+      "pages": "{count, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінки}}",
+      "queuePosition": "№{position} у черзі читання",
+      "queuePositionWithDate": "№{position} у черзі читання, бажано до {date}",
+      "seriesPart": "{name}, книга {part}",
+      "resumeProgress": "Призупинено на {percent}%",
+      "action": {
+        "start": "Почати читати",
+        "continueSeries": "Продовжити серію",
+        "resume": "Продовжити читання"
+      },
+      "reason": {
+        "queue_next": "Наступна у твоїй черзі читання",
+        "favorite_series": "Наступна книга улюбленої серії",
+        "favorite_planned": "Улюблена книга, яку ти планував прочитати",
+        "planned": "У списку «Хочу прочитати»",
+        "favorite_on_shelf": "Улюблена книга чекає на полиці",
+        "long_on_shelf": "Стоїть на полиці понад рік",
+        "discovery": "Щось із твоєї бібліотеки"
+      },
+      "incomplete": {
+        "note": "Частина джерел не завантажилася, тож це може бути не найкращий варіант.",
+        "empty": "Не вдалося все перевірити, щоб порадити наступну книгу"
+      },
+      "empty": {
+        "description": "Поки немає що порадити. Додай книгу в чергу або бібліотеку.",
+        "toQueue": "Черга читання",
+        "toCatalogue": "Бібліотека"
+      },
+      "error": {
+        "title": "Не вдалося завантажити пораду",
+        "retry": "Спробувати ще раз"
+      }
+    },
+    "attention": {
+      "title": "Потребує уваги",
+      "bannerLabel": "Терміново",
+      "more": "Ще {count}",
+      "moreTitle": "Усе, що потребує уваги",
+      "moreDescription": "{count, plural, one {Ще # пункт потребує уваги} few {Ще # пункти потребують уваги} many {Ще # пунктів потребують уваги} other {Ще # пункту потребують уваги}}",
+      "incomplete": "Частину джерел не вдалося перевірити, тож список може бути неповним.",
+      "due": "До {date}",
+      "goalFallback": "твоя читацька ціль",
+      "units": {
+        "parcels": "{count, plural, one {# посилка} few {# посилки} many {# посилок} other {# посилки}}",
+        "orders": "{count, plural, one {# замовлення} few {# замовлення} many {# замовлень} other {# замовлення}}",
+        "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
+        "goals": "{count, plural, one {# ціль} few {# цілі} many {# цілей} other {# цілі}}",
+        "issues": "{count, plural, one {# проблема} few {# проблеми} many {# проблем} other {# проблеми}}"
+      },
+      "severity": {
+        "low": "Низький",
+        "medium": "Середній",
+        "high": "Високий",
+        "critical": "Критично"
+      },
+      "reason": {
+        "delivery_pickup_expiring": "Скоро завершиться зберігання: {items}",
+        "delivery_ready_for_pickup": "Можна забирати: {items}",
+        "delivery_delayed": "Затримується: {items}",
+        "delivery_awaiting_dispatch": "Ще не відправлено: {items}",
+        "delivery_unassigned_books": "Не прив’язано до посилки: {items}",
+        "loan_overdue": {
+          "borrowed_from_someone": "Позичені в когось, термін минув: {items}",
+          "lent_to_someone": "Видані комусь, термін минув: {items}"
+        },
+        "loan_return_soon": {
+          "borrowed_from_someone": "Позичені в когось, скоро повертати: {items}",
+          "lent_to_someone": "Видані комусь, скоро мають повернути: {items}"
+        },
+        "goal_at_risk": "Ціль під загрозою: {name}",
+        "reading_stale": "Без прогресу тиждень або довше: {items}",
+        "reading_stale_book": "Давно без прогресу: «{title}»",
+        "series_order_issue": "Перевір порядок читання серій: {items}",
+        "series_order_issue_series": "Перевір порядок читання в «{title}»",
+        "queue_deadline": "Наближається бажана дата з черги: {items}",
+        "queue_deadline_book": "Наближається бажана дата: «{title}»"
+      },
+      "detail": {
+        "expired": "Термін зберігання минув: {count}",
+        "delayed": "{count, plural, one {Затримка до # дня} few {Затримка до # днів} many {Затримка до # днів} other {Затримка до # дня}}",
+        "waiting": "{count, plural, one {Очікує до # дня} few {Очікує до # днів} many {Очікує до # днів} other {Очікує до # дня}}",
+        "orders": "{count, plural, one {У # замовленні} few {У # замовленнях} many {У # замовленнях} other {У # замовлення}}",
+        "goalRisk": {
+          "behind_schedule": "Відставання від плану",
+          "deadline_soon": "Дедлайн уже близько",
+          "no_recent_progress": "Давно немає прогресу",
+          "required_pace_high": "Потрібен високий темп",
+          "projected_late": "За поточним темпом можна не встигнути"
+        }
+      },
+      "error": {
+        "title": "Не вдалося перевірити, що потребує уваги",
+        "retry": "Спробувати ще раз"
       }
     }
   },

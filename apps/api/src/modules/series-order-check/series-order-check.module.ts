@@ -10,6 +10,7 @@ import { SeriesOrderCheckRepository } from "./infrastructure/series-order-check.
 
 @Module({
   controllers: [SeriesOrderCheckController, SeriesOrderPreferenceController],
+  exports: [SeriesOrderCheckService],
   imports: [AuthModule, MediaModule, ReadingQueueModule],
   providers: [SeriesOrderCheckService, SeriesOrderCheckRepository],
 })

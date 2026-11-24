@@ -2,12 +2,10 @@ import type {
   Nullable,
   ReadingStatisticsCalendarSection,
   ReadingStatisticsDateRange,
-  StatisticsCurrentStreak,
   StatisticsMostActiveWeekday,
 } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
-import { addDays, format, parseISO } from "date-fns";
 
 import type { DayActivity, DayBookActivity } from "../domain/reading-calendar.js";
 import type { DayBookWithPresentation } from "../infrastructure/statistics-activity.repository.js";
@@ -21,11 +19,9 @@ import {
   findMostActiveWeekday,
   toActiveDays,
 } from "../domain/reading-calendar.js";
-import { findCurrentStreak, findLongestStreak } from "../domain/reading-streak.js";
+import { findLongestStreak, resolveCurrentStreak } from "../domain/reading-streak.js";
 import { rollingYearStart } from "../domain/statistics-period.js";
 import { StatisticsActivityRepository } from "../infrastructure/statistics-activity.repository.js";
-
-const ISO_DAY_FORMAT = "yyyy-MM-dd";
 
 export type CalendarComposition = {
   activity: DayActivity[];
@@ -95,7 +91,7 @@ export class StatisticsCalendarComposer {
           value: activeDays.length / countEligibleDays(ranges.metricRange),
         },
         availability: metricReliable ? "available" : "partial",
-        currentStreak: this.buildCurrentStreak({
+        currentStreak: resolveCurrentStreak({
           activeBeforeRange,
           activeDays,
           metricRange: ranges.metricRange,
@@ -117,38 +113,6 @@ export class StatisticsCalendarComposer {
           items: buildWeekdayActivity(activity),
         },
       },
-    };
-  }
-
-  private buildCurrentStreak({
-    activeBeforeRange,
-    activeDays,
-    metricRange,
-    reliableFrom,
-    today,
-  }: {
-    activeBeforeRange: boolean;
-    activeDays: string[];
-    metricRange: ReadingStatisticsDateRange;
-    reliableFrom: string;
-    today: string;
-  }): StatisticsCurrentStreak {
-    if (metricRange.to !== today) {
-      return { availability: "unavailable", data: null, reason: "PERIOD_NOT_CURRENT" };
-    }
-    if (shiftDay(today, -1) < reliableFrom) {
-      return { availability: "unavailable", data: null, reason: "LEGACY_HISTORY_INCOMPLETE" };
-    }
-
-    return {
-      availability: "available",
-      data: findCurrentStreak({
-        activeBeforeRange,
-        activeDays,
-        rangeFrom: metricRange.from,
-        reliableFrom,
-        today,
-      }),
     };
   }
 
@@ -208,10 +172,6 @@ export class StatisticsCalendarComposer {
       title: preview.title,
     }));
   }
-}
-
-function shiftDay(isoDay: string, offset: number): string {
-  return format(addDays(parseISO(isoDay), offset), ISO_DAY_FORMAT);
 }
 
 function unavailableCalendar(today: string): ReadingStatisticsCalendarSection {

@@ -10,7 +10,10 @@ import { Injectable } from "@nestjs/common";
 import { UserSettingsContextService } from "../../profile/index.js";
 import { ReadingGoalBooksRepository } from "../infrastructure/reading-goal-books.repository.js";
 import { ReadingGoalsRepository } from "../infrastructure/reading-goals.repository.js";
-import { ReadingGoalViewBuilder } from "./reading-goal-view.builder.js";
+import {
+  type ReadingGoalCalculationEntry,
+  ReadingGoalViewBuilder,
+} from "./reading-goal-view.builder.js";
 
 export type ActiveReadingGoalMembership = {
   bookId: string;
@@ -28,6 +31,19 @@ export type ActiveReadingGoalSnapshot = {
   name: Nullable<string>;
   status: ReadingGoalStatus;
   targetCount: number;
+};
+
+export type CompletedReadingGoalSnapshot = {
+  completedAt: Date;
+  goalId: string;
+  listName: Nullable<string>;
+  name: Nullable<string>;
+  targetCount: number;
+};
+
+export type ReadingGoalPlans = {
+  active: ActiveReadingGoalSnapshot[];
+  completed: CompletedReadingGoalSnapshot[];
 };
 
 @Injectable()
@@ -50,23 +66,7 @@ export class ReadingGoalPlansService {
       userId,
     });
     const calculated = await this.viewBuilder.calculateAll({ goals, timeZone, today });
-
-    return calculated.flatMap((entry) =>
-      entry.calculation.progress.status === "active"
-        ? [
-            {
-              createdAt: entry.goal.createdAt,
-              deadline: entry.goal.deadline,
-              goalId: entry.goal.id,
-              listName: entry.goal.list?.name ?? null,
-              metrics: entry.calculation.metrics,
-              name: entry.goal.name,
-              status: entry.calculation.progress.status,
-              targetCount: entry.goal.targetCount,
-            },
-          ]
-        : [],
-    );
+    return calculated.flatMap(toActiveSnapshot);
   }
 
   async listActiveMemberships({
@@ -123,4 +123,59 @@ export class ReadingGoalPlansService {
       ];
     });
   }
+
+  async listGoalPlans({
+    timeZone,
+    today,
+    userId,
+  }: {
+    timeZone: string;
+    today: Date;
+    userId: string;
+  }): Promise<ReadingGoalPlans> {
+    const goals = await this.readingGoalsRepository.findOpenGoals({ userId });
+    if (goals.length === 0) {
+      return { active: [], completed: [] };
+    }
+
+    const calculated = await this.viewBuilder.calculateAll({ goals, timeZone, today });
+    return {
+      active: calculated.flatMap(toActiveSnapshot),
+      completed: calculated.flatMap(toCompletedSnapshot),
+    };
+  }
+}
+
+function toActiveSnapshot(entry: ReadingGoalCalculationEntry): ActiveReadingGoalSnapshot[] {
+  if (entry.calculation.progress.status !== "active") {
+    return [];
+  }
+  return [
+    {
+      createdAt: entry.goal.createdAt,
+      deadline: entry.goal.deadline,
+      goalId: entry.goal.id,
+      listName: entry.goal.list?.name ?? null,
+      metrics: entry.calculation.metrics,
+      name: entry.goal.name,
+      status: entry.calculation.progress.status,
+      targetCount: entry.goal.targetCount,
+    },
+  ];
+}
+
+function toCompletedSnapshot(entry: ReadingGoalCalculationEntry): CompletedReadingGoalSnapshot[] {
+  const { completedAt, status } = entry.calculation.progress;
+  if (status !== "completed" || completedAt === null) {
+    return [];
+  }
+  return [
+    {
+      completedAt,
+      goalId: entry.goal.id,
+      listName: entry.goal.list?.name ?? null,
+      name: entry.goal.name,
+      targetCount: entry.goal.targetCount,
+    },
+  ];
 }
