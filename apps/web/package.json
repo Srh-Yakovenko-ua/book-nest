@@ -9,7 +9,7 @@
     "dev:prod": "dotenv -e .env.prod -- next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p scripts/shots",
     "test": "vitest --project unit --project unit-tz run --passWithNoTests",
     "test:watch": "vitest --project unit --project unit-tz",
     "test:ui": "vitest --ui",
@@ -17,7 +17,8 @@
     "test:storybook": "vitest --project storybook run",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "gen:api": "orval --config ./orval.config.ts"
+    "gen:api": "orval --config ./orval.config.ts",
+    "shots": "node scripts/shots/shots.ts"
   },
   "dependencies": {
     "@app/shared": "workspace:*",
