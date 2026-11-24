@@ -38,8 +38,10 @@ export type GraphWorkspaceState = {
 type GraphWorkspaceActions = {
   chooseCharacter: (characterId: string) => void;
   clearCharacter: () => void;
+  clearNetworkFocus: () => void;
   closePath: () => void;
   exploreFromPath: (characterId: string) => void;
+  focusNetworkGroup: (key: Nullable<string>) => void;
   makeCenter: (characterId: string) => void;
   openPath: (fromId: Nullable<string>) => void;
   resetFilters: () => void;
@@ -76,12 +78,14 @@ export function useGraphWorkspaceState(): GraphWorkspaceState {
   const actions: GraphWorkspaceActions = {
     chooseCharacter: (characterId) => void setParams({ characterId }, HISTORY.push),
     clearCharacter: () => void setParams({ characterId: null }, HISTORY.push),
+    clearNetworkFocus: () => void setParams({ networkFocus: null }, HISTORY.replace),
     closePath: () => void setParams({ from: null, path: false, to: null }, HISTORY.replace),
     exploreFromPath: (characterId) =>
       void setParams(
         { characterId, from: null, path: false, to: null, view: "person" },
         HISTORY.push,
       ),
+    focusNetworkGroup: (networkFocus) => void setParams({ networkFocus }, HISTORY.push),
     makeCenter: (characterId) =>
       void setParams(
         {
@@ -98,7 +102,8 @@ export function useGraphWorkspaceState(): GraphWorkspaceState {
     setFilters: (filters) =>
       void setParams(normalizeGraphWorkspaceFilters(filters), HISTORY.replace),
     setGenerations: (generations) => void setParams(generations, HISTORY.replace),
-    setNetworkGroup: (networkGroup) => void setParams({ networkGroup }, HISTORY.replace),
+    setNetworkGroup: (networkGroup) =>
+      void setParams({ networkFocus: null, networkGroup }, HISTORY.replace),
     setPathEndpoints: (endpoints) => void setParams(endpoints, HISTORY.replace),
     setTreeOptions: (options) =>
       void setParams({ treeLinks: toTreeLinks(options) }, HISTORY.replace),

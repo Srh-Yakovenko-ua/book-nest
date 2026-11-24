@@ -40,6 +40,10 @@ export type NetworkGrouping = (typeof NETWORK_GROUPINGS)[number];
 
 const UuidSchema = z.uuid();
 
+const NETWORK_FOCUS = {
+  pattern: /^[a-z0-9_-]{1,64}$/,
+} as const;
+
 const TREE_LINKS = {
   none: "none",
   separator: ",",
@@ -66,6 +70,14 @@ export const TREE_LINKS_DEFAULT: TreeOptionKey[] = TREE_OPTION_KEYS.filter(
 
 const parseAsUuid = createParser({
   parse: (value: string) => (UuidSchema.safeParse(value).success ? value.toLowerCase() : null),
+  serialize: (value: string) => value,
+});
+
+const parseAsNetworkFocus = createParser({
+  parse: (value: string) => {
+    const key = value.toLowerCase();
+    return NETWORK_FOCUS.pattern.test(key) ? key : null;
+  },
   serialize: (value: string) => value,
 });
 
@@ -100,6 +112,7 @@ export const graphWorkspaceParsers = {
     min: CHARACTER_GRAPH_DEPTH_MIN,
   }).withDefault(CHARACTER_GRAPH_DEPTH_DEFAULT),
   from: parseAsUuid,
+  networkFocus: parseAsNetworkFocus,
   networkGroup: parseAsStringLiteral(NETWORK_GROUPINGS).withDefault("group"),
   path: parseAsPathFlag.withDefault(false),
   to: parseAsUuid,
@@ -131,6 +144,7 @@ export function canonicalizeGraphWorkspaceParams(
     ...params,
     ...filters,
     from: params.path ? params.from : null,
+    networkFocus: params.view === "network" && !params.path ? params.networkFocus : null,
     to: params.path ? params.to : null,
   };
 }

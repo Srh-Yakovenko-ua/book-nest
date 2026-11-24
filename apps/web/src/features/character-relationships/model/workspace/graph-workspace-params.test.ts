@@ -95,6 +95,67 @@ describe("canonicalizeGraphWorkspaceParams", () => {
 
     expect(canonical).toMatchObject({ categories: ["family", "social"], types: ["friend_of"] });
   });
+
+  it("keeps the focused network group in the network view", () => {
+    const canonical = canonicalizeGraphWorkspaceParams({
+      ...DEFAULT_PARAMS,
+      networkFocus: "north",
+      view: "network",
+    });
+
+    expect(canonical.networkFocus).toBe("north");
+  });
+
+  it.each(["person", "tree"] as const)("drops the focused network group in the %s view", (view) => {
+    const canonical = canonicalizeGraphWorkspaceParams({
+      ...DEFAULT_PARAMS,
+      networkFocus: "north",
+      view,
+    });
+
+    expect(canonical.networkFocus).toBeNull();
+  });
+
+  it("drops the focused network group while the path is open", () => {
+    const canonical = canonicalizeGraphWorkspaceParams({
+      ...DEFAULT_PARAMS,
+      networkFocus: "north",
+      path: true,
+      view: "network",
+    });
+
+    expect(canonical.networkFocus).toBeNull();
+  });
+});
+
+describe("networkFocus", () => {
+  it("reads no focused group when the URL names none", () => {
+    expect(loadGraphWorkspaceParams(new URLSearchParams("view=network")).networkFocus).toBeNull();
+  });
+
+  it("reads the focused group key in lower case", () => {
+    const params = loadGraphWorkspaceParams(
+      new URLSearchParams("networkFocus=F1F1F1F1-0000-4000-8000-00000000000A_x&view=network"),
+    );
+
+    expect(params.networkFocus).toBe("f1f1f1f1-0000-4000-8000-00000000000a_x");
+  });
+
+  it("reads a key of 64 characters", () => {
+    const key = "a".repeat(64);
+    const params = loadGraphWorkspaceParams(new URLSearchParams({ networkFocus: key }));
+
+    expect(params.networkFocus).toBe(key);
+  });
+
+  it.each(["", "a.b", "a/b", "has space", "a:b", "a".repeat(65)])(
+    "reads no focused group for the key '%s'",
+    (key) => {
+      const params = loadGraphWorkspaceParams(new URLSearchParams({ networkFocus: key }));
+
+      expect(params.networkFocus).toBeNull();
+    },
+  );
 });
 
 describe("needsGraphWorkspaceCanonicalReplace", () => {
@@ -111,6 +172,10 @@ describe("needsGraphWorkspaceCanonicalReplace", () => {
     "treeLinks=foo",
     "treeScope=branch&view=tree",
     "treeScope=bogus&view=tree",
+    "networkFocus=north",
+    "networkFocus=North&view=network",
+    "networkFocus=a.b&view=network",
+    "networkFocus=north&path=1&view=network",
   ])("asks for a replace when the URL reads '%s'", (query) => {
     expect(needsReplaceFor(query)).toBe(true);
   });
@@ -123,6 +188,7 @@ describe("needsGraphWorkspaceCanonicalReplace", () => {
     "treeLinks=marriages,siblings&view=tree",
     "treeLinks=none&view=tree",
     "treeScope=full&view=tree",
+    "networkFocus=north&view=network",
   ])("leaves the canonical URL '%s' alone", (query) => {
     expect(needsReplaceFor(query)).toBe(false);
   });

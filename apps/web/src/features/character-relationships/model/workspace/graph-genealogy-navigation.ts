@@ -27,6 +27,12 @@ export function normalizeGenealogyQuery(value: string): string {
     .trim();
 }
 
+export function rankGenealogyName({ name, needle }: { name: string; needle: string }): number {
+  if (name.startsWith(needle)) return SEARCH_RANK.prefix;
+  if (name.split(" ").some((word) => word.startsWith(needle))) return SEARCH_RANK.wordPrefix;
+  return name.includes(needle) ? SEARCH_RANK.contains : Number.POSITIVE_INFINITY;
+}
+
 export function revealGenealogyCharacter({
   expansion,
   id,
@@ -66,8 +72,8 @@ export function searchGenealogyCharacters({
   return nodes
     .flatMap((node) => {
       const rank = Math.min(
-        rankName({ name: normalizeGenealogyQuery(node.displayName), needle }),
-        rankName({ name: normalizeGenealogyQuery(node.name), needle }),
+        rankGenealogyName({ name: normalizeGenealogyQuery(node.displayName), needle }),
+        rankGenealogyName({ name: normalizeGenealogyQuery(node.name), needle }),
       );
       return Number.isFinite(rank) ? [{ node, rank }] : [];
     })
@@ -95,10 +101,4 @@ export function toggleGenealogyBranch({
     collapsedIds.add(id);
   }
   return { collapsedIds };
-}
-
-function rankName({ name, needle }: { name: string; needle: string }): number {
-  if (name.startsWith(needle)) return SEARCH_RANK.prefix;
-  if (name.split(" ").some((word) => word.startsWith(needle))) return SEARCH_RANK.wordPrefix;
-  return name.includes(needle) ? SEARCH_RANK.contains : Number.POSITIVE_INFINITY;
 }

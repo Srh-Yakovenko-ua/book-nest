@@ -14,12 +14,30 @@ const TITLES = { first: "Aegon II Targaryen", second: "Rhaenyra Targaryen" } as 
 
 const OUTSIDE_BUTTON = "Outside";
 
+const SEARCH_FIELD = "Find a relative";
+
 type PanelTreeSetup = {
   focusMemoryRef?: RefObject<Nullable<string>>;
   mounted?: boolean;
   open?: boolean;
   title?: string;
 };
+
+function compactPanel(onClose: () => void) {
+  return (
+    <GraphDetailsPanel
+      appearance="person"
+      autoFocus
+      onClose={onClose}
+      onRestoreFocus={vi.fn()}
+      open
+      title={TITLES.first}
+      widthClass="compact"
+    >
+      <input aria-label={SEARCH_FIELD} />
+    </GraphDetailsPanel>
+  );
+}
 
 function emptyFocusMemory(): RefObject<Nullable<string>> {
   return { current: null };
@@ -101,5 +119,27 @@ describe("GraphDetailsPanel focus", () => {
     view.rerender(panelTree({}));
 
     expect(screen.getByRole("button", { name: copy.close })).toHaveFocus();
+  });
+});
+
+describe("GraphDetailsPanel at compact width", () => {
+  it("stays open on Escape while a field inside it holds text", async () => {
+    const onClose = vi.fn();
+    renderWithProviders(compactPanel(onClose));
+
+    await userEvent.type(screen.getByRole("textbox", { name: SEARCH_FIELD }), "Aegon");
+    await userEvent.keyboard("{Escape}");
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("closes on Escape from an empty field inside it", async () => {
+    const onClose = vi.fn();
+    renderWithProviders(compactPanel(onClose));
+
+    await userEvent.click(screen.getByRole("textbox", { name: SEARCH_FIELD }));
+    await userEvent.keyboard("{Escape}");
+
+    expect(onClose).toHaveBeenCalledOnce();
   });
 });

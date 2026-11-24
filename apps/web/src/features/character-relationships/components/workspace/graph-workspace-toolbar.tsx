@@ -47,6 +47,7 @@ import type {
 } from "../../model/workspace/graph-workspace-params";
 import type { GraphWorkspaceState } from "../../model/workspace/use-graph-workspace-state";
 import type { GraphGenealogyBarProps } from "./graph-genealogy-bar";
+import type { GraphNetworkSearchProps } from "./graph-network-search";
 import type { WorkspaceWidthClass } from "./use-workspace-width-class";
 
 import {
@@ -57,6 +58,7 @@ import {
 import { GRAPH_TREE_SCOPES, NETWORK_GROUPINGS } from "../../model/workspace/graph-workspace-params";
 import { RelationshipParticipantPicker } from "../relationship-participant-picker";
 import { GraphGenealogyBar } from "./graph-genealogy-bar";
+import { GraphNetworkSearch } from "./graph-network-search";
 import { GraphWorkspaceFilters } from "./graph-workspace-filters";
 import { useIsShortViewport } from "./use-is-short-viewport";
 
@@ -78,11 +80,14 @@ export type GraphToolbarGenealogy = Omit<GraphGenealogyBarProps, "compact"> & {
   onExpandAll: () => void;
 };
 
+export type GraphToolbarNetworkSearch = Omit<GraphNetworkSearchProps, "compact">;
+
 type GraphWorkspaceToolbarProps = {
   actions: GraphWorkspaceState["actions"];
   bookId: string;
   filtersTriggerId: string;
   genealogy: Nullable<GraphToolbarGenealogy>;
+  networkSearch: Nullable<GraphToolbarNetworkSearch>;
   onTreeOptionsChange: (options: TreeOptions) => void;
   onTreeOptionsReset: () => void;
   params: GraphWorkspaceParams;
@@ -120,6 +125,7 @@ export function GraphWorkspaceToolbar({
   bookId,
   filtersTriggerId,
   genealogy,
+  networkSearch,
   onTreeOptionsChange,
   onTreeOptionsReset,
   params,
@@ -198,24 +204,29 @@ export function GraphWorkspaceToolbar({
         </>
       ) : null}
       {params.view === "network" ? (
-        <Select
-          onValueChange={(value) => {
-            const grouping = NETWORK_GROUPINGS.find((entry) => entry === value);
-            if (grouping !== undefined) actions.setNetworkGroup(grouping);
-          }}
-          value={params.networkGroup}
-        >
-          <SelectTrigger aria-label={t("grouping.label")} className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {NETWORK_GROUPINGS.map((grouping: NetworkGrouping) => (
-              <SelectItem key={grouping} value={grouping}>
-                {t(`grouping.${grouping}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <>
+          {networkSearch === null ? null : (
+            <GraphNetworkSearch {...networkSearch} compact={widthClass === "compact"} />
+          )}
+          <Select
+            onValueChange={(value) => {
+              const grouping = NETWORK_GROUPINGS.find((entry) => entry === value);
+              if (grouping !== undefined) actions.setNetworkGroup(grouping);
+            }}
+            value={params.networkGroup}
+          >
+            <SelectTrigger aria-label={t("grouping.label")} className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {NETWORK_GROUPINGS.map((grouping: NetworkGrouping) => (
+                <SelectItem key={grouping} value={grouping}>
+                  {t(`grouping.${grouping}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </>
       ) : null}
       {params.view === "tree" ? null : (
         <GraphWorkspaceFilters

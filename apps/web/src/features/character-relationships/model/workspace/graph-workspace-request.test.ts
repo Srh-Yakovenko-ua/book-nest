@@ -19,6 +19,7 @@ const DEFAULT_PARAMS: GraphWorkspaceParams = {
   characterId: null,
   depth: 1,
   from: null,
+  networkFocus: null,
   networkGroup: "group",
   path: false,
   to: null,

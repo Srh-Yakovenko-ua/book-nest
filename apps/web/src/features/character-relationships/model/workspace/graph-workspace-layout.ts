@@ -1,5 +1,4 @@
 import type { RelationshipGraphPoint } from "../relationship-graph-layout";
-import type { NetworkScene } from "./graph-network-scene";
 import type { PersonScene } from "./graph-person-scene";
 
 export const GRAPH_NODE_BOX = {
@@ -16,84 +15,7 @@ export const PERSON_LAYOUT = {
   siblingGap: 20,
 } as const;
 
-const LAYOUT_SPACING = {
-  clusterGap: 64,
-  memberColumns: 4,
-  memberGap: 24,
-} as const;
-
 export type GraphWorkspacePositions = ReadonlyMap<string, RelationshipGraphPoint>;
-
-export function layoutNetworkScene(scene: NetworkScene): GraphWorkspacePositions {
-  const footprints = scene.buckets.map((bucket) => {
-    const members = scene.shownMembersByBucket.get(bucket.id) ?? [];
-    const columns = Math.min(LAYOUT_SPACING.memberColumns, Math.max(1, members.length));
-    const rows = Math.ceil(members.length / columns);
-    const memberWidth =
-      columns * GRAPH_NODE_BOX.character.width + (columns - 1) * LAYOUT_SPACING.memberGap;
-    const memberHeight = rows * (GRAPH_NODE_BOX.character.height + LAYOUT_SPACING.memberGap);
-    return {
-      bucketId: bucket.id,
-      columns,
-      height:
-        GRAPH_NODE_BOX.cluster.height +
-        (members.length > 0 ? LAYOUT_SPACING.memberGap + memberHeight : 0),
-      members,
-      width: Math.max(GRAPH_NODE_BOX.cluster.width, members.length > 0 ? memberWidth : 0),
-    };
-  });
-  const totalArea = footprints.reduce(
-    (sum, footprint) =>
-      sum +
-      (footprint.width + LAYOUT_SPACING.clusterGap) *
-        (footprint.height + LAYOUT_SPACING.clusterGap),
-    0,
-  );
-  const shelfWidth = Math.max(
-    GRAPH_NODE_BOX.cluster.width,
-    ...footprints.map((footprint) => footprint.width),
-    Math.sqrt(totalArea) * 1.4,
-  );
-
-  const positions = new Map<string, RelationshipGraphPoint>();
-  let cursorX = 0;
-  let cursorY = 0;
-  let shelfHeight = 0;
-  for (const footprint of footprints) {
-    if (cursorX > 0 && cursorX + footprint.width > shelfWidth) {
-      cursorX = 0;
-      cursorY += shelfHeight + LAYOUT_SPACING.clusterGap;
-      shelfHeight = 0;
-    }
-    const centerX = cursorX + footprint.width / 2;
-    positions.set(footprint.bucketId, {
-      x: centerX,
-      y: cursorY + GRAPH_NODE_BOX.cluster.height / 2,
-    });
-    const gridWidth =
-      footprint.columns * GRAPH_NODE_BOX.character.width +
-      (footprint.columns - 1) * LAYOUT_SPACING.memberGap;
-    const gridLeft = centerX - gridWidth / 2;
-    const gridTop = cursorY + GRAPH_NODE_BOX.cluster.height + LAYOUT_SPACING.memberGap;
-    footprint.members.forEach((memberId, index) => {
-      const column = index % footprint.columns;
-      const row = Math.floor(index / footprint.columns);
-      positions.set(memberId, {
-        x:
-          gridLeft +
-          column * (GRAPH_NODE_BOX.character.width + LAYOUT_SPACING.memberGap) +
-          GRAPH_NODE_BOX.character.width / 2,
-        y:
-          gridTop +
-          row * (GRAPH_NODE_BOX.character.height + LAYOUT_SPACING.memberGap) +
-          GRAPH_NODE_BOX.character.height / 2,
-      });
-    });
-    cursorX += footprint.width + LAYOUT_SPACING.clusterGap;
-    shelfHeight = Math.max(shelfHeight, footprint.height);
-  }
-  return positions;
-}
 
 export function layoutPersonScene(scene: PersonScene): GraphWorkspacePositions {
   const positions = new Map<string, RelationshipGraphPoint>([[scene.rootId, { x: 0, y: 0 }]]);

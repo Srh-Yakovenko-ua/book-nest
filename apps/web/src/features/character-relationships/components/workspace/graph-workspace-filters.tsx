@@ -42,7 +42,7 @@ export function GraphWorkspaceFilters({
   const count = countGraphWorkspaceFilters({ categories, types });
   const allowedTypes = toAllowedGraphWorkspaceTypes(categories);
   const typeOptions = RelationshipTypeSchema.options.filter(
-    (type) => type !== "custom" && (allowedTypes === null || allowedTypes.has(type)),
+    (type) => allowedTypes === null || allowedTypes.has(type),
   );
 
   return (
