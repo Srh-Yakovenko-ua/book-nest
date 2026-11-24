@@ -21,7 +21,7 @@ SPLIT='NOT_VERIFIED|Missing|[Nn]ot verified|[Uu]nverified|(Н|н)е провер
 printf '%s' "$MESSAGE" | grep -qiE "$CLAIM" || exit 0
 printf '%s' "$MESSAGE" | grep -qE "$SPLIT" && exit 0
 
-CHECKS='gates\.sh|test-hooks\.sh|eslint|vitest|curl\s|gh\s+run\s+(view|watch)|pnpm\s+(typecheck|lint|test|build|knip)|tsc\s|bash\s+-n\s|prisma\s+(validate|migrate\s+status)'
+CHECKS='gates\.sh|test-hooks\.sh|eslint|vitest|curl\s|gh(\.exe)?"?\s+run\s+(view|watch)|pnpm\s+(typecheck|lint|test|build|knip)|tsc\s|bash\s+-n\s|prisma\s+(validate|migrate\s+status)'
 
 TURN="$(tail -n 600 "$TRANSCRIPT" | jq -cs --arg checks "$CHECKS" '
   def text_of: if type == "string" then . elif type == "array" then (map(select(.type == "text") | .text) | join("\n")) else "" end;
