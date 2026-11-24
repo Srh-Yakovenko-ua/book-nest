@@ -197,11 +197,13 @@ function StatTile({
   label: string;
 }) {
   return (
-    <div className="flex flex-col-reverse items-center gap-0.5 px-1 text-center">
-      <dt className="text-xs leading-tight text-muted-foreground">{label}</dt>
-      <dd className="flex flex-col items-center gap-1 font-heading text-lg leading-none font-semibold text-ink tabular-nums">
-        <Icon aria-hidden className="size-4 text-icon" />
-        {count}
+    <div className="flex flex-col items-center px-1 text-center">
+      <dt className="order-last mt-1 text-xs leading-tight text-muted-foreground">{label}</dt>
+      <dd className="flex flex-col items-center font-heading text-lg leading-none font-semibold text-ink tabular-nums">
+        <span aria-hidden className="flex h-5 items-center">
+          <Icon className="size-4 text-icon" />
+        </span>
+        <span className="mt-1">{count}</span>
       </dd>
     </div>
   );

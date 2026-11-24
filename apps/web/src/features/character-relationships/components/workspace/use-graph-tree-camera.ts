@@ -88,14 +88,31 @@ export function useGraphTreeCamera() {
     if (viewport !== null) move(viewport, 0);
   }
 
-  function fitAll({ cover, duration }: { cover: GraphPersonCover; duration: number }) {
+  function fitBoxes({
+    boxes,
+    cover,
+    duration,
+    withRail,
+  }: {
+    boxes: readonly TreeCameraBox[];
+    cover: GraphPersonCover;
+    duration: number;
+    withRail: boolean;
+  }) {
     const viewport = toTreeFitViewport({
       area: toArea(cover),
-      boxes: toBoxes(null),
-      withRail: true,
-      zoom: { maxZoom: TREE_CAMERA.maxZoom, minZoom: store.getState().minZoom },
+      boxes,
+      withRail,
+      zoom: { maxZoom: TREE_CAMERA.maxZoom, minZoom: TREE_CAMERA.fitFloor },
     });
-    if (viewport !== null) move(viewport, duration);
+    if (viewport === null) return;
+    const { minZoom, setMinZoom } = store.getState();
+    if (viewport.zoom < minZoom) setMinZoom(viewport.zoom);
+    move(viewport, duration);
+  }
+
+  function fitAll({ cover, duration }: { cover: GraphPersonCover; duration: number }) {
+    fitBoxes({ boxes: toBoxes(null), cover, duration, withRail: true });
   }
 
   function center({
@@ -150,13 +167,7 @@ export function useGraphTreeCamera() {
       );
       return true;
     }
-    const viewport = toTreeFitViewport({
-      area: toArea(cover),
-      boxes,
-      withRail: false,
-      zoom: { maxZoom: TREE_CAMERA.maxZoom, minZoom: store.getState().minZoom },
-    });
-    if (viewport !== null) move(viewport, duration);
+    fitBoxes({ boxes, cover, duration, withRail: false });
     return true;
   }
 
