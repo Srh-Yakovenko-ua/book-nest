@@ -32,6 +32,8 @@ const TOMORROW = addDaysToIsoDate(TODAY, 1);
 const NEXT_WEEK = addDaysToIsoDate(TODAY, 7);
 const NEXT_MONTH = addDaysToIsoDate(TODAY, 30);
 
+const ORDINAL_GOAL = { targetCount: 5 } as const;
+
 const BOOK_ID = {
   alpha: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
   beta: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
@@ -236,7 +238,19 @@ async function seedGoalWithBooks(
   for (const [position, book] of books.entries()) {
     await addBookToList({ ...book, listId, position, userId: owner.userId });
   }
-  return createGoalOrThrow({ accessToken: owner.accessToken, listId, targetCount: 5 });
+  for (let position = books.length; position < ORDINAL_GOAL.targetCount; position += 1) {
+    await addBookToList({
+      listId,
+      position,
+      title: `Unread ${String(position)}`,
+      userId: owner.userId,
+    });
+  }
+  return createGoalOrThrow({
+    accessToken: owner.accessToken,
+    listId,
+    targetCount: ORDINAL_GOAL.targetCount,
+  });
 }
 
 async function seedTwoBookGoal({
