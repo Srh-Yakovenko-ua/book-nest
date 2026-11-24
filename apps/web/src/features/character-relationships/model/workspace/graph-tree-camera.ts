@@ -5,10 +5,12 @@ import type { GraphPersonArea, GraphPersonViewport } from "./graph-person-camera
 import { fitGraphPersonBounds } from "./graph-person-camera";
 
 export const TREE_CAMERA = {
+  fitFloor: 0.01,
+  fitInset: 12,
   fitPadding: 0.06,
   focusZoom: 0.9,
   maxZoom: 1,
-  rail: 196,
+  rail: 230,
   readableZoom: 0.72,
 } as const;
 
@@ -60,7 +62,15 @@ export function toTreeFitViewport({
 }): Nullable<GraphPersonViewport> {
   const bounds = toTreeBounds({ boxes, withRail });
   if (bounds === null) return null;
-  return fitGraphPersonBounds({ area, bounds, padding: TREE_CAMERA.fitPadding, zoom });
+  const insetX = Math.max(area.width * TREE_CAMERA.fitPadding, TREE_CAMERA.fitInset);
+  const insetY = Math.max(area.height * TREE_CAMERA.fitPadding, TREE_CAMERA.fitInset);
+  const inner = {
+    height: Math.max(area.height - insetY * 2, 1),
+    width: Math.max(area.width - insetX * 2, 1),
+    x: area.x + insetX,
+    y: area.y + insetY,
+  };
+  return fitGraphPersonBounds({ area: inner, bounds, padding: 0, zoom });
 }
 
 export function toTreeInitialViewport({

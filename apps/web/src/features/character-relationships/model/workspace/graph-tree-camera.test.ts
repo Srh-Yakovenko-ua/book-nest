@@ -8,6 +8,7 @@ import type { TreeCameraBox } from "./graph-tree-camera";
 import {
   toTreeBounds,
   toTreeCenterViewport,
+  toTreeFitViewport,
   toTreeInitialViewport,
   TREE_CAMERA,
 } from "./graph-tree-camera";
@@ -23,6 +24,16 @@ const SMALL_TREE: TreeCameraBox[] = [
 ];
 
 const SMALL_ROOT = "e8e8e8e8-0000-4000-8000-000000000003";
+
+const SHORT_AREA = { height: 124, width: 410, x: 0, y: 0 };
+
+const TALL_TREE: TreeCameraBox[] = Array.from({ length: 21 }, (_, row) => ({
+  height: 64,
+  id: `eaeaeaea-0000-4000-8000-${String(row).padStart(12, "0")}`,
+  width: 212,
+  x: (row % 3) * 240,
+  y: row * 152,
+}));
 
 const HUGE_ROW: TreeCameraBox[] = Array.from({ length: 60 }, (_, index) => ({
   height: 64,
@@ -122,6 +133,33 @@ describe("toTreeInitialViewport", () => {
   });
 });
 
+describe("toTreeFitViewport", () => {
+  it("fits a tall tree into a short canvas below the usual zoom floor with an inset on every side", () => {
+    const viewport = toTreeFitViewport({
+      area: SHORT_AREA,
+      boxes: TALL_TREE,
+      withRail: false,
+      zoom: { maxZoom: TREE_CAMERA.maxZoom, minZoom: TREE_CAMERA.fitFloor },
+    });
+
+    expect(viewport?.zoom).toBeLessThan(0.05);
+    expect(insetOf({ area: SHORT_AREA, boxes: TALL_TREE, viewport })).toBeGreaterThanOrEqual(
+      TREE_CAMERA.fitInset - 0.001,
+    );
+  });
+
+  it("keeps the zoom floor it is given even when the tree then overflows", () => {
+    const viewport = toTreeFitViewport({
+      area: SHORT_AREA,
+      boxes: TALL_TREE,
+      withRail: false,
+      zoom: { maxZoom: TREE_CAMERA.maxZoom, minZoom: 0.05 },
+    });
+
+    expect(viewport?.zoom).toBe(0.05);
+  });
+});
+
 describe("toTreeCenterViewport", () => {
   it("puts the centre of the box at the centre of the area", () => {
     const box = { height: 64, width: 200, x: 300, y: -152 };
@@ -160,4 +198,26 @@ function boxesOutside({
       );
     })
     .map((box) => box.id);
+}
+
+function insetOf({
+  area,
+  boxes,
+  viewport,
+}: {
+  area: typeof SHORT_AREA;
+  boxes: readonly TreeCameraBox[];
+  viewport: Nullable<GraphPersonViewport>;
+}): number {
+  if (viewport === null) return Number.NEGATIVE_INFINITY;
+  const left = Math.min(...boxes.map((box) => box.x * viewport.zoom + viewport.x));
+  const top = Math.min(...boxes.map((box) => box.y * viewport.zoom + viewport.y));
+  const right = Math.max(...boxes.map((box) => (box.x + box.width) * viewport.zoom + viewport.x));
+  const bottom = Math.max(...boxes.map((box) => (box.y + box.height) * viewport.zoom + viewport.y));
+  return Math.min(
+    left - area.x,
+    top - area.y,
+    area.x + area.width - right,
+    area.y + area.height - bottom,
+  );
 }
