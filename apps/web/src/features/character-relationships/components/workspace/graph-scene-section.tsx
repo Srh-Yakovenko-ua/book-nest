@@ -88,7 +88,7 @@ export function GraphSceneSection(props: GraphSceneSectionProps) {
       <p
         aria-live="polite"
         className={cn(
-          "pb-2 text-sm text-muted-foreground outline-none",
+          "rounded-sm pb-2 text-sm text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           (announcement === "" || props.statusInline) && "sr-only",
         )}
         id={props.statusId}

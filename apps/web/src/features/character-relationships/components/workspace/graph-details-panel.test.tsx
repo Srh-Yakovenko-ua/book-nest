@@ -1,10 +1,11 @@
 import type { Nullable } from "@app/shared";
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 
+import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import messages from "@/messages/uk.json";
-import { renderWithProviders, screen, userEvent } from "@/test-utils";
+import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import { GraphDetailsPanel } from "./graph-details-panel";
 
@@ -16,6 +17,11 @@ const OUTSIDE_BUTTON = "Outside";
 
 const SEARCH_FIELD = "Find a relative";
 
+type CompactPanelSetup = {
+  children?: ReactNode;
+  title?: string;
+};
+
 type PanelTreeSetup = {
   focusMemoryRef?: RefObject<Nullable<string>>;
   mounted?: boolean;
@@ -23,7 +29,10 @@ type PanelTreeSetup = {
   title?: string;
 };
 
-function compactPanel(onClose: () => void) {
+function compactPanel(
+  onClose: () => void,
+  { children = <input aria-label={SEARCH_FIELD} />, title = TITLES.first }: CompactPanelSetup = {},
+) {
   return (
     <GraphDetailsPanel
       appearance="person"
@@ -31,10 +40,10 @@ function compactPanel(onClose: () => void) {
       onClose={onClose}
       onRestoreFocus={vi.fn()}
       open
-      title={TITLES.first}
+      title={title}
       widthClass="compact"
     >
-      <input aria-label={SEARCH_FIELD} />
+      {children}
     </GraphDetailsPanel>
   );
 }
@@ -141,5 +150,37 @@ describe("GraphDetailsPanel at compact width", () => {
     await userEvent.keyboard("{Escape}");
 
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("moves the focus to its close button when another character's content drops the focused field", async () => {
+    const view = renderWithProviders(compactPanel(vi.fn()));
+    await userEvent.click(screen.getByRole("textbox", { name: SEARCH_FIELD }));
+    expect(screen.getByRole("textbox", { name: SEARCH_FIELD })).toHaveFocus();
+
+    view.rerender(compactPanel(vi.fn(), { children: <p>details</p>, title: TITLES.second }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: copy.close })).toHaveFocus());
+  });
+
+  it("moves the focus from the sheet itself to its close button for another character", () => {
+    const view = renderWithProviders(compactPanel(vi.fn()));
+    const sheet = screen.getByRole("dialog", { name: TITLES.first });
+    act(() => sheet.focus());
+    expect(sheet).toHaveFocus();
+
+    view.rerender(compactPanel(vi.fn(), { title: TITLES.second }));
+
+    expect(screen.getByRole("button", { name: copy.close })).toHaveFocus();
+  });
+
+  it("keeps the focus on a field that stays in another character's content", async () => {
+    const view = renderWithProviders(compactPanel(vi.fn()));
+    const field = screen.getByRole("textbox", { name: SEARCH_FIELD });
+    await userEvent.click(field);
+
+    view.rerender(compactPanel(vi.fn(), { title: TITLES.second }));
+    await act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+
+    expect(field).toHaveFocus();
   });
 });

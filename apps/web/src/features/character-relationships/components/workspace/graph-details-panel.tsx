@@ -72,6 +72,8 @@ export function GraphDetailsPanel({
   const closeButton = useRef<HTMLButtonElement>(null);
   const isInline = open && widthClass !== "compact";
   const shouldFocus = isInline && autoFocus;
+  const isPersonSheet = widthClass === "compact" && appearance === "person";
+  const shouldRecoverSheetFocus = open && autoFocus && isPersonSheet;
   const memoryKey = focusKey ?? title;
 
   useEffect(() => {
@@ -86,7 +88,19 @@ export function GraphDetailsPanel({
     closeButton.current?.focus();
   }, [focusMemoryRef, memoryKey, shouldFocus]);
 
-  if (widthClass === "compact" && appearance === "person") {
+  useEffect(() => {
+    const button = closeButton.current;
+    if (!shouldRecoverSheetFocus || button === null) return;
+    const { activeElement } = document;
+    const isFocusLost =
+      activeElement === null ||
+      activeElement === document.body ||
+      activeElement === button.closest('[role="dialog"]');
+    if (!isFocusLost) return;
+    button.focus();
+  }, [memoryKey, shouldRecoverSheetFocus]);
+
+  if (isPersonSheet) {
     return (
       <Sheet
         onOpenChange={(next) => {
@@ -114,6 +128,7 @@ export function GraphDetailsPanel({
               <Button
                 aria-label={t("close")}
                 className={PANEL_STYLES.close}
+                ref={closeButton}
                 size="icon"
                 type="button"
                 variant="ghost"
