@@ -67,7 +67,6 @@
 | `tailwind-merge`           | resolves conflicting Tailwind classes                   |
 | `tw-animate-css`           | Tailwind plugin for enter/exit animations               |
 | `next-themes`              | pulled transitively by shadcn `sonner`, unused directly |
-| `shadcn`                   | CLI — used via `pnpm dlx shadcn@latest`                 |
 
 ### Fonts & observability
 
@@ -99,6 +98,7 @@
 | `@vitejs/plugin-react-swc`   | React fast refresh via SWC (Rust)                       |
 | `@tailwindcss/vite`          | Tailwind v4 Vite plugin                                 |
 | `tailwindcss`                | Tailwind v4 core                                        |
+| `shadcn`                     | CLI; `globals.css` imports its `tailwind.css` at build  |
 | `vite-plugin-svgr`           | import SVG as React component                           |
 | `vite-plugin-checker`        | TS errors in browser overlay during dev                 |
 | `vite-plugin-compression2`   | gzip + brotli at build time                             |
