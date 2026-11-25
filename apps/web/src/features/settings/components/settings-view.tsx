@@ -1,18 +1,19 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { useSettings } from "../api/use-settings";
 import { NotificationSettingsSection } from "./notification-settings-section";
 import { RegionalSettingsSection } from "./regional-settings-section";
-
-const SKELETON_ROW_COUNT = 4;
 
 export function SettingsView() {
   const t = useTranslations("settings.page");
@@ -84,26 +85,55 @@ function SettingsSkeleton() {
   return (
     <div className="flex max-w-3xl flex-col gap-6" role="status">
       <span className="sr-only">{t("loading")}</span>
-      <Card>
-        <CardContent className="flex flex-col gap-5">
-          <Skeleton className="h-5 w-40" />
-          {Array.from({ length: SKELETON_ROW_COUNT }, (_, index) => (
-            <div className="flex items-start justify-between gap-4" key={index}>
-              <div className="flex min-w-0 flex-1 flex-col gap-2">
-                <Skeleton className="h-4 w-1/3" />
-                <Skeleton className="h-3 w-2/3" />
-              </div>
-              <Skeleton className="mt-0.5 h-5 w-8 rounded-full" />
+      <SkeletonCard description={<Skeleton className="h-4 w-3/4" />}>
+        <SkeletonRow control={<Skeleton className="mt-0.5 h-5 w-8 rounded-full" />} />
+        <div className="flex flex-col gap-4">
+          <SkeletonRow control={<Skeleton className="mt-0.5 h-5 w-8 rounded-full" />} />
+          <div className="ml-1 border-l-2 border-border pl-4">
+            <SkeletonRow control={<Skeleton className="h-8 w-32" />} />
+          </div>
+        </div>
+        <Separator />
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-3 w-full max-w-md" />
+          <Skeleton className="h-7 w-52" />
+        </div>
+      </SkeletonCard>
+      <SkeletonCard>
+        <SkeletonRow control={<Skeleton className="h-8 w-full sm:w-72" />} />
+        <SkeletonRow
+          control={
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-11 w-48 rounded-full" />
+              <Skeleton className="h-3 w-36" />
             </div>
-          ))}
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="flex flex-col gap-3">
-          <Skeleton className="h-5 w-32" />
-          <Skeleton className="h-9 w-full sm:max-w-sm" />
-        </CardContent>
-      </Card>
+          }
+        />
+      </SkeletonCard>
+    </div>
+  );
+}
+
+function SkeletonCard({ children, description }: { children: ReactNode; description?: ReactNode }) {
+  return (
+    <Card className="gap-5">
+      <CardHeader>
+        <Skeleton className="h-5 w-40" />
+        {description}
+      </CardHeader>
+      <CardContent className="flex flex-col gap-6">{children}</CardContent>
+    </Card>
+  );
+}
+
+function SkeletonRow({ control }: { control: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+      <div className="flex min-w-0 flex-1 basis-56 flex-col gap-2">
+        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-3 w-5/6" />
+      </div>
+      {control}
     </div>
   );
 }
