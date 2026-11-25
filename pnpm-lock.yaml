@@ -803,9 +803,6 @@ importers:
       recharts:
         specifier: 'catalog:'
         version: 3.10.1(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react-is@17.0.2)(react@19.2.8)(redux@5.0.1)
-      shadcn:
-        specifier: 'catalog:'
-        version: 4.16.1(babel-plugin-macros@3.1.0)(typescript@6.0.2)
       socket.io-client:
         specifier: 'catalog:'
         version: 4.8.3
@@ -906,6 +903,9 @@ importers:
       react-scan:
         specifier: 'catalog:'
         version: 0.5.7(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.221.0(@opentelemetry/api@1.9.1))(esbuild@0.28.1)(eslint@10.8.0(jiti@2.7.0))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(rolldown@1.2.19)(rollup@4.60.1)(vite@8.3.8(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.48.0)(tsx@4.21.0)(yaml@2.9.0))(webpack@5.107.2(esbuild@0.28.1))
+      shadcn:
+        specifier: 'catalog:'
+        version: 4.16.1(babel-plugin-macros@3.1.0)(typescript@6.0.2)
       storybook:
         specifier: 'catalog:'
         version: 10.6.7(@types/react@19.2.17)(prettier@3.9.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
