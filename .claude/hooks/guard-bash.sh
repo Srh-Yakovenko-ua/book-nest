@@ -15,6 +15,8 @@ CODE="$(printf '%s' "$RAW" | perl -0777 -pe '
   s/<<-?\s*([\x27"]?)(\w+)\1([^\n]*)\n.*?\n[ \t]*\2[ \t]*(?=\n|$)/<<$2$3/gs;
   s/(["\x27])(?:[^"\x27\n]*[\/\\])?(gh|git)\.exe\1/$2.exe/g;
   s/(["\x27])[^"\x27\n]*[\/\\](gh|git)\1/$2/g;
+  s/(["\x27])(gh|git)(\.exe)?\1/$2$3/g;
+  s/(-X|--method)(\s*=?\s*)(["\x27])(GET|POST|PUT|PATCH|DELETE|HEAD)\3/$1$2$4/g;
   s/\x27[^\x27]*\x27/\x27\x27/g;
   s/"(?:[^"\\]|\\.)*"/""/gs;
 ')"
@@ -29,15 +31,39 @@ in_raw_i() { printf '%s' "$RAW" | grep -qiE -- "$1"; }
 
 Q="[\"']?"
 S='(^|[;&|(`]|\$\()[[:space:]]*([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*'
-G='git(\.exe)?([[:space:]]+(-C|-c)[[:space:]]+[^[:space:]]+|[[:space:]]+--no-pager|[[:space:]]+--(git-dir|work-tree)[= ][^[:space:]]+)*[[:space:]]+'
+G='git(\.exe)?([[:space:]]+(-C|-c)[[:space:]]+[^[:space:]]+|[[:space:]]+(-p|-P|--paginate|--no-pager|--bare|--no-replace-objects|--no-optional-locks|--no-lazy-fetch|--no-advice|--literal-pathspecs|--glob-pathspecs|--noglob-pathspecs|--icase-pathspecs)|[[:space:]]+--(git-dir|work-tree|namespace|exec-path|config-env|super-prefix|attr-source)[= ][^[:space:]]+)*[[:space:]]+'
 A='([^|;&]*[[:space:]])?'
-GH='gh(\.exe)?[[:space:]]+'
+GH='(^|[^A-Za-z0-9_.-])gh(\.exe)?[[:space:]]+'
 PNPM_OPTS='([[:space:]]+(-w|-r|-s|--recursive|--workspace-root|--silent|--filter[= ][^[:space:]]+|-F[[:space:]]+[^[:space:]]+|-C[[:space:]]+[^[:space:]]+|--dir[= ][^[:space:]]+))*'
 
 IS_COMMIT=0
 IS_PROSE=0
 in_code "${G}commit([[:space:]]|$)" && IS_COMMIT=1
 in_code "${GH}(pr|issue|release)[[:space:]]+(create|edit|comment|review)|${G}tag[[:space:]]+${A}-[amF]|${G}merge[[:space:]]+${A}-m|${G}commit-tree[[:space:]]+${A}-m" && IS_PROSE=1
+
+quoted_spaces() { perl -pe 's/(["\x27])(.*?)\1/(my $s = $2) =~ s{\s}{\x1f}g; $s/ge; tr/"\x27//d'; }
+
+git_dir_of() {
+  local dir
+  dir="$(printf '%s' "$1" | perl -ne '
+    next unless s/^git(?:\.exe)?\s+//;
+    my $d;
+    while (s/^(?:-c\s+\S+|--(?:git-dir|work-tree|namespace|exec-path|config-env|super-prefix|attr-source)(?:=|\s+)\S+|-[pP]|--[\w-]+|-C\s+(\S+))\s+//) {
+      my $c = $1;
+      next unless defined $c;
+      $d = (defined $d && $c !~ m{^(?:/|[A-Za-z]:|~)}) ? "$d/$c" : $c;
+    }
+    print $d if defined $d;
+  ')"
+  dir="${dir//$'\x1f'/ }"
+  case "$dir" in
+    '') ;;
+    '~'*) dir="${HOME:-}${dir#\~}" ;;
+    /* | [A-Za-z]:*) ;;
+    *) dir="${CWD:-$PROJECT_DIR}/$dir" ;;
+  esac
+  printf '%s' "$dir"
+}
 
 names_assistant() { printf '%s' "$1" | LC_ALL=C grep -qiE 'claude|(^|[^a-z])anthropic'; }
 
@@ -118,40 +144,58 @@ check_git() {
     check_push
   fi
   if in_code "${GH}repo[[:space:]]+(delete|archive|edit|rename)" \
-    || in_code "${GH}api[[:space:]]+${A}(-X|--method)[[:space:]]*DELETE" \
+    || in_code "${GH}api[[:space:]]+${A}(-X|--method)[[:space:]=]*DELETE" \
     || in_code "${GH}release[[:space:]]+delete"; then
     deny "Repository settings, deletions and releases are changed by the user, not from a session."
   fi
+  if in_code "${GH}api[[:space:]]" \
+    && in_raw 'git/refs/heads/(prod|stage)([^[:alnum:]_/-]|$)' \
+    && in_raw '(-X|--method)[[:space:]=]*["'"'"']?(POST|PATCH|PUT|DELETE)'; then
+    deny "Direct pushes go only to dev. prod and stage change through a promote PR (release-manager)."
+  fi
   if in_code "${GH}pr[[:space:]]+merge${A}--admin"; then
     ask "Merges a PR past branch protection (--admin)."
-  elif in_code "${GH}pr[[:space:]]+merge"; then
+  elif in_code "${GH}pr[[:space:]]+merge" \
+    || { in_code "${GH}api[[:space:]]" && in_raw 'pulls/[0-9]+/merge([^[:alnum:]_]|$)' && in_raw '(-X|--method)[[:space:]=]*["'"'"']?PUT'; } \
+    || { in_code "${GH}api[[:space:]]" && in_raw 'repos/[^[:space:]]+/merges([^[:alnum:]_]|$)'; } \
+    || { in_code "${GH}api[[:space:]]+graphql" && in_raw 'mergePullRequest|enablePullRequestAutoMerge|mergeBranch'; }; then
     ask "Merges a PR. Merging is the user's call."
   fi
 }
 
 check_push() {
-  local push_args positional arg branch
-  push_args="$(printf '%s' "$CODE" | grep -oE "${G}push([[:space:]][^|;&]*)?" | head -1 | sed -E 's/^.*[[:space:]]push//')"
-  if in_code "${G}push[[:space:]]+${A}(--force|--force-with-lease|--force-if-includes|-f|--mirror|\+[^[:space:]]+)([[:space:]]|$|=)"; then
-    printf '%s' "$push_args" | grep -qE '(promote-(prod|stage)|release/)' \
-      || deny "Force push rewrites published history. It is allowed only for the promote-prod / promote-stage / release/* branches that release-manager rebuilds."
-  fi
-  positional=0
-  for arg in $push_args; do
-    case "$arg" in
-      -*) ;;
-      *)
-        positional=$((positional + 1))
-        if [ "$positional" -ge 2 ] && printf '%s' "$arg" | grep -qE '^\+?([^:]*:)?(refs/heads/)?(prod|stage)$'; then
-          deny "Direct pushes go only to dev. prod and stage change through a promote PR (release-manager)."
-        fi
-        ;;
-    esac
-  done
-  if [ "$positional" -lt 2 ]; then
-    branch="$(git -C "${CWD:-$PROJECT_DIR}" branch --show-current 2>/dev/null)"
+  local segment push_args positional arg branch dir
+  while IFS= read -r segment; do
+    [ -n "$segment" ] || continue
+    push_args="$(printf '%s' "$segment" | sed -E 's/^.*[[:space:]]push//')"
+    if printf '%s' "$segment" | grep -qE -- "${G}push[[:space:]]+${A}(--force|--force-with-lease|--force-if-includes|-f|--mirror|\+[^[:space:]]+)([[:space:]]|$|=)"; then
+      printf '%s' "$push_args" | grep -qE '(promote-(prod|stage)|release/)' \
+        || deny "Force push rewrites published history. It is allowed only for the promote-prod / promote-stage / release/* branches that release-manager rebuilds."
+    fi
+    positional=0
+    for arg in $push_args; do
+      case "$arg" in
+        -*) ;;
+        *)
+          positional=$((positional + 1))
+          if [ "$positional" -ge 2 ] && printf '%s' "$arg" | grep -qE '^\+?([^:]*:)?(refs/heads/)?(prod|stage)$'; then
+            deny "Direct pushes go only to dev. prod and stage change through a promote PR (release-manager)."
+          fi
+          ;;
+      esac
+    done
+  done <<< "$(printf '%s' "$CODE" | grep -oE "${G}push([[:space:]][^|;&]*)?")"
+  while IFS= read -r segment; do
+    [ -n "$segment" ] || continue
+    positional=0
+    for arg in $(printf '%s' "$segment" | sed -E 's/^.*[[:space:]]push//'); do
+      case "$arg" in -*) ;; *) positional=$((positional + 1)) ;; esac
+    done
+    [ "$positional" -lt 2 ] || continue
+    dir="$(git_dir_of "$segment")"
+    branch="$(git -C "${dir:-${CWD:-$PROJECT_DIR}}" branch --show-current 2>/dev/null)"
     case "$branch" in prod | stage) deny "The current branch is $branch, so a bare push lands on it. Direct pushes go only to dev." ;; esac
-  fi
+  done <<< "$(printf '%s' "$RAW" | quoted_spaces | grep -oE "${G}push([[:space:]][^|;&]*)?")"
 }
 
 check_ux_lookup_wrapper() {
@@ -164,7 +208,7 @@ check_subagent_limits() {
   [ -z "$AGENT_ID" ] && return 0
   [ "$AGENT_TYPE" = "release-manager" ] && return 0
   local tooling="(${S}pnpm${PNPM_OPTS}[[:space:]]+(run[[:space:]]+|exec[[:space:]]+|dlx[[:space:]]+)?(typecheck|lint|format|test|build|knip|vitest|tsc|eslint|prettier|prisma|storybook|turbo|tsx|db|seed|gen|generate|backfill|dev|start|install|add|remove|update)([[:space:]:]|$)|${S}(npx|pnpx|bunx|npm|yarn)[[:space:]]|${S}(\./)?(node_modules/\.bin/)?(turbo|vitest|tsc|eslint|prettier|prisma|knip|tsx)([[:space:]]|$)|node[[:space:]]+${A}--import[[:space:]]+@swc-node|${S}((ba)?sh[[:space:]]+)?([^[:space:];&|]*/)?gates\.sh([[:space:]]|$))"
-  local vcs_write="(${G}(commit|push|pull|merge|rebase|reset|checkout|switch|restore|stash|cherry-pick|revert|tag|am|add|clean)([[:space:]]|$)|${G}branch[[:space:]]+${A}(-[dDmMcCf]|--delete|--move|--copy|--force)|${G}worktree[[:space:]]+(remove|prune)|${GH}(pr|issue|release|repo|workflow|run)[[:space:]]+(create|merge|edit|close|reopen|comment|review|delete|rerun|cancel|run|enable|disable|ready)|${GH}api[[:space:]]+${A}(-X|--method)[[:space:]]*(POST|PATCH|PUT|DELETE))"
+  local vcs_write="(${G}(commit|push|pull|merge|rebase|reset|checkout|switch|restore|stash|cherry-pick|revert|tag|am|add|clean)([[:space:]]|$)|${G}branch[[:space:]]+${A}(-[dDmMcCf]|--delete|--move|--copy|--force)|${G}worktree[[:space:]]+(remove|prune)|${GH}(pr|issue|release|repo|workflow|run)[[:space:]]+(create|merge|edit|close|reopen|comment|review|delete|rerun|cancel|run|enable|disable|ready)|${GH}api[[:space:]]+${A}(-X|--method)[[:space:]=]*(POST|PATCH|PUT|DELETE))"
   if in_code "$tooling"; then
     deny "Subagents do not run gates, builds, codegen or package-manager tasks. Do not retry another way. Finish the edit, then list the check in your report under NOT_VERIFIED as 'MAIN: <exact command>'; the main loop runs it."
   fi
@@ -279,8 +323,7 @@ check_ref_names() {
   local -a words positionals
   while IFS= read -r segment; do
     [ -n "$segment" ] || continue
-    dir="$(printf '%s' "$segment" | perl -ne 'print $1 if /^git(?:\.exe)?\s+(?:(?:-c\s+\S+|--no-pager)\s+)*-C\s+(\S+)/')"
-    case "$dir" in '' | /* | [A-Za-z]:*) ;; *) dir="${CWD:-$PROJECT_DIR}/$dir" ;; esac
+    dir="$(git_dir_of "$segment")"
     read -r -a words <<< "$(printf '%s' "$segment" | sed -E "s/^${G}//")"
     [ "${#words[@]}" -gt 0 ] || continue
     sub="${words[0]}"
@@ -312,7 +355,7 @@ check_ref_names() {
         return 0
       fi
     fi
-  done <<< "$(printf '%s' "$RAW" | tr -d "\"'" | grep -oE "${G}(push|switch|checkout|branch|tag|worktree[[:space:]]+add)([[:space:]][^|;&]*)?")"
+  done <<< "$(printf '%s' "$RAW" | quoted_spaces | grep -oE "${G}(push|switch|checkout|branch|tag|worktree[[:space:]]+add)([[:space:]][^|;&]*)?")"
   return 0
 }
 
