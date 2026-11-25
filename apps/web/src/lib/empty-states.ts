@@ -9,6 +9,7 @@ export type EmptyStateEntry = {
   desc: string;
   illu: EmptyStateIllustration;
   illuSize?: EmptyStateIllustrationSize;
+  layout?: EmptyStateLayout;
   primary?: EmptyStateAction;
   secondary?: EmptyStateAction;
   title: string;
@@ -34,4 +35,6 @@ export type EmptyStateIllustration =
   | "reading-goals/goal-first-goal-empty-state"
   | "reading-goals/goal-no-counted-books-yet";
 
-export type EmptyStateIllustrationSize = "lg" | "md" | "sm";
+export type EmptyStateIllustrationSize = "lg" | "md" | "sm" | "xs";
+
+export type EmptyStateLayout = "inline" | "stacked";

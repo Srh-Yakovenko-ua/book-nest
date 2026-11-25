@@ -40,6 +40,9 @@ const translateGoals = createTranslator({ locale: "uk", messages, namespace: "go
 
 const catalogCopy = messages.goals.catalog;
 
+const SUCCESS_RATE_EXPLANATION =
+  "Рахуються виконані й прострочені цілі, також в архіві. Активні й заархівовані до підсумку не рахуються.";
+
 const EMPTY_ILLUSTRATION = {
   error: "error-generic.png",
   filtered: "empty-search.png",
@@ -164,7 +167,24 @@ describe("GoalsCatalog overview", () => {
 
     expect(await screen.findByText("83%")).toBeInTheDocument();
     expect(screen.getByText("Потребують уваги")).toBeInTheDocument();
-    expect(screen.getByText("Виконано 5 із 6 завершених")).toBeInTheDocument();
+    expect(screen.getByText("5 із 6 цілей із підсумком")).toBeInTheDocument();
+    expect(screen.getByText(SUCCESS_RATE_EXPLANATION)).toBeInTheDocument();
+  });
+
+  it("shows 0% with the finished goals behind it when none of them succeeded", async () => {
+    respondToOverview = () =>
+      jsonResponse(
+        makeReadingGoalsOverview({
+          success: { finishedGoals: 2, successfulGoals: 0, successRatePercent: 0 },
+        }),
+      );
+
+    renderCatalog();
+
+    expect(await screen.findByText("0%")).toBeInTheDocument();
+    expect(screen.getByText("0 із 2 цілей із підсумком")).toBeInTheDocument();
+    expect(screen.getByText(SUCCESS_RATE_EXPLANATION)).toBeInTheDocument();
+    expect(screen.queryByText("—")).not.toBeInTheDocument();
   });
 
   it("shows a dash and a hint instead of 0% when no goal has finished yet", async () => {
@@ -178,7 +198,7 @@ describe("GoalsCatalog overview", () => {
     renderCatalog();
 
     expect(await screen.findByText("—")).toBeInTheDocument();
-    expect(screen.getByText("Ще немає завершених цілей")).toBeInTheDocument();
+    expect(screen.getByText("Ще немає цілей із підсумком")).toBeInTheDocument();
     expect(screen.queryByText("0%")).toBeNull();
   });
 
@@ -237,11 +257,24 @@ describe("GoalsCatalog states", () => {
     unmount();
 
     renderCatalog("status=archived");
-    expect(await screen.findByText("Немає цілей із цим статусом")).toBeInTheDocument();
+    expect(await screen.findByText("Архів порожній")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Показати всі цілі" }));
 
     await waitFor(() => expect(catalogRequests().at(-1)?.searchParams.has("status")).toBe(false));
+  });
+
+  it.each([
+    { status: "completed", title: "Поки немає виконаних цілей" },
+    { status: "expired", title: "Немає цілей із цим статусом" },
+    { status: "active", title: "Немає цілей із цим статусом" },
+  ])("titles an empty $status filter for what it filters", async ({ status, title }) => {
+    respondToCatalog = () => jsonResponse(catalogPage([]));
+
+    renderCatalog(`status=${status}`);
+
+    expect(await screen.findByText(title)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Показати всі цілі" })).toBeInTheDocument();
   });
 
   it("labels an archived goal without a result and a deleted source list", async () => {
@@ -314,11 +347,12 @@ describe("GoalsCatalog illustrations", () => {
 
     renderCatalog("status=archived");
 
-    await screen.findByText(catalogCopy.filteredEmpty.title);
+    expect(await screen.findByText("Архів порожній")).toBeInTheDocument();
     expect(screen.getByRole("presentation")).toHaveAttribute(
       "src",
       expect.stringContaining(EMPTY_ILLUSTRATION.filtered),
     );
+    expect(screen.getByRole("button", { name: "Показати всі цілі" })).toBeInTheDocument();
   });
 
   it("keeps the generic error art when the catalog fails", async () => {
@@ -400,5 +434,17 @@ describe("GoalsCatalog accessible names", () => {
     expect(
       within(mediumRisk).getByText(catalogCopy.attention.reasons.requiredPaceHigh),
     ).toBeInTheDocument();
+  });
+});
+
+describe("GoalsCatalog return state", () => {
+  it("hands the filtered status and the view to the goal it opens", async () => {
+    renderCatalog("status=completed&view=list");
+
+    const title = await screen.findByRole("link", { name: "Осінній марафон" });
+    const detailUrl = new URL(title.getAttribute("href") ?? "", "http://localhost");
+
+    expect(detailUrl.pathname).toBe("/goals/goal-1");
+    expect(detailUrl.searchParams.get("catalog")).toBe("status=completed&view=list");
   });
 });

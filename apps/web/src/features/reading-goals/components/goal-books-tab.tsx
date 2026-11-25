@@ -4,7 +4,7 @@ import type { Nullable, ReadingGoalBookView } from "@app/shared";
 import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
-import { useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 import type { EmptyStateAction, EmptyStateEntry } from "@/lib/empty-states";
 
@@ -43,16 +43,16 @@ type GoalBooksContentProps = {
 
 type GoalBooksTabProps = {
   counts: GoalBooksScopeCounts;
-  focusListOnMount: boolean;
   goalId: string;
+  listFocusRequest: Nullable<number>;
   onScopeChange: (scope: GoalBooksScope) => void;
   scope: GoalBooksScope;
 };
 
 export function GoalBooksTab({
   counts,
-  focusListOnMount,
   goalId,
+  listFocusRequest,
   onScopeChange,
   scope,
 }: GoalBooksTabProps) {
@@ -60,10 +60,10 @@ export function GoalBooksTab({
   const books = useGoalBooks({ goalId, scope });
   const listRegionRef = useRef<HTMLElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(listRegionRef);
-  const [attachListRegion] = useState(() => (element: Nullable<HTMLElement>) => {
-    listRegionRef.current = element;
-    if (focusListOnMount) element?.focus();
-  });
+
+  useEffect(() => {
+    if (listFocusRequest !== null) listRegionRef.current?.focus();
+  }, [listFocusRequest]);
 
   const content = resolveGoalCursorContent({
     hasNextPage: books.hasNextPage,
@@ -105,7 +105,7 @@ export function GoalBooksTab({
       <section
         aria-label={t("listLabel")}
         className={cn("flex min-w-0 flex-col gap-4", RETRY_FOCUS_RING.onTarget)}
-        ref={attachListRegion}
+        ref={listRegionRef}
         tabIndex={-1}
       >
         <GoalBooksContent

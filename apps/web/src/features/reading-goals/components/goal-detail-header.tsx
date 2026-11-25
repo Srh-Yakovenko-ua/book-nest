@@ -11,6 +11,7 @@ import { Link } from "@/i18n/navigation";
 import { formatDateLong } from "@/lib/format";
 
 import { GOAL_STATUS_BADGE } from "../model/goal-status";
+import { useGoalsCatalogHref } from "../model/use-goal-catalog-links";
 import { useGoalTitle } from "../model/use-goal-title";
 
 type GoalDetailHeaderProps = {
@@ -28,7 +29,7 @@ export function GoalDetailHeader({ actions, goal }: GoalDetailHeaderProps) {
   return (
     <header className="flex flex-col gap-2 sm:gap-3">
       <div className="flex items-center justify-between gap-3">
-        <GoalBackLink goal={goal} />
+        <GoalBackLink />
         {actions}
       </div>
       <div className="flex flex-col gap-2">
@@ -44,18 +45,17 @@ export function GoalDetailHeader({ actions, goal }: GoalDetailHeaderProps) {
   );
 }
 
-function GoalBackLink({ goal }: GoalDetailPartProps) {
+function GoalBackLink() {
   const t = useTranslations("goals.detail");
+  const catalogHref = useGoalsCatalogHref();
 
   return (
     <Link
       className="inline-flex min-w-0 items-center gap-1.5 rounded-sm text-sm text-muted-foreground no-underline transition-colors outline-none hover:text-foreground focus-visible:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-      href={goal.list === null ? "/goals" : `/lists/${goal.list.id}`}
+      href={catalogHref}
     >
       <UiIcon aria-hidden className="shrink-0" name="arrow-left" size={16} />
-      <span className="truncate">
-        {goal.list === null ? t("backToGoals") : t("back", { name: goal.list.name })}
-      </span>
+      <span className="truncate">{t("allGoals")}</span>
     </Link>
   );
 }

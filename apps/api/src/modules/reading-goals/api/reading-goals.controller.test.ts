@@ -110,6 +110,13 @@ const SAME_DAY_FINISHES = Object.freeze({
   secondFinishAt: new Date("2026-06-10T09:02:00.000Z"),
 });
 
+const KIRITIMATI_MORNING = Object.freeze({
+  instant: new Date("2026-01-10T20:00:00.000Z"),
+  localToday: "2026-01-11",
+  timezone: "Pacific/Kiritimati",
+  utcToday: "2026-01-10",
+});
+
 const CURSOR_PAGE_SCHEMA = Object.freeze({
   activity: z.object({
     items: z.array(z.object({ type: z.string() })),
@@ -277,6 +284,19 @@ async function collectPages(sendPage: CursorPageRequest): Promise<{
   throw new Error("cursor pagination did not terminate");
 }
 
+async function countGoalRows(): Promise<{
+  activities: number;
+  goals: number;
+  snapshotBooks: number;
+}> {
+  const [activities, goals, snapshotBooks] = await Promise.all([
+    prisma.readingGoalActivity.count(),
+    prisma.readingGoal.count(),
+    prisma.readingGoalBook.count(),
+  ]);
+  return { activities, goals, snapshotBooks };
+}
+
 async function countPostgresQueries(run: () => PromiseLike<unknown>): Promise<number> {
   const target = Client.prototype as unknown as PostgresQueryTarget;
   const original = target.query;
@@ -388,6 +408,21 @@ function getGoalBooks({
 }) {
   return request(app.getHttpServer())
     .get(`/api/goals/${goalId}/books`)
+    .query(query)
+    .set("Authorization", `Bearer ${accessToken}`);
+}
+
+function getGoalPreview({
+  accessToken,
+  listId,
+  query = {},
+}: {
+  accessToken: string;
+  listId: string;
+  query?: Record<string, string>;
+}) {
+  return request(app.getHttpServer())
+    .get(`/api/lists/${listId}/goal/preview`)
     .query(query)
     .set("Authorization", `Bearer ${accessToken}`);
 }
@@ -2594,5 +2629,243 @@ describe("reading goal snapshot invariants", () => {
     expect(readItemIds(page.body)).toEqual([first.goalId]);
     expect(readItemIds(next.body)).toEqual([second.goalId]);
     expect(third.goalId).not.toBe(second.goalId);
+  });
+});
+
+describe("GET /api/lists/:listId/goal/preview", () => {
+  it("counts both books of a list finished on the reader's today", async () => {
+    const listId = await seedList({ bookCount: 2, finishedIsoDate: TODAY, user: owner });
+
+    const response = await getGoalPreview({ accessToken: owner.accessToken, listId });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ bookCount: 2, countedCount: 2 });
+  });
+
+  it("leaves out a book finished yesterday", async () => {
+    const listId = await seedList({ bookCount: 1, finishedIsoDate: TODAY, user: owner });
+    await addBookToList({
+      finishedIsoDate: YESTERDAY,
+      listId,
+      position: 1,
+      title: "Finished yesterday",
+      userId: owner.userId,
+    });
+
+    const response = await getGoalPreview({ accessToken: owner.accessToken, listId });
+
+    expect(response.body).toEqual({ bookCount: 2, countedCount: 1 });
+  });
+
+  it("counts a book finished twice inside the window once", async () => {
+    const listId = await createList(owner.userId);
+    const bookId = await addBookToList({
+      finishedIsoDate: TODAY,
+      listId,
+      position: 0,
+      title: "Reread",
+      userId: owner.userId,
+    });
+    await insertFinishedReadingCycle(prisma, {
+      bookId,
+      finishedIsoDate: TOMORROW,
+      userId: owner.userId,
+    });
+
+    const response = await getGoalPreview({
+      accessToken: owner.accessToken,
+      listId,
+      query: { deadline: NEXT_WEEK },
+    });
+
+    expect(response.body).toEqual({ bookCount: 1, countedCount: 1 });
+  });
+
+  it("ends counting on today when no deadline is given", async () => {
+    const listId = await createList(owner.userId);
+    await addBookToList({
+      finishedIsoDate: TOMORROW,
+      listId,
+      position: 0,
+      title: "Finished tomorrow",
+      userId: owner.userId,
+    });
+
+    const response = await getGoalPreview({ accessToken: owner.accessToken, listId });
+
+    expect(response.body).toEqual({ bookCount: 1, countedCount: 0 });
+  });
+
+  it("counts a book finished on the deadline day and leaves out one finished the day after", async () => {
+    const listId = await createList(owner.userId);
+    await addBookToList({
+      finishedIsoDate: DEADLINE.inTwoDays,
+      listId,
+      position: 0,
+      title: "Finished on the deadline",
+      userId: owner.userId,
+    });
+    await addBookToList({
+      finishedIsoDate: DEADLINE.inThreeDays,
+      listId,
+      position: 1,
+      title: "Finished after the deadline",
+      userId: owner.userId,
+    });
+
+    const response = await getGoalPreview({
+      accessToken: owner.accessToken,
+      listId,
+      query: { deadline: DEADLINE.inTwoDays },
+    });
+
+    expect(response.body).toEqual({ bookCount: 2, countedCount: 1 });
+  });
+
+  it("leaves a book in the trash out of both counts", async () => {
+    const listId = await seedList({ bookCount: 3, finishedIsoDate: TODAY, user: owner });
+    await trashBook("Book 2");
+
+    const response = await getGoalPreview({ accessToken: owner.accessToken, listId });
+
+    expect(response.body).toEqual({ bookCount: 2, countedCount: 2 });
+  });
+
+  it("returns 404 for a list owned by another user", async () => {
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+    const listId = await seedList({ bookCount: 2, finishedIsoDate: TODAY, user: stranger });
+
+    const response = await getGoalPreview({ accessToken: owner.accessToken, listId });
+
+    expect(response.status).toBe(404);
+  });
+
+  it("returns 404 for a list that does not exist", async () => {
+    const response = await getGoalPreview({ accessToken: owner.accessToken, listId: MISSING_UUID });
+
+    expect(response.status).toBe(404);
+  });
+
+  it("rejects a deadline in the past with the deadline-not-in-future error", async () => {
+    const listId = await seedList({ bookCount: 1, user: owner });
+
+    const response = await getGoalPreview({
+      accessToken: owner.accessToken,
+      listId,
+      query: { deadline: YESTERDAY },
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errorsMessages).toEqual([
+      { field: "deadline", message: "Deadline must be later than today" },
+    ]);
+  });
+
+  it("rejects a deadline on the reader's today", async () => {
+    const listId = await seedList({ bookCount: 1, user: owner });
+
+    const response = await getGoalPreview({
+      accessToken: owner.accessToken,
+      listId,
+      query: { deadline: TODAY },
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it("returns 401 without an access token", async () => {
+    const listId = await seedList({ bookCount: 1, user: owner });
+
+    const response = await request(app.getHttpServer()).get(`/api/lists/${listId}/goal/preview`);
+
+    expect(response.status).toBe(401);
+  });
+
+  it("reports the count a goal created right after it starts with", async () => {
+    const listId = await seedList({ bookCount: 2, finishedIsoDate: TODAY, user: owner });
+    await addBookToList({
+      finishedIsoDate: TOMORROW,
+      listId,
+      position: 2,
+      title: "Finished tomorrow",
+      userId: owner.userId,
+    });
+    await addBookToList({
+      finishedIsoDate: YESTERDAY,
+      listId,
+      position: 3,
+      title: "Finished yesterday",
+      userId: owner.userId,
+    });
+    await addBookToList({ listId, position: 4, title: "Unread", userId: owner.userId });
+
+    const preview = await getGoalPreview({
+      accessToken: owner.accessToken,
+      listId,
+      query: { deadline: NEXT_MONTH },
+    });
+    const created = await postGoal({
+      accessToken: owner.accessToken,
+      body: { deadline: NEXT_MONTH, name: "Autumn goal", targetCount: 5 },
+      listId,
+    });
+
+    expect({
+      completedCount: created.body.completedCount,
+      countedCount: preview.body.countedCount,
+    }).toEqual({ completedCount: 3, countedCount: 3 });
+  });
+
+  it("writes no goal, snapshot or activity rows", async () => {
+    const listId = await seedList({ bookCount: 2, finishedIsoDate: TODAY, user: owner });
+    const before = await countGoalRows();
+
+    await getGoalPreview({
+      accessToken: owner.accessToken,
+      listId,
+      query: { deadline: NEXT_MONTH },
+    });
+
+    expect(await countGoalRows()).toEqual(before);
+  });
+
+  describe("for a reader whose day is ahead of UTC", () => {
+    let reader: AuthenticatedUser;
+
+    beforeEach(async () => {
+      vi.useFakeTimers({ now: KIRITIMATI_MORNING.instant, toFake: ["Date"] });
+      reader = await registerReaderInTimezone({ context, timezone: KIRITIMATI_MORNING.timezone });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("counts a book finished on the reader's today while UTC is still on the day before", async () => {
+      const listId = await seedList({
+        bookCount: 1,
+        finishedIsoDate: KIRITIMATI_MORNING.localToday,
+        user: reader,
+      });
+
+      const response = await getGoalPreview({ accessToken: reader.accessToken, listId });
+
+      expect(response.body).toEqual({ bookCount: 1, countedCount: 1 });
+    });
+
+    it("leaves out a book finished on the UTC date that is already yesterday for the reader", async () => {
+      const listId = await seedList({
+        bookCount: 1,
+        finishedIsoDate: KIRITIMATI_MORNING.utcToday,
+        user: reader,
+      });
+
+      const response = await getGoalPreview({ accessToken: reader.accessToken, listId });
+
+      expect(response.body).toEqual({ bookCount: 1, countedCount: 0 });
+    });
   });
 });

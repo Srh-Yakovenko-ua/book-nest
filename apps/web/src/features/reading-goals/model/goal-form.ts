@@ -1,6 +1,7 @@
 import type {
   CreateReadingGoalInput,
   Nullable,
+  ReadingGoalCreationPreviewQuery,
   ReadingGoalView,
   UpdateReadingGoalInput,
 } from "@app/shared";
@@ -9,7 +10,7 @@ import { READING_GOAL_NAME_MAX, READING_GOAL_TARGET_MAX } from "@app/shared";
 import { addMonths, endOfMonth, endOfYear, isAfter, parseISO, startOfDay } from "date-fns";
 import { z } from "zod";
 
-import { dateToIsoDay, isoDayToDate } from "@/lib/iso-day";
+import { dateToIsoDay, ISO_DAY, isoDayToDate } from "@/lib/iso-day";
 
 export const GOAL_FORM = {
   deadlineShortcutMonths: 3,
@@ -120,6 +121,17 @@ export function maxTargetCount(bookCount: number): number {
   return Math.max(GOAL_FORM.minTargetCount, Math.min(GOAL_FORM.maxTargetCount, bookCount));
 }
 
+export function reachesTargetOnCreation({
+  countedCount,
+  targetCount,
+}: {
+  countedCount: number;
+  targetCount: number;
+}): boolean {
+  if (!Number.isInteger(targetCount) || targetCount < GOAL_FORM.minTargetCount) return false;
+  return countedCount >= targetCount;
+}
+
 export function toCreateGoalInput(values: GoalFormValues): CreateReadingGoalInput {
   const name = values.name.trim();
   return {
@@ -127,6 +139,17 @@ export function toCreateGoalInput(values: GoalFormValues): CreateReadingGoalInpu
     targetCount: values.targetCount,
     ...(name === "" ? {} : { name }),
   };
+}
+
+export function toCreationPreviewQuery({
+  deadline,
+  today,
+}: {
+  deadline: string;
+  today: string;
+}): ReadingGoalCreationPreviewQuery {
+  if (!ISO_DAY.pattern.test(deadline) || !isAfterToday({ today, value: deadline })) return {};
+  return { deadline };
 }
 
 export function toUpdateGoalInput({

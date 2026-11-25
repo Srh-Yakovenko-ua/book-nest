@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 
 import { goalDisplayPercent } from "../model/goal-display-percent";
 import { GOAL_SIGNAL_TONE, GOAL_STATUS_BADGE } from "../model/goal-status";
+import { useGoalDetailHref } from "../model/use-goal-catalog-links";
 import { useGoalTitle } from "../model/use-goal-title";
 
 type GoalCatalogItemProps = {
@@ -211,6 +212,7 @@ function GoalTitle({
   linkClassName,
 }: GoalCatalogItemProps & { className: string; id: string; linkClassName: string }) {
   const goalTitle = useGoalTitle();
+  const goalDetailHref = useGoalDetailHref();
 
   return (
     <h3
@@ -222,7 +224,7 @@ function GoalTitle({
           "text-ink no-underline transition-colors outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:text-primary",
           linkClassName,
         )}
-        href={`/goals/${goal.id}`}
+        href={goalDetailHref(goal.id)}
       >
         {goalTitle(goal)}
       </Link>

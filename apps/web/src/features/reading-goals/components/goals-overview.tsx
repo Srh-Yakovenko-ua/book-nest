@@ -39,7 +39,13 @@ export function GoalsOverview() {
   return (
     <section className="flex flex-col gap-6">
       <h2 className="sr-only">{t("label")}</h2>
-      <SummaryCards cards={cards} isLoading={isPending} skeletonCount={GOALS_KPI_COUNT} />
+      <div className="flex flex-col gap-3">
+        <SummaryCards cards={cards} isLoading={isPending} skeletonCount={GOALS_KPI_COUNT} />
+        <p className="max-w-prose text-sm text-pretty text-muted-foreground">
+          <span className="font-medium text-foreground">{t("successRateNoteLabel")}</span>{" "}
+          <span>{t("successRateExplanation")}</span>
+        </p>
+      </div>
       {data === undefined ? null : (
         <GoalsOverviewHighlights attention={data.attention} bestResult={data.bestResult} />
       )}
@@ -68,12 +74,16 @@ function useGoalsKpiCards(overview: ReadingGoalsOverview | undefined): SummaryCa
       icon: "chart-increasing",
       iconTone: "primary",
       label: t("successRate"),
-      microfact: hasFinishedGoals
-        ? t("successRateDetail", {
-            finished: success.finishedGoals,
-            successful: success.successfulGoals,
-          })
-        : t("successRateEmpty"),
+      microfact: (
+        <span className="block text-balance">
+          {hasFinishedGoals
+            ? t("successRateDetail", {
+                finished: success.finishedGoals,
+                successful: success.successfulGoals,
+              })
+            : t("successRateEmpty")}
+        </span>
+      ),
       value: hasFinishedGoals ? `${Math.round(success.successRatePercent)}%` : "—",
     },
   ];

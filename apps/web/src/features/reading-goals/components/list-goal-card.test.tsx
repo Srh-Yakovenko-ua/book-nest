@@ -83,6 +83,8 @@ beforeEach(() => {
     const method = (init?.method ?? "GET").toUpperCase();
     if (url.includes("/api/profile/settings"))
       return Promise.resolve(jsonResponse(defaultUserProfileSettings));
+    if (url.includes(`${GOAL_URL}/preview`) && method === "GET")
+      return Promise.resolve(jsonResponse({ bookCount: 20, countedCount: 0 }));
     if (url.includes(GOAL_URL) && method === "POST") return Promise.resolve(respondToCreate());
     if (url.includes(GOAL_URL)) return Promise.resolve(respondToGoal());
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
@@ -211,6 +213,17 @@ describe("ListGoalCard creation", () => {
     const dialog = await openCreateDialog();
 
     expect(within(dialog).getByLabelText("Прочитати книг")).toHaveValue(5);
+  });
+
+  it("offers no list change because the goal belongs to this list", async () => {
+    renderCard();
+
+    const dialog = await openCreateDialog();
+
+    expect(dialog).toHaveAccessibleName("Створити ціль для добірки");
+    expect(
+      within(dialog).queryByRole("button", { name: "Змінити список" }),
+    ).not.toBeInTheDocument();
   });
 
   it("caps the target at the books currently in the list", async () => {

@@ -17,6 +17,7 @@ import { assertNever } from "@/lib/assert-never";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+import { useGoalDetailHref } from "../model/use-goal-catalog-links";
 import { useGoalTitle } from "../model/use-goal-title";
 
 type GoalsOverviewHighlightsProps = {
@@ -70,6 +71,7 @@ function AttentionLink({ item }: { item: ReadingGoalAttentionItem }) {
   const t = useTranslations("goals.catalog.attention");
   const tRisk = useTranslations("goals.risk");
   const goalTitle = useGoalTitle();
+  const goalDetailHref = useGoalDetailHref();
   const remainingCount = numericMessageValue(item, "remainingCount");
   const targetCount = numericMessageValue(item, "targetCount");
   const title =
@@ -79,7 +81,7 @@ function AttentionLink({ item }: { item: ReadingGoalAttentionItem }) {
   return (
     <Link
       className="group/attention -mx-2 flex min-w-0 items-start gap-2.5 rounded-lg px-2 py-1.5 no-underline transition-colors outline-none hover:bg-accent/40 focus-visible:ring-3 focus-visible:ring-ring/50"
-      href={`/goals/${item.goalId}`}
+      href={goalDetailHref(item.goalId)}
     >
       <UiIcon
         aria-label={tRisk(item.severity)}
@@ -133,6 +135,7 @@ function AttentionReason({ item }: { item: ReadingGoalAttentionItem }) {
 function BestResultCard({ result }: { result: ReadingGoalBestResult }) {
   const t = useTranslations("goals.catalog.bestResult");
   const goalTitle = useGoalTitle();
+  const goalDetailHref = useGoalDetailHref();
   const locale = useLocale();
 
   return (
@@ -143,7 +146,7 @@ function BestResultCard({ result }: { result: ReadingGoalBestResult }) {
       </h3>
       <Link
         className="line-clamp-2 w-fit rounded-sm text-sm font-medium break-words text-ink no-underline outline-none hover:text-primary focus-visible:text-primary focus-visible:ring-3 focus-visible:ring-ring/50"
-        href={`/goals/${result.goalId}`}
+        href={goalDetailHref(result.goalId)}
       >
         {goalTitle({ name: result.goalName, targetCount: result.targetCount })}
       </Link>
