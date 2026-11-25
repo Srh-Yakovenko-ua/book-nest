@@ -104,6 +104,8 @@ export function GraphNetworkSearch({
         onCloseAutoFocus={(event) => {
           if (!picked.current) return;
           picked.current = false;
+          const { activeElement } = document;
+          if (activeElement === null || activeElement === document.body) return;
           event.preventDefault();
         }}
       >

@@ -2,6 +2,7 @@ import type { CharacterGraphClusterView } from "@app/shared";
 import type { ComponentProps } from "react";
 
 import { createTranslator } from "next-intl";
+import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import messages from "@/messages/uk.json";
@@ -191,6 +192,31 @@ describe("GraphNetworkSearch", () => {
     expect(screen.queryByRole("combobox", { name: copy.label })).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole("button", { name: copy.trigger })).toHaveFocus());
     expect(onOpenChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it("gives the focus back to its trigger after a pick that moves no focus", async () => {
+    renderSearch({ onPickCharacter: vi.fn() });
+    await userEvent.type(await openSearch(), "marcus");
+
+    await userEvent.keyboard("{Enter}");
+
+    expect(screen.queryByRole("combobox", { name: copy.label })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("button", { name: copy.trigger })).toHaveFocus());
+  });
+
+  it("leaves the focus where the pick moved it", async () => {
+    renderWithProviders(<button type="button">{CHARACTERS.marcus.displayName}</button>);
+    renderSearch({
+      onPickCharacter: () =>
+        screen.getByRole("button", { name: CHARACTERS.marcus.displayName }).focus(),
+    });
+    await userEvent.type(await openSearch(), "marcus");
+
+    await userEvent.keyboard("{Enter}");
+    await act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+
+    expect(screen.queryByRole("combobox", { name: copy.label })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: CHARACTERS.marcus.displayName })).toHaveFocus();
   });
 
   it.each([{ compact: false }, { compact: true }])(

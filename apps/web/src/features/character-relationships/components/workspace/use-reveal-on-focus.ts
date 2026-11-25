@@ -11,7 +11,7 @@ import type { GraphPersonCover } from "./use-graph-person-camera";
 
 import { GraphNetworkSceneContext } from "./graph-network-scene-context";
 
-type VisibleBounds = { bottom: number; left: number; right: number; top: number };
+type Box = { bottom: number; left: number; right: number; top: number };
 
 export function useRevealOnFocus(nodeId: string): (event: FocusEvent<HTMLElement>) => void {
   const flow = useReactFlow<GraphSceneFlowNode, GraphSceneFlowEdge>();
@@ -22,16 +22,20 @@ export function useRevealOnFocus(nodeId: string): (event: FocusEvent<HTMLElement
     if (!target.matches(":focus-visible")) return;
     const pane = target.closest(".react-flow");
     if (pane === null) return;
-    const card = target.getBoundingClientRect();
+    const card = withPaneScrollReset({ pane, rect: target.getBoundingClientRect() });
     const bounds = toVisibleBounds({ cover, pane: pane.getBoundingClientRect() });
     const isInside =
       card.left >= bounds.left &&
       card.right <= bounds.right &&
       card.top >= bounds.top &&
       card.bottom <= bounds.bottom;
-    const miniMap = pane.querySelector(".react-flow__minimap")?.getBoundingClientRect();
+    const miniMapElement = pane.querySelector(".react-flow__minimap");
+    const miniMap =
+      miniMapElement === null
+        ? null
+        : withPaneScrollReset({ pane, rect: miniMapElement.getBoundingClientRect() });
     const isUnderMiniMap =
-      miniMap !== undefined &&
+      miniMap !== null &&
       card.left < miniMap.right &&
       card.right > miniMap.left &&
       card.top < miniMap.bottom &&
@@ -58,7 +62,7 @@ function toVisibleBounds({
 }: {
   cover: Nullable<GraphPersonCover>;
   pane: DOMRect;
-}): VisibleBounds {
+}): Box {
   if (cover === null) {
     return { bottom: pane.bottom, left: pane.left, right: pane.right, top: pane.top };
   }
@@ -67,5 +71,14 @@ function toVisibleBounds({
     left: pane.left + cover.left,
     right: pane.right - cover.right,
     top: pane.top + cover.top,
+  };
+}
+
+function withPaneScrollReset({ pane, rect }: { pane: Element; rect: DOMRect }): Box {
+  return {
+    bottom: rect.bottom + pane.scrollTop,
+    left: rect.left + pane.scrollLeft,
+    right: rect.right + pane.scrollLeft,
+    top: rect.top + pane.scrollTop,
   };
 }
