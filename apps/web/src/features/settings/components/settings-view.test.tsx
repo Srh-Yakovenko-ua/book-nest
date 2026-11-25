@@ -1,24 +1,25 @@
 import "@testing-library/jest-dom/vitest";
 import { defaultUserProfileSettings } from "@app/shared";
+import { parseISO } from "date-fns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import { SettingsView } from "./settings-view";
 
-vi.mock("sonner", () => ({
-  toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
-}));
+const WINTER_NOW = parseISO("2026-01-15T12:00:00Z");
 
 const COPY = {
+  comingSoon: /Скоро/,
   errorTitle: "Не вдалося завантажити налаштування",
   loading: "Завантаження налаштувань…",
-  notificationsTitle: "Нагадування на пошту",
-  regionalTitle: "Часовий пояс",
+  notificationsTitle: "Нагадування",
+  regionalTitle: "Дата й календар",
   retry: "Спробувати ще раз",
-  timezoneTrigger: "Ваш часовий пояс",
+  timezoneTrigger: /^Часовий пояс/,
   title: "Налаштування",
-} as const satisfies Record<string, string>;
+  warsawInWinter: "Варшава · UTC+01:00",
+} as const satisfies Record<string, RegExp | string>;
 
 const fetchMock = vi.fn();
 
@@ -32,6 +33,8 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(WINTER_NOW);
   Element.prototype.scrollIntoView = vi.fn();
   respondToSettings = () =>
     Promise.resolve(jsonResponse({ ...defaultUserProfileSettings, timezone: "Europe/Warsaw" }));
@@ -47,6 +50,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
@@ -69,8 +73,16 @@ describe("SettingsView", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: COPY.regionalTitle })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: COPY.timezoneTrigger })).toHaveTextContent(
-      "Europe/Warsaw",
+      COPY.warsawInWinter,
     );
+  });
+
+  it("shows no coming-soon rows once the settings arrive", async () => {
+    renderWithProviders(<SettingsView />);
+
+    await screen.findByRole("heading", { level: 2, name: COPY.notificationsTitle });
+
+    expect(screen.queryByText(COPY.comingSoon)).not.toBeInTheDocument();
   });
 
   it("raises an alert when the settings fail to load", async () => {

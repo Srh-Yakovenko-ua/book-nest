@@ -45,27 +45,35 @@ type SegmentedOption = {
 };
 
 type SegmentedProps = VariantProps<typeof segmentedVariants> & {
+  "aria-describedby"?: string;
+  "aria-disabled"?: boolean;
   block?: boolean;
   className?: string;
   disabled?: boolean;
   label?: string;
   onValueChange: (value: string) => void;
   options: readonly SegmentedOption[];
+  ref?: React.Ref<HTMLDivElement>;
   value: string;
 };
 
 function Segmented({
+  "aria-describedby": ariaDescribedBy,
+  "aria-disabled": ariaDisabled,
   block,
   className,
   disabled,
   label,
   onValueChange,
   options,
+  ref,
   tone,
   value,
 }: SegmentedProps) {
   return (
     <ToggleGroupPrimitive.Root
+      aria-describedby={ariaDescribedBy}
+      aria-disabled={ariaDisabled}
       aria-label={label}
       className={cn(segmentedVariants({ tone }), className)}
       data-block={block || undefined}
@@ -74,6 +82,7 @@ function Segmented({
       onValueChange={(next) => {
         if (next) onValueChange(next);
       }}
+      ref={ref}
       type="single"
       value={value}
     >

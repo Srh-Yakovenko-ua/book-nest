@@ -7,6 +7,8 @@ import { settingsControllerUpdateSettings } from "@/shared/api/generated/endpoin
 
 import { settingsChangeEffects } from "./settings-change-effects";
 
+const SETTINGS_SAVE_SCOPE = { id: "settings-save" } as const;
+
 export function useUpdateSettings() {
   const queryClient = useQueryClient();
 
@@ -16,5 +18,6 @@ export function useUpdateSettings() {
     onSuccess: (settings, input) => {
       void settingsChangeEffects.settingsSaved(queryClient, { input, settings });
     },
+    scope: SETTINGS_SAVE_SCOPE,
   });
 }

@@ -9077,74 +9077,56 @@
     "page": {
       "metaTitle": "Settings",
       "title": "Settings",
-      "description": "Decide what lands in your inbox and which time zone your reminders are counted in."
+      "description": "Email reminders, your time zone and the first day of the week for calendars."
     },
     "notifications": {
-      "title": "Email reminders",
-      "description": "Emails go out in the morning, in your time zone.",
-      "comingSoon": "Coming soon",
+      "title": "Reminders",
+      "description": "The switches control emails. In-app reminders stay available in the bell.",
       "toggles": {
         "deliveryReminders": {
-          "label": "Delivery reminders",
-          "description": "An email when a book is about to arrive or the delivery is running late."
+          "label": "Delivery reminders by email",
+          "description": "An email before the expected delivery, on the delivery day and if it is delayed."
         },
         "borrowedBookReminders": {
-          "label": "Borrowed book reminders",
-          "description": "An email when it is time for someone to return your book."
-        },
-        "readingReminders": {
-          "label": "Reading reminders",
-          "description": "A gentle nudge to get back to the book you started."
-        },
-        "readingGoalReminders": {
-          "label": "Reading goal reminders",
-          "description": "An email about how your reading goal is going."
-        },
-        "weeklyReadingSummary": {
-          "label": "Weekly summary",
-          "description": "A weekly email about what you have read."
-        },
-        "monthlyReadingReport": {
-          "label": "Monthly report",
-          "description": "A monthly recap of your library and reading stats."
+          "label": "Book return reminders by email",
+          "description": "Emails as the return date approaches and when it is overdue."
         }
       },
-      "upcoming": {
-        "title": "Still in the works",
-        "description": "We do not send these emails yet. The switches will start working once the reminders ship."
-      },
       "leadDays": {
-        "label": "Remind me before the return date",
-        "hint": "Between {min} and {max} days before the return date.",
-        "suffix": "{count, plural, one {day} other {days}}"
+        "label": "First return reminder",
+        "option": "{count, plural, one {# day} other {# days}}",
+        "hint": "For a short loan, the first reminder may come closer to the return date."
       },
       "test": {
-        "label": "Test notification",
-        "description": "Send one to yourself to see what a reminder looks like.",
-        "button": "Send a test",
-        "success": "Test notification created — check the bell.",
-        "error": "Couldn't send the test notification. Try again in a minute."
+        "description": "The test notification appears in the bell. An email also arrives if your email is confirmed and at least one email switch is on.",
+        "button": "Create a test notification",
+        "success": "Test notification created. Check the bell.",
+        "rateLimited": "You have reached the limit for test notifications. Try again later.",
+        "error": "Couldn't create the test notification. Try again."
       }
     },
     "regional": {
-      "title": "Time zone",
-      "description": "We use it to work out when your morning starts, so reminders arrive on time.",
+      "title": "Date and calendar",
       "timezone": {
-        "label": "Your time zone",
-        "hint": "For example, Europe/Kyiv. Start typing a city to find yours.",
-        "search": "Search time zones",
+        "label": "Time zone",
+        "hint": "Reminders are scheduled for 09:00 in the selected time zone.",
+        "search": "Search for a city or time zone",
+        "results": "Time zones",
         "empty": "Nothing found"
       },
       "weekStartDay": {
         "label": "First day of the week",
         "monday": "Monday",
         "sunday": "Sunday",
-        "hint": "Calendars will start their weeks on this day."
+        "hint": "Weeks start on this day in date pickers, in reading and delivery statistics, and on the home page.",
+        "preview": "Order of days in a week"
       }
     },
-    "toast": {
+    "saveStatus": {
+      "saving": "Saving…",
       "saved": "Saved",
-      "error": "Couldn't save. Please try again."
+      "error": "Couldn't save.",
+      "retry": "Retry"
     },
     "states": {
       "loading": "Loading settings…",
