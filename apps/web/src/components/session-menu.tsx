@@ -1,7 +1,8 @@
 "use client";
 
-import { LogOut } from "lucide-react";
+import { LogOut, UserPen } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useRef, useState } from "react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLogout, useSession } from "@/features/auth";
+import { ProfileEditDialog } from "@/features/profile";
 import { Link } from "@/i18n/navigation";
+import { initials } from "@/lib/initials";
 
 export function SessionMenu() {
   const { status, user } = useSession();
@@ -31,53 +34,61 @@ export function SessionMenu() {
   return <SignedIn email={user.email} name={user.name} />;
 }
 
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  const first = parts[0]?.charAt(0) ?? "";
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.charAt(0) ?? "") : "";
-  return (first + last).toUpperCase();
-}
-
 function SignedIn({ email, name }: { email: string; name: string }) {
   const t = useTranslations("auth");
+  const tProfile = useTranslations("profile");
   const logout = useLogout();
+  const [isProfileEditOpen, setProfileEditOpen] = useState(false);
+  const accountMenuTriggerRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          aria-label={t("session.accountMenu")}
-          className="size-9 rounded-full p-0 hover:bg-muted"
-          size="icon"
-          variant="ghost"
-        >
-          <Avatar>
-            <AvatarFallback className="bg-primary/12 text-xs font-semibold text-primary">
-              {initials(name)}
-            </AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-56">
-        <DropdownMenuLabel className="flex flex-col gap-0.5 py-1.5">
-          <span className="truncate text-sm font-medium text-foreground">{name}</span>
-          <span className="truncate text-xs font-normal text-muted-foreground">{email}</span>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          disabled={logout.isPending}
-          onSelect={(event) => {
-            event.preventDefault();
-            logout.mutate();
-          }}
-          variant="destructive"
-        >
-          <LogOut className="mr-2" />
-          {logout.isPending ? t("session.signingOut") : t("session.signOut")}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            aria-label={t("session.accountMenu")}
+            className="size-9 rounded-full p-0 hover:bg-muted"
+            ref={accountMenuTriggerRef}
+            size="icon"
+            variant="ghost"
+          >
+            <Avatar>
+              <AvatarFallback className="bg-primary/12 text-xs font-semibold text-primary">
+                {initials(name)}
+              </AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-56">
+          <DropdownMenuLabel className="flex flex-col gap-0.5 py-1.5">
+            <span className="truncate text-sm font-medium text-foreground">{name}</span>
+            <span className="truncate text-xs font-normal text-muted-foreground">{email}</span>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => setProfileEditOpen(true)}>
+            <UserPen className="mr-2" />
+            {tProfile("editAction")}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={logout.isPending}
+            onSelect={(event) => {
+              event.preventDefault();
+              logout.mutate();
+            }}
+            variant="destructive"
+          >
+            <LogOut className="mr-2" />
+            {logout.isPending ? t("session.signingOut") : t("session.signOut")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <ProfileEditDialog
+        onOpenChange={setProfileEditOpen}
+        open={isProfileEditOpen}
+        returnFocusRef={accountMenuTriggerRef}
+      />
+    </>
   );
 }
 

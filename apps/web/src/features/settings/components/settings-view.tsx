@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ProfileSettingsCard } from "@/features/profile";
 
 import { useSettings } from "../api/use-settings";
 import { AppearanceSettingsSection } from "./appearance-settings-section";
@@ -33,28 +34,12 @@ export function SettingsView() {
         </p>
       </header>
 
-      <SettingsSections />
+      <div className="flex max-w-3xl flex-col gap-6">
+        <SettingsSections />
+        <AppearanceSettingsSection />
+        <ProfileSettingsCard />
+      </div>
     </div>
-  );
-}
-
-function ProfileSettingsSections() {
-  const settings = useSettings();
-
-  if (settings.isPending) return <SettingsSkeleton />;
-  if (settings.isError) return <SettingsErrorBlock onRetry={() => void settings.refetch()} />;
-
-  return (
-    <>
-      <NotificationSettingsSection
-        emailNotifications={settings.data.emailNotifications}
-        loanReminderLeadDays={settings.data.loanReminderLeadDays}
-      />
-      <RegionalSettingsSection
-        timezone={settings.data.timezone}
-        weekStartDay={settings.data.weekStartDay}
-      />
-    </>
   );
 }
 
@@ -81,11 +66,22 @@ function SettingsErrorBlock({ onRetry }: { onRetry: () => void }) {
 }
 
 function SettingsSections() {
+  const settings = useSettings();
+
+  if (settings.isPending) return <SettingsSkeleton />;
+  if (settings.isError) return <SettingsErrorBlock onRetry={() => void settings.refetch()} />;
+
   return (
-    <div className="flex max-w-3xl flex-col gap-6">
-      <ProfileSettingsSections />
-      <AppearanceSettingsSection />
-    </div>
+    <>
+      <NotificationSettingsSection
+        emailNotifications={settings.data.emailNotifications}
+        loanReminderLeadDays={settings.data.loanReminderLeadDays}
+      />
+      <RegionalSettingsSection
+        timezone={settings.data.timezone}
+        weekStartDay={settings.data.weekStartDay}
+      />
+    </>
   );
 }
 

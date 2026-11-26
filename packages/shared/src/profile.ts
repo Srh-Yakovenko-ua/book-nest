@@ -5,22 +5,25 @@ import { z } from "zod";
 import { type Nullable } from "./common.js";
 import { boundedUrlSchema, HTTPS_PROTOCOL, NoHtmlString, notInFutureDate } from "./internal.js";
 
-const PROFILE_NAME_MIN = 2;
-const PROFILE_NAME_MAX = 50;
-const PROFILE_NICKNAME_MIN = 3;
-const PROFILE_NICKNAME_MAX = 30;
+export const PROFILE_INPUT_LIMITS = {
+  bioMax: 300,
+  genreMax: 50,
+  genresMax: 10,
+  nameMax: 50,
+  nameMin: 2,
+  nicknameMax: 30,
+  nicknameMin: 3,
+  quoteMax: 200,
+} as const satisfies Record<string, number>;
+
 const PROFILE_NICKNAME_PATTERN = /^[\p{L}\p{N}._-]+$/u;
-const PROFILE_BIO_MAX = 300;
-const PROFILE_QUOTE_MAX = 200;
-const PROFILE_GENRES_MAX = 10;
-const PROFILE_GENRE_MAX = 50;
 
 const ProfileNameSchema = z
   .string()
   .trim()
   .pipe(
-    NoHtmlString.min(PROFILE_NAME_MIN, "Must be at least 2 characters long").max(
-      PROFILE_NAME_MAX,
+    NoHtmlString.min(PROFILE_INPUT_LIMITS.nameMin, "Must be at least 2 characters long").max(
+      PROFILE_INPUT_LIMITS.nameMax,
       "Must be at most 50 characters long",
     ),
   );
@@ -30,8 +33,11 @@ const ProfileNicknameSchema = z
   .trim()
   .transform((value) => value.replace(/^@/, ""))
   .pipe(
-    NoHtmlString.min(PROFILE_NICKNAME_MIN, "Nickname must be at least 3 characters long")
-      .max(PROFILE_NICKNAME_MAX, "Nickname must be at most 30 characters long")
+    NoHtmlString.min(
+      PROFILE_INPUT_LIMITS.nicknameMin,
+      "Nickname must be at least 3 characters long",
+    )
+      .max(PROFILE_INPUT_LIMITS.nicknameMax, "Nickname must be at most 30 characters long")
       .regex(
         PROFILE_NICKNAME_PATTERN,
         "Nickname may contain only letters, digits, dot, hyphen and underscore",
@@ -41,12 +47,14 @@ const ProfileNicknameSchema = z
 const ProfileBioSchema = z
   .string()
   .trim()
-  .pipe(NoHtmlString.max(PROFILE_BIO_MAX, "Bio must be at most 300 characters long"));
+  .pipe(NoHtmlString.max(PROFILE_INPUT_LIMITS.bioMax, "Bio must be at most 300 characters long"));
 
 const ProfileQuoteSchema = z
   .string()
   .trim()
-  .pipe(NoHtmlString.max(PROFILE_QUOTE_MAX, "Quote must be at most 200 characters long"));
+  .pipe(
+    NoHtmlString.max(PROFILE_INPUT_LIMITS.quoteMax, "Quote must be at most 200 characters long"),
+  );
 
 const ProfileDateOfBirthSchema = notInFutureDate("Date of birth must not be in the future");
 
@@ -57,12 +65,12 @@ const ProfileGenresSchema = z
       .trim()
       .pipe(
         NoHtmlString.min(1, "Genre must not be empty").max(
-          PROFILE_GENRE_MAX,
+          PROFILE_INPUT_LIMITS.genreMax,
           "Genre must be at most 50 characters long",
         ),
       ),
   )
-  .max(PROFILE_GENRES_MAX, "You can select at most 10 genres")
+  .max(PROFILE_INPUT_LIMITS.genresMax, "You can select at most 10 genres")
   .refine((genres) => {
     const seen = new Set(genres.map((genre) => genre.toLowerCase()));
     return seen.size === genres.length;
@@ -149,33 +157,37 @@ export const UpdateSocialLinkInputSchema = z.object({
   username: SocialUsernameSchema.nullable().optional(),
 });
 
-export type ProfileView = {
-  authProvider: AuthProvider;
-  avatarUrl: Nullable<string>;
-  bio: Nullable<string>;
-  createdAt: string;
-  dateOfBirth: Nullable<string>;
-  email: string;
-  emailVerified: boolean;
-  favoriteBookQuote: Nullable<string>;
-  favoriteGenres: string[];
-  lastName: Nullable<string>;
-  name: string;
-  nickname: Nullable<string>;
-  socialLinks: SocialLinkView[];
-  updatedAt: string;
-  userId: string;
-};
+export const SocialLinkViewSchema = z.object({
+  createdAt: z.string(),
+  id: z.string(),
+  label: z.string().nullable(),
+  platform: SocialPlatformSchema,
+  updatedAt: z.string(),
+  url: z.string().nullable(),
+  username: z.string().nullable(),
+});
 
-export type SocialLinkView = {
-  createdAt: string;
-  id: string;
-  label: Nullable<string>;
-  platform: SocialPlatform;
-  updatedAt: string;
-  url: Nullable<string>;
-  username: Nullable<string>;
-};
+export type SocialLinkView = z.infer<typeof SocialLinkViewSchema>;
+
+export const ProfileViewSchema = z.object({
+  authProvider: AuthProviderSchema,
+  avatarUrl: z.string().nullable(),
+  bio: z.string().nullable(),
+  createdAt: z.string(),
+  dateOfBirth: z.string().nullable(),
+  email: z.string(),
+  emailVerified: z.boolean(),
+  favoriteBookQuote: z.string().nullable(),
+  favoriteGenres: z.array(z.string()),
+  lastName: z.string().nullable(),
+  name: z.string(),
+  nickname: z.string().nullable(),
+  socialLinks: z.array(SocialLinkViewSchema),
+  updatedAt: z.string(),
+  userId: z.string(),
+});
+
+export type ProfileView = z.infer<typeof ProfileViewSchema>;
 
 export type UpdateSocialLinkInput = z.infer<typeof UpdateSocialLinkInputSchema>;
 

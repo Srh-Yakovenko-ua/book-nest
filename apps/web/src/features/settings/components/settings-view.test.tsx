@@ -3,6 +3,7 @@ import { defaultUserProfileSettings } from "@app/shared";
 import { parseISO } from "date-fns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { makeProfile } from "@/features/profile/model/profile.fixtures";
 import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
@@ -21,6 +22,7 @@ const COPY = {
   errorTitle: "Не вдалося завантажити налаштування",
   loading: "Завантаження налаштувань…",
   notificationsTitle: "Нагадування",
+  profileTitle: messages.profile.card.title,
   regionalTitle: "Дата й календар",
   retry: "Спробувати ще раз",
   timezoneTrigger: /^Часовий пояс/,
@@ -39,6 +41,10 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+function statusMessages(): string[] {
+  return screen.queryAllByRole("status").map((status) => status.textContent ?? "");
+}
+
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(WINTER_NOW);
@@ -51,6 +57,8 @@ beforeEach(() => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
     if (url.includes("/api/profile/settings") && method === "GET") return respondToSettings();
+    if (url.endsWith("/api/profile") && method === "GET")
+      return Promise.resolve(jsonResponse(makeProfile()));
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -69,7 +77,7 @@ describe("SettingsView", () => {
     renderWithProviders(<SettingsView />);
 
     expect(screen.getByRole("heading", { level: 1, name: COPY.title })).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent(COPY.loading);
+    expect(statusMessages()).toContain(COPY.loading);
   });
 
   it("shows the appearance card while the settings load", () => {
@@ -77,7 +85,7 @@ describe("SettingsView", () => {
 
     renderWithProviders(<SettingsView />);
 
-    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(statusMessages()).toContain(COPY.loading);
     expect(
       screen.getByRole("heading", { level: 2, name: COPY.appearanceTitle }),
     ).toBeInTheDocument();
@@ -95,14 +103,20 @@ describe("SettingsView", () => {
     );
   });
 
-  it("places the appearance card after the notification and calendar sections", async () => {
+  it("orders the cards as notifications, calendar, appearance and profile", async () => {
     renderWithProviders(<SettingsView />);
 
     await screen.findByRole("heading", { level: 2, name: COPY.notificationsTitle });
+    await screen.findByRole("heading", { level: 2, name: COPY.profileTitle });
 
     expect(
       screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent),
-    ).toEqual([COPY.notificationsTitle, COPY.regionalTitle, COPY.appearanceTitle]);
+    ).toEqual([
+      COPY.notificationsTitle,
+      COPY.regionalTitle,
+      COPY.appearanceTitle,
+      COPY.profileTitle,
+    ]);
   });
 
   it("shows no coming-soon rows once the settings arrive", async () => {
@@ -119,7 +133,7 @@ describe("SettingsView", () => {
     renderWithProviders(<SettingsView />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(COPY.errorTitle);
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(statusMessages()).not.toContain(COPY.loading);
   });
 
   it("keeps the appearance card when the settings fail to load", async () => {
