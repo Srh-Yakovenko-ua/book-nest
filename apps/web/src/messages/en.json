@@ -9077,7 +9077,7 @@
     "page": {
       "metaTitle": "Settings",
       "title": "Settings",
-      "description": "Email reminders, your time zone and the first day of the week for calendars."
+      "description": "Email reminders, your time zone, the first day of the week, theme and language."
     },
     "notifications": {
       "title": "Reminders",
@@ -9120,6 +9120,17 @@
         "sunday": "Sunday",
         "hint": "Weeks start on this day in date pickers, in reading and delivery statistics, and on the home page.",
         "preview": "Order of days in a week"
+      }
+    },
+    "appearance": {
+      "title": "Appearance and language",
+      "theme": {
+        "label": "Theme",
+        "hint": "System follows your device setting."
+      },
+      "language": {
+        "label": "Interface language",
+        "hint": "Used for BookNest pages and emails."
       }
     },
     "saveStatus": {

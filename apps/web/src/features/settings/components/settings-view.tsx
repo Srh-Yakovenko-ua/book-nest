@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { useSettings } from "../api/use-settings";
+import { AppearanceSettingsSection } from "./appearance-settings-section";
 import { NotificationSettingsSection } from "./notification-settings-section";
 import { RegionalSettingsSection } from "./regional-settings-section";
 
@@ -34,6 +35,26 @@ export function SettingsView() {
 
       <SettingsSections />
     </div>
+  );
+}
+
+function ProfileSettingsSections() {
+  const settings = useSettings();
+
+  if (settings.isPending) return <SettingsSkeleton />;
+  if (settings.isError) return <SettingsErrorBlock onRetry={() => void settings.refetch()} />;
+
+  return (
+    <>
+      <NotificationSettingsSection
+        emailNotifications={settings.data.emailNotifications}
+        loanReminderLeadDays={settings.data.loanReminderLeadDays}
+      />
+      <RegionalSettingsSection
+        timezone={settings.data.timezone}
+        weekStartDay={settings.data.weekStartDay}
+      />
+    </>
   );
 }
 
@@ -60,21 +81,10 @@ function SettingsErrorBlock({ onRetry }: { onRetry: () => void }) {
 }
 
 function SettingsSections() {
-  const settings = useSettings();
-
-  if (settings.isPending) return <SettingsSkeleton />;
-  if (settings.isError) return <SettingsErrorBlock onRetry={() => void settings.refetch()} />;
-
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <NotificationSettingsSection
-        emailNotifications={settings.data.emailNotifications}
-        loanReminderLeadDays={settings.data.loanReminderLeadDays}
-      />
-      <RegionalSettingsSection
-        timezone={settings.data.timezone}
-        weekStartDay={settings.data.weekStartDay}
-      />
+      <ProfileSettingsSections />
+      <AppearanceSettingsSection />
     </div>
   );
 }
@@ -83,7 +93,7 @@ function SettingsSkeleton() {
   const t = useTranslations("settings.states");
 
   return (
-    <div className="flex max-w-3xl flex-col gap-6" role="status">
+    <div className="flex flex-col gap-6" role="status">
       <span className="sr-only">{t("loading")}</span>
       <SkeletonCard description={<Skeleton className="h-4 w-3/4" />}>
         <SkeletonRow control={<Skeleton className="mt-0.5 h-5 w-8 rounded-full" />} />
