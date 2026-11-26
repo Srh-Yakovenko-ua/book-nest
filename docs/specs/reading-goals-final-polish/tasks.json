@@ -1,0 +1,891 @@
+{
+  "schemaVersion": 1,
+  "project": "Book Nest — Reading goals final polish",
+  "spec": "docs/specs/reading-goals-final-polish/spec.md",
+  "generatedAt": "2026-11-25T17:07:06Z",
+  "baseBranch": "dev",
+  "baseCommit": "7aeb25f4",
+  "workBranch": "feat/reading-goals-final-polish",
+  "auditBaseNote": "Spec audit commit 7aeb25f equals worktree HEAD 7aeb25f4; every file:line below was opened at this commit.",
+  "repoWorkflow": "Run prompt: autonomous, no approval rounds. Forks are recorded under assumptions, openDecisions stays empty. Contract change (new shared schema + endpoint) needs pnpm gen:api, /blast-radius and a PR into dev. Per CLAUDE.md §9 no per-slice gates; one final gates.sh run, tests in CI.",
+  "scope": {
+    "included": [
+      "§1 Історія зарахувань (data task, handled by the main loop)",
+      "§2 Створення цілі (change list, creation preview, existing rules kept)",
+      "§3 Деталі цілі (primary action, pace advice, All goals with restored catalog state)",
+      "§4 Візуальне шліфування (compact filtered empty state, status titles, success-rate caption)",
+      "Приймання 1-3 as verification targets"
+    ],
+    "excluded": [
+      "Write to dev/prod ordinal data: spec §1 requires a separate permission",
+      "Change to the success-rate formula: spec §4 'Формулу не змінюй'",
+      "Changes to the recording logic of book_counted ordinals: spec §1 allows them only with a reproduced new-event bug; none reproduced (main loop)",
+      "New illustrations: spec §4 'Використай чинні PNG'"
+    ]
+  },
+  "slices": {
+    "S1-data": "T01, T02",
+    "S2-preview-BE": "T03..T07",
+    "S3-form-FE": "T08..T12",
+    "S4-detail-FE": "T13..T18",
+    "S5-catalog-FE": "T19..T22",
+    "S6-close": "T23, T24"
+  },
+  "openDecisions": [],
+  "blockers": [
+    {
+      "id": "B1",
+      "what": "Real dry_run of backfill-reading-goal-ordinals against dev",
+      "reason": "Server DB access needs the Hetzner key, missing on this machine (user memory). Main loop ran the replay in a controlled environment instead.",
+      "blocks": ["T02"]
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "A01",
+      "specRef": "Стартовий промпт",
+      "decision": "Every fork below is decided by default; openDecisions stays empty.",
+      "reason": "Run prompt: 'Пройди всі пункти самостійно'."
+    },
+    {
+      "id": "A02",
+      "specRef": "§2 'У формі, відкритій із каталогу, додай «Змінити список»'",
+      "decision": "Show 'Змінити список' whenever the form was reached through GoalListPicker: the catalog (goals-catalog.tsx:86-103) and the home create flow (home-goal-create-flow.tsx:51-68). Never from ListGoalCard (list-goal-card.tsx:61-72).",
+      "reason": "Both flows open the same picker, so 'go back to the picker' means the same thing; the spec only forbids it for the direct list-page entry. Implemented as an optional onChangeList prop on GoalFormDialog, so ListGoalCard simply does not pass it."
+    },
+    {
+      "id": "A03",
+      "specRef": "§2 'Збережи чинне підтвердження виходу зі зміненої форми'",
+      "decision": "'Змінити список' goes through the existing useCloseGuard: a clean form returns to the picker at once; a dirty form opens the existing DiscardChangesDialog first, and confirming it returns to the picker.",
+      "reason": "Guard already exists (goal-form-dialog.tsx:109-115, 162; hooks/use-close-guard.ts). Leaving the form for the picker drops the draft just like closing does."
+    },
+    {
+      "id": "A04",
+      "specRef": "§2 'Повернення відновлює пошук і фокус на виборі списку'",
+      "decision": "Search text is lifted out of PickerBody (goal-list-picker.tsx:155 local useState, lost when the dialog unmounts) into the flow owner and passed to GoalListPicker as a controlled value. On return, focus lands on the option of the previously chosen list; if that option is not rendered, on the search input.",
+      "reason": "Picker content unmounts when closed, so the state must live in the flow; 'фокус на виборі списку' read as the chosen list option."
+    },
+    {
+      "id": "A05",
+      "specRef": "§2 'мінімальний read-only прогноз із повторним використанням серверної логіки'",
+      "decision": "New endpoint GET /api/lists/:listId/goal/preview?deadline=YYYY-MM-DD (deadline optional) returning { bookCount, countedCount }. Service: listsService.assertOwned, userSettingsContextService.calendar({ now, userId }) for today in the user timezone, readingGoalsRepository.findActiveListBooks (same scope as create, reading-goals.service.ts:85-88), a new read-only repository query for the earliest finished cycle per list book with the same predicates as findSnapshotProgress (reading-goal-books.repository.ts:215-227) keyed on listId/userId and readerDaySql(now), then selectQualifyingReadingGoalBooks (reading-goal-progress.ts:140-158) with goalStartDate = today and countingEndsAt = resolveReadingGoalCountingEnd({ archivedDay: null, deadline: deadline ?? today }) (reading-goal-window.ts:28-33). A provided deadline goes through inputValidator.assertFutureDeadline like create. No transaction, no writes.",
+      "reason": "FE has no finish dates for list books (CustomListCardSchema, packages/shared/src/lists.ts:76-84), so the count cannot be computed client-side. Deadline starts empty in the create form (goal-form.ts:98), so it must be optional to show the count before a deadline is picked; with it the rule is the exact create rule including the inclusive deadline."
+    },
+    {
+      "id": "A06",
+      "specRef": "§2",
+      "decision": "Preview logic lives in a new application/reading-goal-creation-preview.service.ts, not in ReadingGoalsService.",
+      "reason": "One concern per file (CLAUDE.md §8.10); ReadingGoalsService is the write path (209 lines)."
+    },
+    {
+      "id": "A07",
+      "specRef": "§2 'Зі зміною порога оновлюй висновок'",
+      "decision": "'Ціль одразу стане виконаною' is derived on the client as countedCount >= targetCount from the watched form value; no refetch on target change.",
+      "reason": "Same rule as resolveReadingGoalStatus completedCount >= targetCount (reading-goal-progress.ts:131); the server count does not depend on the target."
+    },
+    {
+      "id": "A08",
+      "specRef": "§2 'У стані помилки покажи загальне правило без непідтверджених чисел'",
+      "decision": "Loading: no number and no completion sentence (never a provisional 0). Error: only the existing general rule goals.form.explanation, already rendered at goal-form-dialog.tsx:409. countedCount 0: no preview message.",
+      "reason": "Spec wording; the general-rule copy already exists."
+    },
+    {
+      "id": "A09",
+      "specRef": "§3 'покажи одну основну дію біля прогресу'",
+      "decision": "Action rendered inside GoalProgressHero under the bar, active goals only. Candidate = detail.remainingBooks[0] when its reading.status === 'reading' -> Link 'Продовжити читання' to /books/{id}; otherwise a button 'Переглянути книги цілі' that runs the existing remaining-books handler (goal-details-view.tsx:109-113: tab=books, scope=remaining, list focus).",
+      "reason": "Detail data is enough: ReadingGoalBookView carries reading.status (packages/shared/src/reading-goals.ts:219-227, 238); remainingBooks is sorted reading-first then by list position (reading-goal-books.service.ts:186-194) and capped at 100 (reading-goal.constants.ts:21), so truncation can never hide a reading book and index 0 is 'the first by list order'."
+    },
+    {
+      "id": "A10",
+      "specRef": "§3 'Незавантажені або неповні дані не трактуй як відсутність кандидата'",
+      "decision": "No action while the detail query has no data (GoalDetailsView only renders with a loaded goal). The pure resolver takes the loaded detail only; there is no 'no candidate' result from a partial list because of A09 ordering.",
+      "reason": "Spec rule; ordering makes the preview list authoritative for the reading candidate."
+    },
+    {
+      "id": "A11",
+      "specRef": "§3 'Головну пораду сформулюй природно… Для коротких інтервалів і стану без прогнозу використовуй відповідні наявні формати'",
+      "decision": "Advice from resolveGoalRateFigure over requiredBooksPerDay/requiredDaysPerBook (goal-pace-figures.ts:40-49). days_per_book with value >= 1: rounded to whole days (Math.round, min 1), copy goals.detail.hero.advice.daysPerBook (=1 -> 'щодня' form, same plural shape as overview.pace.daysPerBook). daysPerBook < 1: books-per-day format goals.detail.hero.advice.booksPerDay. missing: existing goals.detail.overview.pace.noData.",
+      "reason": "Server returns fractional daysPerBook (e.g. 3.7, reading-goal-metrics.test.ts:194); natural copy needs whole days. Existing short-interval and no-data formats are overview.pace.daysPerBook '=1', booksPerDay, noData."
+    },
+    {
+      "id": "A12",
+      "specRef": "§3 'Залиши факт і план на шкалі… При відставанні не описуй його як частину книги в основному тексті'",
+      "decision": "Keep the legend (hero.actual, hero.plan, goal-progress-hero.tsx:94-108) and the pace badge (:142-144). Replace the gap sentence (gapText, :121-136, keys hero.gap.*) with the advice line. hero.gap.* keys are deleted from uk and en if no other reader remains.",
+      "reason": "hero.gap.behind/closeBehind print roundToTenth books, e.g. 'На 0,4 книги менше' (goal-pace-figures.ts:29-37)."
+    },
+    {
+      "id": "A13",
+      "specRef": "§3 'Додай явну дію «Усі цілі»… Посилання на джерельний список лишається в метаданих'",
+      "decision": "Header back link (goal-detail-header.tsx:47-61) always reads 'Усі цілі' and points to the catalog; the 'До списку «X»' variant is dropped from the header. The list link stays in GoalMeta (:74-90).",
+      "reason": "Spec names the list link's home as the metadata; one back target avoids two competing back actions."
+    },
+    {
+      "id": "A14",
+      "specRef": "§3 'Після переходу з каталогу відновлюй статус, сортування та вигляд. Пряме відкриття деталей веде в каталог із типовими налаштуваннями'",
+      "decision": "Carry the catalog state in the detail URL as one search param 'catalog' holding the serialized catalog query (createSerializer(GOALS_QUERY_PARSERS), nuqs ^2.9.2). Detail reads it with the same parsers, so invalid values fall back to defaults; 'Усі цілі' href = '/goals' + that query. Links that carry it: catalog card and row titles (goal-catalog-card.tsx:225), overview highlights (goals-overview-highlights.tsx:82, 146), catalog create/active redirects (goals-catalog.tsx:59, 98). No param -> '/goals' with defaults.",
+      "reason": "Catalog state is URL-only via nuqs (goals-query.ts:19-23, use-goals-query.ts:28-31). A URL param survives reload and back/forward and makes a direct open default by construction; sessionStorage would leak an old catalog state into a direct open. No existing return-href helper in apps/web/src (grep returnTo|backHref: none)."
+    },
+    {
+      "id": "A15",
+      "specRef": "§4 'наявну ілюстрацію компактного розміру, орієнтовно 120–160 px… видимими на типовому десктопі без окремого прокручування'",
+      "decision": "Add EmptyState size xs = 'h-36 w-auto' (144 px) to ILLU_SIZE (components/empty-state.tsx:11-15) and to EmptyStateIllustrationSize (lib/empty-states.ts:37), plus an opt-in inline layout (image beside title, description and action from sm up, stacked below sm). Filtered empty uses empty-search at xs + inline. First-goal empty state keeps illuSize sm (224 px, goals-catalog-view.tsx:127-134).",
+      "reason": "Today filtered empty uses the default lg = h-84 = 336 px (empty-state.tsx:12, 32; goals-catalog-view.tsx:150-156). Estimated at 1280x800: shell 56 + header ~70 + KPI ~110 + highlights 0-150 + toolbar ~44 + gaps ~120 + py-6 + 336 px art puts the title at ~770-920 px and the button below the fold. EmptyState is a project component (CLAUDE.md §7), so it is extended in place."
+    },
+    {
+      "id": "A16",
+      "specRef": "§4 'Для «Архіву» та «Виконаних» додай конкретні заголовки'",
+      "decision": "active and expired filters keep the current generic title goals.catalog.filteredEmpty.title.",
+      "reason": "Spec names only archived and completed."
+    },
+    {
+      "id": "A17",
+      "specRef": "§4 'Поясни, що означає знаменник успішності'",
+      "decision": "Caption and explanation are visible text in the KPI microfact (goals-overview.tsx:71-76), not a tooltip. Denominator wording: reached and overdue goals, archived ones included; active goals and goals archived before an outcome are not counted.",
+      "reason": "Radix tooltips do not open on touch. Formula: finished = result !== null (reading-goal-overview.service.ts:78), result is completed|expired only (reading-goal-progress.ts:108-119), archived goals keep a result when archived after reaching the target or after the deadline. Main loop confirmed on dev: finishedGoals 4 = 2 completed (one archived) + 2 expired."
+    },
+    {
+      "id": "A18",
+      "specRef": "§3 example 'Щоб устигнути, дочитуй приблизно 1 книгу кожні 12 днів'",
+      "decision": "uk advice uses the formal 'дочитуйте' to match the app voice ('Оберіть', 'Поставте', 'Перевірте' in goals.*). Flip to 'дочитуй' if the maintainer wants the spec example verbatim.",
+      "reason": "Spec marks the sentence as an example ('наприклад'); the rest of goals.* is formal."
+    },
+    {
+      "id": "A19",
+      "specRef": "§1",
+      "decision": "No change to the recording logic and no new regression test: main loop reproduced no bug on new events. Goal 588e2d47 history is unambiguous in replay: one planned change, activity 911be6bd completedCount 1 -> 2. Apply to dev/prod waits for a separate permission.",
+      "reason": "Spec §1 bullets 2-3; facts from the main loop."
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "Audit based on commit 7aeb25f",
+      "specRef": "intro",
+      "verdict": "CONFIRMED",
+      "evidence": "git log -1: 7aeb25f4 (worktree HEAD)"
+    },
+    {
+      "claim": "backfill-reading-goal-ordinals.ts exists with dry_run",
+      "specRef": "§1",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/scripts/backfill-reading-goal-ordinals.ts:22-26 (dry_run unless --apply); package.json script backfill:reading-goal-ordinals (apps/api/package.json:12)"
+    },
+    {
+      "claim": "Script has a per-goal (точковий) mode",
+      "specRef": "§1",
+      "verdict": "FALSE",
+      "evidence": "backfill-reading-goal-ordinals.ts:22-23 accepts only '--apply' and '--', any other argument fails the Zod parse; service scans all goals with book_counted activity page by page (reading-goal-counted-backfill.service.ts:60-80, reading-goals.repository.ts:155-184). 'unchanged' outcomes are not logged (script :64-65), so a goal absent from the log is unchanged."
+    },
+    {
+      "claim": "Form opened from the catalog has 'Змінити список'",
+      "specRef": "§2",
+      "verdict": "CONFIRMED gap",
+      "evidence": "goal-form-dialog.tsx:117-164 and :302-419 render no change-list action; GoalsCatalog flow goes picking -> creating with no way back (goals-catalog.tsx:22-25, 55-63)"
+    },
+    {
+      "claim": "Returning restores search and focus on the list picker",
+      "specRef": "§2",
+      "verdict": "CONFIRMED gap",
+      "evidence": "search is local state in PickerBody (goal-list-picker.tsx:155), unmounted when the dialog closes; onCloseAutoFocus sends focus to the create button (goal-list-picker.tsx:83-86)"
+    },
+    {
+      "claim": "Dirty-form exit confirmation exists",
+      "specRef": "§2",
+      "verdict": "ALREADY DONE",
+      "evidence": "goal-form-dialog.tsx:107-115 useCloseGuard, :162 DiscardChangesDialog, :246-248 dirty sync; hooks/use-close-guard.ts"
+    },
+    {
+      "claim": "List page entry exists and must not show change-source",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "list-goal-card.tsx:61-72 opens GoalFormDialog directly; mounted from lists/components/list-details-view.tsx:443 and list-details-overview-panel.tsx:64"
+    },
+    {
+      "claim": "Form shows how many books count immediately",
+      "specRef": "§2",
+      "verdict": "CONFIRMED gap",
+      "evidence": "goal-form-dialog.tsx:366-372 shows only the list size hint, :409 the general rule (goals.form.explanation); no count anywhere"
+    },
+    {
+      "claim": "A server endpoint can compute the immediate count",
+      "specRef": "§2",
+      "verdict": "CONFIRMED gap",
+      "evidence": "controller routes reading-goals.controller.ts:92,107,132,146,159,179,200,216,231,244: no preview; grep preview in the module finds only detail books/activity previews (reading-goal-books.service.ts:125, reading-goal-activity.service.ts:77)"
+    },
+    {
+      "claim": "Counting starts from the creation calendar day in the user timezone",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "reading-goal-books.repository.ts:223 readerDaySql(goal.created_at, timeZone); core/database/reader-day-sql.ts (AT TIME ZONE ...)::date; reading-goal-calendar.ts:24; reading-goal-progress.ts:93-106"
+    },
+    {
+      "claim": "Deadline is inclusive",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "reading-goal-books.repository.ts:224 finished_at <= goal.deadline; reading-goal-progress.ts:104 !isAfter(finishedDay, countingEndsAt)"
+    },
+    {
+      "claim": "Book set is fixed and each book counts once",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "snapshot seeded at create reading-goals.service.ts:85-99, reading-goal-snapshot.service.ts:85-95; one qualifying cycle per book via LATERAL ... LIMIT 1 reading-goal-books.repository.ts:215-227"
+    },
+    {
+      "claim": "Creating the next goal after a completed or expired one auto-archives it",
+      "specRef": "§2",
+      "verdict": "ALREADY DONE",
+      "evidence": "reading-goals.service.ts:81-84, 137-166 (active -> 409, otherwise archive + resync + recordArchive); FE hint goal-form-dialog.tsx:143-145, 167-176; goal-list-choice.ts:25-27"
+    },
+    {
+      "claim": "Finish dates cannot be in the future",
+      "specRef": "§2 (preview correctness)",
+      "verdict": "CONFIRMED with skew",
+      "evidence": "packages/shared/src/books.ts:223 notInFutureDate; internal.ts:34-37 allows UTC today + skew tolerance, so the deadline bound still matters at the edge (A05)"
+    },
+    {
+      "claim": "Detail page has a primary action near progress",
+      "specRef": "§3",
+      "verdict": "CONFIRMED gap",
+      "evidence": "goal-progress-hero.tsx:53-113 renders percent, counts, time note, bar, legend and the gap line only; header actions are Edit/Archive/Delete (goal-detail-actions.tsx:113-168)"
+    },
+    {
+      "claim": "Current detail data is enough to pick a reading candidate",
+      "specRef": "§3",
+      "verdict": "ALREADY DONE (data)",
+      "evidence": "ReadingGoalBookView.reading.status packages/shared/src/reading-goals.ts:219-227, 238; detail.remainingBooks :340; order reading-first then position reading-goal-books.service.ts:178-195; cap 100 reading-goal.constants.ts:21 + shared reading-goals.ts:13-17"
+    },
+    {
+      "claim": "Books tab has a URL-addressable 'Ще не зараховані' filter",
+      "specRef": "§3",
+      "verdict": "ALREADY DONE",
+      "evidence": "scopes all|counted|remaining (shared reading-goals.ts:61; goal-detail-query.ts:11-25), URL ?tab=books&scope=remaining via nuqs push (use-goal-detail-query.ts:28-37); uk goals.detail.books.scope.remaining = 'Ще не зараховані', en 'Not counted yet'; existing handler goal-details-view.tsx:109-113"
+    },
+    {
+      "claim": "Main pace advice today",
+      "specRef": "§3",
+      "verdict": "CONFIRMED gap",
+      "evidence": "goal-progress-hero.tsx:116-147 prints goals.detail.hero.gap.* with roundToTenth counts; uk gap.behind '{count, plural, =0 {До дедлайну обмаль часу} one {На # книгу менше} …}: на сьогодні мало бути зараховано {expected …}.' en '{count, plural, =0 {The deadline is close} one {# book fewer than needed} …}: {expected …} due by today.'"
+    },
+    {
+      "claim": "Existing formats for short intervals and no forecast",
+      "specRef": "§3",
+      "verdict": "CONFIRMED",
+      "evidence": "goal-pace-figures.ts:40-49 days_per_book | books_per_day | missing; uk overview.pace.daysPerBook '{count, plural, =1 {1 книга щодня} …}', booksPerDay '# книги на день', noData 'Ще замало даних'; projection.insufficient 'Для прогнозу потрібно більше зарахованих книг' (goal-pace-forecast-card.tsx:115-124); risk.requiredRate 'Для виконання цілі потрібно читати приблизно …' (goal-state-card.tsx:72-75)"
+    },
+    {
+      "claim": "Explicit 'Усі цілі' action exists",
+      "specRef": "§3",
+      "verdict": "CONFIRMED gap",
+      "evidence": "goal-detail-header.tsx:47-61 back link goes to /lists/{id} when the goal has a list, '/goals' only when list is null (key goals.detail.backToGoals 'До цілей')"
+    },
+    {
+      "claim": "Catalog status/sort/view are restorable",
+      "specRef": "§3",
+      "verdict": "PARTIAL",
+      "evidence": "state is URL-only via nuqs (goals-query.ts:11-23, use-goals-query.ts:28-40), but detail links drop it: goal-catalog-card.tsx:225 href /goals/{id}"
+    },
+    {
+      "claim": "Source list link stays in metadata",
+      "specRef": "§3",
+      "verdict": "CONFIRMED",
+      "evidence": "goal-detail-header.tsx:74-90"
+    },
+    {
+      "claim": "Filtered empty state uses an existing compact illustration with title and action above the fold",
+      "specRef": "§4",
+      "verdict": "CONFIRMED gap",
+      "evidence": "goals-catalog-view.tsx:149-157 empty-search with default size lg = h-84 = 336 px (empty-state.tsx:11-15, 32); title at mt-6 below the art; overview + toolbar stay rendered for filtered-empty (goals-catalog-view.tsx:78-80). Above-the-fold is an estimate, browser check EXTERNAL."
+    },
+    {
+      "claim": "Archive/Completed filters have specific titles",
+      "specRef": "§4",
+      "verdict": "CONFIRMED gap",
+      "evidence": "single title uk 'Немає цілей із цим статусом', en 'No goals with this status' for every status; content type carries no status (goals-catalog-content.ts:11, 35)"
+    },
+    {
+      "claim": "Big first-goal empty state exists",
+      "specRef": "§4",
+      "verdict": "CONFIRMED",
+      "evidence": "goals-catalog-view.tsx:126-134 reading-goals/goal-first-goal-empty-state, illuSize sm (224 px)"
+    },
+    {
+      "claim": "Success-rate caption explains the denominator",
+      "specRef": "§4",
+      "verdict": "CONFIRMED gap",
+      "evidence": "goals-overview.tsx:67-78; uk successRateDetail 'Виконано {successful} із {finished} завершених', successRateEmpty 'Ще немає завершених цілей'; en '{successful} of {finished} finished goals reached', 'No finished goals yet'"
+    },
+    {
+      "claim": "Success-rate formula and denominator statuses",
+      "specRef": "§4",
+      "verdict": "CONFIRMED",
+      "evidence": "reading-goal-overview.service.ts:77-78, 94-101, 144-157: rate = completed results / results not null; result ∈ {completed, expired} (reading-goal-progress.ts:108-119), archived goals included when they carry a result; dev: finishedGoals 4 = 2 completed (1 archived) + 2 expired (main loop)"
+    },
+    {
+      "claim": "Existing PNGs are available",
+      "specRef": "§4",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/public/illustrations/empty-search.png; apps/web/public/illustrations/reading-goals/ (5 PNG)"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T01",
+      "slice": "S1-data",
+      "title": "Historical ordinals of goal 588e2d47: controlled replay and report",
+      "specRef": "§1",
+      "layer": "data",
+      "files": [],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "Final report states: replay unambiguous, one planned change, activity 911be6bd completedCount 1 -> 2",
+        "Final report states: the script has no per-goal mode (backfill-reading-goal-ordinals.ts:22-23); per-goal result read from the dry_run log by goalId, absence = unchanged",
+        "Final report gives the apply command (pnpm --filter @app/api backfill:reading-goal-ordinals -- --apply) and that it needs a separate permission for dev/prod",
+        "git diff shows no change under apps/api/src/modules/reading-goals/** recording logic and no new ordinal test (A19)"
+      ],
+      "status": "done",
+      "proof": "No diff in reading-goal-sync.service.ts, reading-goal-activity.recorder.ts or the backfill script; no new ordinal test"
+    },
+    {
+      "id": "T02",
+      "slice": "S1-data",
+      "title": "Real dry_run against dev",
+      "specRef": "§1 'За наявності доступу до dev виконай тільки dry_run'",
+      "layer": "data",
+      "files": [],
+      "dependsOn": ["T01"],
+      "mandatory": true,
+      "doneWhen": [
+        "Final report lists the dev dry_run as pending access (B1), with the exact read-only command for the user to run"
+      ],
+      "status": "blocked_on_access",
+      "proof": "B1",
+      "pendingChecks": ["EXTERNAL: dev dry_run (Hetzner key)"]
+    },
+    {
+      "id": "T03",
+      "slice": "S2-preview-BE",
+      "title": "Shared contract for the creation preview",
+      "specRef": "§2 bullet 2",
+      "layer": "shared",
+      "files": ["packages/shared/src/reading-goals.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "ReadingGoalCreationPreviewQuerySchema = z.object({ deadline: ISO day schema already used by CreateReadingGoalInputSchema, optional })",
+        "ReadingGoalCreationPreviewSchema = z.object({ bookCount: int nonnegative, countedCount: int nonnegative }) with exported types",
+        "Exported through the shared barrel; no existing schema changed"
+      ],
+      "status": "done",
+      "proof": "packages/shared/src/reading-goals.ts:132-143"
+    },
+    {
+      "id": "T04",
+      "slice": "S2-preview-BE",
+      "title": "Read-only repository query: earliest qualifying finish per list book",
+      "specRef": "§2 bullet 2 'авторитетні дані … часовий пояс'",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/reading-goals/infrastructure/reading-goal-books.repository.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "New method takes { listId, userId, timeZone, now } and an optional trailing client = this.prisma",
+        "Same cycle predicates as findSnapshotProgress (:215-227): state 'finished', finished_at not null, book.deleted_at null, cycle.user_id = userId, finished_at >= readerDaySql(now, timeZone), earliest cycle per book (ORDER BY finished_at, id LIMIT 1)",
+        "Book scope equals findActiveListBooks (reading-goals.repository.ts:134-144): list items of listId, active (not soft-deleted) books owned by userId",
+        "Parameterized Prisma.sql only, rows parsed with Zod, returns { bookId, finishedAt: Nullable<Date> }[]; no writes"
+      ],
+      "status": "done",
+      "proof": "reading-goal-books.repository.ts:131-159 findEarliestListBookFinishes (same cycle predicates, readerDaySql(now), list scope + soft delete, Zod parse)"
+    },
+    {
+      "id": "T05",
+      "slice": "S2-preview-BE",
+      "title": "ReadingGoalCreationPreviewService",
+      "specRef": "§2 bullets 2-3",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/reading-goals/application/reading-goal-creation-preview.service.ts",
+        "apps/api/src/modules/reading-goals/reading-goals.module.ts"
+      ],
+      "dependsOn": ["T03", "T04"],
+      "mandatory": true,
+      "doneWhen": [
+        "Calls listsService.assertOwned (404 for a foreign list, same as create)",
+        "today and timeZone come from userSettingsContextService.calendar({ now: new Date(), userId })",
+        "A provided deadline goes through inputValidator.assertFutureDeadline (same 400 as create); absent -> countingEndsAt = today",
+        "countedCount = selectQualifyingReadingGoalBooks({ books, goalStartDate: today, countingEndsAt: resolveReadingGoalCountingEnd({ archivedDay: null, deadline }) }).length; no duplicate date logic",
+        "bookCount = findActiveListBooks(...).length",
+        "No TransactionRunner, no repository write, no activity recorded"
+      ],
+      "status": "done",
+      "proof": "application/reading-goal-creation-preview.service.ts:29-54; module :13, :38"
+    },
+    {
+      "id": "T06",
+      "slice": "S2-preview-BE",
+      "title": "GET /api/lists/:listId/goal/preview",
+      "specRef": "§2 bullet 2",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/reading-goals/api/reading-goals.controller.ts",
+        "apps/api/src/modules/reading-goals/api/input-dto/reading-goal-creation-preview.query.input-dto.ts",
+        "apps/api/src/modules/reading-goals/api/view-dto/reading-goal-creation-preview.view-dto.ts"
+      ],
+      "dependsOn": ["T05"],
+      "mandatory": true,
+      "doneWhen": [
+        "@Get('lists/:listId/goal/preview'), ParseUUIDPipe, ZodQueryPipe(ReadingGoalCreationPreviewQuerySchema), @Throttle(READ_THROTTLE), JwtProtected via the class",
+        "Full Swagger: ApiOperation, ApiOkResponse with the view DTO, ApiNotFoundResponse, ApiBadRequestResponse, ApiQuery deadline required:false",
+        "Declared before any route it could shadow; existing routes unchanged"
+      ],
+      "status": "done",
+      "proof": "reading-goals.controller.ts:108-125 (READ_THROTTLE, ZodQueryPipe, full Swagger); DTOs in input-dto/ and view-dto/"
+    },
+    {
+      "id": "T07",
+      "slice": "S2-preview-BE",
+      "title": "API tests for the preview",
+      "specRef": "§2, Приймання 1",
+      "layer": "test",
+      "files": [
+        "apps/api/src/modules/reading-goals/api/reading-goals.controller.test.ts",
+        "apps/api/src/modules/reading-goals/application/reading-goal-creation-preview.service.test.ts"
+      ],
+      "dependsOn": ["T06"],
+      "mandatory": true,
+      "doneWhen": [
+        "Controller: list with 2 books finished today (user tz) -> { bookCount: 2, countedCount: 2 }; a book finished yesterday is not counted",
+        "Controller: timezone boundary — finish date equal to the user's local today while UTC is still yesterday (or the reverse) counts by the user's day",
+        "Controller: soft-deleted book excluded; foreign list -> 404; past deadline -> 400",
+        "Controller: preview then create on the same day -> created goal completedCount equals preview countedCount (parity with the write path)",
+        "Controller: preview writes nothing (goal count and activity count unchanged)",
+        "Service unit: deadline absent vs present selects countingEndsAt as in A05"
+      ],
+      "status": "done",
+      "proof": "controller.test.ts describe GET /api/lists/:listId/goal/preview (16 cases incl. tz ahead of UTC, parity with create, no writes); creation-preview.service.test.ts:70-118",
+      "pendingChecks": [
+        "CI: reading-goals.controller.test.ts, reading-goal-creation-preview.service.test.ts"
+      ]
+    },
+    {
+      "id": "T08",
+      "slice": "S3-form-FE",
+      "title": "Regenerate the API client",
+      "specRef": "CLAUDE.md §6.10",
+      "layer": "web",
+      "files": ["apps/web/src/shared/api/generated/**"],
+      "dependsOn": ["T06"],
+      "mandatory": true,
+      "doneWhen": [
+        "Generated fetcher for the preview route exists and the generated diff contains only the new endpoint and its models",
+        "MAIN: pnpm --filter @app/api generate:openapi && pnpm gen:api"
+      ],
+      "status": "done",
+      "proof": "generated endpoints/zod/model diff is additions for previewCreation only",
+      "pendingChecks": [
+        "MAIN: regenerate the API client and compare (provenance, see verify-report)"
+      ]
+    },
+    {
+      "id": "T09",
+      "slice": "S3-form-FE",
+      "title": "useGoalCreationPreview hook",
+      "specRef": "§2 bullet 2",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/reading-goals/api/use-goal-creation-preview.ts",
+        "apps/web/src/features/reading-goals/api/goal-keys.ts"
+      ],
+      "dependsOn": ["T08"],
+      "mandatory": true,
+      "doneWhen": [
+        "Calls the generated fetcher, parses with ReadingGoalCreationPreviewSchema, key from goalKeys (new key under the '/api/goals' root, e.g. [GOALS_ROOT, 'creation-preview', listId, { deadline }])",
+        "Sends deadline only when the form value is a valid future ISO day; staleTime 0 like the picker lookup (goal-list-picker.tsx:62)",
+        "Does not use the generated useXxx hook"
+      ],
+      "status": "done",
+      "proof": "apps/web/src/features/reading-goals/api/use-goal-creation-preview.ts:17-28; api/goal-keys.ts:20-21; model/goal-form.ts:144-153 toCreationPreviewQuery"
+    },
+    {
+      "id": "T10",
+      "slice": "S3-form-FE",
+      "title": "Immediate-count block in the create form",
+      "specRef": "§2 bullet 2",
+      "layer": "web",
+      "files": ["apps/web/src/features/reading-goals/components/goal-form-dialog.tsx"],
+      "dependsOn": ["T09"],
+      "mandatory": true,
+      "doneWhen": [
+        "Create mode only; edit mode renders nothing new",
+        "countedCount > 0: shows goals.form.preview.counted with the number",
+        "countedCount >= watched targetCount: also shows goals.form.preview.completesNow; changing targetCount flips it without a refetch (A07)",
+        "countedCount 0: no preview text",
+        "pending: no number and no completion sentence; error: no number, only the existing goals.form.explanation (:409)",
+        "Text sits in an aria-live=polite region so the changing verdict is announced"
+      ],
+      "uk": {
+        "goals.form.preview.counted": "{count, plural, one {# книга зарахується одразу} few {# книги зарахуються одразу} many {# книг зарахуються одразу} other {# книги зарахуються одразу}}: їх уже дочитано сьогодні.",
+        "goals.form.preview.completesNow": "Ціль одразу стане виконаною."
+      },
+      "en": {
+        "goals.form.preview.counted": "{count, plural, one {# book counts right away} other {# books count right away}}: already finished today.",
+        "goals.form.preview.completesNow": "The goal will be reached right away."
+      },
+      "status": "done",
+      "proof": "apps/web/src/features/reading-goals/components/goal-creation-preview.tsx:18-47; goal-form-dialog.tsx:451-461 (create only); model/goal-form.ts:124-133 reachesTargetOnCreation"
+    },
+    {
+      "id": "T11",
+      "slice": "S3-form-FE",
+      "title": "'Змінити список' with restored search and focus",
+      "specRef": "§2 bullet 1",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/reading-goals/components/goal-form-dialog.tsx",
+        "apps/web/src/features/reading-goals/components/goal-list-picker.tsx",
+        "apps/web/src/features/reading-goals/components/goals-catalog.tsx",
+        "apps/web/src/features/home/components/home-goal-create-flow.tsx"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "GoalFormDialog gets optional onChangeList; the button renders only when it is passed; list-goal-card.tsx has no diff",
+        "Change list runs through useCloseGuard: clean -> picker; dirty -> existing DiscardChangesDialog, confirm -> picker, cancel -> stays in the form (A03)",
+        "Picker search is controlled by the flow owner (search + onSearchChange props); value survives picking -> creating -> picking",
+        "On return, focus lands on the option of the previously chosen list, falling back to the search input (A04)",
+        "Catalog and home flows both wire it (A02)"
+      ],
+      "uk": {
+        "goals.form.changeList": "Змінити список"
+      },
+      "en": {
+        "goals.form.changeList": "Change list"
+      },
+      "status": "done",
+      "proof": "apps/web/src/features/reading-goals/components/goal-form-dialog.tsx:114-139, 170-180; goal-list-picker.tsx:46-73, 106; goals-catalog.tsx:57-60, 95-110; home-goal-create-flow.tsx:33-36, 63-78; list-goal-card.tsx no diff"
+    },
+    {
+      "id": "T12",
+      "slice": "S3-form-FE",
+      "title": "Form and picker tests",
+      "specRef": "§2, Приймання 2",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/reading-goals/components/goal-form-dialog.test.tsx",
+        "apps/web/src/features/reading-goals/components/goal-list-picker.test.tsx",
+        "apps/web/src/features/reading-goals/components/goals-catalog.test.tsx"
+      ],
+      "dependsOn": ["T10", "T11"],
+      "mandatory": true,
+      "doneWhen": [
+        "Form: preview 2 with target 5 shows the count and no completion; target 2 shows 'Ціль одразу стане виконаною'; preview 0 shows nothing; preview 500 shows no number and keeps the general rule",
+        "Form: no change-list button without onChangeList (list page entry)",
+        "Catalog: type a search, choose a list, press 'Змінити список' -> picker shows the same search text and the chosen option has focus",
+        "Catalog: dirty form + 'Змінити список' -> discard dialog first",
+        "Mocks at the fetch boundary, no RQ hook mocks"
+      ],
+      "status": "done",
+      "proof": "goal-form-dialog.test.tsx (preview 8 cases, list change 5 cases); goal-list-picker.test.tsx describe GoalListPicker after a list change (4); list-goal-card.test.tsx; home-reading-goal.test.tsx",
+      "pendingChecks": [
+        "CI: goal-form-dialog.test.tsx, goal-list-picker.test.tsx, list-goal-card.test.tsx, home-reading-goal.test.tsx, model/goal-form.test.ts"
+      ]
+    },
+    {
+      "id": "T13",
+      "slice": "S4-detail-FE",
+      "title": "Pure resolver for the detail primary action",
+      "specRef": "§3 bullet 1",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/reading-goals/model/goal-primary-action.ts",
+        "apps/web/src/features/reading-goals/model/goal-primary-action.test.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "Returns null for non-active goals",
+        "Returns { kind: 'continue', bookId } for the first remainingBooks entry whose reading.status is 'reading' (relies on server order, A09), else { kind: 'books' }",
+        "Discriminated union, no optional booleans",
+        "Tests: two reading books -> first in list order; only finished/unread remaining -> books; completed goal -> null"
+      ],
+      "status": "done",
+      "proof": "apps/web/src/features/reading-goals/model/goal-primary-action.ts:5-14; goal-primary-action.test.ts:18, 34, 47",
+      "pendingChecks": ["CI: model/goal-primary-action.test.ts"]
+    },
+    {
+      "id": "T14",
+      "slice": "S4-detail-FE",
+      "title": "Primary action in the hero",
+      "specRef": "§3 bullet 1",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/reading-goals/components/goal-progress-hero.tsx",
+        "apps/web/src/features/reading-goals/components/goal-details-view.tsx"
+      ],
+      "dependsOn": ["T13"],
+      "mandatory": true,
+      "doneWhen": [
+        "Exactly one primary action next to the bar for an active goal",
+        "continue -> Link to /books/{id} labelled goals.detail.hero.action.continue",
+        "books -> Button labelled goals.detail.hero.action.books that runs the same handler as onShowRemainingBooks (goal-details-view.tsx:109-113): URL tab=books&scope=remaining and list focus",
+        "No action for completed/expired/archived"
+      ],
+      "uk": {
+        "goals.detail.hero.action.continue": "Продовжити читання",
+        "goals.detail.hero.action.books": "Переглянути книги цілі"
+      },
+      "en": {
+        "goals.detail.hero.action.continue": "Continue reading",
+        "goals.detail.hero.action.books": "See the goal's books"
+      },
+      "status": "done",
+      "proof": "apps/web/src/features/reading-goals/components/goal-progress-hero.tsx:56, 115-121; goal-hero-next-step.tsx:76-99; goal-details-view.tsx showRemainingBooks"
+    },
+    {
+      "id": "T15",
+      "slice": "S4-detail-FE",
+      "title": "Natural pace advice in the hero",
+      "specRef": "§3 bullet 2",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/reading-goals/components/goal-progress-hero.tsx",
+        "apps/web/src/features/reading-goals/model/goal-pace-figures.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "Legend hero.actual / hero.plan and the pace badge unchanged",
+        "Main sentence = advice per A11: days_per_book >= 1 rounded to whole days; < 1 -> books-per-day form; missing -> goals.detail.overview.pace.noData",
+        "No fractional book count in the main sentence in any pace (no roundToTenth output from paceDeltaBooks or expectedCompletedCount in the hero text)",
+        "hero.gap.* keys removed from uk and en when unused (A12)"
+      ],
+      "uk": {
+        "goals.detail.hero.advice.daysPerBook": "Щоб устигнути, дочитуйте приблизно {count, plural, =1 {1 книгу щодня} one {1 книгу кожні # день} few {1 книгу кожні # дні} many {1 книгу кожні # днів} other {1 книгу кожні # дня}}.",
+        "goals.detail.hero.advice.booksPerDay": "Щоб устигнути, дочитуйте приблизно {count, plural, one {# книгу} few {# книги} many {# книг} other {# книги}} на день."
+      },
+      "en": {
+        "goals.detail.hero.advice.daysPerBook": "To make it, finish roughly {count, plural, =1 {1 book a day} one {1 book every # day} other {1 book every # days}}.",
+        "goals.detail.hero.advice.booksPerDay": "To make it, finish roughly {count, plural, one {# book} other {# books}} a day."
+      },
+      "status": "done",
+      "proof": "apps/web/src/features/reading-goals/model/goal-pace-figures.ts:25-47; goal-hero-next-step.tsx:28-58; hero.gap.* absent in both locales"
+    },
+    {
+      "id": "T16",
+      "slice": "S4-detail-FE",
+      "title": "Catalog state carried into the detail URL",
+      "specRef": "§3 bullet 3",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/reading-goals/model/goals-query.ts",
+        "apps/web/src/features/reading-goals/model/goal-detail-query.ts",
+        "apps/web/src/features/reading-goals/components/goal-catalog-card.tsx",
+        "apps/web/src/features/reading-goals/components/goals-overview-highlights.tsx",
+        "apps/web/src/features/reading-goals/components/goals-catalog.tsx"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "One helper builds the detail href with the 'catalog' param from the current catalog state (createSerializer over GOALS_QUERY_PARSERS); defaults are omitted",
+        "Catalog card and row titles, highlights links and the create/active redirects use it (A14)",
+        "Detail parses 'catalog' with the same parsers; invalid values fall back to defaults; detail tab/scope/activityType keep working alongside it"
+      ],
+      "status": "done",
+      "proof": "approved deviation: apps/web/src/features/reading-goals/model/goal-catalog-href.ts:17-34 + model/use-goal-catalog-links.ts:12-22; used in goal-catalog-card.tsx:227, goals-overview-highlights.tsx:84, :149, goals-catalog.tsx:66, :111",
+      "pendingChecks": ["CI: model/goal-catalog-href.test.ts"]
+    },
+    {
+      "id": "T17",
+      "slice": "S4-detail-FE",
+      "title": "'Усі цілі' action",
+      "specRef": "§3 bullet 3",
+      "layer": "web",
+      "files": ["apps/web/src/features/reading-goals/components/goal-detail-header.tsx"],
+      "dependsOn": ["T16"],
+      "mandatory": true,
+      "doneWhen": [
+        "Header back link always reads goals.detail.allGoals and points to '/goals' plus the restored catalog query; with no 'catalog' param it is exactly '/goals'",
+        "GoalMeta list link (:74-90) unchanged",
+        "goals.detail.back and goals.detail.backToGoals removed from uk and en if unused (A13)"
+      ],
+      "uk": {
+        "goals.detail.allGoals": "Усі цілі"
+      },
+      "en": {
+        "goals.detail.allGoals": "All goals"
+      },
+      "status": "done",
+      "proof": "goal-detail-header.tsx:48-60 (allGoals, catalog href); GoalMeta unchanged; goals.detail.back removed; backToGoals kept, read by goal-details.tsx:75 (approved deviation)"
+    },
+    {
+      "id": "T18",
+      "slice": "S4-detail-FE",
+      "title": "Detail tests",
+      "specRef": "§3, Приймання 2",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/reading-goals/components/goal-progress-hero.test.tsx",
+        "apps/web/src/features/reading-goals/components/goal-details.test.tsx"
+      ],
+      "dependsOn": ["T14", "T15", "T17"],
+      "mandatory": true,
+      "doneWhen": [
+        "Hero: rewrite the gap cases (goal-progress-hero.test.tsx:84-121) to the advice copy: requiredDaysPerBook 11.6 -> '1 книгу кожні 12 днів'; 1 -> 'щодня'; 0.5 -> books-per-day; behind goal text contains no decimal",
+        "Hero: legend still shows actual and plan",
+        "Details: reading candidate -> link to /books/{id}; no candidate -> button sets tab=books&scope=remaining and the remaining list renders",
+        "Details: 'Усі цілі' href keeps status/sort/view from the 'catalog' param; direct open -> '/goals'",
+        "Details: list link still present in the metadata"
+      ],
+      "status": "done",
+      "proof": "goal-details.test.tsx (7 new or rewritten cases); goal-progress-hero.test.tsx:146-170 advice table + no-fraction + both action branches; goal-pace-figures.test.ts resolveGoalPaceBadge/resolveGoalPaceAdvice",
+      "pendingChecks": [
+        "CI: goal-details.test.tsx, goal-progress-hero.test.tsx, goal-books-tab.test.tsx, model/goal-pace-figures.test.ts"
+      ]
+    },
+    {
+      "id": "T19",
+      "slice": "S5-catalog-FE",
+      "title": "Compact EmptyState variant",
+      "specRef": "§4 bullet 1",
+      "layer": "web",
+      "files": ["apps/web/src/components/empty-state.tsx", "apps/web/src/lib/empty-states.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "ILLU_SIZE gains xs = 'h-36 w-auto' (144 px) and EmptyStateIllustrationSize includes 'xs'",
+        "Opt-in inline layout: art beside title/description/actions from sm, stacked below sm; default layout and lg/md/sm unchanged for every other caller",
+        "No new PNG"
+      ],
+      "status": "done",
+      "proof": "components/empty-state.tsx:19-40 (xs, inline/stacked); lib/empty-states.ts:12, 38-40; no PNG under apps/web/public in the diff"
+    },
+    {
+      "id": "T20",
+      "slice": "S5-catalog-FE",
+      "title": "Filtered empty state per status",
+      "specRef": "§4 bullet 1",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/reading-goals/model/goals-catalog-content.ts",
+        "apps/web/src/features/reading-goals/components/goals-catalog.tsx",
+        "apps/web/src/features/reading-goals/components/goals-catalog-view.tsx"
+      ],
+      "dependsOn": ["T19"],
+      "mandatory": true,
+      "doneWhen": [
+        "filtered-empty content carries the active status",
+        "archived -> goals.catalog.filteredEmpty.titles.archived, completed -> goals.catalog.filteredEmpty.titles.completed, active/expired -> existing generic title (A16)",
+        "empty-search art at xs with the inline layout; 'Показати всі цілі' unchanged",
+        "First-goal empty state unchanged (illuSize sm)",
+        "At 1280x800 with KPI and highlights rendered, title and button are inside the first viewport (EXTERNAL browser check)"
+      ],
+      "uk": {
+        "goals.catalog.filteredEmpty.titles.archived": "Архів порожній",
+        "goals.catalog.filteredEmpty.titles.completed": "Поки немає виконаних цілей"
+      },
+      "en": {
+        "goals.catalog.filteredEmpty.titles.archived": "The archive is empty",
+        "goals.catalog.filteredEmpty.titles.completed": "No reached goals yet"
+      },
+      "status": "done",
+      "proof": "apps/web/src/features/reading-goals/model/goals-catalog-content.ts:15, 38; components/goals-catalog-view.tsx:32-37, 160-163",
+      "pendingChecks": [
+        "EXTERNAL: browser /goals?status=archived and ?status=completed at 1280x800 and 375"
+      ]
+    },
+    {
+      "id": "T21",
+      "slice": "S5-catalog-FE",
+      "title": "Success-rate caption and denominator explanation",
+      "specRef": "§4 bullet 2",
+      "layer": "i18n",
+      "files": [
+        "apps/web/src/features/reading-goals/components/goals-overview.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "Microfact shows successRateDetail with successful and finished, plus the visible explanation line (A17)",
+        "Value and formula unchanged (goals-overview.tsx:77; reading-goal-overview.service.ts untouched)",
+        "successRateEmpty reworded to the 'з підсумком' term"
+      ],
+      "uk": {
+        "goals.catalog.kpi.successRateDetail": "{successful} із {finished, plural, one {# цілі} few {# цілей} many {# цілей} other {# цілі}} із підсумком",
+        "goals.catalog.kpi.successRateExplanation": "Рахуються виконані й прострочені цілі, також в архіві. Активні й заархівовані до підсумку не рахуються.",
+        "goals.catalog.kpi.successRateEmpty": "Ще немає цілей із підсумком"
+      },
+      "en": {
+        "goals.catalog.kpi.successRateDetail": "{successful} of {finished, plural, one {# goal} other {# goals}} with an outcome",
+        "goals.catalog.kpi.successRateExplanation": "Counts reached and overdue goals, archived ones included. Active goals and goals archived before an outcome are left out.",
+        "goals.catalog.kpi.successRateEmpty": "No goals with an outcome yet"
+      },
+      "status": "done",
+      "proof": "apps/web/src/features/reading-goals/components/goals-overview.tsx:71-82; reading-goal-overview.service.ts no diff"
+    },
+    {
+      "id": "T22",
+      "slice": "S5-catalog-FE",
+      "title": "Catalog tests",
+      "specRef": "§4, Приймання 2",
+      "layer": "test",
+      "files": ["apps/web/src/features/reading-goals/components/goals-catalog.test.tsx"],
+      "dependsOn": ["T16", "T20", "T21"],
+      "mandatory": true,
+      "doneWhen": [
+        "status=archived empty -> 'Архів порожній'; status=completed -> 'Поки немає виконаних цілей'; status=expired -> generic title; art still empty-search (extend :312)",
+        "Success caption '0 із 2 цілей із підсумком' for { finishedGoals: 2, successfulGoals: 0 } and the explanation line (extend :162-183)",
+        "Card title href carries the 'catalog' param for status=completed&view=list"
+      ],
+      "status": "done",
+      "proof": "goals-catalog.test.tsx:170, 185, 201, 260, 268-270, return-state describe",
+      "pendingChecks": ["CI: goals-catalog.test.tsx"]
+    },
+    {
+      "id": "T23",
+      "slice": "S6-close",
+      "title": "i18n parity",
+      "specRef": "intro 'Тексти додай для UK та EN'",
+      "layer": "i18n",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": ["T10", "T11", "T14", "T15", "T17", "T20", "T21"],
+      "mandatory": true,
+      "doneWhen": [
+        "Every key added in T10, T11, T14, T15, T17, T20, T21 exists in both locales with the strings listed in those tasks",
+        "Removed keys (hero.gap.*, detail.back, detail.backToGoals) are absent from both locales and from code",
+        "goals.* key sets of uk and en are identical"
+      ],
+      "status": "done",
+      "proof": "uk/en goals.* key sets identical (flat key compare: 0 diff); hero.gap.* and detail.back gone"
+    },
+    {
+      "id": "T24",
+      "slice": "S6-close",
+      "title": "Gates, blast radius and acceptance walk",
+      "specRef": "Приймання 1-3",
+      "layer": "test",
+      "files": [],
+      "dependsOn": ["T07", "T12", "T18", "T22", "T23"],
+      "mandatory": true,
+      "doneWhen": [
+        "MAIN: /blast-radius over packages/shared/src/reading-goals.ts and the controller",
+        "MAIN: bash .claude/scripts/gates.sh",
+        "CI green for the files in T07, T12, T13, T18, T22",
+        "EXTERNAL: isolated data walk — goal from a 2-book list, finish each: 0% -> 50% -> 100%, events '1 із 2', '2 із 2', 'Ціль виконано'; next goal the same day shows the preview and the completion sentence before saving, counts both at once, previous goal in 'Архів'",
+        "EXTERNAL: browser /goals -> picker search -> form -> 'Змінити список' (search + focus), detail both action branches, 'Усі цілі' back to the filtered catalog; form and filtered empty state at 375 and 1280 wide",
+        "Final report names changes, check results and the dry_run status (T02)"
+      ],
+      "status": "done",
+      "proof": "not run yet",
+      "pendingChecks": [
+        "MAIN: blast radius skill",
+        "MAIN: final gates script",
+        "CI: full workflow on the branch",
+        "EXTERNAL: acceptance walks 1 and 2"
+      ]
+    }
+  ],
+  "verifiedAt": "2026-11-25T18:42:57Z"
+}

@@ -25,7 +25,8 @@ import { GoalProgressHero } from "./goal-progress-hero";
 
 type GoalDetailSectionContentProps = {
   goal: ReadingGoalDetail;
-  listFocusTab: Nullable<GoalDetailTab>;
+  listFocus: Nullable<GoalListFocusRequest>;
+  onShowRemainingBooks: () => void;
   query: UseGoalDetailQueryResult;
   requestListFocus: (tab: GoalDetailTab) => void;
 };
@@ -34,25 +35,40 @@ type GoalDetailsViewProps = {
   goal: ReadingGoalDetail;
 };
 
+type GoalListFocusRequest = {
+  serial: number;
+  tab: GoalDetailTab;
+};
+
 export function GoalDetailsView({ goal }: GoalDetailsViewProps) {
   const t = useTranslations("goals.detail.tabs");
   const query = useGoalDetailQuery();
-  const [listFocusTab, setListFocusTab] = useState<Nullable<GoalDetailTab>>(null);
+  const [listFocus, setListFocus] = useState<Nullable<GoalListFocusRequest>>(null);
   const tabs: PageTabsItem[] = GOAL_DETAIL_QUERY.tabOptions.map((tab) => ({
     label: t(tab),
     value: tab,
   }));
 
+  function requestListFocus(tab: GoalDetailTab) {
+    setListFocus((current) => ({ serial: (current?.serial ?? 0) + 1, tab }));
+  }
+
+  function showRemainingBooks() {
+    requestListFocus("books");
+    query.setTab("books");
+    query.setScope("remaining");
+  }
+
   return (
     <div className="flex flex-col gap-4 motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-2 sm:gap-6">
       <GoalDetailHeader actions={<GoalDetailActions goal={goal} />} goal={goal} />
-      <GoalProgressHero goal={goal} />
+      <GoalProgressHero goal={goal} onShowRemainingBooks={showRemainingBooks} />
 
       <PageTabs
         ariaLabel={t("label")}
         items={tabs}
         onValueChange={(value) => {
-          setListFocusTab(null);
+          setListFocus(null);
           query.setTab(toGoalDetailTab(value));
         }}
         value={query.section.tab}
@@ -60,9 +76,10 @@ export function GoalDetailsView({ goal }: GoalDetailsViewProps) {
         <PageTabsPanel value={query.section.tab}>
           <GoalDetailSectionContent
             goal={goal}
-            listFocusTab={listFocusTab}
+            listFocus={listFocus}
+            onShowRemainingBooks={showRemainingBooks}
             query={query}
-            requestListFocus={setListFocusTab}
+            requestListFocus={requestListFocus}
           />
         </PageTabsPanel>
       </PageTabs>
@@ -72,7 +89,8 @@ export function GoalDetailsView({ goal }: GoalDetailsViewProps) {
 
 function GoalDetailSectionContent({
   goal,
-  listFocusTab,
+  listFocus,
+  onShowRemainingBooks,
   query,
   requestListFocus,
 }: GoalDetailSectionContentProps) {
@@ -83,7 +101,7 @@ function GoalDetailSectionContent({
       return (
         <GoalActivityTab
           activityType={section.activityType}
-          focusListOnMount={listFocusTab === "activity"}
+          focusListOnMount={listFocus?.tab === "activity"}
           goalId={goal.id}
           onActivityTypeChange={query.setActivityType}
         />
@@ -92,8 +110,8 @@ function GoalDetailSectionContent({
       return (
         <GoalBooksTab
           counts={goalBooksScopeCounts(goal)}
-          focusListOnMount={listFocusTab === "books"}
           goalId={goal.id}
+          listFocusRequest={listFocus?.tab === "books" ? listFocus.serial : null}
           onScopeChange={query.setScope}
           scope={section.scope}
         />
@@ -106,11 +124,7 @@ function GoalDetailSectionContent({
             requestListFocus("activity");
             query.setTab("activity");
           }}
-          onShowRemainingBooks={() => {
-            requestListFocus("books");
-            query.setTab("books");
-            query.setScope("remaining");
-          }}
+          onShowRemainingBooks={onShowRemainingBooks}
         />
       );
     default:

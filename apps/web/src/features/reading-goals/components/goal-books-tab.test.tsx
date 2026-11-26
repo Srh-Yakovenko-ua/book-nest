@@ -81,14 +81,14 @@ function numberedBook(position: number): ReadingGoalBookView {
 function renderBooksTab(
   scope: GoalBooksScope = "all",
   counts: GoalBooksScopeCounts = ONE_COUNTED_BOOK,
-  focusListOnMount = false,
+  listFocusRequest: Nullable<number> = null,
 ) {
   const onScopeChange = vi.fn();
   renderWithProviders(
     <GoalBooksTab
       counts={counts}
-      focusListOnMount={focusListOnMount}
       goalId={GOAL_ID}
+      listFocusRequest={listFocusRequest}
       onScopeChange={onScopeChange}
       scope={scope}
     />,
@@ -222,7 +222,7 @@ describe("GoalBooksTab scope", () => {
 
 describe("GoalBooksTab focus", () => {
   it("moves focus to the list of goal books when asked to on mount", async () => {
-    renderBooksTab("all", ONE_COUNTED_BOOK, true);
+    renderBooksTab("all", ONE_COUNTED_BOOK, 1);
     await screen.findByText("Бігуни");
 
     expect(screen.getByRole("region", { name: "Книги цілі" })).toHaveFocus();
@@ -233,6 +233,36 @@ describe("GoalBooksTab focus", () => {
     await screen.findByText("Бігуни");
 
     expect(screen.getByRole("region", { name: "Книги цілі" })).not.toHaveFocus();
+  });
+
+  it("moves focus back to the list on every new request while the tab stays open", async () => {
+    function booksTab(listFocusRequest: Nullable<number>) {
+      return (
+        <GoalBooksTab
+          counts={ONE_COUNTED_BOOK}
+          goalId={GOAL_ID}
+          listFocusRequest={listFocusRequest}
+          onScopeChange={vi.fn()}
+          scope="all"
+        />
+      );
+    }
+
+    const { rerender } = renderWithProviders(booksTab(null));
+    await screen.findByText("Бігуни");
+    const list = screen.getByRole("region", { name: "Книги цілі" });
+    const countedChip = screen.getByRole("radio", { name: /^Зараховані/ });
+    const remainingChip = screen.getByRole("radio", { name: /^Ще не зараховані/ });
+
+    await userEvent.click(countedChip);
+    expect(countedChip).toHaveFocus();
+    rerender(booksTab(1));
+    expect(list).toHaveFocus();
+
+    await userEvent.click(remainingChip);
+    expect(remainingChip).toHaveFocus();
+    rerender(booksTab(2));
+    expect(list).toHaveFocus();
   });
 });
 

@@ -10,6 +10,7 @@ import { ReadingGoalActivityService } from "./application/reading-goal-activity.
 import { ReadingGoalBooksService } from "./application/reading-goal-books.service.js";
 import { ReadingGoalCatalogService } from "./application/reading-goal-catalog.service.js";
 import { ReadingGoalCountedBackfillService } from "./application/reading-goal-counted-backfill.service.js";
+import { ReadingGoalCreationPreviewService } from "./application/reading-goal-creation-preview.service.js";
 import { ReadingGoalDetailAssembler } from "./application/reading-goal-detail.assembler.js";
 import { ReadingGoalExpirationReconciler } from "./application/reading-goal-expiration.reconciler.js";
 import { ReadingGoalInputValidator } from "./application/reading-goal-input.validator.js";
@@ -34,6 +35,7 @@ import { ReadingGoalsRepository } from "./infrastructure/reading-goals.repositor
     ReadingGoalBooksService,
     ReadingGoalCatalogService,
     ReadingGoalCountedBackfillService,
+    ReadingGoalCreationPreviewService,
     ReadingGoalDetailAssembler,
     ReadingGoalExpirationReconciler,
     ReadingGoalInputValidator,

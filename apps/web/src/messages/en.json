@@ -9191,6 +9191,11 @@
         "endOfYear": "End of year"
       },
       "explanation": "The goal's books are fixed when it's created, so later changes to the list don't affect it. Each book counts once if you finish it from the day the goal was created through the deadline day, inclusive.",
+      "preview": {
+        "counted": "{count, plural, one {# book counts right away} other {# books count right away}}: already finished today.",
+        "completesNow": "The goal will be reached right away."
+      },
+      "changeList": "Change list",
       "autoArchive": {
         "completed": "The previous goal for this list was reached. Once you create a new one, the previous goal moves to the archive automatically.",
         "expired": "The previous goal for this list is past its deadline. Once you create a new one, the previous goal moves to the archive automatically."
@@ -9210,7 +9215,7 @@
     },
     "detail": {
       "metaTitle": "Reading goal",
-      "back": "Back to “{name}”",
+      "allGoals": "All goals",
       "backToGoals": "Back to goals",
       "progress": "{completed} of {target, plural, one {# book} other {# books}}",
       "progressLabel": "Goal progress: {percent}%",
@@ -9238,11 +9243,13 @@
         "archivedOn": "Archived on {date}",
         "archived": "Archived goal",
         "closeToPlan": "Close to plan",
-        "gap": {
-          "ahead": "{count, plural, one {# book} other {# books}} more than needed: {expected, plural, one {# book was} other {# books were}} due by today.",
-          "onPlan": "Exactly as many as needed: {expected, plural, one {# book was} other {# books were}} due by today.",
-          "closeBehind": "A small lag of {count, plural, one {# book} other {# books}}: {expected, plural, one {# book was} other {# books were}} due by today.",
-          "behind": "{count, plural, =0 {The deadline is close} one {# book fewer than needed} other {# books fewer than needed}}: {expected, plural, one {# book was} other {# books were}} due by today."
+        "advice": {
+          "daysPerBook": "To make it, finish roughly {count, plural, =1 {1 book a day} one {1 book every # day} other {1 book every # days}}.",
+          "booksPerDay": "To make it, finish roughly {count, plural, one {# book} other {# books}} a day."
+        },
+        "action": {
+          "continue": "Continue reading",
+          "books": "See the goal's books"
         }
       },
       "tabs": {
@@ -9462,8 +9469,10 @@
         "completed": "Reached",
         "needsAttention": "Need attention",
         "successRate": "Success rate",
-        "successRateDetail": "{successful} of {finished} finished goals reached",
-        "successRateEmpty": "No finished goals yet",
+        "successRateDetail": "{successful} of {finished, plural, one {# goal} other {# goals}} with an outcome",
+        "successRateExplanation": "Counts reached and overdue goals, archived ones included. Active goals and goals archived before an outcome are left out.",
+        "successRateNoteLabel": "Success rate:",
+        "successRateEmpty": "No goals with an outcome yet",
         "loadError": "Couldn't load the goals summary"
       },
       "filters": {
@@ -9505,6 +9514,10 @@
       },
       "filteredEmpty": {
         "title": "No goals with this status",
+        "titles": {
+          "archived": "The archive is empty",
+          "completed": "No reached goals yet"
+        },
         "description": "Pick another status or show all goals.",
         "showAll": "Show all goals"
       },

@@ -70,10 +70,24 @@ const SnapshotProgressRowSchema = z.object({
 
 export type ReadingGoalSnapshotProgressRow = z.infer<typeof SnapshotProgressRowSchema>;
 
+const ListBookEarliestFinishRowSchema = z.object({
+  bookId: z.uuid(),
+  finishedAt: z.date().nullable(),
+});
+
+export type ReadingGoalListBookEarliestFinishRow = z.infer<typeof ListBookEarliestFinishRowSchema>;
+
 export type ReadingGoalSnapshotQualificationRow = {
   bookId: string;
   goalId: string;
   qualifiedFinishedAt: Nullable<Date>;
+};
+
+type ListBookEarliestFinishQuery = {
+  listId: string;
+  now: Date;
+  timeZone: string;
+  userId: string;
 };
 
 type UpdateQualifiedFinishedAtInput = {
@@ -112,6 +126,37 @@ export class ReadingGoalBooksRepository {
       orderBy: [{ qualifiedFinishedAt: { nulls: "last", sort: "asc" } }, { bookId: "asc" }],
       where: { goalId },
     });
+  }
+
+  async findEarliestListBookFinishes(
+    { listId, now, timeZone, userId }: ListBookEarliestFinishQuery,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<ReadingGoalListBookEarliestFinishRow[]> {
+    const readerTodaySql = readerDaySql({ instant: Prisma.sql`${now}::timestamptz`, timeZone });
+    const rows = await client.$queryRaw`
+      SELECT
+        list_item.book_id AS "bookId",
+        qualifying_cycle.finished_at AS "finishedAt"
+      FROM book_list_items list_item
+      JOIN books book ON book.id = list_item.book_id
+      LEFT JOIN LATERAL (
+        SELECT cycle.id, cycle.finished_at
+        FROM book_reading_cycles cycle
+        WHERE cycle.book_id = list_item.book_id
+          AND cycle.user_id = ${userId}::uuid
+          AND cycle.state = 'finished'
+          AND cycle.finished_at IS NOT NULL
+          AND book.deleted_at IS NULL
+          AND cycle.finished_at >= ${readerTodaySql}
+        ORDER BY cycle.finished_at ASC, cycle.id ASC
+        LIMIT 1
+      ) qualifying_cycle ON TRUE
+      WHERE list_item.list_id = ${listId}::uuid
+        AND book.user_id = ${userId}::uuid
+        AND book.deleted_at IS NULL
+      ORDER BY list_item.position ASC, list_item.book_id ASC
+    `;
+    return z.array(ListBookEarliestFinishRowSchema).parse(rows);
   }
 
   async findSnapshotBookIdsForBook(

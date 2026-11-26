@@ -13,6 +13,7 @@ import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-
 
 import {
   makeReadingGoalActivity,
+  makeReadingGoalBook,
   makeReadingGoalCheckpoint,
   makeReadingGoalDetail,
 } from "../model/reading-goals.fixtures";
@@ -138,10 +139,11 @@ describe("GoalDetails", () => {
     expect(within(dialog).getByText("У цілі 8 книг")).toBeInTheDocument();
   });
 
-  it("goes back to the source list while it exists", async () => {
+  it("goes back to all goals while the source list stays linked in the metadata", async () => {
     renderDetails();
 
-    expect(await screen.findByRole("link", { name: "До списку «Книги на осінь»" })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: "Усі цілі" })).toHaveAttribute("href", "/goals");
+    expect(screen.getByRole("link", { name: "Книги на осінь" })).toHaveAttribute(
       "href",
       "/lists/list-1",
     );
@@ -152,7 +154,39 @@ describe("GoalDetails", () => {
 
     renderDetails();
 
-    expect(await screen.findByRole("link", { name: "До цілей" })).toHaveAttribute("href", "/goals");
+    expect(await screen.findByRole("link", { name: "Усі цілі" })).toHaveAttribute("href", "/goals");
+  });
+
+  it("returns to the catalog with the status and view it was opened from", async () => {
+    renderDetails("?catalog=status%3Dcompleted%26view%3Dlist");
+
+    expect(await screen.findByRole("link", { name: "Усі цілі" })).toHaveAttribute(
+      "href",
+      "/goals?status=completed&view=list",
+    );
+  });
+
+  it("returns to the default catalog when the remembered state is not valid", async () => {
+    renderDetails("?catalog=status%3Dbogus%26view%3Dtiles");
+
+    expect(await screen.findByRole("link", { name: "Усі цілі" })).toHaveAttribute("href", "/goals");
+  });
+
+  it("keeps the remembered catalog state while the reader moves between tabs", async () => {
+    const events: UrlUpdateEvent[] = [];
+    renderDetails("?tab=books&catalog=status%3Darchived", events);
+
+    expect(await screen.findByText(detail.books.empty.all.title)).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: detail.tabs.books })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    await userEvent.click(screen.getByRole("tab", { name: detail.tabs.overview }));
+
+    await waitFor(() => expect(events).not.toHaveLength(0));
+    expect(events.at(-1)?.searchParams.has("tab")).toBe(false);
+    expect(events.at(-1)?.searchParams.get("catalog")).toBe("status=archived");
   });
 
   it("sends the not-found state back to the goals catalog", async () => {
@@ -294,6 +328,62 @@ describe("GoalDetails", () => {
     expect(await screen.findByText(detail.books.empty.all.title)).toBeInTheDocument();
     expect(booksTab).toHaveFocus();
     expect(screen.getByRole("region", { name: detail.books.listLabel })).not.toHaveFocus();
+  });
+
+  it("opens the remaining books from the hero and focuses the list from the overview", async () => {
+    const events: UrlUpdateEvent[] = [];
+    renderDetails("", events);
+
+    await userEvent.click(await screen.findByRole("button", { name: detail.hero.action.books }));
+
+    expect(await screen.findByText(detail.books.empty.remaining.title)).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: detail.tabs.books })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("radio", { name: /^Ще не зараховані/ })).toBeChecked();
+    expect(screen.getByRole("region", { name: detail.books.listLabel })).toHaveFocus();
+    await waitFor(() => expect(events.at(-1)?.searchParams.get("scope")).toBe("remaining"));
+    expect(events.at(-1)?.searchParams.get("tab")).toBe("books");
+  });
+
+  it("narrows an open books tab to the remaining books from the hero and focuses the list", async () => {
+    renderDetails();
+
+    await userEvent.click(await screen.findByRole("tab", { name: detail.tabs.books }));
+    expect(await screen.findByText(detail.books.empty.all.title)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: detail.hero.action.books }));
+
+    expect(await screen.findByText(detail.books.empty.remaining.title)).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /^Ще не зараховані/ })).toBeChecked();
+    expect(screen.getByRole("region", { name: detail.books.listLabel })).toHaveFocus();
+  });
+
+  it("sends the hero to the book in progress instead of the goal books", async () => {
+    respondWith({
+      remainingBooks: [
+        makeReadingGoalBook({
+          countedFinishedAt: null,
+          id: "book-in-progress",
+          qualifies: false,
+          reading: {
+            currentPage: 120,
+            finishedAt: null,
+            pagesCount: 320,
+            startedAt: "2026-08-01",
+            status: "reading",
+          },
+        }),
+      ],
+    });
+
+    renderDetails();
+
+    const continueLink = await screen.findByRole("link", { name: detail.hero.action.continue });
+    expect(continueLink).toHaveAttribute("href", "/books/book-in-progress");
+    expect(
+      screen.queryByRole("button", { name: detail.hero.action.books }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows the shared progress hero once on every tab without the old progress and time block", async () => {

@@ -1,11 +1,13 @@
-import type { HomeGoalSection } from "@app/shared";
+import type { CustomListCard, HomeGoalSection } from "@app/shared";
 import type { ComponentProps } from "react";
 
+import { defaultUserProfileSettings } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { makeCustomListCard } from "@/features/lists/model/lists.fixtures";
 import { makeReadingGoalMetrics } from "@/features/reading-goals/model/reading-goals.fixtures";
 import messages from "@/messages/uk.json";
-import { renderWithProviders, screen, userEvent } from "@/test-utils";
+import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
 
 import { HomeReadingGoal } from "./home-reading-goal";
 
@@ -19,11 +21,22 @@ const goal = messages.home.goal;
 const GOAL_ID = "bbbbbbbb-0000-4000-8000-000000000001";
 const COMPLETED_GOAL_ID = "bbbbbbbb-0000-4000-8000-000000000002";
 const GOAL_NAME = "Зимове читання до Нового року";
+const LIST_GOAL_PATH = /^\/api\/lists\/[^/]+\/goal$/;
+const LIST_GOAL_PREVIEW_PATH = /^\/api\/lists\/[^/]+\/goal\/preview$/;
 
 const fetchMock = vi.fn();
 
+let pickerLists: CustomListCard[];
+
 function goalSection(overrides: Partial<HomeGoalSection> = {}): HomeGoalSection {
   return { activeGoalsCount: 3, primaryGoal: primaryGoal(), recentCompletion: null, ...overrides };
+}
+
+function jsonResponse(body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    headers: { "Content-Type": "application/json" },
+    status: 200,
+  });
 }
 
 function primaryGoal(
@@ -54,18 +67,28 @@ function showGoal(data: HomeGoalSection) {
 }
 
 beforeEach(() => {
+  pickerLists = [];
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
-    const url = String(input);
+    const { pathname } = new URL(String(input), "http://localhost");
     const method = (init?.method ?? "GET").toUpperCase();
-    if (url.includes("/api/lists") && method === "GET")
+    if (method === "GET" && pathname === "/api/lists")
       return Promise.resolve(
-        new Response(
-          JSON.stringify({ items: [], page: 1, pagesCount: 0, pageSize: 24, totalCount: 0 }),
-          { headers: { "Content-Type": "application/json" }, status: 200 },
-        ),
+        jsonResponse({
+          items: pickerLists,
+          page: 1,
+          pagesCount: pickerLists.length === 0 ? 0 : 1,
+          pageSize: 24,
+          totalCount: pickerLists.length,
+        }),
       );
-    return Promise.reject(new Error(`unexpected ${method} ${url}`));
+    if (method === "GET" && pathname === "/api/profile/settings")
+      return Promise.resolve(jsonResponse(defaultUserProfileSettings));
+    if (method === "GET" && LIST_GOAL_PATH.test(pathname))
+      return Promise.resolve(new Response(null, { status: 204 }));
+    if (method === "GET" && LIST_GOAL_PREVIEW_PATH.test(pathname))
+      return Promise.resolve(jsonResponse({ bookCount: 6, countedCount: 0 }));
+    return Promise.reject(new Error(`unexpected ${method} ${pathname}`));
   });
   vi.stubGlobal("fetch", fetchMock);
 });
@@ -166,6 +189,26 @@ describe("HomeReadingGoal without an active goal", () => {
     expect(
       await screen.findByRole("dialog", { name: messages.goals.picker.title }),
     ).toBeInTheDocument();
+  });
+
+  it("goes back from the goal form to the list picker", async () => {
+    pickerLists = [makeCustomListCard({ bookCount: 6, id: "list-1", name: "Осіннє читання" })];
+    showGoal(goalSection({ activeGoalsCount: 0, primaryGoal: null }));
+
+    await userEvent.click(screen.getByRole("button", { name: goal.create }));
+    const picker = await screen.findByRole("dialog", { name: messages.goals.picker.title });
+    await userEvent.click(await within(picker).findByRole("button", { name: /Осіннє читання/ }));
+    const form = await screen.findByRole("dialog", { name: messages.goals.form.title });
+    await userEvent.click(
+      within(form).getByRole("button", { name: messages.goals.form.changeList }),
+    );
+
+    expect(
+      await screen.findByRole("dialog", { name: messages.goals.picker.title }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("dialog", { name: messages.goals.form.title }),
+    ).not.toBeInTheDocument();
   });
 });
 

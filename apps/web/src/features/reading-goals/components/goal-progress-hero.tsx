@@ -8,7 +8,6 @@ import { useId } from "react";
 import type { UiIconName } from "@/components/icons";
 
 import { UiIcon } from "@/components/icons";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useProfileTimeZone } from "@/features/settings";
 import { assertNever } from "@/lib/assert-never";
@@ -16,12 +15,11 @@ import { formatDateLong } from "@/lib/format";
 import { instantToIsoDay } from "@/lib/iso-day";
 import { cn } from "@/lib/utils";
 
-import type { GoalPlanGap } from "../model/goal-pace-figures";
 import type { GoalStateIllustrationName } from "./goal-state-illustration";
 
 import { goalDisplayPercent } from "../model/goal-display-percent";
-import { resolveGoalPlanGap, roundToTenth } from "../model/goal-pace-figures";
-import { GOAL_SIGNAL_TONE } from "../model/goal-status";
+import { resolveGoalPrimaryAction } from "../model/goal-primary-action";
+import { GoalHeroNextStep } from "./goal-hero-next-step";
 import { GoalStateIllustration } from "./goal-state-illustration";
 
 type GoalHeroTimeNote = {
@@ -29,8 +27,13 @@ type GoalHeroTimeNote = {
   text: string;
 };
 
+type GoalHeroTimeNoteViewProps = {
+  goal: ReadingGoalDetail;
+};
+
 type GoalProgressHeroProps = {
   goal: ReadingGoalDetail;
+  onShowRemainingBooks: () => void;
 };
 
 const GOAL_HERO_LOOK = {
@@ -43,11 +46,12 @@ const GOAL_HERO_LOOK = {
   { icon: UiIconName; illustration: Nullable<GoalStateIllustrationName>; tone: string }
 >;
 
-export function GoalProgressHero({ goal }: GoalProgressHeroProps) {
+export function GoalProgressHero({ goal, onShowRemainingBooks }: GoalProgressHeroProps) {
   const t = useTranslations("goals.detail");
   const legendId = useId();
   const percent = goalDisplayPercent(goal);
   const planPercent = goal.status === "active" ? Math.round(goal.elapsedPercent) : null;
+  const primaryAction = resolveGoalPrimaryAction(goal);
   const { illustration } = GOAL_HERO_LOOK[goal.status];
 
   return (
@@ -108,46 +112,18 @@ export function GoalProgressHero({ goal }: GoalProgressHeroProps) {
         )}
       </div>
 
-      {goal.status === "active" ? <GoalHeroPlanGap goal={goal} /> : null}
+      {primaryAction === null ? null : (
+        <GoalHeroNextStep
+          action={primaryAction}
+          goal={goal}
+          onShowRemainingBooks={onShowRemainingBooks}
+        />
+      )}
     </div>
   );
 }
 
-function GoalHeroPlanGap({ goal }: GoalProgressHeroProps) {
-  const t = useTranslations("goals.detail.hero");
-  const tPace = useTranslations("goals.pace");
-  const gap = resolveGoalPlanGap(goal);
-
-  function gapText(planGap: GoalPlanGap): string {
-    const expected = roundToTenth(goal.expectedCompletedCount);
-
-    switch (planGap.kind) {
-      case "ahead":
-        return t("gap.ahead", { count: planGap.books, expected });
-      case "behind":
-        return t("gap.behind", { count: planGap.books, expected });
-      case "close_behind":
-        return t("gap.closeBehind", { count: planGap.books, expected });
-      case "on_plan":
-        return t("gap.onPlan", { expected });
-      default:
-        return assertNever(planGap.kind);
-    }
-  }
-
-  if (gap === null) return null;
-
-  return (
-    <div className="flex flex-col items-start gap-1.5 border-t border-border pt-3 sm:flex-row sm:items-center sm:gap-3">
-      <Badge className="h-5 shrink-0 px-2.5 sm:h-6" variant={GOAL_SIGNAL_TONE.pace[gap.pace]}>
-        {gap.kind === "close_behind" ? t("closeToPlan") : tPace(gap.pace)}
-      </Badge>
-      <p className="text-sm text-foreground">{gapText(gap)}</p>
-    </div>
-  );
-}
-
-function GoalHeroTimeNoteView({ goal }: GoalProgressHeroProps) {
+function GoalHeroTimeNoteView({ goal }: GoalHeroTimeNoteViewProps) {
   const t = useTranslations("goals.detail.hero");
   const locale = useLocale();
   const timeZone = useProfileTimeZone();

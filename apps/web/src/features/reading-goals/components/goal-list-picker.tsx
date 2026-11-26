@@ -1,11 +1,11 @@
 "use client";
 
 import type { CustomListCard, Nullable, ReadingGoalView } from "@app/shared";
-import type { RefObject } from "react";
+import type { Ref, RefObject } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
@@ -44,14 +44,34 @@ const GOAL_LIST_PICKER = {
 type GoalListPickerProps = {
   onChoose: (choice: GoalListChoice) => void;
   onOpenChange: (open: boolean) => void;
+  onSearchChange: (search: string) => void;
   open: boolean;
   openerRef: RefObject<HTMLButtonElement | null>;
+  returnListId: Nullable<string>;
+  search: string;
 };
 
-export function GoalListPicker({ onChoose, onOpenChange, open, openerRef }: GoalListPickerProps) {
+export function GoalListPicker({
+  onChoose,
+  onOpenChange,
+  onSearchChange,
+  open,
+  openerRef,
+  returnListId,
+  search,
+}: GoalListPickerProps) {
   const t = useTranslations("goals.picker");
   const queryClient = useQueryClient();
   const [pendingListId, setPendingListId] = useState<Nullable<string>>(null);
+  const returnOptionRef = useRef<HTMLButtonElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  function focusReturnTarget(event: Event) {
+    event.preventDefault();
+    if (returnListId === null) return;
+    const dialogSurface = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+    (returnOptionRef.current ?? searchInputRef.current ?? dialogSurface)?.focus();
+  }
 
   async function choose(list: CustomListCard) {
     if (pendingListId !== null) return;
@@ -84,12 +104,21 @@ export function GoalListPicker({ onChoose, onOpenChange, open, openerRef }: Goal
           event.preventDefault();
           openerRef.current?.focus();
         }}
+        onOpenAutoFocus={focusReturnTarget}
       >
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>{t("description")}</DialogDescription>
         </DialogHeader>
-        <PickerBody onChoose={(list) => void choose(list)} pendingListId={pendingListId} />
+        <PickerBody
+          onChoose={(list) => void choose(list)}
+          onSearchChange={onSearchChange}
+          pendingListId={pendingListId}
+          returnListId={returnListId}
+          returnOptionRef={returnOptionRef}
+          search={search}
+          searchInputRef={searchInputRef}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -99,10 +128,12 @@ function ListOption({
   list,
   onChoose,
   pendingListId,
+  ref,
 }: {
   list: CustomListCard;
   onChoose: (list: CustomListCard) => void;
   pendingListId: Nullable<string>;
+  ref?: Ref<HTMLButtonElement>;
 }) {
   const t = useTranslations("goals.picker");
   const isPending = pendingListId === list.id;
@@ -119,6 +150,7 @@ function ListOption({
           isBlocked && "opacity-60",
         )}
         onClick={() => onChoose(list)}
+        ref={ref}
         type="button"
       >
         <UiIcon aria-hidden className="shrink-0 text-primary/70" name="list" size={18} />
@@ -145,14 +177,23 @@ function ListOption({
 
 function PickerBody({
   onChoose,
+  onSearchChange,
   pendingListId,
+  returnListId,
+  returnOptionRef,
+  search,
+  searchInputRef,
 }: {
   onChoose: (list: CustomListCard) => void;
+  onSearchChange: (search: string) => void;
   pendingListId: Nullable<string>;
+  returnListId: Nullable<string>;
+  returnOptionRef: RefObject<HTMLButtonElement | null>;
+  search: string;
+  searchInputRef: RefObject<HTMLInputElement | null>;
 }) {
   const t = useTranslations("goals.picker");
   const tCommon = useTranslations("common");
-  const [search, setSearch] = useState("");
   const lists = useLists(goalListPickerParams(search));
 
   const content = resolveGoalListPickerContent({
@@ -175,10 +216,11 @@ function PickerBody({
       {content.kind === "no-lists" ? null : (
         <DebouncedSearchInput
           clearLabel={tCommon("clear")}
+          inputRef={searchInputRef}
           label={t("search")}
           maxLength={GOAL_LIST_PICKER.searchMaxLength}
-          onClear={() => setSearch("")}
-          onSearch={setSearch}
+          onClear={() => onSearchChange("")}
+          onSearch={onSearchChange}
           placeholder={t("searchPlaceholder")}
           value={search}
         />
@@ -196,6 +238,8 @@ function PickerBody({
           onLoadMore={loadNextPage}
           onRetry={() => void lists.refetch()}
           pendingListId={pendingListId}
+          returnListId={returnListId}
+          returnOptionRef={returnOptionRef}
         />
       </div>
     </div>
@@ -208,12 +252,16 @@ function PickerResults({
   onLoadMore,
   onRetry,
   pendingListId,
+  returnListId,
+  returnOptionRef,
 }: {
   content: GoalListPickerContent;
   onChoose: (list: CustomListCard) => void;
   onLoadMore: () => void;
   onRetry: () => void;
   pendingListId: Nullable<string>;
+  returnListId: Nullable<string>;
+  returnOptionRef: RefObject<HTMLButtonElement | null>;
 }) {
   const t = useTranslations("goals.picker");
 
@@ -238,6 +286,7 @@ function PickerResults({
                 list={list}
                 onChoose={onChoose}
                 pendingListId={pendingListId}
+                ref={list.id === returnListId ? returnOptionRef : undefined}
               />
             ))}
           </ul>
