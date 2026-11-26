@@ -9137,6 +9137,46 @@
       }
     }
   },
+  "profile": {
+    "editAction": "Edit profile",
+    "loading": "Loading your profile…",
+    "card": {
+      "title": "Profile",
+      "description": "Information about your account."
+    },
+    "loadError": {
+      "title": "Couldn't load your profile",
+      "description": "Check your connection and try again.",
+      "retry": "Try again"
+    },
+    "dialog": {
+      "title": "Edit profile",
+      "description": "Change your name, nickname and short bio.",
+      "cancel": "Cancel",
+      "save": "Save changes",
+      "saved": "Profile updated",
+      "saveError": "Couldn't save your changes. Try again.",
+      "close": "Close"
+    },
+    "fields": {
+      "name": "Name",
+      "nickname": "Nickname",
+      "nicknameHint": "{min} to {max} characters: letters, digits, dot, hyphen and underscore.",
+      "bio": "Short bio",
+      "bioHint": "Up to {max} characters.",
+      "email": "Email",
+      "emailMissing": "Not set"
+    },
+    "errors": {
+      "nameLength": "Name must be {min} to {max} characters long",
+      "nicknameLength": "Nickname must be {min} to {max} characters long",
+      "nicknameFormat": "Nickname may contain only letters, digits, dots, hyphens and underscores",
+      "nicknameTaken": "This nickname is already taken",
+      "bioTooLong": "Bio must be at most {max} characters long",
+      "htmlNotAllowed": "HTML tags aren't allowed",
+      "invalid": "Check this field"
+    }
+  },
   "goals": {
     "fallbackTitle": "Read {count, plural, one {# book} other {# books}}",
     "sidebar": {

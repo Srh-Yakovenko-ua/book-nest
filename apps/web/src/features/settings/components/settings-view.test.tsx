@@ -3,6 +3,8 @@ import { defaultUserProfileSettings } from "@app/shared";
 import { parseISO } from "date-fns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { makeProfile } from "@/features/profile/model/profile.fixtures";
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import { SettingsView } from "./settings-view";
@@ -14,6 +16,7 @@ const COPY = {
   errorTitle: "Не вдалося завантажити налаштування",
   loading: "Завантаження налаштувань…",
   notificationsTitle: "Нагадування",
+  profileTitle: messages.profile.card.title,
   regionalTitle: "Дата й календар",
   retry: "Спробувати ще раз",
   timezoneTrigger: /^Часовий пояс/,
@@ -32,6 +35,10 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+function statusMessages(): string[] {
+  return screen.queryAllByRole("status").map((status) => status.textContent ?? "");
+}
+
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(WINTER_NOW);
@@ -44,6 +51,8 @@ beforeEach(() => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
     if (url.includes("/api/profile/settings") && method === "GET") return respondToSettings();
+    if (url.endsWith("/api/profile") && method === "GET")
+      return Promise.resolve(jsonResponse(makeProfile()));
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -62,7 +71,7 @@ describe("SettingsView", () => {
     renderWithProviders(<SettingsView />);
 
     expect(screen.getByRole("heading", { level: 1, name: COPY.title })).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent(COPY.loading);
+    expect(statusMessages()).toContain(COPY.loading);
   });
 
   it("renders both settings sections once the settings arrive", async () => {
@@ -75,6 +84,19 @@ describe("SettingsView", () => {
     expect(screen.getByRole("button", { name: COPY.timezoneTrigger })).toHaveTextContent(
       COPY.warsawInWinter,
     );
+  });
+
+  it("places the profile card after the date and calendar section", async () => {
+    renderWithProviders(<SettingsView />);
+
+    await screen.findByRole("heading", { level: 2, name: COPY.regionalTitle });
+
+    expect(
+      screen
+        .getAllByRole("heading", { level: 2 })
+        .map((heading) => heading.textContent)
+        .slice(-2),
+    ).toEqual([COPY.regionalTitle, COPY.profileTitle]);
   });
 
   it("shows no coming-soon rows once the settings arrive", async () => {
@@ -91,7 +113,7 @@ describe("SettingsView", () => {
     renderWithProviders(<SettingsView />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(COPY.errorTitle);
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(statusMessages()).not.toContain(COPY.loading);
   });
 
   it("recovers the sections when the retry succeeds", async () => {

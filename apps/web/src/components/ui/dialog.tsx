@@ -18,10 +18,12 @@ function DialogClose({ ...props }: React.ComponentProps<typeof DialogPrimitive.C
 function DialogContent({
   className,
   children,
+  closeLabel = "Close",
   showCloseButton = true,
   onOpenAutoFocus = (event) => event.preventDefault(),
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
+  closeLabel?: string;
   showCloseButton?: boolean;
 }) {
   return (
@@ -45,7 +47,7 @@ function DialogContent({
               variant="ghost"
             >
               <XIcon />
-              <span className="sr-only">Close</span>
+              <span className="sr-only">{closeLabel}</span>
             </Button>
           </DialogPrimitive.Close>
         )}
