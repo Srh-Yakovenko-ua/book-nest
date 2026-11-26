@@ -32,6 +32,11 @@ afterEach(() => {
 
 vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams() }));
 
+vi.mock("@/i18n/navigation", () => ({
+  usePathname: () => "/",
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
+
 const overview = overviewFixture();
 
 function makeParams(overrides: Partial<UseStatisticsParamsResult> = {}): UseStatisticsParamsResult {
