@@ -9,14 +9,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { LOCALE_LABELS } from "@/i18n/locale-labels";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { type Locale, LOCALES, routing } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
-
-const LOCALE_LABELS: Record<Locale, string> = {
-  en: "English",
-  uk: "Українська",
-};
 
 const LOCALE_SHORT: Record<Locale, string> = {
   en: "EN",

@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ProfileSettingsCard } from "@/features/profile";
 
 import { useSettings } from "../api/use-settings";
+import { AppearanceSettingsSection } from "./appearance-settings-section";
 import { NotificationSettingsSection } from "./notification-settings-section";
 import { RegionalSettingsSection } from "./regional-settings-section";
 
@@ -35,6 +36,7 @@ export function SettingsView() {
 
       <div className="flex max-w-3xl flex-col gap-6">
         <SettingsSections />
+        <AppearanceSettingsSection />
         <ProfileSettingsCard />
       </div>
     </div>

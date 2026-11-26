@@ -9,9 +9,15 @@ import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import { SettingsView } from "./settings-view";
 
+vi.mock("@/i18n/navigation", () => ({
+  usePathname: () => "/settings",
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
+
 const WINTER_NOW = parseISO("2026-01-15T12:00:00Z");
 
 const COPY = {
+  appearanceTitle: messages.settings.appearance.title,
   comingSoon: /Скоро/,
   errorTitle: "Не вдалося завантажити налаштування",
   loading: "Завантаження налаштувань…",
@@ -74,6 +80,17 @@ describe("SettingsView", () => {
     expect(statusMessages()).toContain(COPY.loading);
   });
 
+  it("shows the appearance card while the settings load", () => {
+    respondToSettings = () => new Promise<Response>(() => {});
+
+    renderWithProviders(<SettingsView />);
+
+    expect(statusMessages()).toContain(COPY.loading);
+    expect(
+      screen.getByRole("heading", { level: 2, name: COPY.appearanceTitle }),
+    ).toBeInTheDocument();
+  });
+
   it("renders both settings sections once the settings arrive", async () => {
     renderWithProviders(<SettingsView />);
 
@@ -86,17 +103,20 @@ describe("SettingsView", () => {
     );
   });
 
-  it("places the profile card after the date and calendar section", async () => {
+  it("orders the cards as notifications, calendar, appearance and profile", async () => {
     renderWithProviders(<SettingsView />);
 
-    await screen.findByRole("heading", { level: 2, name: COPY.regionalTitle });
+    await screen.findByRole("heading", { level: 2, name: COPY.notificationsTitle });
+    await screen.findByRole("heading", { level: 2, name: COPY.profileTitle });
 
     expect(
-      screen
-        .getAllByRole("heading", { level: 2 })
-        .map((heading) => heading.textContent)
-        .slice(-2),
-    ).toEqual([COPY.regionalTitle, COPY.profileTitle]);
+      screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent),
+    ).toEqual([
+      COPY.notificationsTitle,
+      COPY.regionalTitle,
+      COPY.appearanceTitle,
+      COPY.profileTitle,
+    ]);
   });
 
   it("shows no coming-soon rows once the settings arrive", async () => {
@@ -114,6 +134,17 @@ describe("SettingsView", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(COPY.errorTitle);
     expect(statusMessages()).not.toContain(COPY.loading);
+  });
+
+  it("keeps the appearance card when the settings fail to load", async () => {
+    respondToSettings = () => Promise.resolve(jsonResponse({ message: "boom" }, 500));
+
+    renderWithProviders(<SettingsView />);
+
+    await screen.findByRole("alert");
+    expect(
+      screen.getByRole("heading", { level: 2, name: COPY.appearanceTitle }),
+    ).toBeInTheDocument();
   });
 
   it("recovers the sections when the retry succeeds", async () => {
