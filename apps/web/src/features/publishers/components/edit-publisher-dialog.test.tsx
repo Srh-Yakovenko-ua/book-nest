@@ -35,7 +35,7 @@ vi.mock("sonner", () => ({
 const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
 
 let duplicateCandidates: PublisherDuplicateCandidate[];
-let respondToCandidates: () => Response;
+let respondToCandidates: (url: string) => Promise<Response> | Response;
 let respondToUpdate: () => Promise<Response> | Response;
 
 function EditHarness({ details }: { details: LibraryPublisherDetail }) {
@@ -78,7 +78,7 @@ beforeEach(() => {
     const method = (init?.method ?? "GET").toUpperCase();
     if (method === "PATCH") return Promise.resolve(respondToUpdate());
     if (String(input).includes("/api/publishers/duplicate-candidates")) {
-      return Promise.resolve(respondToCandidates());
+      return Promise.resolve(respondToCandidates(String(input)));
     }
     return Promise.reject(new Error(`unexpected ${method} ${String(input)}`));
   });
@@ -232,6 +232,56 @@ describe("EditPublisherDialog", () => {
     expect(screen.queryByText(/також відоме як/)).not.toBeInTheDocument();
   });
 
+  it("drops the previous name's warning while the typed name is still being looked up", async () => {
+    duplicateCandidates = [
+      {
+        id: "publisher-2",
+        isCustom: false,
+        matchedName: "Vivat",
+        matchKind: "exact",
+        name: "Vivat",
+      },
+    ];
+    let releaseLookup: (response: Response) => void = () => undefined;
+    respondToCandidates = (url) =>
+      url.includes("name=Vivat+Books")
+        ? new Promise<Response>((resolve) => {
+            releaseLookup = resolve;
+          })
+        : jsonResponse(duplicateCandidates);
+
+    renderDialog();
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Таку саму назву має видавництво «Vivat»",
+    );
+
+    await userEvent.type(screen.getByLabelText("Назва"), " Books");
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([input]) => String(input).includes("name=Vivat+Books")),
+      ).toBe(true),
+    );
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+
+    releaseLookup(
+      jsonResponse([
+        {
+          id: "publisher-3",
+          isCustom: false,
+          matchedName: "Vivat Books",
+          matchKind: "exact",
+          name: "Vivat Books",
+        },
+      ]),
+    );
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Цю назву вже використовує видавництво «Vivat Books»",
+    );
+  });
+
   it("stays quiet when only a fuzzy match came back", async () => {
     duplicateCandidates = [
       {
@@ -243,16 +293,20 @@ describe("EditPublisherDialog", () => {
       },
     ];
 
-    renderDialog();
+    const { queryClient } = renderDialog();
 
     await userEvent.type(screen.getByLabelText("Назва"), " Books");
 
     await waitFor(() =>
       expect(
-        fetchMock.mock.calls
-          .map(([input]) => String(input))
-          .some((url) => url.includes("/api/publishers/duplicate-candidates")),
-      ).toBe(true),
+        queryClient.getQueryData(
+          publisherKeys.picker.duplicates({
+            excludePublisherId: "publisher-1",
+            locale: "uk",
+            name: "Vivat Books",
+          }),
+        ),
+      ).toEqual(duplicateCandidates),
     );
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });

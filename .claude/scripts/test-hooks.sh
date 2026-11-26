@@ -15,6 +15,7 @@ SEC_REPO="$(mktemp -d)"
 cleanup() {
   [ -d "$STATE" ] && find "$STATE" -delete
   [ -d "$SEC_REPO" ] && find "$SEC_REPO" -delete
+  [ -n "${PUSH_ROOT:-}" ] && [ -d "$PUSH_ROOT" ] && find "$PUSH_ROOT" -delete
 }
 trap cleanup EXIT
 mkdir -p "$STATE"
@@ -110,8 +111,44 @@ bash_case deny  'git commit -m "feat(api): add thing — fast"'
 bash_case deny  'git commit -m "update stuff"'
 bash_case deny  'git commit -m "ops: tweak deploy"'
 bash_case deny  "git commit -m \"\$(cat <<'EOF'${NL}feat(web): add list${NL}${NL}Co-Authored-By: Claude <noreply@anthropic.com>${NL}EOF${NL})\""
+bash_case deny  "git.exe reset --hard HEAD~1"
+bash_case deny  '"/c/Program Files/Git/cmd/git.exe" reset --hard'
+bash_case deny  '"/mingw64/bin/git" reset --hard'
+bash_case ask   '"/c/Program Files/GitHub CLI/gh" pr merge 12 --merge'
+bash_case deny  "/mingw64/bin/git.exe clean -fdx"
+bash_case deny  "git.exe push --force origin dev"
+bash_case deny  "git -P reset --hard"
+bash_case deny  "git --no-optional-locks push --force origin dev"
+bash_case deny  "git --namespace=x clean -fdx"
+bash_case deny  "git --bare push origin HEAD:prod"
+bash_case allow "git -P log -5 --oneline"
+bash_case deny  '"C:/Program Files/Git/cmd/git.exe" push origin HEAD:prod'
+bash_case deny  'git.exe commit --no-verify -m "feat: x"'
+bash_case deny  'git.exe commit -m "feat(api): add thing — fast"'
+bash_case deny  "git.exe checkout -b claude/notes"
+bash_case deny  "git.exe -C /tmp/x branch -m old claude/new"
+bash_case allow "git.exe status --short"
+bash_case allow 'git commit -m "fix(agents): deny git.exe reset --hard"'
 bash_case deny  'gh pr create --title "feat(web): list" --body "Adds a list — nice"'
+bash_case deny  'gh.exe pr create --title "feat(web): list" --body "Adds a list — nice"'
+bash_case deny  '"/c/Program Files/GitHub CLI/gh.exe" pr create --title "feat(web): list" --body "Adds a list — nice"'
+bash_case allow 'gh.exe pr create --title "feat(web): add a list" --body "Adds a list."'
 bash_case deny  "gh repo delete owner/book-nest"
+bash_case deny  "gh api --method=DELETE repos/o/r/issues/1"
+bash_case ask   "gh api -X PUT repos/o/r/pulls/12/merge"
+bash_case ask   "gh api graphql -f query='mutation { mergePullRequest(input: {pullRequestId: \"x\"}) { clientMutationId } }'"
+bash_case allow "gh api repos/o/r/pulls/12"
+bash_case allow "gh api repos/o/r/pulls/12/merge"
+bash_case ask   'gh api -X PUT "repos/o/r/pulls/12/merge"'
+bash_case ask   "gh api repos/o/r/merges -f base=prod -f head=dev"
+bash_case ask   "gh api graphql -f query='mutation { enablePullRequestAutoMerge(input: {pullRequestId: \"x\"}) { clientMutationId } }'"
+bash_case deny  'gh api -X "DELETE" repos/o/r'
+bash_case deny  "gh api -X PATCH repos/o/r/git/refs/heads/prod -f sha=abc"
+bash_case allow "gh api repos/o/r/git/refs/heads/prod"
+bash_case ask   '"gh" pr merge 1'
+bash_case deny  "'git' push --force origin dev"
+bash_case deny  "git push --force origin promote-prod && git push --force origin dev"
+bash_case deny  "git push origin dev && git push origin prod"
 bash_case deny  'python3 ~/.claude/plugins/cache/ui-ux-pro-max-skill/ui-ux-pro-max/2.15.0/.claude/skills/ui-ux-pro-max/scripts/search.py "saas" -ds --persist'
 bash_case allow 'bash .claude/scripts/ux-lookup.sh ux "empty state"' "$AGENT"
 
@@ -123,6 +160,15 @@ bash_case ask   "docker compose down -v"
 bash_case ask   "redis-cli FLUSHALL"
 bash_case ask   'docker exec booknest-local-db psql -U booknest -c "TRUNCATE users"'
 bash_case ask   "gh pr merge 12 --squash"
+bash_case ask   "gh.exe pr merge 12 --merge"
+bash_case ask   "/c/Users/me/AppData/Local/Programs/gh/bin/gh.exe pr merge 12 --merge --match-head-commit abc123"
+bash_case ask   '"/c/Program Files/GitHub CLI/gh.exe" pr merge 12 --merge'
+bash_case allow "gh.exe pr view 12 --json state"
+bash_case allow "echo ngh pr merge 12"
+bash_case allow 'grep -n "gh.exe pr merge" .claude/hooks/guard-bash.sh'
+bash_case allow 'git commit -m "fix(agents): ask before gh.exe pr merge"'
+bash_case deny  "gh.exe repo delete owner/book-nest"
+bash_case deny  '"/c/Program Files/GitHub CLI/gh.exe" repo delete owner/book-nest'
 bash_case ask   "git stash drop"
 bash_case deny  "pnpm typecheck"
 bash_case allow "cd apps/api && pnpm exec vitest run src/modules/books/books.service.test.ts"
@@ -223,6 +269,21 @@ bash_case deny  ".claude/scripts/gates.sh origin/dev"
 bash_case allow "cat .claude/scripts/gates.sh"
 bash_case deny  "bash .claude/scripts/gates.sh" "$AGENT"
 bash_case allow "cat .claude/scripts/gates.sh" "$AGENT"
+user_said "відкрий PR у dev"
+bash_case allow "bash .claude/scripts/gates.sh"
+user_said "ship it"
+bash_case allow "bash .claude/scripts/gates.sh"
+user_said "змерджи, як буде зелено"
+bash_case allow "bash .claude/scripts/gates.sh"
+user_said "смержи в dev"
+bash_case allow "bash .claude/scripts/gates.sh"
+user_said "доведи це до dev"
+bash_case allow "bash .claude/scripts/gates.sh"
+user_said "онови relationship у графі"
+bash_case deny  "bash .claude/scripts/gates.sh"
+user_said "поправ prisma-схему"
+bash_case deny  "bash .claude/scripts/gates.sh"
+user_said "почини баг в списке"
 bash_case allow "cd apps/web && TZ=UTC node -e 'const { addDays, formatISO, parseISO } = require(\"date-fns\"); console.log(formatISO(addDays(parseISO(\"2024-01-01\"), 1)))'" "$AGENT"
 bash_case allow "cd apps/api && TZ=UTC node -e 'console.log(require(\"date-fns\").isMonday(new Date(\"2026-02-23\")))'" "$AGENT"
 bash_case allow "node --no-warnings -e 'console.log(/a(b)/.exec(\"ab\")[1])'" "$AGENT"
@@ -256,8 +317,16 @@ bash_case deny  "turbo run test" "$AGENT"
 bash_case deny  "pnpm format" "$AGENT"
 bash_case deny  'git commit -m "feat: x"' "$AGENT"
 bash_case deny  "git stash" "$AGENT"
+bash_case deny  "git.exe stash" "$AGENT"
+bash_case deny  '"/c/Program Files/Git/cmd/git.exe" checkout dev' "$AGENT"
+bash_case allow "git.exe diff --stat" "$AGENT"
+bash_case deny  "gh api --method=POST repos/o/r/issues -f title=x" "$AGENT"
+bash_case deny  'gh api -X "POST" repos/o/r/issues' "$AGENT"
 bash_case deny  "git checkout dev" "$AGENT"
 bash_case deny  'gh pr create --title "feat: x" --body y' "$AGENT"
+bash_case deny  'gh.exe pr create --title "feat: x" --body y' "$AGENT"
+bash_case deny  "gh.exe api -X POST repos/o/r/issues -f title=x" "$AGENT"
+bash_case deny  '"/c/Program Files/GitHub CLI/gh.exe" pr create --title t --body b' "$AGENT"
 bash_case allow "git diff --stat" "$AGENT"
 bash_case allow "git log -5 --oneline" "$AGENT"
 bash_case allow "git branch --show-current" "$AGENT"
@@ -423,6 +492,19 @@ sec_commit_case ask 'git commit -am "fix(deploy): x"' "commit -a takes the unrev
 sec_git add deploy/Caddyfile
 sec_commit_case ask 'git commit -m "fix(deploy): x"' "edited after the review"
 sec_commit_case deny 'git commit -m "update"' "a commitlint deny still wins"
+
+PUSH_ROOT="$(mktemp -d)"
+git init -q -b prod "$PUSH_ROOT/on-prod"
+git init -q -b claude-notes "$PUSH_ROOT/my repo"
+git init -q -b feat/x "$PUSH_ROOT/plain"
+bash_case deny  "git -C $PUSH_ROOT/on-prod push"
+bash_case deny  "git --no-optional-locks -C $PUSH_ROOT/on-prod push"
+bash_case deny  "git -C \"$PUSH_ROOT/my repo\" push"
+bash_case allow "git -C $PUSH_ROOT/plain push"
+bash_case deny  "git -C $PUSH_ROOT -C on-prod push"
+bash_case allow "git -C $PUSH_ROOT/on-prod -C ../plain push"
+bash_case deny  "git -C $PUSH_ROOT/plain -C $PUSH_ROOT/on-prod push"
+bash_case deny  "git -C $PUSH_ROOT/plain push && git -C $PUSH_ROOT/on-prod push"
 
 NO_JQ_START="$(PATH=/nonexistent CLAUDE_PROJECT_DIR="$SEC_REPO" "$BASH" "$HOOKS/session-start.sh" < /dev/null 2>/dev/null)"
 check yes "$(printf '%s' "$NO_JQ_START" | grep -q "jq is not on PATH" && echo yes || echo no)" "session-start: warns when jq is missing"

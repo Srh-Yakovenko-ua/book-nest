@@ -1,5 +1,7 @@
 import type {
   BookCharacterGraphQuery,
+  BookFamilyTreeQuery,
+  BookFamilyTreeView,
   CharacterGraphView,
   FamilyTreeGraphView,
   RelationshipCategory,
@@ -8,6 +10,7 @@ import type {
 } from "@app/shared";
 
 import {
+  BOOK_FAMILY_TREE,
   CHARACTER_GRAPH_EDGE_LIMIT,
   CHARACTER_GRAPH_NODE_LIMIT,
   CHARACTER_RELATIONSHIP_ERROR_CODES,
@@ -23,6 +26,7 @@ import type {
 } from "../domain/character-graph.js";
 import type { RelationshipReaderContext } from "../domain/relationship-reader-projection.js";
 
+import { buildBookFamilyTree } from "../domain/book-family-tree.js";
 import { buildCharacterGraph } from "../domain/character-graph.js";
 import { buildFamilyTreeGraph } from "../domain/family-tree.js";
 import {
@@ -53,6 +57,41 @@ export class CharacterGraphService {
     private readonly accessAsserter: CharacterAccessAsserter,
     private readonly viewMapper: CharacterViewMapper,
   ) {}
+
+  async getBookFamilyTree({
+    bookId,
+    query,
+    userId,
+  }: {
+    bookId: string;
+    query: BookFamilyTreeQuery;
+    userId: string;
+  }): Promise<BookFamilyTreeView> {
+    const context = await this.scopeResolver.resolveBook({
+      bookId,
+      reader: readingPositionFromQuery(query),
+      userId,
+    });
+    const { edges, nodes } = await this.loadGraphSources({
+      context,
+      extraCharacterIds: [],
+      userId,
+    });
+    const membershipRows = await this.groupsRepository.listGraphMemberships({
+      characterIds: nodes.map((node) => node.id),
+      userId,
+    });
+    return buildBookFamilyTree({
+      allowedBookIds: new Set(readerAllowedBookIds(context)),
+      edgeLimit: BOOK_FAMILY_TREE.edgeLimit,
+      edges,
+      memberships: membershipRows.map(toGraphMembershipSource),
+      nodeLimit: BOOK_FAMILY_TREE.nodeLimit,
+      nodes,
+      partNumberById: readerPartNumberById(context),
+      readerContext: context,
+    });
+  }
 
   async getForBook({
     bookId,

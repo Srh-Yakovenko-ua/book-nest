@@ -11,6 +11,7 @@ import { ReadingCalendarPageService } from "./application/reading-calendar-page.
 import { ReadingCoreComposer } from "./application/reading-core.composer.js";
 import { ReadingDayDetailsService } from "./application/reading-day-details.service.js";
 import { ReadingIntervalDetailsService } from "./application/reading-interval-details.service.js";
+import { ReadingWeekService } from "./application/reading-week.service.js";
 import { StatisticsCalendarComposer } from "./application/statistics-calendar.composer.js";
 import { StatisticsGoalComposer } from "./application/statistics-goal.composer.js";
 import { StatisticsLibraryComposer } from "./application/statistics-library.composer.js";
@@ -23,12 +24,14 @@ import { StatisticsLibraryRepository } from "./infrastructure/statistics-library
 
 @Module({
   controllers: [StatisticsController],
+  exports: [ReadingWeekService],
   imports: [AuthModule, BooksModule, MediaModule, ProfileModule, ReadingGoalsModule],
   providers: [
     StatisticsOverviewService,
     ReadingCalendarPageService,
     ReadingDayDetailsService,
     ReadingIntervalDetailsService,
+    ReadingWeekService,
     CompletedReadMapper,
     ReadingCoreComposer,
     StatisticsCalendarComposer,

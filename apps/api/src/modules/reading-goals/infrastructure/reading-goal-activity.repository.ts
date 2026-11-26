@@ -1,6 +1,8 @@
 import type { Nullable, ReadingGoalActivityType } from "@app/shared";
 
+import { ReadingGoalActivityTypeSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { ReadingGoalActivityModel } from "../../../generated/prisma/models.js";
@@ -21,6 +23,8 @@ export type ReadingGoalActivityInput = {
   userId: string;
 };
 
+const BOOK_COUNTED_TYPE = ReadingGoalActivityTypeSchema.enum.book_counted;
+
 type FindActivityPageInput = {
   cursor: Nullable<ReadingGoalActivityCursor>;
   goalId: string;
@@ -36,8 +40,11 @@ export class ReadingGoalActivityRepository {
     { rows }: { rows: ReadingGoalActivityInput[] },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<number> {
+    const ids = insertionOrderedIds(rows.length);
     return client.readingGoalActivity
-      .createMany({ data: rows.map(toActivityCreateManyInput) })
+      .createMany({
+        data: rows.map((row, index) => ({ ...toActivityCreateManyInput(row), id: ids[index] })),
+      })
       .then((result) => result.count);
   }
 
@@ -50,6 +57,16 @@ export class ReadingGoalActivityRepository {
       where: { goalId, type },
     });
     return existing !== null;
+  }
+
+  findAllForGoal(
+    { goalId }: { goalId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<ReadingGoalActivityModel[]> {
+    return client.readingGoalActivity.findMany({
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      where: { goalId },
+    });
   }
 
   findLatest(
@@ -73,6 +90,23 @@ export class ReadingGoalActivityRepository {
       },
     });
   }
+
+  rewriteBookCountedOrdinal(
+    {
+      activityId,
+      completedCount,
+      recordedCompletedCount,
+    }: { activityId: string; completedCount: number; recordedCompletedCount: number },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    return client.$executeRaw`
+      UPDATE reading_goal_activities
+      SET metadata = jsonb_set(metadata, '{completedCount}', to_jsonb(${completedCount}::int))
+      WHERE id = ${activityId}::uuid
+        AND type = ${BOOK_COUNTED_TYPE}
+        AND metadata -> 'completedCount' = to_jsonb(${recordedCompletedCount}::int)
+    `;
+  }
 }
 
 function beforeCursor(cursor: ReadingGoalActivityCursor): Prisma.ReadingGoalActivityWhereInput {
@@ -80,6 +114,10 @@ function beforeCursor(cursor: ReadingGoalActivityCursor): Prisma.ReadingGoalActi
     createdAt: { lte: cursor.createdAt },
     OR: [{ createdAt: { lt: cursor.createdAt } }, { id: { lt: cursor.id } }],
   };
+}
+
+function insertionOrderedIds(count: number): string[] {
+  return Array.from({ length: count }, () => randomUUID()).sort();
 }
 
 function toActivityCreateManyInput({

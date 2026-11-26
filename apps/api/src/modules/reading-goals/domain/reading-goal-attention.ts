@@ -8,6 +8,10 @@ import type {
 
 import { ReadingGoalAttentionSeveritySchema } from "@app/shared";
 
+import {
+  resolveProjectedLateDays,
+  resolveProjectedLatenessRiskLevel,
+} from "./reading-goal-risk.js";
 import { READING_GOAL_ATTENTION } from "./reading-goal.constants.js";
 
 type AttentionCandidate = {
@@ -86,6 +90,13 @@ function definedNumbers(values: Record<string, Nullable<number>>): Record<string
   );
 }
 
+function isLedByProjectedLateness(item: ReadingGoalListItem): boolean {
+  if (item.pace === "behind" || item.pace === "critical") {
+    return false;
+  }
+  return resolveProjectedLatenessRiskLevel(item) === "high";
+}
+
 function severityRank(severity: ReadingGoalAttentionSeverity): number {
   return ReadingGoalAttentionSeveritySchema.options.indexOf(severity);
 }
@@ -123,6 +134,14 @@ function toMessageData({
         ...definedNumbers({ daysSinceLastCounted: item.daysSinceLastCounted }),
         ...(item.lastCountedAt === null ? {} : { lastCountedAt: item.lastCountedAt }),
       };
+    case "projected_late":
+      return {
+        ...shared,
+        ...definedNumbers({ daysLeft: item.daysLeft, lateDays: resolveProjectedLateDays(item) }),
+        ...(item.projectedCompletionDate === null
+          ? {}
+          : { projectedCompletionDate: item.projectedCompletionDate }),
+      };
     case "required_pace_high":
       return {
         ...shared,
@@ -142,6 +161,9 @@ function toMessageData({
 }
 
 function toReason(item: ReadingGoalListItem): ReadingGoalRiskReason {
+  if (isLedByProjectedLateness(item)) {
+    return "projected_late";
+  }
   return item.riskReasons[0] ?? "behind_schedule";
 }
 

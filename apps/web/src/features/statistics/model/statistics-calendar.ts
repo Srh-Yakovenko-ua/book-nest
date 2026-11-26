@@ -6,15 +6,33 @@ import type {
 } from "@app/shared";
 
 import { WEEK_STARTS_ON } from "@app/shared";
-import { addDays, addMonths, endOfMonth, format, getDay, max, min, startOfMonth } from "date-fns";
+import {
+  addDays,
+  addMonths,
+  endOfMonth,
+  format,
+  getDay,
+  getDaysInMonth,
+  isAfter,
+  max,
+  min,
+  startOfMonth,
+} from "date-fns";
 
 import { parseIsoDay } from "@/lib/format";
+
+import { resolveReadingDayTarget } from "./statistics-drilldown";
 
 const ISO_DAY_FORMAT = "yyyy-MM-dd";
 
 const ISO_MONTH_FORMAT = "yyyy-MM";
 
 const DAYS_IN_WEEK = 7;
+
+export type CalendarMonthSlot =
+  | { date: string; kind: "future" | "missing" }
+  | { day: StatisticsCalendarDay; kind: "day" }
+  | { kind: "blank" };
 
 export type CalendarMonthSummary = {
   activeDays: number;
@@ -24,40 +42,9 @@ export type CalendarMonthSummary = {
   pagesRead: number;
 };
 
-export type CalendarWeek = Nullable<StatisticsCalendarDay>[];
+export type SelectableCalendarDay = { date: string; detailDate: string };
 
-export function buildHeatmapWeeks({
-  days,
-  weekStartDay,
-}: {
-  days: readonly StatisticsCalendarDay[];
-  weekStartDay: WeekStartDay;
-}): CalendarWeek[] {
-  const weeks: CalendarWeek[] = [];
-  let current: CalendarWeek = [];
-
-  for (const day of days) {
-    const column = weekdayColumn({ date: day.date, weekStartDay });
-    while (current.length !== column) {
-      current.push(null);
-      if (current.length === DAYS_IN_WEEK) {
-        weeks.push(current);
-        current = [];
-      }
-    }
-    current.push(day);
-    if (current.length === DAYS_IN_WEEK) {
-      weeks.push(current);
-      current = [];
-    }
-  }
-
-  if (current.length > 0) {
-    weeks.push(padTrailingCells(current));
-  }
-
-  return weeks;
-}
+type CalendarWeek = Nullable<StatisticsCalendarDay>[];
 
 export function buildMonthGrid({
   days,
@@ -94,6 +81,36 @@ export function buildMonthGrid({
   }
 
   return weeks;
+}
+
+export function buildMonthSlots({
+  days,
+  monthKey,
+  today,
+  weekStartDay,
+}: {
+  days: readonly StatisticsCalendarDay[];
+  monthKey: string;
+  today: string;
+  weekStartDay: WeekStartDay;
+}): CalendarMonthSlot[][] {
+  const monthStart = parseIsoDay(`${monthKey}-01`);
+  const leadingSlots = weekdayColumn({ date: format(monthStart, ISO_DAY_FORMAT), weekStartDay });
+  const monthLength = getDaysInMonth(monthStart);
+  const todayDate = parseIsoDay(today);
+
+  return buildMonthGrid({ days, monthKey, weekStartDay }).map((week, weekIndex) =>
+    week.map((day, weekdayIndex): CalendarMonthSlot => {
+      if (day !== null) return { day, kind: "day" };
+      const dayOffset = weekIndex * DAYS_IN_WEEK + weekdayIndex - leadingSlots;
+      if (dayOffset < 0 || dayOffset >= monthLength) return { kind: "blank" };
+      const date = addDays(monthStart, dayOffset);
+      return {
+        date: format(date, ISO_DAY_FORMAT),
+        kind: isAfter(date, todayDate) ? "future" : "missing",
+      };
+    }),
+  );
 }
 
 export function clipCalendarMonth({
@@ -143,6 +160,23 @@ export function resolveCalendarMonth({
   return months.at(-1) ?? null;
 }
 
+export function resolveSelectedCalendarDay({
+  days,
+  requested,
+}: {
+  days: readonly StatisticsCalendarDay[];
+  requested: Nullable<string>;
+}): Nullable<SelectableCalendarDay> {
+  const selectable = days.flatMap((day) => toSelectableCalendarDay(day) ?? []);
+  const requestedDay = selectable.find((day) => day.date === requested);
+  if (requestedDay !== undefined) return requestedDay;
+  return selectable.reduce<Nullable<SelectableCalendarDay>>(
+    (latest, day) =>
+      latest === null || isAfter(parseIsoDay(day.date), parseIsoDay(latest.date)) ? day : latest,
+    null,
+  );
+}
+
 export function summarizeCalendarMonth(
   days: readonly StatisticsCalendarDay[],
 ): CalendarMonthSummary {
@@ -159,6 +193,14 @@ export function summarizeCalendarMonth(
     hasUnknownDays: days.some(isUnknownCalendarDay),
     pagesRead: activeDays.reduce((total, day) => total + day.pagesRead, 0),
   };
+}
+
+export function toSelectableCalendarDay(
+  day: StatisticsCalendarDay,
+): Nullable<SelectableCalendarDay> {
+  if (day.booksCount === 0) return null;
+  const detailDate = resolveReadingDayTarget(day.drilldown);
+  return detailDate === null ? null : { date: day.date, detailDate };
 }
 
 export function weekdayOrder(weekStartDay: WeekStartDay): number[] {

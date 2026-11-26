@@ -9,9 +9,9 @@ import { useState } from "react";
 import { UiIcon } from "@/components/icons";
 
 import { coverageCaption } from "../../model/statistics-availability";
-import { formatDayShort, formatRatingScore } from "../../model/statistics-format";
+import { formatDayShort, formatRatingScore, formatShare } from "../../model/statistics-format";
 import { StatisticsMetricTabs, StatisticsSection } from "../statistics-section";
-import { StatisticsNote, StatisticsSectionState } from "../statistics-states";
+import { StatisticsSectionState } from "../statistics-states";
 import { TasteRankingList } from "./taste-ranking-list";
 
 const AUTHOR_MODES = ["frequency", "rated"] as const;
@@ -24,13 +24,15 @@ export function AuthorsSection({ authors }: { authors: ReadingStatisticsAuthorsS
   const tRatings = useTranslations("statistics.ratings");
   const [mode, setMode] = useState<AuthorMode>("frequency");
   const coverage = coverageCaption(authors.coverage);
+  const eligibleReads = authors.coverage.eligibleCount;
   const returning =
     authors.returning.availability === "unavailable" ? undefined : authors.returning.items.at(0);
 
   if (authors.availability === "unavailable") {
     return (
-      <StatisticsSection description={t("description")} title={t("title")}>
+      <StatisticsSection title={t("title")}>
         <StatisticsSectionState
+          density="compact"
           description={t("unavailableDescription")}
           kind="unavailable"
           title={t("unavailable")}
@@ -50,13 +52,12 @@ export function AuthorsSection({ authors }: { authors: ReadingStatisticsAuthorsS
           value={mode}
         />
       }
-      description={t("description")}
-      note={coverage === null ? null : <StatisticsNote>{t("coverage", coverage)}</StatisticsNote>}
+      description={coverage === null ? undefined : t("coverage", coverage)}
       title={t("title")}
     >
       {mode === "frequency" ? (
         authors.frequency.length === 0 ? (
-          <StatisticsSectionState kind="empty" title={t("empty")} />
+          <StatisticsSectionState density="compact" kind="empty" title={t("empty")} />
         ) : (
           <TasteRankingList
             rows={authors.frequency.map((entry) => ({
@@ -64,13 +65,22 @@ export function AuthorsSection({ authors }: { authors: ReadingStatisticsAuthorsS
               drilldown: entry.drilldown,
               key: entry.authorId,
               label: entry.name,
+              secondary:
+                eligibleReads <= 0
+                  ? undefined
+                  : t("share", {
+                      percent: formatShare(entry.completedReadCount / eligibleReads, locale),
+                    }),
               value: entry.completedReadCount,
               valueLabel: t("reads", { count: entry.completedReadCount }),
             }))}
+            scaleMax={eligibleReads}
+            variant="compact"
           />
         )
       ) : authors.topRated.availability === "unavailable" ? (
         <StatisticsSectionState
+          density="compact"
           description={t(`reason.${authors.topRated.reason ?? "INSUFFICIENT_SAMPLE"}`)}
           kind="insufficient"
           title={t("ratedUnavailable")}
@@ -87,6 +97,7 @@ export function AuthorsSection({ authors }: { authors: ReadingStatisticsAuthorsS
             }),
           }))}
           scaleMax={BOOK_RATING.max}
+          variant="compact"
         />
       )}
 

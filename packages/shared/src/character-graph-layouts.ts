@@ -31,6 +31,7 @@ export const CharacterGraphStorageModeSchema = z.enum([
   "person",
   "tree",
   "network",
+  "genealogy",
 ]);
 
 export type CharacterGraphStorageMode = z.infer<typeof CharacterGraphStorageModeSchema>;
@@ -39,6 +40,7 @@ const GRAPH_WORKSPACE_STORAGE_MODES: readonly CharacterGraphStorageMode[] = [
   "person",
   "tree",
   "network",
+  "genealogy",
 ];
 
 const coordinate = z

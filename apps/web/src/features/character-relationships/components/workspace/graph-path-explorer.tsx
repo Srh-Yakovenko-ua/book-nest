@@ -240,6 +240,8 @@ export function GraphPathExplorer({
           ) : null}
         </div>
         <GraphDetailsPanel
+          appearance="default"
+          autoFocus
           onClose={() => setSelection(null)}
           onRestoreFocus={() => restoreTriggerFocus(lastTrigger.current)}
           open={selection !== null}
@@ -249,14 +251,8 @@ export function GraphPathExplorer({
           {selection?.kind === "character" ? (
             <GraphCharacterDetails
               bookId={bookId}
-              branch={null}
-              connections={[]}
-              isRoot={false}
               node={selection.node}
               onExplore={() => actions.exploreFromPath(selection.node.id)}
-              onFindPath={null}
-              onMakeCenter={null}
-              onOpenConnection={() => undefined}
             />
           ) : null}
           {selection?.kind === "step" ? (

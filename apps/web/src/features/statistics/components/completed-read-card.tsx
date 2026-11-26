@@ -1,11 +1,13 @@
 "use client";
 
 import type { CompletedReadRef } from "@app/shared";
+import type { ReactNode } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
 
 import { TruncatedText } from "@/components/truncated-text";
 import { RatingScore } from "@/components/ui/rating-score";
+import { cn } from "@/lib/utils";
 
 import { buildStatisticsDrilldownTarget } from "../model/statistics-drilldown";
 import { formatDayLong, formatDayShort } from "../model/statistics-format";
@@ -13,7 +15,7 @@ import { CompletedReadDetails } from "./details/completed-read-details";
 import { StatisticsBookCover } from "./details/statistics-book-cover";
 import { StatisticsDetailSurface } from "./details/statistics-detail-surface";
 
-type CompletedReadCardVariant = "ranking" | "recent";
+type CompletedReadCardVariant = "compact" | "ranking" | "recent";
 
 export function CompletedReadCard({
   read,
@@ -65,10 +67,41 @@ export function CompletedReadCard({
     </span>
   );
 
-  const preview = variant === "recent" ? recentPreview : rankingPreview;
+  const compactPreview = (
+    <span className="flex h-full w-full items-start gap-3 rounded-lg border border-border bg-secondary/40 p-2.5 text-start transition hover:border-primary/40 hover:bg-secondary/70 hover:shadow-soft">
+      <StatisticsBookCover
+        className="w-14 shrink-0 bg-accent text-accent-foreground shadow-soft"
+        coverThumbUrl={read.book.coverThumbUrl}
+        title={read.book.title}
+      />
+      <span className="flex min-w-0 flex-1 flex-col gap-1">
+        <TruncatedText
+          className="text-sm font-medium break-words text-foreground"
+          lines={2}
+          text={read.book.title}
+        />
+        {isDateShown ? (
+          <time className="text-xs text-muted-foreground" dateTime={read.finishedAt}>
+            {finishedAtLabel}
+          </time>
+        ) : null}
+        {read.rating === null ? null : (
+          <RatingScore className="self-start text-sm font-semibold" value={read.rating} />
+        )}
+      </span>
+    </span>
+  );
+
+  const previews = {
+    compact: compactPreview,
+    ranking: rankingPreview,
+    recent: recentPreview,
+  } satisfies Record<CompletedReadCardVariant, ReactNode>;
+  const preview = previews[variant];
+  const isCompact = variant === "compact";
 
   if (target.kind !== "reading_cycle") {
-    return <span className="flex w-full flex-col">{preview}</span>;
+    return <span className={cn("flex w-full flex-col", isCompact && "h-full")}>{preview}</span>;
   }
 
   return (
@@ -76,7 +109,10 @@ export function CompletedReadCard({
       detail={() => <CompletedReadDetails read={read} />}
       label={t("open", { title: read.book.title })}
       title={read.book.title}
-      triggerClassName="w-full rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      triggerClassName={cn(
+        "w-full rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+        isCompact && "h-full rounded-lg",
+      )}
     >
       {preview}
     </StatisticsDetailSurface>

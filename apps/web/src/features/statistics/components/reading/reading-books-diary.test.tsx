@@ -91,3 +91,18 @@ describe("ReadingBooksDiary reading days", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 });
+
+describe("ReadingBooksDiary row summary", () => {
+  it.each([
+    { meta: "1 книга · 1 сторінка", pages: 1 },
+    { meta: "1 книга · 2 сторінки", pages: 2 },
+    { meta: "1 книга · 1 032 сторінки", pages: 1032 },
+  ])("sums up a day with $pages pages read in the matching plural form", ({ meta, pages }) => {
+    renderDiary(
+      [dayOn("2026-03-02", { booksCount: 1, booksPreview: [WIZARD], pagesRead: pages })],
+      false,
+    );
+
+    expect(screen.getByText(meta)).toBeInTheDocument();
+  });
+});

@@ -1,5 +1,6 @@
 import type {
   BookDetailsView,
+  BookFamilyTreeView,
   CharacterGraphView,
   FamilyTreeGraphView,
   Nullable,
@@ -24,6 +25,8 @@ export type GraphWorkspaceFilters = {
   types: RelationshipType[];
 };
 
+export type GraphWorkspaceGraphRequest = Exclude<GraphWorkspaceSceneRequest, { kind: "genealogy" }>;
+
 export type GraphWorkspacePathRequest = GraphWorkspaceFilters & {
   fromId: string;
   kind: "path";
@@ -31,7 +34,9 @@ export type GraphWorkspacePathRequest = GraphWorkspaceFilters & {
 };
 
 export type GraphWorkspaceSceneData =
-  { graph: CharacterGraphView; kind: "graph" } | { kind: "tree"; tree: FamilyTreeGraphView };
+  | { genealogy: BookFamilyTreeView; kind: "genealogy" }
+  | { graph: CharacterGraphView; kind: "graph" }
+  | { kind: "tree"; tree: FamilyTreeGraphView };
 
 export type GraphWorkspaceSceneRequest =
   | { ancestors: number; descendants: number; focusCharacterId: string; kind: "tree" }
@@ -41,10 +46,11 @@ export type GraphWorkspaceSceneRequest =
       focusCharacterId: string;
       kind: "person";
     }
-  | { filters: GraphWorkspaceFilters; kind: "network" };
+  | { filters: GraphWorkspaceFilters; kind: "network" }
+  | { kind: "genealogy" };
 
 export function toBookGraphRequestParams(
-  request: GraphWorkspaceSceneRequest,
+  request: GraphWorkspaceGraphRequest,
 ): BookCharacterGraphControllerGetParams {
   switch (request.kind) {
     case "network":
@@ -104,6 +110,7 @@ export function toGraphWorkspaceSceneRequest(
         ? null
         : { depth: params.depth, filters, focusCharacterId: params.characterId, kind: "person" };
     case "tree":
+      if (params.treeScope === "full") return { kind: "genealogy" };
       return params.characterId === null
         ? null
         : {

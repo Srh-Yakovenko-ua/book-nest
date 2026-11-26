@@ -22,7 +22,6 @@ import {
 
 type GraphWorkspaceFiltersProps = {
   categories: RelationshipCategory[];
-  disabled: boolean;
   onChange: (filters: { categories: RelationshipCategory[]; types: RelationshipType[] }) => void;
   onReset: () => void;
   triggerId: string;
@@ -31,7 +30,6 @@ type GraphWorkspaceFiltersProps = {
 
 export function GraphWorkspaceFilters({
   categories,
-  disabled,
   onChange,
   onReset,
   triggerId,
@@ -44,13 +42,13 @@ export function GraphWorkspaceFilters({
   const count = countGraphWorkspaceFilters({ categories, types });
   const allowedTypes = toAllowedGraphWorkspaceTypes(categories);
   const typeOptions = RelationshipTypeSchema.options.filter(
-    (type) => type !== "custom" && (allowedTypes === null || allowedTypes.has(type)),
+    (type) => allowedTypes === null || allowedTypes.has(type),
   );
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button disabled={disabled} id={triggerId} type="button" variant="outline">
+        <Button id={triggerId} type="button" variant="outline">
           <UiIcon name="filter" size={16} />
           {count === 0 ? t("trigger") : t("triggerCount", { count })}
         </Button>

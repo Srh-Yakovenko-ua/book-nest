@@ -11,7 +11,9 @@ const apiBaseUrl = process.env.API_BASE_URL ?? "http://localhost:4000";
 const monorepoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 const nextConfig: NextConfig = {
+  agentRules: false,
   allowedDevOrigins: ["192.168.31.212", "192.168.31.*"],
+  images: { localPatterns: [{ pathname: "/illustrations/**", search: "" }] },
   output: "standalone",
   outputFileTracingRoot: monorepoRoot,
   async rewrites() {

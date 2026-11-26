@@ -17,12 +17,14 @@ type StatisticsSectionProps = {
 };
 
 export function StatisticsMetricTabs<TMetric extends string>({
+  className,
   label,
   metrics,
   onChange,
   optionLabel,
   value,
 }: {
+  className?: string;
   label: string;
   metrics: readonly TMetric[];
   onChange: (metric: TMetric) => void;
@@ -31,6 +33,7 @@ export function StatisticsMetricTabs<TMetric extends string>({
 }) {
   return (
     <Segmented
+      className={className}
       label={label}
       onValueChange={(next) => {
         const picked = metrics.find((metric) => metric === next);

@@ -562,6 +562,31 @@ describe("LoanDialog", () => {
     expect(await screen.findByText(bookStep.notFound)).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: bookStep.createBook })).not.toBeInTheDocument();
   });
+
+  it("does not claim nothing was found before the search has answered", async () => {
+    const stubbedFetch = fetchMock.getMockImplementation();
+    let answerSearch: (response: Response) => void = () => undefined;
+    fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).includes("q=zzz")
+        ? new Promise<Response>((resolve) => {
+            answerSearch = resolve;
+          })
+        : stubbedFetch?.(input, init),
+    );
+    renderContactFirst([]);
+    await screen.findByText(bookStep.lent.emptyTitle);
+
+    await userEvent.type(screen.getByLabelText(booksPicker.search), "zzz");
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([url]) => String(url).includes("q=zzz"))).toBe(true),
+    );
+
+    expect(screen.queryByText(bookStep.notFound)).not.toBeInTheDocument();
+    expect(screen.getByText(messages.common.loading)).toBeInTheDocument();
+
+    answerSearch(jsonResponse(booksPage([])));
+    expect(await screen.findByText(bookStep.notFound)).toBeInTheDocument();
+  });
 });
 
 describe("LoanDialog in the profile time zone", () => {

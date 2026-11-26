@@ -3,6 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import type { Nullable, ReadingGoalActivityView } from "@app/shared";
 import type { ReactNode } from "react";
 
+import { defaultUserProfileSettings } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -29,6 +30,8 @@ vi.mock("@/i18n/navigation", () => ({
 
 const GOAL_ID = "goal-1";
 const ACTIVITY_PATH = `/api/goals/${GOAL_ID}/activity`;
+const SETTINGS_PATH = "/api/profile/settings";
+const PROFILE_SETTINGS = { ...defaultUserProfileSettings, timezone: "America/New_York" };
 
 const fetchMock = vi.fn();
 const viewport = mockIntersectionObserver();
@@ -45,11 +48,31 @@ function activityRequests(): URL[] {
     .filter((url) => url.pathname === ACTIVITY_PATH);
 }
 
+function bookEventAt(createdAt: string, title: string): ReadingGoalActivityView {
+  return makeReadingGoalActivity({
+    book: { id: `book-${createdAt}`, title },
+    createdAt,
+    id: `activity-${createdAt}`,
+  });
+}
+
+function dayGroupOf(day: string): HTMLElement {
+  const group = screen.getByRole("heading", { level: 2, name: day }).closest("div");
+  if (group === null) throw new Error(`no day group for ${day}`);
+  return group;
+}
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
     status,
   });
+}
+
+function linkTitlesIn(region: HTMLElement): Nullable<string>[] {
+  return within(region)
+    .getAllByRole("link")
+    .map((link) => link.textContent);
 }
 
 function numberedEvents(from: number, count: number): ReadingGoalActivityView[] {
@@ -58,11 +81,15 @@ function numberedEvents(from: number, count: number): ReadingGoalActivityView[] 
   );
 }
 
-function renderActivityTab(activityType: Nullable<GoalActivityType> = null) {
+function renderActivityTab(
+  activityType: Nullable<GoalActivityType> = null,
+  focusListOnMount = false,
+) {
   const onActivityTypeChange = vi.fn();
   renderWithProviders(
     <GoalActivityTab
       activityType={activityType}
+      focusListOnMount={focusListOnMount}
       goalId={GOAL_ID}
       onActivityTypeChange={onActivityTypeChange}
     />,
@@ -83,6 +110,7 @@ beforeEach(() => {
   fetchMock.mockImplementation((input: RequestInfo | URL) => {
     const url = new URL(String(input), "http://localhost");
     if (url.pathname === ACTIVITY_PATH) return Promise.resolve(respondToActivity(url));
+    if (url.pathname === SETTINGS_PATH) return Promise.resolve(jsonResponse(PROFILE_SETTINGS));
     return Promise.reject(new Error(`unexpected ${url.pathname}`));
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -192,6 +220,85 @@ describe("GoalActivityTab events", () => {
   });
 });
 
+describe("GoalActivityTab days", () => {
+  it("keeps one heading for a profile day that spans two pages, newest first", async () => {
+    const firstPage = activityPage(
+      [
+        bookEventAt("2026-11-20T15:00:00.000Z", "Дюна"),
+        bookEventAt("2026-11-20T02:30:00.000Z", "Бігуни"),
+      ],
+      "cursor-2",
+    );
+    const secondPage = activityPage([
+      bookEventAt("2026-11-19T14:00:00.000Z", "Книга Якова"),
+      bookEventAt("2026-11-18T12:00:00.000Z", "Солярис"),
+    ]);
+    respondToActivity = (url) =>
+      jsonResponse(url.searchParams.get("cursor") === "cursor-2" ? secondPage : firstPage);
+
+    renderActivityTab();
+    await screen.findByRole("link", { name: "Бігуни" });
+    viewport.enterViewport();
+
+    await waitFor(() => {
+      expect(linkTitlesIn(dayGroupOf("19 листопада 2026 р."))).toEqual(["Бігуни", "Книга Якова"]);
+    });
+    const history = screen.getByRole("region", { name: "Історія цілі" });
+    const headings = within(history).getAllByRole("heading", { level: 2 });
+    expect(headings.map((heading) => heading.textContent)).toEqual([
+      "20 листопада 2026 р.",
+      "19 листопада 2026 р.",
+      "18 листопада 2026 р.",
+    ]);
+    expect(linkTitlesIn(history)).toEqual(["Дюна", "Бігуни", "Книга Якова", "Солярис"]);
+  });
+
+  it("tells when an event was recorded in the profile time zone", async () => {
+    respondToActivity = () =>
+      jsonResponse(activityPage([bookEventAt("2026-11-20T02:30:00.000Z", "Бігуни")]));
+
+    renderActivityTab();
+
+    await screen.findByText("Час запису події: 21:30");
+    expect(
+      within(dayGroupOf("19 листопада 2026 р.")).getByText("Час запису події: 21:30"),
+    ).toBeInTheDocument();
+  });
+
+  it("lists the days inside the history without a landmark of their own", async () => {
+    respondToActivity = () =>
+      jsonResponse(
+        activityPage([
+          bookEventAt("2026-11-20T15:00:00.000Z", "Дюна"),
+          bookEventAt("2026-11-18T12:00:00.000Z", "Солярис"),
+        ]),
+      );
+
+    renderActivityTab();
+    await screen.findByRole("link", { name: "Солярис" });
+
+    const history = screen.getByRole("region", { name: "Історія цілі" });
+    expect(within(history).getAllByRole("heading", { level: 2 })).toHaveLength(2);
+    expect(within(history).queryByRole("region")).not.toBeInTheDocument();
+  });
+});
+
+describe("GoalActivityTab focus", () => {
+  it("moves focus to the history when asked to on mount", async () => {
+    renderActivityTab(null, true);
+    await screen.findByRole("link", { name: "Бігуни" });
+
+    expect(screen.getByRole("region", { name: "Історія цілі" })).toHaveFocus();
+  });
+
+  it("leaves focus where it was when not asked to focus the history", async () => {
+    renderActivityTab();
+    await screen.findByRole("link", { name: "Бігуни" });
+
+    expect(screen.getByRole("region", { name: "Історія цілі" })).not.toHaveFocus();
+  });
+});
+
 describe("GoalActivityTab states", () => {
   it("keeps the loaded events and offers a retry when the next page fails", async () => {
     let nextPageFails = true;
@@ -226,6 +333,24 @@ describe("GoalActivityTab states", () => {
     expect(await screen.findByText("Немає подій цього типу")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Показати всі події" }));
+
+    expect(onActivityTypeChange).toHaveBeenCalledWith(null);
+  });
+
+  it("shows the plain empty history without a reset when no type is chosen", async () => {
+    respondToActivity = () => jsonResponse(activityPage([]));
+
+    renderActivityTab();
+
+    expect(await screen.findByRole("heading", { name: "Подій ще немає" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Показати всі події" })).not.toBeInTheDocument();
+  });
+
+  it("clears the chosen type back to every event from the filter", async () => {
+    const { onActivityTypeChange } = renderActivityTab("book_counted");
+    await screen.findByRole("link", { name: "Бігуни" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Очистити" }));
 
     expect(onActivityTypeChange).toHaveBeenCalledWith(null);
   });

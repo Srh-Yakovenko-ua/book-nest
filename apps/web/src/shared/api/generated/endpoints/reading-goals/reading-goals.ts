@@ -22,12 +22,14 @@ import type {
   CreateReadingGoalInputDto,
   ReadingGoalActivityResponseDto,
   ReadingGoalBooksResponseDto,
+  ReadingGoalCreationPreviewDto,
   ReadingGoalDetailDto,
   ReadingGoalListResponseDto,
   ReadingGoalViewDto,
   ReadingGoalsControllerListActivityParams,
   ReadingGoalsControllerListBooksParams,
   ReadingGoalsControllerListParams,
+  ReadingGoalsControllerPreviewCreationParams,
   ReadingGoalsOverviewDto,
   UpdateReadingGoalInputDto,
 } from "../../model";
@@ -337,6 +339,198 @@ export function useReadingGoalsControllerFindByList<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getReadingGoalsControllerFindByListQueryOptions(listId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getReadingGoalsControllerPreviewCreationUrl = (
+  listId: string,
+  params?: ReadingGoalsControllerPreviewCreationParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/lists/${listId}/goal/preview?${stringifiedParams}`
+    : `/api/lists/${listId}/goal/preview`;
+};
+
+/**
+ * @summary Preview the books a new reading goal over a custom list would count
+ */
+export const readingGoalsControllerPreviewCreation = async (
+  listId: string,
+  params?: ReadingGoalsControllerPreviewCreationParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<ReadingGoalCreationPreviewDto> => {
+  return customInstance<ReadingGoalCreationPreviewDto>(
+    getReadingGoalsControllerPreviewCreationUrl(listId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getReadingGoalsControllerPreviewCreationQueryKey = (
+  listId: string,
+  params?: ReadingGoalsControllerPreviewCreationParams,
+) => {
+  return [`/api/lists/${listId}/goal/preview`, ...(params ? [params] : [])] as const;
+};
+
+export const getReadingGoalsControllerPreviewCreationQueryOptions = <
+  TData = Awaited<ReturnType<typeof readingGoalsControllerPreviewCreation>>,
+  TError = void,
+>(
+  listId: string,
+  params?: ReadingGoalsControllerPreviewCreationParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof readingGoalsControllerPreviewCreation>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getReadingGoalsControllerPreviewCreationQueryKey(listId, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof readingGoalsControllerPreviewCreation>>
+  > = ({ signal }) =>
+    readingGoalsControllerPreviewCreation(listId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: listId !== null && listId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof readingGoalsControllerPreviewCreation>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ReadingGoalsControllerPreviewCreationQueryResult = NonNullable<
+  Awaited<ReturnType<typeof readingGoalsControllerPreviewCreation>>
+>;
+export type ReadingGoalsControllerPreviewCreationQueryError = void;
+
+export function useReadingGoalsControllerPreviewCreation<
+  TData = Awaited<ReturnType<typeof readingGoalsControllerPreviewCreation>>,
+  TError = void,
+>(
+  listId: string,
+  params: undefined | ReadingGoalsControllerPreviewCreationParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof readingGoalsControllerPreviewCreation>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof readingGoalsControllerPreviewCreation>>,
+          TError,
+          Awaited<ReturnType<typeof readingGoalsControllerPreviewCreation>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useReadingGoalsControllerPreviewCreation<
+  TData = Awaited<ReturnType<typeof readingGoalsControllerPreviewCreation>>,
+  TError = void,
+>(
+  listId: string,
+  params?: ReadingGoalsControllerPreviewCreationParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof readingGoalsControllerPreviewCreation>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof readingGoalsControllerPreviewCreation>>,
+          TError,
+          Awaited<ReturnType<typeof readingGoalsControllerPreviewCreation>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useReadingGoalsControllerPreviewCreation<
+  TData = Awaited<ReturnType<typeof readingGoalsControllerPreviewCreation>>,
+  TError = void,
+>(
+  listId: string,
+  params?: ReadingGoalsControllerPreviewCreationParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof readingGoalsControllerPreviewCreation>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Preview the books a new reading goal over a custom list would count
+ */
+
+export function useReadingGoalsControllerPreviewCreation<
+  TData = Awaited<ReturnType<typeof readingGoalsControllerPreviewCreation>>,
+  TError = void,
+>(
+  listId: string,
+  params?: ReadingGoalsControllerPreviewCreationParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof readingGoalsControllerPreviewCreation>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getReadingGoalsControllerPreviewCreationQueryOptions(
+    listId,
+    params,
+    options,
+  );
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

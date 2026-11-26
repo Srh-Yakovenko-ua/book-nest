@@ -69,6 +69,17 @@ export function calculateReadingGoalProgress({
   };
 }
 
+export function compareReadingGoalQualifyingBooks(
+  left: ReadingGoalQualifyingBook,
+  right: ReadingGoalQualifyingBook,
+): number {
+  const byFinishedAt = compareAsc(left.finishedAt, right.finishedAt);
+  if (byFinishedAt !== 0) {
+    return byFinishedAt;
+  }
+  return left.bookId.localeCompare(right.bookId);
+}
+
 export function hasDeadlinePassed({
   deadline,
   reference,
@@ -143,18 +154,7 @@ export function selectQualifyingReadingGoalBooks({
       }
       return [{ bookId, finishedAt }];
     })
-    .sort(compareQualifyingBooks);
-}
-
-function compareQualifyingBooks(
-  left: ReadingGoalQualifyingBook,
-  right: ReadingGoalQualifyingBook,
-): number {
-  const byFinishedAt = compareAsc(left.finishedAt, right.finishedAt);
-  if (byFinishedAt !== 0) {
-    return byFinishedAt;
-  }
-  return left.bookId.localeCompare(right.bookId);
+    .sort(compareReadingGoalQualifyingBooks);
 }
 
 function remainingCalendarDays({ deadline, today }: { deadline: Date; today: Date }): number {

@@ -13,12 +13,15 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 import enMessages from "@/messages/en.json";
+import messages from "@/messages/uk.json";
 import { createTestQueryClient, render, renderWithProviders, screen } from "@/test-utils";
 
 import { overviewFixture } from "../../model/statistics.fixtures";
 import { DiscoveriesSection } from "./discoveries-section";
 
 const { discoveries } = overviewFixture();
+
+const discoveriesText = messages.statistics.discoveries;
 
 function withUnratedAuthorReads(count: number): ReadingStatisticsDiscoveriesSection {
   if (discoveries.author === null) throw new Error("fixture must expose an author discovery");
@@ -81,6 +84,32 @@ describe("DiscoveriesSection", () => {
     expect(
       screen.getByText("2 читання за період (включно з першим) · середня оцінка 9,0"),
     ).toBeInTheDocument();
+  });
+
+  it("shows a compact notice with the reason and no zero counts when discoveries cannot be proven", () => {
+    renderWithProviders(
+      <DiscoveriesSection
+        discoveries={{
+          ...discoveries,
+          author: null,
+          availability: "unavailable",
+          genre: null,
+          newAuthorsCount: 0,
+          newGenresCount: 0,
+          newPublishersCount: 0,
+          publisher: null,
+          reason: "LEGACY_HISTORY_INCOMPLETE",
+        }}
+      />,
+    );
+
+    expect(screen.getByText(discoveriesText.title)).toBeInTheDocument();
+    expect(screen.getByText(discoveriesText.unavailable)).toBeInTheDocument();
+    expect(screen.getByText(discoveriesText.reason.LEGACY_HISTORY_INCOMPLETE)).toBeInTheDocument();
+    for (const countLabel of Object.values(discoveriesText.countLabels)) {
+      expect(screen.queryByText(countLabel)).not.toBeInTheDocument();
+    }
+    expect(screen.queryByText("0")).not.toBeInTheDocument();
   });
 
   it("keeps the discovered author unclickable even though its reads form an exact subset", () => {

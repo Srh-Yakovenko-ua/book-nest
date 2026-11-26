@@ -15,4 +15,5 @@ export const CharacterGraphLayoutsControllerRemoveMode = {
   person: "person",
   tree: "tree",
   network: "network",
+  genealogy: "genealogy",
 } as const;

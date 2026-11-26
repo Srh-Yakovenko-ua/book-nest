@@ -47,6 +47,7 @@ import {
   toCreateGoalInput,
   toUpdateGoalInput,
 } from "../model/goal-form";
+import { GoalCreationPreview } from "./goal-creation-preview";
 import { GoalDeadlineShortcuts, GoalTargetPresets } from "./goal-form-quick-picks";
 
 const GOAL_FORM_DIALOG = {
@@ -85,16 +86,20 @@ type GoalFormDialogProps = {
   bookCount: number;
   listName: Nullable<string>;
   mode: GoalFormMode;
+  onChangeList?: () => void;
   onCreated?: (goal: ReadingGoalView) => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
   openerRef: RefObject<HTMLButtonElement | null>;
 };
 
+type GoalFormExit = "changeList" | "close";
+
 export function GoalFormDialog({
   bookCount,
   listName,
   mode,
+  onChangeList,
   onCreated,
   onOpenChange,
   open,
@@ -106,19 +111,39 @@ export function GoalFormDialog({
   const isPending = createGoal.isPending || updateGoal.isPending;
   const [isDraftDirty, setDraftDirty] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const exitRef = useRef<GoalFormExit>("close");
+
+  function leave() {
+    if (exitRef.current === "changeList" && onChangeList !== undefined) {
+      onChangeList();
+      return;
+    }
+    onOpenChange(false);
+  }
+
   const guard = useCloseGuard({
     focusFallback: () => contentRef.current?.focus(),
     isDirty: isDraftDirty,
     isOpen: open,
     isPending,
-    onClose: () => onOpenChange(false),
+    onClose: leave,
   });
+
+  function requestExit(exit: GoalFormExit) {
+    exitRef.current = exit;
+    guard.requestClose();
+  }
+
+  function closeAfterSave() {
+    exitRef.current = "close";
+    onOpenChange(false);
+  }
 
   return (
     <>
       <Dialog
         onOpenChange={(next) => {
-          if (!next) guard.requestClose();
+          if (!next) requestExit("close");
         }}
         open={open}
       >
@@ -126,6 +151,7 @@ export function GoalFormDialog({
           className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain sm:max-w-md"
           onCloseAutoFocus={(event) => {
             event.preventDefault();
+            if (exitRef.current === "changeList") return;
             openerRef.current?.focus();
           }}
           onOpenAutoFocus={focusDialogSurface}
@@ -139,6 +165,18 @@ export function GoalFormDialog({
               {listName === null ? null : `${t("source", { name: listName })} · `}
               {t(BOOK_COUNT_COPY[mode.kind].description, { count: bookCount })}
             </DialogDescription>
+            {onChangeList === undefined ? null : (
+              <Button
+                className="-ml-2.5 self-start"
+                disabled={isPending}
+                onClick={() => requestExit("changeList")}
+                type="button"
+                variant="ghost"
+              >
+                <UiIcon aria-hidden name="arrow-left" size={14} />
+                {t("changeList")}
+              </Button>
+            )}
           </DialogHeader>
           {mode.kind === "create" && mode.previousOutcome !== null ? (
             <AutoArchiveHint previousOutcome={mode.previousOutcome} />
@@ -149,10 +187,10 @@ export function GoalFormDialog({
               createGoal={createGoal}
               listName={listName}
               mode={mode}
-              onCancel={guard.requestClose}
+              onCancel={() => requestExit("close")}
               onCreated={onCreated}
               onDirtyChange={setDraftDirty}
-              onDone={() => onOpenChange(false)}
+              onDone={closeAfterSave}
               updateGoal={updateGoal}
             />
           ) : null}
@@ -215,7 +253,7 @@ function GoalForm({
 
   const form = useForm<GoalFormValues, unknown, GoalFormValues>({
     defaultValues: defaults,
-    mode: "onTouched",
+    mode: "onChange",
     resolver: zodResolver(
       createGoalFormSchema({
         bookCount,
@@ -237,7 +275,7 @@ function GoalForm({
 
   const {
     control,
-    formState: { errors, isDirty },
+    formState: { errors, isDirty, isValid },
     handleSubmit,
     register,
     setValue,
@@ -252,13 +290,15 @@ function GoalForm({
     name: ["deadline", "name", "targetCount"],
   });
   const isPending = createGoal.isPending || updateGoal.isPending;
-  const isDeadlineBlocked = deadline === "" || errors.deadline !== undefined;
   const isUnchanged =
     mode.kind === "edit" &&
     !hasGoalChanges(
       toUpdateGoalInput({ initial: defaults, values: { deadline, name, targetCount } }),
     );
   const todayDate = parseISO(today);
+  const explanation = (
+    <p className="text-xs leading-relaxed text-muted-foreground">{t("explanation")}</p>
+  );
 
   function reportFailure(error: unknown) {
     if (applyFieldErrors(form, error)) return;
@@ -336,6 +376,7 @@ function GoalForm({
                   errors.targetCount ? FIELD_ID.targetCountError : FIELD_ID.targetCountHint
                 }
                 aria-invalid={errors.targetCount !== undefined}
+                aria-required
                 autoComplete="off"
                 className="h-10 w-24"
                 id={FIELD_ID.targetCount}
@@ -363,10 +404,13 @@ function GoalForm({
             value={targetCount}
           />
         </div>
-        <span className="text-xs text-muted-foreground" id={FIELD_ID.targetCountHint}>
-          {t(copy.hint, { count: bookCount })}
-        </span>
-        <FieldError error={errors.targetCount} id={FIELD_ID.targetCountError} />
+        {errors.targetCount ? (
+          <FieldError error={errors.targetCount} id={FIELD_ID.targetCountError} />
+        ) : (
+          <span className="text-xs text-muted-foreground" id={FIELD_ID.targetCountHint}>
+            {t(copy.hint, { count: bookCount })}
+          </span>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">
@@ -403,17 +447,24 @@ function GoalForm({
         <FieldError error={errors.deadline} id={FIELD_ID.deadlineError} />
       </div>
 
-      <p className="text-xs leading-relaxed text-muted-foreground">{t("explanation")}</p>
+      {mode.kind === "create" ? (
+        <GoalCreationPreview
+          deadline={deadline}
+          listId={mode.listId}
+          targetCount={targetCount}
+          today={today}
+        >
+          {explanation}
+        </GoalCreationPreview>
+      ) : (
+        explanation
+      )}
 
       <DialogFooter>
         <Button disabled={isPending} onClick={onCancel} type="button" variant="secondary">
           {t("cancel")}
         </Button>
-        <Button
-          disabled={isPending || isDeadlineBlocked || isUnchanged}
-          loading={isPending}
-          type="submit"
-        >
+        <Button disabled={!isValid || isPending || isUnchanged} loading={isPending} type="submit">
           {mode.kind === "edit" ? t("save") : t("submit")}
         </Button>
       </DialogFooter>

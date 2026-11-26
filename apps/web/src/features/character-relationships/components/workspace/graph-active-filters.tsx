@@ -12,7 +12,6 @@ import { useRelationshipLabels } from "../../model/use-relationship-labels";
 
 type GraphActiveFiltersProps = {
   categories: RelationshipCategory[];
-  dormant: boolean;
   filtersTriggerId: string;
   onChange: (filters: { categories: RelationshipCategory[]; types: RelationshipType[] }) => void;
   onReset: () => void;
@@ -21,7 +20,6 @@ type GraphActiveFiltersProps = {
 
 export function GraphActiveFilters({
   categories,
-  dormant,
   filtersTriggerId,
   onChange,
   onReset,
@@ -31,10 +29,6 @@ export function GraphActiveFilters({
   const labels = useRelationshipLabels();
   const group = useRef<HTMLDivElement>(null);
   if (categories.length === 0 && types.length === 0) return null;
-
-  if (dormant) {
-    return <p className="text-xs text-muted-foreground">{t("treeDormant")}</p>;
-  }
 
   const chips = [
     ...categories.map((category) => ({

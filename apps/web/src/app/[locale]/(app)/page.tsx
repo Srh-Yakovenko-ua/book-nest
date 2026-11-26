@@ -2,7 +2,7 @@ import { hasLocale } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 
-import { HomeDashboard } from "@/features/books";
+import { HomeDashboard } from "@/features/home";
 import { routing } from "@/i18n/routing";
 
 type Props = {
@@ -15,7 +15,7 @@ export default async function HomePage({ params }: Props) {
   setRequestLocale(locale);
 
   return (
-    <main className="mx-auto w-full max-w-7xl flex-1 px-5 pt-8 pb-16 md:px-8 lg:px-12">
+    <main className="mx-auto w-full max-w-360 flex-1 px-3 pt-5 pb-12 sm:px-4 md:pt-6 xl:px-6">
       <HomeDashboard />
     </main>
   );

@@ -9,29 +9,39 @@ import type {
 
 import { useLocale, useTranslations } from "next-intl";
 
+import type { UiIconName } from "@/components/icons";
+
 import { UiIcon } from "@/components/icons";
 import { Link } from "@/i18n/navigation";
 import { assertNever } from "@/lib/assert-never";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+import { useGoalDetailHref } from "../model/use-goal-catalog-links";
+import { useGoalTitle } from "../model/use-goal-title";
+
 type GoalsOverviewHighlightsProps = {
   attention: ReadingGoalAttentionItem[];
   bestResult: Nullable<ReadingGoalBestResult>;
 };
 
-const ATTENTION_SEVERITY_TONE = {
-  critical: "text-error",
-  high: "text-warning",
-  medium: "text-muted-foreground",
-} as const satisfies Record<ReadingGoalAttentionSeverity, string>;
+const ATTENTION_SEVERITY_MARKER = {
+  critical: { icon: "alert-triangle", tone: "text-error" },
+  high: { icon: "alert-circle", tone: "text-warning" },
+  medium: { icon: "info", tone: "text-muted-foreground" },
+} as const satisfies Record<ReadingGoalAttentionSeverity, { icon: UiIconName; tone: string }>;
 
 export function GoalsOverviewHighlights({ attention, bestResult }: GoalsOverviewHighlightsProps) {
-  if (attention.length === 0 && bestResult === null) return null;
+  const hasAttention = attention.length > 0;
+  const hasBestResult = bestResult !== null;
+
+  if (!hasAttention && !hasBestResult) return null;
 
   return (
-    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-      {attention.length === 0 ? null : <AttentionCard items={attention} />}
+    <div
+      className={cn("grid grid-cols-1 gap-3", hasAttention && hasBestResult && "lg:grid-cols-2")}
+    >
+      {hasAttention ? <AttentionCard items={attention} /> : null}
       {bestResult === null ? null : <BestResultCard result={bestResult} />}
     </div>
   );
@@ -59,26 +69,33 @@ function AttentionCard({ items }: { items: ReadingGoalAttentionItem[] }) {
 
 function AttentionLink({ item }: { item: ReadingGoalAttentionItem }) {
   const t = useTranslations("goals.catalog.attention");
+  const tRisk = useTranslations("goals.risk");
+  const goalTitle = useGoalTitle();
+  const goalDetailHref = useGoalDetailHref();
   const remainingCount = numericMessageValue(item, "remainingCount");
-  const name =
-    item.goalName ??
-    (item.listName === null ? t("untitled") : t("listGoal", { name: item.listName }));
+  const targetCount = numericMessageValue(item, "targetCount");
+  const title =
+    targetCount === null ? item.goalName : goalTitle({ name: item.goalName, targetCount });
+  const severityMarker = ATTENTION_SEVERITY_MARKER[item.severity];
 
   return (
     <Link
       className="group/attention -mx-2 flex min-w-0 items-start gap-2.5 rounded-lg px-2 py-1.5 no-underline transition-colors outline-none hover:bg-accent/40 focus-visible:ring-3 focus-visible:ring-ring/50"
-      href={`/goals/${item.goalId}`}
+      href={goalDetailHref(item.goalId)}
     >
       <UiIcon
-        aria-hidden
-        className={cn("mt-0.5 shrink-0", ATTENTION_SEVERITY_TONE[item.severity])}
-        name="alert-circle"
+        aria-label={tRisk(item.severity)}
+        className={cn("mt-0.5 shrink-0", severityMarker.tone)}
+        name={severityMarker.icon}
         size={16}
       />
       <span className="flex min-w-0 flex-col gap-0.5">
-        <span className="line-clamp-2 text-sm font-medium break-words text-ink group-hover/attention:text-primary">
-          {name}
-        </span>
+        {title === null ? null : (
+          <span className="line-clamp-2 text-sm font-medium break-words text-ink group-hover/attention:text-primary">
+            {title}
+          </span>
+        )}
+        {item.listName === null ? null : <SourceListLine name={item.listName} />}
         <span className="text-xs text-muted-foreground">
           <AttentionReason item={item} />
           {remainingCount === null ? null : ` · ${t("remaining", { count: remainingCount })}`}
@@ -104,6 +121,10 @@ function AttentionReason({ item }: { item: ReadingGoalAttentionItem }) {
         ? t("noRecentProgress")
         : t("noRecentProgressDays", { count: idleDays });
     }
+    case "projected_late": {
+      const lateDays = numericMessageValue(item, "lateDays");
+      return lateDays === null ? t("projectedLate") : t("projectedLateDays", { count: lateDays });
+    }
     case "required_pace_high":
       return t("requiredPaceHigh");
     default:
@@ -113,6 +134,8 @@ function AttentionReason({ item }: { item: ReadingGoalAttentionItem }) {
 
 function BestResultCard({ result }: { result: ReadingGoalBestResult }) {
   const t = useTranslations("goals.catalog.bestResult");
+  const goalTitle = useGoalTitle();
+  const goalDetailHref = useGoalDetailHref();
   const locale = useLocale();
 
   return (
@@ -123,10 +146,11 @@ function BestResultCard({ result }: { result: ReadingGoalBestResult }) {
       </h3>
       <Link
         className="line-clamp-2 w-fit rounded-sm text-sm font-medium break-words text-ink no-underline outline-none hover:text-primary focus-visible:text-primary focus-visible:ring-3 focus-visible:ring-ring/50"
-        href={`/goals/${result.goalId}`}
+        href={goalDetailHref(result.goalId)}
       >
-        {result.goalName ?? t("fallbackName", { count: result.targetCount })}
+        {goalTitle({ name: result.goalName, targetCount: result.targetCount })}
       </Link>
+      {result.listName === null ? null : <SourceListLine name={result.listName} />}
       <p className="text-xs text-muted-foreground">
         {t("summary", {
           count: result.daysBeforeDeadline,
@@ -140,4 +164,16 @@ function BestResultCard({ result }: { result: ReadingGoalBestResult }) {
 function numericMessageValue(item: ReadingGoalAttentionItem, key: string): Nullable<number> {
   const value = item.messageData[key];
   return typeof value === "number" ? value : null;
+}
+
+function SourceListLine({ name }: { name: string }) {
+  const t = useTranslations("goals.catalog.card");
+
+  return (
+    <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+      <UiIcon aria-hidden className="shrink-0 text-icon" name="list" size={14} />
+      <span className="sr-only">{t("sourceList")}</span>
+      <span className="truncate">{name}</span>
+    </span>
+  );
 }

@@ -10,8 +10,10 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 import { stubTextMetrics } from "@/features/quotes/model/quotes.fixtures";
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent } from "@/test-utils";
 
+import { formatDayLong } from "../model/statistics-format";
 import { completedReadFixture, statisticsIds } from "../model/statistics.fixtures";
 import { CompletedReadCard } from "./completed-read-card";
 
@@ -33,6 +35,10 @@ afterEach(() => {
   restoreMetrics = () => undefined;
   vi.unstubAllGlobals();
 });
+
+function openReadName(title: string) {
+  return messages.statistics.details.completedRead.open.replace("{title}", title);
+}
 
 function readWithCover(coverThumbUrl: Nullable<string>) {
   return completedReadFixture({
@@ -96,5 +102,35 @@ describe("CompletedReadCard", () => {
 
     expect(screen.getByText("14 бер.")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "9/10" })).toBeInTheDocument();
+  });
+});
+
+describe("CompletedReadCard compact", () => {
+  it("puts the title, the finish day with its year and the rating into one button", () => {
+    const read = readWithCover(null);
+    renderWithProviders(<CompletedReadCard read={read} showFinishedAt variant="compact" />);
+
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+    const card = screen.getByRole("button", { name: openReadName(TITLE) });
+    expect(card).toHaveTextContent(TITLE);
+    expect(card).toHaveTextContent(formatDayLong(read.finishedAt, "uk"));
+    expect(card).toHaveTextContent("9/10");
+  });
+
+  it("shows the cover of a compact read that has one", () => {
+    renderWithProviders(
+      <CompletedReadCard read={readWithCover(COVER_URL)} showFinishedAt variant="compact" />,
+    );
+
+    expect(screen.getByRole("img", { name: TITLE })).toBeInTheDocument();
+  });
+
+  it("draws no cover image for a compact read without one and still names the book", () => {
+    renderWithProviders(
+      <CompletedReadCard read={readWithCover(null)} showFinishedAt variant="compact" />,
+    );
+
+    expect(screen.queryByRole("img", { name: TITLE })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: openReadName(TITLE) })).toHaveTextContent(TITLE);
   });
 });

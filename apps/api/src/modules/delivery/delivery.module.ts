@@ -45,6 +45,7 @@ import { ShipmentsRepository } from "./infrastructure/shipments.repository.js";
     BookOrderService,
     BookOrderItemService,
     BookOrderItemsRepository,
+    DeliveryReadService,
     SingleBookOrderService,
   ],
   imports: [AuthModule, MediaModule, DeliveryServicesModule, ProfileModule, ReadingGoalsModule],

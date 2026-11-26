@@ -107,6 +107,7 @@ export function calculateReadingGoalMetrics({
     elapsedPercent: schedule.elapsedPercent,
     pace: schedule.pace,
     projectedDaysDelta: projection.projectedDaysDelta,
+    projectionConfidence: projection.projectionConfidence,
     remainingCount,
     requiredBooksPerDay,
     status,

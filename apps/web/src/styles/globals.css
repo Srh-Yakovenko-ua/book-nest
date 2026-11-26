@@ -7,6 +7,9 @@
 @import "@fontsource-variable/geist-mono";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant zoom-overview (&:is([data-zoom-band="overview"] *));
+@custom-variant zoom-exploration (&:is([data-zoom-band="exploration"] *));
+@custom-variant zoom-details (&:is([data-zoom-band="details"] *));
 
 @theme inline {
   --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
@@ -63,6 +66,16 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+
+  --color-relation-family: var(--relation-family);
+  --color-relation-romantic: var(--relation-romantic);
+  --color-relation-social: var(--relation-social);
+  --color-relation-conflict: var(--relation-conflict);
+  --color-relation-mentorship: var(--relation-mentorship);
+  --color-relation-hierarchy: var(--relation-hierarchy);
+  --color-relation-supernatural: var(--relation-supernatural);
+  --color-relation-custom: var(--relation-custom);
+  --color-relation-neutral: var(--relation-neutral);
 
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -163,7 +176,7 @@
   /* Semantic colors provide small points of visual variety */
   --success: oklch(0.49 0.1 145);
   --success-soft: oklch(0.95 0.04 145);
-  --warning: oklch(0.56 0.12 70);
+  --warning: oklch(0.54 0.12 70);
   --warning-soft: oklch(0.96 0.045 82);
   --error: oklch(0.485 0.181 29.9);
   --error-soft: oklch(0.951 0.024 23.8);
@@ -183,6 +196,16 @@
   --chart-3: var(--success);
   --chart-4: var(--info);
   --chart-5: var(--favorite);
+
+  --relation-family: oklch(0.53 0.1 142);
+  --relation-romantic: oklch(0.57 0.16 8);
+  --relation-social: oklch(0.6 0.12 72);
+  --relation-conflict: oklch(0.5 0.17 32);
+  --relation-mentorship: oklch(0.5 0.13 295);
+  --relation-hierarchy: oklch(0.5 0.1 245);
+  --relation-supernatural: oklch(0.52 0.09 195);
+  --relation-custom: oklch(0.52 0.03 60);
+  --relation-neutral: oklch(0.6 0.02 65);
 
   --radius: 0.75rem;
 
@@ -328,6 +351,16 @@
   --chart-3: oklch(0.756 0.055 64);
   --chart-4: oklch(0.734 0.075 246.5);
   --chart-5: oklch(0.716 0.093 144.5);
+
+  --relation-family: oklch(0.74 0.1 142);
+  --relation-romantic: oklch(0.74 0.13 8);
+  --relation-social: oklch(0.8 0.11 75);
+  --relation-conflict: oklch(0.7 0.15 32);
+  --relation-mentorship: oklch(0.74 0.11 295);
+  --relation-hierarchy: oklch(0.74 0.09 245);
+  --relation-supernatural: oklch(0.75 0.08 195);
+  --relation-custom: oklch(0.72 0.03 65);
+  --relation-neutral: oklch(0.6 0.02 65);
 
   --gradient-brand: linear-gradient(
     135deg,
@@ -590,8 +623,28 @@
   }
 }
 
+@utility hatched {
+  background-image: repeating-linear-gradient(
+    135deg,
+    oklch(from var(--muted-foreground) l c h / 0.75) 0 1px,
+    transparent 1.5px 5px
+  );
+}
+
 @utility graph-workspace-viewport {
   min-height: calc(100dvh - var(--shell-header-height) - var(--spacing) * 18);
+}
+
+@utility graph-person-canvas {
+  height: clamp(30rem, calc(100dvh - var(--shell-header-height) - var(--spacing) * 8), 45rem);
+}
+
+@utility graph-person-canvas-compact {
+  height: min(30rem, 68dvh);
+}
+
+@utility graph-person-canvas-immersive {
+  height: max(30rem, calc(100dvh - var(--shell-header-height) - var(--spacing) * 48));
 }
 
 @utility graph-workspace-immersive {

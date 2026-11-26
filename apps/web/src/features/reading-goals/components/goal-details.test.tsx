@@ -4,13 +4,16 @@ import type { UrlUpdateEvent } from "nuqs/adapters/testing";
 import type { ReactNode } from "react";
 
 import { defaultUserProfileSettings } from "@app/shared";
+import { createTranslator } from "next-intl";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import {
   makeReadingGoalActivity,
+  makeReadingGoalBook,
   makeReadingGoalCheckpoint,
   makeReadingGoalDetail,
 } from "../model/reading-goals.fixtures";
@@ -19,6 +22,9 @@ import { GoalDetails } from "./goal-details";
 const TODAY = new Date(2026, 7, 15, 9, 0, 0);
 const GOAL_ID = "goal-1";
 const GOAL_URL = `/api/goals/${GOAL_ID}`;
+
+const detail = messages.goals.detail;
+const translateGoals = createTranslator({ locale: "uk", messages, namespace: "goals" });
 
 const { pushMock, replaceMock } = vi.hoisted(() => ({
   pushMock: vi.fn(),
@@ -133,10 +139,11 @@ describe("GoalDetails", () => {
     expect(within(dialog).getByText("У цілі 8 книг")).toBeInTheDocument();
   });
 
-  it("goes back to the source list while it exists", async () => {
+  it("goes back to all goals while the source list stays linked in the metadata", async () => {
     renderDetails();
 
-    expect(await screen.findByRole("link", { name: "До списку «Книги на осінь»" })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: "Усі цілі" })).toHaveAttribute("href", "/goals");
+    expect(screen.getByRole("link", { name: "Книги на осінь" })).toHaveAttribute(
       "href",
       "/lists/list-1",
     );
@@ -147,7 +154,39 @@ describe("GoalDetails", () => {
 
     renderDetails();
 
-    expect(await screen.findByRole("link", { name: "До цілей" })).toHaveAttribute("href", "/goals");
+    expect(await screen.findByRole("link", { name: "Усі цілі" })).toHaveAttribute("href", "/goals");
+  });
+
+  it("returns to the catalog with the status and view it was opened from", async () => {
+    renderDetails("?catalog=status%3Dcompleted%26view%3Dlist");
+
+    expect(await screen.findByRole("link", { name: "Усі цілі" })).toHaveAttribute(
+      "href",
+      "/goals?status=completed&view=list",
+    );
+  });
+
+  it("returns to the default catalog when the remembered state is not valid", async () => {
+    renderDetails("?catalog=status%3Dbogus%26view%3Dtiles");
+
+    expect(await screen.findByRole("link", { name: "Усі цілі" })).toHaveAttribute("href", "/goals");
+  });
+
+  it("keeps the remembered catalog state while the reader moves between tabs", async () => {
+    const events: UrlUpdateEvent[] = [];
+    renderDetails("?tab=books&catalog=status%3Darchived", events);
+
+    expect(await screen.findByText(detail.books.empty.all.title)).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: detail.tabs.books })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    await userEvent.click(screen.getByRole("tab", { name: detail.tabs.overview }));
+
+    await waitFor(() => expect(events).not.toHaveLength(0));
+    expect(events.at(-1)?.searchParams.has("tab")).toBe(false);
+    expect(events.at(-1)?.searchParams.get("catalog")).toBe("status=archived");
   });
 
   it("sends the not-found state back to the goals catalog", async () => {
@@ -198,6 +237,7 @@ describe("GoalDetails", () => {
 
     expect(await screen.findByText("Заархівована")).toBeInTheDocument();
     expect(screen.getByText("Без результату")).toBeInTheDocument();
+    expect(screen.getByText(detail.hero.archived)).toBeInTheDocument();
     expect(screen.queryByText("Прострочена")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Редагувати ціль" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Архівувати" })).not.toBeInTheDocument();
@@ -252,15 +292,143 @@ describe("GoalDetails", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Уся історія" }));
 
     await waitFor(() => expect(events.at(-1)?.searchParams.get("tab")).toBe("activity"));
+    await waitFor(() =>
+      expect(screen.getByRole("region", { name: detail.activity.listLabel })).toHaveFocus(),
+    );
   });
 
-  it("names a forecast date only when the server is confident about it", async () => {
-    respondWith({ projectedCompletionDate: "2026-11-25", projectionConfidence: "medium" });
+  it("opens the remaining books from the next step of an at-risk goal and focuses the list", async () => {
+    respondWith({
+      requiredDaysPerBook: null,
+      riskLevel: "high",
+      riskReasons: ["behind_schedule"],
+    });
 
     renderDetails();
 
-    expect(await screen.findByText(/виконано 25 листопада 2026/)).toBeInTheDocument();
-    expect(screen.getByText("Середня точність прогнозу")).toBeInTheDocument();
+    await userEvent.click(
+      await screen.findByRole("button", { name: detail.overview.risk.showRemaining }),
+    );
+
+    expect(await screen.findByText(detail.books.empty.remaining.title)).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: detail.tabs.books })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("radio", { name: /^Ще не зараховані/ })).toBeChecked();
+    expect(screen.getByRole("region", { name: detail.books.listLabel })).toHaveFocus();
+  });
+
+  it("keeps focus on the books tab when it is chosen from the tab list", async () => {
+    renderDetails();
+
+    const booksTab = await screen.findByRole("tab", { name: detail.tabs.books });
+    await userEvent.click(booksTab);
+
+    expect(await screen.findByText(detail.books.empty.all.title)).toBeInTheDocument();
+    expect(booksTab).toHaveFocus();
+    expect(screen.getByRole("region", { name: detail.books.listLabel })).not.toHaveFocus();
+  });
+
+  it("opens the remaining books from the hero and focuses the list from the overview", async () => {
+    const events: UrlUpdateEvent[] = [];
+    renderDetails("", events);
+
+    await userEvent.click(await screen.findByRole("button", { name: detail.hero.action.books }));
+
+    expect(await screen.findByText(detail.books.empty.remaining.title)).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: detail.tabs.books })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("radio", { name: /^Ще не зараховані/ })).toBeChecked();
+    expect(screen.getByRole("region", { name: detail.books.listLabel })).toHaveFocus();
+    await waitFor(() => expect(events.at(-1)?.searchParams.get("scope")).toBe("remaining"));
+    expect(events.at(-1)?.searchParams.get("tab")).toBe("books");
+  });
+
+  it("narrows an open books tab to the remaining books from the hero and focuses the list", async () => {
+    renderDetails();
+
+    await userEvent.click(await screen.findByRole("tab", { name: detail.tabs.books }));
+    expect(await screen.findByText(detail.books.empty.all.title)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: detail.hero.action.books }));
+
+    expect(await screen.findByText(detail.books.empty.remaining.title)).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /^Ще не зараховані/ })).toBeChecked();
+    expect(screen.getByRole("region", { name: detail.books.listLabel })).toHaveFocus();
+  });
+
+  it("sends the hero to the book in progress instead of the goal books", async () => {
+    respondWith({
+      remainingBooks: [
+        makeReadingGoalBook({
+          countedFinishedAt: null,
+          id: "book-in-progress",
+          qualifies: false,
+          reading: {
+            currentPage: 120,
+            finishedAt: null,
+            pagesCount: 320,
+            startedAt: "2026-08-01",
+            status: "reading",
+          },
+        }),
+      ],
+    });
+
+    renderDetails();
+
+    const continueLink = await screen.findByRole("link", { name: detail.hero.action.continue });
+    expect(continueLink).toHaveAttribute("href", "/books/book-in-progress");
+    expect(
+      screen.queryByRole("button", { name: detail.hero.action.books }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the shared progress hero once on every tab without the old progress and time block", async () => {
+    respondWith({ completedCount: 2, progressPercent: 40, remainingCount: 3, targetCount: 5 });
+    const heroLabel = translateGoals("detail.progressLabel", { percent: 40 });
+
+    function expectOnlyTheSharedHero() {
+      const heroes = screen.getAllByRole("progressbar", { name: heroLabel });
+      expect(heroes).toHaveLength(1);
+      expect(heroes[0]).toHaveAttribute("aria-valuenow", "40");
+      expect(screen.queryByRole("heading", { name: /Прогрес і час/ })).not.toBeInTheDocument();
+      expect(screen.queryByText(/Прогрес і час/)).not.toBeInTheDocument();
+    }
+
+    renderDetails();
+
+    expect(await screen.findByRole("tab", { name: detail.tabs.overview })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expectOnlyTheSharedHero();
+
+    await userEvent.click(screen.getByRole("tab", { name: detail.tabs.books }));
+    expect(await screen.findByText(detail.books.empty.all.title)).toBeInTheDocument();
+    expectOnlyTheSharedHero();
+
+    await userEvent.click(screen.getByRole("tab", { name: detail.tabs.activity }));
+    expect(await screen.findByText(detail.activity.empty.title)).toBeInTheDocument();
+    expectOnlyTheSharedHero();
+  });
+
+  it("names a forecast date only when the server is confident about it", async () => {
+    respondWith({
+      projectedCompletionDate: "2026-11-25",
+      projectedDaysDelta: 5,
+      projectionConfidence: "medium",
+    });
+
+    renderDetails();
+
+    expect(await screen.findByText("25 листопада 2026 р.")).toBeInTheDocument();
+    expect(
+      screen.getByText(translateGoals("detail.overview.projection.early", { count: 5 })),
+    ).toBeInTheDocument();
+    expect(screen.getByText(detail.overview.projection.confidence.medium)).toBeInTheDocument();
   });
 
   it("does not state an exact date for a low-confidence forecast", async () => {
@@ -268,12 +436,9 @@ describe("GoalDetails", () => {
 
     renderDetails();
 
-    expect(
-      await screen.findByText(
-        "Прогноз поки приблизний: книг зараховано ще замало, щоб назвати дату.",
-      ),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(detail.overview.projection.insufficient)).toBeInTheDocument();
     expect(screen.queryByText(/25 листопада 2026/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Впевненість/)).not.toBeInTheDocument();
   });
 
   it("keeps both the miss and the late achievement of a checkpoint", async () => {
@@ -289,9 +454,100 @@ describe("GoalDetails", () => {
 
     renderDetails();
 
-    expect(await screen.findByText("Пропущено")).toBeInTheDocument();
-    expect(screen.getByText(/досягнуто пізніше, 20 жовтня 2026/)).toBeInTheDocument();
+    const checkpoints = detail.overview.checkpoints;
+    expect(await screen.findByText(checkpoints.status.achieved_late)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        translateGoals("detail.overview.checkpoints.achievedLate", {
+          count: 5,
+          date: "20 жовтня 2026 р.",
+        }),
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(checkpoints.status.missed)).not.toBeInTheDocument();
+    expect(screen.queryByText(checkpoints.status.achieved)).not.toBeInTheDocument();
   });
+
+  it("keeps the pace close to plan while the forecast warns of a 15-day delay", async () => {
+    respondWith({
+      completedCount: 2,
+      daysLeft: 38,
+      elapsedPercent: 47.9,
+      expectedCompletedCount: 2.4,
+      pace: "on_track",
+      paceDeltaBooks: -0.4,
+      progressPercent: 40,
+      projectedCompletionDate: "2027-01-15",
+      projectedDaysDelta: -15,
+      projectionConfidence: "medium",
+      remainingCount: 3,
+      riskLevel: "high",
+      riskReasons: ["projected_late"],
+      targetCount: 5,
+    });
+
+    renderDetails();
+
+    expect(
+      await screen.findByText(
+        translateGoals("detail.overview.risk.reasons.projected_late", { count: 15 }),
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText(detail.overview.risk.onTrackProjectedLate)).toBeInTheDocument();
+    expect(screen.getByText(detail.hero.closeToPlan)).toBeInTheDocument();
+    expect(screen.queryByText(messages.goals.pace.behind)).not.toBeInTheDocument();
+  });
+
+  it("titles an unnamed goal by its target and keeps the deadline and list apart", async () => {
+    respondWith({ name: null, targetCount: 8 });
+
+    renderDetails();
+
+    expect(
+      await screen.findByRole("heading", {
+        level: 1,
+        name: translateGoals("fallbackTitle", { count: 8 }),
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(translateGoals("detail.meta.deadline", { date: "30 листопада 2026 р." })),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Книги на осінь" })).toHaveAttribute(
+      "href",
+      "/lists/list-1",
+    );
+  });
+
+  it.each([
+    {
+      note: translateGoals("detail.hero.completedOn", { date: "12 листопада 2026 р." }),
+      overrides: {
+        completedAt: "2026-11-12",
+        completedCount: 8,
+        daysLeft: null,
+        progressPercent: 100,
+        remainingCount: 0,
+        status: "completed" as const,
+      },
+      status: messages.goals.status.completed,
+    },
+    {
+      note: translateGoals("detail.hero.overdue", { count: 4 }),
+      overrides: { daysLeft: -4, status: "expired" as const },
+      status: messages.goals.status.expired,
+    },
+  ])(
+    "labels a goal $status in the header and dates it in the hero",
+    async ({ note, overrides, status }) => {
+      respondWith(overrides);
+
+      renderDetails();
+
+      expect(await screen.findByText(status)).toBeInTheDocument();
+      expect(screen.getByText(note)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: detail.edit })).toBeInTheDocument();
+    },
+  );
 
   it("names every risk reason the server reports", async () => {
     respondWith({ riskLevel: "high", riskReasons: ["behind_schedule", "no_recent_progress"] });

@@ -19,10 +19,13 @@ const DEFAULT_PARAMS: GraphWorkspaceParams = {
   characterId: null,
   depth: 1,
   from: null,
+  networkFocus: null,
   networkGroup: "group",
   path: false,
   to: null,
   treeDown: 2,
+  treeLinks: ["marriages", "siblings", "guardians", "distant"],
+  treeScope: "branch",
   treeUp: 2,
   types: [],
   view: "person",
@@ -50,6 +53,38 @@ describe("toGraphWorkspaceSceneRequest", () => {
     });
 
     expect(request).toBeNull();
+  });
+
+  it.each<{ characterId: GraphWorkspaceParams["characterId"]; label: string }>([
+    { characterId: null, label: "without a character" },
+    { characterId: CHARACTER.geralt, label: "with a character" },
+  ])("asks the full tree for the whole genealogy of the book $label", ({ characterId }) => {
+    const request = toGraphWorkspaceSceneRequest({
+      ...DEFAULT_PARAMS,
+      characterId,
+      treeScope: "full",
+      view: "tree",
+    });
+
+    expect(request).toEqual({ kind: "genealogy" });
+  });
+
+  it("asks the branch tree for the family of the focus character", () => {
+    const request = toGraphWorkspaceSceneRequest({
+      ...DEFAULT_PARAMS,
+      characterId: CHARACTER.geralt,
+      treeDown: 1,
+      treeScope: "branch",
+      treeUp: 3,
+      view: "tree",
+    });
+
+    expect(request).toEqual({
+      ancestors: 3,
+      descendants: 1,
+      focusCharacterId: CHARACTER.geralt,
+      kind: "tree",
+    });
   });
 });
 
@@ -154,5 +189,7 @@ describe("toGraphWorkspacePathRequest", () => {
 
 function toApiParams(params: GraphWorkspaceParams) {
   const request = toGraphWorkspaceSceneRequest(params);
-  return request === null ? null : toBookGraphRequestParams(request);
+  return request === null || request.kind === "genealogy"
+    ? null
+    : toBookGraphRequestParams(request);
 }

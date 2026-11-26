@@ -1,3 +1,5 @@
+import type { ReadingGoalProjectionConfidence } from "@app/shared";
+
 import { READING_GOAL_PAGE_SIZE } from "@app/shared";
 
 export const ACTIVE_LIST_GOAL_INDEX = "reading_goals_active_list_idx";
@@ -5,6 +7,7 @@ export const ACTIVE_LIST_GOAL_INDEX = "reading_goals_active_list_idx";
 export const READING_GOAL_MESSAGE = {
   activeGoalExists: "This list already has an active reading goal",
   archivedIsReadOnly: "Archived goal cannot be changed",
+  countedBackfillConcurrentChange: "Reading goal activity changed during the ordinal backfill",
   deadlineNotInFuture: "Deadline must be later than today",
   notFound: "Reading goal not found",
   targetAboveListSize: "Target cannot exceed the number of books in the list",
@@ -37,6 +40,13 @@ export const READING_GOAL_RISK = Object.freeze({
   lowRiskProjectedDeltaMax: 3,
   noRecentProgressDays: 14,
   noRecentProgressElapsedDays: 14,
+  projectedLateMinimumDays: Object.freeze({ high: 8, low: 1, medium: 4 }),
+  projectedLateTrustedConfidence: Object.freeze({
+    high: true,
+    low: false,
+    medium: true,
+    none: false,
+  } satisfies Record<ReadingGoalProjectionConfidence, boolean>),
   requiredPaceMultiplier: 1.5,
   requiredPaceZeroElapsedPercent: 50,
 });

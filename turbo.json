@@ -27,7 +27,14 @@
     },
     "typecheck": {
       "dependsOn": ["^typecheck"],
-      "inputs": ["src/**/*.{ts,tsx}", "tsconfig*.json", "package.json", "src/env.d.ts"],
+      "inputs": [
+        "src/**/*.{ts,tsx}",
+        "scripts/**/*.ts",
+        "scripts/**/tsconfig.json",
+        "tsconfig*.json",
+        "package.json",
+        "src/env.d.ts"
+      ],
       "outputs": []
     },
     "lint": {

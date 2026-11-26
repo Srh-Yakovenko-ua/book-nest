@@ -5,116 +5,141 @@ import type { StatisticsCalendarDay, WeekStartDay } from "@app/shared";
 import { useLocale, useTranslations } from "next-intl";
 import { useRef } from "react";
 
-import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+import type { CalendarMonthSlot } from "../../model/statistics-calendar";
+
 import {
-  buildHeatmapWeeks,
+  buildMonthSlots,
   isUnknownCalendarDay,
   weekdayOrder,
 } from "../../model/statistics-calendar";
 import { resolveReadingDayTarget } from "../../model/statistics-drilldown";
-import { formatDayLong, formatMonthShort, weekdayLabel } from "../../model/statistics-format";
+import { formatDayLong, formatMonthName, weekdayLabel } from "../../model/statistics-format";
 import { ReadingDayDetails } from "../details/reading-day-details";
 import { StatisticsDetailSurface } from "../details/statistics-detail-surface";
+import { READING_INTENSITY_CLASS } from "./reading-intensity";
 
-const HEATMAP_CELL_CLASS = {
-  intensity: ["bg-secondary", "bg-primary/25", "bg-primary/45", "bg-primary/70", "bg-primary"],
-  unknown: "border border-dashed border-muted-foreground/50 bg-transparent",
+const HEATMAP_CLASS = {
+  cell: "size-(--quarter-cell) rounded-[3px] outline-none",
+  future: "bg-muted/40",
+  grid: "flex gap-1 [--quarter-cell:clamp(0.625rem,calc((100cqi-var(--quarter-labels)-3.375rem)/18),1.125rem)] [--quarter-gap:2px] [--quarter-labels:0rem] @xs/quarter:[--quarter-labels:1.25rem]",
+  legend: "flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground",
+  legendItem: "flex items-center gap-1.5",
+  legendSwatch: "size-3 shrink-0 rounded-[3px]",
+  month: "flex min-w-0 flex-col gap-1",
+  monthHeader: "h-3 min-w-0",
+  monthLabel: {
+    base: "block truncate text-xs leading-3 font-medium",
+    idle: "text-muted-foreground",
+    selected: "font-semibold text-primary",
+  },
+  months: "flex min-w-0 flex-1 justify-between gap-3",
+  root: "@container/quarter flex flex-col gap-2",
+  unknown: "bg-secondary/45 ring-1 ring-border/60 ring-inset",
+  week: "flex flex-col gap-(--quarter-gap)",
+  weekday:
+    "flex h-(--quarter-cell) items-center text-[0.625rem] leading-none text-muted-foreground",
+  weekdays: "hidden w-4 shrink-0 flex-col gap-(--quarter-gap) pt-4 @xs/quarter:flex",
+  weeks: "flex gap-(--quarter-gap)",
 } as const;
 
 const VISIBLE_WEEKDAY_ROWS = [0, 2, 4] as const;
 
 export function ReadingHeatmap({
   days,
+  months,
   onShowInBooksCalendar,
+  selectedMonth,
+  today,
   weekStartDay,
 }: {
   days: readonly StatisticsCalendarDay[];
+  months: readonly string[];
   onShowInBooksCalendar?: (date: string) => void;
+  selectedMonth: string;
+  today: string;
   weekStartDay: WeekStartDay;
 }) {
   const locale = useLocale();
   const t = useTranslations("statistics.calendar.heatmap");
-  const weeks = buildHeatmapWeeks({ days, weekStartDay });
   const order = weekdayOrder(weekStartDay);
-  const hasUnknownDays = days.some(isUnknownCalendarDay);
+  const monthSlots = months.map((monthKey) => ({
+    monthKey,
+    weeks: buildMonthSlots({ days, monthKey, today, weekStartDay }),
+  }));
+  const slots = monthSlots.flatMap(({ weeks }) => weeks.flat());
+  const hasUnknownDays = slots.some(isUnknownSlot);
+  const hasFutureDays = slots.some((slot) => slot.kind === "future");
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="overflow-x-auto pb-1">
-        <div className="flex min-w-max gap-2">
-          <div className="flex shrink-0 flex-col gap-[3px] pt-4">
-            {order.map((weekday, row) => (
-              <span
-                aria-hidden
-                className="flex h-[13px] items-center text-[0.625rem] leading-none text-muted-foreground"
-                key={weekday}
-              >
-                {VISIBLE_WEEKDAY_ROWS.some((visible) => visible === row)
-                  ? weekdayLabel({ locale, weekday, width: "short" })
-                  : ""}
-              </span>
-            ))}
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <div className="flex gap-[3px]">
-              {weeks.map((week, weekIndex) => (
+    <div className={HEATMAP_CLASS.root}>
+      <div className={HEATMAP_CLASS.grid}>
+        <div aria-hidden className={HEATMAP_CLASS.weekdays}>
+          {order.map((weekday, row) => (
+            <span className={HEATMAP_CLASS.weekday} key={weekday}>
+              {VISIBLE_WEEKDAY_ROWS.some((visible) => visible === row)
+                ? weekdayLabel({ locale, weekday, width: "short" })
+                : ""}
+            </span>
+          ))}
+        </div>
+        <div className={HEATMAP_CLASS.months}>
+          {monthSlots.map(({ monthKey, weeks }) => (
+            <div className={HEATMAP_CLASS.month} key={monthKey}>
+              <span className={HEATMAP_CLASS.monthHeader}>
                 <span
-                  className="w-[13px] text-[0.6875rem] text-muted-foreground"
-                  key={firstDate(week) ?? weekIndex}
-                >
-                  {monthTick(weeks, weekIndex, locale)}
-                </span>
-              ))}
-            </div>
-            <div className="flex gap-[3px]">
-              {weeks.map((week, weekIndex) => (
-                <div className="flex flex-col gap-[3px]" key={firstDate(week) ?? weekIndex}>
-                  {week.map((day, dayIndex) =>
-                    day === null ? (
-                      <span aria-hidden className="size-[13px]" key={dayIndex} />
-                    ) : (
-                      <HeatmapCell
-                        day={day}
-                        key={day.date}
-                        onShowInBooksCalendar={onShowInBooksCalendar}
-                      />
-                    ),
+                  className={cn(
+                    HEATMAP_CLASS.monthLabel.base,
+                    monthKey === selectedMonth
+                      ? HEATMAP_CLASS.monthLabel.selected
+                      : HEATMAP_CLASS.monthLabel.idle,
                   )}
-                </div>
-              ))}
+                >
+                  {formatMonthName(monthKey, locale)}
+                </span>
+              </span>
+              <div className={HEATMAP_CLASS.weeks}>
+                {weeks.map((week, weekIndex) => (
+                  <div className={HEATMAP_CLASS.week} key={`${monthKey}-${weekIndex}`}>
+                    {week.map((slot, weekdayIndex) => (
+                      <HeatmapSlot
+                        key={weekdayIndex}
+                        onShowInBooksCalendar={onShowInBooksCalendar}
+                        slot={slot}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-        <span className="w-full">{t("intensityLegend")}</span>
-        <span className="flex items-center gap-1.5">
+      <div className={HEATMAP_CLASS.legend}>
+        <span className="flex items-center gap-1">
           <span>{t("legendLess")}</span>
-          {HEATMAP_CELL_CLASS.intensity.map((className, level) => (
-            <span aria-hidden className={cn("size-[13px] rounded-[3px]", className)} key={level} />
+          {READING_INTENSITY_CLASS.background.map((className, level) => (
+            <span aria-hidden className={cn(HEATMAP_CLASS.legendSwatch, className)} key={level} />
           ))}
           <span>{t("legendMore")}</span>
         </span>
         {hasUnknownDays ? (
-          <span className="flex items-center gap-1.5">
-            <span
-              aria-hidden
-              className={cn("size-[13px] rounded-[3px]", HEATMAP_CELL_CLASS.unknown)}
-            />
+          <span className={HEATMAP_CLASS.legendItem}>
+            <span aria-hidden className={cn(HEATMAP_CLASS.legendSwatch, HEATMAP_CLASS.unknown)} />
             <span>{t("unknownLegend")}</span>
+          </span>
+        ) : null}
+        {hasFutureDays ? (
+          <span className={HEATMAP_CLASS.legendItem}>
+            <span aria-hidden className={cn(HEATMAP_CLASS.legendSwatch, HEATMAP_CLASS.future)} />
+            <span>{t("futureLegend")}</span>
           </span>
         ) : null}
       </div>
     </div>
   );
-}
-
-function firstDate(week: readonly (null | StatisticsCalendarDay)[]): null | string {
-  return week.find((day) => day !== null)?.date ?? null;
 }
 
 function HeatmapCell({
@@ -126,6 +151,7 @@ function HeatmapCell({
 }) {
   const locale = useLocale();
   const t = useTranslations("statistics.calendar.heatmap");
+  const tDay = useTranslations("statistics.details.day");
   const isBooksCalendarRequested = useRef(false);
 
   const date = formatDayLong(day.date, locale);
@@ -135,15 +161,11 @@ function HeatmapCell({
       ? isUnknown
         ? t("dayUnknown", { date })
         : t("dayEmpty", { date })
-      : t("daySummary", {
-          books: day.booksCount,
-          date,
-          pages: formatNumber(day.pagesRead, locale),
-        });
+      : t("daySummary", { books: day.booksCount, date, pages: day.pagesRead });
 
   const cellClass = cn(
-    "size-[13px] rounded-[3px] outline-none",
-    isUnknown ? HEATMAP_CELL_CLASS.unknown : HEATMAP_CELL_CLASS.intensity[day.intensity],
+    HEATMAP_CLASS.cell,
+    isUnknown ? HEATMAP_CLASS.unknown : READING_INTENSITY_CLASS.background[day.intensity],
   );
   const detailDate = resolveReadingDayTarget(day.drilldown);
 
@@ -153,6 +175,7 @@ function HeatmapCell({
 
   return (
     <StatisticsDetailSurface
+      compact={{ closeLabel: tDay("close"), eyebrow: tDay("eyebrow") }}
       detail={({ close }) => (
         <ReadingDayDetails
           date={detailDate}
@@ -164,6 +187,7 @@ function HeatmapCell({
                   close();
                 }
           }
+          variant="compact"
         />
       )}
       label={label}
@@ -184,14 +208,42 @@ function HeatmapCell({
   );
 }
 
-function monthTick(
-  weeks: readonly (null | StatisticsCalendarDay)[][],
-  weekIndex: number,
-  locale: string,
-): string {
-  const current = firstDate(weeks[weekIndex] ?? []);
-  if (current === null) return "";
-  const previous = weekIndex === 0 ? null : firstDate(weeks[weekIndex - 1] ?? []);
-  if (previous !== null && previous.slice(0, 7) === current.slice(0, 7)) return "";
-  return formatMonthShort(current, locale);
+function HeatmapSlot({
+  onShowInBooksCalendar,
+  slot,
+}: {
+  onShowInBooksCalendar?: (date: string) => void;
+  slot: CalendarMonthSlot;
+}) {
+  const locale = useLocale();
+  const t = useTranslations("statistics.calendar.heatmap");
+  const tBooks = useTranslations("statistics.calendar.books");
+
+  switch (slot.kind) {
+    case "blank":
+      return <span aria-hidden className={HEATMAP_CLASS.cell} />;
+    case "day":
+      return <HeatmapCell day={slot.day} onShowInBooksCalendar={onShowInBooksCalendar} />;
+    case "future":
+      return (
+        <span
+          aria-label={tBooks("dayFuture", { date: formatDayLong(slot.date, locale) })}
+          className={cn(HEATMAP_CLASS.cell, HEATMAP_CLASS.future)}
+          role="img"
+        />
+      );
+    case "missing":
+      return (
+        <span
+          aria-label={t("dayUnknown", { date: formatDayLong(slot.date, locale) })}
+          className={cn(HEATMAP_CLASS.cell, HEATMAP_CLASS.unknown)}
+          role="img"
+        />
+      );
+  }
+}
+
+function isUnknownSlot(slot: CalendarMonthSlot): boolean {
+  if (slot.kind === "missing") return true;
+  return slot.kind === "day" && isUnknownCalendarDay(slot.day);
 }

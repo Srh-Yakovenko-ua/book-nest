@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 
 import { assertNever } from "@/lib/assert-never";
 
-import type { NetworkBucketLabel } from "../../model/workspace/graph-network-scene";
+import type { NetworkBucketLabel } from "../../model/workspace/graph-network-index";
 
 export function useNetworkBucketLabel(): (label: NetworkBucketLabel) => string {
   const t = useTranslations("relationships.workspace.cluster");

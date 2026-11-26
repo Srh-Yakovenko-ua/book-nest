@@ -16,7 +16,6 @@ import type {
 import { GOALS_QUERY_PARSERS, toGoalsListParams } from "./goals-query";
 
 export type UseGoalsQueryResult = {
-  hasStatusFilter: boolean;
   listParams: GoalsListParams;
   setSort: (value: GoalsSort) => void;
   setStatus: (value: Nullable<GoalsStatus>) => void;
@@ -30,7 +29,6 @@ export function useGoalsQuery(): UseGoalsQueryResult {
   const [state, setState] = useQueryStates(GOALS_QUERY_PARSERS, GOALS_URL_OPTIONS);
 
   return {
-    hasStatusFilter: state.status !== null,
     listParams: toGoalsListParams(state),
     setSort: (sort) => void setState({ sort }),
     setStatus: (status) => void setState({ status }),

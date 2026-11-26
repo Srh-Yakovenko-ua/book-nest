@@ -1,0 +1,4714 @@
+{
+  "metadata": {
+    "fixture_id": "asoiaf-targaryen-book-canon-v1",
+    "fixture_type": "dev_only_user_owned_test_data",
+    "language": "en (canonical disambiguated names)",
+    "status": "source-reviewed named genealogy, excludes unknown/unverified family claims; not an assertion that all ever-named peripheral relatives are exhaustively represented",
+    "coverage": "Known named Targaryen dynasty and closely connected families from Aenar of Dragonstone to Daenerys, selected named Blackfyre descendants and marriages; incomplete for unknown/unlisted descendants.",
+    "important": "Contains full-series spoilers. Do NOT silently treat in-world rumors, speculative parentage, or show-only facts as canonical biological parents.",
+    "book": {
+      "title": "The World of Ice & Fire: The Untold History of Westeros and the Game of Thrones",
+      "ukrainian_display_title": "Світ льоду й полум’я",
+      "authors": [
+        "George R. R. Martin",
+        "Elio M. García Jr.",
+        "Linda Antonsson"
+      ],
+      "publisher": "Random House Worlds",
+      "isbn13": "9780553805444",
+      "publication_date": "2014-10-28",
+      "page_count": 336,
+      "source": "https://www.penguinrandomhouse.com/books/108360/the-world-of-ice-and-fire-by-george-r-r-martin-elio-m-garcia-jr-and-linda-antonsson/9780553805444/",
+      "description_uk": "Ілюстрований довідник до світу «Пісні льоду й полум’я». Тестовий набір персонажів охоплює підтверджені зв’язки дому Таргарієнів та споріднених династій із книжкового канону, включно з матеріалами інших творів циклу."
+    },
+    "source_index": {
+      "targaryen": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "blackfyre": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "baratheon": "https://awoiaf.westeros.org/index.php/House_Baratheon",
+      "rogar": "https://awoiaf.westeros.org/index.php/Rogar_Baratheon",
+      "jon_snow_theory": "https://awoiaf.westeros.org/index.php/Jon_Snow/Theories",
+      "publisher": "https://www.penguinrandomhouse.com/books/108360/the-world-of-ice-and-fire-by-george-r-r-martin-elio-m-garcia-jr-and-linda-antonsson/9780553805444/",
+      "lyanna_theory": "https://awoiaf.westeros.org/index.php/Jon_Snow/Theories"
+    },
+    "exclusions": [
+      {
+        "topic": "Jon Snow parentage",
+        "person": "Jon Snow",
+        "potential_parents": [
+          "Rhaegar Targaryen",
+          "Lyanna Stark"
+        ],
+        "reason": "R+L=J remains a theory in published novels; canon confirmed on television only; no parent-child import.",
+        "source": "https://awoiaf.westeros.org/index.php/Jon_Snow/Theories"
+      },
+      {
+        "topic": "Jacaerys, Lucerys, Joffrey Velaryon father",
+        "person": "Rhaenyra Velaryon sons",
+        "reason": "Laenor Velaryon is publicly recognized as father, biological paternity disputed. Do not assert Laenor or Harwin Strong as biological father.",
+        "source": "https://awoiaf.westeros.org/index.php/House_Targaryen"
+      },
+      {
+        "topic": "Unknown descendants and unnamed stillbirths",
+        "reason": "No invented identities; retain only documented named persons. Some unknown children omitted; do not equate absent with nonexistence."
+      },
+      {
+        "topic": "Young Griff",
+        "reason": "Claim to be Rhaegar’s son Aegon is disputed; do not create independent verified parentage or duplicate Aegon under a new identity."
+      },
+      {
+        "topic": "Additional romantic unions",
+        "reason": "Family tree projection currently shows family-category spouses; do not reclassify romantic partner_of as family."
+      }
+    ],
+    "import_policy": {
+      "enabled": false,
+      "requires_explicit_dev_environment_assertion": true,
+      "idempotent": true,
+      "no_production": true,
+      "no_direct_sql_without_approval": true,
+      "no_app_schema_changes": true,
+      "do_not_recreate_existing_book": true,
+      "include_every_edge_book_state": true,
+      "do_not_mark_full_reading_by_default": true
+    },
+    "fixture_version": "1.1"
+  },
+  "characters": [
+    {
+      "key": "aenar_exile",
+      "name": "Aenar Targaryen (the Exile)",
+      "house": "Targaryen",
+      "era": "I. Драконів Камінь",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": true
+    },
+    {
+      "key": "gaemon_glorious",
+      "name": "Gaemon Targaryen (the Glorious)",
+      "house": "Targaryen",
+      "era": "I. Драконів Камінь",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "daenys_dreamer",
+      "name": "Daenys Targaryen (the Dreamer)",
+      "house": "Targaryen",
+      "era": "I. Драконів Камінь",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aegon_dragonstone_early",
+      "name": "Aegon Targaryen (lord of Dragonstone)",
+      "house": "Targaryen",
+      "era": "I. Драконів Камінь",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "elaena_early",
+      "name": "Elaena Targaryen (of Dragonstone)",
+      "house": "Targaryen",
+      "era": "I. Драконів Камінь",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "maegon_dragonstone",
+      "name": "Maegon Targaryen",
+      "house": "Targaryen",
+      "era": "I. Драконів Камінь",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aerys_dragonstone",
+      "name": "Aerys Targaryen (lord of Dragonstone)",
+      "house": "Targaryen",
+      "era": "I. Драконів Камінь",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aelyx_dragonstone",
+      "name": "Aelyx Targaryen",
+      "house": "Targaryen",
+      "era": "I. Драконів Камінь",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "baelon_dragonstone",
+      "name": "Baelon Targaryen (son of Aerys of Dragonstone)",
+      "house": "Targaryen",
+      "era": "I. Драконів Камінь",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "daemion_dragonstone",
+      "name": "Daemion Targaryen",
+      "house": "Targaryen",
+      "era": "I. Драконів Камінь",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aerion_dragonstone",
+      "name": "Aerion Targaryen (lord of Dragonstone)",
+      "house": "Targaryen",
+      "era": "I. Драконів Камінь",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "valaena_velaryon",
+      "name": "Valaena Velaryon",
+      "house": "Velaryon",
+      "era": "I. Драконів Камінь",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "visenya_conquest",
+      "name": "Visenya Targaryen (the Conquest)",
+      "house": "Targaryen",
+      "era": "I. Драконів Камінь",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aegon_i",
+      "name": "Aegon I Targaryen (the Conqueror)",
+      "house": "Targaryen",
+      "era": "I. Драконів Камінь",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": true
+    },
+    {
+      "key": "rhaenys_conquest",
+      "name": "Rhaenys Targaryen (the Conquest)",
+      "house": "Targaryen",
+      "era": "I. Драконів Камінь",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "maegor_i",
+      "name": "Maegor I Targaryen (the Cruel)",
+      "house": "Targaryen",
+      "era": "II. Завоювання і перші королі",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": true
+    },
+    {
+      "key": "aenys_i",
+      "name": "Aenys I Targaryen",
+      "house": "Targaryen",
+      "era": "II. Завоювання і перші королі",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": true
+    },
+    {
+      "key": "alyssa_velaryon",
+      "name": "Alyssa Velaryon",
+      "house": "Velaryon",
+      "era": "II. Завоювання і перші королі",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "rhaena_aenys",
+      "name": "Rhaena Targaryen (daughter of Aenys I)",
+      "house": "Targaryen",
+      "era": "II. Завоювання і перші королі",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aegon_uncrowned",
+      "name": "Aegon Targaryen (the Uncrowned)",
+      "house": "Targaryen",
+      "era": "II. Завоювання і перші королі",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "viserys_aenys",
+      "name": "Viserys Targaryen (son of Aenys I)",
+      "house": "Targaryen",
+      "era": "II. Завоювання і перші королі",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "jaehaerys_i",
+      "name": "Jaehaerys I Targaryen (the Conciliator)",
+      "house": "Targaryen",
+      "era": "II. Завоювання і перші королі",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": true
+    },
+    {
+      "key": "alysanne",
+      "name": "Alysanne Targaryen (the Good Queen)",
+      "house": "Targaryen",
+      "era": "II. Завоювання і перші королі",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "vaella_aenys",
+      "name": "Vaella Targaryen (daughter of Aenys I)",
+      "house": "Targaryen",
+      "era": "II. Завоювання і перші королі",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aerea_twin",
+      "name": "Aerea Targaryen",
+      "house": "Targaryen",
+      "era": "II. Завоювання і перші королі",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "rhaella_twin",
+      "name": "Rhaella Targaryen (twin of Aerea)",
+      "house": "Targaryen",
+      "era": "II. Завоювання і перші королі",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "ceryse_hightower",
+      "name": "Ceryse Hightower",
+      "house": "Hightower",
+      "era": "II. Завоювання і перші королі",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "alys_harroway",
+      "name": "Alys Harroway",
+      "house": "Harroway",
+      "era": "II. Завоювання і перші королі",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "tyanna_tower",
+      "name": "Tyanna of the Tower",
+      "house": "Unknown",
+      "era": "II. Завоювання і перші королі",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "elinor_costayne",
+      "name": "Elinor Costayne",
+      "house": "Costayne",
+      "era": "II. Завоювання і перші королі",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "jeyne_westerling",
+      "name": "Jeyne Westerling",
+      "house": "Westerling",
+      "era": "II. Завоювання і перші королі",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "rogar_baratheon",
+      "name": "Rogar Baratheon",
+      "house": "Baratheon",
+      "era": "II. Завоювання і перші королі",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/Rogar_Baratheon",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "boremund_baratheon",
+      "name": "Boremund Baratheon",
+      "house": "Baratheon",
+      "era": "II. Завоювання і перші королі",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/Rogar_Baratheon",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "jocelyn_baratheon",
+      "name": "Jocelyn Baratheon",
+      "house": "Baratheon",
+      "era": "II. Завоювання і перші королі",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/Rogar_Baratheon",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aegon_jae_infant",
+      "name": "Aegon Targaryen (infant son of Jaehaerys I)",
+      "house": "Targaryen",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "daenerys_jae_child",
+      "name": "Daenerys Targaryen (daughter of Jaehaerys I)",
+      "house": "Targaryen",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aemon_jae",
+      "name": "Aemon Targaryen (son of Jaehaerys I)",
+      "house": "Targaryen",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "baelon_brave",
+      "name": "Baelon Targaryen (the Brave)",
+      "house": "Targaryen",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "alyssa_jae",
+      "name": "Alyssa Targaryen (daughter of Jaehaerys I)",
+      "house": "Targaryen",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "maegelle",
+      "name": "Maegelle Targaryen",
+      "house": "Targaryen",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "vaegon",
+      "name": "Vaegon Targaryen",
+      "house": "Targaryen",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "daella_jae",
+      "name": "Daella Targaryen (daughter of Jaehaerys I)",
+      "house": "Targaryen",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "saera",
+      "name": "Saera Targaryen",
+      "house": "Targaryen",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "viserra",
+      "name": "Viserra Targaryen",
+      "house": "Targaryen",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "gaemon_jae_infant",
+      "name": "Gaemon Targaryen (infant son of Jaehaerys I)",
+      "house": "Targaryen",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "valerion_jae_infant",
+      "name": "Valerion Targaryen",
+      "house": "Targaryen",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "gael",
+      "name": "Gael Targaryen",
+      "house": "Targaryen",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "rhaenys_queen_never",
+      "name": "Rhaenys Targaryen (the Queen Who Never Was)",
+      "house": "Targaryen",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "corlys_velaryon",
+      "name": "Corlys Velaryon (the Sea Snake)",
+      "house": "Velaryon",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "laena_velaryon",
+      "name": "Laena Velaryon",
+      "house": "Velaryon",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "laenor_velaryon",
+      "name": "Laenor Velaryon",
+      "house": "Velaryon",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "viserys_i",
+      "name": "Viserys I Targaryen",
+      "house": "Targaryen",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": true
+    },
+    {
+      "key": "daemon_prince",
+      "name": "Daemon Targaryen (the Rogue Prince)",
+      "house": "Targaryen",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aegon_baelon_infant",
+      "name": "Aegon Targaryen (infant son of Baelon)",
+      "house": "Targaryen",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "rodrik_arryn",
+      "name": "Rodrik Arryn",
+      "house": "Arryn",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aemma_arryn",
+      "name": "Aemma Arryn",
+      "house": "Arryn",
+      "era": "III. Яехейріс I та його нащадки",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "alicent_hightower",
+      "name": "Alicent Hightower",
+      "house": "Hightower",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "rhaenyra",
+      "name": "Rhaenyra Targaryen",
+      "house": "Targaryen",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": true
+    },
+    {
+      "key": "baelon_heir_day",
+      "name": "Baelon Targaryen (the Heir for a Day)",
+      "house": "Targaryen",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aegon_ii",
+      "name": "Aegon II Targaryen",
+      "house": "Targaryen",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": true
+    },
+    {
+      "key": "helaena",
+      "name": "Helaena Targaryen",
+      "house": "Targaryen",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aemond_one_eye",
+      "name": "Aemond Targaryen (One-Eye)",
+      "house": "Targaryen",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "daeron_daring",
+      "name": "Daeron Targaryen (the Daring)",
+      "house": "Targaryen",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "jaehaerys_aegon_ii",
+      "name": "Jaehaerys Targaryen (son of Aegon II)",
+      "house": "Targaryen",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "jaehaera",
+      "name": "Jaehaera Targaryen",
+      "house": "Targaryen",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "maelor_aegon_ii",
+      "name": "Maelor Targaryen",
+      "house": "Targaryen",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "rhea_royce",
+      "name": "Rhea Royce",
+      "house": "Royce",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "baela_daemon",
+      "name": "Baela Targaryen",
+      "house": "Targaryen",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "rhaena_daemon",
+      "name": "Rhaena Targaryen (daughter of Daemon)",
+      "house": "Targaryen",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "jacaerys_velaryon",
+      "name": "Jacaerys Velaryon",
+      "house": "Velaryon",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "Laenor is officially their father; biological paternity is disputed. Do not automatically create biological father edge to Laenor or Harwin Strong.",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "lucerys_velaryon",
+      "name": "Lucerys Velaryon",
+      "house": "Velaryon",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "Laenor is recognized father; biological father unknown/disputed.",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "joffrey_velaryon",
+      "name": "Joffrey Velaryon",
+      "house": "Velaryon",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "Laenor is recognized father; biological father unknown/disputed.",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aegon_iii",
+      "name": "Aegon III Targaryen (the Dragonbane)",
+      "house": "Targaryen",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": true
+    },
+    {
+      "key": "viserys_ii",
+      "name": "Viserys II Targaryen",
+      "house": "Targaryen",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": true
+    },
+    {
+      "key": "visenya_rhaenyra",
+      "name": "Visenya Targaryen (daughter of Rhaenyra)",
+      "house": "Targaryen",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "alyn_velaryon",
+      "name": "Alyn Velaryon (Oakenfist)",
+      "house": "Velaryon",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "corwyn_corbray",
+      "name": "Corwyn Corbray",
+      "house": "Corbray",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "garmund_hightower",
+      "name": "Garmund Hightower",
+      "house": "Hightower",
+      "era": "IV. Танець драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "daenaera_velaryon",
+      "name": "Daenaera Velaryon",
+      "house": "Velaryon",
+      "era": "V. Після Танцю драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "daeron_i",
+      "name": "Daeron I Targaryen (the Young Dragon)",
+      "house": "Targaryen",
+      "era": "V. Після Танцю драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": true
+    },
+    {
+      "key": "baelor_i",
+      "name": "Baelor I Targaryen (the Blessed)",
+      "house": "Targaryen",
+      "era": "V. Після Танцю драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": true
+    },
+    {
+      "key": "daena_defiant",
+      "name": "Daena Targaryen (the Defiant)",
+      "house": "Targaryen",
+      "era": "V. Після Танцю драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "rhaena_aegon_iii",
+      "name": "Rhaena Targaryen (daughter of Aegon III)",
+      "house": "Targaryen",
+      "era": "V. Після Танцю драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "elaena_aegon_iii",
+      "name": "Elaena Targaryen (daughter of Aegon III)",
+      "house": "Targaryen",
+      "era": "V. Після Танцю драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "larra_rogare",
+      "name": "Larra Rogare",
+      "house": "Rogare",
+      "era": "V. Після Танцю драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aegon_iv",
+      "name": "Aegon IV Targaryen (the Unworthy)",
+      "house": "Targaryen",
+      "era": "V. Після Танцю драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": true
+    },
+    {
+      "key": "aemon_dragonknight",
+      "name": "Aemon Targaryen (the Dragonknight)",
+      "house": "Targaryen",
+      "era": "V. Після Танцю драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "naerys",
+      "name": "Naerys Targaryen",
+      "house": "Targaryen",
+      "era": "V. Після Танцю драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "jon_waters",
+      "name": "Jon Waters",
+      "house": "Waters",
+      "era": "V. Після Танцю драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "jeyne_waters",
+      "name": "Jeyne Waters",
+      "house": "Waters",
+      "era": "V. Після Танцю драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "ossifer_plumm",
+      "name": "Ossifer Plumm",
+      "house": "Plumm",
+      "era": "V. Після Танцю драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "viserys_plumm",
+      "name": "Viserys Plumm",
+      "house": "Plumm",
+      "era": "V. Після Танцю драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "ronnel_penrose",
+      "name": "Ronnel Penrose",
+      "house": "Penrose",
+      "era": "V. Після Танцю драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "robin_penrose",
+      "name": "Robin Penrose",
+      "house": "Penrose",
+      "era": "V. Після Танцю драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "laena_penrose",
+      "name": "Laena Penrose",
+      "house": "Penrose",
+      "era": "V. Після Танцю драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "jocelyn_penrose",
+      "name": "Jocelyn Penrose",
+      "house": "Penrose",
+      "era": "V. Після Танцю драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "joy_penrose",
+      "name": "Joy Penrose",
+      "house": "Penrose",
+      "era": "V. Після Танцю драконів",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "daeron_ii",
+      "name": "Daeron II Targaryen (the Good)",
+      "house": "Targaryen",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "Recognized son of Aegon IV; rumors in-world about his paternity are unproven.",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": true
+    },
+    {
+      "key": "daenerys_aegon_iv",
+      "name": "Daenerys Targaryen (daughter of Aegon IV)",
+      "house": "Targaryen",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "maron_martell",
+      "name": "Maron Martell",
+      "house": "Martell",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "daena_blackfyre_spouse",
+      "name": "Rohanne of Tyrosh",
+      "house": "Unknown",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "daemon_i_blackfyre",
+      "name": "Daemon I Blackfyre",
+      "house": "Blackfyre",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "Born Daemon Waters, legitimized as Daemon Blackfyre.",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "notable": true
+    },
+    {
+      "key": "aegon_blackfyre",
+      "name": "Aegon Blackfyre (son of Daemon I)",
+      "house": "Blackfyre",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aemon_blackfyre",
+      "name": "Aemon Blackfyre (son of Daemon I)",
+      "house": "Blackfyre",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "daemon_ii_blackfyre",
+      "name": "Daemon II Blackfyre",
+      "house": "Blackfyre",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "haegon_i_blackfyre",
+      "name": "Haegon I Blackfyre",
+      "house": "Blackfyre",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aenys_blackfyre",
+      "name": "Aenys Blackfyre",
+      "house": "Blackfyre",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "calla_blackfyre",
+      "name": "Calla Blackfyre",
+      "house": "Blackfyre",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "daemon_iii_blackfyre",
+      "name": "Daemon III Blackfyre",
+      "house": "Blackfyre",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "barba_bracken",
+      "name": "Barba Bracken",
+      "house": "Bracken",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aegor_rivers",
+      "name": "Aegor Rivers (Bittersteel)",
+      "house": "Rivers",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "melissa_blackwood",
+      "name": "Melissa Blackwood",
+      "house": "Blackwood",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "mya_rivers",
+      "name": "Mya Rivers",
+      "house": "Rivers",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "gwenys_rivers",
+      "name": "Gwenys Rivers",
+      "house": "Rivers",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "brynden_rivers",
+      "name": "Brynden Rivers (Bloodraven)",
+      "house": "Rivers",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "serenei_lys",
+      "name": "Serenei of Lys",
+      "house": "Unknown",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "shiera_seastar",
+      "name": "Shiera Seastar",
+      "house": "Unknown",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "megette",
+      "name": "Megette",
+      "house": "Unknown",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "alysanne_megette",
+      "name": "Alysanne (daughter of Aegon IV)",
+      "house": "Unknown",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "lily_megette",
+      "name": "Lily (daughter of Aegon IV)",
+      "house": "Unknown",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "willow_megette",
+      "name": "Willow (daughter of Aegon IV)",
+      "house": "Unknown",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "rosey_megette",
+      "name": "Rosey (daughter of Aegon IV)",
+      "house": "Unknown",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "bellegere_otherys",
+      "name": "Bellegere Otherys",
+      "house": "Otherys",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "bellenora_otherys",
+      "name": "Bellenora Otherys",
+      "house": "Otherys",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "narha_otherys",
+      "name": "Narha Otherys",
+      "house": "Otherys",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "balerion_otherys",
+      "name": "Balerion Otherys",
+      "house": "Otherys",
+      "era": "VI. Ейгон IV і Блекфайри",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "myriah_martell",
+      "name": "Myriah Martell",
+      "house": "Martell",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "baelor_breakspear",
+      "name": "Baelor Targaryen (Breakspear)",
+      "house": "Targaryen",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aerys_i",
+      "name": "Aerys I Targaryen",
+      "house": "Targaryen",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": true
+    },
+    {
+      "key": "rhaegel",
+      "name": "Rhaegel Targaryen",
+      "house": "Targaryen",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "maekar_i",
+      "name": "Maekar I Targaryen",
+      "house": "Targaryen",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": true
+    },
+    {
+      "key": "jena_dondarrion",
+      "name": "Jena Dondarrion",
+      "house": "Dondarrion",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "valarr",
+      "name": "Valarr Targaryen",
+      "house": "Targaryen",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "matarys",
+      "name": "Matarys Targaryen",
+      "house": "Targaryen",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "kiera_tyrosh",
+      "name": "Kiera of Tyrosh",
+      "house": "Unknown",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/Kiera_of_Tyrosh",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aelinor_penrose",
+      "name": "Aelinor Penrose",
+      "house": "Penrose",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "alys_arryn",
+      "name": "Alys Arryn",
+      "house": "Arryn",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aelor",
+      "name": "Aelor Targaryen",
+      "house": "Targaryen",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aelora",
+      "name": "Aelora Targaryen",
+      "house": "Targaryen",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "daenora",
+      "name": "Daenora Targaryen",
+      "house": "Targaryen",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "dyanna_dayne",
+      "name": "Dyanna Dayne",
+      "house": "Dayne",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "daeron_drunken",
+      "name": "Daeron Targaryen (the Drunken)",
+      "house": "Targaryen",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/Daeron_the_Drunken",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aerion_brightflame",
+      "name": "Aerion Targaryen (Brightflame)",
+      "house": "Targaryen",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aemon_maester",
+      "name": "Aemon Targaryen (Maester Aemon)",
+      "house": "Targaryen",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "daella_maekar",
+      "name": "Daella Targaryen (daughter of Maekar I)",
+      "house": "Targaryen",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aegon_v",
+      "name": "Aegon V Targaryen (the Unlikely)",
+      "house": "Targaryen",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": true
+    },
+    {
+      "key": "rhae_maekar",
+      "name": "Rhae Targaryen",
+      "house": "Targaryen",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "maegor_aerion",
+      "name": "Maegor Targaryen (son of Aerion)",
+      "house": "Targaryen",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "vaella_daeron",
+      "name": "Vaella Targaryen (daughter of Daeron the Drunken)",
+      "house": "Targaryen",
+      "era": "VII. Дейрон II — Мейкар I",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/Vaella_Targaryen_%28daughter_of_Daeron%29",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "betha_blackwood",
+      "name": "Betha Blackwood",
+      "house": "Blackwood",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "duncan_small",
+      "name": "Duncan Targaryen (the Small)",
+      "house": "Targaryen",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "jaehaerys_ii",
+      "name": "Jaehaerys II Targaryen",
+      "house": "Targaryen",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": true
+    },
+    {
+      "key": "shaera",
+      "name": "Shaera Targaryen",
+      "house": "Targaryen",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "daeron_aegon_v",
+      "name": "Daeron Targaryen (son of Aegon V)",
+      "house": "Targaryen",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "rhaelle",
+      "name": "Rhaelle Targaryen",
+      "house": "Targaryen",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "jenny_oldstones",
+      "name": "Jenny of Oldstones",
+      "house": "Unknown",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aerys_ii",
+      "name": "Aerys II Targaryen (the Mad King)",
+      "house": "Targaryen",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": true
+    },
+    {
+      "key": "rhaella_queen",
+      "name": "Rhaella Targaryen (queen of Aerys II)",
+      "house": "Targaryen",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "ormund_baratheon",
+      "name": "Ormund Baratheon",
+      "house": "Baratheon",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Baratheon",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "steffon_baratheon",
+      "name": "Steffon Baratheon",
+      "house": "Baratheon",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Baratheon",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "cassana_estermont",
+      "name": "Cassana Estermont",
+      "house": "Estermont",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "robert_baratheon",
+      "name": "Robert Baratheon",
+      "house": "Baratheon",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Baratheon",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "stannis_baratheon",
+      "name": "Stannis Baratheon",
+      "house": "Baratheon",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Baratheon",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "renly_baratheon",
+      "name": "Renly Baratheon",
+      "house": "Baratheon",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Baratheon",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "rhaegar",
+      "name": "Rhaegar Targaryen",
+      "house": "Targaryen",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "shaena_aerys",
+      "name": "Shaena Targaryen",
+      "house": "Targaryen",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "daeron_aerys_infant",
+      "name": "Daeron Targaryen (infant son of Aerys II)",
+      "house": "Targaryen",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aegon_aerys_infant",
+      "name": "Aegon Targaryen (infant son of Aerys II)",
+      "house": "Targaryen",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "jaehaerys_aerys_infant",
+      "name": "Jaehaerys Targaryen (infant son of Aerys II)",
+      "house": "Targaryen",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "viserys_iii",
+      "name": "Viserys Targaryen (Viserys III)",
+      "house": "Targaryen",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "daenerys_stormborn",
+      "name": "Daenerys Targaryen (Stormborn)",
+      "house": "Targaryen",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "elia_martell",
+      "name": "Elia Martell",
+      "house": "Martell",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "rhaenys_rhaegar",
+      "name": "Rhaenys Targaryen (daughter of Rhaegar)",
+      "house": "Targaryen",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "aegon_rhaegar",
+      "name": "Aegon Targaryen (son of Rhaegar)",
+      "house": "Targaryen",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "Existence and childhood recorded. Later claimant Young Griff claims this identity; authenticity disputed.",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "drogo",
+      "name": "Khal Drogo",
+      "house": "Dothraki",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "",
+      "source": "https://awoiaf.westeros.org/index.php/Khal_Drogo",
+      "certainty": "confirmed",
+      "notable": false
+    },
+    {
+      "key": "rhaego",
+      "name": "Rhaego",
+      "house": "Dothraki",
+      "era": "VIII. Ейгон V — Дейнеріс",
+      "aliases": [],
+      "note": "Daenerys and Drogo’s son, stillborn. Not named Targaryen in text.",
+      "source": "https://awoiaf.westeros.org/index.php/Rhaego",
+      "certainty": "confirmed",
+      "notable": false
+    }
+  ],
+  "relationships": [
+    {
+      "from": "aenar_exile",
+      "to": "gaemon_glorious",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aenar_exile",
+      "to": "daenys_dreamer",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "gaemon_glorious",
+      "to": "daenys_dreamer",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "gaemon_glorious",
+      "to": "aegon_dragonstone_early",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daenys_dreamer",
+      "to": "aegon_dragonstone_early",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "gaemon_glorious",
+      "to": "elaena_early",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daenys_dreamer",
+      "to": "elaena_early",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_dragonstone_early",
+      "to": "elaena_early",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_dragonstone_early",
+      "to": "maegon_dragonstone",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "elaena_early",
+      "to": "maegon_dragonstone",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_dragonstone_early",
+      "to": "aerys_dragonstone",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "elaena_early",
+      "to": "aerys_dragonstone",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aerys_dragonstone",
+      "to": "aelyx_dragonstone",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aerys_dragonstone",
+      "to": "baelon_dragonstone",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aerys_dragonstone",
+      "to": "daemion_dragonstone",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daemion_dragonstone",
+      "to": "aerion_dragonstone",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aerion_dragonstone",
+      "to": "valaena_velaryon",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aerion_dragonstone",
+      "to": "visenya_conquest",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "valaena_velaryon",
+      "to": "visenya_conquest",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aerion_dragonstone",
+      "to": "aegon_i",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "valaena_velaryon",
+      "to": "aegon_i",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aerion_dragonstone",
+      "to": "rhaenys_conquest",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "valaena_velaryon",
+      "to": "rhaenys_conquest",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_i",
+      "to": "visenya_conquest",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_i",
+      "to": "rhaenys_conquest",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_i",
+      "to": "maegor_i",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "visenya_conquest",
+      "to": "maegor_i",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_i",
+      "to": "aenys_i",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaenys_conquest",
+      "to": "aenys_i",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aenys_i",
+      "to": "alyssa_velaryon",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aenys_i",
+      "to": "rhaena_aenys",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alyssa_velaryon",
+      "to": "rhaena_aenys",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aenys_i",
+      "to": "aegon_uncrowned",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alyssa_velaryon",
+      "to": "aegon_uncrowned",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aenys_i",
+      "to": "viserys_aenys",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alyssa_velaryon",
+      "to": "viserys_aenys",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aenys_i",
+      "to": "jaehaerys_i",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alyssa_velaryon",
+      "to": "jaehaerys_i",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aenys_i",
+      "to": "alysanne",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alyssa_velaryon",
+      "to": "alysanne",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aenys_i",
+      "to": "vaella_aenys",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alyssa_velaryon",
+      "to": "vaella_aenys",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaena_aenys",
+      "to": "aegon_uncrowned",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaena_aenys",
+      "to": "maegor_i",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jaehaerys_i",
+      "to": "alysanne",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaena_aenys",
+      "to": "aerea_twin",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_uncrowned",
+      "to": "aerea_twin",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaena_aenys",
+      "to": "rhaella_twin",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_uncrowned",
+      "to": "rhaella_twin",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "maegor_i",
+      "to": "ceryse_hightower",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "maegor_i",
+      "to": "alys_harroway",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "maegor_i",
+      "to": "tyanna_tower",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "maegor_i",
+      "to": "elinor_costayne",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "maegor_i",
+      "to": "jeyne_westerling",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alyssa_velaryon",
+      "to": "rogar_baratheon",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/Rogar_Baratheon",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alyssa_velaryon",
+      "to": "boremund_baratheon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/Rogar_Baratheon",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rogar_baratheon",
+      "to": "boremund_baratheon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/Rogar_Baratheon",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alyssa_velaryon",
+      "to": "jocelyn_baratheon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/Rogar_Baratheon",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rogar_baratheon",
+      "to": "jocelyn_baratheon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/Rogar_Baratheon",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jaehaerys_i",
+      "to": "aegon_jae_infant",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alysanne",
+      "to": "aegon_jae_infant",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jaehaerys_i",
+      "to": "daenerys_jae_child",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alysanne",
+      "to": "daenerys_jae_child",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jaehaerys_i",
+      "to": "aemon_jae",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alysanne",
+      "to": "aemon_jae",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jaehaerys_i",
+      "to": "baelon_brave",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alysanne",
+      "to": "baelon_brave",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jaehaerys_i",
+      "to": "alyssa_jae",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alysanne",
+      "to": "alyssa_jae",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jaehaerys_i",
+      "to": "maegelle",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alysanne",
+      "to": "maegelle",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jaehaerys_i",
+      "to": "vaegon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alysanne",
+      "to": "vaegon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jaehaerys_i",
+      "to": "daella_jae",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alysanne",
+      "to": "daella_jae",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jaehaerys_i",
+      "to": "saera",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alysanne",
+      "to": "saera",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jaehaerys_i",
+      "to": "viserra",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alysanne",
+      "to": "viserra",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jaehaerys_i",
+      "to": "gaemon_jae_infant",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alysanne",
+      "to": "gaemon_jae_infant",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jaehaerys_i",
+      "to": "valerion_jae_infant",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alysanne",
+      "to": "valerion_jae_infant",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jaehaerys_i",
+      "to": "gael",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alysanne",
+      "to": "gael",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "baelon_brave",
+      "to": "alyssa_jae",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aemon_jae",
+      "to": "jocelyn_baratheon",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aemon_jae",
+      "to": "rhaenys_queen_never",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jocelyn_baratheon",
+      "to": "rhaenys_queen_never",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaenys_queen_never",
+      "to": "corlys_velaryon",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaenys_queen_never",
+      "to": "laena_velaryon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "corlys_velaryon",
+      "to": "laena_velaryon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaenys_queen_never",
+      "to": "laenor_velaryon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "corlys_velaryon",
+      "to": "laenor_velaryon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "baelon_brave",
+      "to": "viserys_i",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alyssa_jae",
+      "to": "viserys_i",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "baelon_brave",
+      "to": "daemon_prince",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alyssa_jae",
+      "to": "daemon_prince",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "baelon_brave",
+      "to": "aegon_baelon_infant",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alyssa_jae",
+      "to": "aegon_baelon_infant",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daella_jae",
+      "to": "rodrik_arryn",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daella_jae",
+      "to": "aemma_arryn",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rodrik_arryn",
+      "to": "aemma_arryn",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "viserys_i",
+      "to": "aemma_arryn",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "viserys_i",
+      "to": "alicent_hightower",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "viserys_i",
+      "to": "rhaenyra",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aemma_arryn",
+      "to": "rhaenyra",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "viserys_i",
+      "to": "baelon_heir_day",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aemma_arryn",
+      "to": "baelon_heir_day",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "viserys_i",
+      "to": "aegon_ii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alicent_hightower",
+      "to": "aegon_ii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "viserys_i",
+      "to": "helaena",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alicent_hightower",
+      "to": "helaena",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "viserys_i",
+      "to": "aemond_one_eye",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alicent_hightower",
+      "to": "aemond_one_eye",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "viserys_i",
+      "to": "daeron_daring",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alicent_hightower",
+      "to": "daeron_daring",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_ii",
+      "to": "helaena",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_ii",
+      "to": "jaehaerys_aegon_ii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "helaena",
+      "to": "jaehaerys_aegon_ii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_ii",
+      "to": "jaehaera",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "helaena",
+      "to": "jaehaera",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_ii",
+      "to": "maelor_aegon_ii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "helaena",
+      "to": "maelor_aegon_ii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daemon_prince",
+      "to": "rhea_royce",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daemon_prince",
+      "to": "laena_velaryon",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daemon_prince",
+      "to": "baela_daemon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "laena_velaryon",
+      "to": "baela_daemon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daemon_prince",
+      "to": "rhaena_daemon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "laena_velaryon",
+      "to": "rhaena_daemon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaenyra",
+      "to": "laenor_velaryon",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": "Legal marriage; genetic paternity of Rhaenyra’s Velaryon sons is disputed in the books."
+    },
+    {
+      "from": "rhaenyra",
+      "to": "jacaerys_velaryon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaenyra",
+      "to": "lucerys_velaryon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaenyra",
+      "to": "joffrey_velaryon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaenyra",
+      "to": "daemon_prince",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaenyra",
+      "to": "aegon_iii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daemon_prince",
+      "to": "aegon_iii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaenyra",
+      "to": "viserys_ii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daemon_prince",
+      "to": "viserys_ii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaenyra",
+      "to": "visenya_rhaenyra",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daemon_prince",
+      "to": "visenya_rhaenyra",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "baela_daemon",
+      "to": "alyn_velaryon",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaena_daemon",
+      "to": "corwyn_corbray",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaena_daemon",
+      "to": "garmund_hightower",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iii",
+      "to": "jaehaera",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iii",
+      "to": "daenaera_velaryon",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iii",
+      "to": "daeron_i",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daenaera_velaryon",
+      "to": "daeron_i",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iii",
+      "to": "baelor_i",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daenaera_velaryon",
+      "to": "baelor_i",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iii",
+      "to": "daena_defiant",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daenaera_velaryon",
+      "to": "daena_defiant",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iii",
+      "to": "rhaena_aegon_iii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daenaera_velaryon",
+      "to": "rhaena_aegon_iii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iii",
+      "to": "elaena_aegon_iii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daenaera_velaryon",
+      "to": "elaena_aegon_iii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "baelor_i",
+      "to": "daena_defiant",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "viserys_ii",
+      "to": "larra_rogare",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "viserys_ii",
+      "to": "aegon_iv",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "larra_rogare",
+      "to": "aegon_iv",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "viserys_ii",
+      "to": "aemon_dragonknight",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "larra_rogare",
+      "to": "aemon_dragonknight",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "viserys_ii",
+      "to": "naerys",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "larra_rogare",
+      "to": "naerys",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iv",
+      "to": "naerys",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "elaena_aegon_iii",
+      "to": "jon_waters",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alyn_velaryon",
+      "to": "jon_waters",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "elaena_aegon_iii",
+      "to": "jeyne_waters",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alyn_velaryon",
+      "to": "jeyne_waters",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "elaena_aegon_iii",
+      "to": "ossifer_plumm",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "elaena_aegon_iii",
+      "to": "viserys_plumm",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "ossifer_plumm",
+      "to": "viserys_plumm",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "elaena_aegon_iii",
+      "to": "ronnel_penrose",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "elaena_aegon_iii",
+      "to": "robin_penrose",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "ronnel_penrose",
+      "to": "robin_penrose",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "elaena_aegon_iii",
+      "to": "laena_penrose",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "ronnel_penrose",
+      "to": "laena_penrose",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "elaena_aegon_iii",
+      "to": "jocelyn_penrose",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "ronnel_penrose",
+      "to": "jocelyn_penrose",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "elaena_aegon_iii",
+      "to": "joy_penrose",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "ronnel_penrose",
+      "to": "joy_penrose",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iv",
+      "to": "daeron_ii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "naerys",
+      "to": "daeron_ii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iv",
+      "to": "daenerys_aegon_iv",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "naerys",
+      "to": "daenerys_aegon_iv",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daenerys_aegon_iv",
+      "to": "maron_martell",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iv",
+      "to": "daemon_i_blackfyre",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daena_defiant",
+      "to": "daemon_i_blackfyre",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daemon_i_blackfyre",
+      "to": "daena_blackfyre_spouse",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daemon_i_blackfyre",
+      "to": "aegon_blackfyre",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daena_blackfyre_spouse",
+      "to": "aegon_blackfyre",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daemon_i_blackfyre",
+      "to": "aemon_blackfyre",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daena_blackfyre_spouse",
+      "to": "aemon_blackfyre",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daemon_i_blackfyre",
+      "to": "daemon_ii_blackfyre",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daena_blackfyre_spouse",
+      "to": "daemon_ii_blackfyre",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daemon_i_blackfyre",
+      "to": "haegon_i_blackfyre",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daena_blackfyre_spouse",
+      "to": "haegon_i_blackfyre",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daemon_i_blackfyre",
+      "to": "aenys_blackfyre",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daena_blackfyre_spouse",
+      "to": "aenys_blackfyre",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daemon_i_blackfyre",
+      "to": "calla_blackfyre",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daena_blackfyre_spouse",
+      "to": "calla_blackfyre",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "haegon_i_blackfyre",
+      "to": "daemon_iii_blackfyre",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Blackfyre",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iv",
+      "to": "aegor_rivers",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "barba_bracken",
+      "to": "aegor_rivers",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iv",
+      "to": "mya_rivers",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "melissa_blackwood",
+      "to": "mya_rivers",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iv",
+      "to": "gwenys_rivers",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "melissa_blackwood",
+      "to": "gwenys_rivers",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iv",
+      "to": "brynden_rivers",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "melissa_blackwood",
+      "to": "brynden_rivers",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iv",
+      "to": "shiera_seastar",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "serenei_lys",
+      "to": "shiera_seastar",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iv",
+      "to": "alysanne_megette",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "megette",
+      "to": "alysanne_megette",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iv",
+      "to": "lily_megette",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "megette",
+      "to": "lily_megette",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iv",
+      "to": "willow_megette",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "megette",
+      "to": "willow_megette",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iv",
+      "to": "rosey_megette",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "megette",
+      "to": "rosey_megette",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iv",
+      "to": "bellenora_otherys",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "bellegere_otherys",
+      "to": "bellenora_otherys",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iv",
+      "to": "narha_otherys",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "bellegere_otherys",
+      "to": "narha_otherys",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iv",
+      "to": "balerion_otherys",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "bellegere_otherys",
+      "to": "balerion_otherys",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daeron_ii",
+      "to": "myriah_martell",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daeron_ii",
+      "to": "baelor_breakspear",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "myriah_martell",
+      "to": "baelor_breakspear",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daeron_ii",
+      "to": "aerys_i",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "myriah_martell",
+      "to": "aerys_i",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daeron_ii",
+      "to": "rhaegel",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "myriah_martell",
+      "to": "rhaegel",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daeron_ii",
+      "to": "maekar_i",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "myriah_martell",
+      "to": "maekar_i",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "baelor_breakspear",
+      "to": "jena_dondarrion",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "baelor_breakspear",
+      "to": "valarr",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jena_dondarrion",
+      "to": "valarr",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "baelor_breakspear",
+      "to": "matarys",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jena_dondarrion",
+      "to": "matarys",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "valarr",
+      "to": "kiera_tyrosh",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aerys_i",
+      "to": "aelinor_penrose",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaegel",
+      "to": "alys_arryn",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaegel",
+      "to": "aelor",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alys_arryn",
+      "to": "aelor",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaegel",
+      "to": "aelora",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alys_arryn",
+      "to": "aelora",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaegel",
+      "to": "daenora",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "alys_arryn",
+      "to": "daenora",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aelor",
+      "to": "aelora",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "maekar_i",
+      "to": "dyanna_dayne",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "maekar_i",
+      "to": "daeron_drunken",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "dyanna_dayne",
+      "to": "daeron_drunken",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "maekar_i",
+      "to": "aerion_brightflame",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "dyanna_dayne",
+      "to": "aerion_brightflame",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "maekar_i",
+      "to": "aemon_maester",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "dyanna_dayne",
+      "to": "aemon_maester",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "maekar_i",
+      "to": "daella_maekar",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "dyanna_dayne",
+      "to": "daella_maekar",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "maekar_i",
+      "to": "aegon_v",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "dyanna_dayne",
+      "to": "aegon_v",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "maekar_i",
+      "to": "rhae_maekar",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "dyanna_dayne",
+      "to": "rhae_maekar",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aerion_brightflame",
+      "to": "daenora",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aerion_brightflame",
+      "to": "maegor_aerion",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daenora",
+      "to": "maegor_aerion",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daeron_drunken",
+      "to": "kiera_tyrosh",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daeron_drunken",
+      "to": "vaella_daeron",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/Vaella_Targaryen_%28daughter_of_Daeron%29",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "kiera_tyrosh",
+      "to": "vaella_daeron",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/Vaella_Targaryen_%28daughter_of_Daeron%29",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_v",
+      "to": "betha_blackwood",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_v",
+      "to": "duncan_small",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "betha_blackwood",
+      "to": "duncan_small",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_v",
+      "to": "jaehaerys_ii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "betha_blackwood",
+      "to": "jaehaerys_ii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_v",
+      "to": "shaera",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "betha_blackwood",
+      "to": "shaera",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_v",
+      "to": "daeron_aegon_v",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "betha_blackwood",
+      "to": "daeron_aegon_v",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_v",
+      "to": "rhaelle",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "betha_blackwood",
+      "to": "rhaelle",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "duncan_small",
+      "to": "jenny_oldstones",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jaehaerys_ii",
+      "to": "shaera",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jaehaerys_ii",
+      "to": "aerys_ii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "shaera",
+      "to": "aerys_ii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jaehaerys_ii",
+      "to": "rhaella_queen",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "shaera",
+      "to": "rhaella_queen",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aerys_ii",
+      "to": "rhaella_queen",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaelle",
+      "to": "ormund_baratheon",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Baratheon",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaelle",
+      "to": "steffon_baratheon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Baratheon",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "ormund_baratheon",
+      "to": "steffon_baratheon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Baratheon",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "steffon_baratheon",
+      "to": "cassana_estermont",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Baratheon",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "steffon_baratheon",
+      "to": "robert_baratheon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Baratheon",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "cassana_estermont",
+      "to": "robert_baratheon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Baratheon",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "steffon_baratheon",
+      "to": "stannis_baratheon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Baratheon",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "cassana_estermont",
+      "to": "stannis_baratheon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Baratheon",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "steffon_baratheon",
+      "to": "renly_baratheon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Baratheon",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "cassana_estermont",
+      "to": "renly_baratheon",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Baratheon",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aerys_ii",
+      "to": "rhaegar",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaella_queen",
+      "to": "rhaegar",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aerys_ii",
+      "to": "shaena_aerys",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaella_queen",
+      "to": "shaena_aerys",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aerys_ii",
+      "to": "daeron_aerys_infant",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaella_queen",
+      "to": "daeron_aerys_infant",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aerys_ii",
+      "to": "aegon_aerys_infant",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaella_queen",
+      "to": "aegon_aerys_infant",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aerys_ii",
+      "to": "jaehaerys_aerys_infant",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaella_queen",
+      "to": "jaehaerys_aerys_infant",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aerys_ii",
+      "to": "viserys_iii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaella_queen",
+      "to": "viserys_iii",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aerys_ii",
+      "to": "daenerys_stormborn",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaella_queen",
+      "to": "daenerys_stormborn",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaegar",
+      "to": "elia_martell",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaegar",
+      "to": "rhaenys_rhaegar",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "elia_martell",
+      "to": "rhaenys_rhaegar",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaegar",
+      "to": "aegon_rhaegar",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "elia_martell",
+      "to": "aegon_rhaegar",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daenerys_stormborn",
+      "to": "drogo",
+      "type": "spouse_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daenerys_stormborn",
+      "to": "rhaego",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/Rhaego",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "drogo",
+      "to": "rhaego",
+      "type": "biological_parent_of",
+      "source": "https://awoiaf.westeros.org/index.php/Rhaego",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_i",
+      "to": "visenya_conquest",
+      "type": "sibling_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_i",
+      "to": "rhaenys_conquest",
+      "type": "sibling_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaena_aenys",
+      "to": "aegon_uncrowned",
+      "type": "sibling_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jaehaerys_i",
+      "to": "alysanne",
+      "type": "sibling_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "baelon_brave",
+      "to": "alyssa_jae",
+      "type": "sibling_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "viserys_i",
+      "to": "daemon_prince",
+      "type": "sibling_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_ii",
+      "to": "helaena",
+      "type": "sibling_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iii",
+      "to": "viserys_ii",
+      "type": "sibling_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aegon_iv",
+      "to": "naerys",
+      "type": "sibling_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aelor",
+      "to": "aelora",
+      "type": "sibling_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jaehaerys_ii",
+      "to": "shaera",
+      "type": "sibling_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "aerys_ii",
+      "to": "rhaella_queen",
+      "type": "sibling_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaenyra",
+      "to": "aegon_ii",
+      "type": "half_sibling_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "rhaenyra",
+      "to": "helaena",
+      "type": "half_sibling_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "daeron_ii",
+      "to": "daemon_i_blackfyre",
+      "type": "half_sibling_of",
+      "source": "https://awoiaf.westeros.org/index.php/House_Targaryen",
+      "certainty": "confirmed",
+      "note": ""
+    },
+    {
+      "from": "jocelyn_baratheon",
+      "to": "jaehaerys_i",
+      "type": "half_sibling_of",
+      "source": "https://awoiaf.westeros.org/index.php/Rogar_Baratheon",
+      "certainty": "confirmed",
+      "note": ""
+    }
+  ],
+  "not_imported_notes": [
+    {
+      "kind": "betrothal",
+      "from": "calla_blackfyre",
+      "to": "aegor_rivers",
+      "note": "Betrothed, not known to have married; not encoded as spouse."
+    },
+    {
+      "kind": "paternity",
+      "from": "laenor_velaryon",
+      "to": "jacaerys_velaryon",
+      "note": "Recognized father; biological paternity disputed. Repeat for Lucerys and Joffrey."
+    },
+    {
+      "kind": "potential_identity",
+      "note": "Young Griff claims to be Aegon son of Rhaegar; unproven."
+    }
+  ]
+}

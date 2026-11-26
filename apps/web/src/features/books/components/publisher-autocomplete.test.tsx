@@ -2,27 +2,36 @@ import "@testing-library/jest-dom/vitest";
 
 import type { PublisherDuplicateCandidate, PublisherView } from "@app/shared";
 
+import { onlineManager } from "@tanstack/react-query";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen, userEvent } from "@/test-utils";
+import messages from "@/messages/uk.json";
+import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import type { PublisherSelection } from "../model/create-book-form";
 
 import { PublisherAutocomplete } from "./publisher-autocomplete";
 
 const PLACEHOLDER = "Почніть вводити назву видавництва…";
+const publisherCopy = messages.books.publisher;
 
 const VIVAT_SHORT: PublisherView = publisherView("publisher-vivat-custom", "Vivat");
 const VIVAT_GLOBAL: PublisherView = publisherView("publisher-vivat", "Видавництво Vivat");
 const RANOK: PublisherView = publisherView("publisher-ranok", "Ранок");
 
 const fetchMock = vi.fn<(input: RequestInfo | URL) => Promise<Response>>();
+const heldLookups = new Map<string, HeldLookup>();
 
 let candidates: PublisherDuplicateCandidate[] = [];
 let duplicateLookupFails = false;
 let recent: PublisherView[] = [];
 let searchResults: PublisherView[] = [];
+
+type HeldLookup = {
+  answer: Promise<PublisherDuplicateCandidate[]>;
+  markSent: () => void;
+};
 
 function candidate({
   matchedName,
@@ -68,6 +77,19 @@ function Harness() {
   );
 }
 
+function holdLookup(name: string) {
+  let markSent = () => {};
+  let release: (answer: PublisherDuplicateCandidate[]) => void = () => {};
+  const sent = new Promise<void>((resolve) => {
+    markSent = () => resolve();
+  });
+  const answer = new Promise<PublisherDuplicateCandidate[]>((resolve) => {
+    release = resolve;
+  });
+  heldLookups.set(name, { answer, markSent });
+  return { release, sent };
+}
+
 function jsonResponse(body: unknown): Response {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
@@ -101,13 +123,18 @@ beforeEach(() => {
   duplicateLookupFails = false;
   recent = [];
   searchResults = [];
+  heldLookups.clear();
 
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL) => {
     const url = String(input);
     if (url.includes("/api/publishers/duplicate-candidates")) {
       if (duplicateLookupFails) return Promise.resolve(new Response("boom", { status: 500 }));
-      return Promise.resolve(jsonResponse(candidates));
+      const lookupName = new URL(url, "http://localhost").searchParams.get("name") ?? "";
+      const held = heldLookups.get(lookupName);
+      if (held === undefined) return Promise.resolve(jsonResponse(candidates));
+      held.markSent();
+      return held.answer.then(jsonResponse);
     }
     if (url.includes("/api/publishers/recent")) return Promise.resolve(jsonResponse(recent));
     return Promise.resolve(
@@ -271,5 +298,125 @@ describe("PublisherAutocomplete duplicate candidates", () => {
     expect(await screen.findByText("Ранок")).toBeInTheDocument();
     expect(screen.getByText("Використати «Vivat»")).toBeInTheDocument();
     expect(screen.queryByText("Видавництв не знайдено.")).not.toBeInTheDocument();
+  });
+});
+
+describe("PublisherAutocomplete lookup of a changed name", () => {
+  it("offers neither the previous name's match nor the custom option until the new name is checked", async () => {
+    candidates = [
+      candidate({ matchedName: VIVAT_SHORT.name, matchKind: "exact", publisher: VIVAT_SHORT }),
+    ];
+    const folioLookup = holdLookup("Folio");
+
+    renderWithProviders(<Harness />);
+    await typeQuery("Vivat");
+    const existing = await screen.findByRole("group", { name: publisherCopy.existingHeading });
+    expect(within(existing).getByRole("option", { name: "Vivat" })).toBeInTheDocument();
+
+    const input = screen.getByPlaceholderText(PLACEHOLDER);
+    await userEvent.clear(input);
+    await userEvent.type(input, "Folio");
+    await folioLookup.sent;
+
+    expect(screen.queryByRole("option", { name: "Vivat" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Folio/ })).not.toBeInTheDocument();
+
+    folioLookup.release([]);
+
+    expect(
+      await screen.findByRole("option", {
+        name: publisherCopy.useCustom.replace("{name}", "Folio"),
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it.each([
+    { edit: "{Backspace}".repeat(5), field: "cleared" },
+    { edit: "{Backspace}".repeat(4), field: "cut to one character" },
+  ])("stops listing the previous name's match once the field is $field", async ({ edit }) => {
+    candidates = [
+      candidate({ matchedName: VIVAT_SHORT.name, matchKind: "exact", publisher: VIVAT_SHORT }),
+    ];
+
+    renderWithProviders(<Harness />);
+    await typeQuery("Vivat");
+    const existing = await screen.findByRole("group", { name: publisherCopy.existingHeading });
+    expect(within(existing).getByRole("option", { name: "Vivat" })).toBeInTheDocument();
+
+    searchResults = [RANOK];
+    await userEvent.type(screen.getByPlaceholderText(PLACEHOLDER), edit);
+
+    expect(await screen.findByRole("option", { name: "Ранок" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Vivat" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: publisherCopy.existingHeading }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: publisherCopy.similarHeading }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("says it is still searching while the typed name is checked and nothing else is listed", async () => {
+    searchResults = [RANOK];
+    const folioLookup = holdLookup("Folio");
+
+    renderWithProviders(<Harness />);
+    await userEvent.click(screen.getByPlaceholderText(PLACEHOLDER));
+    expect(await screen.findByRole("option", { name: "Ранок" })).toBeInTheDocument();
+
+    searchResults = [];
+    await userEvent.type(screen.getByPlaceholderText(PLACEHOLDER), "Folio");
+    await folioLookup.sent;
+    await waitFor(() =>
+      expect(screen.queryByRole("option", { name: "Ранок" })).not.toBeInTheDocument(),
+    );
+
+    expect(await screen.findByText(publisherCopy.searching)).toBeInTheDocument();
+    expect(screen.queryByText(publisherCopy.empty)).not.toBeInTheDocument();
+
+    folioLookup.release([]);
+
+    expect(
+      await screen.findByRole("option", {
+        name: publisherCopy.useCustom.replace("{name}", "Folio"),
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("says the new name cannot be checked and offers it as custom while the browser is offline", async () => {
+    candidates = [
+      candidate({ matchedName: VIVAT_SHORT.name, matchKind: "exact", publisher: VIVAT_SHORT }),
+    ];
+    const sentLookupNames = () =>
+      fetchMock.mock.calls
+        .map(([input]) => new URL(String(input), "http://localhost"))
+        .filter((url) => url.pathname === "/api/publishers/duplicate-candidates")
+        .map((url) => url.searchParams.get("name"));
+
+    renderWithProviders(<Harness />);
+    await typeQuery("Vivat");
+    const existing = await screen.findByRole("group", { name: publisherCopy.existingHeading });
+    expect(within(existing).getByRole("option", { name: "Vivat" })).toBeInTheDocument();
+
+    candidates = [];
+    onlineManager.setOnline(false);
+    try {
+      const input = screen.getByPlaceholderText(PLACEHOLDER);
+      await userEvent.clear(input);
+      await userEvent.type(input, "Folio");
+
+      expect(await screen.findByRole("status")).toHaveTextContent(publisherCopy.lookupUnavailable);
+      expect(
+        await screen.findByRole("option", {
+          name: publisherCopy.useCustom.replace("{name}", "Folio"),
+        }),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole("option", { name: "Vivat" })).not.toBeInTheDocument();
+      expect(screen.queryByText(publisherCopy.searching)).not.toBeInTheDocument();
+      expect(sentLookupNames()).not.toContain("Folio");
+    } finally {
+      onlineManager.setOnline(true);
+      await waitFor(() => expect(sentLookupNames()).toContain("Folio"));
+    }
   });
 });

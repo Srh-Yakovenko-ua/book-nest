@@ -16,7 +16,7 @@ import { LoansRepository } from "./infrastructure/loans.repository.js";
 
 @Module({
   controllers: [LoansController, LoanHistoryController, LoanContactsController],
-  exports: [LoanContactResolver],
+  exports: [LoanContactResolver, LoansService],
   imports: [AuthModule, MediaModule, ProfileModule],
   providers: [
     LoansService,

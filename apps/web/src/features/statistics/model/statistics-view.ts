@@ -6,12 +6,16 @@ import type { DynamicsMetric } from "./statistics-dynamics";
 
 import { DYNAMICS_METRICS } from "./statistics-dynamics";
 
+const STATISTICS_TABS = ["overview", "activity", "tastes", "progress"] as const;
+
 export const STATISTICS_VIEW = {
+  comparedTabs: ["overview", "activity"],
   defaultMetric: "reads",
   defaultTab: "overview",
   sections: ["dynamics", "habits", "ratings"],
-  tabs: ["overview", "activity", "tastes", "progress"],
+  tabs: STATISTICS_TABS,
 } as const satisfies {
+  comparedTabs: readonly (typeof STATISTICS_TABS)[number][];
   defaultMetric: DynamicsMetric;
   defaultTab: string;
   sections: readonly string[];
@@ -41,6 +45,10 @@ export const statisticsViewParsers = {
   section: parseAsStringLiteral(STATISTICS_VIEW.sections),
   tab: parseAsStringLiteral(STATISTICS_VIEW.tabs).withDefault(STATISTICS_VIEW.defaultTab),
 };
+
+export function isComparedTab(tab: StatisticsTab): boolean {
+  return STATISTICS_VIEW.comparedTabs.some((comparedTab) => comparedTab === tab);
+}
 
 export function toStatisticsTab(value: string): StatisticsTab {
   return STATISTICS_VIEW.tabs.find((tab) => tab === value) ?? STATISTICS_VIEW.defaultTab;

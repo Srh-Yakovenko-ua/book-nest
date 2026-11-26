@@ -1,24 +1,23 @@
 "use client";
 
-import type { Nullable, ReadingGoalMetrics, ReadingStatisticsGoalSection } from "@app/shared";
+import type { ReadingGoalMetrics, ReadingStatisticsGoalSection } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
 import { TruncatedText } from "@/components/truncated-text";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { GOAL_SIGNAL_TONE, goalDisplayPercent } from "@/features/reading-goals";
+import { goalDisplayPercent, useGoalTitle } from "@/features/reading-goals";
 import { Link } from "@/i18n/navigation";
-import { formatDateLong, formatDateShort } from "@/lib/format";
+import { formatDateShort } from "@/lib/format";
 
 import {
   type StatisticsContextActionLink,
   toContextActionLinks,
 } from "../../model/statistics-drilldown";
 import { StatisticsSection } from "../statistics-section";
-import { StatisticsSectionState } from "../statistics-states";
+import { ReadingGoalDashboard } from "./reading-goal-dashboard";
 
 export function ReadingGoalCard({
   goal,
@@ -30,7 +29,7 @@ export function ReadingGoalCard({
   return variant === "compact" ? (
     <CompactReadingGoal goal={goal} />
   ) : (
-    <FullReadingGoal goal={goal} />
+    <ReadingGoalDashboard goal={goal} />
   );
 }
 
@@ -60,6 +59,7 @@ function CompactGoalCaption({ metrics }: { metrics: ReadingGoalMetrics }) {
 function CompactReadingGoal({ goal }: { goal: ReadingStatisticsGoalSection }) {
   const locale = useLocale();
   const t = useTranslations("statistics.goal");
+  const goalTitle = useGoalTitle();
   const primary = goal.primaryGoal;
 
   if (primary === null) {
@@ -80,13 +80,24 @@ function CompactReadingGoal({ goal }: { goal: ReadingStatisticsGoalSection }) {
 
   const percent = goalDisplayPercent(primary.metrics);
   const links = toContextActionLinks(primary.contextActions);
-  const name =
-    primary.name ?? primary.listName ?? t("fallbackName", { count: primary.targetCount });
 
   return (
     <StatisticsSection title={t("currentTitle")}>
       <div className="flex flex-col gap-3">
-        <TruncatedText className="text-sm font-medium text-foreground" lines={1} text={name} />
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <TruncatedText
+            className="text-sm font-medium text-foreground"
+            lines={1}
+            text={goalTitle(primary)}
+          />
+          {primary.listName === null ? null : (
+            <p className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+              <UiIcon aria-hidden className="shrink-0 text-icon" name="list" size={14} />
+              <span className="sr-only">{t("listLabel")}</span>
+              <TruncatedText lines={1} text={primary.listName} />
+            </p>
+          )}
+        </div>
         <div className="flex flex-col gap-2">
           <div className="flex items-baseline justify-between gap-3">
             <span className="font-heading text-3xl leading-none font-semibold text-ink tabular-nums">
@@ -99,7 +110,14 @@ function CompactReadingGoal({ goal }: { goal: ReadingStatisticsGoalSection }) {
               {percent}%
             </span>
           </div>
-          <Progress aria-label={t("progressLabel", { percent })} className="h-2" value={percent} />
+          <Progress
+            aria-label={t("progressLabel", { percent })}
+            aria-valuemax={100}
+            aria-valuemin={0}
+            aria-valuenow={percent}
+            className="h-2"
+            value={percent}
+          />
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <CompactGoalCaption metrics={primary.metrics} />
             <span className="shrink-0 text-xs text-muted-foreground">
@@ -108,74 +126,6 @@ function CompactReadingGoal({ goal }: { goal: ReadingStatisticsGoalSection }) {
           </div>
         </div>
       </div>
-      <GoalLinks activeGoalsCount={goal.activeGoalsCount} links={links} />
-    </StatisticsSection>
-  );
-}
-
-function FullReadingGoal({ goal }: { goal: ReadingStatisticsGoalSection }) {
-  const locale = useLocale();
-  const t = useTranslations("statistics.goal");
-  const primary = goal.primaryGoal;
-
-  if (primary === null) {
-    return (
-      <StatisticsSection description={t("description")} title={t("title")}>
-        <StatisticsSectionState
-          action={
-            <Button asChild size="sm" variant="secondary">
-              <Link href="/goals">
-                <UiIcon name="plus" size={16} />
-                {t("create")}
-              </Link>
-            </Button>
-          }
-          description={t("emptyDescription")}
-          kind="empty"
-          title={t("empty")}
-        />
-      </StatisticsSection>
-    );
-  }
-
-  const percent = goalDisplayPercent(primary.metrics);
-  const forecastDate = toReliableForecastDate(primary.metrics);
-  const links = toContextActionLinks(primary.contextActions);
-
-  return (
-    <StatisticsSection description={t("description")} title={t("title")}>
-      <GoalProgress
-        completed={primary.metrics.completedCount}
-        name={primary.name ?? primary.listName ?? t("fallbackName", { count: primary.targetCount })}
-        percent={percent}
-        target={primary.targetCount}
-      />
-
-      <GoalPace pace={primary.metrics.pace} />
-
-      <dl className="flex flex-col gap-1 text-xs">
-        <div className="flex justify-between gap-2">
-          <dt className="text-muted-foreground">{t("deadlineLabel")}</dt>
-          <dd className="font-medium text-foreground">
-            {formatDateLong(primary.deadline, locale)}
-          </dd>
-        </div>
-        <div className="flex justify-between gap-2">
-          <dt className="text-muted-foreground">{t("remaining")}</dt>
-          <dd className="font-medium text-foreground tabular-nums">
-            {t("remainingValue", { count: primary.metrics.remainingCount })}
-          </dd>
-        </div>
-        <div className="flex justify-between gap-2">
-          <dt className="text-muted-foreground">{t("forecast")}</dt>
-          <dd className="text-right font-medium text-foreground">
-            {forecastDate === null
-              ? t("forecastUnavailable")
-              : formatDateLong(forecastDate, locale)}
-          </dd>
-        </div>
-      </dl>
-
       <GoalLinks activeGoalsCount={goal.activeGoalsCount} links={links} />
     </StatisticsSection>
   );
@@ -207,59 +157,4 @@ function GoalLinks({
       )}
     </div>
   );
-}
-
-function GoalPace({ pace }: { pace: ReadingGoalMetrics["pace"] }) {
-  const t = useTranslations("statistics.goal");
-
-  return (
-    <dl className="flex flex-wrap items-center gap-2">
-      <dt className="text-xs text-muted-foreground">{t("pace")}</dt>
-      <dd>
-        <Badge
-          className="h-auto min-h-6 max-w-full px-2.5 whitespace-normal"
-          variant={pace === null ? "secondary" : GOAL_SIGNAL_TONE.pace[pace]}
-        >
-          {pace === null ? t("paceUnknown") : t(`paces.${pace}`)}
-        </Badge>
-      </dd>
-    </dl>
-  );
-}
-
-function GoalProgress({
-  completed,
-  name,
-  percent,
-  target,
-}: {
-  completed: number;
-  name: string;
-  percent: number;
-  target: number;
-}) {
-  const t = useTranslations("statistics.goal");
-
-  return (
-    <div className="flex flex-col gap-2">
-      <span className="text-sm font-medium break-words text-foreground">{name}</span>
-      <span className="font-heading text-lg font-semibold text-ink tabular-nums">
-        {t("progress", { completed, target })}
-      </span>
-      <div className="flex items-center gap-2">
-        <Progress
-          aria-label={t("progressLabel", { percent })}
-          className="h-2 flex-1"
-          value={percent}
-        />
-        <span className="shrink-0 text-sm font-semibold text-primary tabular-nums">{percent}%</span>
-      </div>
-    </div>
-  );
-}
-
-function toReliableForecastDate(metrics: ReadingGoalMetrics): Nullable<string> {
-  const isReliable =
-    metrics.projectionConfidence === "medium" || metrics.projectionConfidence === "high";
-  return isReliable ? metrics.projectedCompletionDate : null;
 }

@@ -32,7 +32,7 @@ export function ReadingBooksMonthNav({
   const index = months.indexOf(monthKey);
 
   return (
-    <div className="ml-auto flex items-center gap-1">
+    <div className="flex w-full items-center justify-between gap-1">
       <Button
         aria-disabled={index <= 0}
         aria-label={t("previousMonth")}
@@ -47,7 +47,7 @@ export function ReadingBooksMonthNav({
       </Button>
       <span
         aria-live="polite"
-        className="min-w-28 text-center font-heading text-sm font-semibold text-ink outline-none"
+        className="min-w-0 text-center font-heading text-xl leading-tight font-semibold text-ink outline-none"
         ref={monthLabelRef}
         tabIndex={-1}
       >

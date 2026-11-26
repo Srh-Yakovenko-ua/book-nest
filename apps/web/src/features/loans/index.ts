@@ -8,3 +8,4 @@ export { LoansView } from "./components/loans-view";
 export type { LoanContactSelection } from "./model/loan-contact-selection";
 export { toLoanErrorKey } from "./model/loan-error";
 export { LOAN_PAGES } from "./model/loan-pages";
+export { loansQueryParsers } from "./model/loans-query";
