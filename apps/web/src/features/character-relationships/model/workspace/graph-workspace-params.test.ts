@@ -9,6 +9,8 @@ import {
   needsGraphWorkspaceCanonicalReplace,
   normalizeGraphWorkspaceFilters,
   toAllowedGraphWorkspaceTypes,
+  toTreeLinks,
+  toTreeOptions,
 } from "./graph-workspace-params";
 
 const CHARACTER = {
@@ -93,6 +95,67 @@ describe("canonicalizeGraphWorkspaceParams", () => {
 
     expect(canonical).toMatchObject({ categories: ["family", "social"], types: ["friend_of"] });
   });
+
+  it("keeps the focused network group in the network view", () => {
+    const canonical = canonicalizeGraphWorkspaceParams({
+      ...DEFAULT_PARAMS,
+      networkFocus: "north",
+      view: "network",
+    });
+
+    expect(canonical.networkFocus).toBe("north");
+  });
+
+  it.each(["person", "tree"] as const)("drops the focused network group in the %s view", (view) => {
+    const canonical = canonicalizeGraphWorkspaceParams({
+      ...DEFAULT_PARAMS,
+      networkFocus: "north",
+      view,
+    });
+
+    expect(canonical.networkFocus).toBeNull();
+  });
+
+  it("drops the focused network group while the path is open", () => {
+    const canonical = canonicalizeGraphWorkspaceParams({
+      ...DEFAULT_PARAMS,
+      networkFocus: "north",
+      path: true,
+      view: "network",
+    });
+
+    expect(canonical.networkFocus).toBeNull();
+  });
+});
+
+describe("networkFocus", () => {
+  it("reads no focused group when the URL names none", () => {
+    expect(loadGraphWorkspaceParams(new URLSearchParams("view=network")).networkFocus).toBeNull();
+  });
+
+  it("reads the focused group key in lower case", () => {
+    const params = loadGraphWorkspaceParams(
+      new URLSearchParams("networkFocus=F1F1F1F1-0000-4000-8000-00000000000A_x&view=network"),
+    );
+
+    expect(params.networkFocus).toBe("f1f1f1f1-0000-4000-8000-00000000000a_x");
+  });
+
+  it("reads a key of 64 characters", () => {
+    const key = "a".repeat(64);
+    const params = loadGraphWorkspaceParams(new URLSearchParams({ networkFocus: key }));
+
+    expect(params.networkFocus).toBe(key);
+  });
+
+  it.each(["", "a.b", "a/b", "has space", "a:b", "a".repeat(65)])(
+    "reads no focused group for the key '%s'",
+    (key) => {
+      const params = loadGraphWorkspaceParams(new URLSearchParams({ networkFocus: key }));
+
+      expect(params.networkFocus).toBeNull();
+    },
+  );
 });
 
 describe("needsGraphWorkspaceCanonicalReplace", () => {
@@ -104,6 +167,15 @@ describe("needsGraphWorkspaceCanonicalReplace", () => {
     "depth=1",
     "categories=social,family",
     `from=${CHARACTER.geralt}`,
+    "treeLinks=siblings,marriages",
+    "treeLinks=marriages,siblings,guardians,distant",
+    "treeLinks=foo",
+    "treeScope=branch&view=tree",
+    "treeScope=bogus&view=tree",
+    "networkFocus=north",
+    "networkFocus=North&view=network",
+    "networkFocus=a.b&view=network",
+    "networkFocus=north&path=1&view=network",
   ])("asks for a replace when the URL reads '%s'", (query) => {
     expect(needsReplaceFor(query)).toBe(true);
   });
@@ -113,8 +185,98 @@ describe("needsGraphWorkspaceCanonicalReplace", () => {
     `characterId=${CHARACTER.geralt}&depth=3`,
     "categories=family,social&types=spouse_of,friend_of&view=network",
     `from=${CHARACTER.geralt}&path=1&to=${CHARACTER.ciri}&view=tree`,
+    "treeLinks=marriages,siblings&view=tree",
+    "treeLinks=none&view=tree",
+    "treeScope=full&view=tree",
+    "networkFocus=north&view=network",
   ])("leaves the canonical URL '%s' alone", (query) => {
     expect(needsReplaceFor(query)).toBe(false);
+  });
+});
+
+describe("treeLinks", () => {
+  it("shows marriages, siblings, guardians and distant relatives when the URL names none", () => {
+    expect(loadGraphWorkspaceParams(new URLSearchParams()).treeLinks).toEqual([
+      "marriages",
+      "siblings",
+      "guardians",
+      "distant",
+    ]);
+  });
+
+  it("shows no tree links for treeLinks=none", () => {
+    expect(loadGraphWorkspaceParams(new URLSearchParams("treeLinks=none")).treeLinks).toEqual([]);
+  });
+
+  it("reads the tree links in the canonical order", () => {
+    const params = loadGraphWorkspaceParams(new URLSearchParams("treeLinks=siblings,marriages"));
+
+    expect(params.treeLinks).toEqual(["marriages", "siblings"]);
+  });
+
+  it.each(["treeLinks=foo", "treeLinks=marriages,foo"])(
+    "falls back to the default tree links for '%s'",
+    (query) => {
+      expect(loadGraphWorkspaceParams(new URLSearchParams(query)).treeLinks).toEqual([
+        "marriages",
+        "siblings",
+        "guardians",
+        "distant",
+      ]);
+    },
+  );
+
+  it("leaves the relationship filters untouched", () => {
+    const canonical = canonicalizeGraphWorkspaceParams(
+      loadGraphWorkspaceParams(new URLSearchParams("categories=family&treeLinks=siblings")),
+    );
+
+    expect(canonical).toMatchObject({ categories: ["family"], treeLinks: ["siblings"], types: [] });
+  });
+});
+
+describe("treeScope", () => {
+  it("shows a branch of the tree when the URL names no scope", () => {
+    expect(loadGraphWorkspaceParams(new URLSearchParams("view=tree")).treeScope).toBe("branch");
+  });
+
+  it("shows the whole genealogy for treeScope=full", () => {
+    const params = loadGraphWorkspaceParams(new URLSearchParams("treeScope=full&view=tree"));
+
+    expect(params.treeScope).toBe("full");
+  });
+
+  it.each(["treeScope=bogus", "treeScope=whole"])(
+    "falls back to a branch of the tree for '%s'",
+    (query) => {
+      expect(loadGraphWorkspaceParams(new URLSearchParams(query)).treeScope).toBe("branch");
+    },
+  );
+});
+
+describe("toTreeOptions", () => {
+  it("switches on exactly the listed tree links", () => {
+    expect(toTreeOptions(["siblings", "exUnions"])).toEqual({
+      distant: false,
+      exUnions: true,
+      guardians: false,
+      marriages: false,
+      siblings: true,
+    });
+  });
+});
+
+describe("toTreeLinks", () => {
+  it("lists the switched-on tree links in the canonical order", () => {
+    expect(
+      toTreeLinks({
+        distant: true,
+        exUnions: false,
+        guardians: false,
+        marriages: true,
+        siblings: true,
+      }),
+    ).toEqual(["marriages", "siblings", "distant"]);
   });
 });
 

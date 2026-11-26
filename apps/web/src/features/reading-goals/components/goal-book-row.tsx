@@ -7,18 +7,19 @@ import Image from "next/image";
 
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/navigation";
 import { assertNever } from "@/lib/assert-never";
 import { formatDate } from "@/lib/format";
 
-import type { GoalBookState } from "../model/goal-book-state";
+import type { GoalBookPages, GoalBookState } from "../model/goal-book-state";
 
 import { resolveGoalBookState } from "../model/goal-book-state";
 
 const GOAL_BOOK_ROW = {
   cover:
-    "relative grid aspect-[3/4] w-12 shrink-0 place-items-center overflow-hidden rounded-sm bg-accent text-icon",
+    "relative grid aspect-3/4 w-12 shrink-0 place-items-center overflow-hidden rounded-sm bg-accent text-icon",
   coverSizes: "48px",
   fallbackIconSize: 18,
 } as const;
@@ -37,9 +38,9 @@ export function GoalBookRow({ book }: GoalBookRowProps) {
   const authors = book.authors.map((author) => author.name).join(", ");
 
   return (
-    <li>
+    <li className="min-w-0">
       <Link
-        className="group flex items-start gap-3 rounded-lg border border-border bg-card p-3 no-underline transition-colors outline-none hover:border-accent-border hover:bg-accent/40 focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="group flex h-full items-start gap-3 rounded-lg border border-border bg-card p-3 no-underline transition-colors outline-none hover:border-accent-border hover:bg-accent/40 focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none"
         href={`/books/${book.id}`}
       >
         <GoalBookCover book={book} />
@@ -59,8 +60,8 @@ export function GoalBookRow({ book }: GoalBookRowProps) {
 
 export function GoalBookRowSkeleton() {
   return (
-    <li className="flex items-start gap-3 rounded-lg border border-border bg-card p-3">
-      <Skeleton className="aspect-[3/4] w-12 shrink-0 rounded-sm" />
+    <li className="flex min-w-0 items-start gap-3 rounded-lg border border-border bg-card p-3">
+      <Skeleton className="aspect-3/4 w-12 shrink-0 rounded-sm" />
       <div className="flex flex-1 flex-col gap-2">
         <Skeleton className="h-4 w-3/4 rounded-md" />
         <Skeleton className="h-3 w-1/2 rounded-md" />
@@ -71,15 +72,13 @@ export function GoalBookRowSkeleton() {
 }
 
 function GoalBookCover({ book }: GoalBookRowProps) {
-  const t = useTranslations("goals.detail");
-
   return (
     <div className={GOAL_BOOK_ROW.cover}>
       {book.cover === null ? (
         <UiIcon aria-hidden name="book" size={GOAL_BOOK_ROW.fallbackIconSize} />
       ) : (
         <Image
-          alt={t("coverAlt", { title: book.title })}
+          alt=""
           className="object-cover"
           fill
           sizes={GOAL_BOOK_ROW.coverSizes}
@@ -91,10 +90,40 @@ function GoalBookCover({ book }: GoalBookRowProps) {
   );
 }
 
+function GoalBookPagesBar({ percent }: { percent: number }) {
+  const t = useTranslations("goals.detail.books");
+
+  return (
+    <Progress
+      aria-label={t("pagesProgressLabel", { percent })}
+      aria-valuemax={100}
+      aria-valuemin={0}
+      aria-valuenow={percent}
+      className="h-1.5 max-w-60 *:motion-reduce:transition-none"
+      value={percent}
+    />
+  );
+}
+
 function GoalBookStateLine({ state }: { state: GoalBookState }) {
   const t = useTranslations("goals.detail");
   const tStatus = useTranslations("books.readingStatus.options");
   const locale = useLocale();
+
+  function describePages(pages: GoalBookPages): string {
+    switch (pages.kind) {
+      case "with-total":
+        return t("books.pages", {
+          current: pages.current,
+          percent: pages.percent,
+          total: pages.total,
+        });
+      case "without-total":
+        return t("books.pagesWithoutTotal", { current: pages.current });
+      default:
+        return assertNever(pages);
+    }
+  }
 
   function describe(): GoalBookStateLabel {
     switch (state.kind) {
@@ -120,14 +149,7 @@ function GoalBookStateLine({ state }: { state: GoalBookState }) {
           tone: "secondary",
         };
       case "in-progress":
-        return {
-          label: tStatus(state.status),
-          note:
-            state.pagesCount === null
-              ? t("books.pagesWithoutTotal", { current: state.currentPage })
-              : t("books.pages", { current: state.currentPage, total: state.pagesCount }),
-          tone: "info",
-        };
+        return { label: tStatus(state.status), note: describePages(state.pages), tone: "info" };
       case "status-only":
         return { label: tStatus(state.status), note: null, tone: "secondary" };
       default:
@@ -138,12 +160,19 @@ function GoalBookStateLine({ state }: { state: GoalBookState }) {
   const { label, note, tone } = describe();
 
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-      <Badge className="h-6 px-2.5" variant={tone}>
-        {tone === "success" ? <UiIcon aria-hidden name="check" /> : null}
-        {label}
-      </Badge>
-      {note === null ? null : <span className="text-xs text-muted-foreground">{note}</span>}
+    <div className="flex flex-col gap-1.5">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <Badge className="h-6 px-2.5" variant={tone}>
+          {tone === "success" ? <UiIcon aria-hidden name="check" /> : null}
+          {label}
+        </Badge>
+        {note === null ? null : (
+          <span className="text-xs text-muted-foreground tabular-nums">{note}</span>
+        )}
+      </div>
+      {state.kind === "in-progress" && state.pages.kind === "with-total" ? (
+        <GoalBookPagesBar percent={state.pages.percent} />
+      ) : null}
     </div>
   );
 }

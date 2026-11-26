@@ -15,4 +15,5 @@ export const CharacterGraphLayoutViewDtoMode = {
   person: "person",
   tree: "tree",
   network: "network",
+  genealogy: "genealogy",
 } as const;

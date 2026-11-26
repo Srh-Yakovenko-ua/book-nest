@@ -4,39 +4,38 @@ import type { EmailNotifications } from "@app/shared";
 
 import { LOAN_REMINDER_LEAD_DAYS } from "@app/shared";
 import { useTranslations } from "next-intl";
-import { useId } from "react";
-import { toast } from "sonner";
+import { useId, useRef, useState } from "react";
 
-import { UiIcon } from "@/components/icons";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { NumberStepper } from "@/components/ui/number-stepper";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 
-import { useTestNotification } from "../api/use-test-notification";
-import { useUpdateSettings } from "../api/use-update-settings";
+import { useAutosaveField } from "../hooks/use-autosave-field";
+import { FieldSaveStatus } from "./field-save-status";
+import { TestNotificationBlock } from "./test-notification-block";
 
-const EMAIL_TOGGLES = {
-  comingSoon: [
-    "readingReminders",
-    "readingGoalReminders",
-    "weeklyReadingSummary",
-    "monthlyReadingReport",
-  ],
-  live: ["deliveryReminders", "borrowedBookReminders"],
-} as const satisfies Record<"comingSoon" | "live", readonly (keyof EmailNotifications)[]>;
-
-type ComingSoonEmailToggle = (typeof EMAIL_TOGGLES.comingSoon)[number];
-
-type LiveEmailToggle = (typeof EMAIL_TOGGLES.live)[number];
+type EmailReminder = Extract<
+  keyof EmailNotifications,
+  "borrowedBookReminders" | "deliveryReminders"
+>;
 
 type NotificationSettingsSectionProps = {
   emailNotifications: EmailNotifications;
   loanReminderLeadDays: number;
 };
+
+const LEAD_DAY_OPTIONS = Array.from(
+  { length: LOAN_REMINDER_LEAD_DAYS.max - LOAN_REMINDER_LEAD_DAYS.min + 1 },
+  (_, index) => LOAN_REMINDER_LEAD_DAYS.min + index,
+);
 
 export function NotificationSettingsSection({
   emailNotifications,
@@ -53,198 +52,156 @@ export function NotificationSettingsSection({
         <CardDescription>{t("description")}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
-        <div className="flex flex-col gap-5">
-          {EMAIL_TOGGLES.live.map((field) => (
-            <EmailToggleRow checked={emailNotifications[field]} field={field} key={field} />
-          ))}
+        <EmailReminderRow
+          checked={emailNotifications.deliveryReminders}
+          field="deliveryReminders"
+        />
+        <div className="flex flex-col gap-4">
+          <EmailReminderRow
+            checked={emailNotifications.borrowedBookReminders}
+            field="borrowedBookReminders"
+          />
           <LeadDaysRow leadDays={loanReminderLeadDays} />
         </div>
 
         <Separator />
 
-        <div className="flex flex-col gap-5">
-          <div className="flex flex-col gap-1">
-            <h3 className="text-sm font-medium text-foreground">{t("upcoming.title")}</h3>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              {t("upcoming.description")}
-            </p>
-          </div>
-          {EMAIL_TOGGLES.comingSoon.map((field) => (
-            <UnavailableToggleRow field={field} key={field} />
-          ))}
-        </div>
-
-        <Separator />
-
-        <TestNotificationRow />
+        <TestNotificationBlock />
       </CardContent>
     </Card>
   );
 }
 
-function clampLeadDays(value: number): number {
-  return Math.min(
-    LOAN_REMINDER_LEAD_DAYS.max,
-    Math.max(LOAN_REMINDER_LEAD_DAYS.min, Math.round(value)),
-  );
-}
-
-function EmailToggleRow({ checked, field }: { checked: boolean; field: LiveEmailToggle }) {
-  const t = useTranslations("settings.notifications");
-  const tToast = useTranslations("settings.toast");
+function EmailReminderRow({ checked, field }: { checked: boolean; field: EmailReminder }) {
+  const t = useTranslations("settings.notifications.toggles");
   const generatedId = useId();
-  const updateSettings = useUpdateSettings();
+  const reminder = useAutosaveField({
+    confirmed: checked,
+    fromInput: (input) => input.emailNotifications?.[field],
+    toInput: (value) => {
+      const emailNotifications: Partial<EmailNotifications> = { [field]: value };
+      return { emailNotifications };
+    },
+  });
+
+  const switchRef = useRef<HTMLButtonElement>(null);
 
   const switchId = `settings-${field}-${generatedId}`;
+  const labelId = `settings-${field}-label-${generatedId}`;
   const descriptionId = `settings-${field}-description-${generatedId}`;
-  const value = updateSettings.isPending
-    ? (updateSettings.variables?.emailNotifications?.[field] ?? checked)
-    : checked;
+  const isSaving = reminder.status === "saving";
 
   return (
-    <div className="flex items-start justify-between gap-4">
-      <div className="flex min-w-0 flex-col gap-1">
-        <Label htmlFor={switchId}>{t(`toggles.${field}.label`)}</Label>
+    <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+      <div className="flex min-w-0 flex-1 basis-56 flex-col gap-1">
+        <Label htmlFor={switchId} id={labelId}>
+          {t(`${field}.label`)}
+        </Label>
         <p className="text-xs leading-relaxed text-muted-foreground" id={descriptionId}>
-          {t(`toggles.${field}.description`)}
+          {t(`${field}.description`)}
         </p>
       </div>
       <Switch
         aria-describedby={descriptionId}
-        aria-disabled={updateSettings.isPending}
-        checked={value}
+        aria-disabled={isSaving}
+        checked={reminder.value}
         className="mt-0.5 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
         id={switchId}
-        onCheckedChange={(next) => {
-          if (updateSettings.isPending) return;
-          const emailNotifications: Partial<EmailNotifications> = { [field]: next };
-          updateSettings.mutate(
-            { emailNotifications },
-            {
-              onError: () => toast.error(tToast("error")),
-              onSuccess: () => toast.success(tToast("saved")),
-            },
-          );
+        onCheckedChange={reminder.save}
+        ref={switchRef}
+      />
+      <FieldSaveStatus
+        className="basis-full"
+        fieldLabelId={labelId}
+        onRetry={() => {
+          switchRef.current?.focus();
+          reminder.retry();
         }}
+        status={reminder.status}
       />
     </div>
   );
+}
+
+function isTypeaheadKey({
+  altKey,
+  ctrlKey,
+  key,
+  metaKey,
+}: Pick<KeyboardEvent, "altKey" | "ctrlKey" | "key" | "metaKey">): boolean {
+  if (altKey || ctrlKey || metaKey) return false;
+  return key.length === 1 && key !== " ";
 }
 
 function LeadDaysRow({ leadDays }: { leadDays: number }) {
   const t = useTranslations("settings.notifications.leadDays");
-  const tCommon = useTranslations("common");
-  const tToast = useTranslations("settings.toast");
   const generatedId = useId();
-  const updateSettings = useUpdateSettings();
+  const leadDaysField = useAutosaveField({
+    confirmed: leadDays,
+    fromInput: (input) => input.loanReminderLeadDays,
+    toInput: (loanReminderLeadDays) => ({ loanReminderLeadDays }),
+  });
 
-  const stepperId = `settings-lead-days-${generatedId}`;
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  const triggerId = `settings-lead-days-${generatedId}`;
+  const labelId = `settings-lead-days-label-${generatedId}`;
   const hintId = `settings-lead-days-hint-${generatedId}`;
-  const value = updateSettings.isPending
-    ? (updateSettings.variables?.loanReminderLeadDays ?? leadDays)
-    : leadDays;
+  const isSaving = leadDaysField.status === "saving";
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-      <div className="flex min-w-0 flex-col gap-1">
-        <Label htmlFor={stepperId}>{t("label")}</Label>
+    <div className="ml-1 flex flex-wrap items-start justify-between gap-x-4 gap-y-2 border-l-2 border-border pl-4">
+      <div className="flex min-w-0 flex-1 basis-56 flex-col gap-1">
+        <Label htmlFor={triggerId} id={labelId}>
+          {t("label")}
+        </Label>
         <p className="text-xs leading-relaxed text-muted-foreground" id={hintId}>
-          {t("hint", { max: LOAN_REMINDER_LEAD_DAYS.max, min: LOAN_REMINDER_LEAD_DAYS.min })}
+          {t("hint")}
         </p>
       </div>
-      <NumberStepper
-        ariaLabel={t("label")}
-        decrementLabel={tCommon("decrement")}
-        describedBy={hintId}
-        id={stepperId}
-        incrementLabel={tCommon("increment")}
-        max={LOAN_REMINDER_LEAD_DAYS.max}
-        min={LOAN_REMINDER_LEAD_DAYS.min}
+      <Select
+        onOpenChange={(nextOpen) => {
+          if (nextOpen && isSaving) return;
+          setIsOpen(nextOpen);
+        }}
         onValueChange={(next) => {
-          if (updateSettings.isPending) return;
-          const loanReminderLeadDays = clampLeadDays(next);
-          if (loanReminderLeadDays === value) return;
-          updateSettings.mutate(
-            { loanReminderLeadDays },
-            {
-              onError: () => toast.error(tToast("error")),
-              onSuccess: () => toast.success(tToast("saved")),
-            },
-          );
+          const days = LEAD_DAY_OPTIONS.find((option) => String(option) === next);
+          if (days === undefined) return;
+          leadDaysField.save(days);
         }}
-        size="sm"
-        suffix={t("suffix", { count: value })}
-        value={value}
-      />
-    </div>
-  );
-}
-
-function TestNotificationRow() {
-  const t = useTranslations("settings.notifications.test");
-  const generatedId = useId();
-  const testNotification = useTestNotification();
-
-  const descriptionId = `settings-test-notification-description-${generatedId}`;
-
-  return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-      <div className="flex min-w-0 flex-col gap-1">
-        <p className="text-sm font-medium text-foreground">{t("label")}</p>
-        <p className="text-xs leading-relaxed text-muted-foreground" id={descriptionId}>
-          {t("description")}
-        </p>
-      </div>
-      <Button
-        aria-describedby={descriptionId}
-        aria-disabled={testNotification.isPending}
-        className="shrink-0 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
-        onClick={() => {
-          if (testNotification.isPending) return;
-          testNotification.mutate(undefined, {
-            onError: () => toast.error(t("error")),
-            onSuccess: () => toast.success(t("success")),
-          });
-        }}
-        size="sm"
-        variant="secondary"
+        open={isOpen}
+        value={String(leadDaysField.value)}
       >
-        <UiIcon name="bell" size={14} />
-        {t("button")}
-      </Button>
-    </div>
-  );
-}
-
-function UnavailableToggleRow({ field }: { field: ComingSoonEmailToggle }) {
-  const t = useTranslations("settings.notifications");
-  const generatedId = useId();
-
-  const switchId = `settings-${field}-${generatedId}`;
-  const descriptionId = `settings-${field}-description-${generatedId}`;
-  const badgeId = `settings-${field}-badge-${generatedId}`;
-
-  return (
-    <div className="flex items-start justify-between gap-4">
-      <div className="flex min-w-0 flex-col gap-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <Label className="text-muted-foreground" htmlFor={switchId}>
-            {t(`toggles.${field}.label`)}
-          </Label>
-          <Badge id={badgeId} variant="secondary">
-            {t("comingSoon")}
-          </Badge>
-        </div>
-        <p className="text-xs leading-relaxed text-muted-foreground" id={descriptionId}>
-          {t(`toggles.${field}.description`)}
-        </p>
-      </div>
-      <Switch
-        aria-describedby={`${badgeId} ${descriptionId}`}
-        aria-disabled="true"
-        checked={false}
-        className="mt-0.5 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
-        id={switchId}
+        <SelectTrigger
+          aria-describedby={hintId}
+          aria-disabled={isSaving}
+          className="w-32 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+          id={triggerId}
+          onKeyDown={(event) => {
+            if (!isTypeaheadKey(event)) return;
+            event.preventDefault();
+          }}
+          ref={triggerRef}
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {LEAD_DAY_OPTIONS.map((days) => (
+            <SelectItem key={days} value={String(days)}>
+              {t("option", { count: days })}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <FieldSaveStatus
+        className="basis-full"
+        fieldLabelId={labelId}
+        onRetry={() => {
+          triggerRef.current?.focus();
+          leadDaysField.retry();
+        }}
+        status={leadDaysField.status}
       />
     </div>
   );

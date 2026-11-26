@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReadingGoalDetail } from "@app/shared";
+import type { Nullable, ReadingGoalDetail } from "@app/shared";
+import type { RefObject } from "react";
 
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
@@ -19,11 +20,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useRouter } from "@/i18n/navigation";
 
 import { useArchiveGoal } from "../api/use-archive-goal";
 import { useDeleteGoal } from "../api/use-delete-goal";
 import { GoalFormDialog } from "./goal-form-dialog";
+
+type GoalActionOpener = "inline" | "menu";
 
 type GoalDetailActionsProps = {
   goal: ReadingGoalDetail;
@@ -40,21 +49,38 @@ export function GoalDetailActions({ goal }: GoalDetailActionsProps) {
   const editOpenerRef = useRef<HTMLButtonElement>(null);
   const archiveOpenerRef = useRef<HTMLButtonElement>(null);
   const deleteOpenerRef = useRef<HTMLButtonElement>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const dialogOpenerRef = useRef<GoalActionOpener>("inline");
 
   const archiveGoal = useArchiveGoal();
   const deleteGoal = useDeleteGoal();
 
   const isArchived = goal.status === "archived";
 
+  function openArchive(opener: GoalActionOpener) {
+    dialogOpenerRef.current = opener;
+    setArchiveOpen(true);
+  }
+
+  function openDelete(opener: GoalActionOpener) {
+    dialogOpenerRef.current = opener;
+    setDeleteOpen(true);
+  }
+
+  function returnFocusTo(inlineOpener: RefObject<Nullable<HTMLButtonElement>>) {
+    const opener = dialogOpenerRef.current === "menu" ? menuTriggerRef : inlineOpener;
+    dialogOpenerRef.current = "inline";
+    opener.current?.focus();
+  }
+
   function returnFocusAfterArchive(event: Event) {
     event.preventDefault();
-    const opener = archiveGoal.isSuccess ? deleteOpenerRef : archiveOpenerRef;
-    opener.current?.focus();
+    returnFocusTo(archiveGoal.isSuccess ? deleteOpenerRef : archiveOpenerRef);
   }
 
   function returnFocusAfterDelete(event: Event) {
     event.preventDefault();
-    deleteOpenerRef.current?.focus();
+    returnFocusTo(deleteOpenerRef);
   }
 
   function handleArchive() {
@@ -85,28 +111,64 @@ export function GoalDetailActions({ goal }: GoalDetailActionsProps) {
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         {isArchived ? null : (
           <>
             <Button onClick={() => setEditOpen(true)} ref={editOpenerRef} variant="secondary">
               <UiIcon name="edit" size={16} />
               {t("edit")}
             </Button>
-            <Button onClick={() => setArchiveOpen(true)} ref={archiveOpenerRef} variant="secondary">
+            <Button
+              className="max-sm:hidden"
+              onClick={() => openArchive("inline")}
+              ref={archiveOpenerRef}
+              variant="secondary"
+            >
               <UiIcon name="inbox" size={16} />
               {t("archive")}
             </Button>
           </>
         )}
         <Button
-          className="sm:ml-auto"
-          onClick={() => setDeleteOpen(true)}
+          className="max-sm:hidden"
+          onClick={() => openDelete("inline")}
           ref={deleteOpenerRef}
           variant="destructive"
         >
           <UiIcon name="trash" size={16} />
           {t("delete")}
         </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              aria-label={t("moreActions")}
+              className="size-11 sm:hidden"
+              ref={menuTriggerRef}
+              size="icon"
+              variant="secondary"
+            >
+              <UiIcon name="more" size={18} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className="w-48"
+            onCloseAutoFocus={(event) => {
+              if (dialogOpenerRef.current === "menu") event.preventDefault();
+            }}
+          >
+            {isArchived ? null : (
+              <DropdownMenuItem onSelect={() => openArchive("menu")}>
+                <UiIcon name="inbox" size={16} />
+                {t("archive")}
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem onSelect={() => openDelete("menu")} variant="destructive">
+              <UiIcon name="trash" size={16} />
+              {t("delete")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {isArchived ? null : (

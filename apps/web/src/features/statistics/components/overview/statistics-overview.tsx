@@ -22,7 +22,7 @@ import type { UseStatisticsParamsResult } from "../../model/use-statistics-param
 import { useReadingStatisticsOverview } from "../../api/use-reading-statistics-overview";
 import { isLowerBoundComparison } from "../../model/statistics-dynamics";
 import { toStatisticsScopeState } from "../../model/statistics-scope-state";
-import { STATISTICS_VIEW, toStatisticsTab } from "../../model/statistics-view";
+import { isComparedTab, STATISTICS_VIEW, toStatisticsTab } from "../../model/statistics-view";
 import { useStatisticsParams } from "../../model/use-statistics-params";
 import { useStatisticsView } from "../../model/use-statistics-view";
 import { StatisticsPeriodControls } from "../controls/statistics-period-controls";
@@ -38,6 +38,7 @@ import { StatisticsFocusTarget } from "../statistics-focus-target";
 import {
   StatisticsError,
   StatisticsNote,
+  StatisticsProgressSkeleton,
   StatisticsRefreshingNote,
   StatisticsSectionState,
   StatisticsSkeleton,
@@ -63,6 +64,7 @@ export function StatisticsOverview() {
   });
   const scope = toStatisticsScopeState(query);
   const currentOverview = scope.isPlaceholderData ? undefined : scope.data;
+  const view = useStatisticsView(params.state);
   const periodTriggerRef = useRef<HTMLButtonElement>(null);
   const statisticsBodyRef = useRef<HTMLElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(statisticsBodyRef);
@@ -73,7 +75,7 @@ export function StatisticsOverview() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <header className="flex flex-col gap-1">
         <div className="flex items-center gap-3">
           <h1 className="font-heading text-[clamp(1.75rem,3.5vw,2.5rem)] leading-tight font-semibold text-ink">
@@ -86,6 +88,7 @@ export function StatisticsOverview() {
 
       <StatisticsPeriodControls
         comparison={currentOverview?.comparison ?? null}
+        comparisonAvailability={isComparedTab(view.tab) ? "available" : "tab"}
         params={params}
         period={currentOverview?.period ?? null}
         periodTriggerRef={periodTriggerRef}
@@ -134,6 +137,7 @@ function StatisticsBody({
   scope: StatisticsScopeState<ReadingStatisticsOverview>;
 }) {
   const t = useTranslations("statistics");
+  const { tab } = useStatisticsView(params.state);
   const overview = scope.data;
 
   if (scope.isInitialError) {
@@ -141,15 +145,17 @@ function StatisticsBody({
   }
 
   if (overview === undefined) {
-    return params.isRequestable ? (
-      <StatisticsSkeleton />
-    ) : (
-      <StatisticsSectionState
-        description={t("states.invalidRange.description")}
-        kind="insufficient"
-        title={t("states.invalidRange.title")}
-      />
-    );
+    if (!params.isRequestable) {
+      return (
+        <StatisticsSectionState
+          description={t("states.invalidRange.description")}
+          kind="insufficient"
+          title={t("states.invalidRange.title")}
+        />
+      );
+    }
+
+    return tab === "progress" ? <StatisticsProgressSkeleton /> : <StatisticsSkeleton />;
   }
 
   const isLowerBound = overview.meta.activityHistory.selectedPeriodQuality === "legacy_lower_bound";
@@ -157,7 +163,7 @@ function StatisticsBody({
   return (
     <RefreshingRegion
       aria-busy={scope.isRefreshing}
-      className="flex flex-col gap-6"
+      className="flex flex-col gap-4"
       isRefreshing={scope.isPlaceholderData}
     >
       {isLowerBound ? <StatisticsNote>{t("states.lowerBound")}</StatisticsNote> : null}
@@ -184,6 +190,7 @@ function StatisticsTabs({
   params: UseStatisticsParamsResult;
 }) {
   const t = useTranslations("statistics.tabs");
+  const tProgressGroups = useTranslations("statistics.progressGroups");
   const view = useStatisticsView(params.state);
   const isComparisonLowerBound = isLowerBoundComparison({
     comparison: overview.comparison,
@@ -250,19 +257,24 @@ function StatisticsTabs({
         <ReadingCalendarLink />
       </PageTabsPanel>
 
-      <PageTabsPanel className="flex flex-col gap-6" value="tastes">
+      <PageTabsPanel className="flex flex-col gap-4" value="tastes">
         <StatisticsFocusTarget isTarget={view.section === "ratings"}>
           <RatingsSection ratings={overview.ratings} />
         </StatisticsFocusTarget>
 
-        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-          <GenresSection genres={overview.genres} />
-          <AuthorsSection authors={overview.authors} />
-        </div>
-
-        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-          <PublishersSection publishers={overview.publishers} />
-          <LanguagesSection languages={overview.languages} />
+        <div className="@container flex flex-col gap-4">
+          <div className="grid grid-cols-1 items-start gap-4 @min-[41rem]:grid-cols-2">
+            <GenresSection genres={overview.genres} />
+            <AuthorsSection authors={overview.authors} />
+          </div>
+          <div className="grid grid-cols-1 items-start gap-4 @min-[41rem]:grid-cols-5">
+            <div className="min-w-0 @min-[41rem]:col-span-3">
+              <PublishersSection publishers={overview.publishers} />
+            </div>
+            <div className="min-w-0 @min-[41rem]:col-span-2">
+              <LanguagesSection languages={overview.languages} />
+            </div>
+          </div>
         </div>
 
         {overview.period.kind === "all_time" ? null : (
@@ -270,11 +282,21 @@ function StatisticsTabs({
         )}
       </PageTabsPanel>
 
-      <PageTabsPanel className="flex flex-col gap-6" value="progress">
-        <ReadingGoalCard goal={overview.goal} variant="full" />
-        <SeriesSection series={overview.series} />
-        <LibraryBalanceSection libraryBalance={overview.libraryBalance} />
-        <RecordsSection isLowerBound={isLowerBound} records={overview.records} />
+      <PageTabsPanel className="@container flex flex-col gap-4" value="progress">
+        <section
+          aria-label={tProgressGroups("snapshot")}
+          className="grid grid-cols-1 gap-4 @3xl:grid-cols-2"
+        >
+          <ReadingGoalCard goal={overview.goal} variant="full" />
+          <LibraryBalanceSection libraryBalance={overview.libraryBalance} />
+        </section>
+        <section
+          aria-label={tProgressGroups("period")}
+          className="grid grid-cols-1 gap-4 @3xl:grid-cols-2"
+        >
+          <SeriesSection series={overview.series} />
+          <RecordsSection isLowerBound={isLowerBound} records={overview.records} />
+        </section>
       </PageTabsPanel>
     </PageTabs>
   );

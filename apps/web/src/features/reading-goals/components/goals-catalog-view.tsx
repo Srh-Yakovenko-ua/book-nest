@@ -19,7 +19,7 @@ import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 import { cn } from "@/lib/utils";
 
 import type { GoalsCatalogContent } from "../model/goals-catalog-content";
-import type { GoalsViewMode } from "../model/goals-query";
+import type { GoalsStatus, GoalsViewMode } from "../model/goals-query";
 
 import { GoalCatalogCard, GoalCatalogRow } from "./goal-catalog-card";
 
@@ -28,6 +28,13 @@ const GOALS_LAYOUT = {
   list: "flex flex-col gap-3",
   skeletonCount: 6,
 } as const;
+
+const FILTERED_EMPTY_TITLE_KEY = {
+  active: "filteredEmpty.title",
+  archived: "filteredEmpty.titles.archived",
+  completed: "filteredEmpty.titles.completed",
+  expired: "filteredEmpty.title",
+} as const satisfies Record<GoalsStatus, string>;
 
 type GoalsCatalogViewProps = {
   content: GoalsCatalogContent;
@@ -126,7 +133,8 @@ function GoalsContent({
     case "empty": {
       const emptyState: EmptyStateEntry = {
         desc: t("empty.description"),
-        illu: "empty-lists",
+        illu: "reading-goals/goal-first-goal-empty-state",
+        illuSize: "sm",
         primary: { icon: "plus", label: t("empty.create") },
         title: t("empty.title"),
       };
@@ -149,8 +157,10 @@ function GoalsContent({
       const filteredState: EmptyStateEntry = {
         desc: t("filteredEmpty.description"),
         illu: "empty-search",
+        illuSize: "xs",
+        layout: "inline",
         primary: { icon: "x", label: t("filteredEmpty.showAll") },
-        title: t("filteredEmpty.title"),
+        title: t(FILTERED_EMPTY_TITLE_KEY[content.status]),
       };
       return <EmptyState onPrimary={onClearStatus} state={filteredState} />;
     }

@@ -59,10 +59,7 @@ export async function request<T>(path: string, init?: RequestOptions): Promise<T
   const requestUserId = getAuthBridge()?.getUserId() ?? null;
   const res = await send(path, init);
 
-  if (res.ok) {
-    if (res.status === 204) return undefined as T;
-    return res.json() as Promise<T>;
-  }
+  if (res.ok) return readSuccessBody<T>(res);
 
   if (isMaintenanceResponse(res)) {
     reportMaintenance();
@@ -108,6 +105,12 @@ function isMaintenanceResponse(res: Response): boolean {
   return res.headers.get(MAINTENANCE.header) !== null;
 }
 
+async function readSuccessBody<T>(res: Response): Promise<T> {
+  const text = await res.text();
+  if (text.trim() === "") return undefined as T;
+  return JSON.parse(text) as T;
+}
+
 async function refreshAndRetry<T>({
   init,
   path,
@@ -133,8 +136,7 @@ async function refreshAndRetry<T>({
 
   const res = await send(path, init);
   if (!res.ok) throw await toApiError(res);
-  if (res.status === 204) return { handled: true, value: undefined as T };
-  return { handled: true, value: (await res.json()) as T };
+  return { handled: true, value: await readSuccessBody<T>(res) };
 }
 
 async function send(path: string, init?: RequestOptions): Promise<Response> {

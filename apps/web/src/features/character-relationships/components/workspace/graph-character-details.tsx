@@ -1,6 +1,6 @@
 "use client";
 
-import type { CharacterGraphNodeView, Nullable } from "@app/shared";
+import type { CharacterGraphNodeView } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 
@@ -11,35 +11,13 @@ import { Button } from "@/components/ui/button";
 import { getCharacterDetailsPath } from "@/features/characters";
 import { Link } from "@/i18n/navigation";
 
-export type GraphCharacterConnectionItem = {
-  connectionId: string;
-  label: string;
-  otherName: string;
-};
-
 type GraphCharacterDetailsProps = {
   bookId: string;
-  branch: Nullable<{ expanded: boolean; onToggle: () => void }>;
-  connections: readonly GraphCharacterConnectionItem[];
-  isRoot: boolean;
   node: CharacterGraphNodeView;
-  onExplore: Nullable<() => void>;
-  onFindPath: Nullable<() => void>;
-  onMakeCenter: Nullable<() => void>;
-  onOpenConnection: (connectionId: string) => void;
+  onExplore: () => void;
 };
 
-export function GraphCharacterDetails({
-  bookId,
-  branch,
-  connections,
-  isRoot,
-  node,
-  onExplore,
-  onFindPath,
-  onMakeCenter,
-  onOpenConnection,
-}: GraphCharacterDetailsProps) {
+export function GraphCharacterDetails({ bookId, node, onExplore }: GraphCharacterDetailsProps) {
   const t = useTranslations("relationships.workspace.panel.character");
   const tImportance = useTranslations("characters.importance");
 
@@ -57,7 +35,6 @@ export function GraphCharacterDetails({
             {node.displayName}
           </p>
           <div className="flex flex-wrap gap-1">
-            {isRoot ? <Badge variant="secondary">{t("root")}</Badge> : null}
             {node.importance === null ? null : (
               <Badge variant="outline">{tImportance(node.importance)}</Badge>
             )}
@@ -71,26 +48,9 @@ export function GraphCharacterDetails({
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
-        {onMakeCenter === null ? null : (
-          <Button onClick={onMakeCenter} size="sm" type="button">
-            {t("makeCenter")}
-          </Button>
-        )}
-        {onExplore === null ? null : (
-          <Button onClick={onExplore} size="sm" type="button">
-            {t("explore")}
-          </Button>
-        )}
-        {branch === null ? null : (
-          <Button onClick={branch.onToggle} size="sm" type="button" variant="outline">
-            {t(branch.expanded ? "collapse" : "expand")}
-          </Button>
-        )}
-        {onFindPath === null ? null : (
-          <Button onClick={onFindPath} size="sm" type="button" variant="outline">
-            {t("findPath")}
-          </Button>
-        )}
+        <Button onClick={onExplore} size="sm" type="button">
+          {t("explore")}
+        </Button>
         <Button asChild size="sm" variant="ghost">
           <Link href={getCharacterDetailsPath({ bookId, characterId: node.id })}>
             {t("profile")}
@@ -99,27 +59,9 @@ export function GraphCharacterDetails({
       </div>
       <section aria-labelledby="graph-character-connections" className="flex flex-col gap-2">
         <h3 className="text-sm font-medium" id="graph-character-connections">
-          {t("connections", { count: connections.length })}
+          {t("connections", { count: 0 })}
         </h3>
-        {connections.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("noConnections")}</p>
-        ) : (
-          <ul className="flex flex-col gap-1">
-            {connections.map((item) => (
-              <li key={item.connectionId}>
-                <Button
-                  className="h-auto w-full justify-between gap-2 py-2 text-left"
-                  onClick={() => onOpenConnection(item.connectionId)}
-                  type="button"
-                  variant="ghost"
-                >
-                  <span className="min-w-0 truncate font-medium">{item.otherName}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground">{item.label}</span>
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <p className="text-sm text-muted-foreground">{t("noConnections")}</p>
       </section>
     </>
   );

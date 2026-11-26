@@ -7,13 +7,12 @@ import { useLocale, useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Link } from "@/i18n/navigation";
 import { formatDateLong } from "@/lib/format";
 
-import { goalDisplayPercent } from "../model/goal-display-percent";
 import { GOAL_STATUS_BADGE } from "../model/goal-status";
-import { useGoalTimeNote } from "../model/use-goal-time-note";
+import { useGoalsCatalogHref } from "../model/use-goal-catalog-links";
+import { useGoalTitle } from "../model/use-goal-title";
 
 type GoalDetailHeaderProps = {
   actions: ReactNode;
@@ -25,78 +24,72 @@ type GoalDetailPartProps = {
 };
 
 export function GoalDetailHeader({ actions, goal }: GoalDetailHeaderProps) {
-  const t = useTranslations("goals.detail");
-  const tGoals = useTranslations("goals");
-  const locale = useLocale();
-  const timeNote = useGoalTimeNote(goal);
-  const meta = [t("deadline", { date: formatDateLong(goal.deadline, locale) }), timeNote]
-    .filter((part) => part !== null)
-    .join(" · ");
+  const goalTitle = useGoalTitle();
 
   return (
-    <>
-      <GoalBackLink goal={goal} />
-
-      <header className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <h1 className="min-w-0 font-heading text-2xl font-semibold break-words text-ink">
-            {goal.name ??
-              tGoals("fallbackName", {
-                count: goal.targetCount,
-                date: formatDateLong(goal.deadline, locale),
-              })}
+    <header className="flex flex-col gap-2 sm:gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <GoalBackLink />
+        {actions}
+      </div>
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <h1 className="min-w-0 font-heading text-2xl font-semibold break-words text-ink sm:text-3xl">
+            {goalTitle(goal)}
           </h1>
           <GoalStatusLabels goal={goal} />
         </div>
-        <p className="text-sm text-muted-foreground">{meta}</p>
-        {actions}
-      </header>
-
-      <GoalDetailProgress goal={goal} />
-    </>
+        <GoalMeta goal={goal} />
+      </div>
+    </header>
   );
 }
 
-function GoalBackLink({ goal }: GoalDetailPartProps) {
+function GoalBackLink() {
   const t = useTranslations("goals.detail");
+  const catalogHref = useGoalsCatalogHref();
 
   return (
     <Link
-      className="inline-flex w-fit max-w-full items-center gap-1.5 rounded-sm text-sm break-words text-muted-foreground no-underline transition-colors outline-none hover:text-foreground focus-visible:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-      href={goal.list === null ? "/goals" : `/lists/${goal.list.id}`}
+      className="inline-flex min-w-0 items-center gap-1.5 rounded-sm text-sm text-muted-foreground no-underline transition-colors outline-none hover:text-foreground focus-visible:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+      href={catalogHref}
     >
       <UiIcon aria-hidden className="shrink-0" name="arrow-left" size={16} />
-      {goal.list === null ? t("backToGoals") : t("back", { name: goal.list.name })}
+      <span className="truncate">{t("allGoals")}</span>
     </Link>
   );
 }
 
-function GoalDetailProgress({ goal }: GoalDetailPartProps) {
-  const t = useTranslations("goals.detail");
-  const percent = goalDisplayPercent(goal);
+function GoalMeta({ goal }: GoalDetailPartProps) {
+  const t = useTranslations("goals.detail.meta");
+  const locale = useLocale();
+  const { list } = goal;
 
   return (
-    <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-soft">
-      <div className="flex items-center gap-3">
-        <Progress
-          aria-label={t("progressLabel", { percent })}
-          aria-valuemax={100}
-          aria-valuemin={0}
-          aria-valuenow={percent}
-          className="h-2.5 flex-1"
-          value={percent}
-        />
-        <span className="shrink-0 text-sm font-semibold text-primary tabular-nums">{percent}%</span>
-      </div>
-      <p className="text-sm text-foreground tabular-nums">
-        {t("progress", { completed: goal.completedCount, target: goal.targetCount })}
-      </p>
-      {goal.remainingCount === 0 ? null : (
-        <p className="text-sm text-muted-foreground">
-          {t("remaining", { count: goal.remainingCount })}
-        </p>
+    <ul className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
+      <li className="inline-flex min-w-0 items-center gap-1.5">
+        <UiIcon className="text-icon" name="calendar" size={16} />
+        {t("deadline", { date: formatDateLong(goal.deadline, locale) })}
+      </li>
+      {list === null ? null : (
+        <li className="inline-flex min-w-0 items-center gap-1.5">
+          <UiIcon className="text-icon" name="list" size={16} />
+          <span className="min-w-0 break-words">
+            {t.rich("list", {
+              link: (chunks) => (
+                <Link
+                  className="rounded-sm font-medium text-foreground underline underline-offset-4 outline-none hover:text-primary focus-visible:ring-3 focus-visible:ring-ring/50"
+                  href={`/lists/${list.id}`}
+                >
+                  {chunks}
+                </Link>
+              ),
+              name: list.name,
+            })}
+          </span>
+        </li>
       )}
-    </section>
+    </ul>
   );
 }
 

@@ -1,3 +1,4 @@
+import type { ReadingGoalCreationPreviewQuery } from "@app/shared";
 import type { QueryClient } from "@tanstack/react-query";
 
 import type {
@@ -16,6 +17,8 @@ export const goalKeys = {
     [...goalScope(goalId), "books", params] as const,
   catalog: (params: Omit<ReadingGoalsControllerListParams, "cursor">) =>
     [...GOALS_CATALOG_INDEX, params] as const,
+  creationPreview: (listId: string, query: ReadingGoalCreationPreviewQuery) =>
+    [GOALS_ROOT, "creation-preview", listId, query] as const,
   detail: (goalId: string) => [...goalScope(goalId), "detail"] as const,
   forList: (listId: string) => [GOALS_ROOT, "for-list", listId] as const,
   overview: [GOALS_ROOT, "overview"] as const,

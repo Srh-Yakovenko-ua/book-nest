@@ -19,8 +19,10 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  BookCharacterGraphControllerGetFamilyTreeParams,
   BookCharacterGraphControllerGetParams,
   BookCharacterRelationshipsControllerListParams,
+  BookFamilyTreeViewDto,
   CharacterGraphViewDto,
   CharacterRelationshipCustomTypesControllerListParams,
   CharacterRelationshipDeletionResultViewDto,
@@ -2428,6 +2430,198 @@ export function useBookCharacterGraphControllerGet<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getBookCharacterGraphControllerGetQueryOptions(bookId, params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getBookCharacterGraphControllerGetFamilyTreeUrl = (
+  bookId: string,
+  params?: BookCharacterGraphControllerGetFamilyTreeParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/books/${bookId}/character-graph/family-tree?${stringifiedParams}`
+    : `/api/books/${bookId}/character-graph/family-tree`;
+};
+
+/**
+ * @summary Build the spoiler-safe family tree of every character in a book
+ */
+export const bookCharacterGraphControllerGetFamilyTree = async (
+  bookId: string,
+  params?: BookCharacterGraphControllerGetFamilyTreeParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<BookFamilyTreeViewDto> => {
+  return customInstance<BookFamilyTreeViewDto>(
+    getBookCharacterGraphControllerGetFamilyTreeUrl(bookId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getBookCharacterGraphControllerGetFamilyTreeQueryKey = (
+  bookId: string,
+  params?: BookCharacterGraphControllerGetFamilyTreeParams,
+) => {
+  return [`/api/books/${bookId}/character-graph/family-tree`, ...(params ? [params] : [])] as const;
+};
+
+export const getBookCharacterGraphControllerGetFamilyTreeQueryOptions = <
+  TData = Awaited<ReturnType<typeof bookCharacterGraphControllerGetFamilyTree>>,
+  TError = void,
+>(
+  bookId: string,
+  params?: BookCharacterGraphControllerGetFamilyTreeParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof bookCharacterGraphControllerGetFamilyTree>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getBookCharacterGraphControllerGetFamilyTreeQueryKey(bookId, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof bookCharacterGraphControllerGetFamilyTree>>
+  > = ({ signal }) =>
+    bookCharacterGraphControllerGetFamilyTree(bookId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: bookId !== null && bookId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof bookCharacterGraphControllerGetFamilyTree>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BookCharacterGraphControllerGetFamilyTreeQueryResult = NonNullable<
+  Awaited<ReturnType<typeof bookCharacterGraphControllerGetFamilyTree>>
+>;
+export type BookCharacterGraphControllerGetFamilyTreeQueryError = void;
+
+export function useBookCharacterGraphControllerGetFamilyTree<
+  TData = Awaited<ReturnType<typeof bookCharacterGraphControllerGetFamilyTree>>,
+  TError = void,
+>(
+  bookId: string,
+  params: undefined | BookCharacterGraphControllerGetFamilyTreeParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof bookCharacterGraphControllerGetFamilyTree>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookCharacterGraphControllerGetFamilyTree>>,
+          TError,
+          Awaited<ReturnType<typeof bookCharacterGraphControllerGetFamilyTree>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookCharacterGraphControllerGetFamilyTree<
+  TData = Awaited<ReturnType<typeof bookCharacterGraphControllerGetFamilyTree>>,
+  TError = void,
+>(
+  bookId: string,
+  params?: BookCharacterGraphControllerGetFamilyTreeParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof bookCharacterGraphControllerGetFamilyTree>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookCharacterGraphControllerGetFamilyTree>>,
+          TError,
+          Awaited<ReturnType<typeof bookCharacterGraphControllerGetFamilyTree>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookCharacterGraphControllerGetFamilyTree<
+  TData = Awaited<ReturnType<typeof bookCharacterGraphControllerGetFamilyTree>>,
+  TError = void,
+>(
+  bookId: string,
+  params?: BookCharacterGraphControllerGetFamilyTreeParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof bookCharacterGraphControllerGetFamilyTree>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Build the spoiler-safe family tree of every character in a book
+ */
+
+export function useBookCharacterGraphControllerGetFamilyTree<
+  TData = Awaited<ReturnType<typeof bookCharacterGraphControllerGetFamilyTree>>,
+  TError = void,
+>(
+  bookId: string,
+  params?: BookCharacterGraphControllerGetFamilyTreeParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof bookCharacterGraphControllerGetFamilyTree>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBookCharacterGraphControllerGetFamilyTreeQueryOptions(
+    bookId,
+    params,
+    options,
+  );
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

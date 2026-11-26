@@ -183,13 +183,12 @@ function compareReadingGoalBooks(
   if (byGroup !== 0) {
     return byGroup;
   }
-  if (left.qualifiedFinishedAt !== null && right.qualifiedFinishedAt !== null) {
-    const byFinishedAt = compareAsc(left.qualifiedFinishedAt, right.qualifiedFinishedAt);
-    return byFinishedAt === 0 ? left.bookId.localeCompare(right.bookId) : byFinishedAt;
-  }
-  const byReading = Number(right.reading) - Number(left.reading);
-  if (byReading !== 0) {
-    return byReading;
+  const byGroupOrder =
+    left.qualifiedFinishedAt !== null && right.qualifiedFinishedAt !== null
+      ? compareAsc(left.qualifiedFinishedAt, right.qualifiedFinishedAt)
+      : Number(right.reading) - Number(left.reading);
+  if (byGroupOrder !== 0) {
+    return byGroupOrder;
   }
   const byPosition = left.position - right.position;
   return byPosition === 0 ? left.bookId.localeCompare(right.bookId) : byPosition;

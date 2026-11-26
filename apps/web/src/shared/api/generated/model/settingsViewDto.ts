@@ -24,8 +24,8 @@ export interface SettingsViewDto {
    * @minimum 1
    * @maximum 14
    */
-  loanReminderLeadDays?: number;
+  loanReminderLeadDays: number;
   themeMode: SettingsViewDtoThemeMode;
-  timezone?: string;
+  timezone: string;
   weekStartDay: SettingsViewDtoWeekStartDay;
 }

@@ -21,12 +21,12 @@ export function useBooksCalendarJump({
   isCalendarCurrent,
   month,
   sectionRef,
-  setMonth,
+  selectDay,
 }: {
   isCalendarCurrent: boolean;
   month: string;
   sectionRef: RefObject<Nullable<HTMLElement>>;
-  setMonth: (month: string) => void;
+  selectDay: (date: string) => void;
 }) {
   const [jump, setJump] = useState<Nullable<BooksCalendarJump>>(null);
   const [observedMonth, setObservedMonth] = useState(month);
@@ -69,8 +69,7 @@ export function useBooksCalendarJump({
   return {
     dayTarget: readyJump === null ? null : { date: readyJump.date, ref: attachDayTarget },
     showInBooksCalendar: (date: string) => {
-      const targetMonth = date.slice(0, 7);
-      if (targetMonth !== month) setMonth(targetMonth);
+      selectDay(date);
       requestCount.current += 1;
       setJump({ date, requestId: requestCount.current });
     },

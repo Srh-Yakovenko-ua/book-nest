@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 
 import type { CustomListCard } from "@app/shared";
+import type { QueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
 import { defaultUserProfileSettings } from "@app/shared";
@@ -8,8 +9,11 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { toast } from "sonner";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { listKeys } from "@/features/lists/api/list-keys";
 import { makeCustomListCard } from "@/features/lists/model/lists.fixtures";
+import messages from "@/messages/uk.json";
 import {
+  createTestQueryClient,
   mockIntersectionObserver,
   renderWithProviders,
   screen,
@@ -23,12 +27,17 @@ import {
   makeReadingGoalsOverview,
   makeReadingGoalView,
 } from "../model/reading-goals.fixtures";
+import { GoalListPicker } from "./goal-list-picker";
 import { GoalsCatalog } from "./goals-catalog";
 
 const TODAY = new Date(2026, 7, 15, 9, 0, 0);
 const LIST_GOAL_PATH = /^\/api\/lists\/[^/]+\/goal$/;
+const LIST_GOAL_PREVIEW_PATH = /^\/api\/lists\/[^/]+\/goal\/preview$/;
 const PICKER_TITLE = "Оберіть список для цілі";
 const CREATE_TITLE = "Створити ціль для добірки";
+const SEARCH_LABEL = messages.goals.picker.search;
+const CHANGE_LIST = messages.goals.form.changeList;
+const DISCARD = messages.common.discardChanges;
 
 const { pushMock } = vi.hoisted(() => ({ pushMock: vi.fn() }));
 
@@ -51,7 +60,7 @@ mockIntersectionObserver();
 const AUTUMN_LIST = makeCustomListCard({ bookCount: 12, id: "list-1", name: "Осіннє читання" });
 const WINTER_LIST = makeCustomListCard({ bookCount: 4, id: "list-2", name: "Зимові детективи" });
 
-let respondToLists: () => Response;
+let respondToLists: (url: URL) => Response;
 let respondToListGoal: () => Response;
 let respondToCreate: () => Response;
 
@@ -64,6 +73,12 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json" },
     status,
   });
+}
+
+function listCachingQueryClient(): QueryClient {
+  const queryClient = createTestQueryClient();
+  queryClient.setQueryDefaults(listKeys.root, { gcTime: Infinity });
+  return queryClient;
 }
 
 function listGoalLookups(): string[] {
@@ -91,12 +106,26 @@ async function openPicker() {
   return screen.findByRole("dialog", { name: PICKER_TITLE });
 }
 
-function renderCatalog() {
+function renderCatalog(queryClient?: QueryClient) {
   return renderWithProviders(
     <NuqsTestingAdapter hasMemory searchParams="">
       <GoalsCatalog />
     </NuqsTestingAdapter>,
+    { queryClient },
   );
+}
+
+async function searchAndChooseAutumn() {
+  const picker = await openPicker();
+  await within(picker).findByRole("button", { name: /Зимові детективи/ });
+  await userEvent.type(within(picker).getByLabelText(SEARCH_LABEL), "Осін");
+  await waitFor(() =>
+    expect(
+      within(picker).queryByRole("button", { name: /Зимові детективи/ }),
+    ).not.toBeInTheDocument(),
+  );
+  await userEvent.click(within(picker).getByRole("button", { name: /Осіннє читання/ }));
+  return screen.findByRole("dialog", { name: CREATE_TITLE });
 }
 
 function sentRequests() {
@@ -136,7 +165,10 @@ beforeEach(() => {
         jsonResponse({ items: [makeReadingGoalListItem()], nextCursor: null }),
       );
     }
-    if (url.pathname === "/api/lists") return Promise.resolve(respondToLists());
+    if (url.pathname === "/api/lists") return Promise.resolve(respondToLists(url));
+    if (LIST_GOAL_PREVIEW_PATH.test(url.pathname)) {
+      return Promise.resolve(jsonResponse({ bookCount: 12, countedCount: 0 }));
+    }
     if (LIST_GOAL_PATH.test(url.pathname) && method === "POST") {
       return Promise.resolve(respondToCreate());
     }
@@ -282,5 +314,80 @@ describe("GoalListPicker creation", () => {
       targetCount: 5,
     });
     expect(toast.success).toHaveBeenCalledWith("Ціль створено");
+  });
+});
+
+describe("GoalListPicker after a list change", () => {
+  beforeEach(() => {
+    respondToLists = (url) =>
+      jsonResponse(
+        listsPage(url.searchParams.has("search") ? [AUTUMN_LIST] : [AUTUMN_LIST, WINTER_LIST]),
+      );
+  });
+
+  it("brings back the search and focuses the list chosen before", async () => {
+    renderCatalog(listCachingQueryClient());
+
+    const form = await searchAndChooseAutumn();
+    await userEvent.click(within(form).getByRole("button", { name: CHANGE_LIST }));
+
+    const picker = await screen.findByRole("dialog", { name: PICKER_TITLE });
+    expect(within(picker).getByLabelText(SEARCH_LABEL)).toHaveValue("Осін");
+    await waitFor(() =>
+      expect(within(picker).getByRole("button", { name: /Осіннє читання/ })).toHaveFocus(),
+    );
+  });
+
+  it("asks to discard a started goal before it goes back to the lists", async () => {
+    renderCatalog(listCachingQueryClient());
+
+    const form = await searchAndChooseAutumn();
+    await userEvent.type(within(form).getByLabelText(/Назва цілі/), "Осінній забіг");
+    await userEvent.click(within(form).getByRole("button", { name: CHANGE_LIST }));
+    const discard = await screen.findByRole("alertdialog", { name: DISCARD.title });
+
+    expect(screen.queryByRole("dialog", { name: PICKER_TITLE })).not.toBeInTheDocument();
+
+    await userEvent.click(within(discard).getByRole("button", { name: DISCARD.confirm }));
+
+    const picker = await screen.findByRole("dialog", { name: PICKER_TITLE });
+    expect(within(picker).getByLabelText(SEARCH_LABEL)).toHaveValue("Осін");
+    await waitFor(() =>
+      expect(within(picker).getByRole("button", { name: /Осіннє читання/ })).toHaveFocus(),
+    );
+  });
+
+  it("starts the next goal with an empty search", async () => {
+    renderCatalog();
+
+    const picker = await openPicker();
+    await userEvent.type(within(picker).getByLabelText(SEARCH_LABEL), "Осін");
+    await waitFor(() =>
+      expect(listsRequests().map((url) => url.searchParams.get("search"))).toContain("Осін"),
+    );
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: PICKER_TITLE })).not.toBeInTheDocument(),
+    );
+
+    const reopened = await openPicker();
+
+    expect(within(reopened).getByLabelText(SEARCH_LABEL)).toHaveValue("");
+  });
+
+  it("focuses the search when the list to return to is not on screen", async () => {
+    renderWithProviders(
+      <GoalListPicker
+        onChoose={vi.fn()}
+        onOpenChange={vi.fn()}
+        onSearchChange={vi.fn()}
+        open
+        openerRef={{ current: null }}
+        returnListId="missing"
+        search=""
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByLabelText(SEARCH_LABEL)).toHaveFocus());
   });
 });

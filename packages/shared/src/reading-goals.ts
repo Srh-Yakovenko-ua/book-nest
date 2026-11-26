@@ -37,6 +37,7 @@ export const ReadingGoalRiskReasonSchema = z.enum([
   "deadline_soon",
   "no_recent_progress",
   "required_pace_high",
+  "projected_late",
 ]);
 
 export type ReadingGoalRiskReason = z.infer<typeof ReadingGoalRiskReasonSchema>;
@@ -127,6 +128,19 @@ export const UpdateReadingGoalInputSchema = z.object({
 });
 
 export type UpdateReadingGoalInput = z.infer<typeof UpdateReadingGoalInputSchema>;
+
+export const ReadingGoalCreationPreviewQuerySchema = z.object({
+  deadline: z.iso.date().optional(),
+});
+
+export type ReadingGoalCreationPreviewQuery = z.infer<typeof ReadingGoalCreationPreviewQuerySchema>;
+
+export const ReadingGoalCreationPreviewSchema = z.object({
+  bookCount: z.number().int().nonnegative(),
+  countedCount: z.number().int().nonnegative(),
+});
+
+export type ReadingGoalCreationPreview = z.infer<typeof ReadingGoalCreationPreviewSchema>;
 
 export const ReadingGoalMetricsSchema = z.object({
   actualBooksPerDay: z.number().nonnegative().nullable(),

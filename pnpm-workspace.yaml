@@ -22,14 +22,14 @@ catalog:
   "@nestjs/testing": ^11.1.28
   "@nestjs/throttler": ^6.5.0
   "@nestjs/websockets": ^11.1.28
-  "@next/eslint-plugin-next": ^16.2.12
+  "@next/eslint-plugin-next": ^16.4.6
   "@opentelemetry/auto-instrumentations-node": ^0.79.0
   "@opentelemetry/sdk-node": ^0.221.0
-  "@prisma/adapter-pg": ^7.9.1
-  "@prisma/client": ^7.9.1
-  "@storybook/addon-vitest": ^10.5.5
-  "@storybook/nextjs-vite": ^10.5.5
-  "@storybook/react": ^10.5.5
+  "@prisma/adapter-pg": ^7.10.1
+  "@prisma/client": ^7.10.1
+  "@storybook/addon-vitest": ^10.6.2
+  "@storybook/nextjs-vite": ^10.6.2
+  "@storybook/react": ^10.6.2
   "@swc-node/register": ^1.12.0
   "@swc/core": ^1.15.43
   "@tailwindcss/postcss": ^4.3.3
@@ -48,16 +48,15 @@ catalog:
   "@types/cookie-parser": ^1.4.9
   "@types/express": ^5.0.6
   "@types/node": ^24.13.3
-  "@types/nodemailer": ^8.0.1
   "@types/pg": ^8.20.0
   "@types/react": ^19.2.17
   "@types/react-dom": ^19.2.3
   "@types/supertest": ^7.2.1
   "@vitejs/plugin-react-swc": ^4.3.2
-  "@vitest/browser-playwright": ^4.1.10
-  "@vitest/coverage-v8": ^4.1.10
+  "@vitest/browser-playwright": ^4.1.12
+  "@vitest/coverage-v8": ^4.1.12
   "@vitest/eslint-plugin": ^1.6.24
-  "@vitest/ui": ^4.1.10
+  "@vitest/ui": ^4.1.12
   "@xyflow/react": ^12.12.0
   bcryptjs: ^3.0.2
   body-parser: ^2.4.0
@@ -84,7 +83,7 @@ catalog:
   eslint-plugin-testing-library: ^7.16.2
   file-type: ^22.0.1
   globals: ^17.8.0
-  happy-dom: ^20.11.1
+  happy-dom: ^21.0.4
   heic-to: ^1.5.2
   helmet: ^8.3.0
   husky: ^9.1.7
@@ -95,11 +94,11 @@ catalog:
   lucide-react: ^1.27.0
   motion: ^12.42.2
   nanoid: ^6.0.0
-  nestjs-zod: ^5.5.0
-  next: ^16.2.12
+  nestjs-zod: ^5.6.0
+  next: ^16.4.6
   next-intl: ^4.13.4
   next-themes: ^0.4.6
-  nodemailer: ^9.1.0
+  nodemailer: ^10.5.0
   nuqs: ^2.9.2
   orval: ^8.23.0
   pg: ^8.22.0
@@ -109,7 +108,7 @@ catalog:
   playwright: ^1.62.0
   prettier: ^3.9.5
   prettier-plugin-tailwindcss: ^0.8.1
-  prisma: ^7.9.1
+  prisma: ^7.10.1
   prom-client: ^15.1.3
   radix-ui: ^1.6.7
   react: ^19.2.8
@@ -127,7 +126,7 @@ catalog:
   socket.io: ^4.8.3
   socket.io-client: ^4.8.3
   sonner: ^2.0.7
-  storybook: ^10.5.5
+  storybook: ^10.6.2
   superjson: ^2.2.6
   supertest: ^7.2.2
   tailwind-merge: ^3.6.0
@@ -139,8 +138,8 @@ catalog:
   typescript: ^6.0.2
   typescript-eslint: ^8.64.0
   vaul: ^1.1.2
-  vite: ^8.1.5
-  vitest: ^4.1.10
+  vite: ^8.1.6
+  vitest: ^4.1.12
   web-vitals: ^6.0.1
   zod: ^4.6.6
   zustand: ^5.0.14

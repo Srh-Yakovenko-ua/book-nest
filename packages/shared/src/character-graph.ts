@@ -222,3 +222,27 @@ export const FamilyTreeGraphViewSchema = z.object({
 });
 
 export type FamilyTreeGraphView = z.infer<typeof FamilyTreeGraphViewSchema>;
+
+export const BOOK_FAMILY_TREE = {
+  edgeLimit: CHARACTER_GRAPH_EDGE_LIMIT,
+  houseGroupTypes: ["house", "family", "clan"],
+  nodeLimit: CHARACTER_GRAPH_NODE_LIMIT,
+} as const;
+
+export const BookFamilyTreeQuerySchema = z.object({ ...readingPositionQueryFields });
+
+export type BookFamilyTreeQuery = z.infer<typeof BookFamilyTreeQuerySchema>;
+
+export const BookFamilyTreeViewSchema = z.object({
+  diagnostics: z.array(CharacterRelationshipDiagnosticViewSchema),
+  edges: z.array(CharacterGraphEdgeViewSchema),
+  graphVersion: z.string(),
+  hiddenContent: CharacterGraphHiddenContentViewSchema,
+  houses: z.array(CharacterGraphGroupClusterViewSchema),
+  lineage: z.array(FamilyTreeLineageViewSchema),
+  nodes: z.array(CharacterGraphNodeViewSchema),
+  scope: z.literal("book"),
+  updatedAt: z.string().nullable(),
+});
+
+export type BookFamilyTreeView = z.infer<typeof BookFamilyTreeViewSchema>;

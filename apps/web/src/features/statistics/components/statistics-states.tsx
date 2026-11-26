@@ -29,6 +29,16 @@ const SECTION_TONE: Record<StatisticsSectionStateKind, string> = {
   unavailable: "text-muted-foreground",
 };
 
+type StatisticsSectionStateDensity = "compact" | "default";
+
+const SECTION_DENSITY = {
+  compact: { container: "gap-1 px-3 py-2.5", description: "text-xs", title: "text-sm" },
+  default: { container: "gap-1.5 px-3 py-4", description: "", title: "" },
+} as const satisfies Record<
+  StatisticsSectionStateDensity,
+  { container: string; description: string; title: string }
+>;
+
 type StatisticsRefreshReason = "periodChange" | "refetch";
 
 const REFRESH_MESSAGE = {
@@ -93,6 +103,29 @@ export function StatisticsPeriodEmpty({ onShowAllTime }: { onShowAllTime: () => 
   return <EmptyState onPrimary={onShowAllTime} state={entry} />;
 }
 
+export function StatisticsProgressSkeleton() {
+  const t = useTranslations("statistics.states");
+
+  return (
+    <div
+      aria-busy
+      aria-label={t("loading")}
+      className="@container flex flex-col gap-4"
+      data-testid="statistics-skeleton-progress"
+      role="status"
+    >
+      <div className="grid grid-cols-1 gap-4 @3xl:grid-cols-2">
+        <Skeleton className="h-68 w-full rounded-xl" />
+        <Skeleton className="h-68 w-full rounded-xl" />
+      </div>
+      <div className="grid grid-cols-1 gap-4 @3xl:grid-cols-2">
+        <Skeleton className="h-104 w-full rounded-xl" />
+        <Skeleton className="h-104 w-full rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
 export function StatisticsRefreshingNote({
   reason = "refetch",
 }: {
@@ -110,26 +143,41 @@ export function StatisticsRefreshingNote({
 
 export function StatisticsSectionState({
   action,
+  density = "default",
   description,
   kind,
   title,
 }: {
   action?: ReactNode;
+  density?: StatisticsSectionStateDensity;
   description?: string;
   kind: StatisticsSectionStateKind;
   title: string;
 }) {
+  const densityClassNames = SECTION_DENSITY[density];
+
   return (
     <div
-      className="flex flex-col items-start gap-1.5 rounded-lg border border-dashed border-border/70 px-3 py-4 text-sm"
+      className={cn(
+        "flex flex-col items-start rounded-lg border border-dashed border-border/70 text-sm",
+        densityClassNames.container,
+      )}
       role={kind === "error" ? "alert" : undefined}
     >
-      <span className={cn("flex items-center gap-2 font-medium", SECTION_TONE[kind])}>
+      <span
+        className={cn(
+          "flex items-center gap-2 font-medium",
+          densityClassNames.title,
+          SECTION_TONE[kind],
+        )}
+      >
         <UiIcon aria-hidden name={SECTION_ICON[kind]} size={15} />
         {title}
       </span>
       {description === undefined ? null : (
-        <span className="text-muted-foreground">{description}</span>
+        <span className={cn("text-muted-foreground", densityClassNames.description)}>
+          {description}
+        </span>
       )}
       {action}
     </div>

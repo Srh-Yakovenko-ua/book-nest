@@ -3,17 +3,20 @@
 import type { ReadingGoalListItem } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
+import { useId } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { TruncatedText } from "@/components/truncated-text";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Link } from "@/i18n/navigation";
-import { formatDate, formatDateLong } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import { goalDisplayPercent } from "../model/goal-display-percent";
 import { GOAL_SIGNAL_TONE, GOAL_STATUS_BADGE } from "../model/goal-status";
+import { useGoalDetailHref } from "../model/use-goal-catalog-links";
+import { useGoalTitle } from "../model/use-goal-title";
 
 type GoalCatalogItemProps = {
   goal: ReadingGoalListItem;
@@ -25,8 +28,11 @@ const GOAL_CARD = {
 } as const satisfies { surface: string };
 
 export function GoalCatalogCard({ goal }: GoalCatalogItemProps) {
+  const titleId = useId();
+
   return (
     <article
+      aria-labelledby={titleId}
       className={cn("group/goal-card h-full flex-col gap-3.5 p-4", GOAL_CARD.surface)}
       data-slot="goal-card"
     >
@@ -35,6 +41,7 @@ export function GoalCatalogCard({ goal }: GoalCatalogItemProps) {
         <GoalTitle
           className="line-clamp-2 text-[1.0625rem]"
           goal={goal}
+          id={titleId}
           linkClassName="group-hover/goal-card:text-primary"
         />
         <GoalSourceList list={goal.list} />
@@ -47,8 +54,11 @@ export function GoalCatalogCard({ goal }: GoalCatalogItemProps) {
 }
 
 export function GoalCatalogRow({ goal }: GoalCatalogItemProps) {
+  const titleId = useId();
+
   return (
     <article
+      aria-labelledby={titleId}
       className={cn(
         "group/goal-row flex-col gap-3 p-3 sm:p-4 md:flex-row md:items-center md:gap-5",
         GOAL_CARD.surface,
@@ -60,6 +70,7 @@ export function GoalCatalogRow({ goal }: GoalCatalogItemProps) {
         <GoalTitle
           className="line-clamp-2 text-sm"
           goal={goal}
+          id={titleId}
           linkClassName="group-hover/goal-row:text-primary"
         />
         <GoalSourceList list={goal.list} />
@@ -105,7 +116,7 @@ function GoalProgress({ goal }: GoalCatalogItemProps) {
           aria-valuemax={100}
           aria-valuemin={0}
           aria-valuenow={percent}
-          className="h-2 flex-1"
+          className="h-2 flex-1 *:motion-reduce:transition-none"
           value={percent}
         />
         <span className="shrink-0 text-xs font-semibold text-primary tabular-nums">{percent}%</span>
@@ -197,25 +208,25 @@ function GoalTimelineNote({ goal }: GoalCatalogItemProps) {
 function GoalTitle({
   className,
   goal,
+  id,
   linkClassName,
-}: GoalCatalogItemProps & { className: string; linkClassName: string }) {
-  const tGoals = useTranslations("goals");
-  const locale = useLocale();
+}: GoalCatalogItemProps & { className: string; id: string; linkClassName: string }) {
+  const goalTitle = useGoalTitle();
+  const goalDetailHref = useGoalDetailHref();
 
   return (
-    <h3 className={cn("font-heading leading-tight font-bold break-words text-ink", className)}>
+    <h3
+      className={cn("font-heading leading-tight font-bold break-words text-ink", className)}
+      id={id}
+    >
       <Link
         className={cn(
           "text-ink no-underline transition-colors outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:text-primary",
           linkClassName,
         )}
-        href={`/goals/${goal.id}`}
+        href={goalDetailHref(goal.id)}
       >
-        {goal.name ??
-          tGoals("fallbackName", {
-            count: goal.targetCount,
-            date: formatDateLong(goal.deadline, locale),
-          })}
+        {goalTitle(goal)}
       </Link>
     </h3>
   );

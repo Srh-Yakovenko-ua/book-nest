@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { calculateReadingGoalRisk } from "./reading-goal-risk.js";
+import { calculateReadingGoalRisk, resolveProjectedLateDays } from "./reading-goal-risk.js";
 
 type RiskInput = Parameters<typeof calculateReadingGoalRisk>[0];
 
@@ -12,8 +12,23 @@ const baseInput = {
   elapsedPercent: 50,
   pace: "on_track",
   projectedDaysDelta: 10,
+  projectionConfidence: "medium",
   remainingCount: 5,
   requiredBooksPerDay: 0.25,
+  status: "active",
+} satisfies RiskInput;
+
+const devGoalInput = {
+  actualBooksPerDay: 0.057,
+  daysLeft: 38,
+  daysSinceLastCounted: 4,
+  elapsedDays: 35,
+  elapsedPercent: 47.9,
+  pace: "on_track",
+  projectedDaysDelta: -15,
+  projectionConfidence: "medium",
+  remainingCount: 3,
+  requiredBooksPerDay: 0.077,
   status: "active",
 } satisfies RiskInput;
 
@@ -132,9 +147,16 @@ describe("calculateReadingGoalRisk reasons", () => {
         daysSinceLastCounted: 20,
         elapsedDays: 20,
         pace: "behind",
+        projectedDaysDelta: -2,
         requiredBooksPerDay: 2,
       }).riskReasons,
-    ).toEqual(["behind_schedule", "deadline_soon", "no_recent_progress", "required_pace_high"]);
+    ).toEqual([
+      "behind_schedule",
+      "deadline_soon",
+      "no_recent_progress",
+      "required_pace_high",
+      "projected_late",
+    ]);
   });
 });
 
@@ -193,11 +215,148 @@ describe("calculateReadingGoalRisk level", () => {
     expect(calculateRisk({ projectedDaysDelta: 4 }).riskLevel).toBe("none");
   });
 
-  it("is none when the projection overshoots the deadline but nothing else is wrong", () => {
-    expect(calculateRisk({ projectedDaysDelta: -1 }).riskLevel).toBe("none");
+  it("is low, not none, when a trusted projection overshoots the deadline by a day and nothing else is wrong", () => {
+    expect(calculateRisk({ projectedDaysDelta: -1 })).toStrictEqual({
+      riskLevel: "low",
+      riskReasons: ["projected_late"],
+    });
+  });
+
+  it("is none when only an untrusted projection overshoots the deadline", () => {
+    const risk = calculateRisk({ projectedDaysDelta: -1, projectionConfidence: "low" });
+
+    expect(risk).toStrictEqual({ riskLevel: "none", riskReasons: [] });
   });
 
   it("is none when there is no projection to lean on", () => {
     expect(calculateRisk({ projectedDaysDelta: null }).riskLevel).toBe("none");
+  });
+});
+
+describe("calculateReadingGoalRisk projected lateness", () => {
+  it("rates the on-track goal forecast fifteen days late as high on projected_late alone", () => {
+    expect(calculateReadingGoalRisk(devGoalInput)).toStrictEqual({
+      riskLevel: "high",
+      riskReasons: ["projected_late"],
+    });
+  });
+
+  it.each([
+    { lateDays: 1, riskLevel: "low" },
+    { lateDays: 3, riskLevel: "low" },
+    { lateDays: 4, riskLevel: "medium" },
+    { lateDays: 7, riskLevel: "medium" },
+    { lateDays: 8, riskLevel: "high" },
+  ] as const)(
+    "rates a goal forecast $lateDays days late with nothing else wrong as $riskLevel",
+    ({ lateDays, riskLevel }) => {
+      expect(calculateRisk({ projectedDaysDelta: -lateDays })).toStrictEqual({
+        riskLevel,
+        riskReasons: ["projected_late"],
+      });
+    },
+  );
+
+  it("never reaches critical from the forecast alone, however late", () => {
+    expect(calculateRisk({ projectedDaysDelta: -60 }).riskLevel).toBe("high");
+  });
+
+  it("does not treat a forecast that lands on the deadline day as late", () => {
+    expect(calculateRisk({ projectedDaysDelta: 0 }).riskReasons).toEqual([]);
+  });
+
+  it("trusts a high-confidence forecast the same way as a medium one", () => {
+    const risk = calculateRisk({ projectedDaysDelta: -5, projectionConfidence: "high" });
+
+    expect(risk).toStrictEqual({ riskLevel: "medium", riskReasons: ["projected_late"] });
+  });
+
+  it.each(["none", "low"] as const)(
+    "draws no conclusion from a %s-confidence forecast fifteen days late",
+    (projectionConfidence) => {
+      expect(calculateReadingGoalRisk({ ...devGoalInput, projectionConfidence })).toStrictEqual({
+        riskLevel: "none",
+        riskReasons: [],
+      });
+    },
+  );
+
+  it("keeps the old rules for an untrusted late forecast next to another reason", () => {
+    const risk = calculateRisk({
+      pace: "behind",
+      projectedDaysDelta: -15,
+      projectionConfidence: "low",
+    });
+
+    expect(risk).toStrictEqual({ riskLevel: "medium", riskReasons: ["behind_schedule"] });
+  });
+
+  it.each(["archived", "completed", "expired"] as const)(
+    "reports no projected_late for a %s goal even with a trusted forecast far past the deadline",
+    (status) => {
+      expect(
+        calculateRisk({
+          daysLeft: null,
+          daysSinceLastCounted: null,
+          pace: null,
+          projectedDaysDelta: -20,
+          projectionConfidence: "high",
+          requiredBooksPerDay: null,
+          status,
+        }),
+      ).toStrictEqual({ riskLevel: "none", riskReasons: [] });
+    },
+  );
+
+  it("does not let projected_late count toward the two-reason high threshold", () => {
+    expect(calculateRisk({ pace: "behind", projectedDaysDelta: -2 })).toStrictEqual({
+      riskLevel: "medium",
+      riskReasons: ["behind_schedule", "projected_late"],
+    });
+  });
+
+  it("raises a single-reason medium goal to high once the forecast is eight or more days late", () => {
+    expect(calculateRisk({ projectedDaysDelta: -9, requiredBooksPerDay: 2 })).toStrictEqual({
+      riskLevel: "high",
+      riskReasons: ["required_pace_high", "projected_late"],
+    });
+  });
+
+  it("never lowers the high level two other reasons already set", () => {
+    const risk = calculateRisk({ pace: "behind", projectedDaysDelta: -1, requiredBooksPerDay: 2 });
+
+    expect(risk).toStrictEqual({
+      riskLevel: "high",
+      riskReasons: ["behind_schedule", "required_pace_high", "projected_late"],
+    });
+  });
+
+  it("keeps a critical pace critical when the forecast is only a few days late", () => {
+    expect(calculateRisk({ pace: "critical", projectedDaysDelta: -2 })).toStrictEqual({
+      riskLevel: "critical",
+      riskReasons: ["projected_late"],
+    });
+  });
+
+  it("keeps the behind-and-deadline pair critical when the forecast is far late", () => {
+    expect(calculateRisk({ daysLeft: 5, pace: "behind", projectedDaysDelta: -10 })).toStrictEqual({
+      riskLevel: "critical",
+      riskReasons: ["behind_schedule", "deadline_soon", "projected_late"],
+    });
+  });
+});
+
+describe("resolveProjectedLateDays", () => {
+  it("reports how many days past the deadline a trusted forecast lands", () => {
+    expect(resolveProjectedLateDays(devGoalInput)).toBe(15);
+  });
+
+  it.each([
+    { label: "an untrusted forecast", overrides: { projectionConfidence: "low" } },
+    { label: "a goal that is no longer active", overrides: { status: "expired" } },
+    { label: "a forecast that lands on the deadline day", overrides: { projectedDaysDelta: 0 } },
+    { label: "a goal without a forecast", overrides: { projectedDaysDelta: null } },
+  ] as const)("reports no late days for $label", ({ overrides }) => {
+    expect(resolveProjectedLateDays({ ...devGoalInput, ...overrides })).toBeNull();
   });
 });

@@ -2,6 +2,7 @@ import type {
   Nullable,
   ReadingGoalActivityResponse,
   ReadingGoalBooksResponse,
+  ReadingGoalCreationPreview,
   ReadingGoalDetail,
   ReadingGoalListResponse,
   ReadingGoalsOverview,
@@ -13,6 +14,7 @@ import {
   CreateReadingGoalInputSchema,
   ReadingGoalActivityQuerySchema,
   ReadingGoalBooksQuerySchema,
+  ReadingGoalCreationPreviewQuerySchema,
   ReadingGoalsQuerySchema,
   UpdateReadingGoalInputSchema,
 } from "@app/shared";
@@ -54,16 +56,19 @@ import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { ReadingGoalActivityService } from "../application/reading-goal-activity.service.js";
 import { ReadingGoalBooksService } from "../application/reading-goal-books.service.js";
 import { ReadingGoalCatalogService } from "../application/reading-goal-catalog.service.js";
+import { ReadingGoalCreationPreviewService } from "../application/reading-goal-creation-preview.service.js";
 import { ReadingGoalDetailAssembler } from "../application/reading-goal-detail.assembler.js";
 import { ReadingGoalOverviewService } from "../application/reading-goal-overview.service.js";
 import { ReadingGoalsService } from "../application/reading-goals.service.js";
 import { CreateReadingGoalInputDto } from "./input-dto/create-reading-goal.input-dto.js";
 import { ReadingGoalActivityQueryDto } from "./input-dto/reading-goal-activity.query.input-dto.js";
 import { ReadingGoalBooksQueryDto } from "./input-dto/reading-goal-books.query.input-dto.js";
+import { ReadingGoalCreationPreviewQueryDto } from "./input-dto/reading-goal-creation-preview.query.input-dto.js";
 import { ReadingGoalsQueryDto } from "./input-dto/reading-goals.query.input-dto.js";
 import { UpdateReadingGoalInputDto } from "./input-dto/update-reading-goal.input-dto.js";
 import { ReadingGoalActivityResponseDto } from "./view-dto/reading-goal-activity.view-dto.js";
 import { ReadingGoalBooksResponseDto } from "./view-dto/reading-goal-books.view-dto.js";
+import { ReadingGoalCreationPreviewDto } from "./view-dto/reading-goal-creation-preview.view-dto.js";
 import { ReadingGoalDetailDto } from "./view-dto/reading-goal-detail.view-dto.js";
 import { ReadingGoalListResponseDto } from "./view-dto/reading-goal-list.view-dto.js";
 import { ReadingGoalViewDto } from "./view-dto/reading-goal.view-dto.js";
@@ -80,6 +85,7 @@ export class ReadingGoalsController {
     private readonly overviewService: ReadingGoalOverviewService,
     private readonly goalBooksService: ReadingGoalBooksService,
     private readonly goalActivityService: ReadingGoalActivityService,
+    private readonly creationPreviewService: ReadingGoalCreationPreviewService,
   ) {}
 
   @ApiBadRequestResponse({ description: "Validation failed" })
@@ -97,6 +103,26 @@ export class ReadingGoalsController {
     @Body(new ZodBodyPipe(CreateReadingGoalInputSchema)) body: CreateReadingGoalInputDto,
   ): Promise<ReadingGoalView> {
     return this.readingGoalsService.create({ input: body, listId, userId: user.id });
+  }
+
+  @ApiBadRequestResponse({ description: "Invalid query params or a deadline not in the future" })
+  @ApiNotFoundResponse({ description: "List not found" })
+  @ApiOkResponse({
+    description: "How many list books a goal created now would count right away",
+    type: ReadingGoalCreationPreviewDto,
+  })
+  @ApiOperation({ summary: "Preview the books a new reading goal over a custom list would count" })
+  @ApiParam({ name: "listId", required: true })
+  @ApiQuery({ name: "deadline", required: false })
+  @Get("lists/:listId/goal/preview")
+  @Throttle(READ_THROTTLE)
+  previewCreation(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("listId", ParseUUIDPipe) listId: string,
+    @Query(new ZodQueryPipe(ReadingGoalCreationPreviewQuerySchema))
+    query: ReadingGoalCreationPreviewQueryDto,
+  ): Promise<ReadingGoalCreationPreview> {
+    return this.creationPreviewService.preview({ listId, query, userId: user.id });
   }
 
   @ApiNoContentResponse({ description: "The list has no open reading goal" })

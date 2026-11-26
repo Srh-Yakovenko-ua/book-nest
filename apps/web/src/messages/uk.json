@@ -455,37 +455,278 @@
     "expandSidebar": "Розгорнути бічну панель"
   },
   "home": {
-    "eyebrow": "Моя бібліотека",
     "title": "Book Nest",
     "description": "Ваша особиста бібліотека: стежте за читанням і впорядковуйте колекцію книг.",
-    "greeting": "Привіт, {name}!",
-    "greetingFallback": "Вітаємо у Book Nest!",
-    "subtitle": "Ось коротке зведення вашої бібліотеки.",
-    "progress": {
-      "title": "Прогрес читання",
-      "label": "Прочитано {finished} з {total}"
+    "greeting": {
+      "named": {
+        "morning": "Доброго ранку, {name}!",
+        "day": "Добрий день, {name}!",
+        "evening": "Добрий вечір, {name}!",
+        "night": "Доброї ночі, {name}!",
+        "neutral": "Привіт, {name}!"
+      },
+      "anonymous": {
+        "morning": "Доброго ранку!",
+        "day": "Добрий день!",
+        "evening": "Добрий вечір!",
+        "night": "Доброї ночі!",
+        "neutral": "Привіт!"
+      }
+    },
+    "subtitle": {
+      "emptyLibrary": "Твоя полиця ще порожня. Почнімо з першої книги.",
+      "readToday": "Сьогоднішнє читання вже зараховано. Так тримати!",
+      "activeBooks": "Твої книги чекають на продовження.",
+      "noActiveBooks": "Саме час обрати наступну книгу.",
+      "neutral": "Радію знову бачити тебе у твоєму книжковому просторі."
     },
     "actions": {
-      "addBook": "Додати книгу",
-      "library": "До бібліотеки"
+      "addBook": "Додати книгу"
     },
-    "empty": {
-      "title": "Бібліотека поки порожня",
-      "description": "Додайте першу книгу, щоб побачити статистику тут.",
+    "summary": {
+      "label": "Підсумок бібліотеки",
+      "counts": {
+        "total": "{count, plural, one {книга} few {книги} many {книг} other {книги}}",
+        "reading": "читаю",
+        "finished": "прочитано",
+        "favorites": "{count, plural, one {улюблена} few {улюблені} many {улюблених} other {улюбленої}}"
+      },
+      "unavailable": "немає даних",
+      "error": "Не вдалося оновити підсумок",
+      "retry": "Повторити завантаження підсумку бібліотеки"
+    },
+    "onboarding": {
+      "title": "Почнімо твою бібліотеку",
+      "description": "Додай першу книгу, і тут з’являться твоє читання, нові надходження та спогади з книжок.",
       "action": "Додати першу книгу"
     },
-    "delivery": {
-      "title": "Доставки в дорозі",
-      "viewAll": "Переглянути всі",
-      "active": "Активні",
-      "expectedThisWeek": "Цього тижня",
-      "delayed": "Затримка",
-      "loading": "Завантажуємо доставки…",
-      "empty": "Немає доставок у дорозі",
+    "memory": {
+      "title": "Книжковий спогад дня",
+      "quoteText": "«{text}»",
+      "page": "с. {page}",
+      "savedAge": "Збережено {age}",
+      "openFull": "Відкрити повністю",
+      "favorite": "Улюблений спогад",
+      "spoiler": {
+        "title": "Цей спогад містить спойлер",
+        "description": "Він може розкрити важливі події книги.",
+        "reveal": "Показати спогад"
+      },
       "error": {
-        "title": "Не вдалося завантажити доставки",
-        "retry": "Спробувати ще раз завантажити доставки"
+        "title": "Не вдалося завантажити спогад дня",
+        "retry": "Спробувати ще раз"
       }
+    },
+    "recent": {
+      "title": "Нещодавно на полиці",
+      "allBooks": "Усі книги",
+      "added": "Додано {when}",
+      "error": {
+        "title": "Не вдалося завантажити нові книги",
+        "retry": "Спробувати ще раз"
+      }
+    },
+    "stale": {
+      "message": "Показано останні завантажені дані.",
+      "retry": "Оновити"
+    },
+    "reading": {
+      "title": "Зараз читаю",
+      "all": "Усі ({count})",
+      "rereading": "Перечитую",
+      "seriesPart": "{name}, книга {part}",
+      "updateProgress": "Оновити прогрес",
+      "updated": "Прогрес оновлено {when}",
+      "staleHint": "Давно без оновлень. Повертайся до неї, коли захочеш.",
+      "menu": {
+        "label": "Більше дій для «{title}»",
+        "open": "Відкрити книгу",
+        "pause": "Призупинити читання",
+        "finish": "Завершити читання"
+      },
+      "progress": {
+        "percent": "{percent}%",
+        "page": "Сторінка {current}",
+        "pagesOf": "{current} з {total} с.",
+        "label": "Прогрес читання: {percent}%"
+      },
+      "carousel": {
+        "label": "Книги, які ти читаєш",
+        "roleDescription": "карусель",
+        "slide": "{current} з {total}",
+        "slideRoleDescription": "слайд",
+        "position": "{current} з {total}",
+        "range": "{first}–{last} з {total}",
+        "previous": "Попередня книга",
+        "next": "Наступна книга"
+      },
+      "dialog": {
+        "errorTitle": "Не вдалося відкрити книгу",
+        "errorDescription": "Дані книги не завантажилися. Спробуй ще раз за мить.",
+        "close": "Закрити",
+        "retry": "Спробувати ще раз"
+      },
+      "error": {
+        "title": "Не вдалося завантажити книги, які ти читаєш",
+        "retry": "Спробувати ще раз"
+      },
+      "empty": {
+        "description": "Зараз нічого не читаєш. Наступна книга вже чекає.",
+        "toQueue": "Відкрити чергу читання",
+        "toCatalogue": "Перейти до бібліотеки"
+      }
+    },
+    "week": {
+      "title": "Цей тиждень",
+      "calendar": "Календар",
+      "range": "{from} – {to}",
+      "streak": "{count, plural, one {# день поспіль} few {# дні поспіль} many {# днів поспіль} other {# дня поспіль}}",
+      "quiet": "Поки що тихий тиждень. Навіть кілька сторінок рахуються.",
+      "summary": {
+        "exactPages": "{count, plural, one {# сторінка за тиждень} few {# сторінки за тиждень} many {# сторінок за тиждень} other {# сторінки за тиждень}}",
+        "minimumPages": "{count, plural, one {Щонайменше # сторінка за тиждень} few {Щонайменше # сторінки за тиждень} many {Щонайменше # сторінок за тиждень} other {Щонайменше # сторінки за тиждень}}",
+        "activeDays": "{count, plural, one {# день із читанням за тиждень} few {# дні з читанням за тиждень} many {# днів із читанням за тиждень} other {# дня з читанням за тиждень}}"
+      },
+      "day": {
+        "label": "{date}: {status}",
+        "today": "сьогодні",
+        "pages": "{count, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінки}}",
+        "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
+        "status": {
+          "active": "було читання",
+          "inactive": "без читання",
+          "unknown": "немає надійних даних",
+          "future": "ще попереду"
+        }
+      },
+      "error": {
+        "title": "Не вдалося завантажити читання за тиждень",
+        "retry": "Спробувати ще раз"
+      }
+    },
+    "goal": {
+      "title": "Читацька ціль",
+      "all": "Усі цілі ({count})",
+      "progress": "{completed} з {target}",
+      "percent": "{percent}%",
+      "progressLabel": "Прогрес цілі: {percent}%",
+      "remaining": "{count, plural, =0 {Більше нічого не залишилося} one {Залишилася # книга} few {Залишилося # книги} many {Залишилося # книг} other {Залишилося # книги}}",
+      "deadline": "До {date}",
+      "daysLeft": "{count, plural, =0 {останній день} one {залишився # день} few {залишилося # дні} many {залишилося # днів} other {залишилося # дня}}",
+      "paceUnknown": "Темп поки невідомий",
+      "create": "Поставити ціль",
+      "recentCompletion": "Ціль досягнуто {date}: {name}",
+      "empty": {
+        "description": "Зараз немає активної цілі. Невелика ціль — добрий початок."
+      },
+      "error": {
+        "title": "Не вдалося завантажити читацьку ціль",
+        "retry": "Спробувати ще раз"
+      }
+    },
+    "nextRead": {
+      "title": "Що читати далі",
+      "another": "Інша книга",
+      "startError": "Не вдалося почати читання. Спробуй ще раз.",
+      "started": "Почато читання «{title}»",
+      "pages": "{count, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінки}}",
+      "queuePosition": "№{position} у черзі читання",
+      "queuePositionWithDate": "№{position} у черзі читання, бажано до {date}",
+      "seriesPart": "{name}, книга {part}",
+      "resumeProgress": "Призупинено на {percent}%",
+      "action": {
+        "start": "Почати читати",
+        "continueSeries": "Продовжити серію",
+        "resume": "Продовжити читання"
+      },
+      "reason": {
+        "queue_next": "Наступна у твоїй черзі читання",
+        "favorite_series": "Наступна книга улюбленої серії",
+        "favorite_planned": "Улюблена книга, яку ти планував прочитати",
+        "planned": "У списку «Хочу прочитати»",
+        "favorite_on_shelf": "Улюблена книга чекає на полиці",
+        "long_on_shelf": "Стоїть на полиці понад рік",
+        "discovery": "Щось із твоєї бібліотеки"
+      },
+      "incomplete": {
+        "note": "Частина джерел не завантажилася, тож це може бути не найкращий варіант.",
+        "empty": "Не вдалося все перевірити, щоб порадити наступну книгу"
+      },
+      "empty": {
+        "description": "Поки немає що порадити. Додай книгу в чергу або бібліотеку.",
+        "toQueue": "Черга читання",
+        "toCatalogue": "Бібліотека"
+      },
+      "error": {
+        "title": "Не вдалося завантажити пораду",
+        "retry": "Спробувати ще раз"
+      }
+    },
+    "attention": {
+      "title": "Потребує уваги",
+      "bannerLabel": "Терміново",
+      "more": "Ще {count}",
+      "moreTitle": "Усе, що потребує уваги",
+      "moreDescription": "{count, plural, one {Ще # пункт потребує уваги} few {Ще # пункти потребують уваги} many {Ще # пунктів потребують уваги} other {Ще # пункту потребують уваги}}",
+      "incomplete": "Частину джерел не вдалося перевірити, тож список може бути неповним.",
+      "due": "До {date}",
+      "goalFallback": "твоя читацька ціль",
+      "units": {
+        "parcels": "{count, plural, one {# посилка} few {# посилки} many {# посилок} other {# посилки}}",
+        "orders": "{count, plural, one {# замовлення} few {# замовлення} many {# замовлень} other {# замовлення}}",
+        "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
+        "goals": "{count, plural, one {# ціль} few {# цілі} many {# цілей} other {# цілі}}",
+        "issues": "{count, plural, one {# проблема} few {# проблеми} many {# проблем} other {# проблеми}}"
+      },
+      "severity": {
+        "low": "Низький",
+        "medium": "Середній",
+        "high": "Високий",
+        "critical": "Критично"
+      },
+      "reason": {
+        "delivery_pickup_expiring": "Скоро завершиться зберігання: {items}",
+        "delivery_ready_for_pickup": "Можна забирати: {items}",
+        "delivery_delayed": "Затримується: {items}",
+        "delivery_awaiting_dispatch": "Ще не відправлено: {items}",
+        "delivery_unassigned_books": "Не прив’язано до посилки: {items}",
+        "loan_overdue": {
+          "borrowed_from_someone": "Позичені в когось, термін минув: {items}",
+          "lent_to_someone": "Видані комусь, термін минув: {items}"
+        },
+        "loan_return_soon": {
+          "borrowed_from_someone": "Позичені в когось, скоро повертати: {items}",
+          "lent_to_someone": "Видані комусь, скоро мають повернути: {items}"
+        },
+        "goal_at_risk": "Ціль під загрозою: {name}",
+        "reading_stale": "Без прогресу тиждень або довше: {items}",
+        "reading_stale_book": "Давно без прогресу: «{title}»",
+        "series_order_issue": "Перевір порядок читання серій: {items}",
+        "series_order_issue_series": "Перевір порядок читання в «{title}»",
+        "queue_deadline": "Наближається бажана дата з черги: {items}",
+        "queue_deadline_book": "Наближається бажана дата: «{title}»",
+        "delivery_pickup_expired": "Термін зберігання минув: {items}",
+        "series_order_issue_broken": "Порушено порядок читання серій: {items}",
+        "series_order_issue_series_broken": "Порушено порядок читання в «{title}»"
+      },
+      "detail": {
+        "expired": "Термін зберігання минув: {count}",
+        "delayed": "{count, plural, one {Затримка до # дня} few {Затримка до # днів} many {Затримка до # днів} other {Затримка до # дня}}",
+        "waiting": "{count, plural, one {Очікує до # дня} few {Очікує до # днів} many {Очікує до # днів} other {Очікує до # дня}}",
+        "orders": "{count, plural, one {У # замовленні} few {У # замовленнях} many {У # замовленнях} other {У # замовлення}}",
+        "goalRisk": {
+          "behind_schedule": "Відставання від плану",
+          "deadline_soon": "Дедлайн уже близько",
+          "no_recent_progress": "Давно немає прогресу",
+          "required_pace_high": "Потрібен високий темп",
+          "projected_late": "За поточним темпом можна не встигнути"
+        }
+      },
+      "error": {
+        "title": "Не вдалося перевірити, що потребує уваги",
+        "retry": "Спробувати ще раз"
+      },
+      "overdueSince": "Прострочено з {date}"
     }
   },
   "notFound": {
@@ -8836,74 +9077,56 @@
     "page": {
       "metaTitle": "Налаштування",
       "title": "Налаштування",
-      "description": "Тут ви вирішуєте, про що вам писати на пошту і за яким часовим поясом рахувати дати нагадувань."
+      "description": "Нагадування на пошту, часовий пояс і перший день тижня для календарів."
     },
     "notifications": {
-      "title": "Нагадування на пошту",
-      "description": "Листи приходять уранці за вашим часовим поясом.",
-      "comingSoon": "Скоро",
+      "title": "Нагадування",
+      "description": "Перемикачі керують листами. Нагадування в застосунку залишаються доступними в дзвіночку.",
       "toggles": {
         "deliveryReminders": {
-          "label": "Нагадування про доставки",
-          "description": "Лист, коли книга ось-ось приїде або доставка затрималася."
+          "label": "Нагадування про доставку на пошту",
+          "description": "Лист перед очікуваною доставкою, у день доставки й у разі затримки."
         },
         "borrowedBookReminders": {
-          "label": "Нагадування про позичені книги",
-          "description": "Лист, коли комусь час повертати вашу книгу."
-        },
-        "readingReminders": {
-          "label": "Нагадування читати",
-          "description": "Легкий поштовх повернутися до книги, яку ви почали."
-        },
-        "readingGoalReminders": {
-          "label": "Нагадування про цілі читання",
-          "description": "Лист про те, як просувається ваша ціль читання."
-        },
-        "weeklyReadingSummary": {
-          "label": "Підсумок тижня",
-          "description": "Щотижневий лист про те, що ви прочитали."
-        },
-        "monthlyReadingReport": {
-          "label": "Звіт за місяць",
-          "description": "Щомісячний огляд вашої бібліотеки та статистики читання."
+          "label": "Нагадування про повернення книг на пошту",
+          "description": "Листи про наближення дати повернення й прострочення."
         }
       },
-      "upcoming": {
-        "title": "Ще в роботі",
-        "description": "Цих листів ми поки не надсилаємо. Перемикачі зʼявляться разом із самими нагадуваннями."
-      },
       "leadDays": {
-        "label": "Нагадувати про повернення завчасно",
-        "hint": "Від {min} до {max} днів до дати повернення.",
-        "suffix": "{count, plural, one {день} few {дні} many {днів} other {днів}}"
+        "label": "Перше нагадування про повернення",
+        "option": "{count, plural, one {# день} few {# дні} many {# днів} other {# дня}}",
+        "hint": "Для короткої позики перше нагадування може прийти ближче до дати повернення."
       },
       "test": {
-        "label": "Тестове сповіщення",
-        "description": "Надішліть його собі, щоб побачити, як виглядає нагадування.",
-        "button": "Надіслати тест",
-        "success": "Тестове сповіщення створено — загляньте у дзвіночок.",
-        "error": "Не вдалося надіслати тестове сповіщення. Спробуйте за хвилину."
+        "description": "Тестове сповіщення з’явиться в дзвіночку. Лист прийде, якщо пошту підтверджено й увімкнено хоча б один поштовий перемикач.",
+        "button": "Створити тестове сповіщення",
+        "success": "Тестове сповіщення створено. Перевірте дзвіночок.",
+        "rateLimited": "Досягнуто ліміту тестових сповіщень. Спробуйте ще раз пізніше.",
+        "error": "Не вдалося створити тестове сповіщення. Спробуйте ще раз."
       }
     },
     "regional": {
-      "title": "Часовий пояс",
-      "description": "За ним ми рахуємо, коли у вас настав ранок, щоб надіслати нагадування.",
+      "title": "Дата й календар",
       "timezone": {
-        "label": "Ваш часовий пояс",
-        "hint": "Наприклад, Europe/Kyiv. Почніть вводити назву міста, щоб знайти свій.",
-        "search": "Пошук часового поясу",
-        "empty": "Нічого не знайшли"
+        "label": "Часовий пояс",
+        "hint": "Нагадування плануються на 09:00 за вибраним часовим поясом.",
+        "search": "Пошук міста або поясу",
+        "results": "Часові пояси",
+        "empty": "Нічого не знайдено"
       },
       "weekStartDay": {
         "label": "Перший день тижня",
         "monday": "Понеділок",
         "sunday": "Неділя",
-        "hint": "З цього дня починатимуться тижні в календарях."
+        "hint": "З цього дня починаються тижні в календарях вибору дат, у статистиці читання й доставок і на головній.",
+        "preview": "Порядок днів у тижні"
       }
     },
-    "toast": {
+    "saveStatus": {
+      "saving": "Збереження…",
       "saved": "Збережено",
-      "error": "Не вдалося зберегти. Спробуйте ще раз."
+      "error": "Не вдалося зберегти.",
+      "retry": "Повторити"
     },
     "states": {
       "loading": "Завантаження налаштувань…",
@@ -8915,7 +9138,7 @@
     }
   },
   "goals": {
-    "fallbackName": "Прочитати {count, plural, one {# книгу} few {# книги} many {# книг} other {# книг}} до {date}",
+    "fallbackTitle": "Прочитати {count, plural, one {# книгу} few {# книги} many {# книг} other {# книги}}",
     "sidebar": {
       "title": "Ціль для добірки",
       "emptyDescription": "Перетворіть цю тематичну добірку на читацький виклик.",
@@ -8926,6 +9149,7 @@
       "create": "Створити ціль",
       "createNew": "Створити нову ціль",
       "view": "Переглянути ціль",
+      "deadline": "До {date}",
       "progress": "{completed} із {target} виконано",
       "progressLabel": "Прогрес цілі: {percent}%",
       "remaining": "Залишилося {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
@@ -8967,6 +9191,11 @@
         "endOfYear": "Кінець року"
       },
       "explanation": "Склад книг фіксується під час створення цілі, тож пізніші зміни списку на неї не впливають. Кожна книга зараховується один раз, якщо її дочитано з дня створення цілі по день дедлайну включно.",
+      "preview": {
+        "counted": "{count, plural, one {# книга зарахується одразу: її вже дочитано сьогодні} few {# книги зарахуються одразу: їх уже дочитано сьогодні} many {# книг зарахуються одразу: їх уже дочитано сьогодні} other {# книги зарахуються одразу: їх уже дочитано сьогодні}}.",
+        "completesNow": "Ціль одразу стане виконаною."
+      },
+      "changeList": "Змінити список",
       "autoArchive": {
         "completed": "Попередню ціль цього списку виконано. Щойно ви створите нову, попередня автоматично перейде в архів.",
         "expired": "Дедлайн попередньої цілі цього списку минув. Щойно ви створите нову, попередня автоматично перейде в архів."
@@ -8986,22 +9215,43 @@
     },
     "detail": {
       "metaTitle": "Ціль читання",
-      "back": "До списку «{name}»",
+      "allGoals": "Усі цілі",
       "backToGoals": "До цілей",
-      "deadline": "до {date}",
-      "daysLeft": "{count, plural, =0 {сьогодні останній день} one {залишився # день} few {залишилося # дні} many {залишилося # днів} other {залишилося # дня}}",
-      "daysOverdue": "прострочено на {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
-      "completedOn": "завершено {date}",
       "progress": "{completed} із {target, plural, one {# книги} few {# книг} many {# книг} other {# книги}}",
       "progressLabel": "Прогрес цілі: {percent}%",
-      "remaining": "Залишилося {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
       "countedEmpty": "Ще жодної книги не зараховано",
       "countedEmptyHint": "У ціль зараховуються книги, які були в списку на момент її створення й дочитані з дня створення по день дедлайну включно.",
       "finishedOn": "дочитано {date}",
-      "coverAlt": "Обкладинка книги «{title}»",
       "edit": "Редагувати ціль",
       "archive": "Архівувати",
       "delete": "Видалити",
+      "moreActions": "Інші дії з ціллю",
+      "meta": {
+        "deadline": "Дедлайн: {date}",
+        "list": "Список: <link>{name}</link>"
+      },
+      "hero": {
+        "counted": "{remaining, plural, =0 {зараховано} one {зараховано · залишилася # книга} few {зараховано · залишилося # книги} many {зараховано · залишилося # книг} other {зараховано · залишилося # книги}}",
+        "actual": "Фактично · {percent}%",
+        "plan": "План на сьогодні · {percent}%",
+        "daysLeft": "{count, plural, =0 {Сьогодні останній день} one {# день до дедлайну} few {# дні до дедлайну} many {# днів до дедлайну} other {# дня до дедлайну}}",
+        "elapsed": "минуло {elapsed} із {total, plural, one {# дня} few {# днів} many {# днів} other {# дня}}",
+        "overdue": "Прострочено на {count, plural, one {# день} few {# дні} many {# днів} other {# дня}}",
+        "expired": "Дедлайн минув",
+        "completedOn": "Виконано {date}",
+        "completed": "Ціль виконано",
+        "archivedOn": "В архіві з {date}",
+        "archived": "Ціль в архіві",
+        "closeToPlan": "Близько до плану",
+        "advice": {
+          "daysPerBook": "Щоб устигнути, дочитуйте приблизно {count, plural, =1 {1 книгу щодня} one {1 книгу кожні # день} few {1 книгу кожні # дні} many {1 книгу кожні # днів} other {1 книгу кожні # дня}}.",
+          "booksPerDay": "Щоб устигнути, дочитуйте приблизно {count, plural, one {# книгу} few {# книги} many {# книг} other {# книги}} на день."
+        },
+        "action": {
+          "continue": "Продовжити читання",
+          "books": "Переглянути книги цілі"
+        }
+      },
       "tabs": {
         "label": "Розділи цілі",
         "overview": "Огляд",
@@ -9009,68 +9259,66 @@
         "activity": "Історія"
       },
       "overview": {
-        "stats": {
-          "title": "Прогрес і час",
-          "counted": "Зараховано",
-          "countedValue": "{completed} із {target}",
-          "remaining": "Залишилося",
-          "remainingValue": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
-          "elapsed": "Минуло",
-          "elapsedValue": "{elapsed} із {total, plural, one {# дня} few {# днів} many {# днів} other {# дня}}",
-          "deadline": "Дедлайн"
-        },
         "pace": {
-          "title": "Темп",
-          "unavailable": "Темп відстежується лише для активної цілі.",
-          "ahead": "Випередження — {count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
-          "behind": "Відставання — {count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
-          "actual": "Ваш темп",
+          "title": "Темп і прогноз",
+          "titleClosed": "Темп читання",
+          "actual": "Поточний темп",
           "required": "Потрібний темп",
           "booksPerDay": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}} на день",
-          "daysPerBook": "{count, plural, one {# день} few {# дні} many {# днів} other {# дня}} на книгу",
+          "daysPerBook": "{count, plural, =1 {1 книга щодня} one {1 книга кожні # день} few {1 книга кожні # дні} many {1 книга кожні # днів} other {1 книга кожні # дня}}",
           "noData": "Ще замало даних",
           "lastCounted": "Остання зарахована книга",
           "noneCounted": "Ще жодної",
           "daysAgo": "{count, plural, =0 {сьогодні} one {# день тому} few {# дні тому} many {# днів тому} other {# дня тому}}"
         },
         "risk": {
-          "title": "Ризики",
+          "title": "Стан цілі",
           "none": "Ризиків не виявлено.",
           "reasons": {
             "behind_schedule": "Прогрес відстає від запланованого графіка",
             "deadline_soon": "До дедлайну лишилося зовсім мало часу",
             "no_recent_progress": "Давно не було нових зарахованих книг",
-            "required_pace_high": "Щоб устигнути, потрібен значно вищий темп читання"
-          }
+            "required_pace_high": "Щоб устигнути, потрібен значно вищий темп читання",
+            "projected_late": "За поточним темпом завершення може запізнитися на {count, plural, one {# день} few {# дні} many {# днів} other {# дня}}"
+          },
+          "projectedLateUnknown": "За поточним темпом завершення може запізнитися",
+          "onTrackProjectedLate": "Близько до плану за поточним прогресом, проте прогноз показує ризик запізнення",
+          "nextStep": "Що можна зробити",
+          "requiredRate": "Для виконання цілі потрібно читати приблизно {count, plural, =1 {1 книгу щодня} one {1 книгу кожні # день} few {1 книгу кожні # дні} many {1 книгу кожні # днів} other {1 книгу кожні # дня}}.",
+          "showRemaining": "Переглянути незараховані книги"
         },
         "projection": {
-          "title": "Прогноз",
-          "date": "Якщо темп збережеться, ціль буде виконано {date}",
-          "early": "на {count, plural, one {# день} few {# дні} many {# днів} other {# дня}} раніше дедлайну",
-          "late": "на {count, plural, one {# день} few {# дні} many {# днів} other {# дня}} пізніше дедлайну",
-          "onDeadline": "саме в день дедлайну",
+          "title": "Прогноз завершення",
+          "early": "На {count, plural, one {# день} few {# дні} many {# днів} other {# дня}} раніше дедлайну",
+          "late": "На {count, plural, one {# день} few {# дні} many {# днів} other {# дня}} пізніше дедлайну",
+          "onDeadline": "Саме в день дедлайну",
           "confidence": {
-            "high": "Висока точність прогнозу",
-            "medium": "Середня точність прогнозу"
+            "high": "Впевненість: висока",
+            "medium": "Впевненість: середня"
           },
-          "low": "Прогноз поки приблизний: книг зараховано ще замало, щоб назвати дату.",
-          "none": "Поки недостатньо даних для прогнозу."
+          "basis": "Прогноз орієнтовний: його розраховано на основі {count, plural, one {# зарахованої книги} few {# зарахованих книг} many {# зарахованих книг} other {# зарахованої книги}}, тож дата може змінитися разом із темпом.",
+          "insufficient": "Для прогнозу потрібно більше зарахованих книг"
         },
         "checkpoints": {
           "title": "Контрольні точки",
-          "target": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}} до {date}",
+          "count": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
+          "due": "до {date}",
+          "summary": "Досягнуто {reached} із {total}",
+          "summaryWithLate": "Досягнуто {reached} із {total}, із запізненням: {late}",
           "current": "зараховано {current} із {target}",
           "achievedOn": "досягнуто {date}",
-          "achievedLate": "не вчасно: досягнуто пізніше, {date}",
+          "achievedLate": "досягнуто {date}, на {count, plural, one {# день} few {# дні} many {# днів} other {# дня}} пізніше",
           "status": {
             "achieved": "Досягнуто",
+            "achieved_late": "Досягнуто із запізненням",
             "upcoming": "Попереду",
             "missed": "Пропущено"
           }
         },
         "recentActivity": {
           "title": "Останні події",
-          "showAll": "Уся історія"
+          "showAll": "Уся історія",
+          "empty": "Подій у цілі поки немає."
         }
       },
       "books": {
@@ -9080,13 +9328,16 @@
           "counted": "Зараховані",
           "remaining": "Ще не зараховані"
         },
+        "snapshotSummary": "Книги цілі зафіксовано під час її створення.",
+        "snapshotMore": "Докладніше",
         "snapshotHint": "Склад книг зафіксовано під час створення цілі, тож пізніші зміни списку на неї не впливають. Книга зараховується, якщо її дочитано з дня створення цілі по день дедлайну включно.",
         "listLabel": "Книги цілі",
         "counted": "Зараховано",
         "notCounted": "Не зараховано",
         "finishedOutsideWindow": "дочитано {date}, поза періодом цілі",
         "finishedWithoutDate": "дату завершення не вказано",
-        "pages": "стор. {current} із {total}",
+        "pages": "стор. {current} із {total} · {percent}%",
+        "pagesProgressLabel": "Прочитано {percent}% книги",
         "pagesWithoutTotal": "стор. {current}",
         "loadMoreError": "Не вдалося завантажити наступні книги",
         "empty": {
@@ -9110,6 +9361,7 @@
         "filterLabel": "Тип події",
         "allTypes": "Усі події",
         "listLabel": "Історія цілі",
+        "recordedAt": "Час запису події: {time}",
         "loadMoreError": "Не вдалося завантажити наступні події",
         "empty": {
           "title": "Подій ще немає",
@@ -9150,7 +9402,7 @@
       "errorDescription": "Перевірте зʼєднання й спробуйте ще раз.",
       "archiveDialog": {
         "title": "Заархівувати ціль?",
-        "description": "Ціль зникне з бічної панелі списку й лишиться доступною лише за прямим посиланням. Список зможе прийняти нову ціль.",
+        "description": "Ціль зникне з бічної панелі списку, але лишиться в каталозі цілей у розділі «Архів», доступна лише для перегляду. Список зможе прийняти нову ціль.",
         "cancel": "Скасувати",
         "confirm": "Заархівувати"
       },
@@ -9217,8 +9469,10 @@
         "completed": "Виконані",
         "needsAttention": "Потребують уваги",
         "successRate": "Успішність",
-        "successRateDetail": "Виконано {successful} із {finished} завершених",
-        "successRateEmpty": "Ще немає завершених цілей",
+        "successRateDetail": "{successful} із {finished, plural, one {# цілі} few {# цілей} many {# цілей} other {# цілі}} із підсумком",
+        "successRateExplanation": "Рахуються виконані й прострочені цілі, також в архіві. Активні й заархівовані до підсумку не рахуються.",
+        "successRateNoteLabel": "Успішність:",
+        "successRateEmpty": "Ще немає цілей із підсумком",
         "loadError": "Не вдалося завантажити підсумки цілей"
       },
       "filters": {
@@ -9260,6 +9514,10 @@
       },
       "filteredEmpty": {
         "title": "Немає цілей із цим статусом",
+        "titles": {
+          "archived": "Архів порожній",
+          "completed": "Поки немає виконаних цілей"
+        },
         "description": "Оберіть інший статус або покажіть усі цілі.",
         "showAll": "Показати всі цілі"
       },
@@ -9270,8 +9528,6 @@
       },
       "attention": {
         "title": "Потребують уваги",
-        "listGoal": "Ціль для списку «{name}»",
-        "untitled": "Ціль без назви",
         "remaining": "залишилося {count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
         "reasons": {
           "behindSchedule": "Відстає від плану",
@@ -9279,12 +9535,13 @@
           "deadlineSoonDays": "{count, plural, =0 {Дедлайн сьогодні} one {До дедлайну # день} few {До дедлайну # дні} many {До дедлайну # днів} other {До дедлайну # дня}}",
           "noRecentProgress": "Давно немає нових зарахованих книг",
           "noRecentProgressDays": "{count, plural, one {# день без нових зарахованих книг} few {# дні без нових зарахованих книг} many {# днів без нових зарахованих книг} other {# дня без нових зарахованих книг}}",
-          "requiredPaceHigh": "Потрібен високий темп читання"
+          "requiredPaceHigh": "Потрібен високий темп читання",
+          "projectedLate": "За поточним темпом завершення може запізнитися",
+          "projectedLateDays": "За поточним темпом завершення може запізнитися на {count, plural, one {# день} few {# дні} many {# днів} other {# дня}}"
         }
       },
       "bestResult": {
         "title": "Найкращий результат",
-        "fallbackName": "Ціль на {count, plural, one {# книгу} few {# книги} many {# книг} other {# книги}}",
         "summary": "Виконано {date}, {count, plural, =0 {у день дедлайну} one {за # день до дедлайну} few {за # дні до дедлайну} many {за # днів до дедлайну} other {за # дня до дедлайну}}"
       }
     },
@@ -9323,7 +9580,7 @@
       "loading": "Завантажуємо статистику",
       "refreshing": "Оновлюємо дані",
       "periodChanging": "Оновлюємо статистику для вибраного періоду. Попередні результати тимчасово недоступні для взаємодії.",
-      "lowerBound": "Частина давнішої історії читання може бути неповною. Позначка ≥ означає мінімально відоме значення.",
+      "lowerBound": "Давніша історія може бути неповною: ≥ позначає мінімально відоме значення.",
       "error": {
         "title": "Не вдалося показати статистику",
         "description": "Спробуйте оновити сторінку. Якщо не допоможе, поверніться трохи згодом.",
@@ -9370,6 +9627,7 @@
       "toggle": "Порівняти",
       "mode": "Режим порівняння",
       "unavailable": "Для періоду «Увесь час» порівняння недоступне.",
+      "tabUnavailable": "Порівняння діє на вкладках «Огляд» і «Активність».",
       "modes": {
         "previous_period": "З попереднім періодом",
         "same_period_last_year": "З тим самим періодом торік"
@@ -9483,7 +9741,7 @@
         "pages": "{count, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінки}}",
         "comparison": "{metric} у періоді порівняння: {value}"
       },
-      "srBucket": "{range}: {reads, plural, one {# завершення} few {# завершення} many {# завершень} other {# завершення}} · {pages} сторінок",
+      "srBucket": "{range}: {reads, plural, one {# завершення} few {# завершення} many {# завершень} other {# завершення}} · {pages, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінки}}",
       "srComparison": "Період порівняння, {range}: {metric} — {value}.",
       "bucketsLabel": "Відрізки графіка: стрілки переходять між відрізками, Enter відкриває деталі",
       "openHint": "Натисніть на стовпчик, щоб побачити, що саме сюди увійшло."
@@ -9549,12 +9807,12 @@
       },
       "heatmap": {
         "legendLess": "менше",
-        "legendMore": "більше",
+        "legendMore": "більше сторінок",
         "dayEmpty": "{date}: читання не було",
         "dayUnknown": "{date}: даних за цей день може не бути",
-        "daySummary": "{date}: {pages} сторінок, {books, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
-        "intensityLegend": "Інтенсивність за кількістю прочитаних сторінок",
-        "unknownLegend": "Історія невідома"
+        "daySummary": "{date}: {pages, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінки}}, {books, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
+        "unknownLegend": "Історія невідома",
+        "futureLegend": "Майбутні дні"
       },
       "books": {
         "more": "+{count}",
@@ -9562,33 +9820,44 @@
         "emptyMonth": "За цей місяць немає зафіксованого читання.",
         "emptyMonthUncertainTitle": "За цей місяць немає збережених записів.",
         "emptyMonthUncertainDescription": "Частина історії читання могла не зберегтися.",
+        "dayPanelEmpty": "За цей місяць немає записів читання.",
+        "dayPanelEmptyUncertain": "Немає підтверджених записів читання.",
         "legacyMonthNote": "Частина цього місяця передує повному обліку історії, тому записи можуть бути неповними.",
         "previousMonth": "Попередній місяць",
         "nextMonth": "Наступний місяць",
-        "daySummary": "{date}: {pages} сторінок, {books, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
+        "dayDetailsTitle": "Деталі дня",
+        "previousDay": "Попередній день із книгами",
+        "nextDay": "Наступний день із книгами",
+        "daySummary": "{date}: {pages, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінки}}, {books, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
         "dayEmpty": "{date}: читання не було",
         "dayUnknown": "{date}: даних за цей день може не бути",
         "dayFuture": "{date}: цей день ще не настав",
-        "diaryMeta": "{books, plural, one {# книга} few {# книги} many {# книг} other {# книги}} · {pages} сторінок",
+        "diaryMeta": "{books, plural, one {# книга} few {# книги} many {# книг} other {# книги}} · {pages, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінки}}",
         "monthActiveDays": "Днів із читанням",
-        "monthBooks": "Книг із прогресом",
+        "monthBooks": "Книг",
         "monthBooksLoading": "Уточнюємо кількість книг за місяць",
         "monthBooksError": "Не вдалося уточнити кількість книг за місяць",
         "monthBooksRetry": "Спробувати ще раз",
         "monthPages": "Прочитано сторінок",
         "atLeast": "≥ {value}",
-        "unknownLegend": "Історія невідома: цей день передує повному обліку, тож порожня клітинка не доводить, що читання не було."
+        "unconfirmedValue": "—",
+        "unconfirmedValueHint": "Немає підтверджених даних. Історія може бути неповною.",
+        "pagesShort": "{pages, number} стор."
       }
     },
     "details": {
       "day": {
+        "eyebrow": "Активність за день",
+        "close": "Закрити",
         "loading": "Завантажуємо деталі дня",
         "error": "Не вдалося завантажити деталі дня",
         "retry": "Спробувати ще раз",
         "empty": "Цього дня немає прочитаних сторінок.",
-        "bookPages": "{pages} сторінок",
+        "bookPages": "{pages, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінки}}",
+        "booksCount": "{books, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
         "deletedBook": "Книгу видалено з бібліотеки",
         "legacyQuality": "Цей день передує повному обліку історії, тому дані можуть бути неповними.",
+        "legacyQualityShort": "Історія за цей день може бути неповною.",
         "booksLabel": "Книги",
         "pagesLabel": "Сторінки",
         "showInBooksCalendar": "Показати в календарі книг"
@@ -9635,51 +9904,59 @@
       "averageRating": "Середня оцінка",
       "scale": "{value} / 10",
       "highRated": "Оцінки 8,0 і вище",
-      "highRatedValue": "{count} · {percent}%",
-      "highRatedHint": "серед оцінених читань",
+      "highRatedValue": "{count} із {total}",
+      "highRatedHint": "{percent}% оцінених",
       "ratedReads": "Оцінено читань",
       "ratedReadsValue": "{rated} із {total}",
+      "ratedReadsHint": "{percent}% завершених",
       "coverage": "Середню оцінку розраховано лише за оціненими читаннями.",
       "distributionRow": "Оцінка {rating}: {count, plural, one {# читання} few {# читання} many {# читань} other {# читання}}",
       "topRatedTitle": "Найвище оцінені",
+      "topRatedDescription": "Найвище оцінені читання періоду, кожне перечитування окремо.",
       "topRatedEmpty": "Ще немає оцінених читань.",
-      "distributionTitle": "Розподіл оцінок"
+      "distributionTitle": "Розподіл оцінок",
+      "distributionShowAll": "Показати всю шкалу",
+      "distributionShowPresent": "Приховати нульові",
+      "distributionEmpty": "Немає оцінок для розподілу.",
+      "distributionCountShare": "{count}<share> · {percent}%</share>",
+      "distributionRowShare": "Оцінка {rating}: {count, plural, one {# читання} few {# читання} many {# читань} other {# читання}}, {percent}% оцінених",
+      "distributionScaleHint": "Смуга й відсоток показують частку оцінених читань із цією оцінкою.",
+      "distributionScaleHintLabel": "Як читати розподіл"
     },
     "genres": {
       "title": "Жанри",
-      "description": "Жанри завершених читань періоду.",
       "modeLabel": "Показник жанрів",
       "modes": {
-        "frequency": "Найчастіше читаю",
+        "frequency": "Найчастіше",
         "rated": "Найвище оцінюю"
       },
       "empty": "У завершених читаннях періоду немає жанрів.",
-      "coverage": "{knownCount} із {eligibleCount} читань мають збережений жанр",
+      "coverage": "Жанри відомі для {knownCount} із {eligibleCount} читань",
       "share": "{percent}% читань",
       "reads": "{count, plural, one {# читання} few {# читання} many {# читань} other {# читання}}",
       "ratedReads": "{count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінки}}",
-      "ratedUnavailable": "Замало оцінок",
+      "ratedUnavailable": "Поки немає достатньо даних для рейтингу",
       "reason": {
-        "INSUFFICIENT_SAMPLE": "Для рейтингу потрібно щонайменше 3 оцінені читання жанру."
+        "INSUFFICIENT_SAMPLE": "Жанр потрапляє в рейтинг, коли має щонайменше 3 оцінені читання."
       },
       "unavailable": "Жанрів виміряти не вдалося",
       "unavailableDescription": "Жодне завершене читання періоду не має збереженого жанру."
     },
     "authors": {
       "title": "Автори",
-      "description": "Автори завершених читань періоду.",
       "modeLabel": "Показник авторів",
       "modes": {
-        "frequency": "Найчастіше читаю",
+        "frequency": "Найчастіше",
         "rated": "Найвище оцінюю"
       },
       "empty": "У завершених читаннях періоду немає авторів.",
-      "coverage": "{knownCount} із {eligibleCount} читань мають збереженого автора",
+      "coverage": "Автор відомий для {knownCount} із {eligibleCount} читань",
+      "share": "{percent}% читань",
       "reads": "{count, plural, one {# читання} few {# читання} many {# читань} other {# читання}}",
       "ratedReads": "{count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінки}}",
-      "ratedUnavailable": "Замало оцінок",
+      "ratedUnavailable": "Поки немає достатньо даних для рейтингу",
       "reason": {
-        "INSUFFICIENT_SAMPLE": "Для рейтингу потрібно щонайменше 3 оцінені читання автора."
+        "INSUFFICIENT_SAMPLE": "Автор потрапляє в рейтинг, коли має щонайменше 3 оцінені читання."
       },
       "returningTitle": "Найчастіше повертаєтесь",
       "returningMeta": "За весь час · {years, plural, one {# рік} few {# роки} many {# років} other {# року}} · {reads, plural, one {# читання} few {# читання} many {# читань} other {# читання}} · востаннє {lastRead}",
@@ -9688,15 +9965,14 @@
     },
     "publishers": {
       "title": "Видавництва",
-      "description": "Видавництва завершених читань періоду.",
       "empty": "У завершених читаннях періоду немає видавництв.",
-      "coverage": "{knownCount} із {eligibleCount} читань мають збережене видавництво",
+      "coverage": "Видавництво відоме для {knownCount} із {eligibleCount} читань",
+      "share": "{percent}% відомих",
       "reads": "{count, plural, one {# читання} few {# читання} many {# читань} other {# читання}}",
       "unavailable": "Видавництв виміряти не вдалося",
       "unavailableDescription": "Жодне завершене читання періоду не має збереженого видавництва.",
-      "totalLabel": "Видавництв",
-      "concentrationLabel": "Частка топ-3",
-      "concentrationHint": "серед читань із відомим видавництвом"
+      "count": "{count, plural, one {# видавництво} few {# видавництва} many {# видавництв} other {# видавництва}}",
+      "topThreeShare": "Топ-3 видавництва: {percent}% читань із відомим видавництвом"
     },
     "languages": {
       "title": "Мови",
@@ -9705,11 +9981,9 @@
       "coverage": "{knownCount} із {eligibleCount} історичних читань мають надійно збережену мову видання",
       "share": "{percent}% відомих",
       "reads": "{count, plural, one {# читання} few {# читання} many {# читань} other {# читання}}",
-      "sourceHint": "Мова видання, зафіксована в BookNest на момент завершення читання.",
       "unavailable": "Мов виміряти не вдалося",
       "unavailableDescription": "Жодне завершене читання періоду не має збереженої мови видання.",
-      "countLabel": "Мов",
-      "shareHint": "Частки рахуються серед читань із відомою мовою."
+      "count": "{count, plural, one {# мова} few {# мови} many {# мов} other {# мови}}"
     },
     "discoveries": {
       "title": "Нові відкриття",
@@ -9717,7 +9991,7 @@
       "empty": "У цьому періоді нових відкриттів не було.",
       "unavailable": "Відкриття недоступні",
       "reason": {
-        "LEGACY_HISTORY_INCOMPLETE": "Частина завершень перенесена з попередньої історії, тому перше знайомство неможливо довести."
+        "LEGACY_HISTORY_INCOMPLETE": "Перші знайомства поки неможливо підтвердити через неповну попередню історію читання."
       },
       "partialNote": "Частина завершень періоду не має доведеного статусу першого прочитання.",
       "kinds": {
@@ -9734,18 +10008,26 @@
         "publishers": "Нових видавництв"
       }
     },
+    "progressGroups": {
+      "snapshot": "Станом на сьогодні",
+      "period": "За вибраний період"
+    },
+    "progressHint": {
+      "label": "Пояснення: {topic}"
+    },
     "goal": {
       "title": "Ціль читання",
       "currentTitle": "Поточна ціль",
-      "description": "Поточний стан активної цілі з найближчим дедлайном. Вибраний період на нього не впливає.",
+      "description": "Активна ціль із найближчим дедлайном. Період на неї не впливає.",
       "empty": "Активної цілі немає",
       "emptyDescription": "Створіть ціль, щоб бачити прогрес просто тут.",
       "create": "Створити ціль",
       "deadline": "До {date}",
       "deadlineLabel": "Дедлайн",
-      "fallbackName": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
+      "listLabel": "Список",
       "progress": "{completed} із {target}",
       "progressLabel": "Прогрес цілі: {percent}%",
+      "progressBooks": "<num>{completed}</num> із <num>{target}</num> {target, plural, one {книги} few {книг} many {книг} other {книги}}",
       "pace": "Темп",
       "paces": {
         "ahead": "Випереджаєте план",
@@ -9759,6 +10041,7 @@
       "notStarted": "Ще не розпочато: попереду {count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}.",
       "forecast": "Прогноз завершення",
       "forecastUnavailable": "Поки замало даних для надійного прогнозу",
+      "forecastNoData": "Недостатньо даних",
       "open": "Відкрити ціль",
       "otherGoals": "Ще {count, plural, one {# активна ціль} few {# активні цілі} many {# активних цілей} other {# активної цілі}}"
     },
@@ -9768,8 +10051,9 @@
       "unavailable": "Дані про серії недоступні",
       "noReadsTitle": "За вибраний період немає завершених читань",
       "noReadsDescription": "Частка серійного читання й рейтинги серій з’являться, щойно в періоді буде хоча б одне завершене читання.",
-      "share": "{series} із {total} читань у серіях · {percent}%",
       "shareUnknown": "Частку серійного читання порахувати не вдалося.",
+      "shareCount": "<num>{series}</num> із <num>{total}</num> {total, plural, one {читання} few {читань} many {читань} other {читання}} у серіях",
+      "shareProgressLabel": "Частка читань у серіях: {percent}%",
       "lifecycleUnavailable": "Етапи серій недоступні",
       "lifecycleNote": "Одна серія може потрапити в кілька етапів одночасно, тому ці числа не можна підсумовувати.",
       "reason": {
@@ -9787,21 +10071,32 @@
       "empty": "У цьому періоді немає завершених читань із серій.",
       "topProgressTitle": "Поступ у серіях",
       "topProgressCaption": "Вперше завершені книги за період.",
+      "topProgressEmpty": "Підтверджених перших завершень у серіях за цей період немає.",
+      "rankingModeLabel": "Режим рейтингу серій",
+      "rankingModes": {
+        "mostActive": "Найактивніші",
+        "topProgress": "Поступ у серіях"
+      },
       "firstCompletions": "{count, plural, one {# нова книга} few {# нові книги} many {# нових книг} other {# нової книги}}",
       "marathon": "Серійний марафон: {length, plural, one {# книга} few {# книги} many {# книг} other {# книги}} поспіль із серії «{name}», завершено {date}"
     },
     "libraryBalance": {
       "title": "Баланс бібліотеки",
-      "description": "Поточний стан ваших власних книг. Вибраний період на нього не впливає.",
+      "description": "Поточний стан власних книг. Період на нього не впливає.",
       "currentTbr": "Непрочитано зараз",
-      "currentTbrValue": "{unread} із {total}",
-      "readRatio": "Прочитані серед власних",
+      "currentTbrBooks": "<num>{unread}</num> із <num>{total}</num> {count, plural, one {книги} few {книг} many {книг} other {книги}}",
       "readRatioHint": "За поточними статусами",
       "readRatioEmpty": "У бібліотеці ще немає власних книг.",
-      "forecast": "Непрочитаного вистачить приблизно на",
-      "forecastValue": "{months} міс.",
-      "forecastHint": "Темп {rate} кн./міс.: власні книги, вперше дочитані за останні 12 місяців. Без урахування майбутніх покупок.",
+      "readShareBadge": "{percent}% прочитано",
+      "readRatioProgressLabel": "Прочитано {percent}% власних книг",
+      "legendRead": "Прочитано: {count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
+      "legendUnread": "Непрочитано: {count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
+      "forecastLabel": "Прогноз",
+      "forecastNoData": "недостатньо даних",
+      "forecastEstimate": "≈ {months} міс. · темп {rate} кн./міс.",
+      "forecastBasis": "На скільки місяців вистачить непрочитаних власних книг за нинішнього темпу. Темп: власні книги, вперше дочитані за останні 12 місяців. Майбутні покупки не враховано.",
       "flow": "Надійшло {inflow} · вибуло {outflow} · зміна {net}",
+      "flowLabel": "Рух бібліотеки",
       "forecastReason": {
         "INSUFFICIENT_SAMPLE": "Замало історії читання для оцінки темпу.",
         "LOW_CONFIDENCE": "Темп читання надто нерівний для надійної оцінки.",
@@ -9812,6 +10107,7 @@
       "title": "Ваші рекорди",
       "description": "Добірка до {limit, plural, one {# найпомітнішого рекорду} few {# найпомітніших рекордів} many {# найпомітніших рекордів} other {# найпомітнішого рекорду}} за вибраний період.",
       "empty": "У цьому періоді ще немає рекордів.",
+      "openDay": "Деталі дня",
       "types": {
         "longest_completed_book": "Найдовша завершена книга",
         "shortest_completed_book": "Найкоротша завершена книга",
@@ -9840,8 +10136,10 @@
     "subtitle": "Ваш рік читання день за днем: активність і книги.",
     "resultsLabel": "Календар за вибраний рік",
     "activity": {
-      "title": "Календар активності",
-      "description": "Скільки сторінок ви прочитали кожного дня року."
+      "title": "Інтенсивність читання",
+      "quarterLabel": "{months} {year} р.",
+      "previousQuarter": "Попередній квартал",
+      "nextQuarter": "Наступний квартал"
     },
     "books": {
       "title": "Книги за днями",
@@ -10463,7 +10761,8 @@
         "back": "До персонажів книги",
         "breadcrumb": "Навігація",
         "characters": "Персонажі",
-        "title": "Карта зв’язків"
+        "title": "Карта зв’язків",
+        "personLead": "Найближче оточення персонажа: родина, союзники, суперники та інші зв’язки у вашому контексті читання."
       },
       "views": {
         "label": "Режим карти",
@@ -10483,23 +10782,40 @@
       },
       "depth": {
         "label": "Коло зв’язків",
-        "option": "{depth, plural, one {Безпосередні (1 крок)} few {До # кроків} many {До # кроків} other {До # кроку}}"
+        "short": "{depth, plural, one {# крок} few {# кроки} many {# кроків} other {# кроку}}"
       },
       "generations": {
         "ancestors": "Предки",
         "descendants": "Нащадки",
-        "option": "{count, plural, one {# покоління} few {# покоління} many {# поколінь} other {# покоління}}",
-        "trigger": "Покоління: ↑{up} / ↓{down}"
+        "trigger": "Покоління: ↑{up} / ↓{down}",
+        "ancestorsLabel": "Скільки поколінь предків показати",
+        "descendantsLabel": "Скільки поколінь нащадків показати",
+        "label": "Покоління"
       },
       "treeOptions": {
-        "distant": "Далекі родичі",
-        "exUnions": "Колишні союзи",
-        "guardians": "Опікуни",
-        "lineage": "Батьки й діти показуються завжди.",
+        "count": "{enabled}/{total}",
+        "distant": "Далекі й власні сімейні типи",
+        "exUnions": "Колишні шлюби",
+        "guardians": "Опіка",
+        "hints": {
+          "distant": "Предки й нащадки без прямого запису про батьків, інші родичі та власні сімейні типи.",
+          "exUnions": "Шлюби, що завершилися.",
+          "guardians": "Опікуни й підопічні. Це не походження.",
+          "marriages": "Підтверджені шлюби.",
+          "siblings": "Рідні, зведені, по одному з батьків, близнюки."
+        },
+        "lineage": "Показуються завжди: на них будуються покоління.",
+        "lineageTitle": "Батьки й діти",
         "marriages": "Шлюби",
-        "partners": "Романтичні партнери в родинному дереві поки не показуються.",
+        "partners": "Романтичні партнери в родинному дереві не показуються.",
+        "reset": "Типові",
         "siblings": "Брати й сестри",
-        "trigger": "Типи сімейних зв’язків"
+        "trigger": "Показувати зв’язки",
+        "triggerLabel": "Показувати зв’язки: увімкнено {enabled} з {total}",
+        "triggerLabelChanged": "Показувати зв’язки: увімкнено {enabled} з {total}, змінено типових: {changed}",
+        "changedOff": "типово увімкнено",
+        "changedOn": "типово вимкнено",
+        "hidesCharacters": "Вимкнений тип ховає й персонажів, яких із деревом пов’язують лише зв’язки цього типу."
       },
       "grouping": {
         "components": "За зв’язністю",
@@ -10512,7 +10828,6 @@
         "categories": "Категорії",
         "remove": "Прибрати фільтр «{label}»",
         "reset": "Скинути фільтри",
-        "treeDormant": "Фільтри категорій і типів не застосовуються в родинному дереві. Вони збережуться для інших режимів.",
         "trigger": "Фільтри",
         "triggerCount": "Фільтри · {count}",
         "types": "Типи"
@@ -10537,7 +10852,8 @@
         "pick": "Показати зв’язки персонажа {name}",
         "retry": "Спробувати ще раз",
         "toCharacters": "До персонажів книги",
-        "treeTitle": "Оберіть персонажа, щоб побачити його родинні зв’язки"
+        "treeTitle": "Оберіть персонажа, щоб побачити його родинні зв’язки",
+        "treeHint": "Оберіть персонажа, щоб побачити його батьків, дітей, шлюби та інші родинні зв’язки за поколіннями."
       },
       "states": {
         "bookUnavailable": {
@@ -10566,24 +10882,51 @@
           "action": "Обрати іншого персонажа",
           "description": "Цього персонажа немає в книзі або він недоступний у поточному контексті читання.",
           "title": "Персонаж недоступний"
+        },
+        "treeRootOnly": {
+          "description": "Батьки, діти, шлюби та інші сімейні зв’язки з’являться тут, коли стануть доступні у вашому контексті читання.",
+          "title": "Наразі немає доступних родинних зв’язків"
+        },
+        "treeFiltered": {
+          "title": "Усі родинні зв’язки сховано",
+          "description": "Батьків і дітей для цього персонажа немає, а інші доступні зв’язки вимкнено в меню «Показувати зв’язки»."
+        },
+        "genealogyEmpty": {
+          "description": "Батьки, діти, шлюби та інші родинні зв’язки з’являться тут, щойно стануть доступними у вашому контексті читання.",
+          "title": "У книзі ще немає родинних зв’язків"
+        },
+        "genealogyFiltered": {
+          "title": "Усі родинні зв’язки зараз сховано",
+          "description": "Батьків і дітей у цій книзі немає, а решту зв’язків вимкнено в меню «Показувати зв’язки». Увімкніть шлюби чи інші зв’язки, щоб побачити родовід."
         }
       },
       "notices": {
         "fallbackComponents": "Для цієї мережі немає доступних угруповань, тому її показано за зв’язністю.",
-        "irregular": "Не всі покоління вдалося розташувати через суперечливі записи.",
         "locked": "Є приховані деталі.",
-        "noAncestry": "У записах немає підтверджених батьківсько-дитячих зв’язків.",
+        "noAncestry": "Немає доступних записів про батьків і дітей, тому дерево показує близькі сімейні зв’язки без поколінь.",
         "overBudget": "На карті багато персонажів. Згорніть частину гілок або груп, щоб її було легше читати.",
-        "truncated": "Показано лише частину доступної мережі."
+        "truncated": "Показано лише частину доступної мережі.",
+        "treeConflicts": "Деякі записи про батьків і дітей суперечать одне одному й утворюють цикл. Їх показано червоним пунктиром і не використано для поколінь.",
+        "treeFewerAncestors": "Предків далі немає в доступних записах.",
+        "treeFewerDescendants": "Нащадків далі немає в доступних записах.",
+        "treeMultiLine": "Деякі родичі пов’язані з цим персонажем кількома лініями походження різної довжини, тому частина ліній перетинає більше ніж одне покоління.",
+        "treeTruncated": "Показана частина доступного родоводу. Оберіть іншого центрального персонажа, щоб дослідити решту.",
+        "genealogyCollapsed": "Згорнуто {branches, plural, one {# гілку} few {# гілки} many {# гілок} other {# гілки}}, {hidden, plural, one {приховано # персонажа} few {приховано # персонажів} many {приховано # персонажів} other {приховано # персонажа}}. Персонажів, потрібних іншій видимій гілці, не приховано.",
+        "genealogyComponents": "Цей родовід складається з кількох окремих родин. Вони стоять поруч, без вигаданих спільних предків.",
+        "genealogyTruncated": "Родовід перевищує ліміт у {limit} персонажів. Показано найбільші родини, поки ліміт не вичерпано; менші родини чи їхні частини не показано.",
+        "genealogyMultiLine": "Деякі шлюби поєднують людей різних поколінь, тому частина ліній від батьків до дітей перетинає більше ніж одне покоління.",
+        "importanceUnknown": "У жодного персонажа цієї мережі не вказано важливість, тому всі вони в одній групі. Важливість не визначається за кількістю зв’язків.",
+        "networkTruncated": "Мережа завелика, тому отримано лише її частину. Усі лічильники, групи й пари стосуються тільки отриманої частини, а не всієї мережі книги.",
+        "singleComponent": "Усі персонажі мережі пов’язані між собою, тому групування за зв’язністю дає одну групу."
       },
       "counters": {
-        "expanded": "Розгорнуто: {nodes, plural, one {# персонаж} few {# персонажі} many {# персонажів} other {# персонажа}} · {edges, plural, one {# зв’язок} few {# зв’язки} many {# зв’язків} other {# зв’язку}}",
-        "groups": "На карті: {groups, plural, one {# група} few {# групи} many {# груп} other {# групи}}",
-        "people": "На карті: {nodes, plural, one {# персонаж} few {# персонажі} many {# персонажів} other {# персонажа}} · {edges, plural, one {# зв’язок} few {# зв’язки} many {# зв’язків} other {# зв’язку}}"
+        "person": "На карті: {nodes, plural, one {# персонаж} few {# персонажі} many {# персонажів} other {# персонажа}} · {pairs, plural, one {# пара} few {# пари} many {# пар} other {# пари}} · {relationships, plural, one {# зв’язок} few {# зв’язки} many {# зв’язків} other {# зв’язку}}",
+        "tree": "У дереві: {nodes, plural, one {# персонаж} few {# персонажі} many {# персонажів} other {# персонажа}} · {pairs, plural, one {# пара} few {# пари} many {# пар} other {# пари}} · {relationships, plural, one {# зв’язок} few {# зв’язки} many {# зв’язків} other {# зв’язку}}",
+        "genealogy": "Родовід: {generations, plural, one {# покоління} few {# покоління} many {# поколінь} other {# покоління}} · {nodes, plural, one {# персонаж} few {# персонажі} many {# персонажів} other {# персонажа}} · {pairs, plural, one {# пара} few {# пари} many {# пар} other {# пари}}",
+        "networkOverview": "Отримано: {characters, plural, one {# персонаж} few {# персонажі} many {# персонажів} other {# персонажа}}, {pairs, plural, one {# унікальна пара} few {# унікальні пари} many {# унікальних пар} other {# унікальної пари}}, {relations, plural, one {# запис зв’язку} few {# записи зв’язків} many {# записів зв’язків} other {# запису зв’язку}} · На карті {shownGroups} з {groups, plural, one {# групи} few {# груп} many {# груп} other {# групи}}",
+        "networkFocus": "«{group}» · Персонажів групи на карті: {shownMembers} з {members} · {pairs, plural, one {# унікальна пара} few {# унікальні пари} many {# унікальних пар} other {# унікальної пари}} між ними · {neighborGroups, plural, one {# пов’язана група} few {# пов’язані групи} many {# пов’язаних груп} other {# пов’язаної групи}}"
       },
       "more": {
-        "clusters": "Показати ще групи",
-        "members": "Показати ще персонажів",
         "ring": "Показати ще на кроці {hop}"
       },
       "node": {
@@ -10594,12 +10937,9 @@
         "openRoot": "Відкрити деталі центрального персонажа {name}"
       },
       "cluster": {
-        "collapse": "Згорнути групу «{name}», {count, plural, one {# персонаж} few {# персонажі} many {# персонажів} other {# персонажа}}",
-        "expand": "Розгорнути групу «{name}», {count, plural, one {# персонаж} few {# персонажі} many {# персонажів} other {# персонажа}}",
         "fragment": "Фрагмент мережі {index}",
         "groupHidden": "Угруповання",
         "importanceUnknown": "Важливість не визначена",
-        "members": "{count, plural, one {# персонаж} few {# персонажі} many {# персонажів} other {# персонажа}} на карті",
         "ungrouped": "Без зазначеного угруповання"
       },
       "connection": {
@@ -10614,7 +10954,6 @@
         "confirmOverwrite": "Замінити",
         "enterFullscreen": "На весь екран",
         "exitFullscreen": "Вийти з повноекранного режиму",
-        "fit": "Вмістити карту",
         "label": "Полотно карти зв’язків",
         "overwrite": "Для цього режиму вже збережено інше розташування. Замінити його?",
         "relayout": "Впорядкувати",
@@ -10624,11 +10963,20 @@
         "saved": "Розташування збережено",
         "saveError": "Не вдалося зберегти розташування",
         "zoomIn": "Наблизити",
-        "zoomOut": "Віддалити"
+        "zoomOut": "Віддалити",
+        "center": "До центрального персонажа",
+        "fitAll": "Показати всю мережу",
+        "miniMap": {
+          "label": "Мінікарта мережі: видима область і центральний персонаж",
+          "toggle": "Мінікарта",
+          "show": "Показати мінікарту",
+          "hide": "Сховати мінікарту"
+        },
+        "fitTree": "Показати все дерево",
+        "focusSelected": "Показати вибраного персонажа",
+        "more": "Інші дії з полотном"
       },
       "list": {
-        "aggregate": "Між показаними персонажами «{source}» і «{target}» є зв’язки",
-        "item": "{source} — {target}",
         "title": "Зв’язки на карті ({count})"
       },
       "panel": {
@@ -10652,7 +11000,38 @@
           "title": "{source} і {target}"
         },
         "description": "Деталі вибраного елемента карти.",
-        "title": "Деталі"
+        "title": "Деталі",
+        "person": {
+          "direction": {
+            "directed": "{source} → {target}",
+            "mixed": "Різні напрямки",
+            "symmetric": "Взаємний зв’язок",
+            "unknown": "Напрямок не розкрито"
+          },
+          "findPath": "Знайти шлях",
+          "nearest": "Найближчі зв’язки",
+          "nearestAll": "Усі ({count})",
+          "openPair": "Відкрити зв’язок із персонажем {name}: {label}",
+          "profile": "Профіль",
+          "stats": {
+            "caption": "Пораховано за поточною картою.",
+            "characters": "{count, plural, one {персонаж на карті} few {персонажі на карті} many {персонажів на карті} other {персонажа на карті}}",
+            "label": "Лічильники на карті",
+            "neighbors": "{count, plural, one {прямий сусід} few {прямі сусіди} many {прямих сусідів} other {прямого сусіда}}",
+            "partial": "Карта показує не всі зв’язки, тож лічильники стосуються лише показаного.",
+            "relationships": "{count, plural, one {прямий зв’язок} few {прямі зв’язки} many {прямих зв’язків} other {прямого зв’язку}}",
+            "about": "Як пораховано лічильники",
+            "aboutPartial": "Лічильники неповні: як їх пораховано"
+          },
+          "heading": {
+            "character": "Персонаж",
+            "connection": "Деталі зв’язку"
+          },
+          "root": "Центр карти",
+          "importance": "Важливість: {label}",
+          "makeCenter": "Зробити центральним",
+          "nearestLess": "Згорнути"
+        }
       },
       "path": {
         "back": "До карти",
@@ -10682,6 +11061,355 @@
         "to": "Персонаж Б",
         "unavailable": "Персонаж недоступний у цій книзі.",
         "unknown": "Не вдалося підтвердити, що пошук завершено повністю."
+      },
+      "legend": {
+        "filteredOut": "(прибрано фільтром)",
+        "masked": "Приховані",
+        "mixed": "Різні типи",
+        "title": "Легенда зв’язків",
+        "expand": "Показати всі",
+        "collapse": "Згорнути"
+      },
+      "pair": {
+        "count": "{count, plural, one {# зв’язок} few {# зв’язки} many {# зв’язків} other {# зв’язку}}",
+        "masked": "Приховано"
+      },
+      "personList": {
+        "clearSearch": "Очистити пошук",
+        "counts": "{pairs, plural, one {# пара персонажів} few {# пари персонажів} many {# пар персонажів} other {# пари персонажів}} · {relationships, plural, one {# зв’язок} few {# зв’язки} many {# зв’язків} other {# зв’язку}}",
+        "noMatches": "Серед показаних зв’язків нічого не знайдено.",
+        "open": "Відкрити зв’язок {names}: {label}",
+        "pair": "{first} — {second}",
+        "search": "Пошук серед показаних зв’язків",
+        "showLess": "Згорнути",
+        "title": "Зв’язки на карті",
+        "showMore": "Показати ще ({count})"
+      },
+      "rings": {
+        "hop": "{hop, plural, one {# крок} few {# кроки} many {# кроків} other {# кроку}}"
+      },
+      "pathEntryShort": "Знайти зв’язок",
+      "tree": {
+        "conflictRole": "Суперечливий запис: {label}",
+        "generation": {
+          "captions": {
+            "children": "Діти",
+            "grandchildren": "Онуки",
+            "grandparents": "Дідусі й бабусі",
+            "greatGrandchildren": "Правнуки",
+            "greatGrandparents": "Прадіди",
+            "parents": "Батьки",
+            "root": "Центральний персонаж"
+          },
+          "label": "Покоління {value}",
+          "ordinal": "Покоління {value}"
+        },
+        "help": {
+          "generations": "Покоління рахуються від центрального персонажа: предки вгорі, нащадки внизу, до трьох в кожен бік.",
+          "lines": "Суцільні коричневі лінії ведуть від кожного підтвердженого з батьків до дитини. Шлюби, брати й сестри та опіка не змінюють покоління.",
+          "links": "Батьки й діти показуються завжди. У меню «Показувати зв’язки» можна додати чи сховати шлюби, братів і сестер, опіку та далеких родичів.",
+          "collapse": "Згорніть гілку в панелі персонажа, щоб сховати його нащадків. Спільні родичі, потрібні іншій видимій гілці, залишаються на мапі.",
+          "genealogy": "«Увесь родовід» показує всі доступні покоління книги. Окремі родини стоять поруч і не отримують вигаданих спільних предків.",
+          "navigation": "Перетягуйте полотно, щоб рухатися. Масштаб змінюють кнопки, Ctrl + коліщатко або щипок. Звичайна прокрутка гортає сторінку."
+        },
+        "legend": {
+          "caption": "Тип зв’язку розрізняють стиль лінії, значок і підпис, а не лише колір.",
+          "collapse": "Згорнути",
+          "expand": "Показати всі",
+          "items": {
+            "adoptive": "Прийомні батьки й діти",
+            "biological": "Батьки й діти",
+            "conflict": "Суперечливий запис",
+            "distant": "Далекі й власні сімейні типи",
+            "exUnions": "Колишній шлюб",
+            "guardians": "Опіка",
+            "marriages": "Шлюб",
+            "siblings": "Брати й сестри",
+            "step": "Вітчим чи мачуха й діти"
+          },
+          "off": "(вимкнено)",
+          "side": "Пунктирна рамка: додатковий родич без підтвердженого покоління",
+          "title": "Легенда дерева"
+        },
+        "lineageKinds": {
+          "adoptive": "Прийомні батьки й діти",
+          "biological": "Батьки й діти",
+          "step": "Вітчим чи мачуха й діти"
+        },
+        "lineageShort": {
+          "adoptive": "прийомні",
+          "biological": "біологічні",
+          "step": "нерідні"
+        },
+        "list": {
+          "counts": "{pairs, plural, one {# пара персонажів} few {# пари персонажів} many {# пар персонажів} other {# пари персонажів}} · {relationships, plural, one {# зв’язок} few {# зв’язки} many {# зв’язків} other {# зв’язку}}",
+          "multi": "×{count}",
+          "title": "Зв’язки в дереві"
+        },
+        "miniMap": "Мінікарта дерева: видима область і центральний персонаж",
+        "node": {
+          "open": "Відкрити деталі персонажа {name}",
+          "openRoot": "Відкрити деталі центрального персонажа {name}",
+          "openSide": "Відкрити деталі персонажа {name}, додатковий родич без підтвердженого покоління",
+          "root": "Центр",
+          "side": "Додатковий родич",
+          "openFavorite": "Відкрити деталі улюбленого персонажа {name}"
+        },
+        "pairCount": "{count, plural, one {# зв’язок} few {# зв’язки} many {# зв’язків} other {# зв’язку}}",
+        "panel": {
+          "conflictHint": "Цей запис утворює цикл походження, тому його не використано для поколінь.",
+          "favorite": "В улюблених",
+          "findPath": "Знайти зв’язок",
+          "generationUnconfirmed": "Покоління не підтверджено",
+          "heading": {
+            "character": "Персонаж у дереві",
+            "connection": "Родинний зв’язок"
+          },
+          "lineageDirection": "{parent} — один із батьків персонажа {child}",
+          "makeCenter": "Показати як центр",
+          "noRelatives": "У дереві немає показаних зв’язків цього персонажа.",
+          "openRelative": "Відкрити зв’язок із персонажем {name}: {label}",
+          "pairCount": "{count, plural, one {# зв’язок між ними} few {# зв’язки між ними} many {# зв’язків між ними} other {# зв’язку між ними}}",
+          "profile": "Профіль",
+          "relatives": "Близькі родичі",
+          "relativesAll": "Усі ({count})",
+          "relativesLess": "Згорнути",
+          "root": "Центральний персонаж",
+          "sideHint": "Показано поруч із персонажем {name}, але жоден запис про батьків і дітей не визначає його покоління.",
+          "stats": {
+            "characters": "{count, plural, one {персонаж у дереві} few {персонажі в дереві} many {персонажів у дереві} other {персонажа в дереві}}",
+            "label": "Лічильники в дереві",
+            "relationships": "{count, plural, one {родинний зв’язок} few {родинні зв’язки} many {родинних зв’язків} other {родинного зв’язку}}",
+            "relatives": "{count, plural, one {родич у дереві} few {родичі в дереві} many {родичів у дереві} other {родича в дереві}}"
+          }
+        },
+        "styles": {
+          "conflict": "Суперечливий запис про походження",
+          "distant": "Далекі й власні сімейні типи",
+          "exUnions": "Колишній шлюб",
+          "guardians": "Опіка",
+          "lineage": "Батьки й діти",
+          "marriages": "Шлюб",
+          "siblings": "Брати й сестри"
+        },
+        "hiddenSelection": {
+          "filtered": "«{name}» сховано поточними фільтрами зв’язків, тому панель закрито.",
+          "collapsed": "«{name}» у згорнутій гілці, тому панель закрито.",
+          "action": {
+            "filtered": "Типові зв’язки",
+            "collapsed": "Показати"
+          },
+          "dismiss": "Закрити повідомлення"
+        }
+      },
+      "genealogy": {
+        "bar": {
+          "branchActive": "Гілка: {name}",
+          "branches": "Родинні гілки",
+          "clearBranch": "Прибрати виділення гілки",
+          "expandAll": "Розгорнути всі гілки",
+          "expandAllCount": "Розгорнути всі гілки ({count})",
+          "families": "Окремі родини",
+          "houses": "Доми",
+          "members": "{count, plural, one {# особа} few {# особи} many {# осіб} other {# особи}}",
+          "expandAllLabel": "Розгорнути всі гілки ({branches}): {hidden, plural, one {приховано # персонажа} few {приховано # персонажів} many {приховано # персонажів} other {приховано # персонажа}}",
+          "hiddenCharacters": "{count, plural, one {Приховано # персонажа} few {Приховано # персонажів} many {Приховано # персонажів} other {Приховано # персонажа}}",
+          "branchesShort": "Гілки"
+        },
+        "family": "Родина: {name} · {count, plural, one {# особа} few {# особи} many {# осіб} other {# особи}}",
+        "familyHouse": "{name} · {count, plural, one {# особа} few {# особи} many {# осіб} other {# особи}}",
+        "node": {
+          "collapsedState": "гілку згорнуто, {count, plural, one {приховано # нащадка} few {приховано # нащадків} many {приховано # нащадків} other {приховано # нащадка}}",
+          "expand": "+{count, plural, one {# нащадок} few {# нащадки} many {# нащадків} other {# нащадка}}: розгорнути гілку персонажа {name}",
+          "hidden": "+{count, plural, one {# нащадок} few {# нащадки} many {# нащадків} other {# нащадка}}",
+          "open": "Відкрити деталі персонажа {name}",
+          "openFavorite": "Відкрити деталі улюбленого персонажа {name}",
+          "side": "Додатковий родич"
+        },
+        "panel": {
+          "collapse": "Згорнути нащадків",
+          "expand": "Показати {count, plural, one {# прихованого нащадка} few {# прихованих нащадків} many {# прихованих нащадків} other {# прихованого нащадка}}",
+          "findPath": "Знайти зв’язок",
+          "profile": "Профіль",
+          "showBranch": "Показати гілку персонажа"
+        },
+        "search": {
+          "empty": "Нікого не знайдено",
+          "hint": "Пошук серед {count, plural, one {# персонажа} few {# персонажів} many {# персонажів} other {# персонажа}} родоводу",
+          "label": "Пошук у родоводі",
+          "placeholder": "Ім’я персонажа",
+          "results": "Персонажі",
+          "trigger": "Знайти персонажа",
+          "found": "{count, plural, =0 {Збігів немає} one {Знайдено # персонажа} few {Знайдено # персонажі} many {Знайдено # персонажів} other {Знайдено # персонажа}}",
+          "listLabel": "Знайдені персонажі родоводу",
+          "emptyHint": "Імена шукаються так, як їх записано в книзі. Спробуйте мову запису, наприклад латиницю.",
+          "collapsed": "у згорнутій гілці"
+        },
+        "landmarks": {
+          "label": "Перехід до гілок",
+          "jump": "Перейти до гілки {name}",
+          "active": "У фокусі: {name}",
+          "activeHouseHint": "{count, plural, one {# член дому підсвічений} few {# члени дому підсвічені} many {# членів дому підсвічено} other {# члена дому підсвічено}}, решту приглушено",
+          "activeFamilyHint": "{count, plural, one {# особу родини підсвічено} few {# особи родини підсвічено} many {# осіб родини підсвічено} other {# особи родини підсвічено}}, решту приглушено",
+          "clear": "Прибрати фокус з гілки {name}"
+        }
+      },
+      "treeScope": {
+        "branch": "Гілка персонажа",
+        "full": "Увесь родовід",
+        "label": "Обсяг родинного дерева"
+      },
+      "toolbar": {
+        "more": "Інші дії"
+      },
+      "networkPanel": {
+        "list": {
+          "clearFilter": "Очистити фільтр",
+          "filter": "Фільтр за ім’ям",
+          "noMatches": "Нічого не знайдено",
+          "showAll": "Показати всі ({count})",
+          "showLess": "Згорнути",
+          "showMore": "Показати ще {count}",
+          "shown": "Показано {shown} з {total}"
+        },
+        "character": {
+          "group": "Група: {name}",
+          "stats": {
+            "label": "Лічильники персонажа",
+            "pairsOnMap": "{count, plural, one {пара на карті} few {пари на карті} many {пар на карті} other {пари на карті}}",
+            "pairsAvailable": "{count, plural, one {доступна пара} few {доступні пари} many {доступних пар} other {доступної пари}}",
+            "relationsAvailable": "{count, plural, one {запис зв’язку} few {записи зв’язків} many {записів зв’язків} other {запису зв’язку}}",
+            "caption": "Доступні — безпечні пари й записи зв’язків персонажа за поточних фільтрів, зокрема ті, яких зараз немає на карті."
+          },
+          "actions": {
+            "focus": "Фокус на карті",
+            "around": "Навколо персонажа",
+            "path": "Шлях між персонажами",
+            "profile": "Профіль"
+          },
+          "pairs": {
+            "title": "Пари персонажа",
+            "empty": "За поточних фільтрів у персонажа немає безпечних пар.",
+            "open": "Відкрити пару з персонажем {name}: {label}",
+            "openOffMap": "Відкрити пару з персонажем {name}: {label}. Цієї пари немає на карті",
+            "nameInGroup": "{name} ({group})",
+            "offMap": "не на карті"
+          }
+        },
+        "aggregate": {
+          "title": "Зв’язки між {source} і {target}",
+          "stats": {
+            "label": "Лічильники зв’язку груп",
+            "relations": "{count, plural, one {запис зв’язку} few {записи зв’язків} many {записів зв’язків} other {запису зв’язку}}",
+            "pairs": "{count, plural, one {унікальна пара персонажів} few {унікальні пари персонажів} many {унікальних пар персонажів} other {унікальної пари персонажів}}"
+          },
+          "explore": "Відкрити «{group}»",
+          "categories": {
+            "title": "За категоріями",
+            "count": "{count, plural, one {# запис} few {# записи} many {# записів} other {# запису}}"
+          },
+          "masked": "Деталі частини зв’язків приховано.",
+          "pairs": {
+            "title": "Пари персонажів",
+            "empty": "Немає пар для показу.",
+            "names": "{first} — {second}",
+            "open": "Відкрити пару {names}: {label}"
+          }
+        },
+        "members": {
+          "count": "{count, plural, one {# персонаж у групі} few {# персонажі в групі} many {# персонажів у групі} other {# персонажа в групі}}",
+          "empty": "Нікого не знайдено",
+          "found": "{count, plural, =0 {Збігів немає} one {Знайдено # персонажа} few {Знайдено # персонажі} many {Знайдено # персонажів} other {Знайдено # персонажа}}",
+          "label": "Персонажі групи {name}",
+          "listLabel": "Персонажі групи",
+          "onMap": "на карті",
+          "pairs": "{count, plural, one {# пара} few {# пари} many {# пар} other {# пари}}",
+          "placeholder": "Фільтр за ім’ям"
+        }
+      },
+      "networkSearch": {
+        "blocked": "Приховані фільтрами",
+        "blockedMeta": "Персонаж · не відповідає поточним фільтрам",
+        "characterInGroupMeta": "Персонаж · {group}",
+        "characterMeta": "Персонаж",
+        "characters": "Персонажі",
+        "empty": "Нічого не знайдено",
+        "emptyHint": "Імена шукаються так, як їх записано в книзі. Спробуйте мову запису, наприклад латиницю.",
+        "found": "{count, plural, =0 {Збігів немає} one {Знайдено # результат} few {Знайдено # результати} many {Знайдено # результатів} other {Знайдено # результату}}",
+        "groupMeta": "Група · {count, plural, one {# персонаж} few {# персонажі} many {# персонажів} other {# персонажа}}",
+        "groups": "Групи",
+        "hint": "Пошук серед усіх груп і персонажів мережі, навіть тих, яких зараз немає на карті.",
+        "label": "Пошук у мережі",
+        "listLabel": "Результати пошуку в мережі",
+        "placeholder": "Ім’я персонажа чи назва групи",
+        "trigger": "Знайти групу чи персонажа"
+      },
+      "network": {
+        "cluster": {
+          "members": "{count, plural, one {# персонаж} few {# персонажі} many {# персонажів} other {# персонажа}}",
+          "open": "Відкрити групу «{name}»: {count, plural, one {# персонаж} few {# персонажі} many {# персонажів} other {# персонажа}}, {pairs, plural, one {# пара всередині} few {# пари всередині} many {# пар усередині} other {# пари всередині}}, {linked, plural, one {# пов’язана група} few {# пов’язані групи} many {# пов’язаних груп} other {# пов’язаної групи}}",
+          "openNeighbor": "Перейти до групи «{name}»: {count, plural, one {# персонаж} few {# персонажі} many {# персонажів} other {# персонажа}}, {pairs, plural, one {# пара з поточною групою} few {# пари з поточною групою} many {# пар із поточною групою} other {# пари з поточною групою}}",
+          "summary": "{pairs, plural, one {# пара всередині} few {# пари всередині} many {# пар усередині} other {# пари всередині}} · {linked, plural, one {# пов’язана група} few {# пов’язані групи} many {# пов’язаних груп} other {# пов’язаної групи}}",
+          "withFocus": "{count, plural, one {# пара з групою} few {# пари з групою} many {# пар із групою} other {# пари з групою}}"
+        },
+        "controls": {
+          "focusSelection": "Показати вибране на карті"
+        },
+        "focus": {
+          "allMembers": "Усі персонажі ({count})",
+          "breadcrumb": "Навігація мережею",
+          "hiddenNeighbors": "{count, plural, one {Ще # пов’язану групу не показано} few {Ще # пов’язані групи не показано} many {Ще # пов’язаних груп не показано} other {Ще # пов’язаної групи не показано}}",
+          "moreMembers": "Показати ще {count}",
+          "overview": "Уся мережа",
+          "shown": "Показано {shown} з {total}"
+        },
+        "legend": {
+          "aggregate": "Зв’язки між групами, товщина — кількість пар",
+          "count": "Число на лінії — унікальні пари персонажів",
+          "dimmed": "Бліде — не пов’язане з вибраним",
+          "group": "Група персонажів",
+          "pair": "Зв’язок між двома персонажами",
+          "title": "Легенда мережі"
+        },
+        "list": {
+          "aggregate": "{source} ↔ {target}: {pairs, plural, one {# унікальна пара} few {# унікальні пари} many {# унікальних пар} other {# унікальної пари}}, {relations, plural, one {# запис зв’язку} few {# записи зв’язків} many {# записів зв’язків} other {# запису зв’язку}}",
+          "pair": "{source} — {target}: {relations, plural, one {# запис зв’язку} few {# записи зв’язків} many {# записів зв’язків} other {# запису зв’язку}}"
+        },
+        "miniMap": "Мінікарта мережі: видима область і показані групи та персонажі",
+        "node": {
+          "open": "Відкрити деталі персонажа {name}, {pairs, plural, one {# пара} few {# пари} many {# пар} other {# пари}}",
+          "openFavorite": "Відкрити деталі персонажа {name}, в улюблених, {pairs, plural, one {# пара} few {# пари} many {# пар} other {# пари}}",
+          "pairs": "{count, plural, one {# пара} few {# пари} many {# пар} other {# пари}}"
+        },
+        "notices": {
+          "blocked": "«{name}» сховано поточними фільтрами зв’язків. Скиньте фільтри, щоб показати цього персонажа на карті.",
+          "dismiss": "Закрити повідомлення",
+          "focusMissing": "Групи з посилання немає в поточній мережі, тому показано огляд.",
+          "layoutStale": "Збережене розташування зроблено для іншої частини мережі, інших фільтрів чи групування або воно застаріло, тому тут показано автоматичне розташування.",
+          "resetBlocked": "Скинути фільтри й показати «{name}»",
+          "staleSelection": {
+            "aggregate": "Вибраного зв’язку між групами немає за поточних фільтрів чи групування, тому панель закрито.",
+            "character": "Вибраного персонажа немає в мережі за поточних фільтрів, тому панель закрито.",
+            "connection": "Вибраної пари немає в мережі за поточних фільтрів, тому панель закрито.",
+            "members": "Вибраної групи немає за поточних фільтрів чи групування, тому панель закрито."
+          },
+          "useGroups": "Групувати за угрупованнями"
+        },
+        "overview": {
+          "hint": {
+            "components": "Групи — окремі частини мережі, не пов’язані між собою. Натисніть на групу, щоб побачити її персонажів.",
+            "group": "Групи — угруповання з книги. Натисніть на групу, щоб побачити її персонажів.",
+            "importance": "Групи — персонажі з однаковою вказаною важливістю. Натисніть на групу, щоб побачити її персонажів."
+          },
+          "links": "{count, plural, =0 {Між показаними групами зв’язків немає.} one {# зв’язок між групами на карті.} few {# зв’язки між групами на карті.} many {# зв’язків між групами на карті.} other {# зв’язку між групами на карті.}}",
+          "moreGroups": "Показати ще групи ({count})"
+        },
+        "panel": {
+          "heading": {
+            "aggregate": "Зв’язок груп",
+            "members": "Учасники групи"
+          }
+        }
       }
     }
   }

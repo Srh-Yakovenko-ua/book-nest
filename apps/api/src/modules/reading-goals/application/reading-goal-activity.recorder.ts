@@ -16,6 +16,7 @@ import type { ReadingGoalWithList } from "../infrastructure/reading-goals.reposi
 import type { ReadingGoalQualificationChange } from "./reading-goal-snapshot.service.js";
 
 import { daysBetweenUtcDays, toIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
+import { assignReadingGoalCountedOrdinals } from "../domain/reading-goal-counted-ordinals.js";
 import { calculateReadingGoalMetrics } from "../domain/reading-goal-metrics.js";
 import { selectQualifyingReadingGoalBooks } from "../domain/reading-goal-progress.js";
 import { resolveReadingGoalQualificationWindow } from "../domain/reading-goal-window.js";
@@ -111,8 +112,8 @@ export class ReadingGoalActivityRecorder {
     await this.write({
       rows: [
         ...fieldChangeRows({ goal, previous }),
-        ...countedRows({ countedBookIds: newlyCountedBookIds(changes), goal, qualifying }),
         ...uncountedRows({ changes, goal, reason: "deadline_changed" }),
+        ...countedRows({ countedBookIds: newlyCountedBookIds(changes), goal, qualifying }),
         ...(await this.lifecycleRows({
           changes,
           goal,
@@ -223,23 +224,21 @@ function countedRows({
   goal: ReadingGoalWithList;
   qualifying: ReadingGoalQualifyingBook[];
 }): ReadingGoalActivityInput[] {
-  return qualifying.flatMap((book, index) => {
-    if (!countedBookIds.has(book.bookId)) {
-      return [];
-    }
-    return [
-      activityRow({
-        bookId: book.bookId,
-        goal,
-        metadata: {
-          completedCount: index + 1,
-          finishedAt: toIsoDate(book.finishedAt),
-          targetCount: goal.targetCount,
-        },
-        type: "book_counted",
-      }),
-    ];
-  });
+  return assignReadingGoalCountedOrdinals({
+    newlyCountedBookIds: countedBookIds,
+    qualifyingBooks: qualifying,
+  }).map((book) =>
+    activityRow({
+      bookId: book.bookId,
+      goal,
+      metadata: {
+        completedCount: book.completedCount,
+        finishedAt: toIsoDate(book.finishedAt),
+        targetCount: goal.targetCount,
+      },
+      type: "book_counted",
+    }),
+  );
 }
 
 function daysBetween(deadline: Date, completedAt: Date): number {

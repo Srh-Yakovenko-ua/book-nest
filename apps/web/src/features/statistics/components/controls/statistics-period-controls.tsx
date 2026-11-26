@@ -35,13 +35,24 @@ import {
   STATISTICS_PERIOD_KINDS,
 } from "../../model/statistics-period";
 
+export type StatisticsComparisonAvailability = "available" | "tab";
+
+type ComparisonUnavailableReason = "allTime" | "tab";
+
+const COMPARISON_UNAVAILABLE_MESSAGE = {
+  allTime: "unavailable",
+  tab: "tabUnavailable",
+} as const satisfies Record<ComparisonUnavailableReason, string>;
+
 export function StatisticsPeriodControls({
   comparison,
+  comparisonAvailability,
   params,
   period,
   periodTriggerRef,
 }: {
   comparison: Nullable<ReadingStatisticsComparison>;
+  comparisonAvailability: StatisticsComparisonAvailability;
   params: UseStatisticsParamsResult;
   period: Nullable<ReadingStatisticsPeriod>;
   periodTriggerRef?: RefObject<HTMLButtonElement | null>;
@@ -55,6 +66,7 @@ export function StatisticsPeriodControls({
   const fromId = useId();
   const toId = useId();
   const rangeIssueId = useId();
+  const comparisonReasonId = useId();
   const weekStartsOn = useWeekStartsOn();
   const hasRangeIssue = params.rangeIssue !== null && params.rangeIssue !== "incomplete";
   const rangeIssueDescription = params.rangeIssue === null ? undefined : rangeIssueId;
@@ -64,8 +76,16 @@ export function StatisticsPeriodControls({
 
   const currentLabel =
     period === null ? null : formatDayRange({ from: period.from, locale, to: period.to });
+  const comparisonUnavailableReason = toComparisonUnavailableReason({
+    canCompare: params.canCompare,
+    comparisonAvailability,
+  });
+  const comparisonReason =
+    comparisonUnavailableReason === null
+      ? null
+      : tCompare(COMPARISON_UNAVAILABLE_MESSAGE[comparisonUnavailableReason]);
   const comparisonLabel =
-    comparison === null
+    comparison === null || comparisonReason !== null
       ? null
       : formatDayRange({ from: comparison.from, locale, to: comparison.to });
 
@@ -157,15 +177,25 @@ export function StatisticsPeriodControls({
           </div>
         ) : null}
 
+        {period === null ? null : (
+          <p className="text-sm text-muted-foreground">
+            {currentLabel === null ? t("allTimeCaption") : t("caption", { range: currentLabel })}
+            {comparisonLabel === null ? null : (
+              <span className="ms-2">{t("comparisonCaption", { range: comparisonLabel })}</span>
+            )}
+          </p>
+        )}
+
         <div className="ms-auto flex flex-wrap items-center gap-3">
           <label
             className="flex cursor-pointer items-center gap-2.5 text-sm font-medium text-foreground data-[disabled=true]:cursor-not-allowed data-[disabled=true]:text-muted-foreground"
-            data-disabled={!params.canCompare}
+            data-disabled={comparisonReason !== null}
             htmlFor={compareId}
           >
             <Switch
+              aria-describedby={comparisonReason === null ? undefined : comparisonReasonId}
               checked={params.compareMode !== null}
-              disabled={!params.canCompare}
+              disabled={comparisonReason !== null}
               id={compareId}
               onCheckedChange={(checked) =>
                 params.setCompareMode(
@@ -176,20 +206,25 @@ export function StatisticsPeriodControls({
             {tCompare("toggle")}
           </label>
 
-          {params.canCompare ? null : (
-            <Tooltip>
-              <TooltipTrigger
-                aria-label={tCompare("unavailable")}
-                className="text-muted-foreground"
-                type="button"
-              >
-                <UiIcon name="info" size={14} />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-72">{tCompare("unavailable")}</TooltipContent>
-            </Tooltip>
+          {comparisonReason === null ? null : (
+            <>
+              <span className="sr-only" id={comparisonReasonId}>
+                {comparisonReason}
+              </span>
+              <Tooltip>
+                <TooltipTrigger
+                  aria-label={comparisonReason}
+                  className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                  type="button"
+                >
+                  <UiIcon aria-hidden name="info" size={14} />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-72">{comparisonReason}</TooltipContent>
+              </Tooltip>
+            </>
           )}
 
-          {params.compareMode === null ? null : (
+          {comparisonReason !== null || params.compareMode === null ? null : (
             <div className="flex items-center gap-2">
               <Label className="sr-only" htmlFor={compareModeId}>
                 {tCompare("mode")}
@@ -229,15 +264,18 @@ export function StatisticsPeriodControls({
           })}
         </p>
       )}
-
-      {period === null ? null : (
-        <p className="text-sm text-muted-foreground">
-          {currentLabel === null ? t("allTimeCaption") : t("caption", { range: currentLabel })}
-          {comparisonLabel === null ? null : (
-            <span className="ms-2">{t("comparisonCaption", { range: comparisonLabel })}</span>
-          )}
-        </p>
-      )}
     </section>
   );
+}
+
+function toComparisonUnavailableReason({
+  canCompare,
+  comparisonAvailability,
+}: {
+  canCompare: boolean;
+  comparisonAvailability: StatisticsComparisonAvailability;
+}): Nullable<ComparisonUnavailableReason> {
+  if (!canCompare) return "allTime";
+  if (comparisonAvailability === "tab") return "tab";
+  return null;
 }

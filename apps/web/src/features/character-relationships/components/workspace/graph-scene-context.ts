@@ -16,30 +16,47 @@ export const GRAPH_SCENE_FLOW = {
   characterNode: "workspace-character",
   clusterNode: "workspace-cluster",
   connectionEdge: "connection",
+  genealogyNode: "workspace-genealogy",
+  personEdge: "person-connection",
+  personNode: "workspace-person",
+  treeEdge: "tree-connection",
+  treeNode: "workspace-tree",
 } as const;
 
 export type GraphSceneFlowEdge = Edge<
   GraphSceneEdgeData,
-  typeof GRAPH_SCENE_FLOW.aggregateEdge | typeof GRAPH_SCENE_FLOW.connectionEdge
+  | typeof GRAPH_SCENE_FLOW.aggregateEdge
+  | typeof GRAPH_SCENE_FLOW.connectionEdge
+  | typeof GRAPH_SCENE_FLOW.personEdge
+  | typeof GRAPH_SCENE_FLOW.treeEdge
 >;
 
 export type GraphSceneFlowNode = Node<
   Record<string, never>,
-  typeof GRAPH_SCENE_FLOW.characterNode | typeof GRAPH_SCENE_FLOW.clusterNode
+  | typeof GRAPH_SCENE_FLOW.characterNode
+  | typeof GRAPH_SCENE_FLOW.clusterNode
+  | typeof GRAPH_SCENE_FLOW.genealogyNode
+  | typeof GRAPH_SCENE_FLOW.personNode
+  | typeof GRAPH_SCENE_FLOW.treeNode
 >;
 
 export type GraphSceneSelection =
-  null | { id: string; kind: "character" } | { id: string; kind: "connection" };
+  | null
+  | { id: string; kind: "aggregate" }
+  | { id: string; kind: "character" }
+  | { id: string; kind: "connection" }
+  | { id: string; kind: "members" };
+
+export type GraphSceneSelectionKind = NonNullable<GraphSceneSelection>["kind"];
 
 export type GraphSceneValue = {
   characters: ReadonlyMap<string, GraphPresentationCharacter>;
   clusters: ReadonlyMap<string, GraphPresentationCluster>;
   connections: ReadonlyMap<string, GraphConnection>;
-  onAggregateOpen: (sourceId: string, targetId: string) => void;
+  onAggregateOpen: (aggregateId: string) => void;
   onBranchToggle: (characterId: string) => void;
   onCharacterOpen: (characterId: string) => void;
-  onClusterMore: (bucketId: string) => void;
-  onClusterToggle: (bucketId: string) => void;
+  onClusterOpen: (bucketId: string) => void;
   onConnectionOpen: (connectionId: string) => void;
   selection: GraphSceneSelection;
 };

@@ -1,0 +1,675 @@
+{
+  "spec": "docs/specs/settings-stage-1/spec.md",
+  "generatedAt": "2026-11-25T17:07:45Z",
+  "base": "origin/dev 7aeb25f4",
+  "layerNote": "Frontend-only stage. Layers used: web-lib (apps/web/src/lib), web-model, web-api, web-ui (feature components), i18n (messages), test, qa, gate.",
+  "scope": {
+    "included": [
+      "§1 Нагадування card",
+      "§1 Дата й календар card",
+      "§2 Автозбереження",
+      "§3 QA matrix (live run by main loop, results recorded)",
+      "uk + en copy for every new string",
+      "http-client empty 202 body (required for the 202 success path in §1)"
+    ],
+    "excluded": [
+      "Вигляд і мова (spec:5, next stage)",
+      "Профіль (spec:5, next stage)",
+      "Нові типи листів (spec:5, next stage). The four disabled switches leave the UI only; EmailNotificationsSchema (packages/shared/src/profile.ts:217-224) and the API keep the fields",
+      "Any backend change: GET/PATCH /api/profile/settings and POST /api/notifications/test already do what the spec needs (see verifiedAssertions)",
+      "packages/shared changes: none required"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "http-client resolves a 2xx response with an empty body instead of throwing",
+      "specRef": "§1 Створити тестове сповіщення: «Після 202 показати Тестове сповіщення створено»",
+      "layer": "web-lib",
+      "files": ["apps/web/src/lib/http-client.ts"],
+      "dependsOn": ["D11"],
+      "mandatory": true,
+      "doneWhen": [
+        "request() resolves undefined for a 202 response whose body is empty (Nest sends an empty body for a void handler: @nestjs/platform-express express-adapter.js:48-49), instead of calling res.json() on it (http-client.ts:62-64 only special-cases 204)",
+        "the same rule applies on the refresh-and-retry path (http-client.ts:136-137)",
+        "a 200 with a JSON body is still parsed and returned unchanged",
+        "error responses still go through toApiError (http-client.ts:145-171) unchanged"
+      ],
+      "notes": "Contract-shaped core helper: main loop runs /blast-radius and the change reaches dev through a PR.",
+      "status": "done"
+    },
+    {
+      "id": "T2",
+      "title": "Test for the empty 202 body",
+      "specRef": "§1 Створити тестове сповіщення",
+      "layer": "test",
+      "files": ["apps/web/src/lib/http-client.test.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "a case where fetch resolves new Response(null, { status: 202 }) and request() resolves undefined",
+        "a case where a 200 JSON body is still returned parsed",
+        "the 202 case fails if T1 is reverted"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3",
+      "title": "Localized timezone city names (uk, en) as a feature-local data module",
+      "specRef": "§1 Часовий пояс: «Київ · UTC+02:00»; пошук за локалізованими назвами",
+      "layer": "web-model",
+      "files": ["apps/web/src/features/settings/model/timezone-city-names.ts"],
+      "dependsOn": ["D1"],
+      "mandatory": true,
+      "doneWhen": [
+        "uk names cover every zone of Intl.supportedValuesOf(\"timeZone\") (418 on Node 24.14.1 / ICU 78.2), keyed so both the ICU id (Europe/Kiev) and the current IANA name (Europe/Kyiv, via currentTimezoneName in model/current-timezone-names.ts:25-27) resolve to the same name",
+        "en names: explicit entry where CLDR differs from the id, otherwise derived from the last IANA segment with _ replaced by a space",
+        "the module is imported only from the settings feature model/components, not from messages/*.json and not from features/settings/index.ts",
+        "a zone with no name (UTC, anything unknown) falls back to its IANA id, no throw"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4",
+      "title": "Timezone option model: label with seasonal UTC offset, current selection first, no duplicate",
+      "specRef": "§1 Часовий пояс: поточний вибір перший без дубля; UTC-зміщення для поточної дати; аліаси без оновлення",
+      "layer": "web-model",
+      "files": ["apps/web/src/features/settings/model/timezone-options.ts"],
+      "dependsOn": ["T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "label is `${city} · UTC${offset}` where offset comes from date-fns-tz formatInTimeZone(now, zone, \"xxx\") for the passed-in now (no getTime arithmetic, CLAUDE.md §8.11)",
+        "Europe/Kyiv on a January date gives «Київ · UTC+02:00», on a July date «Київ · UTC+03:00»",
+        "option list puts the stored zone first and lists it exactly once, whether the runtime lists it as Europe/Kiev, Europe/Kyiv or not at all (existing dedupe logic regional-settings-section.tsx:85-93 moves here)",
+        "remaining options keep a stable order (alphabetical by label in the UI locale)",
+        "a stored legacy id (Europe/Kiev) is shown under the current name and value Europe/Kyiv is what a pick sends; nothing is sent on render"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T5",
+      "title": "Timezone search ranking: exact, then prefix, then partial",
+      "specRef": "§1 Шукати за локалізованими назвами, IANA-ідентифікатором і відомими аліасами",
+      "layer": "web-model",
+      "files": ["apps/web/src/features/settings/model/timezone-search.ts"],
+      "dependsOn": ["T4", "D2"],
+      "mandatory": true,
+      "doneWhen": [
+        "search terms per option: uk city name, en city name, full IANA id, its city segment, every legacy alias from legacyTimezoneNames (current-timezone-names.ts:29-33) and its city segment",
+        "matching is case-insensitive and treats _ and space alike",
+        "queries «Київ», «Kyiv», «Kiev», «Europe/Kyiv» each return Europe/Kyiv as the first result, in uk and in en UI",
+        "results are grouped exact > starts-with > contains; within a group the T4 order is kept",
+        "empty query returns the full T4 list; a query with no match returns []"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T6",
+      "title": "Model tests for names, labels, options and search",
+      "specRef": "§3 Часовий пояс row",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/settings/model/timezone-options.test.ts",
+        "apps/web/src/features/settings/model/timezone-search.test.ts",
+        "apps/web/src/features/settings/model/weekday-preview.test.ts"
+      ],
+      "dependsOn": ["T4", "T5"],
+      "mandatory": true,
+      "doneWhen": [
+        "offset cases use fixed winter and summer dates passed in, not the run date",
+        "it.each over the four Kyiv queries asserts Europe/Kyiv first",
+        "one other city by uk name and by en name, one no-match query, the stored-zone-first and listed-once cases for Europe/Kiev, Europe/Kyiv and UTC"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T7",
+      "title": "Serialise settings saves through a shared mutation scope",
+      "specRef": "§2 Серіалізувати зміни; частковий PATCH; спільний ключ кешу",
+      "layer": "web-api",
+      "files": ["apps/web/src/features/settings/api/use-update-settings.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "useMutation gets scope: { id } with one constant id, so every row's own useUpdateSettings instance queues behind the previous one (query-core mutationCache.ts:160-175 canRun)",
+        "mutationFn still sends only the partial input it is given and parses with SettingsViewSchema",
+        "onSuccess still goes through settingsChangeEffects.settingsSaved (cache key settingsKeys.root unchanged)",
+        "useLanguageSync (hooks/use-language-sync.ts:15,28) keeps working and is knowingly part of the same queue"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T8",
+      "title": "Keep reader-day invalidation in settings-change-effects",
+      "specRef": "§2 Зберегти оновлення даних, залежних від часового поясу й початку тижня; звужувати лише якщо споживачів підтверджено",
+      "layer": "web-api",
+      "files": ["apps/web/src/features/settings/api/settings-change-effects.ts"],
+      "dependsOn": ["D3"],
+      "mandatory": true,
+      "doneWhen": [
+        "with D3 = keep: settings-change-effects.ts:17-23 unchanged and settings-change-effects.test.ts:60-69 still asserts statistics, delivery, loans, goals and books go stale after a timezone or weekStartDay save",
+        "with D3 = narrow: weekStartDay-only saves invalidate exactly the statistics, delivery and home roots through each domain's effects module (no hand-listed foreign keys, CLAUDE.md §2), timezone saves keep the broad predicate, and the test covers both"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T9",
+      "title": "Per-field autosave state: pending value, Збереження…, inline error with retry, live region",
+      "specRef": "§2 Одна зміна без кнопки Зберегти; очікуване значення; Збереження…; повернути лише це поле; повторити; жива область",
+      "layer": "web-ui",
+      "files": [
+        "apps/web/src/features/settings/hooks/use-autosave-field.ts",
+        "apps/web/src/features/settings/components/field-save-status.tsx"
+      ],
+      "dependsOn": ["T7", "D4", "D5"],
+      "mandatory": true,
+      "doneWhen": [
+        "displayed value = the row mutation's variables while isPending (also while queued: mutation.ts:205-213 dispatches pending with isPaused and variables), else the confirmed value from the settings query",
+        "save(next) sends nothing when next equals the displayed value",
+        "while pending the row shows «Збереження…» next to the control; on success it disappears",
+        "on error the row shows the last confirmed value, an inline error next to the control and a retry button that re-sends the same partial input",
+        "a failure in one row does not stop a queued save of another row (mutation.ts:326-327 runNext in finally)",
+        "saving / error state is announced through a polite live region (role=status, pattern of series-order-check-block.tsx:154-159)",
+        "per-row state is read from the row's own useMutation result, not from mutate() callbacks (mutationObserver.ts:128-142 keeps only the latest call's callbacks)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T10",
+      "title": "Нагадування card: title, explanation, two switches with new copy, «Ще в роботі» removed",
+      "specRef": "§1 Нагадування, bullets 1, 2, 4; «Прибрати блок Ще в роботі»",
+      "layer": "web-ui",
+      "files": ["apps/web/src/features/settings/components/notification-settings-section.tsx"],
+      "dependsOn": ["T9"],
+      "mandatory": true,
+      "doneWhen": [
+        "card heading «Нагадування» (h2), description «Перемикачі керують листами. Нагадування в застосунку залишаються доступними в дзвіночку.»",
+        "switch «Нагадування про доставку на пошту» with «Лист перед очікуваною доставкою, у день доставки й у разі затримки» sends only { emailNotifications: { deliveryReminders } }",
+        "switch «Нагадування про повернення книг на пошту» with «Листи про наближення дати повернення й прострочення» sends only { emailNotifications: { borrowedBookReminders } }",
+        "EMAIL_TOGGLES.comingSoon, UnavailableToggleRow, Badge and the upcoming block (notification-settings-section.tsx:22-34, 63-75, 219-251) are gone",
+        "below sm the control wraps under its label; no horizontal scroll at 360 px"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T11",
+      "title": "Lead-days select 1–14 nested under the return switch",
+      "specRef": "§1 Перше нагадування про повернення",
+      "layer": "web-ui",
+      "files": ["apps/web/src/features/settings/components/notification-settings-section.tsx"],
+      "dependsOn": ["T9"],
+      "mandatory": true,
+      "doneWhen": [
+        "label «Перше нагадування про повернення», rendered visually nested under the return switch row",
+        "Select from components/ui/select.tsx without onClear, items LOAN_REMINDER_LEAD_DAYS.min..max (profile.ts:185-189) labelled with ICU plural «1 день», «2 дні», «5 днів» (en: 1 day / 2 days)",
+        "picking a new value sends exactly one PATCH { loanReminderLeadDays: n }; picking the current one sends none",
+        "the select stays enabled when borrowedBookReminders is off",
+        "hint «Для короткої позики перше нагадування може прийти ближче до дати повернення.»",
+        "NumberStepper import and clampLeadDays (notification-settings-section.tsx:15, 85-90, 134-181) removed"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T12",
+      "title": "Test notification: secondary button at the bottom, pending lock, 202 / 429 / other error",
+      "specRef": "§1 Створити тестове сповіщення",
+      "layer": "web-ui",
+      "files": [
+        "apps/web/src/features/settings/components/notification-settings-section.tsx",
+        "apps/web/src/features/settings/api/use-test-notification.ts"
+      ],
+      "dependsOn": ["T1", "D6"],
+      "mandatory": true,
+      "doneWhen": [
+        "secondary button «Створити тестове сповіщення» is the last element of the card",
+        "pre-click text says the test appears in the bell and an email is possible only with a verified address and at least one email switch on",
+        "while pending the button shows its loading state and a second click sends no request",
+        "after 202: «Тестове сповіщення створено. Перевірте дзвіночок» and notificationChangeEffects.notificationCreated still runs (use-test-notification.ts:11-13)",
+        "429 detected with isApiErrorStatus(error, HTTP_STATUS.tooManyRequests) (lib/api-errors.ts:6-14, 53-55) shows a limit message that says to try later",
+        "any other error shows a message with a retry action",
+        "result is announced through a live region"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T13",
+      "title": "Нагадування card tests rewritten to the new shape",
+      "specRef": "§3 Доставка й повернення; Швидкі зміни й помилка; Тестове сповіщення",
+      "layer": "test",
+      "files": ["apps/web/src/features/settings/components/notification-settings-section.test.tsx"],
+      "dependsOn": ["T10", "T11", "T12"],
+      "mandatory": true,
+      "doneWhen": [
+        "COPY (test file :15-49) uses the new labels; comingSoon, increment/decrement and toast entries removed",
+        "describe «unavailable reminders» (:200-226) and the stepper cases (:228-265) replaced by: no «Скоро» text, select picks 1, 14 and a middle value with one PATCH each, select enabled with both switches off",
+        "test endpoint mock returns new Response(null, { status: 202 }) instead of 204 (:97)",
+        "cases for 202 message, 429 message, other error with retry, second click while pending sends one POST",
+        "two switches toggled back to back with a deferred first PATCH: second PATCH sent only after the first settles, bodies in click order; first rejected: only that switch reverts, inline error + retry works, second still saves"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T14",
+      "title": "Дата й календар card: timezone combobox with labels, ranking, keyboard and mobile scroll",
+      "specRef": "§1 Часовий пояс, пошук",
+      "layer": "web-ui",
+      "files": ["apps/web/src/features/settings/components/regional-settings-section.tsx"],
+      "dependsOn": ["T4", "T5", "T9", "D2"],
+      "mandatory": true,
+      "doneWhen": [
+        "card heading «Дата й календар»",
+        "trigger shows the T4 label of the displayed value, not the raw IANA id (current: regional-settings-section.tsx:121, 149)",
+        "hint «Нагадування плануються на 09:00 за вибраним часовим поясом.» linked by aria-describedby",
+        "list order and filtering come from T5; empty result shows «Нічого не знайдено»",
+        "Escape closes the list, focus returns to the trigger, the query is cleared on next open",
+        "ArrowUp/ArrowDown move the active option, Enter picks it",
+        "a pick sends { timezone: <current IANA name> } once; the current zone sends nothing",
+        "list height is bounded by the viewport on a 360 px screen and scrolls inside the popover"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T15",
+      "title": "First day of week: Segmented + seven-day preview + consumer-accurate hint",
+      "specRef": "§1 Перший день тижня",
+      "layer": "web-ui",
+      "files": ["apps/web/src/features/settings/components/regional-settings-section.tsx"],
+      "dependsOn": ["T9"],
+      "mandatory": true,
+      "doneWhen": [
+        "Segmented «Понеділок / Неділя» (components/ui/segmented.tsx, radio semantics) sends { weekStartDay } once; the current value sends nothing",
+        "a compact text preview of seven localized short weekday names starts on the displayed value and reorders immediately on pick (pending value), built with date-fns startOfWeek/addDays/format",
+        "hint names only verified consumers: date pickers, the reading calendar and reading statistics, delivery statistics, the home reading week (see FINDINGS consumer list)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T16",
+      "title": "Дата й календар tests rewritten to the new shape",
+      "specRef": "§3 Часовий пояс; Початок тижня",
+      "layer": "test",
+      "files": ["apps/web/src/features/settings/components/regional-settings-section.test.tsx"],
+      "dependsOn": ["T14", "T15"],
+      "mandatory": true,
+      "doneWhen": [
+        "toast mock and «confirms ... with a toast» case (:13, :110-117) removed or replaced per D5",
+        "trigger/option assertions that expect raw IANA text (:92-98, :156-255) assert the localized label with time pinned (vi.setSystemTime) so the offset is deterministic",
+        "four Kyiv queries, one other city, empty result, Escape focus + reset, ArrowDown + Enter pick, current zone first",
+        "week start: preview order changes for both values; current value sends nothing"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T17",
+      "title": "SettingsView: two cards, skeleton matching them, error retry unchanged",
+      "specRef": "§1 intro; §2 skeleton і повтор запиту",
+      "layer": "web-ui",
+      "files": ["apps/web/src/features/settings/components/settings-view.tsx"],
+      "dependsOn": ["T10", "T14", "D7"],
+      "mandatory": true,
+      "doneWhen": [
+        "H1 «Налаштування» with TitleLeaf kept (settings-view.tsx:22-32); description per D7",
+        "two cards stacked vertically in order Нагадування, Дата й календар",
+        "skeleton rows reflect the new cards (SKELETON_ROW_COUNT = 4 at :15 was sized for the old card)",
+        "loading uses role=status skeleton, read error uses the existing alert + retry (:39-65)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T18",
+      "title": "SettingsView test updated",
+      "specRef": "§3 Перший вхід і повторне відкриття",
+      "layer": "test",
+      "files": ["apps/web/src/features/settings/components/settings-view.test.tsx"],
+      "dependsOn": ["T17"],
+      "mandatory": true,
+      "doneWhen": [
+        "COPY (:13-21) uses «Нагадування», «Дата й календар» and the new trigger label; trigger text asserts the localized label (:71-73 expects «Europe/Warsaw») with pinned time",
+        "asserts no «Скоро» text after load",
+        "error-state case still asserts no role=status while the alert shows (:82); the new live regions must not render in the error state"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T19",
+      "title": "use-update-settings scope test",
+      "specRef": "§2 Серіалізувати зміни",
+      "layer": "test",
+      "files": ["apps/web/src/features/settings/hooks/use-autosave-field.test.tsx"],
+      "dependsOn": ["T7"],
+      "mandatory": true,
+      "doneWhen": [
+        "two hook instances, first PATCH deferred: second fetch is not called until the first resolves",
+        "first PATCH rejected: second PATCH is still sent",
+        "fails when scope is removed"
+      ],
+      "status": "done",
+      "note": "Scope tests live with the autosave hook test (both rows call useUpdateSettings)."
+    },
+    {
+      "id": "T20",
+      "title": "uk and en copy for the settings namespace",
+      "specRef": "§1 «Підготувати всі нові рядки українською й англійською»",
+      "layer": "i18n",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": ["T10", "T11", "T12", "T14", "T15", "T17"],
+      "mandatory": true,
+      "doneWhen": [
+        "every new string from T9-T17 exists in both files with identical key sets under settings",
+        "uk strings match the spec wording verbatim where the spec gives it",
+        "dead keys removed: settings.notifications.comingSoon, upcoming.*, toggles.readingReminders/readingGoalReminders/weeklyReadingSummary/monthlyReadingReport, leadDays.hint/suffix if unused, toast.* if D5 = remove",
+        "common.increment / common.decrement untouched (shared with other NumberStepper users)",
+        "no Cyrillic hardcoded in components"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T21",
+      "title": "Live QA matrix run and recorded",
+      "specRef": "§3 QA-матриця; spec:46 «результати live-перевірок зафіксувати»",
+      "layer": "qa",
+      "files": [],
+      "dependsOn": [
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "T5",
+        "T6",
+        "T7",
+        "T8",
+        "T9",
+        "T10",
+        "T11",
+        "T12",
+        "T13",
+        "T14",
+        "T15",
+        "T16",
+        "T17",
+        "T18",
+        "T19",
+        "T20",
+        "D8"
+      ],
+      "mandatory": true,
+      "doneWhen": [
+        "each of the 7 matrix rows has an observed result (browser /uk/settings and /en/settings, 360 and 1280 wide, light and dark)",
+        "curl -i POST /api/notifications/test shows 202 and the UI shows the success copy",
+        "results written where D8 decides"
+      ],
+      "status": "done",
+      "proof": "docs/specs/settings-stage-1/qa.md: all seven matrix rows, skeleton and first-read error at 360 and 1280, curl -i 202 recorded"
+    },
+    {
+      "id": "T22",
+      "title": "Project gates and blast radius before commit",
+      "specRef": "spec:46 «Обов'язкові загальнопроєктні перевірки виконати наприкінці перед комітом»",
+      "layer": "gate",
+      "files": [],
+      "dependsOn": ["T21"],
+      "mandatory": true,
+      "doneWhen": [
+        "bash .claude/scripts/gates.sh green on the final tree",
+        "/blast-radius run for apps/web/src/lib/http-client.ts (T1) and the useUpdateSettings options change (T7)",
+        "CI green on the PR (tests run only in CI)"
+      ],
+      "status": "done",
+      "proof": "2026-11-25: gates.sh green on tree fa95955c (typecheck, lint-web, format); --with-tests ran 8 related web test files green, plus use-language-sync, use-week-starts-on, settings-change-effects and statistics-invalidation (4 files, 21 tests) green; blast radius read, see verify-report.md"
+    }
+  ],
+  "openDecisions": [
+    {
+      "id": "D1",
+      "question": "Source of localized city names for «Київ · UTC+02:00» labels and search (Intl has none: Intl.DisplayNames throws for type timeZone, longGeneric gives metazone text «за східноєвропейським часом»)",
+      "options": [
+        "A: generated feature-local map from CLDR 48.2 exemplarCity (uk covers all 418 zones, en 95 overrides + id-derived fallback), about 18 KB, loaded only by the settings section",
+        "B: 418 keys per locale in messages/*.json (ships on every page: layout.tsx NextIntlClientProvider has no messages prop)",
+        "C: curated subset of popular cities in messages, IANA segment for the rest (uk search misses most cities)",
+        "D: no localized names, IANA city segment + offset (fails «Київ» query)"
+      ],
+      "recommendation": "A. Only option that satisfies the four-query Kyiv row in both locales without shipping the catalog app-wide. Index both uk and en names regardless of UI locale so «Київ» works on /en. Provenance (CLDR version, extraction command) goes in the PR body, since code comments are banned.",
+      "specRef": "§1 Часовий пояс; §3 Часовий пояс row",
+      "blocks": ["T3", "T4", "T5", "T14"],
+      "answer": "A: CLDR 48.2 generated map inside the feature, uk + en, search across both locales",
+      "by": "user",
+      "at": "2026-11-25"
+    },
+    {
+      "id": "D2",
+      "question": "How to apply exact > prefix > partial ordering in the cmdk list",
+      "options": [
+        "A: Command shouldFilter={false}, pure rankTimezones(query, options) in model, render its result",
+        "B: cmdk filter prop returning tiered scores (1 / 0.66 / 0.33 / 0), cmdk reorders DOM"
+      ],
+      "recommendation": "A. Deterministic, unit-testable without a DOM, and order within a tier stays under our control. With shouldFilter off the active item must be reset to the first result on query change (controlled value), otherwise Enter can confirm a stale item.",
+      "specRef": "§1 пошук",
+      "blocks": ["T5", "T14"],
+      "answer": "A: shouldFilter={false} with a pure ranking function; active item resets to the first on query change",
+      "by": "assumption (auditor recommendation)",
+      "at": "2026-11-25"
+    },
+    {
+      "id": "D3",
+      "question": "Keep or narrow the invalidation after timezone / weekStartDay saves",
+      "options": [
+        "A: keep (invalidate every non-settings query, settings-change-effects.ts:19-23)",
+        "B: narrow weekStartDay-only saves to statistics + delivery + home through three new domain effects functions; keep broad for timezone"
+      ],
+      "recommendation": "A. Timezone is read by 34 API service files across books, delivery, genres, home, loans, notes, quotes, reading-goals, reading-queue, series and statistics (UserSettingsContextService), so narrowing it saves nothing. For weekStartDay the narrowed set is small but needs three cross-feature effects modules (CLAUDE.md §2) for a rare action, and invalidateQueries refetches only active queries by default, which on /settings is next to none.",
+      "specRef": "§2 bullet 4",
+      "blocks": ["T8"],
+      "answer": "Keep the current broad invalidation; not narrowed",
+      "by": "assumption (auditor recommendation)",
+      "at": "2026-11-25"
+    },
+    {
+      "id": "D4",
+      "question": "Same field changed again while its own save is pending or queued",
+      "options": [
+        "A: lock that control (aria-disabled + early return), as the switches and stepper do now (notification-settings-section.tsx:119, 164)",
+        "B: allow and queue a second mutation for the same field"
+      ],
+      "recommendation": "A. useMutation keeps callbacks only for its latest call (mutationObserver.ts:128-142), so B needs extra bookkeeping to roll back the right value; the spec only requires different fields to queue. Timezone and week start currently lack the guard (regional-settings-section.tsx:136-146, 181-190).",
+      "specRef": "§2 bullets 2-3",
+      "blocks": ["T9"],
+      "answer": "Lock the field control while its own save is pending or queued",
+      "by": "assumption (auditor recommendation)",
+      "at": "2026-11-25"
+    },
+    {
+      "id": "D5",
+      "question": "Sonner toasts on settings save success/error",
+      "options": [
+        "A: remove; inline Збереження… / error + live region only",
+        "B: keep toasts in addition"
+      ],
+      "recommendation": "A. The spec defines inline feedback plus a live region; a toast doubles the announcement and a success toast per switch is noise on autosave.",
+      "specRef": "§2 bullets 1, 3",
+      "blocks": ["T9", "T13", "T16", "T20"],
+      "answer": "Inline only: no toasts on settings saves; inline saving/error state with retry and a live region",
+      "by": "user",
+      "at": "2026-11-25"
+    },
+    {
+      "id": "D6",
+      "question": "Where the test-notification result shows",
+      "options": [
+        "A: inline status under the button (role=status), retry button on error",
+        "B: toasts as today (notification-settings-section.tsx:204-207)"
+      ],
+      "recommendation": "A. 429 and retry must stay visible and actionable; a toast disappears and cannot host the retry reliably.",
+      "specRef": "§1 Створити тестове сповіщення",
+      "blocks": ["T12", "T13"],
+      "answer": "Inline status under the test button with retry on error; no toast",
+      "by": "user",
+      "at": "2026-11-25"
+    },
+    {
+      "id": "D7",
+      "question": "Page description under H1 (settings.page.description mentions only email and timezone)",
+      "options": [
+        "A: keep and rewrite to cover reminders and calendar",
+        "B: drop it, cards directly under the title"
+      ],
+      "recommendation": "A. Other app pages use the title + description header; rewrite to one line that also covers the calendar.",
+      "specRef": "§1 intro",
+      "blocks": ["T17", "T20"],
+      "answer": "Keep the H1 description and rewrite it to cover reminders and the calendar",
+      "by": "assumption (auditor recommendation)",
+      "at": "2026-11-25"
+    },
+    {
+      "id": "D8",
+      "question": "Where the live QA results are recorded",
+      "options": ["A: docs/specs/settings-stage-1/qa.md next to the spec", "B: PR body only"],
+      "recommendation": "A, linked from the PR body; it stays with the spec for the next stage.",
+      "specRef": "spec:46",
+      "blocks": ["T21"],
+      "answer": "Record live QA results in docs/specs/settings-stage-1/qa.md",
+      "by": "assumption (auditor recommendation)",
+      "at": "2026-11-25"
+    },
+    {
+      "id": "D11",
+      "question": "Form of the empty-202 fix in http-client",
+      "options": [
+        "A: read text once, return undefined when empty, JSON.parse otherwise, for every ok status",
+        "B: add 202 to the 204 special case"
+      ],
+      "recommendation": "A. Covers any future empty 2xx and keeps one rule on both paths (:62-64, :136-137). B is smaller but breaks the day a 202 carries a body. Before coding, main loop confirms the bug live: curl -i POST /api/notifications/test shows Content-Length: 0 and the current UI shows the error toast.",
+      "specRef": "§1 Створити тестове сповіщення",
+      "blocks": ["T1"],
+      "answer": "A: read the body as text, empty body resolves undefined, otherwise JSON.parse, for every 2xx",
+      "by": "assumption (auditor recommendation)",
+      "at": "2026-11-25"
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "GET/PATCH /api/profile/settings exist and PATCH merges per column",
+      "specRef": "spec:5, §2",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/profile/application/settings.service.ts:26-39 (buildUpsertData flattens emailNotifications); infrastructure/settings.repository.ts:25-29 (upsert update: data)"
+    },
+    {
+      "claim": "POST /api/notifications/test answers 202 and is throttled",
+      "specRef": "§1 test notification",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/notifications/api/notifications.controller.ts:90-97; core/throttle.ts:3,8,23-25 (3 per 60 s)"
+    },
+    {
+      "claim": "Email for the test only with verified address and at least one email switch on",
+      "specRef": "§1 test notification",
+      "verdict": "CONFIRMED",
+      "evidence": "notifications/application/notifications.service.ts:57-58; domain/reminder-settings.ts:48-50; application/notification-writer.service.ts:64"
+    },
+    {
+      "claim": "Reminders are planned at 09:00 in the chosen timezone",
+      "specRef": "§1 Часовий пояс hint",
+      "verdict": "CONFIRMED",
+      "evidence": "notifications/application/notification-reminder.sweeper.ts:27 (sendHour: 9), :150-158"
+    },
+    {
+      "claim": "Delivery emails: before, on the day, on delay; loan emails: approaching and overdue",
+      "specRef": "§1 switch captions",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/notifications.ts:16-24"
+    },
+    {
+      "claim": "Short loan may get the first reminder closer to the due date",
+      "specRef": "§1 lead days hint",
+      "verdict": "CONFIRMED",
+      "evidence": "notifications/domain/notification-cadence.ts:102-120 (lead clamped to loanPeriodDays - 1)"
+    },
+    {
+      "claim": "Lead days also apply to in-app reminders with email off",
+      "specRef": "§1 lead days",
+      "verdict": "CONFIRMED",
+      "evidence": "notifications/application/recipient-reminder.sweeper.ts:150-151 (leadDays resolved independently of the email preference)"
+    },
+    {
+      "claim": "Lead days range 1-14",
+      "specRef": "§1 lead days",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/profile.ts:185-189"
+    },
+    {
+      "claim": "«Ще в роботі» block with 4 disabled switches",
+      "specRef": "§1 Прибрати блок",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/settings/components/notification-settings-section.tsx:22-30, 65-75, 219-251"
+    },
+    {
+      "claim": "Send only the changed working field",
+      "specRef": "§1 last paragraph",
+      "verdict": "ALREADY DONE",
+      "evidence": "notification-settings-section.tsx:120-122, 167-168; regional-settings-section.tsx:139-140, 183-184"
+    },
+    {
+      "claim": "Legacy aliases display correctly without a write on open",
+      "specRef": "§1 Часовий пояс",
+      "verdict": "ALREADY DONE",
+      "evidence": "regional-settings-section.tsx:107 (currentTimezoneName); no PATCH on mount in the settings section (only use-language-sync.ts:28 writes language)"
+    },
+    {
+      "claim": "Current selection first in the list without duplicate",
+      "specRef": "§1 Часовий пояс",
+      "verdict": "ALREADY DONE (dedupe only)",
+      "evidence": "dedupe regional-settings-section.tsx:85-93; current zone is sorted alphabetically (:38-39, :92), not first: remaining work in T4"
+    },
+    {
+      "claim": "Delivery statistics calendar consumes weekStartDay",
+      "specRef": "§1 Перший день тижня",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:108, 115, 543; delivery/model/statistics-calendar.ts:96-97"
+    },
+    {
+      "claim": "Brief: header TitleLeaf, skeleton, error with retry",
+      "specRef": "§2 bullet 4",
+      "verdict": "CONFIRMED",
+      "evidence": "settings-view.tsx:27, 39-65, 81-109"
+    },
+    {
+      "claim": "Brief: regional section shows raw IANA ids, cmdk in Popover, Segmented",
+      "specRef": "n/a",
+      "verdict": "CONFIRMED",
+      "evidence": "regional-settings-section.tsx:112-159 (Popover+Command), :121, :149 raw ids, :179-196 Segmented"
+    },
+    {
+      "claim": "Brief: use-update-settings has no scope",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/settings/api/use-update-settings.ts:13-19"
+    },
+    {
+      "claim": "Brief: settings-change-effects setQueryData + invalidate all non-settings on reader-day fields",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/settings/api/settings-change-effects.ts:8-23"
+    },
+    {
+      "claim": "Brief: profile.ts ~180-317 schemas",
+      "specRef": "n/a",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/profile.ts:182-317 (UpdateSettingsInputSchema :269-280, SettingsViewSchema :282-293, WEEK_STARTS_ON :211)"
+    },
+    {
+      "claim": "Brief: Node 24 lists Europe/Kiev not Europe/Kyiv; no Intl city names",
+      "specRef": "n/a",
+      "verdict": "CONFIRMED",
+      "evidence": "node v24.14.1 ICU 78.2: 418 zones, Kiev true, Kyiv false, resolvedOptions(Europe/Kyiv) = Europe/Kiev, Intl.DisplayNames type timeZone throws RangeError"
+    },
+    {
+      "claim": "Implicit: the client already handles a 202 from POST /api/notifications/test",
+      "specRef": "§1 «Після 202 показати ...»",
+      "verdict": "FALSE",
+      "evidence": "apps/web/src/lib/http-client.ts:62-64 treats only 204 as empty and calls res.json(); Nest sends an empty body for a void handler (apps/api/node_modules/@nestjs/platform-express/adapters/express-adapter.js:48-49); the web test mocks 204, never 202 (notification-settings-section.test.tsx:97). Needs one live confirmation (D11)."
+    }
+  ],
+  "finish": {
+    "commit": "one commit, push branch, open PR into dev",
+    "by": "user",
+    "at": "2026-11-25"
+  }
+}

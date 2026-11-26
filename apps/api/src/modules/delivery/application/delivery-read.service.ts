@@ -19,6 +19,7 @@ import type {
   PaginatedOrderHistoryGroups,
   Paginator,
   ReceivedUnreadView,
+  WeekStartDay,
 } from "@app/shared";
 
 import {
@@ -37,6 +38,7 @@ import type {
   DeliveryBookPreviewRow,
   LatestReceiptData,
   NextShipmentData,
+  ReadyForPickupNotExpiringRow,
 } from "../infrastructure/delivery-read.repository.js";
 import type {
   ReceivedUnreadCounts,
@@ -60,6 +62,8 @@ import { buildReceivedSeriesInsights } from "../domain/received-series-insight.j
 import { DeliveryImpactRepository } from "../infrastructure/delivery-impact.repository.js";
 import { DeliveryReadRepository } from "../infrastructure/delivery-read.repository.js";
 import { HistoryOutcomeRepository } from "../infrastructure/history-outcome.repository.js";
+
+export type ReadyForPickupNotExpiring = ReadyForPickupNotExpiringRow;
 
 type ReaderDeliveryCalendar = {
   bounds: DeliveryDateBounds;
@@ -254,6 +258,21 @@ export class DeliveryReadService {
       ...data,
       nextShipment: nextShipment === null ? null : this.toNextShipmentView(nextShipment),
       today: bounds.today,
+    });
+  }
+
+  readyForPickupNotExpiring({
+    today,
+    userId,
+    weekStartDay,
+  }: {
+    today: Date;
+    userId: string;
+    weekStartDay: WeekStartDay;
+  }): Promise<ReadyForPickupNotExpiring> {
+    return this.deliveryReadRepository.readyForPickupNotExpiring({
+      bounds: deliveryDateBounds({ today, weekStartDay }),
+      userId,
     });
   }
 

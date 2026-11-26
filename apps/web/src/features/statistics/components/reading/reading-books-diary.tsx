@@ -4,8 +4,6 @@ import type { Nullable, StatisticsCalendarDay } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 
-import { formatNumber } from "@/lib/format";
-
 import type { BooksCalendarJumpTarget } from "../../hooks/use-books-calendar-jump";
 
 import { resolveReadingDayTarget } from "../../model/statistics-drilldown";
@@ -49,7 +47,6 @@ export function ReadingBooksDiary({
               date={formatDayLong(day.date, locale)}
               day={day}
               jumpTarget={jumpTarget?.date === day.date ? jumpTarget : null}
-              locale={locale}
             />
           </li>
         ))}
@@ -63,12 +60,10 @@ function DiaryRow({
   date,
   day,
   jumpTarget,
-  locale,
 }: {
   date: string;
   day: StatisticsCalendarDay;
   jumpTarget: Nullable<BooksCalendarJumpTarget>;
-  locale: string;
 }) {
   const t = useTranslations("statistics.calendar.books");
   const detailDate = resolveReadingDayTarget(day.drilldown);
@@ -78,7 +73,7 @@ function DiaryRow({
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-sm font-medium text-foreground">{date}</span>
         <span className="text-xs text-muted-foreground tabular-nums">
-          {t("diaryMeta", { books: day.booksCount, pages: formatNumber(day.pagesRead, locale) })}
+          {t("diaryMeta", { books: day.booksCount, pages: day.pagesRead })}
         </span>
       </span>
       <ReadingDayPreview className="shrink-0" day={day} />
@@ -98,7 +93,7 @@ function DiaryRow({
       detail={() => <ReadingDayDetails date={detailDate} />}
       label={t("daySummary", { books: day.booksCount, date, pages: day.pagesRead })}
       title={date}
-      triggerClassName="flex w-full scroll-mt-4 items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 data-jump-highlight:ring-2 data-jump-highlight:ring-primary"
+      triggerClassName="flex w-full scroll-mt-[calc(var(--shell-header-height)+1rem)] items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 data-jump-highlight:ring-2 data-jump-highlight:ring-primary"
       triggerRef={jumpTarget?.ref}
     >
       {body}

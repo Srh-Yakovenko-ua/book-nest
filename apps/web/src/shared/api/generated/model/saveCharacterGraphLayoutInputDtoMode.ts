@@ -15,4 +15,5 @@ export const SaveCharacterGraphLayoutInputDtoMode = {
   person: "person",
   tree: "tree",
   network: "network",
+  genealogy: "genealogy",
 } as const;

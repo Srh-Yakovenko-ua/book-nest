@@ -85,6 +85,43 @@ describe("request bearer attach", () => {
   });
 });
 
+describe("request success bodies", () => {
+  it("resolves undefined for a 202 with an empty body", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 202 }));
+
+    await expect(request("/api/notifications/test", { method: "POST" })).resolves.toBeUndefined();
+  });
+
+  it("resolves undefined for a 204", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
+
+    await expect(request("/api/books/1", { method: "DELETE" })).resolves.toBeUndefined();
+  });
+
+  it("resolves the parsed JSON body of a 200", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "book-1", title: "Dune" }));
+
+    await expect(request("/api/books/book-1")).resolves.toEqual({ id: "book-1", title: "Dune" });
+  });
+
+  it("resolves undefined when the request retried after a refresh answers 202 with an empty body", async () => {
+    registerAuthBridge({
+      getAccessToken: () => "old",
+      getUserId: () => "user-a",
+      onRefreshFailed: () => {},
+      refresh: () => Promise.resolve("new"),
+    });
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ message: "expired" }, 401))
+      .mockResolvedValueOnce(new Response(null, { status: 202 }));
+
+    const body = await request("/api/notifications/test", { method: "POST" });
+
+    expect(body).toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("request refresh-on-401 single-flight", () => {
   it("routes concurrent 401s through one shared refresh and retries each request", async () => {
     let token = "old";

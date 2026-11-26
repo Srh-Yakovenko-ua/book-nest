@@ -22,7 +22,7 @@ export type ReadingGoalWithList = Prisma.ReadingGoalGetPayload<typeof goalWithLi
 
 const CountedBooksRowSchema = z.object({ count: z.number().int().nonnegative() });
 
-const ExpirationCandidateRowSchema = z.object({
+const GoalWithTimezoneRowSchema = z.object({
   archivedAt: z.date().nullable(),
   createdAt: z.date(),
   deadline: z.date(),
@@ -32,12 +32,16 @@ const ExpirationCandidateRowSchema = z.object({
   userId: z.uuid(),
 });
 
+const COUNTED_ACTIVITY_TYPE: ReadingGoalActivityType = "book_counted";
+
 const SETTLED_GOAL_ACTIVITY_TYPES: readonly ReadingGoalActivityType[] = [
   "goal_completed",
   "goal_expired",
 ];
 
-export type ReadingGoalExpirationCandidate = z.infer<typeof ExpirationCandidateRowSchema>;
+export type ReadingGoalCountedBackfillCandidate = z.infer<typeof GoalWithTimezoneRowSchema>;
+
+export type ReadingGoalExpirationCandidate = z.infer<typeof GoalWithTimezoneRowSchema>;
 
 type CatalogQuery = {
   limit: number;
@@ -148,6 +152,37 @@ export class ReadingGoalsRepository {
     });
   }
 
+  async findCountedBackfillCandidates({
+    afterId,
+    limit,
+  }: {
+    afterId: Nullable<string>;
+    limit: number;
+  }): Promise<ReadingGoalCountedBackfillCandidate[]> {
+    const rows = await this.prisma.$queryRaw`
+      SELECT
+        goal.id AS "id",
+        goal.user_id AS "userId",
+        goal.target_count AS "targetCount",
+        goal.deadline AS "deadline",
+        goal.archived_at AS "archivedAt",
+        goal.created_at AS "createdAt",
+        settings.timezone AS "timezone"
+      FROM reading_goals goal
+      LEFT JOIN user_profile_settings settings ON settings.user_id = goal.user_id
+      WHERE EXISTS (
+          SELECT 1
+          FROM reading_goal_activities activity
+          WHERE activity.goal_id = goal.id
+            AND activity.type = ${COUNTED_ACTIVITY_TYPE}
+        )
+        ${afterId === null ? Prisma.empty : Prisma.sql`AND goal.id > ${afterId}::uuid`}
+      ORDER BY goal.id ASC
+      LIMIT ${limit}
+    `;
+    return z.array(GoalWithTimezoneRowSchema).parse(rows);
+  }
+
   async findExpirationCandidates({
     afterId,
     deadlineBefore,
@@ -176,7 +211,7 @@ export class ReadingGoalsRepository {
       ORDER BY goal.id ASC
       LIMIT ${limit}
     `;
-    return z.array(ExpirationCandidateRowSchema).parse(rows);
+    return z.array(GoalWithTimezoneRowSchema).parse(rows);
   }
 
   findOpenGoals({ userId }: { userId: string }): Promise<ReadingGoalWithList[]> {

@@ -1,5 +1,6 @@
 export { BookOrderItemService } from "./application/book-order-item.service.js";
 export { BookOrderService } from "./application/book-order.service.js";
+export { DeliveryReadService } from "./application/delivery-read.service.js";
 export { DELIVERY_WRITE_MESSAGES } from "./application/delivery-write-errors.js";
 export {
   type NewSingleBookOrder,

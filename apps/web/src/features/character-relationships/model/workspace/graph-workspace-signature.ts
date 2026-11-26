@@ -82,6 +82,18 @@ export function toSavedGraphPositions({
   );
 }
 
+export function withRestoredPositions({
+  positions,
+  restore,
+}: {
+  positions: ReadonlyMap<string, RelationshipGraphPoint>;
+  restore: Nullable<GraphWorkspaceLayoutRestore>;
+}): Map<string, RelationshipGraphPoint> {
+  const merged = new Map(positions);
+  for (const [id, point] of restore?.positions ?? []) merged.set(id, point);
+  return merged;
+}
+
 function toStableHash(value: string): string {
   return SIGNATURE.fnvOffsets
     .map((offset) => {

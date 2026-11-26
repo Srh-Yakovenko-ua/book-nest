@@ -221,7 +221,7 @@ function ReadingActivityOfBucket({ range }: { range: ReadingStatisticsDateRange 
                         {item.book.title}
                       </span>
                       <span className="text-xs text-muted-foreground tabular-nums">
-                        {tDay("bookPages", { pages: formatNumber(item.pagesRead, locale) })}
+                        {tDay("bookPages", { pages: item.pagesRead })}
                       </span>
                       {item.book.bookState === "soft_deleted" ? (
                         <span className="text-xs text-muted-foreground">{tDay("deletedBook")}</span>

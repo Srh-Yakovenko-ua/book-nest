@@ -13,6 +13,7 @@ import type { ReadingGoalSnapshotEntryWithProgressRow } from "../infrastructure/
 
 import { daysBetweenUtcDays, toIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
 import { UserSettingsContextService } from "../../profile/index.js";
+import { assignReadingGoalCountedOrdinals } from "../domain/reading-goal-counted-ordinals.js";
 import { calculateReadingGoalMetrics } from "../domain/reading-goal-metrics.js";
 import { selectQualifyingReadingGoalBooks } from "../domain/reading-goal-progress.js";
 import { resolveReadingGoalQualificationWindow } from "../domain/reading-goal-window.js";
@@ -127,8 +128,8 @@ export class ReadingGoalSyncService {
       ...resolveReadingGoalQualificationWindow(goal),
     });
     const rows = [
-      ...countedRows({ goal, qualifying, transitions, userId }),
       ...uncountedRows({ goal, transitions, userId }),
+      ...countedRows({ goal, qualifying, transitions, userId }),
       ...(await this.completionRows({ client, goal, progress, userId })),
     ];
     if (rows.length === 0) {
@@ -227,7 +228,7 @@ function countedRows({
   transitions: QualificationTransition[];
   userId: string;
 }): ReadingGoalActivityInput[] {
-  const countedBookIds = new Set(
+  const newlyCountedBookIds = new Set(
     transitions
       .filter(
         (transition) =>
@@ -236,24 +237,22 @@ function countedRows({
       )
       .map((transition) => transition.bookId),
   );
-  return qualifying.flatMap((book, index) => {
-    if (!countedBookIds.has(book.bookId)) {
-      return [];
-    }
-    return [
-      activityRow({
-        bookId: book.bookId,
-        goal,
-        metadata: {
-          completedCount: index + 1,
-          finishedAt: toIsoDate(book.finishedAt),
-          targetCount: goal.targetCount,
-        },
-        type: "book_counted",
-        userId,
-      }),
-    ];
-  });
+  return assignReadingGoalCountedOrdinals({
+    newlyCountedBookIds,
+    qualifyingBooks: qualifying,
+  }).map((book) =>
+    activityRow({
+      bookId: book.bookId,
+      goal,
+      metadata: {
+        completedCount: book.completedCount,
+        finishedAt: toIsoDate(book.finishedAt),
+        targetCount: goal.targetCount,
+      },
+      type: "book_counted",
+      userId,
+    }),
+  );
 }
 
 function daysBeforeDeadline({

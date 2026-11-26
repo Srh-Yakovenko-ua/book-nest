@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { makeBookView } from "./book-details.fixtures";
@@ -114,5 +115,32 @@ describe("UnsetOwnershipDialog", () => {
     expect(within(statusGroup).queryByRole("radio", { name: "Позичена у когось" })).toBeNull();
     expect(within(statusGroup).queryByRole("radio", { name: "Видана комусь" })).toBeNull();
     expect(within(statusGroup).queryByRole("radio", { name: "Не вказано" })).toBeNull();
+  });
+
+  it("does not claim every book has a status before the search has answered", async () => {
+    const unsetOwnership = messages.books.unsetOwnership;
+    pages = [];
+    const stubbedFetch = fetchMock.getMockImplementation();
+    let answerSearch: (response: Response) => void = () => undefined;
+    fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).includes("q=zzz")
+        ? new Promise<Response>((resolve) => {
+            answerSearch = resolve;
+          })
+        : stubbedFetch?.(input, init),
+    );
+    renderWithProviders(<UnsetOwnershipDialog onOpenChange={vi.fn()} open />);
+    await screen.findByText(unsetOwnership.empty);
+
+    await userEvent.type(screen.getByLabelText(unsetOwnership.search), "zzz");
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([url]) => String(url).includes("q=zzz"))).toBe(true),
+    );
+
+    expect(screen.queryByText(unsetOwnership.empty)).not.toBeInTheDocument();
+    expect(screen.getByText(messages.common.loading)).toBeInTheDocument();
+
+    answerSearch(jsonResponse(pageBody(1)));
+    expect(await screen.findByText(unsetOwnership.empty)).toBeInTheDocument();
   });
 });

@@ -13,7 +13,7 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 import messages from "@/messages/uk.json";
-import { renderWithProviders, screen } from "@/test-utils";
+import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
 
 import { overviewFixture, statisticsIds } from "../../model/statistics.fixtures";
 import { RecordsSection } from "./records-section";
@@ -28,6 +28,20 @@ const { records } = overviewFixture();
 const recordsText = messages.statistics.records;
 
 const openBookText = messages.statistics.contextActions.open_book;
+
+const translateHint = createTranslator({
+  locale: "uk",
+  messages,
+  namespace: "statistics.progressHint",
+});
+
+async function openRecordHint(type: ReadingStatisticsRecord["type"]) {
+  await userEvent.click(
+    screen.getByRole("button", {
+      name: translateHint("label", { topic: recordsText.types[type] }),
+    }),
+  );
+}
 
 const translateRecords = createTranslator({
   locale: "uk",
@@ -79,6 +93,15 @@ const SERIES_MARATHON = {
     seriesId: statisticsIds.seriesId,
   },
   type: "longest_series_marathon",
+} satisfies ReadingStatisticsRecord;
+
+const MOST_PAGES_DAY = {
+  data: {
+    date: "2026-03-02",
+    drilldown: { date: "2026-03-02", kind: "reading_day" },
+    pagesRead: 124,
+  },
+  type: "most_pages_in_day",
 } satisfies ReadingStatisticsRecord;
 
 const fetchMock = vi.fn((input: RequestInfo | URL) =>
@@ -137,6 +160,28 @@ describe("RecordsSection", () => {
     }
   });
 
+  it.each<{ record: ReadingStatisticsRecord; value: string }>([
+    { record: bookRecord("longest_completed_book"), value: "812 сторінок" },
+    { record: bookRecord("shortest_completed_book"), value: "812 сторінок" },
+    { record: bookRecord("fastest_completed_read"), value: "за 3 дні" },
+    { record: MOST_PAGES_DAY, value: "124 сторінки" },
+    { record: SERIES_MARATHON, value: "3 книги поспіль" },
+    { record: LONGEST_STREAK, value: "12 днів поспіль" },
+    { record: PEAK_MONTH, value: "лютий 2026 р." },
+  ])("shows the $record.type record with its label and $value", ({ record, value }) => {
+    renderRecords([record]);
+
+    const tile = screen.getByRole("listitem");
+    expect(tile).toHaveTextContent(recordsText.types[record.type]);
+    expect(within(tile).getByText(value)).toBeInTheDocument();
+  });
+
+  it.each([1, 2, 4])("renders one tile per record and no placeholders for %i records", (count) => {
+    renderRecords([PEAK_MONTH, LONGEST_STREAK, SERIES_MARATHON, MOST_PAGES_DAY].slice(0, count));
+
+    expect(screen.getAllByRole("listitem")).toHaveLength(count);
+  });
+
   it("shows a long book title in full and lets it wrap", () => {
     renderRecords([bookRecord("longest_completed_book", { title: LONG_TITLE })]);
 
@@ -152,17 +197,21 @@ describe("RecordsSection", () => {
     expect(screen.queryByRole("listitem")).not.toBeInTheDocument();
   });
 
-  it("notes that an exact peak month is picked by completed reads without a pages caveat", () => {
+  it("notes in a hint that an exact peak month is picked by completed reads without a pages caveat", async () => {
     renderRecords([PEAK_MONTH]);
 
-    expect(screen.getByText(recordsText.values.peakMonthByReads)).toBeInTheDocument();
+    await openRecordHint("peak_month");
+
+    expect(await screen.findByText(recordsText.values.peakMonthByReads)).toBeInTheDocument();
     expect(screen.queryByText(recordsText.values.peakMonthPagesIncomplete)).not.toBeInTheDocument();
   });
 
-  it("adds the pages caveat to the peak month when the history is a lower bound", () => {
+  it("adds the pages caveat to the peak month hint when the history is a lower bound", async () => {
     renderRecords([PEAK_MONTH], { isLowerBound: true });
 
-    expect(screen.getByText(recordsText.values.peakMonthByReads)).toBeInTheDocument();
+    await openRecordHint("peak_month");
+
+    expect(await screen.findByText(recordsText.values.peakMonthByReads)).toBeInTheDocument();
     expect(screen.getByText(recordsText.values.peakMonthPagesIncomplete)).toBeInTheDocument();
   });
 
@@ -179,7 +228,7 @@ describe("RecordsSection", () => {
     ).toBeInTheDocument();
   });
 
-  it("marks a lower-bound streak as at least its days among recorded days", () => {
+  it("marks a lower-bound streak as at least its days among recorded days", async () => {
     renderRecords([LONGEST_STREAK], { isLowerBound: true });
 
     expect(
@@ -187,12 +236,15 @@ describe("RecordsSection", () => {
         translateRecords("values.streakDaysAtLeast", { count: LONGEST_STREAK.data.days }),
       ),
     ).toHaveTextContent("≥");
-    expect(screen.getByText(recordsText.values.recordedOnly)).toBeInTheDocument();
     expect(
       screen.queryByText(
         translateRecords("values.streakDays", { count: LONGEST_STREAK.data.days }),
       ),
     ).not.toBeInTheDocument();
+
+    await openRecordHint("longest_streak");
+
+    expect(await screen.findByText(recordsText.values.recordedOnly)).toBeInTheDocument();
   });
 
   it("shows an exact streak without the at-least mark or the recorded-days note", () => {
@@ -201,7 +253,9 @@ describe("RecordsSection", () => {
     expect(
       screen.getByText(translateRecords("values.streakDays", { count: LONGEST_STREAK.data.days })),
     ).toBeInTheDocument();
+    expect(screen.queryByText(/≥/)).not.toBeInTheDocument();
     expect(screen.queryByText(recordsText.values.recordedOnly)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
   it.each(BOOK_RECORD_TYPES)("links an active %s record to its book page", (type) => {
@@ -220,22 +274,49 @@ describe("RecordsSection", () => {
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
-  it("makes the most pages day one trigger button without a link and fetches nothing", () => {
+  it("gives the most pages day one day-details action instead of a clickable tile and fetches nothing", () => {
     renderRecords(records.items);
 
-    expect(screen.getByRole("button")).toHaveTextContent(recordsText.types.most_pages_in_day);
+    expect(screen.getAllByRole("button")).toEqual([
+      screen.getByRole("button", { name: recordsText.openDay }),
+    ]);
+    expect(
+      screen.queryByRole("button", { name: new RegExp(recordsText.types.most_pages_in_day) }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("opens the most pages day details from the keyboard", async () => {
+    vi.stubGlobal("innerWidth", 1280);
+    const user = userEvent.setup();
+    renderRecords([MOST_PAGES_DAY]);
+    const trigger = screen.getByRole("button", { name: recordsText.openDay });
+
+    await user.tab();
+    expect(trigger).toHaveFocus();
+    await user.keyboard("{Enter}");
+
+    expect(await screen.findByRole("dialog", { name: "2 березня 2026 р." })).toBeInTheDocument();
+  });
+
   it.each([PEAK_MONTH, LONGEST_STREAK, SERIES_MARATHON])(
-    "renders the $type card with neither a link nor a button",
+    "renders the $type card with neither a link nor a details action",
     (record) => {
       renderRecords([record]);
 
       expect(screen.getByText(recordsText.types[record.type])).toBeInTheDocument();
       expect(screen.queryByRole("link")).not.toBeInTheDocument();
-      expect(screen.queryByRole("button")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: recordsText.openDay })).not.toBeInTheDocument();
+      expect(
+        screen
+          .queryAllByRole("button")
+          .map((button) => button.getAttribute("aria-label") ?? button.textContent),
+      ).toEqual(
+        record.type === "peak_month"
+          ? [translateHint("label", { topic: recordsText.types.peak_month })]
+          : [],
+      );
     },
   );
 });

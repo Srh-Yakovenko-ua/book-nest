@@ -15,4 +15,5 @@ export const CharacterGraphLayoutsControllerGetMode = {
   person: "person",
   tree: "tree",
   network: "network",
+  genealogy: "genealogy",
 } as const;

@@ -8,6 +8,7 @@ import {
   differenceInMinutes,
   differenceInSeconds,
 } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { enUS, uk } from "date-fns/locale";
 
 type RelativeTimeStep = {
@@ -34,6 +35,8 @@ const RELATIVE_TIME_STEPS = {
 } as const satisfies Record<string, readonly RelativeTimeStep[]>;
 
 const DATE_FNS_LOCALES: Record<string, Locale> = { en: enUS, uk };
+
+const DATE_FNS_FORMAT = { shortTime: "p" } as const;
 
 export function dateFnsLocale(locale: string): Locale {
   return DATE_FNS_LOCALES[locale] ?? uk;
@@ -98,6 +101,20 @@ export function formatTime(iso: string, locale: string): string {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(iso));
+}
+
+export function formatTimeInZone({
+  instant,
+  locale,
+  timeZone,
+}: {
+  instant: string;
+  locale: string;
+  timeZone: string;
+}): string {
+  return formatInTimeZone(instant, timeZone, DATE_FNS_FORMAT.shortTime, {
+    locale: dateFnsLocale(locale),
+  });
 }
 
 export function formatTimestamp(iso: string): string {
