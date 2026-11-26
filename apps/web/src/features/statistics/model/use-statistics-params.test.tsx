@@ -42,6 +42,11 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => currentSearchParams,
 }));
 
+vi.mock("@/i18n/navigation", () => ({
+  usePathname: () => "/",
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
+
 function renderParams(searchParams = "") {
   currentSearchParams = new URLSearchParams(searchParams);
 
