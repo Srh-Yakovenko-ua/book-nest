@@ -9098,7 +9098,7 @@
         "hint": "For a short loan, the first reminder may come closer to the return date."
       },
       "test": {
-        "description": "The test notification appears in the bell. An email also arrives if your email is confirmed and at least one email switch is on.",
+        "description": "The test notification appears in the bell. If your email is confirmed and at least one email switch is on, we will try to send a test email.",
         "button": "Create a test notification",
         "success": "Test notification created. Check the bell.",
         "rateLimited": "You have reached the limit for test notifications. Try again later.",
