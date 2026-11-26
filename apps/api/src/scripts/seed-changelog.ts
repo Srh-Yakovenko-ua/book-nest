@@ -1639,6 +1639,42 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Сторінка читацької цілі",
     version: null,
   },
+  {
+    bodyEn:
+      "The family tree on a book's relationship map now has two modes. Character branch works as before, and Whole genealogy shows every generation of the book's families on one canvas. Generations are laid out family by family, partners from other families line up through their marriages, and unrelated families stand side by side with no invented common ancestor. Zoom moves from an overview to the details without shifting the cards, search takes you straight to a character, and you can highlight a family branch or a house, shown in the In focus chip. Large branches collapse into +3 descendants and expand again, and there is a mini map and full screen. The tree itself has been redesigned: cards with portraits, a label for every generation and different lines for marriages, siblings and guardianship. Whole genealogy keeps its own layout, separate from the branch. Spoilers stay hidden: relationships beyond the page you have reached do not appear.",
+    bodyUk:
+      "Родинне дерево на карті зв'язків книги тепер має два режими. «Гілка персонажа» працює як і раніше, а «Увесь родовід» показує всі покоління родин книги на одному полотні. Покоління вибудовано окремо для кожної родини, партнери з інших родин стають у ряд завдяки шлюбам, а не пов'язані між собою родини стоять поруч без вигаданого спільного предка. Масштаб змінюється від загального огляду до подробиць, і картки при цьому не зсуваються, пошук одразу переводить до персонажа, а родинну гілку чи дім можна підсвітити, і це видно на позначці «У фокусі». Великі гілки згортаються до «+3 нащадки» й розгортаються знову, а ще є мінікарта й повноекранний режим. Саме дерево отримало новий вигляд: картки з портретами, підпис для кожного покоління й різні лінії для шлюбів, братів і сестер та опікунства. «Увесь родовід» зберігає власне розташування, окремо від гілки. Спойлери приховано: зв'язки, які починаються далі за сторінку, до якої ви дочитали, не з'являються.",
+    category: "improvement",
+    publishedAt: "2026-11-26T00:00:01.000Z",
+    slug: "relationship-tree-whole-genealogy",
+    titleEn: "Whole genealogy in the family tree",
+    titleUk: "Увесь родовід у родинному дереві",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Whole network on a book's relationship map no longer draws every group at once on a large book. It opens on an overview of up to twelve groups, with more groups page by page. Pick a group to focus on it: you see its first members and a ring of neighbouring groups, a breadcrumb leads back to the overview, and pages reveal more members. The browser Back button also returns you to the overview. A side panel explains the selected group, character or the link between two groups, and search finds groups and characters, opens the right group and centres on the character. Around a character now has round portraits and lines coloured by type of relationship. Under the graph, a compact list shows every pair on the map with its own search and lets you reach each pair from the keyboard. Maps with 12 or more characters get a mini map, and details sit beside the graph on a wide screen or open in a panel from the bottom on a phone. Both views have a mini map and remember where you left the view.",
+    bodyUk:
+      "«Уся мережа» на карті зв'язків книги більше не малює всі групи одразу, коли книга велика. Вона відкривається оглядом до дванадцяти груп, а решта груп гортається сторінками. Оберіть групу, щоб зосередитися на ній: ви побачите її перших учасників і коло сусідніх груп, ланцюжок навігації веде назад до огляду, а сторінки відкривають решту учасників. Кнопка «Назад» у браузері теж повертає до огляду. Бічна панель пояснює вибрану групу, персонажа або зв'язок між двома групами, а пошук знаходить групи й персонажів, відкриває потрібну групу й ставить персонажа в центр. У режимі «Навколо персонажа» тепер круглі портрети й лінії, забарвлені за видом зв'язку. Під графом компактний список показує всі пари на карті, має власний пошук і дає дістатися до кожної пари з клавіатури. На картах із 12 і більше персонажами з'являється мінікарта, а подробиці відкриваються поруч із графом на широкому екрані або в панелі знизу на телефоні. Обидва режими мають мінікарту й запам'ятовують, де ви залишили огляд.",
+    category: "improvement",
+    publishedAt: "2026-11-26T00:00:02.000Z",
+    slug: "relationship-map-network-and-person",
+    titleEn: "Clearer network and character views on the relationship map",
+    titleUk: "Зрозуміліші мережа й режим персонажа на карті зв'язків",
+    version: null,
+  },
+  {
+    bodyEn:
+      "When you create a goal for a list, the form now shows before saving how many of the list's books will count and how many already count right away. Counting starts on the day you create the goal in your time zone, and the deadline day is included. A form opened from the list picker has a Change list action that takes you back to the picker with your search kept, and unsaved changes still ask before they are discarded. Under the progress bar on a goal's page there is now one clear next step: continue the book you are reading, or open the goal's books filtered to Not counted yet. Pace advice is now given in whole days, such as finish about 1 book every 12 days, instead of a fractional number of books behind. The goal page links back to the goals catalog with your status, sort and view restored. The success rate card now says how many goals with a result it is based on, such as 0 of 2 goals with a result.",
+    bodyUk:
+      "Коли ви створюєте ціль для списку, форма ще до збереження показує, скільки книг зі списку зараховуватимуться і скільки з них зараховано одразу. Відлік починається з дня створення цілі у вашому часовому поясі, а день дедлайну теж враховується. Форма, відкрита з вибору списку, має дію «Змінити список», яка повертає до вибору й зберігає ваш пошук, а незбережені зміни, як і раніше, не зникнуть без підтвердження. Під смугою прогресу на сторінці цілі тепер є один зрозумілий наступний крок: продовжити книгу, яку ви читаєте, або відкрити книги цілі з фільтром «Ще не зараховано». Поради щодо темпу тепер подано в цілих днях, наприклад «дочитуйте приблизно 1 книгу кожні 12 днів», а не як дробове відставання в книгах. Зі сторінки цілі можна повернутися до каталогу цілей, і там відновляться ваші статус, сортування та вигляд. Картка відсотка успіху тепер показує, на скількох цілях із результатом вона ґрунтується, наприклад «0 з 2 цілей із результатом».",
+    category: "improvement",
+    publishedAt: "2026-11-26T00:00:03.000Z",
+    slug: "reading-goal-count-before-saving",
+    titleEn: "Reading goal creation and next steps",
+    titleUk: "Створення цілі та наступний крок",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;
