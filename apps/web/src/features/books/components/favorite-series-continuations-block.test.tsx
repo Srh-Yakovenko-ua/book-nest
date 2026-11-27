@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import messages from "@/messages/uk.json";
-import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
+import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { makeBookView } from "./book-details.fixtures";
 import { FavoriteSeriesContinuationsBlock } from "./favorite-series-continuations-block";
@@ -357,12 +357,18 @@ describe("FavoriteSeriesContinuationsBlock", () => {
     expect(screen.getByRole("progressbar")).toBeInTheDocument();
   });
 
-  it("renders the title initial when the next book has no cover", async () => {
+  it("shows decorative cover art in the book link when the next book has no cover", async () => {
     withContinuations([makeItem({ nextBook: { cover: null, title: "Дюна" } })]);
     renderWithProviders(<FavoriteSeriesContinuationsBlock />);
 
-    expect(await screen.findByText("Д")).toBeInTheDocument();
-    expect(document.querySelector("img")).toBeNull();
+    const coverLink = await screen.findByRole("link", {
+      name: sc.openBook.replace("{title}", "Дюна"),
+    });
+    expect(within(coverLink).getByRole("presentation")).toHaveAttribute(
+      "src",
+      expect.stringMatching(/book-covers.*cover-\d\.png/),
+    );
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 
   it("clamps a very long next-book title", async () => {

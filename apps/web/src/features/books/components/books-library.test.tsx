@@ -196,7 +196,7 @@ describe("BooksLibrary quick filter counts", () => {
     renderLibrary("all");
 
     await waitFor(() => expect(quickCountRequests()).not.toHaveLength(0));
-    await screen.findByText(makeBookView().title);
+    await screen.findByRole("heading", { name: makeBookView().title });
     expect(chip("Усі")).toHaveTextContent(/^Усі$/);
     expect(chip("Читаю")).toHaveTextContent(/^Читаю$/);
   });
@@ -293,7 +293,7 @@ describe("BooksLibrary inverted range", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "Скинути діапазон" }));
 
-    expect(await screen.findByText(makeBookView().title)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: makeBookView().title })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: library.resultsTitle })).toHaveFocus();
     expect(urlUpdates.at(-1)?.has("yearMin")).toBe(false);
     expect(urlUpdates.at(-1)?.has("yearMax")).toBe(false);
@@ -306,15 +306,16 @@ describe("BooksLibrary inverted range", () => {
 describe("BooksLibrary refreshing results", () => {
   it("dims only the previous books and swaps the counter for the loading label while a search loads", async () => {
     const settledCounter = translateLibrary("counter", { shown: 1, total: 1 });
+    const previousTitle = makeBookView().title;
     mockHeldSearch();
     renderLibrary("all");
-    expect(await screen.findByText(makeBookView().title)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: previousTitle })).toBeInTheDocument();
     expect(screen.getByText(settledCounter)).toBeInTheDocument();
 
     await userEvent.type(screen.getByRole("textbox", { name: library.search.label }), "дюна");
 
     await waitFor(() =>
-      expect(regionBusyState(screen.getByText(makeBookView().title))).toBe("true"),
+      expect(regionBusyState(screen.getByRole("heading", { name: previousTitle }))).toBe("true"),
     );
     const status = screen.getByText(library.loading);
     expect(status.closest('[aria-busy="true"]')).toBeNull();
@@ -326,15 +327,15 @@ describe("BooksLibrary refreshing results", () => {
   it("shows the found books undimmed once the search answers", async () => {
     const answerSearch = mockHeldSearch();
     renderLibrary("all");
-    expect(await screen.findByText(makeBookView().title)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: makeBookView().title })).toBeInTheDocument();
 
     await userEvent.type(screen.getByRole("textbox", { name: library.search.label }), "дюна");
     await waitFor(() => expect(listRequests().at(-1)?.searchParams.get("q")).toBe("дюна"));
     answerSearch();
 
-    const found = await screen.findByText(SEARCH_BOOK.title);
+    const found = await screen.findByRole("heading", { name: SEARCH_BOOK.title });
     expect(regionBusyState(found)).toBe("false");
-    expect(screen.queryByText(makeBookView().title)).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: makeBookView().title })).not.toBeInTheDocument();
   });
 });
 
@@ -365,7 +366,7 @@ describe("BooksLibrary first load retry focus", () => {
 
     await userEvent.keyboard("{Enter}");
 
-    expect(await screen.findByText(makeBookView().title)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: makeBookView().title })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: library.resultsTitle })).toHaveFocus();
   });
 });
