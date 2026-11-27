@@ -42,6 +42,26 @@ function json(body: unknown, status = 200): Promise<Response> {
   );
 }
 
+function libraryOverview(total: number) {
+  return {
+    recentlyAdded: [],
+    summary: {
+      borrowed: 0,
+      favorites: 0,
+      finished: 0,
+      inTransit: 0,
+      reading: 0,
+      series: 0,
+      solo: 0,
+      total,
+      wantToBuy: 0,
+      wantToRead: 0,
+    },
+    topGenres: [],
+    topTags: [],
+  };
+}
+
 function renderListDetails() {
   return renderWithProviders(
     <NuqsTestingAdapter>
@@ -58,6 +78,7 @@ function reply(input: RequestInfo | URL): Promise<Response> {
   }
   if (pathname.startsWith("/api/genres")) return json([]);
   if (pathname.endsWith("/facets")) return json({ authors: [], genres: [] });
+  if (pathname === "/api/books/overview") return json(libraryOverview(3));
   if (pathname.endsWith("/overview")) return json(makeListOverviewView());
   if (pathname.endsWith("/related")) return json({ lists: [] });
   return Promise.reject(new Error(`unexpected fetch: ${pathname}`));

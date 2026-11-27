@@ -16,7 +16,7 @@ export type LibraryPageHeaderProps = {
   addBookLabel?: string;
   onAddBook?: () => void;
   subtitle: string;
-  summaryCards: SummaryCard[];
+  summaryCards: Nullable<SummaryCard[]>;
   summaryError: Nullable<SummaryErrorState>;
   summaryLoading: boolean;
   summaryMobileAction?: ReactNode;
@@ -57,15 +57,17 @@ export function LibraryPageHeader({
         ) : null}
       </div>
 
-      <SummaryError state={summaryError}>
-        <SummaryCards
-          cards={summaryCards}
-          isLoading={summaryLoading}
-          mobileAction={summaryMobileAction}
-          mobileCards={summaryMobileCards}
-          mobileLayout={summaryMobileLayout}
-        />
-      </SummaryError>
+      {summaryCards === null ? null : (
+        <SummaryError state={summaryError}>
+          <SummaryCards
+            cards={summaryCards}
+            isLoading={summaryLoading}
+            mobileAction={summaryMobileAction}
+            mobileCards={summaryMobileCards}
+            mobileLayout={summaryMobileLayout}
+          />
+        </SummaryError>
+      )}
     </header>
   );
 }

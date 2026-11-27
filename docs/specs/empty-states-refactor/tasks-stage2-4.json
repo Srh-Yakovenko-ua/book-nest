@@ -1,0 +1,621 @@
+{
+  "spec": "docs/specs/empty-states-refactor/spec.md",
+  "generatedAt": "2026-11-27T14:33:53Z",
+  "scope": {
+    "included": [
+      "Етап 2. Прибери нульові метрики й порожні панелі",
+      "Етап 4. Ущільни композицію й ілюстрації"
+    ],
+    "excluded": ["Етап 1 (tasks-stage1.json)", "Етап 3 (tasks-stage3.json)"]
+  },
+  "sharedBuildingBlocks": {
+    "collectionChrome": "apps/web/src/lib/collection-chrome.ts: collectionChrome({ baseTotal: number | undefined, hasQuery: boolean }) -> { showMetrics: boolean, showTools: boolean }. baseTotal comes from the filter-independent summary/overview query of the section (undefined while pending or on load error, so the existing skeleton / SummaryError UI keeps owning case 4). showMetrics = baseTotal !== 0. showTools = baseTotal !== 0 || hasQuery (reset path survives URL params). Every Stage 2 page task consumes it instead of a local boolean.",
+    "illustrationScale": "One responsive scale in components/illustration.tsx driven by Tailwind breakpoints plus one new height variant in styles/globals.css (@custom-variant tall (@media (min-height: 50rem))). No arbitrary Tailwind values.",
+    "illustrationRatio": "One grouped object keyed by EmptyStateIllustration giving the real intrinsic ratio (3:2 for the 7 wide PNGs, 1:1 otherwise) so next/image reserves the right box.",
+    "headerActionRule": "When collectionChrome says base-empty and the empty state's primary runs the same handler as the header button, the header button is not rendered (pattern already used on Home: features/home/components/home-dashboard.tsx:102)."
+  },
+  "tasks": [
+    {
+      "id": "S2-01",
+      "title": "Shared collectionChrome rule for base-empty vs filtered sections",
+      "specRef": "Етап 2, cases 1-4 and 'Якщо фільтр уже застосовано або URL містить параметри, залиш доступний спосіб їх скинути'",
+      "layer": "web-lib",
+      "files": [
+        "apps/web/src/lib/collection-chrome.ts",
+        "apps/web/src/lib/collection-chrome.test.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": "Each section re-derives the rule locally and inconsistently: library-archive-view.tsx:170-171 (toolbar kept for search/filters), all-series-view.tsx:92 (ignores hasActiveQuery), all-publishers.tsx:127-128 via publisher-archive-state.ts:44 (hides controls even with URL params), genres.tsx:157, tags-view.tsx:153, loan-history-view.tsx:86-87; none of them gates the summary cards.",
+      "doneWhen": [
+        "collectionChrome({ baseTotal: 0, hasQuery: false }) returns { showMetrics: false, showTools: false }",
+        "collectionChrome({ baseTotal: 0, hasQuery: true }) returns { showMetrics: false, showTools: true }",
+        "collectionChrome({ baseTotal: undefined, hasQuery: false }) returns { showMetrics: true, showTools: true } so pending/error keep their skeleton or SummaryError",
+        "collectionChrome({ baseTotal: 3, hasQuery: false }) returns { showMetrics: true, showTools: true }",
+        "unit test covers the four inputs above; no comments, no any"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S2-02",
+      "title": "LibraryPageHeader can omit the summary block",
+      "specRef": "Етап 2, Моя бібліотека / Усі книги / Улюблені",
+      "layer": "web-feature",
+      "files": ["apps/web/src/features/books/components/library-page-header.tsx"],
+      "dependsOn": ["S2-01"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": "library-page-header.tsx:60-67 always renders SummaryError + SummaryCards; no prop hides them",
+      "doneWhen": [
+        "header accepts a way to omit the summary (e.g. summaryCards/summary slot nullable) and then renders neither SummaryError, SummaryCards nor summaryMobileAction",
+        "with the summary omitted the header leaves no empty gap row (gap-6 container has only the title row)",
+        "existing callers that pass cards render exactly as before"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S2-03",
+      "title": "Home: drop the four-counter strip on the onboarding account",
+      "specRef": "Етап 2, Головна",
+      "layer": "web-feature",
+      "files": [
+        "apps/web/src/features/home/components/home-dashboard.tsx",
+        "apps/web/src/features/home/components/home-welcome-section.tsx",
+        "apps/web/src/features/home/components/home-dashboard.test.tsx"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap (strip); ALREADY DONE (single compact first-book card with one illustration)",
+      "evidence": "home-dashboard.tsx:118-124 passes HomeLibrarySummaryStrip regardless of isOnboarding (computed at :74-82); home-welcome-section.tsx:58 renders {summary} unconditionally. Onboarding card already has one Image 360x216 at w-48/@3xl:w-60 (home-onboarding.tsx:15-19,35-42) and header action already hidden in onboarding (home-dashboard.tsx:102).",
+      "doneWhen": [
+        "when isOnboarding is true HomeLibrarySummaryStrip is not rendered and the welcome section has no empty summary row",
+        "when isOnboarding is false the strip renders exactly as before, including its loading and retry states",
+        "home-dashboard.test.tsx onboarding case asserts the strip (its counters) is absent"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S2-04",
+      "title": "My library and All books: hide zero summary cards on an empty base collection",
+      "specRef": "Етап 2, Моя бібліотека, Усі книги",
+      "layer": "web-feature",
+      "files": ["apps/web/src/features/books/components/books-library.tsx"],
+      "dependsOn": ["S2-01", "S2-02"],
+      "mandatory": true,
+      "verdict": "PARTIAL (toolbar and sidebar ALREADY DONE, summary cards CONFIRMED gap)",
+      "evidence": "Toolbar hidden on empty base without search/filters: library-archive-view.tsx:170-171,177; sidebar follows it: :196. Summary always passed: books-library.tsx:199-211; base total = overview.data.summary.total scoped by useLibraryOverview(scope) books-library.tsx:28,37.",
+      "doneWhen": [
+        "on /my-library and /books with summary.total === 0 no SummaryCards, no LibraryOverviewPanel mobile trigger and no zero counters render",
+        "while overview is pending the skeleton still renders; on overview load error SummaryError still renders",
+        "after the first book exists the four cards render again without reload (cache invalidation via existing book-change-effects)",
+        "with URL search/filter params on an empty base the toolbar stays reachable to reset them"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S2-05",
+      "title": "Favorites: hide zero summary cards on an empty base collection",
+      "specRef": "Етап 2, Улюблені",
+      "layer": "web-feature",
+      "files": ["apps/web/src/features/books/components/favorites-view.tsx"],
+      "dependsOn": ["S2-01", "S2-02"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": "favorites-view.tsx:154 total = summary.data?.total; :495,501 pass summaryCards to LibraryPageHeader and the overview panel unconditionally",
+      "doneWhen": [
+        "with favorites total === 0 the summary cards and the FavoritesOverviewPanel mobile trigger are not rendered",
+        "derived microfacts (top genre, top tag) are not shown as placeholders on the empty base",
+        "favorites appear again with cards once one book is hearted"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S2-06",
+      "title": "Series: hide zero summary cards and keep a reset path for URL params",
+      "specRef": "Етап 2, Серії",
+      "layer": "web-feature",
+      "files": [
+        "apps/web/src/features/series/components/all-series-view.tsx",
+        "apps/web/src/features/series/components/all-series.tsx"
+      ],
+      "dependsOn": ["S2-01"],
+      "mandatory": true,
+      "verdict": "PARTIAL (toolbar ALREADY DONE, summary CONFIRMED gap, reset path with URL params missing)",
+      "evidence": "all-series.tsx:106 hasAnySeries = totalSeries > 0 || items.length > 0; all-series-view.tsx:92 showToolbar = !isError && (isPending || hasAnySeries) ignores hasActiveQuery; SeriesSummaryCards always rendered at all-series-view.tsx:124-130",
+      "doneWhen": [
+        "with no series SeriesSummaryCards and its mobile overview action are not rendered",
+        "with no series and an active query in the URL the toolbar (or a reset control) is reachable",
+        "with series present nothing changes"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S2-07",
+      "title": "Publishers: hide zero summary cards and insights on an empty base",
+      "specRef": "Етап 2, Видавництва",
+      "layer": "web-feature",
+      "files": ["apps/web/src/features/publishers/components/all-publishers.tsx"],
+      "dependsOn": ["S2-01"],
+      "mandatory": true,
+      "verdict": "PARTIAL (controls ALREADY DONE, summary CONFIRMED gap)",
+      "evidence": "publisher-archive-state.ts:44 empty when summaryPublishersCount === 0; controls null on state.kind === 'empty' all-publishers.tsx:127-128; PublisherSummaryCards always passed all-publishers.tsx:161-172",
+      "doneWhen": [
+        "with summaryPublishersCount === 0 PublisherSummaryCards and PublisherOverviewPanel are not rendered (2 zeros in baseline gone)",
+        "with an empty base and URL params a reset path remains (controls shown per S2-01 showTools)",
+        "insights stay governed by showInsights and are absent on the empty base"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S2-08",
+      "title": "Genres: remove six empty metrics and the repeated 'no genres' message",
+      "specRef": "Етап 2, Жанри",
+      "layer": "web-feature",
+      "files": ["apps/web/src/features/genres/components/genres.tsx"],
+      "dependsOn": ["S2-01"],
+      "mandatory": true,
+      "verdict": "PARTIAL (toolbar and sidebar ALREADY DONE, summary CONFIRMED gap)",
+      "evidence": "genres.tsx:83 GenresSummaryCards and :85-91 GenresSummaryPanel always rendered; six cards built in model/use-genre-summary-cards.tsx:61-146 each with a 'facts.<reason>' microfact that repeats the empty message. Toolbar null for reason 'library' genres.tsx:157; sidebar null when insights === null genres.tsx:149-151.",
+      "doneWhen": [
+        "with zero used genres (summary usedGenres count 0) neither GenresSummaryCards nor GenresSummaryPanel render, so the empty copy appears once (GenresContent)",
+        "genres-list-state reason 'filters' / 'search' still shows the toolbar and its reset",
+        "with genres present all six cards render unchanged"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S2-09",
+      "title": "Characters: hide metrics, list controls, zero chips, '0 із 0' and the roadmap panel on an empty base",
+      "specRef": "Етап 2, Персонажі",
+      "layer": "web-feature",
+      "files": ["apps/web/src/features/characters/components/characters-catalog-view.tsx"],
+      "dependsOn": ["S2-01"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": "characters-catalog-view.tsx:96-100 SummaryCards, :102-160 search/sort/advanced filters/Segmented view toggle, :166 quick filters, :188 ActiveFilters, :194 counter t('counter', countShownCharacters), :224 CharactersCatalogSidebar, all rendered with no base-empty gate; base total = overview.data.totalCount (:261). Roadmap copy key characters.catalog.sidebar.{title,description} (uk.json:8345-8348).",
+      "doneWhen": [
+        "with overview.totalCount === 0 and no active query: no SummaryCards, no search, sort, advanced filters, view toggle, quick-filter chips, ActiveFilters, counter and no CharactersCatalogSidebar",
+        "with totalCount === 0 and an active query the controls stay so the query can be cleared",
+        "the empty-state primary is visible at 1363x936 (baseline: no button visible)",
+        "with characters present the page is unchanged, including the sidebar"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S2-10",
+      "title": "Tags: hide stats and the four side panels before the first tag",
+      "specRef": "Етап 2, Теги",
+      "layer": "web-feature",
+      "files": ["apps/web/src/features/tags/components/tags-view.tsx"],
+      "dependsOn": ["S2-01"],
+      "mandatory": true,
+      "verdict": "PARTIAL (toolbar ALREADY DONE, stats and sidebar CONFIRMED gap)",
+      "evidence": "Toolbar null on state.kind 'first-use' tags-view.tsx:153. TagsSummaryCards :98, TagsOverviewPanel :104 and TagsSidebar :136 (Потребують уваги, Структура тегів, Де використовуються, Палітра тегів) always rendered; base total summary.data.totalTagsCount :64.",
+      "doneWhen": [
+        "with totalTagsCount === 0 no TagsSummaryCards, no TagsOverviewPanel and no TagsSidebar render (13 baseline zeros gone)",
+        "the first created tag brings all of them back without reload",
+        "pending keeps the toolbar skeleton and summary skeleton; summary error keeps its retry"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S2-11",
+      "title": "Quotes: hide stats, sidebar, toolbar and '0 із 0' on an empty base",
+      "specRef": "Етап 2, Цитати",
+      "layer": "web-feature",
+      "files": ["apps/web/src/features/quotes/components/quotes-view.tsx"],
+      "dependsOn": ["S2-01"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": "quotes-view.tsx:63-68 counter 'shown of total' from facets, :79 QuotesOverviewPanel, :113 QuotesSummaryCards, :126-129 QuotesToolbar with counter, sidebar gated only on !quotes.isLoadingError (:60, :182). Base total QuotesSummaryViewSchema.totalCount (packages/shared/src/quotes.ts:195).",
+      "doneWhen": [
+        "with summary.totalCount === 0 and no active query: no QuotesSummaryCards, no QuotesOverviewPanel, no QuotesSidebar, no toolbar and no '0 із 0' counter",
+        "with an active query on an empty base the toolbar stays for reset",
+        "the first quote restores all of them"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S2-12",
+      "title": "Book notes and series notes: hide stats, sidebar and toolbar on an empty base",
+      "specRef": "Етап 2, обидва розділи нотаток",
+      "layer": "web-feature",
+      "files": ["apps/web/src/features/notes/components/notes-archive-view.tsx"],
+      "dependsOn": ["S2-01"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": "notes-archive-view.tsx:86 NotesOverviewPanel, :121 NotesSummaryCards, :131-134 toolbar shown whenever not pending, :149 counter, :158 NotesContextualSidebar. Base totals bookNotesCount / seriesNotesCount (packages/shared/src/notes.ts:506,522) mapped by features/notes/api/use-notes-summary.ts.",
+      "doneWhen": [
+        "on /notes/books with bookNotesCount === 0 and on /notes/series with seriesNotesCount === 0 (no active query): no summary cards, overview panel, toolbar, counter or contextual sidebar (7 baseline zeros gone)",
+        "with an active query the toolbar stays for reset",
+        "the scope switch between books and series uses the matching count"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S2-13",
+      "title": "Quote and note forms: one 'nothing found' message per picker state",
+      "specRef": "Етап 2, 'Прибери дубльовані повідомлення про відсутність результатів у формах'",
+      "layer": "web-shared",
+      "files": [
+        "apps/web/src/components/single-select-picker.tsx",
+        "apps/web/src/features/quotes/components/quote-dialog.tsx",
+        "apps/web/src/features/notes/components/book-note-form-adapter.tsx",
+        "apps/web/src/features/notes/components/series-note-form-adapter.tsx"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "PARTIAL (no visual duplicate found in code; copy cannot tell no-data from no-match)",
+      "evidence": "single-select-picker.tsx:345-347 visible empty text is aria-hidden, :224 sr-only role=status carries labels.empty (:295), so the code shows one visible message. The same labels.empty string is used for an empty source and for a query with no match (:295, :345). Labels wired at quote-dialog.tsx:263, book-note-form-adapter.tsx:130, series-note-form-adapter.tsx:46.",
+      "doneWhen": [
+        "in the browser, the quote dialog, the book-note dialog and the series-note dialog each show at most one visible no-results message for the picker (any second one found during repro is removed)",
+        "screen readers hear the empty message once (status only, visible copy aria-hidden as today)",
+        "with a typed query and no match the copy says nothing was found for the current search; the no-data case is handled upstream by Stage 1 before the form opens"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S2-14",
+      "title": "Contacts: show search and filters only once contacts exist; explain loan use",
+      "specRef": "Етап 2, Контакти",
+      "layer": "web-feature",
+      "files": [
+        "apps/web/src/features/loans/components/contact/loan-contacts-view.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["S2-01"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap (toolbar); PARTIAL (copy)",
+      "evidence": "loan-contacts-view.tsx:76 LoanContactsToolbar rendered unconditionally; counts from loadedPages[0].counts (:46), LoanContactCountsSchema { active, all, archived } packages/shared/src/loan-contacts.ts:44-48; loans.contactsPage.states.empty.description is already in «ти» but only says the person 'appears in loans' (uk: 'Додай першу людину, і вона зʼявиться в позиках.')",
+      "doneWhen": [
+        "with counts.all === 0 and no search/filter the toolbar is not rendered",
+        "with an active search or filter the toolbar stays for reset",
+        "loans.contactsPage.states.empty.description (uk and en) says the created contact can be picked when adding a loan"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S2-15",
+      "title": "Loan history: short explanation plus a compact path to active loans",
+      "specRef": "Етап 2, Історія позик",
+      "layer": "web-feature",
+      "files": [
+        "apps/web/src/features/loans/components/history/loan-history-list.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "PARTIAL (chrome and explanation ALREADY DONE, action CONFIRMED gap)",
+      "evidence": "Summary, toolbar and sidebar hidden on empty history: loan-history-view.tsx:86-87,136-141,198. loans.history.states.empty.description already explains when records appear ('Завершені позики з’являться тут після того, як книгу буде позначено повернутою.'). Empty state has no action: loan-history-list.tsx:90-96.",
+      "doneWhen": [
+        "the empty history state has one compact action leading to the active loans route already used by the loans tabs (no new route)",
+        "the existing explanation copy stays (shortened only if the layout needs it), en unchanged unless uk meaning changes",
+        "the noResults state keeps its clear-filters action"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S2-16",
+      "title": "Delivery in transit: hide zero metrics and the attention and next-shipment panels without active orders",
+      "specRef": "Етап 2, Книги в дорозі",
+      "layer": "web-feature",
+      "files": ["apps/web/src/features/delivery/components/delivery-in-transit.tsx"],
+      "dependsOn": ["S2-01"],
+      "mandatory": true,
+      "verdict": "PARTIAL (toolbar ALREADY DONE, metrics and sidebar CONFIRMED gap)",
+      "evidence": "showToolbar delivery-in-transit.tsx:178-180; DeliveryInTransitSidebar (attention, nextShipment) :335-345 and DeliverySummaryCards :347-360 always passed",
+      "doneWhen": [
+        "with no active orders and no active query: no DeliverySummaryCards, no DeliveryInTransitSidebar (Потребують уваги, Найближча доставка) and no mobile overview panel",
+        "the first active order brings them back",
+        "with filters in the URL the toolbar stays for reset"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S2-17",
+      "title": "Order history: hide zero metrics and the empty 'Останнє отримання' block; explain received and cancelled",
+      "specRef": "Етап 2, Історія замовлень",
+      "layer": "web-feature",
+      "files": [
+        "apps/web/src/features/delivery/components/delivery-history.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["S2-01"],
+      "mandatory": true,
+      "verdict": "PARTIAL (toolbar ALREADY DONE, metrics and sidebar CONFIRMED gap)",
+      "evidence": "showToolbar delivery-history.tsx:85-87; showsSidebar :180-181 true on every non-cancelled tab; DeliverySummaryCards :235-243 always passed; latest receipt block copy delivery.history.latestReceipt.title 'Останнє отримання'; tab-specific empty copy delivery.history.states.empty.{received,cancelled}.{title,description,cta}, received description 'Щойно ви позначите книгу як отриману, вона зʼявиться тут.' mentions only received orders",
+      "doneWhen": [
+        "with no history orders and no active query: no DeliverySummaryCards and no sidebar block 'Останнє отримання'",
+        "with the whole history empty, delivery.history.states.empty.received.description (uk and en) says both received and cancelled orders appear here; cancelled tab copy unchanged in meaning",
+        "the cancelled tab follow-up blocks keep their current logic when data exist"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S2-18",
+      "title": "Queue, wishlist, lists, goals, dedications: keep compact composition, apply Stage 4 sizing and copy",
+      "specRef": "Етап 2, Черга читання, Список бажань, Власні списки, Цілі читання, Присвяти",
+      "layer": "web-feature",
+      "files": [
+        "apps/web/src/features/books/components/reading-queue-view.tsx",
+        "apps/web/src/features/books-to-buy/components/books-to-buy-content.tsx",
+        "apps/web/src/features/lists/components/all-lists-view.tsx",
+        "apps/web/src/features/reading-goals/components/goals-catalog-view.tsx",
+        "apps/web/src/features/dedications/components/dedications-content.tsx"
+      ],
+      "dependsOn": ["S4-02", "S4-06"],
+      "mandatory": true,
+      "verdict": "ALREADY DONE (no zero metrics in baseline), CONFIRMED copy gap",
+      "evidence": "Main-loop baseline lists no zero counters for reading-queue, books-to-buy, lists, goals, dedications; goals uses illuSize sm/xs with inline layout goals-catalog-view.tsx:137,160-161; dedications copy formal (dedications.empty.title 'Додайте першу присвяту')",
+      "doneWhen": [
+        "no new metrics or panels appear on these pages for an empty account",
+        "their empty states pick up the S4-02 scale without changing structure",
+        "changed copy follows S4-06"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S2-19",
+      "title": "Derived metrics only when their inputs exist",
+      "specRef": "Етап 2, 'Показуй похідні метрики, коли є дані... середній рейтинг потребує хоча б однієї оцінки'",
+      "layer": "web-feature",
+      "files": [
+        "apps/web/src/features/*/model/use-*-summary-cards.tsx (only those found showing a derived value without inputs)"
+      ],
+      "dependsOn": [
+        "S2-04",
+        "S2-05",
+        "S2-06",
+        "S2-07",
+        "S2-08",
+        "S2-09",
+        "S2-10",
+        "S2-11",
+        "S2-12",
+        "S2-16",
+        "S2-17"
+      ],
+      "mandatory": true,
+      "verdict": "PARTIAL",
+      "evidence": "Some hooks already guard: use-genre-summary-cards.tsx:46 (averageRating null), QuotesSummaryViewSchema.averageQuotesPerQuotedBook nullable (quotes.ts:189). Not audited for every page this run.",
+      "doneWhen": [
+        "on the minimal dataset (one book, no rating) no page shows an average rating, percentage or ratio computed from zero inputs (no 0.0, NaN, 0 %)",
+        "each offender found is fixed in its summary-cards hook with a null-guarded microfact"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S4-01",
+      "title": "Add a height variant for short laptop screens",
+      "specRef": "Етап 4, '120–160 px на низькому або вузькому екрані'",
+      "layer": "web-styles",
+      "files": ["apps/web/src/styles/globals.css"],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": "globals.css:9-12 define only dark and zoom-* custom variants; no height-based variant exists, and arbitrary [@media(...)] variants are banned by the edit hook",
+      "doneWhen": [
+        "globals.css declares @custom-variant tall (@media (min-height: 50rem)) next to the existing custom variants",
+        "no arbitrary Tailwind value is introduced anywhere for this"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S4-02",
+      "title": "Responsive illustration scale for stacked empty states",
+      "specRef": "Етап 4, '180–224 px ... на десктопі та 120–160 px на низькому або вузькому екрані'",
+      "layer": "web-shared",
+      "files": [
+        "apps/web/src/components/illustration.tsx",
+        "apps/web/src/lib/empty-states.ts",
+        "apps/web/src/components/empty-state.stories.tsx"
+      ],
+      "dependsOn": ["S4-01", "S4-03"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": "illustration.tsx:7-12 lg h-84 (336 px) is the default (empty-state.tsx:55 'state.illuSize ?? \"lg\"'); md h-70 has no caller (grep illuSize: only lg, sm, xs used)",
+      "doneWhen": [
+        "lg resolves to h-36 (144 px) below sm or on screens under 50rem tall, sm:tall:h-48 (192 px) from 640 px, lg:tall:h-56 (224 px) from 1024 px, for square art",
+        "3:2 art caps one step lower (lg:tall:h-48, 192 px tall, 288 px wide) so wide images do not dominate",
+        "unused md size removed from ILLU_SIZE and EmptyStateIllustrationSize",
+        "sm and xs keep their current heights (goals and tab-level states keep their compact composition)",
+        "at 1363x936 the lg art is 224 px or less; at 1366x768 and 390x844 it is 120-160 px"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S4-03",
+      "title": "Real intrinsic ratio for 3:2 illustrations",
+      "specRef": "Етап 4, 'Зберігай пропорції, перевір прозорі поля PNG й фактичну висоту контейнера'",
+      "layer": "web-shared",
+      "files": ["apps/web/src/components/illustration.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": "illustration.tsx:26-29 passes width=352 height=352 for every name; measured PNG headers this run: empty-all-books, empty-delivery, empty-genres, empty-library, empty-lists, empty-queue, empty-series are 1536x1024, all other empty-* are 1024x1024",
+      "doneWhen": [
+        "one grouped object maps each EmptyStateIllustration to its ratio (wide 3:2 or square 1:1) and Illustration passes matching width/height",
+        "the reserved box before load equals the loaded box (no width jump on wide art)",
+        "object-contain stays; no art is cropped"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S4-04",
+      "title": "First-screen fit of the empty state after removals",
+      "specRef": "Етап 4, 'Спершу прибери блоки, які відсувають порожній стан, потім скоригуй ілюстрації та відступи' and Цільовий QA 3",
+      "layer": "web-shared",
+      "files": ["apps/web/src/components/empty-state.tsx"],
+      "dependsOn": [
+        "S2-04",
+        "S2-05",
+        "S2-08",
+        "S2-09",
+        "S2-10",
+        "S2-11",
+        "S2-12",
+        "S2-16",
+        "S4-02"
+      ],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap (baseline bottoms 1007 quotes, 994 genres, 953 favorites, 947 notes, characters button off-screen)",
+      "evidence": "empty-state.tsx:19-21 stacked spacing (title mt-6, actions mt-6) plus py-6 at :49",
+      "doneWhen": [
+        "on Favorites, Genres, Quotes, both notes sections, Characters, Tags and Delivery in transit the title, description and primary button are fully visible together at 1363x936, 1366x768 and 390x844 at 100 % zoom",
+        "spacing in EMPTY_STATE_LAYOUT.stacked is reduced only if the measurement after S2 and S4-02 still fails, and then by one spacing step",
+        "no horizontal scroll at 390 px; buttons do not overlap the art"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S4-05",
+      "title": "One primary action: drop the header duplicate on a confirmed empty base",
+      "specRef": "Етап 4, 'Залиш одну виразну основну дію...'",
+      "layer": "web-feature",
+      "files": [
+        "apps/web/src/features/books/components/library-page-header.tsx",
+        "apps/web/src/features/books/components/books-library.tsx",
+        "apps/web/src/features/books/components/favorites-view.tsx",
+        "apps/web/src/features/series/components/all-series-view.tsx",
+        "apps/web/src/features/publishers/components/all-publishers-view.tsx",
+        "apps/web/src/features/tags/components/tags-view.tsx",
+        "apps/web/src/features/loans/components/contact/loan-contacts-view.tsx"
+      ],
+      "dependsOn": ["S2-01", "S4-04"],
+      "mandatory": true,
+      "verdict": "PARTIAL (Home ALREADY DONE)",
+      "evidence": "Home hides the header action in onboarding home-dashboard.tsx:102. Duplicates remain: library-page-header.tsx:52-57 vs books-library.tsx:149; all-series-view.tsx:117-120 vs :277; all-publishers-view.tsx:46-49 vs publishers empty primary; tags-view.tsx:92 vs onAddTag :123; loan-contacts-view.tsx:70-73 vs :200-205",
+      "doneWhen": [
+        "on each listed page, when base-empty is confirmed and the empty-state primary runs the same handler, the header button is not rendered",
+        "while pending or on error, and once data exist, the header button renders as today",
+        "a secondary empty-state action stays when it leads somewhere else (e.g. my-library 'to all books')",
+        "the remaining primary is the first focusable action after the page heading"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S4-06",
+      "title": "Empty-state copy in «ти» with matching en; separate no-data and no-match wording",
+      "specRef": "Етап 4, 'Узгодь тон українських текстів із Головною...'",
+      "layer": "web-i18n",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": "Formal address found this run (node scan of uk.json): genres.states.empty.{title,description}, tags.states.firstUse.{title,description}, quotes.empty.title, notes.archive.empty.title, dedications.empty.{title,description}, characters.empty.description, goals.catalog.empty.description, lists.details.empty.description, and noResults.description under booksToBuy, dedications, series.states, lists.catalog, lists.details, loans.states, loans.history.states, quotes, characters; also delivery.history.states.empty.received.description and delivery.history.states.filteredEmpty.description (formal). Reference tone: home.onboarding.title 'Почнімо твою бібліотеку', home.onboarding.description 'Додай першу книгу...'. Every listed uk key has an en counterpart at the same path (checked with a node lookup this run).",
+      "doneWhen": [
+        "every uk key listed in evidence that belongs to a changed empty state uses «ти» (У тебе ще немає..., Додай..., Спробуй...)",
+        "base-empty titles read like 'У тебе ще немає <items>' and no-match titles read like 'Нічого не знайдено за поточним пошуком'",
+        "en counterparts at the same key paths updated where the meaning changed; no key missing in either locale",
+        "button labels keep their accessible names; any test asserting old copy is updated"
+      ],
+      "status": "todo"
+    }
+  ],
+  "excluded": [
+    {
+      "item": "Етап 1 first-action routing and initial statuses",
+      "reason": "tasks-stage1.json"
+    },
+    {
+      "item": "Етап 3 statistics, calendar, bell, settings",
+      "reason": "tasks-stage3.json"
+    },
+    {
+      "item": "Horizontal card layout for wide pages",
+      "reason": "spec says 'можна' (explicitly optional); EmptyState already supports layout 'inline' (empty-state.tsx:11-17); not applied beyond existing goals usage unless S4-04 measurement fails on a wide page"
+    },
+    {
+      "item": "Transparent-margin trimming of PNG files",
+      "reason": "assets are not edited; checked visually during QA only (EXTERNAL)"
+    }
+  ],
+  "assumptions": [
+    {
+      "decision": "Source of 'base collection empty'",
+      "chosen": "The section's filter-independent summary or overview total (library overview summary.total, favorites summary.total, totalSeries, summaryPublishersCount, genre summary used count, characters overview.totalCount, totalTagsCount, quotes totalCount, bookNotesCount/seriesNotesCount, contact counts.all, delivery summaries)",
+      "why": "The list query is filtered by URL params; only the summary tells base-empty from filtered-to-zero, and most pages already fetch it"
+    },
+    {
+      "decision": "Metrics while the summary is pending",
+      "chosen": "Keep the current skeleton; hide only after a confirmed 0",
+      "why": "Hiding during pending would shift layout for every account with data to save one skeleton flash on new accounts"
+    },
+    {
+      "decision": "Base empty but URL carries search/filter params",
+      "chosen": "Metrics hidden, tools shown (showTools = !baseEmpty || hasQuery)",
+      "why": "Spec requires a reset path; the toolbar already owns reset/clear handlers on every page"
+    },
+    {
+      "decision": "Which duplicate to drop (header vs empty-state primary)",
+      "chosen": "Drop the header button on a confirmed empty base",
+      "why": "Matches Home (home-dashboard.tsx:102); the empty-state block carries the explanation next to its action"
+    },
+    {
+      "decision": "Characters roadmap panel 'Нові можливості вже в дорозі'",
+      "chosen": "Hidden on the empty base only; unchanged once characters exist",
+      "why": "Spec names it only for the empty state; removing it elsewhere is outside scope"
+    },
+    {
+      "decision": "Short-screen detection",
+      "chosen": "@custom-variant tall (@media (min-height: 50rem)) and stacked variants sm:tall / lg:tall",
+      "why": "No height breakpoint exists in globals.css; 50rem puts 1366x768 into the short branch and 1363x936 into the tall one; stacking avoids variant-order conflicts"
+    },
+    {
+      "decision": "Illustration heights",
+      "chosen": "Square art 144 / 192 / 224 px, 3:2 art 144 / 192 / 192 px; sm and xs untouched",
+      "why": "Inside the spec ranges; 3:2 art at 224 px tall would be 336 px wide and push copy aside"
+    },
+    {
+      "decision": "Duplicated 'nothing found' in forms",
+      "chosen": "Reproduce in the browser first; fix only a confirmed visible duplicate, and in any case make no-match copy name the current search",
+      "why": "Code shows one visible message (single-select-picker.tsx:345-347 aria-hidden plus sr-only status :224); the duplicate may live in a dialog wrapper not read this run"
+    },
+    {
+      "decision": "Contacts base count",
+      "chosen": "counts.all from the first list page",
+      "why": "Only count available client-side; implementer confirms in the loan-contacts repository that counts ignore the search term, else falls back to totalCount with no query"
+    },
+    {
+      "decision": "en copy changes",
+      "chosen": "Edit en only where uk meaning changes",
+      "why": "English 'you' has no formal/informal split"
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "ILLU_SIZE lg = h-84 = 336 px, md h-70, sm h-56, xs h-36",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/components/illustration.tsx:7-12"
+    },
+    {
+      "claim": "intrinsic 352x352 while several PNGs are 3:2",
+      "verdict": "CONFIRMED",
+      "evidence": "illustration.tsx:26-29; 7 files 1536x1024 measured from PNG IHDR"
+    },
+    {
+      "claim": "lib/empty-states.ts holds entries, layout inline/stacked, illuSize",
+      "verdict": "FALSE (partly)",
+      "evidence": "lib/empty-states.ts:1-52 holds only types; entries are built inline in each feature component"
+    },
+    {
+      "claim": "components/stat-card.tsx",
+      "verdict": "MOVED",
+      "evidence": "apps/web/src/components/ui/stat-card.tsx; section pages use components/catalog/summary-cards.tsx instead"
+    },
+    {
+      "claim": "Home is the horizontal-card pattern",
+      "verdict": "CONFIRMED",
+      "evidence": "features/home/components/home-onboarding.tsx:28-42 (@3xl/home:flex-row)"
+    },
+    {
+      "claim": "Loan history needs a short explanation of when records appear",
+      "verdict": "ALREADY DONE",
+      "evidence": "uk.json loans.history.states.empty.description"
+    }
+  ]
+}

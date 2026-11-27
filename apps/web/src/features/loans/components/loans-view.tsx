@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
-import type { EmptyStateEntry } from "@/lib/empty-states";
+import type { EmptyStateAction, EmptyStateEntry } from "@/lib/empty-states";
 import type {
   LoansControllerListFilter,
   LoansControllerListReminder,
@@ -19,6 +19,10 @@ import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
+import { useLibraryPresence } from "@/features/books/api/use-library-presence";
+import { useLoanCandidatesPresence } from "@/features/books/api/use-loan-candidates-presence";
+import { LoanDialog } from "@/features/books/components/loan-dialog";
+import { bookCreateHref } from "@/features/books/model/book-create-href";
 import { useProfileTimeZone } from "@/features/settings";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
@@ -61,14 +65,18 @@ type LoansContentProps = {
   onClearFilters: () => void;
   onEdit: (loan: LoanListItemView) => void;
   onOpenContact: (loan: LoanListItemView) => void;
-  onOpenLibrary: () => void;
+  onOpenLendDialog: () => void;
+  onOpenLibrary: Nullable<() => void>;
   onOpenOtherPage: () => void;
   onRetry: () => void;
   onReturn: (loan: LoanListItemView) => void;
   otherTypeCount: number;
   retryButtonRef: Ref<HTMLButtonElement>;
   today: string;
+  withRetryFocus: (onRetry: () => void) => () => void;
 };
+
+type LoansEmptySecondary = { action: EmptyStateAction; onSelect: () => void };
 
 export function LoansView({ type }: { type: LoanType }) {
   const page = LOAN_PAGES[type];
@@ -77,6 +85,7 @@ export function LoansView({ type }: { type: LoanType }) {
   const router = useRouter();
   const query = useLoansQuery(type);
   const summary = useLoansSummary();
+  const libraryPresence = useLibraryPresence();
   const list = useLoansList(query.listParams);
   const quickCounts = useLoansQuickCounts(toLoansQuickCountsParams(query.listParams));
   const selectedContact = useLoanContact(query.contactId === "" ? null : query.contactId);
@@ -92,6 +101,7 @@ export function LoansView({ type }: { type: LoanType }) {
 
   const [editTarget, setEditTarget] = useState<LoanListItemView | null>(null);
   const [returnTarget, setReturnTarget] = useState<LoanListItemView | null>(null);
+  const [lendDialogOpen, setLendDialogOpen] = useState(false);
   const contactDrawer = useLoanContactDrawer();
   const resultsRegionRef = useRef<HTMLElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsRegionRef);
@@ -107,6 +117,7 @@ export function LoansView({ type }: { type: LoanType }) {
   const activeOfThisType = summary.data?.[page.direction].totalCount ?? 0;
   const activeOfOtherType = summary.data?.[LOAN_PAGES[page.otherType].direction].totalCount ?? 0;
   const hasAnyLoans = activeOfThisType + activeOfOtherType > 0 || items.length > 0;
+  const hasLibraryBooks = libraryPresence.kind === "ready" && libraryPresence.total > 0;
   const showChrome = !list.isLoadingError && (list.isPending || hasAnyLoans);
   const showSummaryCards = summary.isPending || summary.isLoadingError || activeOfThisType > 0;
 
@@ -149,17 +160,19 @@ export function LoansView({ type }: { type: LoanType }) {
         isPending={list.isPending}
         isRefreshing={list.isPlaceholderData}
         items={items}
-        onAddBook={() => router.push("/books/new")}
+        onAddBook={() => router.push(bookCreateHref({ ownershipStatus: type }))}
         onClearFilters={query.clearFilters}
         onEdit={setEditTarget}
         onOpenContact={(loan) => contactDrawer.openContact(loan.loanContactId)}
-        onOpenLibrary={() => router.push("/books")}
+        onOpenLendDialog={() => setLendDialogOpen(true)}
+        onOpenLibrary={hasLibraryBooks ? () => router.push("/books") : null}
         onOpenOtherPage={() => router.push(LOAN_PAGES[page.otherType].href)}
         onRetry={withRetryFocus(() => void list.refetch())}
         onReturn={setReturnTarget}
         otherTypeCount={activeOfOtherType}
         retryButtonRef={retryButtonRef}
         today={today}
+        withRetryFocus={withRetryFocus}
       />
     </>
   );
@@ -278,6 +291,15 @@ export function LoansView({ type }: { type: LoanType }) {
 
       <LoanContactDrawer {...contactDrawer.drawerProps} />
 
+      {page.direction === "lent" ? (
+        <LoanDialog
+          context={{ kind: "library" }}
+          direction="lent"
+          onOpenChange={setLendDialogOpen}
+          open={lendDialogOpen}
+        />
+      ) : null}
+
       {returnTarget ? (
         <ReturnLoanDialog
           loan={returnTarget}
@@ -300,6 +322,48 @@ function activeAttentionKey(
   return null;
 }
 
+function LendBookEmptyState({
+  errorState,
+  onAddBook,
+  onOpenLendDialog,
+  onSecondary,
+  retryButtonRef,
+  state,
+  withRetryFocus,
+}: Pick<
+  LoansContentProps,
+  "onAddBook" | "onOpenLendDialog" | "retryButtonRef" | "withRetryFocus"
+> & {
+  errorState: EmptyStateEntry;
+  onSecondary?: () => void;
+  state: EmptyStateEntry;
+}) {
+  const t = useTranslations("loans.states");
+  const candidates = useLoanCandidatesPresence("lent");
+
+  if (candidates.kind === "pending") return <LoansLoading />;
+
+  if (candidates.kind === "error") {
+    return (
+      <div aria-live="assertive" role="alert">
+        <EmptyState
+          onPrimary={withRetryFocus(candidates.retry)}
+          primaryRef={retryButtonRef}
+          state={errorState}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <EmptyState
+      onPrimary={candidates.total > 0 ? onOpenLendDialog : onAddBook}
+      onSecondary={onSecondary}
+      state={{ ...state, primary: { icon: "arrow-up-right", label: t("typeEmpty.lent.cta") } }}
+    />
+  );
+}
+
 function LoansContent({
   direction,
   hasActiveFilters,
@@ -312,6 +376,7 @@ function LoansContent({
   onClearFilters,
   onEdit,
   onOpenContact,
+  onOpenLendDialog,
   onOpenLibrary,
   onOpenOtherPage,
   onRetry,
@@ -319,17 +384,19 @@ function LoansContent({
   otherTypeCount,
   retryButtonRef,
   today,
+  withRetryFocus,
 }: LoansContentProps) {
   const t = useTranslations("loans.states");
   const tLoans = useTranslations("loans");
 
+  const errorState: EmptyStateEntry = {
+    desc: t("error.description"),
+    illu: "error-generic",
+    primary: { icon: "refresh", label: t("error.retry") },
+    title: t("error.title"),
+  };
+
   if (isError) {
-    const errorState: EmptyStateEntry = {
-      desc: t("error.description"),
-      illu: "error-generic",
-      primary: { icon: "refresh", label: t("error.retry") },
-      title: t("error.title"),
-    };
     return (
       <div aria-live="assertive" role="alert">
         <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
@@ -337,16 +404,7 @@ function LoansContent({
     );
   }
 
-  if (isPending) {
-    return (
-      <>
-        <span className="sr-only" role="status">
-          {t("loading")}
-        </span>
-        <LoansListSkeleton />
-      </>
-    );
-  }
+  if (isPending) return <LoansLoading />;
 
   if (items.length === 0) {
     if (hasActiveFilters || hasActiveSearch) {
@@ -369,26 +427,40 @@ function LoansContent({
       title: t(`typeEmpty.${direction}.title`),
     };
 
-    if (otherTypeCount === 0) {
+    const librarySecondary: Nullable<LoansEmptySecondary> =
+      onOpenLibrary === null
+        ? null
+        : { action: { icon: "book", label: t("empty.secondary") }, onSelect: onOpenLibrary };
+    const emptySecondary: Nullable<LoansEmptySecondary> =
+      otherTypeCount === 0
+        ? librarySecondary
+        : {
+            action: { icon: "swap", label: t(`typeEmpty.${direction}.openOther`) },
+            onSelect: onOpenOtherPage,
+          };
+
+    if (direction === "lent") {
       return (
-        <EmptyState
-          onPrimary={onAddBook}
-          onSecondary={onOpenLibrary}
-          state={{
-            ...typeEmpty,
-            primary: { icon: "plus", label: t("empty.cta") },
-            secondary: { icon: "book", label: t("empty.secondary") },
-          }}
+        <LendBookEmptyState
+          errorState={errorState}
+          onAddBook={onAddBook}
+          onOpenLendDialog={onOpenLendDialog}
+          onSecondary={emptySecondary?.onSelect}
+          retryButtonRef={retryButtonRef}
+          state={{ ...typeEmpty, secondary: emptySecondary?.action }}
+          withRetryFocus={withRetryFocus}
         />
       );
     }
 
     return (
       <EmptyState
-        onPrimary={onOpenOtherPage}
+        onPrimary={onAddBook}
+        onSecondary={emptySecondary?.onSelect}
         state={{
           ...typeEmpty,
-          primary: { icon: "swap", label: t(`typeEmpty.${direction}.openOther`) },
+          primary: { icon: "plus", label: t("typeEmpty.borrowed.cta") },
+          secondary: emptySecondary?.action,
         }}
       />
     );
@@ -412,6 +484,19 @@ function LoansContent({
           ))}
         </ul>
       </RefreshingRegion>
+    </>
+  );
+}
+
+function LoansLoading() {
+  const t = useTranslations("loans.states");
+
+  return (
+    <>
+      <span className="sr-only" role="status">
+        {t("loading")}
+      </span>
+      <LoansListSkeleton />
     </>
   );
 }

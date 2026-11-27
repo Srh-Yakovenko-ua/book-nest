@@ -14,25 +14,23 @@ import { ProgressInfoHint } from "./progress-info-hint";
 
 const FORECAST_FRACTION = { maximumFractionDigits: 1 } as const;
 
+type LibraryForecastEstimate = NonNullable<
+  ReadingStatisticsLibraryBalanceSection["forecast"]["data"]
+>;
+
 export function LibraryBalanceSection({
   libraryBalance,
 }: {
   libraryBalance: ReadingStatisticsLibraryBalanceSection;
 }) {
   const t = useTranslations("statistics.libraryBalance");
-  const { flow } = libraryBalance;
+  const { flow, forecast } = libraryBalance;
   const flowCounts = flow.availability === "available" ? flow.data : null;
-
-  return (
-    <ProgressCard
-      description={t("description")}
-      icon="library"
-      illustration="library"
-      lead={<LibraryReadShare libraryBalance={libraryBalance} />}
-      title={t("title")}
-    >
+  const estimate = forecast.availability === "unavailable" ? null : forecast.data;
+  const facts =
+    estimate === null && flowCounts === null ? undefined : (
       <dl className="flex flex-col gap-1.5 border-t border-border/60 pt-3 text-xs">
-        <LibraryForecast forecast={libraryBalance.forecast} />
+        {estimate === null ? null : <LibraryForecast estimate={estimate} />}
         {flowCounts === null ? null : (
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
             <dt className="text-muted-foreground">{t("flowLabel")}</dt>
@@ -46,41 +44,36 @@ export function LibraryBalanceSection({
           </div>
         )}
       </dl>
+    );
+
+  return (
+    <ProgressCard
+      description={t("description")}
+      icon="library"
+      illustration="library"
+      lead={<LibraryReadShare libraryBalance={libraryBalance} />}
+      title={t("title")}
+    >
+      {facts}
     </ProgressCard>
   );
 }
 
-function LibraryForecast({
-  forecast,
-}: {
-  forecast: ReadingStatisticsLibraryBalanceSection["forecast"];
-}) {
+function LibraryForecast({ estimate }: { estimate: LibraryForecastEstimate }) {
   const locale = useLocale();
   const t = useTranslations("statistics.libraryBalance");
-  const estimate = forecast.availability === "unavailable" ? null : forecast.data;
 
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
       <dt className="text-muted-foreground">{t("forecastLabel")}</dt>
       <dd className="inline-flex flex-wrap items-center gap-x-0.5 font-medium text-foreground">
-        {estimate === null ? (
-          <>
-            {t("forecastNoData")}
-            <ProgressInfoHint topic={t("forecastLabel")}>
-              {t(`forecastReason.${forecast.reason ?? "INSUFFICIENT_SAMPLE"}`)}
-            </ProgressInfoHint>
-          </>
-        ) : (
-          <>
-            <span className="tabular-nums">
-              {t("forecastEstimate", {
-                months: formatNumber(estimate.monthsRemaining, locale, FORECAST_FRACTION),
-                rate: formatNumber(estimate.readsPerMonth, locale, FORECAST_FRACTION),
-              })}
-            </span>
-            <ProgressInfoHint topic={t("forecastLabel")}>{t("forecastBasis")}</ProgressInfoHint>
-          </>
-        )}
+        <span className="tabular-nums">
+          {t("forecastEstimate", {
+            months: formatNumber(estimate.monthsRemaining, locale, FORECAST_FRACTION),
+            rate: formatNumber(estimate.readsPerMonth, locale, FORECAST_FRACTION),
+          })}
+        </span>
+        <ProgressInfoHint topic={t("forecastLabel")}>{t("forecastBasis")}</ProgressInfoHint>
       </dd>
     </div>
   );

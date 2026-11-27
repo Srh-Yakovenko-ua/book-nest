@@ -63,6 +63,7 @@ const WINTER_LIST = makeCustomListCard({ bookCount: 4, id: "list-2", name: "Зи
 let respondToLists: (url: URL) => Response;
 let respondToListGoal: () => Response;
 let respondToCreate: () => Response;
+let libraryTotal: number;
 
 function calendarDay(day: string) {
   return within(screen.getByRole("grid")).getByText(day);
@@ -73,6 +74,26 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json" },
     status,
   });
+}
+
+function libraryOverview(total: number) {
+  return {
+    recentlyAdded: [],
+    summary: {
+      borrowed: 0,
+      favorites: 0,
+      finished: 0,
+      inTransit: 0,
+      reading: 0,
+      series: 0,
+      solo: 0,
+      total,
+      wantToBuy: 0,
+      wantToRead: 0,
+    },
+    topGenres: [],
+    topTags: [],
+  };
 }
 
 function listCachingQueryClient(): QueryClient {
@@ -149,6 +170,7 @@ beforeEach(() => {
   respondToLists = () => jsonResponse(listsPage([AUTUMN_LIST, WINTER_LIST]));
   respondToListGoal = noContentResponse;
   respondToCreate = () => jsonResponse(makeReadingGoalView({ id: "goal-new" }), 201);
+  libraryTotal = 3;
 
   fetchMock.mockReset();
   fetchMock.mockImplementation((input, init) => {
@@ -156,6 +178,9 @@ beforeEach(() => {
     const method = (init?.method ?? "GET").toUpperCase();
     if (url.pathname === "/api/profile/settings") {
       return Promise.resolve(jsonResponse(defaultUserProfileSettings));
+    }
+    if (url.pathname === "/api/books/overview") {
+      return Promise.resolve(jsonResponse(libraryOverview(libraryTotal)));
     }
     if (url.pathname === "/api/goals/overview") {
       return Promise.resolve(jsonResponse(makeReadingGoalsOverview()));
@@ -211,6 +236,33 @@ describe("GoalListPicker lists", () => {
       "/lists",
     );
     expect(within(picker).getByText("Поки немає списків із книгами")).toBeInTheDocument();
+  });
+
+  it("offers the first book in the no-lists state of an account without books", async () => {
+    libraryTotal = 0;
+    respondToLists = () => jsonResponse(listsPage([]));
+
+    renderCatalog();
+
+    const picker = await openPicker();
+
+    expect(
+      await within(picker).findByRole("link", { name: messages.books.firstBook.cta }),
+    ).toHaveAttribute("href", "/books/new");
+  });
+
+  it("keeps the lists link beside the first-book offer of an account without books", async () => {
+    libraryTotal = 0;
+    respondToLists = () => jsonResponse(listsPage([]));
+
+    renderCatalog();
+
+    const picker = await openPicker();
+    await within(picker).findByRole("link", { name: messages.books.firstBook.cta });
+
+    expect(
+      within(picker).getByRole("link", { name: messages.goals.picker.toLists }),
+    ).toHaveAttribute("href", "/lists");
   });
 });
 

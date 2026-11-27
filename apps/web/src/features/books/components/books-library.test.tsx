@@ -13,12 +13,14 @@ import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-
 import { makeBookView } from "./book-details.fixtures";
 import { BooksLibrary } from "./books-library";
 
+const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }));
+
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   ),
   usePathname: () => "/books",
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: routerPush, replace: vi.fn() }),
 }));
 
 const QUICK_AXES = ["status", "owner", "bookType", "isFavorite"] as const;
@@ -140,6 +142,62 @@ function mockHeldSearch(): () => void {
     return Promise.resolve(jsonResponse([]));
   });
   return answerSearch;
+}
+
+function mockLibraryTotals({
+  all,
+  my,
+  presenceStatus = 200,
+}: {
+  all: number;
+  my: number;
+  presenceStatus?: number;
+}) {
+  fetchMock.mockImplementation((input: RequestInfo | URL) => {
+    const url = new URL(String(input), "http://localhost");
+    if (url.pathname === "/api/books/overview" && url.searchParams.has("owner")) {
+      return Promise.resolve(jsonResponse(overviewWithTotal(my)));
+    }
+    if (url.pathname === "/api/books/overview") {
+      if (presenceStatus !== 200) {
+        return Promise.resolve(jsonResponse({ message: "boom" }, presenceStatus));
+      }
+      return Promise.resolve(jsonResponse(overviewWithTotal(all)));
+    }
+    if (url.pathname === "/api/books/quick-counts") {
+      return Promise.resolve(jsonResponse(quickCounts({ all: 0 })));
+    }
+    if (url.pathname === "/api/books") {
+      return Promise.resolve(
+        jsonResponse({ items: [], page: 1, pagesCount: 0, pageSize: 24, totalCount: 0 }),
+      );
+    }
+    return Promise.resolve(jsonResponse([]));
+  });
+}
+
+function overviewWithTotal(total: number) {
+  return {
+    ...OVERVIEW,
+    summary: {
+      borrowed: 0,
+      favorites: 0,
+      finished: 0,
+      inTransit: 0,
+      reading: 0,
+      series: 0,
+      solo: 0,
+      total,
+      wantToBuy: 0,
+      wantToRead: 0,
+    },
+  };
+}
+
+function pushedUrl(): URL {
+  const [href] = routerPush.mock.lastCall ?? [];
+  if (typeof href !== "string") throw new Error("nothing was pushed");
+  return new URL(href, "http://localhost");
 }
 
 function quickCountRequests(): URL[] {
@@ -368,5 +426,106 @@ describe("BooksLibrary first load retry focus", () => {
 
     expect(await screen.findByRole("heading", { name: makeBookView().title })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: library.resultsTitle })).toHaveFocus();
+  });
+});
+
+describe("BooksLibrary empty base", () => {
+  it("opens the create form with the owned status from the empty my-library", async () => {
+    mockLibraryTotals({ all: 0, my: 0 });
+    renderLibrary("my");
+    await screen.findByRole("heading", { name: library.empty.my.title });
+
+    await userEvent.click(screen.getByRole("button", { name: library.empty.my.cta }));
+
+    expect(routerPush).toHaveBeenCalledWith("/books/new?ownershipStatus=owned");
+  });
+
+  it("leaves one add-book action on the empty my-library", async () => {
+    mockLibraryTotals({ all: 0, my: 0 });
+    renderLibrary("my");
+    await screen.findByRole("heading", { name: library.empty.my.title });
+
+    expect(screen.getAllByRole("button", { name: library.addBook })).toHaveLength(1);
+  });
+
+  it("hides the summary cards on the empty my-library", async () => {
+    mockLibraryTotals({ all: 0, my: 0 });
+    renderLibrary("my");
+    await screen.findByRole("heading", { name: library.empty.my.title });
+
+    expect(screen.queryByText(library.summary.total)).not.toBeInTheDocument();
+  });
+
+  it("offers marking existing books as owned when the library has books", async () => {
+    mockLibraryTotals({ all: 3, my: 0 });
+    renderLibrary("my");
+
+    await userEvent.click(await screen.findByRole("button", { name: library.empty.my.secondary }));
+
+    expect(pushedUrl().pathname).toBe("/books");
+    expect(pushedUrl().searchParams.get("owner")?.split(",")).toEqual([
+      "none",
+      "want_to_buy",
+      "in_transit",
+    ]);
+  });
+
+  it("drops the mark-as-owned path on an account without books", async () => {
+    mockLibraryTotals({ all: 0, my: 0 });
+    renderLibrary("my");
+    await screen.findByRole("heading", { name: library.empty.my.title });
+
+    expect(
+      screen.queryByRole("button", { name: library.empty.my.secondary }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the library error with a retry when the presence check fails", async () => {
+    mockLibraryTotals({ all: 0, my: 0, presenceStatus: 500 });
+    renderLibrary("my");
+
+    const alert = await screen.findByRole("alert");
+
+    expect(within(alert).getByRole("heading", { name: library.error.title })).toBeInTheDocument();
+    expect(within(alert).getByRole("button", { name: library.error.retry })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: library.empty.my.title })).not.toBeInTheDocument();
+  });
+
+  it("opens the plain create form from the empty all-books page", async () => {
+    mockLibraryTotals({ all: 0, my: 0 });
+    renderLibrary("all");
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: messages.books.firstBook.cta }),
+    );
+
+    expect(routerPush).toHaveBeenCalledWith("/books/new");
+  });
+
+  it("hides the header add button on the empty all-books page", async () => {
+    mockLibraryTotals({ all: 0, my: 0 });
+    renderLibrary("all");
+    await screen.findByRole("heading", { name: library.empty.all.title });
+
+    expect(screen.queryByRole("button", { name: library.addBook })).not.toBeInTheDocument();
+    expect(screen.queryByText(library.summary.total)).not.toBeInTheDocument();
+  });
+
+  it("keeps the search and the header add button when a search hits an empty base", async () => {
+    mockLibraryTotals({ all: 0, my: 0 });
+    renderLibrary("all", "?q=zzz");
+    await screen.findByRole("heading", { name: library.empty.all.title });
+
+    expect(screen.getByRole("textbox", { name: library.search.label })).toHaveValue("zzz");
+    expect(screen.getByRole("button", { name: library.addBook })).toBeInTheDocument();
+  });
+
+  it("says nothing matched the search when the library has books", async () => {
+    mockLibraryTotals({ all: 40, my: 40 });
+    renderLibrary("all", "?q=zzz");
+
+    expect(
+      await screen.findByRole("heading", { name: library.noSearchResults.title }),
+    ).toBeInTheDocument();
   });
 });

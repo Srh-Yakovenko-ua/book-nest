@@ -1,4 +1,8 @@
-import type { ReadingStatisticsInsight, ReadingStatisticsOverview } from "@app/shared";
+import type {
+  LibraryOverviewView,
+  ReadingStatisticsInsight,
+  ReadingStatisticsOverview,
+} from "@app/shared";
 import type { MouseEventHandler, ReactNode } from "react";
 
 import { defaultUserProfileSettings } from "@app/shared";
@@ -18,6 +22,8 @@ import {
 } from "../../model/statistics.fixtures";
 import { StatisticsOverview } from "./statistics-overview";
 
+const router = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
+
 vi.mock("@/i18n/navigation", () => ({
   Link: ({
     children,
@@ -33,7 +39,7 @@ vi.mock("@/i18n/navigation", () => ({
     </a>
   ),
   usePathname: () => "/statistics",
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => router,
 }));
 
 vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams() }));
@@ -61,11 +67,19 @@ const SECTION_TITLES = {
   ],
 } as const;
 
-let overviewResponse: () => Promise<Response> | Response = () => jsonResponse(overviewFixture());
+const ALL_TIME_QUERY = "period=all_time";
+
+let overviewResponse: (url: string) => Promise<Response> | Response = () =>
+  jsonResponse(overviewFixture());
+
+let libraryTotal = 12;
 
 const fetchMock = vi.fn((input: RequestInfo | URL) => {
   const url = String(input);
-  if (url.includes("/api/statistics/overview")) return Promise.resolve(overviewResponse());
+  if (url.includes("/api/statistics/overview")) return Promise.resolve(overviewResponse(url));
+  if (url.includes("/api/books/overview")) {
+    return Promise.resolve(jsonResponse(libraryOverview(libraryTotal)));
+  }
   if (url.includes("/api/profile/settings")) {
     return Promise.resolve(jsonResponse(defaultUserProfileSettings));
   }
@@ -75,6 +89,7 @@ const fetchMock = vi.fn((input: RequestInfo | URL) => {
 
 beforeEach(() => {
   overviewResponse = () => jsonResponse(overviewFixture());
+  libraryTotal = 12;
   vi.stubGlobal("fetch", fetchMock);
 });
 
@@ -85,6 +100,18 @@ afterEach(() => {
 
 async function activePanel(): Promise<HTMLElement> {
   return screen.findByRole("tabpanel");
+}
+
+function allTimeOf(overview: ReadingStatisticsOverview): ReadingStatisticsOverview {
+  return {
+    ...overview,
+    comparison: null,
+    period: { ...overview.period, from: null, kind: "all_time" },
+  };
+}
+
+function allTimeRequests(): string[] {
+  return overviewRequests().filter((url) => url.includes(ALL_TIME_QUERY));
 }
 
 async function expectSections(titles: readonly string[]) {
@@ -101,6 +128,30 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+function libraryOverview(total: number): LibraryOverviewView {
+  return {
+    recentlyAdded: [],
+    summary: {
+      borrowed: 0,
+      favorites: 0,
+      finished: 0,
+      inTransit: 0,
+      reading: 0,
+      series: 0,
+      solo: total,
+      total,
+      wantToBuy: 0,
+      wantToRead: 0,
+    },
+    topGenres: [],
+    topTags: [],
+  };
+}
+
+function noReading(): ReadingStatisticsOverview {
+  return withActivity({ activeDays: 0, completedReads: 0, pagesRead: 0 });
+}
+
 function overviewRequests(): string[] {
   return fetchMock.mock.calls
     .map(([input]) => String(input))
@@ -115,6 +166,20 @@ function renderStatistics(searchParams = "") {
     </NuqsTestingAdapter>,
   );
   return { onUrlUpdate, queryClient };
+}
+
+function respondByPeriod({
+  allTime,
+  selected,
+}: {
+  allTime: ReadingStatisticsOverview;
+  selected: ReadingStatisticsOverview;
+}): (url: string) => Response {
+  return (url) => jsonResponse(url.includes(ALL_TIME_QUERY) ? allTime : selected);
+}
+
+function selectedPeriodRequests(): string[] {
+  return overviewRequests().filter((url) => !url.includes(ALL_TIME_QUERY));
 }
 
 function withActivity({
@@ -290,27 +355,34 @@ describe("StatisticsOverview tabs", () => {
     expect(within(await activePanel()).queryByText(text.discoveries.title)).toBeNull();
   });
 
-  it("keeps every tab available when the period has no reading, and refetches on a period change", async () => {
+  it("keeps every tab available when the period has no reading, and widens to all time on request", async () => {
     const user = userEvent.setup();
-    overviewResponse = () =>
-      jsonResponse(withActivity({ activeDays: 0, completedReads: 0, pagesRead: 0 }));
+    overviewResponse = respondByPeriod({
+      allTime: allTimeOf(overviewFixture()),
+      selected: noReading(),
+    });
     renderStatistics();
 
     expect(await screen.findByText(text.states.periodEmpty.title)).toBeInTheDocument();
     expect(screen.queryByText(text.kpi.completedReads.label)).toBeNull();
 
-    for (const tab of ["activity", "tastes", "progress"] as const) {
+    for (const tab of ["activity", "progress"] as const) {
       await user.click(screen.getByRole("tab", { name: text.tabs[tab] }));
       await expectSections(SECTION_TITLES[tab]);
     }
-    expect(overviewRequests()).toHaveLength(1);
+    await user.click(screen.getByRole("tab", { name: text.tabs.tastes }));
+    expect(
+      await within(await activePanel()).findByText(text.states.noCompletedReads.periodEmpty.title),
+    ).toBeInTheDocument();
+    expect(selectedPeriodRequests()).toHaveLength(1);
+    expect(allTimeRequests().length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole("tab", { name: text.tabs.overview }));
     await user.click(await screen.findByRole("button", { name: text.states.periodEmpty.action }));
     expect(screen.getByRole("combobox", { name: text.period.label })).toHaveFocus();
 
-    await waitFor(() => expect(overviewRequests()).toHaveLength(2));
-    expect(overviewRequests().at(-1)).toContain("period=all_time");
+    expect(await screen.findByText(text.kpi.completedReads.label)).toBeInTheDocument();
+    expect(overviewRequests().at(-1)).toContain(ALL_TIME_QUERY);
   });
 
   it("shows the activity tab and the full overview when pages were read but no cycle finished", async () => {
@@ -790,5 +862,172 @@ describe("StatisticsOverview period change", () => {
     );
     expect(await findWeekdayRow("понеділок")).toHaveAttribute("aria-pressed", "true");
     expect(await findWeekdayRow("вівторок")).toHaveAttribute("aria-pressed", "false");
+  });
+});
+
+describe("StatisticsOverview without reading", () => {
+  it("drops the show-all-time action once all time is already selected", async () => {
+    libraryTotal = 0;
+    overviewResponse = () => jsonResponse(allTimeOf(noReading()));
+    renderStatistics("?period=all_time");
+
+    expect(await screen.findByText(text.states.noReading.noBooks.title)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: text.states.periodEmpty.action }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("sends an account without books to add its first book", async () => {
+    libraryTotal = 0;
+    overviewResponse = () => jsonResponse(allTimeOf(noReading()));
+    renderStatistics("?period=all_time");
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: text.states.noReading.noBooks.action }),
+    );
+
+    expect(router.push).toHaveBeenCalledWith("/books/new");
+  });
+
+  it("sends an account with books to its books to record progress", async () => {
+    overviewResponse = () => jsonResponse(allTimeOf(noReading()));
+    renderStatistics("?period=all_time");
+
+    expect(await screen.findByText(text.states.noReading.withBooks.title)).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: text.states.noReading.withBooks.action }),
+    );
+
+    expect(router.push).toHaveBeenCalledWith("/books");
+  });
+
+  it("leaves out an empty current goal beside the no-reading state", async () => {
+    const overview = allTimeOf(noReading());
+    overviewResponse = () =>
+      jsonResponse({
+        ...overview,
+        goal: { ...overview.goal, activeGoalsCount: 0, primaryGoal: null },
+        period: { ...overview.period, to: "2099-12-31" },
+      });
+    renderStatistics("?period=all_time");
+
+    expect(await screen.findByText(text.states.noReading.withBooks.title)).toBeInTheDocument();
+    expect(screen.queryByText(text.goal.currentTitle)).not.toBeInTheDocument();
+    expect(screen.queryByText(text.goal.empty)).not.toBeInTheDocument();
+  });
+
+  it("offers the first step instead of a wider period when nothing was read at all", async () => {
+    libraryTotal = 0;
+    overviewResponse = respondByPeriod({ allTime: allTimeOf(noReading()), selected: noReading() });
+    renderStatistics();
+
+    expect(
+      await screen.findByRole("button", { name: text.states.noReading.noBooks.action }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: text.states.periodEmpty.action }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps the show-all-time action when only the selected period has no reading", async () => {
+    overviewResponse = respondByPeriod({
+      allTime: allTimeOf(overviewFixture()),
+      selected: noReading(),
+    });
+    renderStatistics();
+
+    expect(
+      await screen.findByRole("button", { name: text.states.periodEmpty.action }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(text.states.noReading.withBooks.title)).not.toBeInTheDocument();
+  });
+
+  it("explains a reading-free account once on the activity tab and keeps the calendar link", async () => {
+    const overview = allTimeOf(noReading());
+    overviewResponse = () =>
+      jsonResponse({
+        ...overview,
+        meta: {
+          ...overview.meta,
+          activityHistory: {
+            reliableFrom: "2026-02-01",
+            selectedPeriodQuality: "legacy_lower_bound",
+          },
+        },
+      });
+    renderStatistics("?period=all_time&tab=activity");
+    const panel = await activePanel();
+
+    expect(await within(panel).findAllByText(text.states.noReading.withBooks.title)).toHaveLength(
+      1,
+    );
+    expect(within(panel).getByRole("link", { name: text.calendarLink.action })).toBeInTheDocument();
+    for (const title of [text.dynamics.title, text.habits.title, text.habits.weekdays.title]) {
+      expect(within(panel).queryByText(title)).not.toBeInTheDocument();
+    }
+    expect(within(panel).queryAllByText(/≥/)).toHaveLength(0);
+  });
+
+  it("answers a tastes tab without finished books with one state for the whole tab", async () => {
+    overviewResponse = () =>
+      jsonResponse(allTimeOf(withActivity({ activeDays: 4, completedReads: 0, pagesRead: 120 })));
+    renderStatistics("?period=all_time&tab=tastes");
+    const panel = await activePanel();
+
+    expect(
+      await within(panel).findAllByText(text.states.noCompletedReads.withBooks.title),
+    ).toHaveLength(1);
+    for (const title of SECTION_TITLES.tastes) {
+      expect(within(panel).queryByText(title)).not.toBeInTheDocument();
+    }
+  });
+
+  it("leaves the library balance out of the progress tab without owned books", async () => {
+    const overview = overviewFixture();
+    overviewResponse = () =>
+      jsonResponse({
+        ...overview,
+        libraryBalance: {
+          ...overview.libraryBalance,
+          currentOwnedTotal: 0,
+          currentTbrCount: 0,
+          readRatio: null,
+        },
+      });
+    renderStatistics("?tab=progress");
+
+    await expectSections([text.goal.title, text.series.title, text.records.title]);
+    const panel = await activePanel();
+    expect(within(panel).queryByText(text.libraryBalance.title)).not.toBeInTheDocument();
+    expect(within(panel).queryByText(text.progressPending.title)).not.toBeInTheDocument();
+  });
+
+  it("explains the missing progress blocks once when two of them lack data", async () => {
+    const overview = overviewFixture();
+    overviewResponse = () =>
+      jsonResponse({
+        ...overview,
+        libraryBalance: {
+          ...overview.libraryBalance,
+          currentOwnedTotal: 0,
+          currentTbrCount: 0,
+          readRatio: null,
+        },
+        records: { ...overview.records, items: [] },
+      });
+    renderStatistics("?tab=progress");
+    const panel = await activePanel();
+
+    const pending = await within(panel).findByRole("region", {
+      name: text.progressPending.title,
+    });
+    expect(
+      within(pending)
+        .getAllByRole("listitem")
+        .map((item) => item.textContent),
+    ).toEqual([text.progressPending.items.libraryBalance, text.progressPending.items.records]);
+    expect(within(panel).getByText(text.series.title)).toBeInTheDocument();
+    expect(within(panel).queryByText(text.libraryBalance.title)).not.toBeInTheDocument();
+    expect(within(panel).queryByText(text.records.title)).not.toBeInTheDocument();
   });
 });

@@ -10,9 +10,13 @@ import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { RefreshingRegion } from "@/components/refreshing-region";
 import { Skeleton } from "@/components/ui/skeleton";
 import { infiniteScrollStateOf } from "@/hooks/use-infinite-scroll-sentinel";
+import { assertNever } from "@/lib/assert-never";
 import { cn } from "@/lib/utils";
 
-import type { PublishersArchiveState } from "../model/publisher-archive-state";
+import type {
+  PublishersArchiveState,
+  PublishersEmptyEntry,
+} from "../model/publisher-archive-state";
 import type { PublishersViewMode } from "../model/publisher-query";
 
 import { PublisherCard } from "./publisher-card";
@@ -33,61 +37,103 @@ export type PublishersLoadMore = {
 };
 
 type PublishersContentProps = {
+  emptyEntry: PublishersEmptyEntry;
   hasSidebar: boolean;
   loadMore: PublishersLoadMore;
   onAddBook: () => void;
   onClearAll: () => void;
   onClearSearch: () => void;
+  onOpenBooksWithoutPublisher: () => void;
   onResetFilters: () => void;
   onRetry: () => void;
+  onRetrySummary: () => void;
   retryButtonRef: Ref<HTMLButtonElement>;
   state: PublishersArchiveState;
   view: PublishersViewMode;
 };
 
 export function PublishersContent({
+  emptyEntry,
   hasSidebar,
   loadMore,
   onAddBook,
   onClearAll,
   onClearSearch,
+  onOpenBooksWithoutPublisher,
   onResetFilters,
   onRetry,
+  onRetrySummary,
   retryButtonRef,
   state,
   view,
 }: PublishersContentProps) {
   const t = useTranslations("publishers.states");
+  const tBooks = useTranslations("books");
   const gridColumns = hasSidebar ? GRID_COLUMNS.withSidebar : GRID_COLUMNS.withoutSidebar;
+
+  const errorState = (
+    <div aria-live="assertive" role="alert">
+      <EmptyState
+        onPrimary={state.kind === "empty" ? onRetrySummary : onRetry}
+        primaryRef={retryButtonRef}
+        state={{
+          desc: t("error.description"),
+          illu: "error-generic",
+          primary: { icon: "refresh", label: t("error.retry") },
+          title: t("error.title"),
+        }}
+      />
+    </div>
+  );
 
   switch (state.kind) {
     case "empty":
-      return (
-        <EmptyState
-          onPrimary={onAddBook}
-          state={{
-            desc: t("empty.description"),
-            illu: "empty-publishers",
-            primary: { icon: "plus", label: t("empty.addBook") },
-            title: t("empty.title"),
-          }}
-        />
-      );
+      switch (emptyEntry) {
+        case "addBook":
+          return (
+            <EmptyState
+              onPrimary={onAddBook}
+              state={{
+                desc: t("empty.description"),
+                illu: "empty-publishers",
+                primary: { icon: "plus", label: t("empty.addBook") },
+                title: t("empty.title"),
+              }}
+            />
+          );
+        case "addFirstBook":
+          return (
+            <EmptyState
+              onPrimary={onAddBook}
+              state={{
+                desc: t("empty.noBooksDescription"),
+                illu: "empty-publishers",
+                primary: { icon: "plus", label: tBooks("firstBook.cta") },
+                title: t("empty.title"),
+              }}
+            />
+          );
+        case "error":
+          return errorState;
+        case "fillMissingPublishers":
+          return (
+            <EmptyState
+              onPrimary={onOpenBooksWithoutPublisher}
+              state={{
+                desc: t("empty.missingPublisherDescription"),
+                illu: "empty-publishers",
+                primary: { icon: "book", label: t("empty.openBooksWithoutPublisher") },
+                title: t("empty.title"),
+              }}
+            />
+          );
+        case "pending":
+          return <PublishersSkeleton gridColumns={gridColumns} view={view} />;
+        default:
+          return assertNever(emptyEntry);
+      }
     case "error":
-      return (
-        <div aria-live="assertive" role="alert">
-          <EmptyState
-            onPrimary={onRetry}
-            primaryRef={retryButtonRef}
-            state={{
-              desc: t("error.description"),
-              illu: "error-generic",
-              primary: { icon: "refresh", label: t("error.retry") },
-              title: t("error.title"),
-            }}
-          />
-        </div>
-      );
+      return errorState;
     case "loading":
       return <PublishersSkeleton gridColumns={gridColumns} view={view} />;
     case "noFilteredResults":

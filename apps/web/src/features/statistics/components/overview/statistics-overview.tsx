@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReadingStatisticsInsightCode, ReadingStatisticsOverview } from "@app/shared";
+import type { ReadingStatisticsOverview } from "@app/shared";
 import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
@@ -12,29 +12,21 @@ import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
+import { useAuthStore } from "@/features/auth";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 
-import type { DynamicsMetric } from "../../model/statistics-dynamics";
 import type { StatisticsScopeState } from "../../model/statistics-scope-state";
 import type { UseStatisticsParamsResult } from "../../model/use-statistics-params";
 
 import { useReadingStatisticsOverview } from "../../api/use-reading-statistics-overview";
+import { newAccountStart } from "../../model/statistics-account-history";
 import { isLowerBoundComparison } from "../../model/statistics-dynamics";
 import { toStatisticsScopeState } from "../../model/statistics-scope-state";
 import { isComparedTab, STATISTICS_VIEW, toStatisticsTab } from "../../model/statistics-view";
 import { useStatisticsParams } from "../../model/use-statistics-params";
 import { useStatisticsView } from "../../model/use-statistics-view";
 import { StatisticsPeriodControls } from "../controls/statistics-period-controls";
-import { LibraryBalanceSection } from "../progress/library-balance-section";
-import { ReadingGoalCard } from "../progress/reading-goal-card";
-import { RecordsSection } from "../progress/records-section";
-import { SeriesSection } from "../progress/series-section";
-import { ReadingCalendarLink } from "../reading/reading-calendar-link";
-import { ReadingDynamicsCard } from "../reading/reading-dynamics-card";
-import { ReadingHabitsSection } from "../reading/reading-habits-section";
-import { ReadingWeekdayActivity } from "../reading/reading-weekday-activity";
-import { StatisticsFocusTarget } from "../statistics-focus-target";
 import {
   StatisticsError,
   StatisticsNote,
@@ -43,18 +35,10 @@ import {
   StatisticsSectionState,
   StatisticsSkeleton,
 } from "../statistics-states";
-import { AuthorsSection } from "../tastes/authors-section";
-import { DiscoveriesSection } from "../tastes/discoveries-section";
-import { GenresSection } from "../tastes/genres-section";
-import { LanguagesSection } from "../tastes/languages-section";
-import { PublishersSection } from "../tastes/publishers-section";
-import { RatingsSection } from "../tastes/ratings-section";
+import { StatisticsActivityTab } from "./statistics-activity-tab";
 import { StatisticsOverviewTab } from "./statistics-overview-tab";
-
-const ACTIVITY_COMPARISON_INSIGHT_CODE = {
-  pages: "pages_read_vs_comparison",
-  reads: "completed_reads_vs_comparison",
-} as const satisfies Record<DynamicsMetric, ReadingStatisticsInsightCode>;
+import { StatisticsProgressTab } from "./statistics-progress-tab";
+import { StatisticsTastesTab } from "./statistics-tastes-tab";
 
 export function StatisticsOverview() {
   const t = useTranslations("statistics");
@@ -138,6 +122,7 @@ function StatisticsBody({
 }) {
   const t = useTranslations("statistics");
   const { tab } = useStatisticsView(params.state);
+  const user = useAuthStore((state) => state.user);
   const overview = scope.data;
 
   if (scope.isInitialError) {
@@ -158,7 +143,9 @@ function StatisticsBody({
     return tab === "progress" ? <StatisticsProgressSkeleton /> : <StatisticsSkeleton />;
   }
 
-  const isLowerBound = overview.meta.activityHistory.selectedPeriodQuality === "legacy_lower_bound";
+  const isLowerBound =
+    newAccountStart({ meta: overview.meta, user }) === null &&
+    overview.meta.activityHistory.selectedPeriodQuality === "legacy_lower_bound";
 
   return (
     <RefreshingRegion
@@ -190,20 +177,11 @@ function StatisticsTabs({
   params: UseStatisticsParamsResult;
 }) {
   const t = useTranslations("statistics.tabs");
-  const tProgressGroups = useTranslations("statistics.progressGroups");
   const view = useStatisticsView(params.state);
   const isComparisonLowerBound = isLowerBoundComparison({
     comparison: overview.comparison,
     reliableFrom: overview.meta.activityHistory.reliableFrom,
   });
-  const comparisonInsight = overview.overviewInsights[view.metric].find(
-    (insight) => insight.code === ACTIVITY_COMPARISON_INSIGHT_CODE[view.metric],
-  );
-  const comparisonResult =
-    comparisonInsight?.code === "completed_reads_vs_comparison" ||
-    comparisonInsight?.code === "pages_read_vs_comparison"
-      ? comparisonInsight.params
-      : undefined;
 
   const items: PageTabsItem[] = STATISTICS_VIEW.tabs.map((value) => ({ label: t(value), value }));
 
@@ -226,77 +204,20 @@ function StatisticsTabs({
       </PageTabsPanel>
 
       <PageTabsPanel className="flex flex-col gap-6" value="activity">
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-20 xl:items-start">
-          <StatisticsFocusTarget
-            className="min-w-0 xl:col-span-11"
-            isTarget={view.section === "dynamics"}
-          >
-            <ReadingDynamicsCard
-              comparison={overview.comparison}
-              comparisonResult={comparisonResult}
-              dynamics={overview.dynamics}
-              isComparisonLowerBound={isComparisonLowerBound}
-              metric={view.metric}
-              onMetricChange={view.setMetric}
-              period={overview.period}
-              variant="full"
-            />
-          </StatisticsFocusTarget>
-          <StatisticsFocusTarget
-            className="min-w-0 xl:col-span-9"
-            isTarget={view.section === "habits"}
-          >
-            <ReadingHabitsSection calendar={overview.calendar} meta={overview.meta} />
-          </StatisticsFocusTarget>
-        </div>
-        <ReadingWeekdayActivity
-          calendar={overview.calendar}
-          key={[overview.period.from, overview.period.to].join(":")}
-          weekStartDay={overview.meta.weekStartDay}
+        <StatisticsActivityTab
+          isComparisonLowerBound={isComparisonLowerBound}
+          onShowAllTime={onShowAllTime}
+          overview={overview}
+          view={view}
         />
-        <ReadingCalendarLink />
       </PageTabsPanel>
 
       <PageTabsPanel className="flex flex-col gap-4" value="tastes">
-        <StatisticsFocusTarget isTarget={view.section === "ratings"}>
-          <RatingsSection ratings={overview.ratings} />
-        </StatisticsFocusTarget>
-
-        <div className="@container flex flex-col gap-4">
-          <div className="grid grid-cols-1 items-start gap-4 @min-[41rem]:grid-cols-2">
-            <GenresSection genres={overview.genres} />
-            <AuthorsSection authors={overview.authors} />
-          </div>
-          <div className="grid grid-cols-1 items-start gap-4 @min-[41rem]:grid-cols-5">
-            <div className="min-w-0 @min-[41rem]:col-span-3">
-              <PublishersSection publishers={overview.publishers} />
-            </div>
-            <div className="min-w-0 @min-[41rem]:col-span-2">
-              <LanguagesSection languages={overview.languages} />
-            </div>
-          </div>
-        </div>
-
-        {overview.period.kind === "all_time" ? null : (
-          <DiscoveriesSection discoveries={overview.discoveries} />
-        )}
+        <StatisticsTastesTab onShowAllTime={onShowAllTime} overview={overview} view={view} />
       </PageTabsPanel>
 
       <PageTabsPanel className="@container flex flex-col gap-4" value="progress">
-        <section
-          aria-label={tProgressGroups("snapshot")}
-          className="grid grid-cols-1 gap-4 @3xl:grid-cols-2"
-        >
-          <ReadingGoalCard goal={overview.goal} variant="full" />
-          <LibraryBalanceSection libraryBalance={overview.libraryBalance} />
-        </section>
-        <section
-          aria-label={tProgressGroups("period")}
-          className="grid grid-cols-1 gap-4 @3xl:grid-cols-2"
-        >
-          <SeriesSection series={overview.series} />
-          <RecordsSection isLowerBound={isLowerBound} records={overview.records} />
-        </section>
+        <StatisticsProgressTab isLowerBound={isLowerBound} overview={overview} />
       </PageTabsPanel>
     </PageTabs>
   );

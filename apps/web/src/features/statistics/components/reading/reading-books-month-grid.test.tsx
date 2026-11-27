@@ -27,6 +27,7 @@ const PANEL_ID = "reading-books-day-panel";
 const TEXT_PATTERN = { dayNumber: /^\d{1,2}$/, overflowCount: /^\+\d+$/ } as const;
 
 const CELL_TONE_CLASS = {
+  beforeAccount: "bg-muted/60",
   empty: "bg-card",
   future: "border-dashed",
   unknown: "bg-secondary/60",
@@ -69,7 +70,10 @@ function cellOf(label: string): HTMLElement {
   return cell;
 }
 
-function cellText(key: "dayEmpty" | "dayFuture" | "dayUnknown", date: string): string {
+function cellText(
+  key: "dayBeforeAccount" | "dayEmpty" | "dayFuture" | "dayUnknown",
+  date: string,
+): string {
   return collapseSpaces(translateBooks(key, { date: formatDayLong(date, "uk") }));
 }
 
@@ -96,10 +100,12 @@ function decorations(scope: HTMLElement): HTMLElement[] {
 function renderGrid(
   days: StatisticsCalendarDay[],
   {
+    accountStart = null,
     jumpTarget,
     onSelectDay = vi.fn(),
     selectedDate = null,
   }: {
+    accountStart?: Nullable<string>;
     jumpTarget?: BooksCalendarJumpTarget;
     onSelectDay?: (date: string) => void;
     selectedDate?: Nullable<string>;
@@ -107,6 +113,7 @@ function renderGrid(
 ) {
   return renderWithProviders(
     <ReadingBooksMonthGrid
+      accountStart={accountStart}
       days={days}
       jumpTarget={jumpTarget}
       monthKey={MONTH.key}
@@ -264,6 +271,19 @@ describe("ReadingBooksMonthGrid days without reading", () => {
     expect(future).toHaveClass(CELL_TONE_CLASS.future);
     expect(future).not.toHaveClass(CELL_TONE_CLASS.unknown);
     expect(future).not.toHaveClass(CELL_TONE_CLASS.empty);
+  });
+
+  it("marks the days before the account was created in the muted tone with their own label", () => {
+    renderGrid([dayOn("2026-03-05"), dayOn("2026-03-10")], { accountStart: "2026-03-10" });
+
+    const recordedBefore = cellOf(cellText("dayBeforeAccount", "2026-03-05"));
+    const missingBefore = cellOf(cellText("dayBeforeAccount", "2026-03-03"));
+    expect(recordedBefore).toHaveClass(CELL_TONE_CLASS.beforeAccount);
+    expect(missingBefore).toHaveClass(CELL_TONE_CLASS.beforeAccount);
+    expect(recordedBefore).not.toHaveClass(CELL_TONE_CLASS.unknown);
+    expect(screen.queryByText(cellText("dayEmpty", "2026-03-05"))).not.toBeInTheDocument();
+    expect(screen.getByText(cellText("dayEmpty", "2026-03-10"))).toBeInTheDocument();
+    expect(screen.getByText(cellText("dayUnknown", "2026-03-12"))).toBeInTheDocument();
   });
 
   it("announces a reliable zero day as a day without reading and offers no button for it", () => {

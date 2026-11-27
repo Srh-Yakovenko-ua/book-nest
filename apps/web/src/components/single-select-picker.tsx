@@ -24,6 +24,7 @@ export type SingleSelectPickerLabels = {
   loadError: string;
   loading: string;
   loadMoreError: string;
+  noMatch?: string;
   results: string;
   resultsCount: (count: number) => string;
   retry: string;
@@ -108,6 +109,8 @@ export function SingleSelectPicker<TOption extends Identified, TValue extends Id
     items,
   } = results;
   const selectedDetailsId = `${id}-selected`;
+  const emptyMessage =
+    appliedSearch.trim() === "" ? labels.empty : (labels.noMatch ?? labels.empty);
 
   const { onScroll, scrollRef } = useInfiniteScroll({
     hasNextPage: hasNextPage && !isFetchNextPageError,
@@ -222,7 +225,14 @@ export function SingleSelectPicker<TOption extends Identified, TValue extends Id
       </div>
 
       <p className="sr-only" role="status">
-        {liveStatus({ isError, isPending, isPlaceholderData, itemCount: items.length, labels })}
+        {liveStatus({
+          emptyMessage,
+          isError,
+          isPending,
+          isPlaceholderData,
+          itemCount: items.length,
+          labels,
+        })}
       </p>
 
       <div
@@ -247,6 +257,7 @@ export function SingleSelectPicker<TOption extends Identified, TValue extends Id
           <p className="py-2 text-center text-xs text-muted-foreground">{labels.loading}</p>
         ) : null}
         <SingleSelectResults
+          emptyMessage={emptyMessage}
           idPrefix={id}
           isError={isError}
           isPending={isPending}
@@ -277,12 +288,14 @@ export function SingleSelectPicker<TOption extends Identified, TValue extends Id
 }
 
 function liveStatus({
+  emptyMessage,
   isError,
   isPending,
   isPlaceholderData,
   itemCount,
   labels,
 }: {
+  emptyMessage: string;
   isError: boolean;
   isPending: boolean;
   isPlaceholderData: boolean;
@@ -292,10 +305,11 @@ function liveStatus({
   if (isPending || isPlaceholderData) return labels.loading;
   if (itemCount > 0) return labels.resultsCount(itemCount);
   if (isError) return "";
-  return labels.empty;
+  return emptyMessage;
 }
 
 function SingleSelectResults<TOption extends Identified>({
+  emptyMessage,
   idPrefix,
   isError,
   isPending,
@@ -306,6 +320,7 @@ function SingleSelectResults<TOption extends Identified>({
   required,
   selectedId,
 }: {
+  emptyMessage: string;
   idPrefix: string;
   isError: boolean;
   isPending: boolean;
@@ -344,7 +359,7 @@ function SingleSelectResults<TOption extends Identified>({
   if (items.length === 0) {
     return (
       <p aria-hidden className="px-3 py-6 text-center text-sm text-muted-foreground">
-        {labels.empty}
+        {emptyMessage}
       </p>
     );
   }

@@ -1,13 +1,16 @@
 "use client";
 
-import type { BookView } from "@app/shared";
+import type { BookView, Nullable } from "@app/shared";
 import type { FormEvent } from "react";
 
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useDeferredValue, useState } from "react";
 
+import type { LibraryPresence } from "@/features/books/api/use-library-presence";
+
 import { BookCoverFallback } from "@/components/book-cover-fallback";
+import { PickerNoEntities } from "@/components/picker-no-entities";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,6 +25,8 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLibraryBooks } from "@/features/books/api/use-books";
+import { useLibraryPresence } from "@/features/books/api/use-library-presence";
+import { BOOK_CREATE_PATH } from "@/features/books/model/book-create-href";
 import { libraryListParams } from "@/features/books/model/library-query";
 import { useRouter } from "@/i18n/navigation";
 import { BooksControllerListSort } from "@/shared/api/generated/model";
@@ -32,6 +37,13 @@ const PICKER_SKELETON_COUNT = 4;
 type DedicationBookPickerDialogProps = {
   onOpenChange: (open: boolean) => void;
   open: boolean;
+};
+
+type DedicationPickerNotice = "allDedicated" | "noBooks";
+
+type PickerNoticeCopy = {
+  action: string;
+  message: string;
 };
 
 export function DedicationBookPickerDialog({
@@ -45,6 +57,17 @@ export function DedicationBookPickerDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+function dedicationPickerNotice({
+  isUnfilteredEmpty,
+  library,
+}: {
+  isUnfilteredEmpty: boolean;
+  library: LibraryPresence;
+}): Nullable<DedicationPickerNotice> {
+  if (!isUnfilteredEmpty || library.kind !== "ready") return null;
+  return library.total === 0 ? "noBooks" : "allDedicated";
 }
 
 function PickerCover({ alt, seed, src }: { alt: string; seed: string; src?: string }) {
@@ -63,7 +86,9 @@ function PickerCover({ alt, seed, src }: { alt: string; seed: string; src?: stri
 
 function PickerForm({ onDone }: { onDone: () => void }) {
   const t = useTranslations("dedications.picker");
+  const tBooks = useTranslations("books");
   const router = useRouter();
+  const library = useLibraryPresence();
 
   const [selectedBookId, setSelectedBookId] = useState<null | string>(null);
   const [search, setSearch] = useState("");
@@ -80,6 +105,19 @@ function PickerForm({ onDone }: { onDone: () => void }) {
   const items: BookView[] = (books.data?.pages ?? [])
     .flatMap((page) => page.items)
     .filter((book) => (book.dedication ?? "").trim() === "");
+  const notice = dedicationPickerNotice({
+    isUnfilteredEmpty:
+      books.isSuccess &&
+      query === "" &&
+      !books.isPlaceholderData &&
+      !books.hasNextPage &&
+      items.length === 0,
+    library,
+  });
+  const noticeCopy = {
+    allDedicated: { action: t("addNewBook"), message: t("allDedicated") },
+    noBooks: { action: tBooks("firstBook.cta"), message: t("noBooks") },
+  } satisfies Record<DedicationPickerNotice, PickerNoticeCopy>;
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -104,33 +142,40 @@ function PickerForm({ onDone }: { onDone: () => void }) {
         value={search}
       />
 
-      <div className="max-h-64 overflow-y-auto rounded-lg border border-border p-1">
-        <PickerList
-          emptyLabel={t("empty")}
-          errorLabel={t("loadError")}
-          isError={books.isError}
-          isPending={books.isPending}
-          items={items}
-          onSelect={setSelectedBookId}
-          selectAria={(title) => t("selectBookAria", { title })}
-          selectedBookId={selectedBookId}
+      {notice === null ? (
+        <div className="max-h-64 overflow-y-auto rounded-lg border border-border p-1">
+          <PickerList
+            emptyLabel={t("empty")}
+            errorLabel={t("loadError")}
+            isError={books.isError}
+            isPending={books.isPending}
+            items={items}
+            onSelect={setSelectedBookId}
+            selectAria={(title) => t("selectBookAria", { title })}
+            selectedBookId={selectedBookId}
+          />
+          {books.hasNextPage ? (
+            <div className="p-1.5">
+              <Button
+                className="w-full"
+                disabled={books.isFetchingNextPage}
+                loading={books.isFetchingNextPage}
+                onClick={() => void books.fetchNextPage()}
+                size="sm"
+                type="button"
+                variant="ghost"
+              >
+                {t("loadMore")}
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <PickerNoEntities
+          action={{ href: BOOK_CREATE_PATH, icon: "plus", label: noticeCopy[notice].action }}
+          message={noticeCopy[notice].message}
         />
-        {books.hasNextPage ? (
-          <div className="p-1.5">
-            <Button
-              className="w-full"
-              disabled={books.isFetchingNextPage}
-              loading={books.isFetchingNextPage}
-              onClick={() => void books.fetchNextPage()}
-              size="sm"
-              type="button"
-              variant="ghost"
-            >
-              {t("loadMore")}
-            </Button>
-          </div>
-        ) : null}
-      </div>
+      )}
 
       <DialogFooter>
         <Button onClick={onDone} type="button" variant="secondary">

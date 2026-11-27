@@ -104,6 +104,7 @@ const meta = {
   args: {
     activeFilters: null,
     counterLabel: "Показано 4 із 8 серій",
+    createButtonRef: null,
     hasActiveQuery: false,
     hasAnySeries: true,
     isError: false,
@@ -165,7 +166,7 @@ export const Loading: Story = {
 export const Empty: Story = {
   args: { hasAnySeries: false, series: [], unfinishedCount: 0 },
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole("heading", { name: "Збери першу книжкову серію" })).toBeVisible();
+    await expect(canvas.getByRole("heading", { name: "У тебе ще немає серій" })).toBeVisible();
   },
 };
 
@@ -179,7 +180,9 @@ export const UnfinishedEmpty: Story = {
 export const NoResults: Story = {
   args: { hasActiveQuery: true, series: [] },
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole("heading", { name: "Серій не знайдено" })).toBeVisible();
+    await expect(
+      canvas.getByRole("heading", { name: "Нічого не знайдено за поточним пошуком чи фільтрами" }),
+    ).toBeVisible();
   },
 };
 

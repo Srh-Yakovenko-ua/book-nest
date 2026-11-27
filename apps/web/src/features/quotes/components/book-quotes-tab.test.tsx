@@ -13,6 +13,7 @@ import type { BookTabScrollMemory } from "@/hooks/use-book-tab-scroll-anchor";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
 import { createBookTabScrollMemory } from "@/hooks/use-book-tab-scroll-anchor";
+import messages from "@/messages/uk.json";
 import {
   mockIntersectionObserver,
   renderWithProviders,
@@ -81,7 +82,7 @@ const COPY = {
   clearSearch: "Очистити пошук",
   emptyBook: "У цій книзі ще немає цитат",
   emptyFilters: "За цим фільтром цитат немає",
-  emptySearch: "Нічого не знайдено",
+  emptySearch: messages.quotes.noResults.title,
   error: "Не вдалося завантажити цитати",
   loading: "Завантаження цитат...",
   nextPageError: "Не вдалося завантажити ще цитати",

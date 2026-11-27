@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 
+import type { BookOrderHistorySummaryView, BookOrderStatisticsView } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
@@ -17,15 +18,19 @@ import {
 } from "../model/statistics.fixtures";
 import { DeliveryStatistics } from "./delivery-statistics";
 
+const router = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
+
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   ),
+  useRouter: () => router,
 }));
 
 type StatisticsHandlers = {
   activeAge: () => Promise<Response>;
   budgets: () => Promise<Response>;
+  historySummary: () => Promise<Response>;
   statistics: () => Promise<Response>;
 };
 
@@ -59,6 +64,8 @@ const EMPTY_VIEW = makeStatisticsView({
 
 const copy = messages.delivery.statistics;
 
+const ACTIVE_AGE_TITLE = "Активні замовлення: час від оформлення";
+
 const OVERVIEW_QUERY_PREFIX = deliveryKeys.statistics.overview({}).slice(0, 2);
 
 const fetchMock = vi.fn();
@@ -66,6 +73,7 @@ const fetchMock = vi.fn();
 const handlers: StatisticsHandlers = {
   activeAge: () => Promise.resolve(jsonResponse(makeActiveMoneyAge())),
   budgets: () => Promise.resolve(jsonResponse(makeBookBudgetOverview())),
+  historySummary: () => Promise.resolve(jsonResponse(makeHistorySummary(4))),
   statistics: () => Promise.resolve(jsonResponse(makeStatisticsView())),
 };
 
@@ -90,11 +98,33 @@ function hangs(): Promise<Response> {
   return new Promise<Response>(() => undefined);
 }
 
+function inactiveView(overrides: Partial<BookOrderStatisticsView> = {}): BookOrderStatisticsView {
+  const view = makeStatisticsView(overrides);
+  return { ...view, snapshot: { ...view.snapshot, activeOrdersCount: 0 } };
+}
+
 function jsonResponse(body: unknown): Response {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
     status: 200,
   });
+}
+
+function makeHistorySummary(completedOrdersCount: number): BookOrderHistorySummaryView {
+  return {
+    cancelledBooksCount: 0,
+    cancelledOrdersCount: 0,
+    completedOrdersCount,
+    completedWithCancellationsCount: 0,
+    completedWithoutCancellationsCount: completedOrdersCount,
+    latestReceipt: null,
+    receivedBooksCount: completedOrdersCount,
+    receivedOrdersCount: completedOrdersCount,
+    receivedSeriesBooksCount: 0,
+    receivedSeriesCount: 0,
+    receivedShipmentsCount: completedOrdersCount,
+    receivedStandaloneBooksCount: completedOrdersCount,
+  };
 }
 
 function renderStatistics(searchParams = "") {
@@ -120,6 +150,7 @@ async function settle(): Promise<void> {
 beforeEach(() => {
   handlers.activeAge = () => Promise.resolve(jsonResponse(makeActiveMoneyAge()));
   handlers.budgets = () => Promise.resolve(jsonResponse(makeBookBudgetOverview()));
+  handlers.historySummary = () => Promise.resolve(jsonResponse(makeHistorySummary(4)));
   handlers.statistics = () => Promise.resolve(jsonResponse(makeStatisticsView()));
 
   fetchMock.mockReset();
@@ -128,6 +159,7 @@ beforeEach(() => {
     if (url.includes("/api/delivery/orders/statistics/active-age")) return handlers.activeAge();
     if (url.includes("/api/delivery/orders/statistics")) return handlers.statistics();
     if (url.includes("/api/delivery/budgets")) return handlers.budgets();
+    if (url.includes("/api/delivery/books/history/summary")) return handlers.historySummary();
     return Promise.reject(new Error(`unexpected ${url}`));
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -333,14 +365,77 @@ describe("DeliveryStatistics empty states", () => {
   });
 
   it("greets a truly empty library with one onboarding state", async () => {
-    handlers.statistics = () => Promise.resolve(jsonResponse(EMPTY_VIEW));
+    handlers.statistics = () => Promise.resolve(jsonResponse(inactiveView(EMPTY_VIEW)));
+    handlers.historySummary = () => Promise.resolve(jsonResponse(makeHistorySummary(0)));
 
     renderStatistics("?period=all_time");
 
-    expect(await screen.findByText("Покупок ще немає")).toBeInTheDocument();
+    expect(await screen.findByText(copy.states.allTimeEmpty.title)).toBeInTheDocument();
     expect(screen.getByText("Бюджет на книги")).toBeInTheDocument();
-    expect(screen.queryByText("Витрачено")).toBe(null);
-    expect(screen.queryByText("Активні замовлення: час від оформлення")).toBe(null);
+    expect(screen.queryByText("Витрачено")).not.toBeInTheDocument();
+    expect(screen.queryByText(ACTIVE_AGE_TITLE)).not.toBeInTheDocument();
+  });
+
+  it("sends the first-order action of an empty library to the in-transit page", async () => {
+    handlers.statistics = () => Promise.resolve(jsonResponse(inactiveView(EMPTY_VIEW)));
+    handlers.historySummary = () => Promise.resolve(jsonResponse(makeHistorySummary(0)));
+
+    renderStatistics("?period=all_time");
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: copy.states.allTimeEmpty.action }),
+    );
+
+    expect(router.push).toHaveBeenCalledWith("/delivery/in-transit");
+  });
+
+  it("offers the first order instead of a wider period when no order exists at all", async () => {
+    handlers.statistics = () => Promise.resolve(jsonResponse(inactiveView(EMPTY_VIEW)));
+    handlers.historySummary = () => Promise.resolve(jsonResponse(makeHistorySummary(0)));
+
+    renderStatistics();
+
+    expect(
+      await screen.findByRole("button", { name: copy.states.allTimeEmpty.action }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: copy.states.periodEmpty.action }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers to change the period when the only orders lie outside it", async () => {
+    handlers.statistics = () => Promise.resolve(jsonResponse(inactiveView(EMPTY_VIEW)));
+    handlers.historySummary = () => Promise.resolve(jsonResponse(makeHistorySummary(5)));
+
+    renderStatistics();
+
+    expect(await screen.findByText(copy.states.periodEmpty.title)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: copy.states.periodEmpty.action }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(copy.states.allTimeEmpty.title)).not.toBeInTheDocument();
+  });
+
+  it("drops the empty active-order analytics from a period without active orders", async () => {
+    handlers.statistics = () => Promise.resolve(jsonResponse(inactiveView(EMPTY_VIEW)));
+    handlers.historySummary = () => Promise.resolve(jsonResponse(makeHistorySummary(5)));
+
+    renderStatistics();
+
+    expect(await screen.findByText(copy.states.periodEmpty.title)).toBeInTheDocument();
+    expect(screen.getByText("Бюджет на книги")).toBeInTheDocument();
+    expect(screen.queryByText("Витрачено")).not.toBeInTheDocument();
+    expect(screen.queryByText(ACTIVE_AGE_TITLE)).not.toBeInTheDocument();
+  });
+
+  it("drops the active-orders card from the dashboard when no order is active", async () => {
+    handlers.statistics = () => Promise.resolve(jsonResponse(inactiveView()));
+
+    renderStatistics();
+    await settle();
+
+    expect(screen.getByText("Статуси доставки")).toBeInTheDocument();
+    expect(screen.queryByText(ACTIVE_AGE_TITLE)).not.toBeInTheDocument();
   });
 
   it("does not call an empty year an empty library", async () => {
@@ -348,8 +443,8 @@ describe("DeliveryStatistics empty states", () => {
 
     renderStatistics();
 
-    expect(await screen.findByText("У вибраному періоді немає замовлень")).toBeInTheDocument();
-    expect(screen.queryByText("Покупок ще немає")).toBe(null);
+    expect(await screen.findByText(copy.states.periodEmpty.title)).toBeInTheDocument();
+    expect(screen.queryByText(copy.states.allTimeEmpty.title)).not.toBeInTheDocument();
   });
 });
 

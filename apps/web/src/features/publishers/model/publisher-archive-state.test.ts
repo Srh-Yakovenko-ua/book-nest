@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { resolvePublishersArchiveState } from "./publisher-archive-state";
+import {
+  resolvePublishersArchiveState,
+  resolvePublishersEmptyEntry,
+} from "./publisher-archive-state";
 import { makePublisherListItem } from "./publisher.fixtures";
 
 const BASE = {
@@ -117,5 +120,47 @@ describe("resolvePublishersArchiveState", () => {
         summaryPublishersCount: 0,
       }),
     ).toEqual({ kind: "empty" });
+  });
+});
+
+describe("resolvePublishersEmptyEntry", () => {
+  it.each([
+    [false, "pending"],
+    [true, "error"],
+  ] as const)("without a summary, failed %s, resolves to %s", (summaryFailed, entry) => {
+    expect(resolvePublishersEmptyEntry({ summary: null, summaryFailed })).toBe(entry);
+  });
+
+  it("asks for the first book when the library has none", () => {
+    expect(
+      resolvePublishersEmptyEntry({
+        summary: { booksWithoutPublisherCount: 0, booksWithPublisherCount: 0 },
+        summaryFailed: false,
+      }),
+    ).toBe("addFirstBook");
+  });
+
+  it.each([
+    [3, 0],
+    [2, 5],
+  ])(
+    "leads to the missing publishers with %i books without one and %i with one",
+    (booksWithoutPublisherCount, booksWithPublisherCount) => {
+      expect(
+        resolvePublishersEmptyEntry({
+          summary: { booksWithoutPublisherCount, booksWithPublisherCount },
+          summaryFailed: false,
+        }),
+      ).toBe("fillMissingPublishers");
+    },
+  );
+
+  it("falls back to adding a book when every book already has a publisher", () => {
+    expect(
+      resolvePublishersEmptyEntry({
+        summary: { booksWithoutPublisherCount: 0, booksWithPublisherCount: 5 },
+        summaryFailed: false,
+      }),
+    ).toBe("addBook");
   });
 });

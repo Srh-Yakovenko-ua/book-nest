@@ -22,6 +22,7 @@ type LoanHistoryListProps = {
   onClearFilters: () => void;
   onCorrectDate: (loanId: string) => void;
   onEditNote: (loanId: string) => void;
+  onOpenActiveLoans: () => void;
   onOpenContact: (contactId: string) => void;
   onOpenDetails: (loanId: string) => void;
   onRetry: () => void;
@@ -37,6 +38,7 @@ export function LoanHistoryList({
   onClearFilters,
   onCorrectDate,
   onEditNote,
+  onOpenActiveLoans,
   onOpenContact,
   onOpenDetails,
   onRetry,
@@ -90,10 +92,11 @@ export function LoanHistoryList({
     const empty: EmptyStateEntry = {
       desc: t("empty.description"),
       illu: "empty-borrowed",
+      primary: { icon: "arrow-right", label: t("empty.cta") },
       title: t("empty.title"),
     };
 
-    return <EmptyState state={empty} />;
+    return <EmptyState onPrimary={onOpenActiveLoans} state={empty} />;
   }
 
   return (

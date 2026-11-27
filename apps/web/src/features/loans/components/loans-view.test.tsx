@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 
 import type {
+  BookView,
   LoanContactView,
   LoanDirectionSummary,
   LoanHistoryOverviewView,
@@ -74,9 +75,12 @@ const PINNED_CLOCK = {
   midday: "2026-11-15T12:00:00.000Z",
   timeZone: "UTC",
 } as const;
+const LENDABLE_BOOK = makeBookView({ ownershipStatus: "owned", title: "Кобзар" });
 
 let listStatus = 200;
 let profileTimeZone: string = PINNED_CLOCK.timeZone;
+let libraryTotal = 3;
+let lendCandidates: BookView[] = [LENDABLE_BOOK];
 
 const EMPTY_DIRECTION_SUMMARY: LoanDirectionSummary = {
   earliestLoanDate: null,
@@ -114,6 +118,8 @@ afterEach(() => {
   requestedUrls.length = 0;
   listStatus = 200;
   profileTimeZone = PINNED_CLOCK.timeZone;
+  libraryTotal = 3;
+  lendCandidates = [LENDABLE_BOOK];
   push.mockClear();
 });
 
@@ -1354,6 +1360,79 @@ describe("LoansView in the profile time zone", () => {
   });
 });
 
+describe("LoansView first actions on an empty page", () => {
+  it("opens the book step of the lend dialog when an owned book can be lent", async () => {
+    mockLoans([]);
+    renderLoans("lent_to_someone");
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: copy.states.typeEmpty.lent.cta }),
+    );
+
+    expect(
+      await screen.findByRole("dialog", {
+        name: messages.books.details.loan.bookStep.lent.multiTitle,
+      }),
+    ).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("opens the create form with the lent status when no owned book can be lent", async () => {
+    lendCandidates = [];
+    mockLoans([]);
+    renderLoans("lent_to_someone");
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: copy.states.typeEmpty.lent.cta }),
+    );
+
+    expect(push).toHaveBeenCalledWith("/books/new?ownershipStatus=lent_to_someone");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("opens the create form with the borrowed status from the empty borrowed page", async () => {
+    mockLoans([]);
+    renderLoans("borrowed_from_someone");
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: copy.states.typeEmpty.borrowed.cta }),
+    );
+
+    expect(push).toHaveBeenCalledWith("/books/new?ownershipStatus=borrowed_from_someone");
+  });
+
+  it("keeps the borrowed add action when lent loans exist", async () => {
+    mockLoans([], { lent: { ...EMPTY_DIRECTION_SUMMARY, totalCount: 3 } });
+    renderLoans("borrowed_from_someone");
+
+    expect(
+      await screen.findByRole("button", { name: copy.states.typeEmpty.borrowed.cta }),
+    ).toBeInTheDocument();
+  });
+
+  it("leads to all books from an empty page when the library has books", async () => {
+    mockLoans([]);
+    renderLoans("borrowed_from_someone");
+
+    await userEvent.click(await screen.findByRole("button", { name: copy.states.empty.secondary }));
+
+    expect(push).toHaveBeenCalledWith("/books");
+  });
+
+  it("drops the all-books path from an empty page when the library has no books", async () => {
+    libraryTotal = 0;
+    lendCandidates = [];
+    mockLoans([]);
+    renderLoans("lent_to_someone");
+
+    await screen.findByRole("button", { name: copy.states.typeEmpty.lent.cta });
+
+    expect(
+      screen.queryByRole("button", { name: copy.states.empty.secondary }),
+    ).not.toBeInTheDocument();
+  });
+});
+
 function chip(label: string): HTMLElement {
   return screen.getByRole("radio", { name: chipName(label) });
 }
@@ -1501,6 +1580,36 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json" },
     status,
   });
+}
+
+function libraryBooksPage(items: BookView[]) {
+  return {
+    items,
+    page: 1,
+    pagesCount: items.length > 0 ? 1 : 0,
+    pageSize: 20,
+    totalCount: items.length,
+  };
+}
+
+function libraryOverview(total: number) {
+  return {
+    recentlyAdded: [],
+    summary: {
+      borrowed: 0,
+      favorites: 0,
+      finished: 0,
+      inTransit: 0,
+      reading: 0,
+      series: 0,
+      solo: 0,
+      total,
+      wantToBuy: 0,
+      wantToRead: 0,
+    },
+    topGenres: [],
+    topTags: [],
+  };
 }
 
 function listUrl(): string {
@@ -1658,6 +1767,13 @@ function stubLoansApi({
       }
       if (url.includes("/loan/extend") || url.includes("/loan/reminder")) {
         return Promise.resolve(jsonResponse(extendedBookView()));
+      }
+      const { pathname } = new URL(url, "http://localhost");
+      if (pathname === "/api/books/overview") {
+        return Promise.resolve(jsonResponse(libraryOverview(libraryTotal)));
+      }
+      if (pathname === "/api/books") {
+        return Promise.resolve(jsonResponse(libraryBooksPage(lendCandidates)));
       }
       return Promise.reject(new Error(`unexpected fetch: ${url}`));
     }),

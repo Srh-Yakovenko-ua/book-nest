@@ -8,24 +8,36 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { usePublisherDetails } from "@/features/publishers";
 import { useSeriesDetails } from "@/features/series";
 
+import type { BookCreateOwnershipStatus } from "../model/book-create-href";
 import type { BookFormInitialSeries, PublisherSelection } from "../model/create-book-form";
 
 import { BookForm } from "./book-form";
 
 type CreateBookFormProps = {
+  ownershipStatus?: BookCreateOwnershipStatus;
   partNumber?: number;
   publisherId?: string;
   seriesId?: string;
 };
 
-export function CreateBookForm({ partNumber, publisherId, seriesId }: CreateBookFormProps) {
+export function CreateBookForm({
+  ownershipStatus,
+  partNumber,
+  publisherId,
+  seriesId,
+}: CreateBookFormProps) {
   return (
     <ResolvePublisher publisherId={publisherId}>
       {(initialPublisher) =>
         seriesId === undefined ? (
-          <BookForm initialPublisher={initialPublisher} mode="create" />
+          <BookForm
+            initialOwnershipStatus={ownershipStatus}
+            initialPublisher={initialPublisher}
+            mode="create"
+          />
         ) : (
           <CreateBookInSeries
+            initialOwnershipStatus={ownershipStatus}
             initialPublisher={initialPublisher}
             partNumber={partNumber}
             seriesId={seriesId}
@@ -55,10 +67,12 @@ function BookFormSkeleton() {
 }
 
 function CreateBookInSeries({
+  initialOwnershipStatus,
   initialPublisher,
   partNumber,
   seriesId,
 }: {
+  initialOwnershipStatus?: BookCreateOwnershipStatus;
   initialPublisher?: PublisherSelection;
   partNumber?: number;
   seriesId: string;
@@ -67,7 +81,15 @@ function CreateBookInSeries({
 
   if (isPending) return <BookFormSkeleton />;
 
-  if (isError) return <BookForm initialPublisher={initialPublisher} mode="create" />;
+  if (isError) {
+    return (
+      <BookForm
+        initialOwnershipStatus={initialOwnershipStatus}
+        initialPublisher={initialPublisher}
+        mode="create"
+      />
+    );
+  }
 
   const initialSeries: BookFormInitialSeries = {
     partNumber,
@@ -88,7 +110,12 @@ function CreateBookInSeries({
   };
 
   return (
-    <BookForm initialPublisher={initialPublisher} initialSeries={initialSeries} mode="create" />
+    <BookForm
+      initialOwnershipStatus={initialOwnershipStatus}
+      initialPublisher={initialPublisher}
+      initialSeries={initialSeries}
+      mode="create"
+    />
   );
 }
 

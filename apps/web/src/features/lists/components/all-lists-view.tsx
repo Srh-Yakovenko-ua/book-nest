@@ -32,6 +32,7 @@ const SKELETON_COUNT = 6;
 
 type AllListsViewProps = {
   allShownLabel: string;
+  createButtonRef?: Ref<HTMLButtonElement>;
   hasActiveFilters: boolean;
   hasAnyLists: boolean;
   hasNextPage: boolean;
@@ -47,7 +48,7 @@ type AllListsViewProps = {
   onDeleteList: (list: CustomListCard) => void;
   onEditList: (list: CustomListCard) => void;
   onLoadMore: () => void;
-  onOpenLibrary: () => void;
+  onOpenLibrary: Nullable<() => void>;
   onRetry: () => void;
   refetchError: Nullable<RefetchErrorState>;
   sidebar: ReactNode;
@@ -58,6 +59,7 @@ type AllListsViewProps = {
 
 export function AllListsView({
   allShownLabel,
+  createButtonRef,
   hasActiveFilters,
   hasAnyLists,
   hasNextPage,
@@ -83,6 +85,7 @@ export function AllListsView({
 }: AllListsViewProps) {
   const t = useTranslations("lists.catalog");
   const showToolbar = !isError && (isPending || hasAnyLists);
+  const isConfirmedEmpty = !isError && !isPending && !hasAnyLists;
   const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsHeadingRef);
 
@@ -98,10 +101,12 @@ export function AllListsView({
           </div>
           <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
-        <Button className="self-start sm:self-auto" onClick={onCreateList}>
-          <UiIcon name="plus" size={16} />
-          {t("create")}
-        </Button>
+        {isConfirmedEmpty ? null : (
+          <Button className="self-start sm:self-auto" onClick={onCreateList} ref={createButtonRef}>
+            <UiIcon name="plus" size={16} />
+            {t("create")}
+          </Button>
+        )}
       </header>
 
       {showToolbar ? summary : null}
@@ -117,6 +122,7 @@ export function AllListsView({
           </h2>
           <RefetchErrorBanner state={refetchError} />
           <ListsContent
+            createButtonRef={createButtonRef}
             hasActiveFilters={hasActiveFilters}
             hasAnyLists={hasAnyLists}
             isError={isError}
@@ -171,6 +177,7 @@ function ListCardSkeleton() {
 }
 
 function ListsContent({
+  createButtonRef,
   hasActiveFilters,
   hasAnyLists,
   isError,
@@ -186,6 +193,7 @@ function ListsContent({
   retryButtonRef,
   view,
 }: {
+  createButtonRef?: Ref<HTMLButtonElement>;
   hasActiveFilters: boolean;
   hasAnyLists: boolean;
   isError: boolean;
@@ -196,7 +204,7 @@ function ListsContent({
   onCreateList: () => void;
   onDeleteList: (list: CustomListCard) => void;
   onEditList: (list: CustomListCard) => void;
-  onOpenLibrary: () => void;
+  onOpenLibrary: Nullable<() => void>;
   onRetry: () => void;
   retryButtonRef: Ref<HTMLButtonElement>;
   view: ListViewMode;
@@ -227,10 +235,18 @@ function ListsContent({
         desc: t("empty.description"),
         illu: "empty-lists",
         primary: { icon: "plus", label: t("empty.create") },
-        secondary: { icon: "book", label: t("empty.secondary") },
+        secondary:
+          onOpenLibrary === null ? undefined : { icon: "book", label: t("empty.secondary") },
         title: t("empty.title"),
       };
-      return <EmptyState onPrimary={onCreateList} onSecondary={onOpenLibrary} state={emptyState} />;
+      return (
+        <EmptyState
+          onPrimary={onCreateList}
+          onSecondary={onOpenLibrary ?? undefined}
+          primaryRef={createButtonRef}
+          state={emptyState}
+        />
+      );
     }
     if (hasActiveFilters) {
       const noResultsState: EmptyStateEntry = {

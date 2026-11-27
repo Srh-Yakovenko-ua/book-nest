@@ -369,6 +369,35 @@ describe("HomeDashboard onboarding", () => {
     expect(screen.queryByRole("region", { name: home.reading.title })).not.toBeInTheDocument();
   });
 
+  it("drops the four-counter strip and the welcome shelf art while onboarding", async () => {
+    fixtures = emptyHome(
+      readingView({
+        activeBooks: emptyActiveBooksPage(),
+        goal: noGoal(),
+        hasReadingHistory: false,
+      }),
+    );
+
+    renderWithProviders(<HomeDashboard />);
+
+    await screen.findByRole("region", { name: home.onboarding.title });
+    expect(screen.queryByRole("list", { name: home.summary.label })).not.toBeInTheDocument();
+    expect(
+      screen.queryAllByAltText("").map((image) => image.getAttribute("src")),
+    ).not.toContainEqual(expect.stringContaining("home-welcome-bookshelf"));
+  });
+
+  it("keeps the four-counter strip and the welcome shelf art once the library has books", async () => {
+    fixtures = busyHome();
+
+    renderWithProviders(<HomeDashboard />);
+
+    expect(await screen.findByRole("list", { name: home.summary.label })).toBeInTheDocument();
+    expect(screen.getAllByAltText("").map((image) => image.getAttribute("src"))).toContainEqual(
+      expect.stringContaining("home-welcome-bookshelf"),
+    );
+  });
+
   it("keeps the goal instead of onboarding when an empty library has an active goal", async () => {
     fixtures = emptyHome(
       readingView({

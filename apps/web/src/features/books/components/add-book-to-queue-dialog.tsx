@@ -1,6 +1,6 @@
 "use client";
 
-import type { BookView } from "@app/shared";
+import type { BookView, Nullable } from "@app/shared";
 import type { FormEvent } from "react";
 
 import { useTranslations } from "next-intl";
@@ -9,6 +9,7 @@ import { useDeferredValue, useState } from "react";
 import { toast } from "sonner";
 
 import { BookCoverFallback } from "@/components/book-cover-fallback";
+import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Link } from "@/i18n/navigation";
 import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 import { cn } from "@/lib/utils";
 import { BooksControllerListSort } from "@/shared/api/generated/model";
@@ -29,7 +31,8 @@ import { BooksControllerListSort } from "@/shared/api/generated/model";
 import type { QueuePickerItem } from "../model/queue-placement";
 
 import { useLibraryBooks } from "../api/use-books";
-import { useAddToReadingQueue } from "../api/use-reading-queue";
+import { useAddToReadingQueue, useReadingQueueSummary } from "../api/use-reading-queue";
+import { BOOK_CREATE_PATH } from "../model/book-create-href";
 import { libraryListParams } from "../model/library-query";
 import { useAddToQueueForm } from "../model/use-add-to-queue-form";
 import { QueuePositionField } from "./queue-position-field";
@@ -38,19 +41,28 @@ const PICKER_PAGE_SIZE = 20;
 const PICKER_SKELETON_COUNT = 4;
 
 type AddBookToQueueDialogProps = {
+  onCloseAutoFocus?: (event: Event) => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
   queueItems: QueuePickerItem[];
 };
 
+type PickerNoticeCopy = {
+  action: string;
+  message: string;
+};
+
+type QueuePickerNotice = "allQueued" | "noBooks";
+
 export function AddBookToQueueDialog({
+  onCloseAutoFocus,
   onOpenChange,
   open,
   queueItems,
 }: AddBookToQueueDialogProps) {
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg" onCloseAutoFocus={onCloseAutoFocus}>
         {open ? (
           <AddBookToQueueForm onDone={() => onOpenChange(false)} queueItems={queueItems} />
         ) : null}
@@ -67,8 +79,10 @@ function AddBookToQueueForm({
   queueItems: QueuePickerItem[];
 }) {
   const t = useTranslations("readingQueue.add");
+  const tBooks = useTranslations("books");
   const tLibrary = useTranslations("books.library");
   const add = useAddToReadingQueue();
+  const queueSummary = useReadingQueueSummary();
   const form = useAddToQueueForm({ queueItems });
 
   const [selectedBookId, setSelectedBookId] = useState<null | string>(null);
@@ -83,6 +97,15 @@ function AddBookToQueueForm({
   });
   const books = useLibraryBooks(listParams);
   const items: BookView[] = (books.data?.pages ?? []).flatMap((page) => page.items);
+  const notice = queuePickerNotice({
+    libraryTotal:
+      query === "" && !books.isPlaceholderData ? books.data?.pages[0]?.totalCount : undefined,
+    queuedTotal: queueSummary.data?.totalCount,
+  });
+  const noticeCopy = {
+    allQueued: { action: t("addNewBook"), message: t("allQueued") },
+    noBooks: { action: tBooks("firstBook.cta"), message: t("noBooks") },
+  } satisfies Record<QueuePickerNotice, PickerNoticeCopy>;
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -129,11 +152,12 @@ function AddBookToQueueForm({
           isPending={books.isPending}
           items={items}
           loadingLabel={tLibrary("loading")}
+          notice={notice === null ? null : noticeCopy[notice]}
           onSelect={setSelectedBookId}
           selectAria={(title) => t("selectBookAria", { title })}
           selectedBookId={selectedBookId}
         />
-        {books.hasNextPage ? (
+        {books.hasNextPage && notice === null ? (
           <div className="p-1.5">
             <Button
               className="w-full"
@@ -207,6 +231,7 @@ function PickerList({
   isPending,
   items,
   loadingLabel,
+  notice,
   onSelect,
   selectAria,
   selectedBookId,
@@ -218,6 +243,7 @@ function PickerList({
   isPending: boolean;
   items: BookView[];
   loadingLabel: string;
+  notice: Nullable<PickerNoticeCopy>;
   onSelect: (bookId: string) => void;
   selectAria: (title: string) => string;
   selectedBookId: null | string;
@@ -244,6 +270,20 @@ function PickerList({
       <p className="px-3 py-6 text-center text-sm text-muted-foreground" role="alert">
         {errorLabel}
       </p>
+    );
+  }
+
+  if (notice !== null) {
+    return (
+      <div className="flex flex-col items-center gap-3 px-3 py-6 text-center">
+        <p className="text-sm leading-relaxed text-muted-foreground">{notice.message}</p>
+        <Button asChild size="sm" variant="secondary">
+          <Link href={BOOK_CREATE_PATH}>
+            <UiIcon name="plus" size={14} />
+            {notice.action}
+          </Link>
+        </Button>
+      </div>
     );
   }
 
@@ -286,4 +326,17 @@ function PickerList({
       ))}
     </RadioGroup>
   );
+}
+
+function queuePickerNotice({
+  libraryTotal,
+  queuedTotal,
+}: {
+  libraryTotal: number | undefined;
+  queuedTotal: number | undefined;
+}): Nullable<QueuePickerNotice> {
+  if (libraryTotal === undefined) return null;
+  if (libraryTotal === 0) return "noBooks";
+  if (queuedTotal !== undefined && queuedTotal >= libraryTotal) return "allQueued";
+  return null;
 }

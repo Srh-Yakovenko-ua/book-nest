@@ -1,0 +1,670 @@
+{
+  "spec": "docs/specs/empty-states-refactor/spec.md",
+  "generatedAt": "2026-11-27T14:26:04Z",
+  "scope": {
+    "included": [
+      "Етап 1. Виправ сценарії першої дії (all 13 bullets + the intro paragraph)",
+      "Closing paragraph: Початковий статус застосовуй лише при створенні книги з відповідної точки входу",
+      "Мета rules that apply to Stage 1 (reuse components/routes/translations, extract only on real repetition, check contract/selectors/cache before a new request)"
+    ],
+    "excluded": ["Етап 2", "Етап 3", "Етап 4", "Цільовий QA (main loop owns the browser pass)"]
+  },
+  "tasks": [
+    {
+      "id": "S1-01",
+      "title": "Book create form accepts an initial ownership status from the entry point",
+      "layer": "web",
+      "files": [
+        "apps/web/src/app/[locale]/(app)/books/new/page.tsx",
+        "apps/web/src/features/books/components/create-book-form.tsx",
+        "apps/web/src/features/books/components/book-form.tsx",
+        "apps/web/src/features/books/model/book-create-href.ts",
+        "apps/web/src/features/books/index.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "apps/web/src/app/[locale]/(app)/books/new/page.tsx:17-19,34-36 parses only seriesId, publisherId, partNumber; no ownership param",
+        "apps/web/src/features/books/components/create-book-form.tsx:15-19 props are partNumber/publisherId/seriesId only",
+        "apps/web/src/features/books/model/create-book-form.ts:86 createBookFormDefaults.ownershipStatus = none",
+        "apps/web/src/features/books/components/book-form.tsx:190-212 createDefaults built from createBookFormDefaults, :299-301 defaultValues, :317 useForm defaultValues",
+        "packages/shared/src/book-enums.ts:40-47 OwnershipStatusSchema = none, want_to_buy, in_transit, owned, borrowed_from_someone, lent_to_someone",
+        "apps/web/src/features/books/model/book-form-draft.ts:248 a stored draft is restored only when the locale changed"
+      ],
+      "doneWhen": [
+        "/books/new?ownershipStatus=owned|want_to_buy|borrowed_from_someone|lent_to_someone opens the form with that ownership option selected",
+        "the param is parsed in page.tsx with a Zod schema built from OwnershipStatusSchema (owned, want_to_buy, borrowed_from_someone, lent_to_someone) via safeParse, an invalid or missing value falls back to none",
+        "the status enters RHF defaultValues, so an untouched form is not dirty: no draft write, Cancel leaves without the discard dialog",
+        "the user can switch the ownership option by hand and the saved book carries the chosen value",
+        "plain /books/new still opens with ownershipStatus none; /books/:id/edit ignores the param and shows the stored status",
+        "seriesId/publisherId/partNumber params still combine with ownershipStatus",
+        "one builder (e.g. bookCreateHref({ ownershipStatus })) in features/books/model produces the href, exported from the books barrel and used by every entry point in S1-03, S1-07, S1-16, S1-17 instead of hand-written query strings"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S1-02",
+      "title": "Shared library presence hook independent of search and filters",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/books/api/use-library-presence.ts",
+        "apps/web/src/features/books/index.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "apps/web/src/features/books/api/use-library-overview.ts:16-30 useLibraryOverview(scope) keyed bookKeys.overview(scope), no filter params",
+        "apps/web/src/features/books/api/book-keys.ts:35-38 overview key",
+        "packages/shared/src/books.ts:1249-1263 summary carries total, wantToBuy, borrowed, inTransit, favorites",
+        "apps/web/src/features/home/components/home-dashboard.tsx:55 Home already loads useLibraryOverview(all), so the cache is shared",
+        "apps/web/src/features/books/index.ts:5 useLibraryOverview exported from the barrel"
+      ],
+      "doneWhen": [
+        "hook returns a discriminated union { kind: pending } | { kind: error; retry } | { kind: ready; total: number } built on useLibraryOverview(all), no new endpoint or query key",
+        "result does not change when the current page search, chips or filters change",
+        "used by at least three sections from S1-05..S1-18 (justifies the extraction)",
+        "book create/delete invalidation reaches it through the existing overview key (no hand-listed keys in section components)"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S1-03",
+      "title": "Моя бібліотека: create with status owned, path to existing books only when they exist",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/books/components/books-library.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["S1-01", "S1-02"],
+      "mandatory": true,
+      "verdict": "PARTIAL",
+      "evidence": [
+        "apps/web/src/features/books/components/books-library.tsx:33 onAddBook pushes plain /books/new for both scopes",
+        "apps/web/src/features/books/components/books-library.tsx:203-204,214 same onAddBook used by header and empty block",
+        "apps/web/src/features/books/components/books-library.tsx:145,216 secondary Перейти до всіх книг is always shown for scope my, even on an account with zero books",
+        "apps/web/src/features/books/model/library-query.ts:36-40 my scope = owned, lent_to_someone, borrowed_from_someone",
+        "apps/web/src/features/books/components/library-archive-view.tsx:339-340,360 empty branch"
+      ],
+      "doneWhen": [
+        "on /my-library both the header Додати книгу and the empty-state primary open /books/new?ownershipStatus=owned",
+        "scope all keeps plain /books/new (see S1-04)",
+        "secondary link renders only when presence is ready and total > 0, and opens /books filtered to owner none, want_to_buy, in_transit (serialized with libraryQueryParsers like home-library-links.ts)",
+        "account with zero books shows no secondary link; while presence is pending the existing grid skeleton stays; on presence error the existing error state shows"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S1-04",
+      "title": "Усі книги: first-book action opens the general form with ordinary defaults",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/books/components/books-library.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["S1-03"],
+      "mandatory": true,
+      "verdict": "PARTIAL",
+      "evidence": [
+        "ALREADY DONE behaviour: apps/web/src/features/books/components/books-library.tsx:33 header and empty both push plain /books/new",
+        "label differs from the spec: uk.json books.library.empty.all.cta = Додати книгу, spec names it «Додати першу книгу»"
+      ],
+      "doneWhen": [
+        "/books empty state primary reads Додати першу книгу / Add your first book and opens /books/new with no query params",
+        "the opened form shows ownership none and every createBookFormDefaults value",
+        "header Додати книгу on /books still opens plain /books/new"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S1-05",
+      "title": "Улюблені: add first book on an empty account, otherwise lead to the book list with the heart explanation",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/books/components/favorites-view.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["S1-02"],
+      "mandatory": true,
+      "verdict": "PARTIAL",
+      "evidence": [
+        "apps/web/src/features/books/components/favorites-view.tsx:398-403 single empty entry, primary Перейти до всіх книг",
+        "apps/web/src/features/books/components/favorites-view.tsx:463 onAddBook pushes /books regardless of library size",
+        "uk.json favorites.empty.description already explains the heart",
+        "favorites-view.tsx passes no addBookLabel, so there is no header action to reconcile (library-page-header.tsx:52)"
+      ],
+      "doneWhen": [
+        "presence ready with total 0: empty state primary Додати першу книгу opens /books/new",
+        "presence ready with total > 0: primary opens /books and the description says how to add a book to favourites with the heart",
+        "presence pending keeps the existing skeleton; presence error shows the existing error state with retry",
+        "favourites filtered to zero results still shows the existing no-results states, unaffected"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S1-06",
+      "title": "Черга читання: add first book when the library is empty, explain in the picker when every book is already queued",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/books/components/reading-queue-view.tsx",
+        "apps/web/src/features/books/components/add-book-to-queue-dialog.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["S1-02"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "apps/web/src/features/books/components/reading-queue-view.tsx:214 header opens the picker, :241-244 empty primary opens the same picker, secondary /books always",
+        "apps/web/src/features/books/components/add-book-to-queue-dialog.tsx:79-84 picker lists all library books, :250-251 zero items shows readingQueue.add.empty Книг не знайдено, the same text for an empty library and a no-match search",
+        "apps/web/src/features/books/components/add-book-to-queue-dialog.tsx:271 queued books render disabled, with no message when all of them are queued",
+        "apps/api/src/modules/reading-queue/application/reading-queue.service.ts:42-55 any owned-by-user book not already queued is eligible",
+        "packages/shared/src/reading-queue.ts:116-125 ReadingQueueSummaryView.totalCount (readingQueueKeys.summary) gives the queued count"
+      ],
+      "doneWhen": [
+        "presence total 0: empty state primary Додати першу книгу opens /books/new; the secondary Перейти до всіх книг is hidden",
+        "presence total > 0: empty primary and header open the existing AddBookToQueueDialog",
+        "picker without a search term and with zero books shows a no-books message plus a link to /books/new instead of Книг не знайдено",
+        "picker without a search term where library total equals queue summary totalCount shows an all-already-queued explanation",
+        "picker with a search term and zero matches keeps Книг не знайдено",
+        "presence pending/error handled as in assumption A5"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S1-07",
+      "title": "Список бажань: create with status want_to_buy, mark-existing path only when books exist",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/books-to-buy/components/books-to-buy-view.tsx",
+        "apps/web/src/features/books-to-buy/components/books-to-buy-content.tsx"
+      ],
+      "dependsOn": ["S1-01", "S1-02"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "apps/web/src/features/books-to-buy/components/books-to-buy-view.tsx:80 onAddBook pushes plain /books/new, used by header :156 and empty block :225",
+        "apps/web/src/features/books-to-buy/components/books-to-buy-view.tsx:227 onOpenLibrary always passed",
+        "apps/web/src/features/books-to-buy/components/books-to-buy-content.tsx:90-98 empty state shows secondary Перейти до всіх книг unconditionally",
+        "apps/web/src/features/books/components/book-form.tsx:725-731 a created want_to_buy book already gets a toast action to /books-to-buy"
+      ],
+      "doneWhen": [
+        "header and empty primary on /books-to-buy open /books/new?ownershipStatus=want_to_buy",
+        "after save the book is listed on /books-to-buy",
+        "secondary path to /books renders only when presence total > 0",
+        "presence pending/error handled as in assumption A5"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S1-08",
+      "title": "Цілі читання: precondition-aware first action, keep До списків fallback in the picker",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/reading-goals/components/goals-catalog.tsx",
+        "apps/web/src/features/reading-goals/components/goals-catalog-view.tsx",
+        "apps/web/src/features/reading-goals/components/goal-list-picker.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["S1-02"],
+      "mandatory": true,
+      "verdict": "PARTIAL",
+      "evidence": [
+        "apps/web/src/features/reading-goals/components/goals-catalog-view.tsx:79 header Нова ціль and :133-141 empty primary both call onCreate = startPicking (goals-catalog.tsx:57-60,78)",
+        "ALREADY DONE part: apps/web/src/features/reading-goals/components/goal-list-picker.tsx:314-323 no-lists state explains and links До списків",
+        "apps/web/src/features/reading-goals/model/goal-list-picker-content.ts:28-35 eligible lists = fill with_books, reusable as the precondition query (same listKeys.list key as the picker)",
+        "no check of library books before opening the picker; the no-lists text asks to create a list even when the account has no books"
+      ],
+      "doneWhen": [
+        "presence total 0: empty primary Додати першу книгу opens /books/new",
+        "books exist but useLists(goalListPickerParams(empty)) returns zero lists: empty primary opens /lists and the description says a list must be created or filled",
+        "an eligible list exists: Нова ціль (empty and header) opens the existing GoalListPicker and GoalFormDialog flow unchanged",
+        "the picker no-lists state still shows До списків; with zero library books it also offers /books/new",
+        "pending/error of either precondition handled as in assumption A5"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S1-09",
+      "title": "Персонажі: action in the empty catalog, add first book or open a book characters tab",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/components/characters-catalog-content.tsx",
+        "apps/web/src/features/characters/components/characters-catalog-view.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["S1-02"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "apps/web/src/features/characters/components/characters-catalog-content.tsx:56-58,101-109 EmptyCatalog has no primary action at all",
+        "apps/web/src/features/characters/components/characters-catalog-view.tsx:82-85 header has no action",
+        "existing entry point: apps/web/src/features/characters/model/character-routes.ts:19-21 getBookCharactersPath(bookId) = /books/:id?tab=characters",
+        "packages/shared/src/books.ts:1248 overview.recentlyAdded already in the presence payload"
+      ],
+      "doneWhen": [
+        "presence total 0: primary Додати першу книгу opens /books/new",
+        "presence total > 0: primary opens getBookCharactersPath(recentlyAdded[0].id) and a secondary opens /books, the description says characters are added on a book page",
+        "filtered empty (NoResults) unchanged",
+        "presence pending/error handled as in assumption A5"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S1-10",
+      "title": "Видавництва: add first book or lead to books without a publisher",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/publishers/components/all-publishers.tsx",
+        "apps/web/src/features/publishers/components/publishers-content.tsx",
+        "apps/web/src/features/publishers/components/publisher-insights.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "PARTIAL",
+      "evidence": [
+        "apps/web/src/features/publishers/components/all-publishers.tsx:59 onAddBook plain /books/new for header (all-publishers-view.tsx:46) and empty (publishers-content.tsx:64-72)",
+        "existing entry point: apps/web/src/features/publishers/components/publisher-insights.tsx:134-138 buildMissingPublisherBooksHref = /books?publisherPresence=missing",
+        "packages/shared/src/publishers.ts:169-170 summary booksWithoutPublisherCount, booksWithPublisherCount already loaded on the page, no extra request"
+      ],
+      "doneWhen": [
+        "summary shows zero books in total: primary Додати першу книгу opens /books/new",
+        "summary shows books without a publisher: primary opens /books?publisherPresence=missing via the one existing href builder (moved to a shared model file, not duplicated)",
+        "header Додати книгу keeps opening /books/new",
+        "summary pending keeps the existing skeleton, summary error the existing error state"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S1-11",
+      "title": "Жанри: add first book or lead to the books where a genre can be set",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/genres/components/genres.tsx",
+        "apps/web/src/features/genres/components/genres-content.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "PARTIAL",
+      "evidence": [
+        "apps/web/src/features/genres/components/genres.tsx:41-44,116 onOpenLibrary always /books",
+        "apps/web/src/features/genres/components/genres-content.tsx:89-95 library-empty primary Перейти до бібліотеки, also on an account with zero books",
+        "packages/shared/src/genres.ts:201 GenreSummaryView.libraryBooksCount already loaded by useGenreSummary (genres.tsx:56)",
+        "apps/web/src/features/books/model/library-query.ts:71 no genre-missing filter exists in the library query"
+      ],
+      "doneWhen": [
+        "summary libraryBooksCount 0: primary Додати першу книгу opens /books/new",
+        "libraryBooksCount > 0: primary opens /books and the description says genres are set on the book edit form",
+        "filters/search empty reasons unchanged",
+        "summary pending/error handled as in assumption A5"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S1-12",
+      "title": "Цитати: add first book before opening the quote dialog",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/quotes/components/quotes-view.tsx",
+        "apps/web/src/features/quotes/components/quotes-content.tsx",
+        "apps/web/src/features/quotes/components/quote-dialog.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["S1-02"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "apps/web/src/features/quotes/components/quotes-view.tsx:105 header and :171 empty both open QuoteDialog createWithBookPicker (:185)",
+        "apps/web/src/features/quotes/components/quotes-content.tsx:82-89 empty primary Додати цитату, secondary /books always (quotes-view.tsx:174)",
+        "apps/web/src/features/quotes/components/quote-dialog.tsx:255-263 picker shows the generic empty label with zero books"
+      ],
+      "doneWhen": [
+        "presence total 0: empty primary Додати першу книгу opens /books/new, the /books secondary is hidden",
+        "presence total > 0: empty primary and header open the existing QuoteDialog unchanged",
+        "with zero books the header action does not open a dead-end picker (per assumption A6 the picker shows a no-books message with a /books/new link)",
+        "presence pending/error handled as in assumption A5"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S1-13",
+      "title": "Присвяти: add first book first, explain when every eligible book already has a dedication",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/dedications/components/dedications-view.tsx",
+        "apps/web/src/features/dedications/components/dedications-content.tsx",
+        "apps/web/src/features/dedications/components/dedication-book-picker-dialog.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["S1-02"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "apps/web/src/features/dedications/components/dedications-content.tsx:84-89 empty primary Обрати книгу opens the picker (dedications-view.tsx:147,269)",
+        "apps/web/src/features/dedications/components/dedication-book-picker-dialog.tsx:73-82 eligible = hasDedication false, :109,:192 zero items show dedications.picker.empty Книг не знайдено for no books, all-dedicated and no-match alike",
+        "apps/web/src/features/dedications/components/dedications-sidebar.tsx:25 second opener when dedications exist"
+      ],
+      "doneWhen": [
+        "presence total 0: empty primary Додати першу книгу opens /books/new",
+        "presence total > 0: primary opens the existing picker, choosing a book still goes to /books/:id/edit?focus=dedication&from=dedications",
+        "picker without a search term and zero hasDedication=false results while total > 0 explains that all books already have dedications",
+        "picker with a search term and zero matches keeps Книг не знайдено",
+        "presence pending/error handled as in assumption A5"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S1-14",
+      "title": "Нотатки до книг: add first book before opening the note form",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/notes/components/notes-archive-view.tsx",
+        "apps/web/src/features/notes/components/notes-archive-content.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["S1-02"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "apps/web/src/features/notes/components/notes-archive-view.tsx:99 empty and :117 header open NoteFormDialog with target mode pick (:111-115)",
+        "apps/web/src/features/notes/components/notes-archive-content.tsx:61,103-124 library-empty primary Додати нотатку, no check for books",
+        "note-form-dialog picker empty text not opened this run"
+      ],
+      "doneWhen": [
+        "/notes/books presence total 0: empty primary Додати першу книгу opens /books/new",
+        "presence total > 0: empty primary and header open the existing NoteFormDialog pick flow",
+        "presence pending/error handled as in assumption A5"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S1-15",
+      "title": "Нотатки до серій: series-specific empty copy, lead to series when none exist",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/notes/components/notes-archive-view.tsx",
+        "apps/web/src/features/notes/components/notes-archive-content.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "uk.json notes.archive.empty is one shared text for both scopes (mentions книг і серій), notes.archive.series.empty does not exist",
+        "apps/web/src/features/notes/components/notes-archive-view.tsx:170 series scope reuses the same content and create flow",
+        "series-presence hook not identified this run (UNVERIFIED which existing series query to reuse)"
+      ],
+      "doneWhen": [
+        "/notes/series empty state has its own title and description about series notes in uk and en",
+        "zero series on the account: primary opens /series (catalog with its create action)",
+        "at least one series: primary and header open the existing NoteFormDialog series pick flow",
+        "series presence comes from an existing series query/cache key, no new endpoint; pending/error handled as in assumption A5"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S1-16",
+      "title": "Треба повернути: Додати позичену книгу opens create with borrowed_from_someone",
+      "layer": "web",
+      "files": ["apps/web/src/features/loans/components/loans-view.tsx"],
+      "dependsOn": ["S1-01"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "apps/web/src/features/loans/components/loans-view.tsx:152 onAddBook pushes plain /books/new for both directions",
+        "apps/web/src/features/loans/components/loans-view.tsx:384-395 Додати позичену книгу shown only when otherTypeCount is 0, otherwise the only action is Переглянути «Передано іншим» (:398-403)"
+      ],
+      "doneWhen": [
+        "/loans/borrowed empty primary Додати позичену книгу opens /books/new?ownershipStatus=borrowed_from_someone",
+        "after save with a person filled in, the book appears on /loans/borrowed",
+        "when lent loans exist, the add action stays available and Переглянути «Передано іншим» becomes the secondary"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S1-17",
+      "title": "Передано іншим: Передати книгу via the existing loan dialog, or create with lent_to_someone",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/loans/components/loans-view.tsx",
+        "apps/web/src/features/books/components/loan-dialog.tsx",
+        "apps/web/src/features/books/components/loan-books-step.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["S1-01", "S1-02"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "uk.json loans.states.empty.cta = Додати позичену книгу is also used on /loans/lent (loans-view.tsx:389-391)",
+        "apps/web/src/features/loans/components/loans-view.tsx:152 plain /books/new, no lend scenario from this page",
+        "existing scenario: apps/web/src/features/books/components/loan-dialog.tsx:89 LoanDialog with contexts book and contactBooks (:66-67), used from ownership-block.tsx:192 and loan-contact-drawer.tsx:182",
+        "apps/web/src/features/books/components/loan-books-step.tsx:24,66 existing book step with a create-book link",
+        "which books the API accepts for lending was not verified this run"
+      ],
+      "doneWhen": [
+        "/loans/lent empty primary reads Передати книгу / Lend a book",
+        "an eligible book exists: the action opens a book choice built on LoanBooksStep and then the existing LoanDialog direction lent, without a new loan endpoint",
+        "no eligible book: the action opens /books/new?ownershipStatus=lent_to_someone",
+        "after either path the book appears on /loans/lent per the existing loan rules",
+        "eligibility pending/error handled as in assumption A5"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S1-18",
+      "title": "Книги в дорозі: first-book path before the order form, picker explains no books, draft kept",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/delivery/components/delivery-in-transit.tsx",
+        "apps/web/src/features/delivery/components/delivery-in-transit-view.tsx",
+        "apps/web/src/features/delivery/components/create-book-order-dialog.tsx",
+        "apps/web/src/features/delivery/components/create-order-book-picker-view.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["S1-02"],
+      "mandatory": true,
+      "verdict": "PARTIAL",
+      "evidence": [
+        "apps/web/src/features/delivery/components/delivery-in-transit-view.tsx:172-175 empty primary goes to books-to-buy, no first-book path",
+        "apps/web/src/features/delivery/components/delivery-in-transit.tsx:410 CreateBookOrderDialog opened from the header",
+        "probably ALREADY DONE: apps/web/src/features/delivery/components/create-book-order-dialog.tsx:126 order draft lives in a reducer, :165,:184 the picker is a view inside the same dialog, so form-picker switches keep input (needs a browser pass)",
+        "apps/web/src/features/delivery/components/create-order-book-picker-view.tsx:44 one generic empty label, :46 a library link that leaves the page; its unsaved-changes handling not verified"
+      ],
+      "doneWhen": [
+        "presence total 0: the in-transit empty state and the header order action offer Додати першу книгу to /books/new before any order form opens",
+        "picker without a search term and zero available books explains what to do and links to /books/new",
+        "entering order data, opening the picker, going back keeps every field (browser pass)",
+        "a picker or form link that leaves the page while the order has input triggers the existing discard-changes confirmation (common.discardChanges)",
+        "presence pending/error handled as in assumption A5"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S1-19",
+      "title": "Власні списки, Серії: direct create action kept",
+      "layer": "web",
+      "files": [],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "ALREADY DONE",
+      "evidence": [
+        "apps/web/src/features/lists/components/all-lists-view.tsx:233 empty primary onCreateList",
+        "apps/web/src/features/series/components/all-series-view.tsx:277 empty primary onCreateSeries, secondary onAddBook (all-series.tsx:319 /books/new)"
+      ],
+      "doneWhen": [
+        "browser pass: /lists and /series empty states open their create dialogs directly"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S1-20",
+      "title": "Теги, Контакти: direct create action kept",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/tags/components/tags-catalog.tsx",
+        "apps/web/src/features/loans/components/loan-contacts-view.tsx"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "UNVERIFIED",
+      "evidence": [
+        "apps/web/src/features/tags/components/tags-catalog.tsx:66,78,89 only show-all, clear and retry primaries were found; the library-empty branch was not opened",
+        "no EmptyState onPrimary found in apps/web/src/features/loans/components/loan-contacts-*.tsx; contacts empty state lives elsewhere, not located this run"
+      ],
+      "doneWhen": [
+        "/tags empty state primary creates a tag directly",
+        "/loans/contacts empty state primary opens CreateLoanContactDialog directly"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S1-21",
+      "title": "Empty custom list details explain how to add the first book",
+      "layer": "web",
+      "files": [
+        "apps/web/src/app/[locale]/(app)/lists/[id]/page.tsx",
+        "apps/web/src/features/lists/components"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "UNVERIFIED",
+      "evidence": [
+        "lists/[id] route exists (route listing this run); its empty-state branch was not opened"
+      ],
+      "doneWhen": [
+        "a freshly created empty list shows text on how to add the first book and an action that opens the existing add-to-list flow",
+        "on an account with zero books that action leads to /books/new"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S1-22",
+      "title": "Tests for the initial status and the presence-driven first actions",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/books/components/book-form-initial-ownership.test.tsx",
+        "apps/web/src/features/books/components/books-library.test.tsx",
+        "apps/web/src/features/books/components/favorites-view.test.tsx",
+        "apps/web/src/features/books/components/reading-queue-view.test.tsx",
+        "apps/web/src/features/books-to-buy/components/books-to-buy-view.test.tsx"
+      ],
+      "dependsOn": ["S1-01", "S1-03", "S1-05", "S1-06", "S1-07"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "no test covers an initial ownership status: book-form-*.test.tsx files cover draft scope, part number, publisher suggestion, series genres only"
+      ],
+      "doneWhen": [
+        "create form test: ownershipStatus=owned preselects owned, form is not dirty, manual change sticks; no param gives none; edit mode ignores it",
+        "view tests mock at the fetch boundary: zero-books overview renders Додати першу книгу and its href; non-zero overview renders the existing scenario; overview error renders the error state",
+        "each test fails with its feature change reverted"
+      ],
+      "status": "todo"
+    }
+  ],
+  "excluded": [
+    { "requirement": "Етап 2, 3, 4", "reason": "other agents own them" },
+    {
+      "requirement": "Illustration size, card layout and viewport fit (953/1007/994/947 px baseline)",
+      "reason": "Етап 4; Stage 1 changes only actions and texts, it must not add blocks above the empty state"
+    },
+    { "requirement": "Hiding zero metrics, toolbars and Показано 0 із 0", "reason": "Етап 2" },
+    {
+      "requirement": "Цільовий QA browser passes",
+      "reason": "main loop runs the browser; every doneWhen marked browser pass is for it"
+    }
+  ],
+  "assumptions": [
+    {
+      "decision": "Entry-point channel for the initial status",
+      "chosen": "search param ownershipStatus on /books/new, parsed with Zod in page.tsx and passed as a CreateBookForm prop",
+      "why": "the page already passes seriesId/publisherId/partNumber this way (books/new/page.tsx:17-19,34-36), so a reload or shared link keeps the entry intent"
+    },
+    {
+      "decision": "Allowed initial statuses",
+      "chosen": "owned, want_to_buy, borrowed_from_someone, lent_to_someone; none and in_transit are rejected",
+      "why": "only these four have an entry point in the spec; in_transit is created through the delivery order flow"
+    },
+    {
+      "decision": "Initial status vs dirty state and drafts",
+      "chosen": "status goes into RHF defaultValues; a restored draft still wins",
+      "why": "an untouched form must not trigger the discard prompt, and drafts restore only on a locale switch (book-form-draft.ts:248), which is user work"
+    },
+    {
+      "decision": "Source for the account has books check",
+      "chosen": "useLibraryOverview(all) wrapped in one presence hook; Genres uses summary.libraryBooksCount, Publishers uses its summary counts, Goals uses useLists(goalListPickerParams(empty))",
+      "why": "these are already cached by Home, /books or the page itself, so there is no new endpoint or key"
+    },
+    {
+      "decision": "Precondition pending or failed",
+      "chosen": "pending keeps the section skeleton; error shows the section error EmptyState whose retry refetches the failed precondition",
+      "why": "spec: show the matching state during loading or error; a guessed action on unknown data could point to a dead end"
+    },
+    {
+      "decision": "Header action vs empty-block action",
+      "chosen": "both call one handler per section; a header that opens a picker keeps opening it, and the picker covers no books and none eligible with an explanation and a /books/new link",
+      "why": "keeps the header label honest (Нова ціль, Додати цитату) while no path ends in a bare Книг не знайдено"
+    },
+    {
+      "decision": "Shared code",
+      "chosen": "extract only the presence hook and the bookCreateHref builder (each has 3+ callers); per-section copy and handlers stay local",
+      "why": "CLAUDE.md §8.7, extract on the third real use"
+    },
+    {
+      "decision": "First-book CTA copy",
+      "chosen": "one key books.firstBook.cta: Додати першу книгу / Add your first book; new copy uses ти",
+      "why": "spec wording, Stage 4 tone rule, one source for a label used in about ten sections"
+    },
+    {
+      "decision": "Моя бібліотека path to existing books",
+      "chosen": "/books filtered to owner none, want_to_buy, in_transit",
+      "why": "if my scope is empty and total > 0 this filter always lists at least one book, and the library bulk ownership action marks them owned"
+    },
+    {
+      "decision": "Список бажань mark-existing path",
+      "chosen": "/books unfiltered",
+      "why": "any book can become a wanted purchase, and a filter could come up empty when every book is owned"
+    },
+    {
+      "decision": "Персонажі book path",
+      "chosen": "most recent book characters tab (overview.recentlyAdded[0]) plus /books secondary",
+      "why": "reuses getBookCharactersPath and data already in the presence payload"
+    },
+    {
+      "decision": "Жанри book path",
+      "chosen": "/books, the description names the edit form",
+      "why": "no genre-missing library filter exists (library-query.ts:71); adding one is out of scope"
+    },
+    {
+      "decision": "Нотатки до серій without series",
+      "chosen": "link to /series",
+      "why": "the catalog owns the create-series action, and the spec allows the catalog"
+    },
+    {
+      "decision": "Треба повернути when lent loans exist",
+      "chosen": "Додати позичену книгу stays primary, open-other becomes secondary",
+      "why": "spec ties the add action to this page; today it disappears when the other direction has loans"
+    },
+    {
+      "decision": "Передано іншим eligible book and picker",
+      "chosen": "eligible = owned and not on loan, picked through LoanBooksStep and then LoanDialog lent; the exact filter must be confirmed against the loans API before coding",
+      "why": "reuses the existing lend scenario; eligibility was not verified this run"
+    }
+  ]
+}

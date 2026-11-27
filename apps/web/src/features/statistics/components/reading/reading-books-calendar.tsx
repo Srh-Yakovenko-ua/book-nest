@@ -49,6 +49,7 @@ export function ReadingBooksCalendar({
 
   return (
     <ReadingBooksMonthGrid
+      accountStart={month.accountStart}
       days={month.days}
       jumpTarget={jumpTarget}
       monthKey={monthKey}

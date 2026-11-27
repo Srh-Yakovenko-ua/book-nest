@@ -34,11 +34,13 @@ import {
   makeDeliveryItemRowShipment,
 } from "./delivery.fixtures";
 
+const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }));
+
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   ),
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: routerPush, replace: vi.fn() }),
 }));
 
 const { toastMock } = vi.hoisted(() => ({
@@ -65,6 +67,7 @@ const waitingParcel = makeDeliveryItemRowShipment({
 
 const fetchMock = vi.fn();
 
+let libraryTotal: number;
 let respondToList: (url: string) => Promise<Response> | Response;
 let respondToOrder: (url: string) => Promise<Response>;
 let respondToQuickCounts: (url: string) => Promise<Response>;
@@ -120,6 +123,26 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json" },
     status,
   });
+}
+
+function libraryOverview(total: number) {
+  return {
+    recentlyAdded: [],
+    summary: {
+      borrowed: 0,
+      favorites: 0,
+      finished: 0,
+      inTransit: 0,
+      reading: 0,
+      series: 0,
+      solo: 0,
+      total,
+      wantToBuy: 0,
+      wantToRead: 0,
+    },
+    topGenres: [],
+    topTags: [],
+  };
 }
 
 function listRequests(): string[] {
@@ -193,6 +216,7 @@ function statusChangeRequests(): string[] {
 beforeEach(() => {
   useDeliverySelectionStore.getState().exitSelection();
 
+  libraryTotal = 3;
   respondToList = () =>
     jsonResponse(
       makeDeliveryInTransitPage([
@@ -220,6 +244,9 @@ beforeEach(() => {
     }
     if (url.includes("/api/delivery/orders/order-1")) return respondToOrder(url);
     if (url.includes("/purchase-stores")) return Promise.resolve(jsonResponse([]));
+    if (url.includes("/api/books/overview")) {
+      return Promise.resolve(jsonResponse(libraryOverview(libraryTotal)));
+    }
     if (isStatusChange(url)) return respondToStatusChange(url);
     if (url.includes("/in-transit")) return Promise.resolve(respondToList(url));
     return Promise.reject(new Error(`unexpected ${url}`));
@@ -230,6 +257,44 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.clearAllMocks();
+});
+
+describe("DeliveryInTransit on a clean account", () => {
+  beforeEach(() => {
+    libraryTotal = 0;
+    respondToList = () => jsonResponse(makeDeliveryInTransitPage([]));
+  });
+
+  it("opens the plain create form before any order form", async () => {
+    renderPage();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: messages.books.firstBook.cta }),
+    );
+
+    expect(routerPush).toHaveBeenCalledWith("/books/new");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("hides the summary cards and the attention and next shipment panels", async () => {
+    renderPage();
+
+    await screen.findByRole("button", { name: messages.books.firstBook.cta });
+
+    expect(screen.queryByText(messages.delivery.summary.activeOrders)).not.toBeInTheDocument();
+    expect(screen.queryByText(messages.delivery.attention.title)).not.toBeInTheDocument();
+    expect(screen.queryByText(messages.delivery.nextShipment.title)).not.toBeInTheDocument();
+  });
+
+  it("drops the header add-order action while the account has no books", async () => {
+    renderPage();
+
+    await screen.findByRole("button", { name: messages.books.firstBook.cta });
+
+    expect(
+      screen.queryByRole("button", { name: messages.delivery.actions.addOrder }),
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe("DeliveryInTransit selection", () => {

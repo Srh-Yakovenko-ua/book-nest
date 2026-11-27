@@ -4,26 +4,24 @@ import type { ReactNode, Ref } from "react";
 
 import { useTranslations } from "next-intl";
 
-import { UiIcon } from "@/components/icons";
 import { TitleLeaf } from "@/components/title-leaf";
-import { Button } from "@/components/ui/button";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 import { cn } from "@/lib/utils";
 
 type AllPublishersViewProps = {
+  action: ReactNode;
   content: ReactNode;
   controls: ReactNode;
   insights: ReactNode;
-  onAddBook: () => void;
   resultsHeadingRef: Ref<HTMLHeadingElement>;
   summary: ReactNode;
 };
 
 export function AllPublishersView({
+  action,
   content,
   controls,
   insights,
-  onAddBook,
   resultsHeadingRef,
   summary,
 }: AllPublishersViewProps) {
@@ -43,10 +41,7 @@ export function AllPublishersView({
             </div>
             <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
           </div>
-          <Button className="self-start sm:self-auto" onClick={onAddBook}>
-            <UiIcon name="plus" size={16} />
-            {t("addBook")}
-          </Button>
+          {action}
         </div>
 
         {summary}

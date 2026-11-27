@@ -614,7 +614,7 @@ describe("AllPublishers states", () => {
 
     renderList();
 
-    expect(await screen.findByText("Видавництв поки немає")).toBeInTheDocument();
+    expect(await screen.findByText(messages.publishers.states.empty.title)).toBeInTheDocument();
     expect(screen.queryByText("Потребують уваги")).not.toBeInTheDocument();
     expect(screen.queryByText(/^Показано/)).not.toBeInTheDocument();
   });
@@ -625,7 +625,9 @@ describe("AllPublishers states", () => {
 
     renderList("?q=невідоме&sort=name_asc", url.onUrlUpdate);
 
-    expect(await screen.findByText("Видавництв не знайдено")).toBeInTheDocument();
+    expect(
+      await screen.findByText(messages.publishers.states.noSearchResults.title),
+    ).toBeInTheDocument();
     expect(screen.getByText("За цим запитом видавництв не знайдено")).toHaveAttribute(
       "aria-live",
       "polite",
@@ -722,5 +724,80 @@ describe("AllPublishers insights", () => {
 
     await screen.findByRole("link", { name: "Vivat" });
     expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+  });
+});
+
+describe("AllPublishers empty base", () => {
+  const emptyCopy = messages.publishers.states.empty;
+
+  function mockEmptyBase({ booksWithoutPublisher }: { booksWithoutPublisher: number }) {
+    respondToList = () => jsonResponse(makePublishersPage([]));
+    respondToSummary = () =>
+      jsonResponse(
+        makePublishersSummary({
+          booksToBuyWithPublisherCount: 0,
+          booksWithoutPublisherCount: booksWithoutPublisher,
+          booksWithPublisherCount: 0,
+          publishersCount: 0,
+          publishersInPlansCount: 0,
+        }),
+      );
+  }
+
+  it("opens the create form from the empty publishers of an account without books", async () => {
+    mockEmptyBase({ booksWithoutPublisher: 0 });
+    renderList();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: messages.books.firstBook.cta }),
+    );
+
+    expect(pushMock).toHaveBeenCalledWith("/books/new");
+  });
+
+  it("drops the header add-book button on an account without books", async () => {
+    mockEmptyBase({ booksWithoutPublisher: 0 });
+    renderList();
+    await screen.findByRole("button", { name: messages.books.firstBook.cta });
+
+    expect(
+      screen.queryByRole("button", { name: messages.publishers.page.addBook }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("hides the summary cards while the library has no publishers", async () => {
+    mockEmptyBase({ booksWithoutPublisher: 0 });
+    renderList();
+    await screen.findByText(emptyCopy.title);
+
+    expect(screen.queryByText(messages.publishers.summary.mostRepresented)).not.toBeInTheDocument();
+  });
+
+  it("leads to the books without a publisher when the library has some", async () => {
+    mockEmptyBase({ booksWithoutPublisher: 4 });
+    renderList();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: emptyCopy.openBooksWithoutPublisher }),
+    );
+
+    expect(pushMock).toHaveBeenCalledWith("/books?publisherPresence=missing");
+  });
+
+  it("keeps the header add-book button when the library has books without a publisher", async () => {
+    mockEmptyBase({ booksWithoutPublisher: 4 });
+    renderList();
+    await screen.findByRole("button", { name: emptyCopy.openBooksWithoutPublisher });
+
+    await userEvent.click(screen.getByRole("button", { name: messages.publishers.page.addBook }));
+
+    expect(pushMock).toHaveBeenCalledWith("/books/new");
+  });
+
+  it("keeps the search on an empty base opened with a query so it can be reset", async () => {
+    mockEmptyBase({ booksWithoutPublisher: 0 });
+    renderList("?q=x");
+
+    expect(await screen.findByRole("textbox", { name: COPY.searchLabel })).toHaveValue("x");
   });
 });

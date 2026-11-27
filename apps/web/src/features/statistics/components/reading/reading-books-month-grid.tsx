@@ -11,6 +11,7 @@ import { parseIsoDay } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import type { BooksCalendarJumpTarget } from "../../hooks/use-books-calendar-jump";
+import type { CalendarUnrecordedSlotKind } from "../../model/statistics-calendar";
 
 import {
   buildMonthSlots,
@@ -30,6 +31,7 @@ const MONTH_GRID_CLASS = {
   days: "auto-rows-[clamp(3.5rem,calc((100dvh-16.25rem)/var(--month-weeks)-0.25rem),6.25rem)]",
   number: {
     base: "absolute top-1 left-1 z-10 flex h-6 min-w-6 items-center justify-center rounded-md px-1 text-xs leading-none tabular-nums",
+    beforeAccount: "font-normal text-muted-foreground",
     empty: "font-medium text-foreground",
     future: "font-medium text-muted-foreground",
     poster: "bg-card/90 font-semibold text-ink shadow-xs",
@@ -43,6 +45,7 @@ const MONTH_GRID_CLASS = {
   shelfMark: "absolute inset-0 grid place-items-center text-muted-foreground",
   today: "bg-primary font-semibold text-primary-foreground",
   tone: {
+    beforeAccount: "border-transparent bg-muted/60",
     empty: "border-border/70 bg-card",
     future: "border-dashed border-border/60 bg-muted/40",
     poster: "border-border bg-secondary shadow-soft",
@@ -59,7 +62,14 @@ type DayTone = keyof typeof MONTH_GRID_CLASS.tone;
 
 type MonthGridStyle = CSSProperties & { "--month-weeks": number };
 
+const UNRECORDED_DAY = {
+  before_account: { label: "dayBeforeAccount", tone: "beforeAccount" },
+  future: { label: "dayFuture", tone: "future" },
+  missing: { label: "dayUnknown", tone: "unknown" },
+} as const satisfies Record<CalendarUnrecordedSlotKind, { label: string; tone: DayTone }>;
+
 export function ReadingBooksMonthGrid({
+  accountStart,
   days,
   jumpTarget,
   monthKey,
@@ -69,6 +79,7 @@ export function ReadingBooksMonthGrid({
   today,
   weekStartDay,
 }: {
+  accountStart: Nullable<string>;
   days: readonly StatisticsCalendarDay[];
   jumpTarget?: Nullable<BooksCalendarJumpTarget>;
   monthKey: string;
@@ -79,7 +90,7 @@ export function ReadingBooksMonthGrid({
   weekStartDay: WeekStartDay;
 }) {
   const locale = useLocale();
-  const weeks = buildMonthSlots({ days, monthKey, today, weekStartDay });
+  const weeks = buildMonthSlots({ accountStart, days, monthKey, today, weekStartDay });
   const order = weekdayOrder(weekStartDay);
   const slots = weeks.flat();
   const daysStyle: MonthGridStyle = { "--month-weeks": weeks.length };
@@ -96,6 +107,17 @@ export function ReadingBooksMonthGrid({
       <div className={cn(MONTH_GRID_CLASS.columns, MONTH_GRID_CLASS.days)} style={daysStyle}>
         {slots.map((slot, index) => {
           switch (slot.kind) {
+            case "before_account":
+            case "future":
+            case "missing":
+              return (
+                <MonthUnrecordedCell
+                  date={slot.date}
+                  isToday={slot.date === today}
+                  key={slot.date}
+                  kind={slot.kind}
+                />
+              );
             case "blank":
               return <span aria-hidden className={MONTH_GRID_CLASS.blank} key={`blank-${index}`} />;
             case "day":
@@ -108,16 +130,6 @@ export function ReadingBooksMonthGrid({
                   key={slot.day.date}
                   onSelect={onSelectDay}
                   panelId={panelId}
-                />
-              );
-            case "future":
-            case "missing":
-              return (
-                <MonthUnrecordedCell
-                  date={slot.date}
-                  isToday={slot.date === today}
-                  key={slot.date}
-                  kind={slot.kind}
                 />
               );
           }
@@ -237,23 +249,19 @@ function MonthUnrecordedCell({
 }: {
   date: string;
   isToday: boolean;
-  kind: "future" | "missing";
+  kind: CalendarUnrecordedSlotKind;
 }) {
   const locale = useLocale();
   const t = useTranslations("statistics.calendar.books");
   const longDate = formatDayLong(date, locale);
-  const tone: DayTone = kind === "future" ? "future" : "unknown";
+  const tone = UNRECORDED_DAY[kind].tone;
 
   return (
     <span
       aria-current={isToday ? "date" : undefined}
       className={cn(MONTH_GRID_CLASS.cell, MONTH_GRID_CLASS.tone[tone])}
     >
-      <span className="sr-only">
-        {kind === "future"
-          ? t("dayFuture", { date: longDate })
-          : t("dayUnknown", { date: longDate })}
-      </span>
+      <span className="sr-only">{t(UNRECORDED_DAY[kind].label, { date: longDate })}</span>
       <span aria-hidden className="contents">
         <DayNumber date={date} isToday={isToday} tone={tone} />
       </span>

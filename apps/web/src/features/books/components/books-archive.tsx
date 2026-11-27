@@ -11,6 +11,7 @@ import { ActiveFilters } from "@/components/catalog/active-filters";
 import { useGenres } from "@/features/genres";
 import { Link } from "@/i18n/navigation";
 
+import type { LibraryPresence } from "../api/use-library-presence";
 import type { LibraryBook } from "../model/library-book";
 import type { LibraryPublisherContext, LibraryScope } from "../model/library-query";
 
@@ -36,6 +37,7 @@ import { LibrarySearchInput } from "./library-search-input";
 
 type BooksArchiveProps = {
   emptyState: EmptyStateEntry;
+  emptyStatePrecondition?: LibraryPresence;
   errorState: EmptyStateEntry;
   header?: ReactNode;
   onAddBook: () => void;
@@ -47,6 +49,7 @@ type BooksArchiveProps = {
 
 export function BooksArchive({
   emptyState,
+  emptyStatePrecondition,
   errorState,
   header,
   onAddBook,
@@ -143,6 +146,7 @@ export function BooksArchive({
       counterLabel={t("counter", { shown: books.length, total: totalCount })}
       coverViewLabel={tCover("viewer.open")}
       emptyState={emptyState}
+      emptyStatePrecondition={emptyStatePrecondition}
       errorState={errorState}
       hasActiveFilters={library.hasActiveFilters}
       hasActiveSearch={library.hasActiveSearch}

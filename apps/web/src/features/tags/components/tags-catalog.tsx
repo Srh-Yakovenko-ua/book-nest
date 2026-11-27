@@ -27,6 +27,7 @@ const CATALOG_LAYOUT = {
 } as const;
 
 type TagsCatalogProps = {
+  firstTagButtonRef: Ref<HTMLButtonElement>;
   onAddTag: () => void;
   onClearAll: () => void;
   onClearSearch: () => void;
@@ -41,6 +42,7 @@ type TagsCatalogProps = {
 };
 
 export function TagsCatalog({
+  firstTagButtonRef,
   onAddTag,
   onClearAll,
   onClearSearch,
@@ -97,7 +99,7 @@ export function TagsCatalog({
         primary: { icon: "plus", label: t("firstUse.action") },
         title: t("firstUse.title"),
       };
-      return <EmptyState onPrimary={onAddTag} state={entry} />;
+      return <EmptyState onPrimary={onAddTag} primaryRef={firstTagButtonRef} state={entry} />;
     }
     case "list":
       return (

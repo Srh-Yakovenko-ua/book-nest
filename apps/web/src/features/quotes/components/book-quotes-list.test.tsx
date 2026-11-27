@@ -4,6 +4,7 @@ import type { ComponentProps } from "react";
 
 import { describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
 
 import type { BookQuotesListState } from "../model/book-quotes-list-state";
@@ -26,7 +27,7 @@ const COPY = {
   clearSearch: "Очистити пошук",
   emptyBook: "У цій книзі ще немає цитат",
   emptyFilters: "За цим фільтром цитат немає",
-  emptySearch: "Нічого не знайдено",
+  emptySearch: messages.quotes.noResults.title,
   error: "Не вдалося завантажити цитати",
   loading: "Завантаження цитат...",
   openBooks: "Перейти до книг",

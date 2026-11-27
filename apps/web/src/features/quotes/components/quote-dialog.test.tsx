@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 
 import type { BookChapterUsageView, BookView } from "@app/shared";
+import type { ReactNode } from "react";
 
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BookSelectOption } from "@/features/books/model/book-select-option";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { makeQuote } from "../model/quotes.fixtures";
@@ -16,6 +18,14 @@ import { QuoteDialog } from "./quote-dialog";
 vi.mock("sonner", () => ({
   toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
 }));
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+}));
+
+const bookPicker = messages.quotes.dialog.bookPicker;
 
 const PICKED_BOOK = makeBookView({
   authors: [{ id: "author-1", name: "Френк Герберт" }],
@@ -55,6 +65,7 @@ const QUOTE_BOOK: BookSelectOption = {
 
 const fetchMock = vi.fn();
 
+let library: BookView[];
 let respondToWrite: () => Promise<Response> | Response;
 
 function bodySentWith(method: "PATCH" | "POST"): unknown {
@@ -68,7 +79,7 @@ function bodySentWith(method: "PATCH" | "POST"): unknown {
 function bookDetailRequests(): string[] {
   return fetchMock.mock.calls
     .map(([input]) => String(input))
-    .filter((url) => /^\/api\/books\/[^/?]+$/.test(url));
+    .filter((url) => /^\/api\/books\/[^/?]+$/.test(url) && url !== "/api/books/overview");
 }
 
 function booksPage(items: BookView[]): Response {
@@ -95,6 +106,26 @@ function jsonResponse(body: unknown): Response {
   });
 }
 
+function libraryOverview(total: number) {
+  return {
+    recentlyAdded: [],
+    summary: {
+      borrowed: 0,
+      favorites: 0,
+      finished: 0,
+      inTransit: 0,
+      reading: 0,
+      series: 0,
+      solo: 0,
+      total,
+      wantToBuy: 0,
+      wantToRead: 0,
+    },
+    topGenres: [],
+    topTags: [],
+  };
+}
+
 function pageInput(): HTMLElement {
   return screen.getByLabelText("Сторінка");
 }
@@ -113,13 +144,19 @@ function writeRequests(): { method: string; url: string }[] {
 }
 
 beforeEach(() => {
+  library = LIBRARY;
   respondToWrite = () => jsonResponse(QUOTE);
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
     if (method === "POST" || method === "PATCH") return Promise.resolve(respondToWrite());
-    if (url.startsWith("/api/books?")) return Promise.resolve(booksPage(LIBRARY));
+    if (url === "/api/books/overview")
+      return Promise.resolve(jsonResponse(libraryOverview(library.length)));
+    if (url.startsWith("/api/books?")) {
+      const query = new URLSearchParams(url.slice(url.indexOf("?"))).get("q");
+      return Promise.resolve(booksPage(query === null ? library : []));
+    }
     const chaptersBookId = /^\/api\/books\/([^/?]+)\/chapters$/.exec(url)?.[1];
     if (chaptersBookId !== undefined)
       return Promise.resolve(jsonResponse({ chapters: CHAPTERS_BY_BOOK[chaptersBookId] ?? [] }));
@@ -284,6 +321,31 @@ describe("QuoteDialog create mode with the book picker", () => {
 
     expect(screen.getAllByRole("dialog")).toHaveLength(1);
     expect(within(dialog()).getByRole("radiogroup", { name: "Ваші книги" })).toBeInTheDocument();
+  });
+
+  it("says once that the search found nothing, instead of claiming there are no books", async () => {
+    renderCreate();
+    await screen.findByRole("radio", { name: "Месія Дюни Френк Герберт" });
+
+    await userEvent.type(screen.getByRole("textbox", { name: bookPicker.search }), "Гамлет");
+
+    expect(
+      await within(dialog()).findByText(bookPicker.noMatch, { ignore: "[role=status]" }),
+    ).toBeInTheDocument();
+    expect(within(dialog()).queryByText(bookPicker.empty)).not.toBeInTheDocument();
+  });
+
+  it("offers to add the first book instead of the picker when the library is empty", async () => {
+    library = [];
+    renderCreate();
+
+    expect(await within(dialog()).findByText(bookPicker.noBooks)).toBeInTheDocument();
+    expect(
+      within(dialog()).getByRole("link", { name: messages.books.firstBook.cta }),
+    ).toHaveAttribute("href", "/books/new");
+    expect(
+      within(dialog()).queryByRole("radiogroup", { name: bookPicker.results }),
+    ).not.toBeInTheDocument();
   });
 });
 

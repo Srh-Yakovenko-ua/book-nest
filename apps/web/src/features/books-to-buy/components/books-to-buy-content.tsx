@@ -5,7 +5,7 @@ import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
 
-import type { LibraryBookLabels } from "@/features/books";
+import type { LibraryBookLabels, LibraryPresence } from "@/features/books";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
@@ -25,6 +25,7 @@ type BooksToBuyContentProps = {
   isError: boolean;
   isPending: boolean;
   isRefreshing: boolean;
+  libraryPresence: LibraryPresence;
   onAddBook: () => void;
   onClearFilters: () => void;
   onOpenLibrary: () => void;
@@ -39,6 +40,7 @@ export function BooksToBuyContent({
   isError,
   isPending,
   isRefreshing,
+  libraryPresence,
   onAddBook,
   onClearFilters,
   onOpenLibrary,
@@ -69,13 +71,14 @@ export function BooksToBuyContent({
     statusLabel: (value) => tStatus(value),
   };
 
+  const errorState: EmptyStateEntry = {
+    desc: t("error.description"),
+    illu: "error-generic",
+    primary: { icon: "refresh", label: t("error.retry") },
+    title: t("error.title"),
+  };
+
   if (isError) {
-    const errorState: EmptyStateEntry = {
-      desc: t("error.description"),
-      illu: "error-generic",
-      primary: { icon: "refresh", label: t("error.retry") },
-      title: t("error.title"),
-    };
     return (
       <div aria-live="assertive" role="alert">
         <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
@@ -88,11 +91,24 @@ export function BooksToBuyContent({
   }
 
   if (!hasAnyBooks) {
+    if (libraryPresence.kind === "pending") return <BooksToBuySkeleton view={view} />;
+    if (libraryPresence.kind === "error") {
+      return (
+        <div aria-live="assertive" role="alert">
+          <EmptyState
+            onPrimary={libraryPresence.retry}
+            primaryRef={retryButtonRef}
+            state={errorState}
+          />
+        </div>
+      );
+    }
     const emptyState: EmptyStateEntry = {
       desc: t("empty.description"),
       illu: "empty-purchases",
       primary: { icon: "plus", label: t("empty.cta") },
-      secondary: { icon: "book", label: t("empty.secondary") },
+      secondary:
+        libraryPresence.total > 0 ? { icon: "book", label: t("empty.secondary") } : undefined,
       title: t("empty.title"),
     };
     return <EmptyState onPrimary={onAddBook} onSecondary={onOpenLibrary} state={emptyState} />;

@@ -7,16 +7,32 @@ import type { CalendarMonthSummary } from "../../model/statistics-calendar";
 import { StatisticsNote } from "../statistics-states";
 import { READING_INTENSITY_CLASS } from "./reading-intensity";
 
-export function ReadingBooksMonthLegend({ summary }: { summary: CalendarMonthSummary }) {
+export function ReadingBooksMonthLegend({
+  hasDaysBeforeAccount,
+  summary,
+}: {
+  hasDaysBeforeAccount: boolean;
+  summary: CalendarMonthSummary;
+}) {
   const t = useTranslations("statistics.calendar.books");
   const tHeatmap = useTranslations("statistics.calendar.heatmap");
 
+  const beforeAccountItem = (
+    <MonthLegendItem
+      label={tHeatmap("beforeAccountLegend")}
+      swatch={READING_INTENSITY_CLASS.beforeAccount}
+    />
+  );
+
   if (summary.hasUnknownDays) {
     return (
-      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <span aria-hidden className={READING_INTENSITY_CLASS.unknown} />
-        <span>{tHeatmap("unknownLegend")}</span>
-      </p>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <MonthLegendItem
+          label={tHeatmap("unknownLegend")}
+          swatch={READING_INTENSITY_CLASS.unknown}
+        />
+        {hasDaysBeforeAccount ? beforeAccountItem : null}
+      </div>
     );
   }
 
@@ -24,5 +40,14 @@ export function ReadingBooksMonthLegend({ summary }: { summary: CalendarMonthSum
     return <StatisticsNote>{t("legacyMonthNote")}</StatisticsNote>;
   }
 
-  return null;
+  return hasDaysBeforeAccount ? beforeAccountItem : null;
+}
+
+function MonthLegendItem({ label, swatch }: { label: string; swatch: string }) {
+  return (
+    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <span aria-hidden className={swatch} />
+      <span>{label}</span>
+    </p>
+  );
 }

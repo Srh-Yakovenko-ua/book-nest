@@ -101,6 +101,7 @@ const SUMMARY_LABELS = [
 
 const summaryError = messages.common.summaryError;
 const summaryPanelCopy = messages.genres.summary.panel;
+const statesCopy = messages.genres.states;
 
 const requests: RecordedRequest[] = [];
 
@@ -406,9 +407,9 @@ describe("Genres list states", () => {
     renderGenres("?q=ццц&filter=finished&sort=name_asc", url.onUrlUpdate);
 
     expect(
-      await screen.findByRole("heading", { name: "Жодного жанру за цим пошуком" }),
+      await screen.findByRole("heading", { name: statesCopy.emptySearch.title }),
     ).toBeInTheDocument();
-    expect(listAnnouncement()).toHaveTextContent("Жодного жанру за цим пошуком");
+    expect(listAnnouncement()).toHaveTextContent(statesCopy.emptySearch.title);
     await userEvent.click(emptyStateAction("Очистити пошук"));
 
     expect(screen.getByLabelText("Пошук жанру")).toHaveFocus();
@@ -440,7 +441,7 @@ describe("Genres list states", () => {
     renderGenres();
 
     expect(
-      await screen.findByRole("heading", { name: "У ваших книгах ще немає жанрів" }),
+      await screen.findByRole("heading", { name: statesCopy.empty.title }),
     ).toBeInTheDocument();
     expect(
       screen.getAllByRole("presentation").map((image) => image.getAttribute("src")),
@@ -489,28 +490,46 @@ describe("Genres summary", () => {
     expect(summaryCardText("Найбільше в черзі")).toContain("12 із 66 книг жанру в черзі");
   });
 
-  it("says the library is empty instead of inventing zeros for leaders", async () => {
+  it("drops the six summary cards instead of inventing zeros while no book has a genre", async () => {
     mockGenresApi({
-      summary: () =>
-        json(
-          makeGenreSummary({
-            booksWithGenresCount: 0,
-            highestRated: null,
-            libraryBooksCount: 0,
-            mostFrequent: null,
-            mostQueued: null,
-            mostRead: null,
-            mostWantedToBuy: null,
-            usedGenresCount: 0,
-          }),
-        ),
+      stats: () => json(page([])),
+      summary: () => json(emptyGenreSummary({ libraryBooksCount: 0 })),
     });
 
     renderGenres();
 
-    await waitFor(() => expect(summaryCards()).toHaveLength(6));
-    expect(summaryCardText("Найчастіший жанр")).toContain("—");
-    expect(summaryCardText("Найчастіший жанр")).toContain("Бібліотека ще порожня");
+    await screen.findByRole("heading", { name: statesCopy.empty.title });
+    expect(summaryCards()).toHaveLength(0);
+    expect(screen.queryByText(messages.genres.summary.facts.emptyLibrary)).not.toBeInTheDocument();
+  });
+
+  it("shows the no-genres message once while no book has a genre", async () => {
+    mockGenresApi({
+      stats: () => json(page([])),
+      summary: () => json(emptyGenreSummary({ libraryBooksCount: 5 })),
+    });
+
+    renderGenres();
+
+    await screen.findByRole("heading", { name: statesCopy.empty.title });
+    expect(screen.getAllByRole("heading", { name: statesCopy.empty.title })).toHaveLength(1);
+    expect(
+      screen.queryByText(messages.genres.summary.facts.noGenresOnBooks),
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens the create form when the account has no books", async () => {
+    mockGenresApi({
+      stats: () => json(page([])),
+      summary: () => json(emptyGenreSummary({ libraryBooksCount: 0 })),
+    });
+
+    renderGenres();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: messages.books.firstBook.cta }),
+    );
+    expect(routerPush).toHaveBeenCalledWith("/books/new");
   });
 
   it("puts a retry in place of the summary cards when it fails, keeping the panel trigger", async () => {
@@ -640,6 +659,19 @@ describe("Genres insights", () => {
 
 function cardLabel(card: HTMLElement): string {
   return SUMMARY_LABELS.find((label) => within(card).queryByText(label) !== null) ?? "";
+}
+
+function emptyGenreSummary({ libraryBooksCount }: { libraryBooksCount: number }) {
+  return makeGenreSummary({
+    booksWithGenresCount: 0,
+    highestRated: null,
+    libraryBooksCount,
+    mostFrequent: null,
+    mostQueued: null,
+    mostRead: null,
+    mostWantedToBuy: null,
+    usedGenresCount: 0,
+  });
 }
 
 function emptyStateAction(name: string): HTMLElement {

@@ -8,7 +8,9 @@ import type { SummaryCard } from "@/components/catalog/summary-cards";
 
 import { type ActiveFilterChip, ActiveFilters } from "@/components/catalog/active-filters";
 import { useGenres } from "@/features/genres";
+import { useCreateButtonFocus } from "@/hooks/use-create-button-focus";
 import { useRouter } from "@/i18n/navigation";
+import { collectionChrome } from "@/lib/collection-chrome";
 import { formatNumber } from "@/lib/format";
 
 import { useSeriesList } from "../api/use-series-list";
@@ -78,6 +80,7 @@ export function AllSeries() {
     new Map(),
   );
   const [dialogOpen, setDialogOpen] = useState(false);
+  const { createButtonRef, focusCreateButtonOnClose } = useCreateButtonFocus();
 
   const { state } = seriesQuery;
   const tab = state.tab;
@@ -105,6 +108,10 @@ export function AllSeries() {
   const almostReadSeries = overview.data?.almostRead ?? [];
   const hasAnySeries = totalSeries > 0 || items.length > 0;
   const hasActiveQuery = seriesQuery.hasActiveQuery;
+  const seriesChrome = collectionChrome({
+    baseTotal: overview.data?.totalSeries,
+    hasQuery: hasActiveQuery,
+  });
 
   const authorNameById = new Map<string, string>();
   for (const series of items) {
@@ -311,6 +318,7 @@ export function AllSeries() {
       <AllSeriesView
         activeFilters={<ActiveFilters chips={filterChips} onClearAll={clearFilters} />}
         counterLabel={counterLabel}
+        createButtonRef={createButtonRef}
         hasActiveQuery={hasActiveQuery}
         hasAnySeries={hasAnySeries}
         isError={isLoadingError}
@@ -338,7 +346,7 @@ export function AllSeries() {
             overview={overview.data}
           />
         }
-        summaryCards={summaryCards}
+        summaryCards={seriesChrome.showMetrics ? summaryCards : null}
         summaryError={overview.isLoadingError}
         summaryLoading={overview.isPending}
         summaryMobileAction={
@@ -378,7 +386,11 @@ export function AllSeries() {
         unfinishedCount={unfinishedCount}
         view={view}
       />
-      <CreateSeriesDialog onOpenChange={setDialogOpen} open={dialogOpen} />
+      <CreateSeriesDialog
+        onCloseAutoFocus={focusCreateButtonOnClose}
+        onOpenChange={setDialogOpen}
+        open={dialogOpen}
+      />
     </>
   );
 }

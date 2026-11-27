@@ -5,6 +5,7 @@ import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
 
+import type { LibraryPresence } from "@/features/books/api/use-library-presence";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
@@ -12,6 +13,7 @@ import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { RefreshingRegion } from "@/components/refreshing-region";
 import { Skeleton } from "@/components/ui/skeleton";
 import { infiniteScrollStateOf } from "@/hooks/use-infinite-scroll-sentinel";
+import { assertNever } from "@/lib/assert-never";
 import { cn } from "@/lib/utils";
 
 import type { QuotesViewMode } from "../model/quotes-query";
@@ -29,7 +31,9 @@ type QuotesContentProps = {
   isLoadMoreError: boolean;
   isPending: boolean;
   isRefreshing: boolean;
+  libraryPresence: LibraryPresence;
   listIdentity: string;
+  onAddFirstBook: () => void;
   onAddQuote: () => void;
   onClearFilters: () => void;
   onLoadMore: () => void;
@@ -48,7 +52,9 @@ export function QuotesContent({
   isLoadMoreError,
   isPending,
   isRefreshing,
+  libraryPresence,
   listIdentity,
+  onAddFirstBook,
   onAddQuote,
   onClearFilters,
   onLoadMore,
@@ -59,14 +65,16 @@ export function QuotesContent({
   view,
 }: QuotesContentProps) {
   const t = useTranslations("quotes");
+  const tBooks = useTranslations("books");
+
+  const errorState: EmptyStateEntry = {
+    desc: t("error.description"),
+    illu: "error-generic",
+    primary: { icon: "refresh", label: t("actions.retry") },
+    title: t("error.load"),
+  };
 
   if (isError) {
-    const errorState: EmptyStateEntry = {
-      desc: t("error.description"),
-      illu: "error-generic",
-      primary: { icon: "refresh", label: t("actions.retry") },
-      title: t("error.load"),
-    };
     return (
       <div aria-live="assertive" role="alert">
         <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
@@ -79,14 +87,41 @@ export function QuotesContent({
   }
 
   if (quotes.length === 0 && !hasActiveFilters) {
-    const emptyState: EmptyStateEntry = {
-      desc: t("empty.description"),
-      illu: "empty-quotes",
-      primary: { icon: "plus", label: t("actions.add") },
-      secondary: { icon: "book", label: t("empty.secondary") },
-      title: t("empty.title"),
-    };
-    return <EmptyState onPrimary={onAddQuote} onSecondary={onOpenBooks} state={emptyState} />;
+    switch (libraryPresence.kind) {
+      case "error":
+        return (
+          <div aria-live="assertive" role="alert">
+            <EmptyState
+              onPrimary={libraryPresence.retry}
+              primaryRef={retryButtonRef}
+              state={errorState}
+            />
+          </div>
+        );
+      case "pending":
+        return <QuotesSkeleton view={view} />;
+      case "ready": {
+        if (libraryPresence.total === 0) {
+          const noBooksState: EmptyStateEntry = {
+            desc: t("empty.noBooks.description"),
+            illu: "empty-quotes",
+            primary: { icon: "plus", label: tBooks("firstBook.cta") },
+            title: t("empty.noBooks.title"),
+          };
+          return <EmptyState onPrimary={onAddFirstBook} state={noBooksState} />;
+        }
+        const emptyState: EmptyStateEntry = {
+          desc: t("empty.description"),
+          illu: "empty-quotes",
+          primary: { icon: "plus", label: t("actions.add") },
+          secondary: { icon: "book", label: t("empty.secondary") },
+          title: t("empty.title"),
+        };
+        return <EmptyState onPrimary={onAddQuote} onSecondary={onOpenBooks} state={emptyState} />;
+      }
+      default:
+        return assertNever(libraryPresence);
+    }
   }
 
   if (quotes.length === 0) {

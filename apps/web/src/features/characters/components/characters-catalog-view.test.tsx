@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import type { BookView } from "@app/shared";
 import type { OnUrlUpdateFunction, UrlUpdateEvent } from "nuqs/adapters/testing";
 import type { ReactNode } from "react";
 
@@ -7,7 +8,10 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { makeBookDetailsView } from "@/features/books/components/book-details.fixtures";
+import {
+  makeBookDetailsView,
+  makeBookView,
+} from "@/features/books/components/book-details.fixtures";
 import messages from "@/messages/uk.json";
 import {
   mockIntersectionObserver,
@@ -26,13 +30,15 @@ import {
 } from "../model/characters.fixtures";
 import { CharactersCatalogView } from "./characters-catalog-view";
 
+const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }));
+
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href, ...rest }: { children: ReactNode; href: string }) => (
     <a href={href} {...rest}>
       {children}
     </a>
   ),
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: routerPush, replace: vi.fn() }),
 }));
 
 const activeFiltersCopy = messages.books.library.activeFilters;
@@ -49,6 +55,8 @@ const translateCatalog = createTranslator({
 });
 
 const CARD_CHARACTER_ID = "2b7e4c1a-9d3f-4e6b-8a5c-7f0e1d2c3b4a";
+
+const LATEST_BOOK_ID = "4d5e6f7a-8b9c-4d0e-9f1a-2b3c4d5e6f7a";
 
 const CHARACTER_BOOKS_PATH = /\/api\/characters\/[^/?]+\/books/;
 
@@ -111,6 +119,8 @@ let respondToList: (url: string) => Promise<Response> | Response;
 let respondToOverview: () => Response;
 let respondToSpecies: (url: string) => Promise<Response> | Response;
 let respondToTags: (url: string) => Promise<Response> | Response;
+let libraryTotal: number;
+let recentlyAddedBooks: BookView[];
 
 const viewport = mockIntersectionObserver();
 
@@ -158,6 +168,26 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 function lastCatalogRequest(): URLSearchParams {
   return new URL(catalogRequestUrls().at(-1) ?? "", "http://localhost").searchParams;
+}
+
+function libraryOverview() {
+  return {
+    recentlyAdded: recentlyAddedBooks,
+    summary: {
+      borrowed: 0,
+      favorites: 0,
+      finished: 0,
+      inTransit: 0,
+      reading: 0,
+      series: 0,
+      solo: 0,
+      total: libraryTotal,
+      wantToBuy: 0,
+      wantToRead: 0,
+    },
+    topGenres: [],
+    topTags: [],
+  };
 }
 
 function nextPageRequestCount(): number {
@@ -216,6 +246,8 @@ beforeEach(() => {
   respondToTags = () => jsonResponse(page([]));
   respondToList = () =>
     jsonResponse(page([makeCharacterCatalogItem({ appearanceCount: 7, name: "Ґеральт" })]));
+  libraryTotal = 1;
+  recentlyAddedBooks = [makeBookView({ id: LATEST_BOOK_ID, title: "Кров ельфів" })];
 
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
@@ -226,6 +258,9 @@ beforeEach(() => {
     if (url.includes("/api/characters/facets")) return Promise.resolve(jsonResponse(emptyFacets));
     if (url.includes("/api/character-groups")) return Promise.resolve(respondToGroups());
     if (url.includes("/api/series")) return Promise.resolve(jsonResponse(page([])));
+    if (url.includes("/api/books/overview")) {
+      return Promise.resolve(jsonResponse(libraryOverview()));
+    }
     if (url.includes("/api/books")) return Promise.resolve(respondToBooks(url));
     if (url.includes("/api/tags")) return Promise.resolve(respondToTags(url));
     if (url.includes("/api/species")) return Promise.resolve(respondToSpecies(url));
@@ -269,9 +304,8 @@ describe("CharactersCatalogView summary", () => {
     expect((await screen.findAllByText("Ділять перше місце: 2")).length).toBeGreaterThan(0);
   });
 
-  it("admits an empty catalog has no leader", async () => {
-    respondToOverview = () => jsonResponse({ ...overview, mostFrequent: null, totalCount: 0 });
-    respondToList = () => jsonResponse(page([]));
+  it("admits a catalog without book appearances has no leader", async () => {
+    respondToOverview = () => jsonResponse({ ...overview, mostFrequent: null });
 
     renderCatalog();
 
@@ -357,7 +391,7 @@ describe("CharactersCatalogView catalog", () => {
     respondToList = () => jsonResponse(page([]));
 
     renderCatalog();
-    expect(await screen.findByText("Персонажів ще немає")).toBeInTheDocument();
+    expect(await screen.findByText(messages.characters.catalog.empty.title)).toBeInTheDocument();
     expect(decorativeImageSources()).toContainEqual(
       expect.stringContaining("empty-characters.png"),
     );
@@ -366,7 +400,9 @@ describe("CharactersCatalogView catalog", () => {
     );
 
     renderCatalog("q=zzz");
-    expect(await screen.findByText("Нічого не знайдено")).toBeInTheDocument();
+    expect(
+      await screen.findByText(messages.characters.catalog.noResults.title),
+    ).toBeInTheDocument();
     expect(decorativeImageSources()).toContainEqual(expect.stringContaining("empty-search.png"));
   });
 
@@ -1132,5 +1168,101 @@ describe("CharactersCatalogView cards", () => {
     expect(
       screen.getByRole("menuitem", { name: messages.characters.page.deleteAction }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("CharactersCatalogView empty base", () => {
+  const catalogCopy = messages.characters.catalog;
+
+  beforeEach(() => {
+    respondToOverview = () =>
+      jsonResponse({
+        favoriteCount: 0,
+        mostFrequent: null,
+        multipleBooksCount: 0,
+        totalCount: 0,
+        withPersonalImpressionCount: 0,
+      });
+    respondToList = () => jsonResponse(page([]));
+  });
+
+  it("hides the summary cards while there are no characters", async () => {
+    renderCatalog();
+    await screen.findByRole("heading", { name: catalogCopy.empty.title });
+
+    expect(screen.queryByText(summaryCopy.total)).not.toBeInTheDocument();
+  });
+
+  it("hides the search, sort and view controls while there are no characters", async () => {
+    renderCatalog();
+    await screen.findByRole("heading", { name: catalogCopy.empty.title });
+
+    expect(
+      screen.queryByRole("textbox", { name: catalogCopy.searchLabel }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: catalogCopy.sortLabel })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("radiogroup", { name: catalogCopy.viewLabel }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("hides the quick filter chips while there are no characters", async () => {
+    renderCatalog();
+    await screen.findByRole("heading", { name: catalogCopy.empty.title });
+
+    expect(
+      screen.queryByRole("radio", { name: new RegExp(catalogCopy.quick.multipleBooks) }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("hides the results counter while there are no characters", async () => {
+    renderCatalog();
+    await screen.findByRole("heading", { name: catalogCopy.empty.title });
+
+    expect(screen.queryByText("Показано 0 із 0 персонажів")).not.toBeInTheDocument();
+  });
+
+  it("hides the roadmap panel while there are no characters", async () => {
+    renderCatalog();
+    await screen.findByRole("heading", { name: catalogCopy.empty.title });
+
+    expect(screen.queryByText(catalogCopy.sidebar.title)).not.toBeInTheDocument();
+  });
+
+  it("keeps the search for an empty catalog opened with a query so it can be cleared", async () => {
+    renderCatalog("q=zzz");
+
+    expect(await screen.findByRole("textbox", { name: catalogCopy.searchLabel })).toHaveValue(
+      "zzz",
+    );
+  });
+
+  it("opens the create form when the account has no books", async () => {
+    libraryTotal = 0;
+    recentlyAddedBooks = [];
+    renderCatalog();
+    await screen.findByRole("heading", { name: catalogCopy.empty.title });
+
+    await userEvent.click(screen.getByRole("button", { name: messages.books.firstBook.cta }));
+
+    expect(routerPush).toHaveBeenCalledWith("/books/new");
+  });
+
+  it("opens the characters tab of the latest book when the library has books", async () => {
+    renderCatalog();
+    await screen.findByRole("heading", { name: catalogCopy.empty.title });
+
+    await userEvent.click(screen.getByRole("button", { name: catalogCopy.empty.openLatestBook }));
+
+    expect(routerPush).toHaveBeenCalledWith(`/books/${LATEST_BOOK_ID}?tab=characters`);
+  });
+
+  it("leads to the library next to the latest book", async () => {
+    renderCatalog();
+    await screen.findByRole("heading", { name: catalogCopy.empty.title });
+
+    await userEvent.click(screen.getByRole("button", { name: catalogCopy.empty.openLibrary }));
+
+    expect(routerPush).toHaveBeenCalledWith("/books");
   });
 });

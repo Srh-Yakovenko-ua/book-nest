@@ -13,8 +13,11 @@ import { SummaryCards } from "@/components/catalog/summary-cards";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
+import { BOOK_CREATE_PATH, useLibraryPresence } from "@/features/books";
 import { useGenres } from "@/features/genres";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { useRouter } from "@/i18n/navigation";
+import { withPresenceRetry } from "@/lib/collection-presence";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 import { cn } from "@/lib/utils";
 
@@ -30,11 +33,16 @@ import { DedicationsOverviewPanel } from "./dedications-overview-panel";
 import { DedicationsSidebar } from "./dedications-sidebar";
 import { DedicationsToolbar, DedicationsToolbarSkeleton } from "./dedications-toolbar";
 
-const DEDICATIONS_MOBILE_TILE_COUNT = 3;
+const DEDICATIONS_PAGE = {
+  addFirstBookHref: BOOK_CREATE_PATH,
+  mobileTileCount: 3,
+} as const;
 
 export function DedicationsView() {
   const t = useTranslations("dedications");
   const tCommon = useTranslations("common");
+  const router = useRouter();
+  const libraryPresence = useLibraryPresence();
   const query = useDedicationsQuery();
   const dedications = useDedications(query.listParams);
   const quickCounts = useDedicationsQuickCounts(toDedicationsQuickCountsParams(query.listParams));
@@ -134,7 +142,7 @@ export function DedicationsView() {
     },
   ];
 
-  const mobileSummaryCards = summaryCards.slice(0, DEDICATIONS_MOBILE_TILE_COUNT);
+  const mobileSummaryCards = summaryCards.slice(0, DEDICATIONS_PAGE.mobileTileCount);
 
   const loadMoreState: InfiniteScrollState = dedications.isFetchNextPageError
     ? "error"
@@ -229,6 +237,11 @@ export function DedicationsView() {
             isError={dedications.isLoadingError}
             isPending={dedications.isPending}
             isPlaceholderData={dedications.isPlaceholderData}
+            libraryPresence={withPresenceRetry({
+              presence: libraryPresence,
+              wrapRetry: withRetryFocus,
+            })}
+            onAddFirstBook={() => router.push(DEDICATIONS_PAGE.addFirstBookHref)}
             onChooseBook={onChooseBook}
             onClearFilters={query.clearFilters}
             onOpenDedication={setOpenedBook}

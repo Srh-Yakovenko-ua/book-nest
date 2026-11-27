@@ -15,6 +15,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { BOOK_CREATE_PATH, useLibraryPresence } from "@/features/books";
+import { Link } from "@/i18n/navigation";
 import { formatDate } from "@/lib/format";
 
 const HERO_COVERS_LIMIT = 4;
@@ -22,6 +24,7 @@ const HERO_COVERS_LIMIT = 4;
 type ListDetailsHeaderProps = {
   description: null | string;
   isDuplicating: boolean;
+  isListEmpty: boolean;
   name: string;
   onAddBooks: () => void;
   onDelete: () => void;
@@ -35,6 +38,7 @@ type ListDetailsHeaderProps = {
 export function ListDetailsHeader({
   description,
   isDuplicating,
+  isListEmpty,
   name,
   onAddBooks,
   onDelete,
@@ -46,6 +50,9 @@ export function ListDetailsHeader({
 }: ListDetailsHeaderProps) {
   const tHeader = useTranslations("lists.details.header");
   const locale = useLocale();
+  const library = useLibraryPresence();
+  const hasNoLibraryBooks = library.kind === "ready" && library.total === 0;
+  const emptyStateOffersFirstBook = isListEmpty && hasNoLibraryBooks;
   const covers = previewCovers.slice(0, HERO_COVERS_LIMIT);
 
   return (
@@ -87,10 +94,12 @@ export function ListDetailsHeader({
           </div>
 
           <div className="flex shrink-0 items-center gap-2 max-sm:w-full">
-            <Button className="max-sm:flex-1" onClick={onAddBooks}>
-              <UiIcon name="plus" size={16} />
-              {tHeader("addBooks")}
-            </Button>
+            {emptyStateOffersFirstBook ? null : (
+              <ListHeaderPrimaryAction
+                hasNoLibraryBooks={hasNoLibraryBooks}
+                onAddBooks={onAddBooks}
+              />
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -126,5 +135,34 @@ export function ListDetailsHeader({
         )}
       </div>
     </header>
+  );
+}
+
+function ListHeaderPrimaryAction({
+  hasNoLibraryBooks,
+  onAddBooks,
+}: {
+  hasNoLibraryBooks: boolean;
+  onAddBooks: () => void;
+}) {
+  const tHeader = useTranslations("lists.details.header");
+  const tEmpty = useTranslations("lists.details.empty");
+
+  if (hasNoLibraryBooks) {
+    return (
+      <Button asChild className="max-sm:flex-1">
+        <Link href={BOOK_CREATE_PATH}>
+          <UiIcon name="plus" size={16} />
+          {tEmpty("noBooks.cta")}
+        </Link>
+      </Button>
+    );
+  }
+
+  return (
+    <Button className="max-sm:flex-1" onClick={onAddBooks}>
+      <UiIcon name="plus" size={16} />
+      {tHeader("addBooks")}
+    </Button>
   );
 }

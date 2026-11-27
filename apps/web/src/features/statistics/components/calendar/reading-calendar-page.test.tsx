@@ -2,6 +2,7 @@ import type {
   ReadingDayDetails,
   ReadingStatisticsCalendarPage,
   StatisticsCalendarDay,
+  UserView,
 } from "@app/shared";
 import type { ReactNode } from "react";
 
@@ -9,6 +10,7 @@ import { defaultUserProfileSettings } from "@app/shared";
 import { NuqsTestingAdapter, type UrlUpdateEvent } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { useAuthStore } from "@/features/auth";
 import messages from "@/messages/uk.json";
 import { fireEvent, renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
@@ -78,6 +80,23 @@ const QUARTER_LABELS = {
 } as const;
 
 const QUARTERS_FROM_DECEMBER_TO_FEBRUARY = 3;
+
+const NEW_READER = {
+  createdAt: "2026-03-20T08:00:00.000Z",
+  dateOfBirth: null,
+  email: "new.reader@book.nest",
+  emailVerified: true,
+  id: "5a1c2e3f-4b6d-4e7f-8a9b-0c1d2e3f4a5b",
+  name: "New Reader",
+  nickname: "new_reader",
+  role: "user",
+} satisfies UserView;
+
+const MARCH_2026_DAY_LABELS = {
+  march5BeforeAccount: "5 березня 2026 р.: акаунта ще не було",
+  march5Unknown: "5 березня 2026 р.: даних за цей день може не бути",
+  march10BeforeAccount: "10 березня 2026 р.: акаунта ще не було",
+} as const;
 
 let calendarResponse: (year: number) => Response = (year) => jsonResponse(calendarPage(year));
 
@@ -176,6 +195,18 @@ function lastUrlUpdate(onUrlUpdate: ReturnType<typeof renderCalendar>["onUrlUpda
 
 function quarterLabel(pattern: RegExp) {
   return screen.getByText((content) => pattern.test(content));
+}
+
+function quietDay(date: string, overrides: Partial<StatisticsCalendarDay> = {}) {
+  return calendarDayFixture({ date, drilldown: { date, kind: "reading_day" }, ...overrides });
+}
+
+function quietYear(
+  year: number,
+  days: readonly StatisticsCalendarDay[],
+): ReadingStatisticsCalendarPage {
+  const page = calendarPage(year);
+  return { ...page, calendar: { ...page.calendar, activeDays: 0, days: [...days] } };
 }
 
 function readingDay(date: string) {
@@ -837,5 +868,94 @@ describe("ReadingCalendarPage page controls", () => {
     );
     expect(screen.queryByRole("region", { name: SELECTABLE_DAYS.february10.title })).toBeNull();
     expect(readingDayRequestDates()).toEqual([]);
+  });
+});
+
+describe("ReadingCalendarPage for a confirmed new account", () => {
+  beforeEach(() => {
+    vi.stubGlobal("innerWidth", 1280);
+    useAuthStore.getState().setSession("access-token", NEW_READER);
+    const page = quietYear(CLOCK.currentYear, [
+      quietDay("2026-03-05", { historyQuality: "legacy_observed_only" }),
+      quietDay(CLOCK.today),
+    ]);
+    calendarResponse = () =>
+      jsonResponse({
+        ...page,
+        meta: {
+          ...page.meta,
+          activityHistory: {
+            reliableFrom: CLOCK.today,
+            selectedPeriodQuality: "legacy_lower_bound",
+          },
+        },
+      });
+  });
+
+  afterEach(() => {
+    useAuthStore.setState(useAuthStore.getInitialState(), true);
+  });
+
+  it("drops the note that older history may be incomplete", async () => {
+    renderCalendar("?year=2026&month=2026-03");
+
+    await screen.findByText(MONTH_LABELS.march2026);
+    expect(screen.queryByText(text.states.lowerBound)).not.toBeInTheDocument();
+  });
+
+  it("marks the days before the account was created instead of calling them unknown", async () => {
+    renderCalendar("?year=2026&month=2026-03");
+
+    expect(await screen.findByText(MARCH_2026_DAY_LABELS.march5BeforeAccount)).toBeInTheDocument();
+    expect(screen.getByText(MARCH_2026_DAY_LABELS.march10BeforeAccount)).toBeInTheDocument();
+    expect(screen.queryByText(MARCH_2026_DAY_LABELS.march5Unknown)).not.toBeInTheDocument();
+  });
+
+  it("tells right under the month card that reading appears once progress is recorded", async () => {
+    renderCalendar("?year=2026&month=2026-03");
+
+    const monthLabel = await screen.findByText(MONTH_LABELS.march2026);
+    const hint = screen.getByText(pageText.recordProgressHint);
+    const booksRegion = screen.getByRole("region", { name: pageText.books.title });
+
+    expect(monthLabel.compareDocumentPosition(hint) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(hint.compareDocumentPosition(booksRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(within(booksRegion).queryByText(pageText.recordProgressHint)).not.toBeInTheDocument();
+  });
+});
+
+describe("ReadingCalendarPage year without reading activity", () => {
+  beforeEach(() => {
+    vi.stubGlobal("innerWidth", 1280);
+    calendarResponse = (year) =>
+      jsonResponse(quietYear(year, [quietDay(`${year}-01-15`), quietDay(`${year}-02-10`)]));
+  });
+
+  it("drops the month figures and the reading intensity card", async () => {
+    renderCalendar("?year=2025&month=2025-02");
+
+    await screen.findByText(MONTH_LABELS.february2025);
+    for (const label of [
+      text.calendar.books.monthActiveDays,
+      text.calendar.books.monthBooks,
+      text.calendar.books.monthPages,
+    ]) {
+      expect(screen.queryByText(label)).not.toBeInTheDocument();
+    }
+    expect(screen.queryByText(pageText.activity.title)).not.toBeInTheDocument();
+  });
+
+  it("keeps the month navigation working", async () => {
+    const user = userEvent.setup();
+    renderCalendar("?year=2025&month=2025-02");
+    await screen.findByText(MONTH_LABELS.february2025);
+
+    await user.click(screen.getByRole("button", { name: text.calendar.books.previousMonth }));
+
+    expect(await screen.findByText(MONTH_LABELS.january2025)).toBeInTheDocument();
   });
 });

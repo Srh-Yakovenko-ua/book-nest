@@ -1,4 +1,8 @@
 import "@testing-library/jest-dom/vitest";
+
+import type { ReadingQueueSummaryView } from "@app/shared";
+import type { ReactNode } from "react";
+
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -7,6 +11,12 @@ import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import { AddBookToQueueDialog } from "./add-book-to-queue-dialog";
 import { makeBookView } from "./book-details.fixtures";
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+}));
 
 vi.mock("sonner", () => ({
   toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
@@ -17,6 +27,8 @@ const position = messages.readingQueue.position;
 const fetchMock = vi.fn();
 
 let respondToAdd: () => Response;
+let respondToBooks: (url: URL) => unknown;
+let queuedCount: number;
 
 function addRequestBody() {
   const call = fetchMock.mock.calls.find(
@@ -40,6 +52,10 @@ function booksPage() {
   };
 }
 
+function emptyBooksPage() {
+  return { items: [], page: 1, pagesCount: 0, pageSize: 20, totalCount: 0 };
+}
+
 function emptyQueue() {
   return { count: 0, items: [], totalCount: 0, totalPagesCount: 0 };
 }
@@ -49,6 +65,19 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json" },
     status,
   });
+}
+
+function queueSummary(totalCount: number): ReadingQueueSummaryView {
+  return {
+    availableNowCount: totalCount,
+    blockedBySeriesOrderCount: 0,
+    seriesBooksCount: 0,
+    seriesInQueueCount: 0,
+    standaloneBooksCount: totalCount,
+    totalCount,
+    unavailableByOwnership: { inTransit: 0, lentToSomeone: 0, none: 0, wantToBuy: 0 },
+    unavailableCount: 0,
+  };
 }
 
 const QUEUE_ITEMS = [
@@ -65,6 +94,8 @@ function renderDialog(queueItems = QUEUE_ITEMS) {
 
 beforeEach(() => {
   respondToAdd = () => jsonResponse(emptyQueue());
+  respondToBooks = () => booksPage();
+  queuedCount = 1;
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
@@ -72,7 +103,12 @@ beforeEach(() => {
     if (url.includes("/api/reading-queue") && method === "POST") {
       return Promise.resolve(respondToAdd());
     }
-    if (url.includes("/api/books")) return Promise.resolve(jsonResponse(booksPage()));
+    if (url.includes("/api/reading-queue/summary")) {
+      return Promise.resolve(jsonResponse(queueSummary(queuedCount)));
+    }
+    if (url.includes("/api/books")) {
+      return Promise.resolve(jsonResponse(respondToBooks(new URL(url, "http://localhost"))));
+    }
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -139,5 +175,55 @@ describe("AddBookToQueueDialog", () => {
     await userEvent.click(screen.getByRole("button", { name: add.submit }));
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(add.duplicateToast));
+  });
+});
+
+describe("AddBookToQueueDialog notices", () => {
+  it("explains that every book is already in the queue", async () => {
+    queuedCount = 2;
+    renderDialog();
+
+    expect(await screen.findByText(add.allQueued)).toBeInTheDocument();
+  });
+
+  it("links to a new book when every book is already in the queue", async () => {
+    queuedCount = 2;
+    renderDialog();
+
+    expect(await screen.findByRole("link", { name: add.addNewBook })).toHaveAttribute(
+      "href",
+      "/books/new",
+    );
+  });
+
+  it("keeps the selectable books while some are still out of the queue", async () => {
+    renderDialog();
+
+    expect(await screen.findByRole("radio", { name: /Доступна книга/ })).toBeEnabled();
+    expect(screen.queryByText(add.allQueued)).not.toBeInTheDocument();
+  });
+
+  it("offers the first book when the library has no books", async () => {
+    queuedCount = 0;
+    respondToBooks = () => emptyBooksPage();
+    renderDialog();
+
+    expect(await screen.findByText(add.noBooks)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: messages.books.firstBook.cta })).toHaveAttribute(
+      "href",
+      "/books/new",
+    );
+  });
+
+  it("keeps the not-found message when a search matches no book", async () => {
+    queuedCount = 2;
+    respondToBooks = (url) => (url.searchParams.has("q") ? emptyBooksPage() : booksPage());
+    renderDialog();
+    await screen.findByText(add.allQueued);
+
+    await userEvent.type(screen.getByRole("textbox", { name: add.searchLabel }), "zzz");
+
+    expect(await screen.findByText(add.empty)).toBeInTheDocument();
+    expect(screen.queryByText(add.allQueued)).not.toBeInTheDocument();
   });
 });

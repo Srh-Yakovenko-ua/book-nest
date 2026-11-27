@@ -7,6 +7,7 @@ import type {
   CreateBookOrderDraft,
   CreateBookOrderDraftAction,
   OrderBookDraft,
+  OrderDraft,
   ShipmentDraft,
 } from "./create-book-order-draft";
 
@@ -16,6 +17,7 @@ import {
   EMPTY_CREATE_BOOK_ORDER_DRAFT,
   EMPTY_ORDER,
   hasCompleteItemPrices,
+  hasCreateBookOrderInput,
   optionalNumber,
   shipmentLayout,
   toCreateBookOrderInput,
@@ -897,6 +899,39 @@ describe("hasCompleteItemPrices", () => {
     },
   ])("is $complete for $name", ({ books, complete }) => {
     expect(hasCompleteItemPrices(books)).toBe(complete);
+  });
+});
+
+describe("hasCreateBookOrderInput", () => {
+  it("sees no input in an untouched draft", () => {
+    expect(hasCreateBookOrderInput(EMPTY_CREATE_BOOK_ORDER_DRAFT)).toBe(false);
+  });
+
+  it.each<{ name: string; order: OrderDraft }>([
+    { name: "a store", order: { ...EMPTY_ORDER, storeName: "Yakaboo" } },
+    { name: "an order number", order: { ...EMPTY_ORDER, orderNumber: "A-1024" } },
+    { name: "an order date", order: { ...EMPTY_ORDER, orderDate: "2026-03-01" } },
+    { name: "a total", order: { ...EMPTY_ORDER, totalAmount: "480" } },
+    { name: "a delivery price", order: { ...EMPTY_ORDER, deliveryPrice: "60" } },
+    { name: "a discount", order: { ...EMPTY_ORDER, discount: "10" } },
+    { name: "a note", order: { ...EMPTY_ORDER, note: "Gift" } },
+    { name: "another currency", order: { ...EMPTY_ORDER, currency: "EUR" } },
+    { name: "a cleared currency", order: { ...EMPTY_ORDER, currency: "" } },
+    { name: "a free order", order: { ...EMPTY_ORDER, isFree: true } },
+  ])("sees input in $name", ({ order }) => {
+    expect(hasCreateBookOrderInput(makeDraft({ order }))).toBe(true);
+  });
+
+  it.each([
+    { draft: makeDraft({ books: [makeOrderBook(BOOK_1)] }), name: "a chosen book" },
+    {
+      draft: makeDraft({ pickerSelection: [makeBookView({ id: BOOK_1 })] }),
+      name: "a picker selection",
+    },
+    { draft: makeDraft({ shipping: "yes" }), name: "shipping turned on" },
+    { draft: makeDraft({ financialMode: "items" }), name: "per-book prices" },
+  ])("sees input in $name", ({ draft }) => {
+    expect(hasCreateBookOrderInput(draft)).toBe(true);
   });
 });
 

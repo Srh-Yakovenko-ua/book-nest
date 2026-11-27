@@ -17,11 +17,13 @@ const ORDER_PICKER_OWNERSHIP_STATUSES = [
 
 export function CreateOrderBookPickerView({
   onBack,
+  onCreateBook,
   onDone,
   onSelectedChange,
   selected,
 }: {
   onBack: () => void;
+  onCreateBook: () => void;
   onDone: () => void;
   onSelectedChange: (books: BookView[]) => void;
   selected: BookView[];
@@ -51,6 +53,20 @@ export function CreateOrderBookPickerView({
           selectLoaded: (count) => t("selectLoaded", { count }),
         }}
         onSelectedChange={onSelectedChange}
+        renderEmpty={(searched) =>
+          searched ? (
+            t("empty")
+          ) : (
+            <span className="flex flex-col items-center gap-3 text-center">
+              <span className="text-sm font-medium text-ink">{t("noBooks.title")}</span>
+              <span className="text-xs text-muted-foreground">{t("noBooks.hint")}</span>
+              <Button onClick={onCreateBook} size="sm" variant="secondary">
+                <UiIcon name="plus" size={16} />
+                {t("noBooks.cta")}
+              </Button>
+            </span>
+          )
+        }
         selected={selected}
       />
       <DialogFooter>

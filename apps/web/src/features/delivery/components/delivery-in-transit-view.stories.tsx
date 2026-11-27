@@ -23,6 +23,7 @@ const summaryNode = (
 const meta = {
   args: {
     content: { kind: "loading" },
+    onAddFirstBook: () => {},
     onGoToBooksToBuy: () => {},
     onLoadMore: () => {},
     onResetFilters: () => {},

@@ -11,6 +11,7 @@ import type { CalendarMonthSummary } from "../model/statistics-calendar";
 import { useReadingMonthBooks } from "../api/use-reading-month-books";
 import {
   clipCalendarMonth,
+  hasDaysBeforeAccountStart,
   isDateInMonth,
   listCalendarMonths,
   resolveCalendarMonth,
@@ -22,10 +23,12 @@ import {
 export type ReadingCalendarMonth = ReturnType<typeof useReadingCalendarMonth>;
 
 export function useReadingCalendarMonth({
+  accountStart,
   calendar,
   month,
   selectedDay,
 }: {
+  accountStart: Nullable<string>;
   calendar: ReadingStatisticsCalendarSection;
   month: Nullable<string>;
   selectedDay: Nullable<string>;
@@ -48,8 +51,14 @@ export function useReadingCalendarMonth({
   const isExactCountMissing = summary.books.isLowerBound && exactMonthBooks === undefined;
 
   return {
-    books: monthBooksCount({ exact: exactMonthBooks, summary }),
+    accountStart,
+    books: monthBooksCount({
+      exact: exactMonthBooks,
+      isHistoryComplete: accountStart !== null,
+      summary,
+    }),
     days,
+    hasDaysBeforeAccount: hasDaysBeforeAccountStart({ accountStart, days }),
     isHistoryUncertain: summary.hasUnknownDays || summary.hasLegacyHistory,
     monthBooksStatus:
       isExactCountMissing && (monthBooks.isFetching || monthBooks.isError)
@@ -68,9 +77,11 @@ export function useReadingCalendarMonth({
 
 function monthBooksCount({
   exact,
+  isHistoryComplete,
   summary,
 }: {
   exact: ReadingStatisticsActivityPage | undefined;
+  isHistoryComplete: boolean;
   summary: CalendarMonthSummary;
 }): { count: number; isLowerBound: boolean } {
   if (!summary.books.isLowerBound) {
@@ -81,6 +92,8 @@ function monthBooksCount({
   }
   return {
     count: exact.booksCount,
-    isLowerBound: summary.hasLegacyHistory || exact.historyQuality === "legacy_observed_only",
+    isLowerBound:
+      !isHistoryComplete &&
+      (summary.hasLegacyHistory || exact.historyQuality === "legacy_observed_only"),
   };
 }

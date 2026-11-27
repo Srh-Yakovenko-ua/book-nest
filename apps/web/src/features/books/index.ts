@@ -3,6 +3,7 @@ export { useToggleFavorite } from "./api/use-book-actions";
 export { useBookFacets } from "./api/use-book-facets";
 export { useCreateDelivery } from "./api/use-delivery";
 export { useLibraryOverview } from "./api/use-library-overview";
+export { type LibraryPresence, useLibraryPresence } from "./api/use-library-presence";
 export { useMarkOwned, useRemoveFromWishlist } from "./api/use-ownership";
 export { usePublishersSearch } from "./api/use-publishers-search";
 export { useChangeReadingStatus } from "./api/use-reading-progress";
@@ -32,6 +33,12 @@ export { StoreSourceFields } from "./components/store-source-fields";
 export { UpdateReadingProgressDialog } from "./components/update-reading-progress-dialog";
 export { useDeliveryErrorText } from "./hooks/use-delivery-error-text";
 export { BOOK_GENRES_MAX } from "./model/book-classification-fields";
+export {
+  BOOK_CREATE_PATH,
+  bookCreateHref,
+  type BookCreateOwnershipStatus,
+  BookCreateOwnershipStatusSchema,
+} from "./model/book-create-href";
 export { type AuthorSelection, authorSelectionToReference } from "./model/create-book-form";
 export { type LibraryBook, type LibraryBookLabels, toLibraryBook } from "./model/library-book";
 export { LIBRARY_PUBLISHER_PRESENCE_MISSING, libraryQueryParsers } from "./model/library-query";

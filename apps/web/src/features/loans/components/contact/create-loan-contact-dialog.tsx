@@ -17,6 +17,7 @@ import { CreateLoanContactForm } from "./create-loan-contact-form";
 type CreateLoanContactDialogProps = {
   conflictAction: LoanContactConflictAction;
   initialName?: string;
+  onCloseAutoFocus?: (event: Event) => void;
   onOpenChange: (open: boolean) => void;
   onResolved: (resolution: LoanContactResolution) => void;
   open: boolean;
@@ -25,6 +26,7 @@ type CreateLoanContactDialogProps = {
 export function CreateLoanContactDialog({
   conflictAction,
   initialName,
+  onCloseAutoFocus,
   onOpenChange,
   onResolved,
   open,
@@ -33,7 +35,7 @@ export function CreateLoanContactDialog({
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>{t("description")}</DialogDescription>

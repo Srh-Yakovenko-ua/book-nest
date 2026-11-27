@@ -1,5 +1,3 @@
-import type { ReadingStatisticsLibraryBalanceSection } from "@app/shared";
-
 import { createTranslator } from "next-intl";
 import { describe, expect, it } from "vitest";
 
@@ -8,8 +6,6 @@ import { renderWithProviders, screen, userEvent } from "@/test-utils";
 
 import { overviewFixture } from "../../model/statistics.fixtures";
 import { LibraryBalanceSection } from "./library-balance-section";
-
-type ForecastReason = NonNullable<ReadingStatisticsLibraryBalanceSection["forecast"]["reason"]>;
 
 const { libraryBalance } = overviewFixture();
 
@@ -20,12 +16,6 @@ const translateBalance = createTranslator({
   messages,
   namespace: "statistics.libraryBalance",
 });
-
-const FORECAST_REASONS = [
-  "INSUFFICIENT_SAMPLE",
-  "LOW_CONFIDENCE",
-  "LEGACY_HISTORY_INCOMPLETE",
-] as const satisfies readonly ForecastReason[];
 
 const FLOW_LEAD = balanceText.flow.slice(0, balanceText.flow.indexOf("{")).trim();
 
@@ -167,34 +157,40 @@ describe("LibraryBalanceSection", () => {
     expect(
       screen.getByText(translateBalance("forecastEstimate", { months: "0", rate: "4" })),
     ).toBeInTheDocument();
-    expect(screen.queryByText(balanceText.forecastNoData)).not.toBeInTheDocument();
     expect(screen.queryByText("—")).not.toBeInTheDocument();
   });
 
-  it.each(FORECAST_REASONS)(
-    "shows a compact no-data forecast and keeps the %s reason in a hint without a section note",
-    async (reason) => {
-      renderWithProviders(
-        <LibraryBalanceSection
-          libraryBalance={{
-            ...libraryBalance,
-            forecast: { availability: "unavailable", data: null, reason },
-          }}
-        />,
-      );
+  it("drops the forecast row when the forecast is unavailable but the flow is tracked", () => {
+    renderWithProviders(
+      <LibraryBalanceSection
+        libraryBalance={{
+          ...libraryBalance,
+          flow: { availability: "available", data: { inflow: 5, netChange: 3, outflow: 2 } },
+          forecast: { availability: "unavailable", data: null, reason: "INSUFFICIENT_SAMPLE" },
+        }}
+      />,
+    );
 
-      expect(screen.getAllByRole("term").at(-1)).toHaveTextContent(balanceText.forecastLabel);
-      expect(screen.getAllByRole("definition").at(-1)).toHaveTextContent(
-        balanceText.forecastNoData,
-      );
-      expect(screen.queryByText(balanceText.forecastReason[reason])).not.toBeInTheDocument();
-      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.getByText(balanceText.flowLabel)).toBeInTheDocument();
+    expect(screen.queryByText(balanceText.forecastLabel)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: forecastHintButtonName })).not.toBeInTheDocument();
+  });
 
-      await userEvent.click(screen.getByRole("button", { name: forecastHintButtonName }));
+  it("renders no forecast or flow facts when neither has data", () => {
+    renderWithProviders(
+      <LibraryBalanceSection
+        libraryBalance={{
+          ...libraryBalance,
+          flow: { availability: "unavailable", data: null, reason: "HISTORY_NOT_TRACKED" },
+          forecast: { availability: "unavailable", data: null, reason: "LOW_CONFIDENCE" },
+        }}
+      />,
+    );
 
-      expect(await screen.findByText(balanceText.forecastReason[reason])).toBeInTheDocument();
-    },
-  );
+    expect(screen.getByText(balanceText.title)).toBeInTheDocument();
+    expect(screen.queryByText(balanceText.forecastLabel)).not.toBeInTheDocument();
+    expect(screen.queryByText(balanceText.flowLabel)).not.toBeInTheDocument();
+  });
 
   it("shows the inflow, outflow and net change when the flow is tracked", () => {
     renderWithProviders(

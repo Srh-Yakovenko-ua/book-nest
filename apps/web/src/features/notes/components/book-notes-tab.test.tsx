@@ -13,6 +13,7 @@ import type { BookTabScrollMemory } from "@/hooks/use-book-tab-scroll-anchor";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
 import { createBookTabScrollMemory } from "@/hooks/use-book-tab-scroll-anchor";
+import messages from "@/messages/uk.json";
 import {
   mockIntersectionObserver,
   renderWithProviders,
@@ -68,8 +69,8 @@ const COPY = {
   clearFilters: "Скинути фільтри",
   clearSearch: "Очистити пошук",
   emptyBook: "У цієї книги ще немає нотаток.",
-  emptyFilters: "За цими фільтрами нотаток немає.",
-  emptySearch: "Нічого не знайдено.",
+  emptyFilters: messages.notes.archive.emptyFilters.title,
+  emptySearch: messages.notes.archive.emptySearch.title,
   firstPageError: "Не вдалося завантажити нотатки.",
   loading: "Завантажуємо нотатки...",
   nextPageError: "Не вдалося завантажити наступні нотатки.",

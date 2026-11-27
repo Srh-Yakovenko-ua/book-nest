@@ -239,9 +239,9 @@ describe("LoanContactsView", () => {
   });
 
   it("tells the reader nothing matched the query", async () => {
-    renderView({ counts: { active: 0, all: 0, archived: 0 }, items: [], totalCount: 0 });
+    renderView({ items: [], totalCount: 0 });
 
-    await userEvent.type(screen.getByLabelText(copy.toolbar.searchLabel), "Хтось");
+    await userEvent.type(await screen.findByLabelText(copy.toolbar.searchLabel), "Хтось");
 
     expect(await screen.findByText(copy.states.noResults.title)).toBeInTheDocument();
   });
@@ -253,6 +253,34 @@ describe("LoanContactsView", () => {
     expect(
       screen.getAllByRole("presentation").map((image) => image.getAttribute("src")),
     ).toContainEqual(expect.stringContaining("empty-contacts.png"));
+  });
+
+  it("hides the search and filters until the reader has contacts", async () => {
+    renderView({ counts: { active: 0, all: 0, archived: 0 }, items: [], totalCount: 0 });
+
+    await screen.findByText(copy.states.empty.title);
+
+    expect(screen.queryByLabelText(copy.toolbar.searchLabel)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: new RegExp(`^${copy.filters.trigger}`) }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("leaves one create action when the reader has no contacts", async () => {
+    renderView({ counts: { active: 0, all: 0, archived: 0 }, items: [], totalCount: 0 });
+
+    await screen.findByText(copy.states.empty.title);
+
+    expect(screen.getAllByRole("button", { name: copy.create.cta })).toHaveLength(1);
+  });
+
+  it("tells the reader a new contact can be picked when adding a loan", async () => {
+    renderView({ counts: { active: 0, all: 0, archived: 0 }, items: [], totalCount: 0 });
+
+    const description = await screen.findByText(copy.states.empty.description);
+
+    expect(description).toHaveTextContent(/вибрати/);
+    expect(description).toHaveTextContent(/позик/);
   });
 });
 

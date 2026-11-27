@@ -205,7 +205,7 @@ describe("TagsView", () => {
 
     renderTags();
 
-    expect(await screen.findByText("У вас ще немає тегів")).toBeInTheDocument();
+    expect(await screen.findByText(messages.tags.states.firstUse.title)).toBeInTheDocument();
     expect(screen.queryByLabelText("Пошук тегу")).not.toBeInTheDocument();
   });
 
@@ -299,8 +299,8 @@ describe("TagsView", () => {
 
       renderTags();
 
-      expect(await screen.findByText(/бібліотеки$/)).toHaveTextContent(/^0s?%/);
-      expect(screen.getByText(/усіх персонажів$/)).toHaveTextContent(/^0s?%/);
+      expect(await screen.findByText(messages.tags.summary.facts.noBooks)).toBeInTheDocument();
+      expect(screen.getByText(messages.tags.summary.facts.noCharacters)).toBeInTheDocument();
       expect(document.body.textContent).not.toMatch(/NaN|Infinity|∞/);
     });
 
@@ -1259,11 +1259,46 @@ describe("TagsView empty states", () => {
       "GET /api/tags/summary": () => json({ ...SUMMARY, totalTagsCount: 0 }),
     });
     renderTags();
-    await screen.findByText("У вас ще немає тегів");
+    await screen.findByText(messages.tags.states.firstUse.title);
 
     await userEvent.click(within(catalogRegion()).getByRole("button", { name: "Додати тег" }));
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("hides the tag stats before the first tag", async () => {
+    mockFirstUse();
+    renderTags();
+    await screen.findByText(messages.tags.states.firstUse.title);
+
+    expect(screen.queryByText(messages.tags.summary.cards.totalTags)).not.toBeInTheDocument();
+    expect(screen.queryByText(messages.tags.summary.cards.mostUsed)).not.toBeInTheDocument();
+  });
+
+  it("hides the four sidebar panels before the first tag", async () => {
+    mockFirstUse();
+    renderTags();
+    await screen.findByText(messages.tags.states.firstUse.title);
+
+    const { sidebar } = messages.tags;
+    for (const title of [
+      sidebar.attention.title,
+      sidebar.structure.title,
+      sidebar.usage.title,
+      sidebar.palette.title,
+    ]) {
+      expect(screen.queryByText(title)).not.toBeInTheDocument();
+    }
+  });
+
+  it("leaves the first-use state as the only add-tag action", async () => {
+    mockFirstUse();
+    renderTags();
+    await screen.findByText(messages.tags.states.firstUse.title);
+
+    expect(
+      screen.getAllByRole("button", { name: messages.tags.states.firstUse.action }),
+    ).toHaveLength(1);
   });
 
   it("shows a contextual empty state whose Clear all resets filters but keeps sort", async () => {
@@ -1272,7 +1307,7 @@ describe("TagsView empty states", () => {
     renderTags("?filter=books&sort=name_asc", (event) => urlUpdates.push(event));
 
     await screen.findByRole("heading", { name: "Тегів за цими умовами не знайдено" });
-    expect(screen.queryByText("У вас ще немає тегів")).not.toBeInTheDocument();
+    expect(screen.queryByText(messages.tags.states.firstUse.title)).not.toBeInTheDocument();
     expect(screen.queryByText("Усі теги використовуються")).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Очистити все" }));
 
@@ -1449,6 +1484,31 @@ function loadMoreRegion(): HTMLElement | undefined {
     .find(
       (region) => region.getAttribute("aria-live") === "polite" && region.hasAttribute("aria-busy"),
     );
+}
+
+function mockFirstUse() {
+  mockTagsApi({
+    "GET /api/tags/catalog": () => json(page([])),
+    "GET /api/tags/summary": () =>
+      json({
+        ...SUMMARY,
+        colorCounts: {
+          forest: 0,
+          honey: 0,
+          lavender: 0,
+          parchment: 0,
+          rose: 0,
+          sage: 0,
+          sky: 0,
+          terracotta: 0,
+        },
+        taggedBooksCount: 0,
+        taggedCharactersCount: 0,
+        totalTagsCount: 0,
+        typeCounts: { atmosphere: 0, character: 0, custom: 0, format: 0, theme: 0, trope: 0 },
+        usageDistribution: { booksOnly: 0, both: 0, charactersOnly: 0, unused: 0 },
+      }),
+  });
 }
 
 function mockTagsApi(overrides: Record<string, Reply> = {}) {

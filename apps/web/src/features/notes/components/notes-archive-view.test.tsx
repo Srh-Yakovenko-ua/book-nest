@@ -20,6 +20,7 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { makeSeriesOverview } from "@/features/series/model/series.fixtures";
 import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
@@ -28,10 +29,12 @@ import type { NotesArchiveScope } from "../model/notes-archive-config";
 import { makeBookNote, makeSeriesNote } from "../model/notes.fixtures";
 import { NotesArchiveView } from "./notes-archive-view";
 
+const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }));
+
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, ...props }: ComponentProps<"a">) => <a {...props}>{children}</a>,
   usePathname: () => "/",
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: routerPush, replace: vi.fn() }),
 }));
 
 vi.mock("sonner", () => ({
@@ -42,6 +45,7 @@ type ArchiveReplies = {
   impression?: Reply;
   list?: (url: string) => Promise<Response>;
   overview?: Reply;
+  presence?: Reply;
   review?: Reply;
   summary?: Reply;
 };
@@ -72,6 +76,7 @@ const ARCHIVE_NOTE_TEXT = {
 
 const PATHS = {
   impression: "/api/notes/rediscovery/impression",
+  presence: { books: "/api/books/overview", series: "/api/series/overview" },
   review: "/api/notes/books/post-finish/review",
 } as const;
 
@@ -91,6 +96,25 @@ const SERIES_SUMMARY: SeriesNotesSummaryView = {
   seriesWithThreeOrMoreNotesCount: 1,
   topAuthor: { leadersCount: 1, name: "Френк Герберт", notesCount: 3 },
   topSeries: { leadersCount: 1, name: "Хроніки Дюни", notesCount: 3 },
+};
+
+const EMPTY_SUMMARY = {
+  books: {
+    bookNotesCount: 0,
+    booksWithFiveOrMoreNotesCount: 0,
+    booksWithNotesCount: 0,
+    createdLast30DaysCount: 0,
+    topAuthor: null,
+    topBook: null,
+  } satisfies BookNotesSummaryView,
+  series: {
+    createdLast30DaysCount: 0,
+    seriesNotesCount: 0,
+    seriesWithNotesCount: 0,
+    seriesWithThreeOrMoreNotesCount: 0,
+    topAuthor: null,
+    topSeries: null,
+  } satisfies SeriesNotesSummaryView,
 };
 
 const QUICK_COUNTS = { all: 1, favorite: 0, no_spoiler: 1, pinned: 0, with_spoiler: 0 };
@@ -200,6 +224,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   requests.length = 0;
   visibilityObservers.length = 0;
+  routerPush.mockClear();
 });
 
 describe("NotesArchiveView books overview", () => {
@@ -756,6 +781,126 @@ describe("NotesArchiveView counter", () => {
   });
 });
 
+describe("NotesArchiveView empty base", () => {
+  const archive = messages.notes.archive;
+
+  async function waitForEmptyBaseChrome(scope: NotesArchiveScope) {
+    await waitFor(() => expect(overviewRequests(scope)).toHaveLength(1));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("complementary", { name: "Огляд нотаток" }),
+      ).not.toBeInTheDocument(),
+    );
+  }
+
+  it("offers to add the first book when the library has no books", async () => {
+    mockEmptyArchive("books", { presence: json(libraryOverview(0)) });
+    renderArchive("books");
+
+    expect(
+      await screen.findByRole("heading", { name: archive.books.noEntities.title }),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: messages.books.firstBook.cta }));
+
+    expect(routerPush).toHaveBeenCalledWith("/books/new");
+    expect(screen.queryByRole("dialog", { name: archive.addNote })).not.toBeInTheDocument();
+  });
+
+  it("hides the stats, toolbar, sidebar and header action while there are no book notes", async () => {
+    mockEmptyArchive("books", { presence: json(libraryOverview(0)) });
+    renderArchive("books");
+
+    expect(
+      await screen.findByRole("heading", { name: archive.books.noEntities.title }),
+    ).toBeInTheDocument();
+    await waitForEmptyBaseChrome("books");
+
+    expect(summaryCards()).toHaveLength(0);
+    expect(screen.queryByLabelText(archive.books.searchLabel)).not.toBeInTheDocument();
+    expect(screen.queryByRole("radiogroup", { name: "Швидкі фільтри" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Показано 0 із 0/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: archive.addNote })).not.toBeInTheDocument();
+  });
+
+  it("opens the note form from the empty state when the library has books", async () => {
+    mockEmptyArchive("books");
+    renderArchive("books");
+
+    expect(
+      await screen.findByRole("heading", { name: archive.books.empty.title }),
+    ).toBeInTheDocument();
+    await waitForEmptyBaseChrome("books");
+    await userEvent.click(await screen.findByRole("button", { name: archive.addNote }));
+
+    const dialog = await screen.findByRole("dialog", { name: messages.notes.form.createTitle });
+    expect(
+      within(dialog).getByRole("textbox", { name: messages.notes.form.bookPicker.search }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the toolbar so a search that found nothing can be changed", async () => {
+    mockEmptyArchive("books");
+    renderArchive("books", "?q=дракон");
+
+    expect(
+      await screen.findByRole("heading", { name: archive.emptySearch.title }),
+    ).toBeInTheDocument();
+    await waitForEmptyBaseChrome("books");
+
+    expect(screen.getByLabelText(archive.books.searchLabel)).toHaveValue("дракон");
+  });
+
+  it("shows the error state when the library check fails and retries that check", async () => {
+    let presenceAttempts = 0;
+    mockEmptyArchive("books", {
+      presence: () => {
+        presenceAttempts += 1;
+        return presenceAttempts === 1 ? failure(500)() : json(libraryOverview(0))();
+      },
+    });
+    renderArchive("books");
+
+    expect(await screen.findByText(messages.notes.states.errorTitle)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: messages.notes.states.retry }));
+
+    expect(
+      await screen.findByRole("heading", { name: archive.books.noEntities.title }),
+    ).toBeInTheDocument();
+    expect(requestsTo(PATHS.presence.books)).toHaveLength(2);
+  });
+
+  it("leads to the series catalog with series copy when there are no series", async () => {
+    mockEmptyArchive("series", {
+      presence: json(makeSeriesOverview({ topUnfinished: [], totalSeries: 0 })),
+    });
+    renderArchive("series");
+
+    expect(
+      await screen.findByRole("heading", { name: archive.series.noEntities.title }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(archive.series.noEntities.description)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: archive.series.noEntities.cta }));
+
+    expect(routerPush).toHaveBeenCalledWith("/series");
+  });
+
+  it("speaks about series notes and opens the series form when series exist", async () => {
+    mockEmptyArchive("series");
+    renderArchive("series");
+
+    expect(
+      await screen.findByRole("heading", { name: archive.series.empty.title }),
+    ).toBeInTheDocument();
+    await waitForEmptyBaseChrome("series");
+    await userEvent.click(await screen.findByRole("button", { name: archive.addNote }));
+
+    const dialog = await screen.findByRole("dialog", { name: messages.notes.form.createTitle });
+    expect(
+      within(dialog).getByRole("textbox", { name: messages.notes.form.seriesPicker.search }),
+    ).toBeInTheDocument();
+  });
+});
+
 function archiveBookNote(): NoteView {
   return makeBookNote({ id: "note-list", text: ARCHIVE_NOTE_TEXT.books });
 }
@@ -798,17 +943,39 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+function libraryOverview(total: number) {
+  return {
+    recentlyAdded: [],
+    summary: {
+      borrowed: 0,
+      favorites: 0,
+      finished: 0,
+      inTransit: 0,
+      reading: 0,
+      series: 0,
+      solo: 0,
+      total,
+      wantToBuy: 0,
+      wantToRead: 0,
+    },
+    topGenres: [],
+    topTags: [],
+  };
+}
+
 function mockArchive(scope: NotesArchiveScope, replies: ArchiveReplies = {}) {
   const defaults = {
     facets: scope === "books" ? BOOK_FACETS : SERIES_FACETS,
     note: scope === "books" ? archiveBookNote() : archiveSeriesNote(),
     overview: scope === "books" ? EMPTY_BOOK_OVERVIEW : seriesOverview(),
+    presence: scope === "books" ? libraryOverview(3) : makeSeriesOverview(),
     summary: scope === "books" ? BOOK_SUMMARY : SERIES_SUMMARY,
   };
   const {
     impression = noContent,
     list = json(notesPage([defaults.note])),
     overview = json(defaults.overview),
+    presence = json(defaults.presence),
     review = noContent,
     summary = json(defaults.summary),
   } = replies;
@@ -827,10 +994,24 @@ function mockArchive(scope: NotesArchiveScope, replies: ArchiveReplies = {}) {
       if (path === `/api/notes/${scope}/overview`) return overview();
       if (path === `/api/notes/${scope}/facets`) return json(defaults.facets)();
       if (path === `/api/notes/${scope}`) return list(url);
+      if (path === PATHS.presence[scope]) return presence();
       if (path === "/api/books" || path === "/api/series") return json(notesPage([]))();
       return Promise.reject(new Error(`unexpected ${method} ${url}`));
     }),
   );
+}
+
+function mockEmptyArchive(scope: NotesArchiveScope, replies: ArchiveReplies = {}) {
+  mockArchive(scope, {
+    list: json(notesPage([])),
+    overview: json(
+      scope === "books"
+        ? { memoryNote: BOOK_MEMORY, postFinish: POST_FINISH }
+        : seriesOverview({ memoryNote: SERIES_MEMORY }),
+    ),
+    summary: json(EMPTY_SUMMARY[scope]),
+    ...replies,
+  });
 }
 
 function noContent(): Promise<Response> {

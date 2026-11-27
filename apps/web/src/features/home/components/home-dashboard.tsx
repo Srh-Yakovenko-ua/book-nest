@@ -46,6 +46,7 @@ import { HomeOnboarding } from "./home-onboarding";
 import { HomeReadingGoal } from "./home-reading-goal";
 import { HomeReadingWeek } from "./home-reading-week";
 import { HomeRecentBooks } from "./home-recent-books";
+import { HomeWelcomeIllustration } from "./home-welcome-illustration";
 import { HomeWelcomeSection } from "./home-welcome-section";
 
 export function HomeDashboard() {
@@ -110,17 +111,20 @@ export function HomeDashboard() {
       }
       displayName={homeDisplayName(user)}
       greetingTone={homeGreetingTone(calendar.partOfDay)}
+      illustration={isOnboarding ? null : <HomeWelcomeIllustration />}
       subtitle={homeSubtitleKey({
         activeBooksCount: readingFacts.activeBooksCount,
         hasReadToday: readingFacts.hasReadToday,
         libraryTotal,
       })}
       summary={
-        <HomeLibrarySummaryStrip
-          isRetrying={overview.isFetching}
-          onRetry={retryOverview}
-          state={homeSummaryState(overview)}
-        />
+        isOnboarding ? null : (
+          <HomeLibrarySummaryStrip
+            isRetrying={overview.isFetching}
+            onRetry={retryOverview}
+            state={homeSummaryState(overview)}
+          />
+        )
       }
     />
   );

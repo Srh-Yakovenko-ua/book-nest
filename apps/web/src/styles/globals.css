@@ -10,6 +10,7 @@
 @custom-variant zoom-overview (&:is([data-zoom-band="overview"] *));
 @custom-variant zoom-exploration (&:is([data-zoom-band="exploration"] *));
 @custom-variant zoom-details (&:is([data-zoom-band="details"] *));
+@custom-variant tall (@media (min-height: 50rem));
 
 @theme inline {
   --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;

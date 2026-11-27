@@ -9,8 +9,12 @@ import { UiIcon } from "@/components/icons";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
+import { useLibraryPresence } from "@/features/books/api/use-library-presence";
+import { BOOK_CREATE_PATH } from "@/features/books/model/book-create-href";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
+import { collectionChrome } from "@/lib/collection-chrome";
+import { withPresenceRetry } from "@/lib/collection-presence";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +31,11 @@ import { QuotesOverviewPanel } from "./quotes-overview-panel";
 import { QuotesSidebar } from "./quotes-sidebar";
 import { QuotesSummaryCards, useQuotesSummaryCards } from "./quotes-summary-cards";
 import { QuotesToolbar, QuotesToolbarSkeleton } from "./quotes-toolbar";
+
+const QUOTES_ROUTES = {
+  addFirstBook: BOOK_CREATE_PATH,
+  books: "/books",
+} as const;
 
 export function QuotesView() {
   const t = useTranslations("quotes");
@@ -54,14 +63,20 @@ export function QuotesView() {
   const quotes = useQuotes(listParams);
   const summary = useQuotesSummary();
   const facets = useQuotesFacets(facetsParams);
+  const presence = useLibraryPresence();
+  const libraryPresence = withPresenceRetry({ presence, wrapRetry: withRetryFocus });
 
   const quoteItems = (quotes.data?.pages ?? []).flatMap((page) => page.items);
 
-  const showSidebar = !quotes.isLoadingError;
+  const chrome = collectionChrome({
+    baseTotal: summary.data?.totalCount,
+    hasQuery: hasActiveFilters,
+  });
+  const showMetrics = !quotes.isLoadingError && chrome.showMetrics;
 
   const filterCounts = facets.data === undefined ? undefined : quoteFilterCounts(facets.data);
   const counter =
-    filterCounts === undefined
+    filterCounts === undefined || !chrome.showMetrics
       ? undefined
       : facets.isPlaceholderData
         ? tCommon("updating")
@@ -102,14 +117,16 @@ export function QuotesView() {
               {t("subtitle")}
             </p>
           </div>
-          <Button className="self-start sm:self-auto" onClick={() => setAddOpen(true)}>
-            <UiIcon name="plus" size={16} />
-            {tActions("add")}
-          </Button>
+          {chrome.showTools ? (
+            <Button className="self-start sm:self-auto" onClick={() => setAddOpen(true)}>
+              <UiIcon name="plus" size={16} />
+              {tActions("add")}
+            </Button>
+          ) : null}
         </div>
       </header>
 
-      {showSidebar ? (
+      {showMetrics ? (
         <QuotesSummaryCards
           cards={summaryCards}
           isError={summary.isLoadingError}
@@ -119,31 +136,33 @@ export function QuotesView() {
         />
       ) : null}
 
-      <ToolbarSlot
-        isError={quotes.isLoadingError}
-        isPending={quotes.isPending}
-        toolbar={
-          <QuotesToolbar
-            activeFilterCount={activeFilterCount}
-            chips={filterChips}
-            counter={counter}
-            counts={filterCounts}
-            countsPending={facets.isPending}
-            facets={facets.data}
-            filter={state.filter}
-            onApplyAdvanced={applyAdvanced}
-            onClearAll={clearFilters}
-            onFilterChange={setFilter}
-            onSearch={setSearch}
-            onSortChange={setSort}
-            onViewChange={setView}
-            search={state.q}
-            sort={state.sort}
-            state={state}
-            view={state.view}
-          />
-        }
-      />
+      {chrome.showTools ? (
+        <ToolbarSlot
+          isError={quotes.isLoadingError}
+          isPending={quotes.isPending}
+          toolbar={
+            <QuotesToolbar
+              activeFilterCount={activeFilterCount}
+              chips={filterChips}
+              counter={counter}
+              counts={filterCounts}
+              countsPending={facets.isPending}
+              facets={facets.data}
+              filter={state.filter}
+              onApplyAdvanced={applyAdvanced}
+              onClearAll={clearFilters}
+              onFilterChange={setFilter}
+              onSearch={setSearch}
+              onSortChange={setSort}
+              onViewChange={setView}
+              search={state.q}
+              sort={state.sort}
+              state={state}
+              view={state.view}
+            />
+          }
+        />
+      ) : null}
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <section
@@ -167,11 +186,13 @@ export function QuotesView() {
             isLoadMoreError={quotes.isFetchNextPageError}
             isPending={quotes.isPending}
             isRefreshing={quotes.isPlaceholderData}
+            libraryPresence={libraryPresence}
             listIdentity={quotesListIdentity(listParams)}
+            onAddFirstBook={() => router.push(QUOTES_ROUTES.addFirstBook)}
             onAddQuote={() => setAddOpen(true)}
             onClearFilters={clearFilters}
             onLoadMore={() => void quotes.fetchNextPage()}
-            onOpenBooks={() => router.push("/books")}
+            onOpenBooks={() => router.push(QUOTES_ROUTES.books)}
             onRetry={withRetryFocus(() => void quotes.refetch())}
             quotes={quoteItems}
             retryButtonRef={retryButtonRef}
@@ -179,7 +200,7 @@ export function QuotesView() {
           />
         </section>
 
-        {showSidebar ? <QuotesSidebar /> : null}
+        {showMetrics ? <QuotesSidebar /> : null}
       </div>
 
       <QuoteDialog mode="createWithBookPicker" onOpenChange={setAddOpen} open={addOpen} />

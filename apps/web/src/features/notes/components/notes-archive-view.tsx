@@ -5,9 +5,19 @@ import type { Nullable } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 
+import type { LibraryPresence } from "@/features/books/api/use-library-presence";
+import type { EmptyStateAction, EmptyStateEntry } from "@/lib/empty-states";
+
+import { UiIcon } from "@/components/icons";
+import { Button } from "@/components/ui/button";
+import { useLibraryPresence } from "@/features/books/api/use-library-presence";
+import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { useRouter } from "@/i18n/navigation";
 import { assertNever } from "@/lib/assert-never";
+import { collectionChrome } from "@/lib/collection-chrome";
 
 import type { NotesArchiveScope } from "../model/notes-archive-config";
+import type { NotesArchiveListState } from "../model/notes-archive-list-state";
 import type { UseNotesArchiveQueryResult } from "../model/use-notes-archive-query";
 import type { NotesContextualColumn } from "./notes-archive-page-shell";
 
@@ -15,9 +25,11 @@ import { useNotesArchiveList } from "../api/use-notes-archive-list";
 import { useNotesFacets } from "../api/use-notes-facets";
 import { useNotesOverview } from "../api/use-notes-overview";
 import { useNotesSummary } from "../api/use-notes-summary";
+import { useSeriesPresence } from "../api/use-series-presence";
 import { useIsWideViewport } from "../hooks/use-is-wide-viewport";
 import { useNoteRediscoveryImpressions } from "../hooks/use-note-rediscovery-impression";
 import { usePostFinishReview } from "../hooks/use-post-finish-review";
+import { NOTES_ENTITY_START_HREF } from "../model/notes-archive-config";
 import { notesArchiveListState } from "../model/notes-archive-list-state";
 import { hasContextualBlocks } from "../model/notes-overview";
 import {
@@ -50,12 +62,21 @@ export function NotesArchiveView({ scope }: NotesArchiveViewProps) {
 
 function BookNotesArchive() {
   const query = useBookNotesArchiveQuery();
-  return <NotesArchive query={query} />;
+  const libraryPresence = useLibraryPresence();
+  return <NotesArchive entityPresence={libraryPresence} query={query} />;
 }
 
-function NotesArchive({ query }: { query: UseNotesArchiveQueryResult }) {
+function NotesArchive({
+  entityPresence,
+  query,
+}: {
+  entityPresence: LibraryPresence;
+  query: UseNotesArchiveQueryResult;
+}) {
   const t = useTranslations("notes.archive");
+  const tBooks = useTranslations("books");
   const tCommon = useTranslations("common");
+  const router = useRouter();
   const { config } = query;
   const notes = useNotesArchiveList(query.listParams);
   const facets = useNotesFacets(config.scope, query.datasetParams);
@@ -67,6 +88,8 @@ function NotesArchive({ query }: { query: UseNotesArchiveQueryResult }) {
   const recordImpression = useNoteRediscoveryImpressions();
   const isWideViewport = useIsWideViewport();
   const archiveRef = useRef<Nullable<HTMLDivElement>>(null);
+  const resultsHeadingRef = useRef<Nullable<HTMLHeadingElement>>(null);
+  const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsHeadingRef);
   const postFinishReview = usePostFinishReview((bookId) => {
     query.showBookNotes(bookId);
     if (!isWideViewport) archiveRef.current?.scrollIntoView({ block: "start" });
@@ -80,6 +103,42 @@ function NotesArchive({ query }: { query: UseNotesArchiveQueryResult }) {
     hasActiveSearch: query.hasActiveSearch,
     list: notes,
   });
+  const archiveState = withEntityPresence({ listState, presence: entityPresence });
+  const chrome = collectionChrome({
+    baseTotal: summary.data?.notesCount,
+    hasQuery: query.hasActiveFilters || query.hasActiveSearch,
+  });
+  const hasNoEntities = entityPresence.kind === "ready" && entityPresence.total === 0;
+  const noEntitiesAction = {
+    books: { icon: "plus", label: tBooks("firstBook.cta") },
+    series: { icon: "layers", label: t("series.noEntities.cta") },
+  } satisfies Record<NotesArchiveScope, EmptyStateAction>;
+  const libraryEmptyState: EmptyStateEntry = hasNoEntities
+    ? {
+        desc: t(`${config.scope}.noEntities.description`),
+        illu: "empty-notes",
+        primary: noEntitiesAction[config.scope],
+        title: t(`${config.scope}.noEntities.title`),
+      }
+    : {
+        desc: t(`${config.scope}.empty.description`),
+        illu: "empty-notes",
+        primary: { icon: "plus", label: t("empty.cta") },
+        title: t(`${config.scope}.empty.title`),
+      };
+
+  function addFromEmptyLibrary() {
+    if (hasNoEntities) {
+      router.push(NOTES_ENTITY_START_HREF[config.scope]);
+      return;
+    }
+    setCreateOpen(true);
+  }
+
+  function retryArchive() {
+    if (notes.isLoadingError) void notes.refetch();
+    if (entityPresence.kind === "error") entityPresence.retry();
+  }
 
   const mobileOverview =
     summary.isLoadingError && contextualOverview === null ? null : (
@@ -96,17 +155,26 @@ function NotesArchive({ query }: { query: UseNotesArchiveQueryResult }) {
     <NotesArchivePageShell
       archive={
         <NotesArchiveContent
-          onAddNote={() => setCreateOpen(true)}
+          emptyCopy={{ library: libraryEmptyState }}
+          onAddNote={addFromEmptyLibrary}
           onClearFilters={query.clearAll}
           onLoadMore={() => void notes.fetchNextPage()}
-          onRetry={() => void notes.refetch()}
-          state={listState}
+          onRetry={withRetryFocus(retryArchive)}
+          retryButtonRef={retryButtonRef}
+          state={archiveState}
           view={query.state.view}
         />
       }
       archiveRef={archiveRef}
       contextual={contextualColumn()}
-      createLabel={t("addNote")}
+      createAction={
+        chrome.showTools ? (
+          <Button className="self-start sm:self-auto" onClick={() => setCreateOpen(true)}>
+            <UiIcon name="plus" size={16} />
+            {t("addNote")}
+          </Button>
+        ) : null
+      }
       dialogs={
         <NoteFormDialog
           onOpenChange={setCreateOpen}
@@ -114,33 +182,37 @@ function NotesArchive({ query }: { query: UseNotesArchiveQueryResult }) {
           target={{ entityType: config.entityType, mode: "pick" }}
         />
       }
-      onCreate={() => setCreateOpen(true)}
+      resultsHeadingRef={resultsHeadingRef}
       resultsTitle={t("resultsTitle")}
       subtitle={t(`${config.scope}.subtitle`)}
       summary={
-        <NotesSummaryCards
-          cards={summaryCards}
-          isError={summary.isLoadingError}
-          isLoading={summary.isPending}
-          mobileAction={mobileOverview}
-          onRetry={() => void summary.refetch()}
-        />
+        chrome.showMetrics ? (
+          <NotesSummaryCards
+            cards={summaryCards}
+            isError={summary.isLoadingError}
+            isLoading={summary.isPending}
+            mobileAction={mobileOverview}
+            onRetry={() => void summary.refetch()}
+          />
+        ) : null
       }
       title={t(`${config.scope}.title`)}
-      toolbar={
-        notes.isPending ? (
-          <NotesArchiveToolbarSkeleton />
-        ) : (
-          <NotesArchiveToolbar
-            counter={archiveCounter()}
-            facets={facets.data}
-            facetsPending={facets.isPending}
-            query={query}
-          />
-        )
-      }
+      toolbar={archiveToolbar()}
     />
   );
+
+  function archiveToolbar() {
+    if (!chrome.showTools) return null;
+    if (notes.isPending) return <NotesArchiveToolbarSkeleton />;
+    return (
+      <NotesArchiveToolbar
+        counter={archiveCounter()}
+        facets={facets.data}
+        facetsPending={facets.isPending}
+        query={query}
+      />
+    );
+  }
 
   function archiveCounter(): Nullable<string> {
     if (listState.kind !== "ready") return null;
@@ -150,7 +222,7 @@ function NotesArchive({ query }: { query: UseNotesArchiveQueryResult }) {
   }
 
   function contextualColumn(): NotesContextualColumn {
-    if (!isWideViewport) return { kind: "hidden" };
+    if (!isWideViewport || !chrome.showMetrics) return { kind: "hidden" };
     if (overview.isPending) return { kind: "loading" };
     if (contextualOverview === null) return { kind: "hidden" };
     return {
@@ -168,5 +240,27 @@ function NotesArchive({ query }: { query: UseNotesArchiveQueryResult }) {
 
 function SeriesNotesArchive() {
   const query = useSeriesNotesArchiveQuery();
-  return <NotesArchive query={query} />;
+  const seriesPresence = useSeriesPresence();
+  return <NotesArchive entityPresence={seriesPresence} query={query} />;
+}
+
+function withEntityPresence({
+  listState,
+  presence,
+}: {
+  listState: NotesArchiveListState;
+  presence: LibraryPresence;
+}): NotesArchiveListState {
+  if (listState.kind !== "empty" || listState.reason !== "library") return listState;
+
+  switch (presence.kind) {
+    case "error":
+      return { kind: "error" };
+    case "pending":
+      return { kind: "loading" };
+    case "ready":
+      return listState;
+    default:
+      return assertNever(presence);
+  }
 }

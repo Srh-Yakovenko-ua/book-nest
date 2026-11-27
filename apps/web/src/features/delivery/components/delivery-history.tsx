@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 
 import { useProfileTimeZone } from "@/features/settings";
 import { useRouter } from "@/i18n/navigation";
+import { collectionChrome } from "@/lib/collection-chrome";
 import { todayIsoDay } from "@/lib/iso-day";
 
 import type { DeliveryRevealTarget } from "../hooks/use-reveal-delivery-target";
@@ -72,19 +73,32 @@ export function DeliveryHistory() {
     },
   );
 
+  const hasActiveQuery = params.hasActiveFilters || params.hasActiveSearch;
   const content: HistoryContent = listQuery.isLoadingError
     ? { kind: "error" }
     : listQuery.isPending
       ? { kind: "loading" }
       : items.length === 0
-        ? params.hasActiveFilters || params.hasActiveSearch
+        ? hasActiveQuery
           ? { isRefreshing: listQuery.isPlaceholderData, kind: "filtered-empty" }
           : { kind: "empty" }
         : { isRefreshing: listQuery.isPlaceholderData, items, kind: "ready" };
 
+  const historyOrdersTotal =
+    summaryQuery.data === undefined
+      ? undefined
+      : Math.max(
+          summaryQuery.data.receivedOrdersCount + summaryQuery.data.cancelledOrdersCount,
+          items.length,
+        );
+  const chrome = collectionChrome({ baseTotal: historyOrdersTotal, hasQuery: hasActiveQuery });
+
   const showToolbar =
     !listQuery.isLoadingError &&
-    (listQuery.isPending || items.length > 0 || params.hasActiveSearch || params.hasActiveFilters);
+    (listQuery.isPending ||
+      items.length > 0 ||
+      hasActiveQuery ||
+      (historyOrdersTotal !== undefined && historyOrdersTotal > 0));
 
   const summaryCards = buildHistorySummaryCards({
     labels: {
@@ -178,7 +192,8 @@ export function DeliveryHistory() {
     followUp !== null &&
     (followUp.outcomes !== null || followUp.plans !== null || followUp.unresolved !== null);
   const showsSidebar =
-    !isCancelledTab || followUpQuery.isPending || followUpQuery.isError || hasCancelledBlocks;
+    chrome.showMetrics &&
+    (!isCancelledTab || followUpQuery.isPending || followUpQuery.isError || hasCancelledBlocks);
 
   const sidebarBlocks = isCancelledTab ? (
     <DeliveryHistoryCancelledBlocks
@@ -233,27 +248,29 @@ export function DeliveryHistory() {
         ) : undefined
       }
       summary={
-        <DeliverySummaryCards
-          cards={summaryCards}
-          isLoading={summaryQuery.isPending}
-          mobileAction={
-            <DeliveryOverviewPanel
-              detailsTitle={tSummary("mobile.title")}
-              isLoading={summaryQuery.isPending}
-              sidebar={
-                showsSidebar
-                  ? {
-                      blocks: sidebarBlocks,
-                      label: isCancelledTab
-                        ? tSidebar("tabs.cancelled")
-                        : tSidebar("tabs.received"),
-                    }
-                  : undefined
-              }
-              summaryCards={summaryCards}
-            />
-          }
-        />
+        chrome.showMetrics ? (
+          <DeliverySummaryCards
+            cards={summaryCards}
+            isLoading={summaryQuery.isPending}
+            mobileAction={
+              <DeliveryOverviewPanel
+                detailsTitle={tSummary("mobile.title")}
+                isLoading={summaryQuery.isPending}
+                sidebar={
+                  showsSidebar
+                    ? {
+                        blocks: sidebarBlocks,
+                        label: isCancelledTab
+                          ? tSidebar("tabs.cancelled")
+                          : tSidebar("tabs.received"),
+                      }
+                    : undefined
+                }
+                summaryCards={summaryCards}
+              />
+            }
+          />
+        ) : null
       }
       tab={params.tab}
       toolbar={

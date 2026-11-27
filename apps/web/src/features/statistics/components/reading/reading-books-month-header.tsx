@@ -1,7 +1,7 @@
 "use client";
 
 import type { Nullable, ReadingStatisticsDateRange } from "@app/shared";
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
 
@@ -21,12 +21,13 @@ const MONTH_HEADER_CLASS = {
   kpiIcon: "shrink-0 text-primary",
   kpiLabel: "order-last line-clamp-2 text-xs leading-tight text-muted-foreground",
   kpiList:
-    "grid grid-cols-3 divide-x divide-border border-t border-border pt-2 @lg/month-header:flex-1 @lg/month-header:border-t-0 @lg/month-header:border-l @lg/month-header:pt-0 @lg/month-header:pl-2",
+    "grid min-w-0 grid-cols-3 divide-x divide-border border-t border-border pt-2 @xl/month-header:flex-1 @xl/month-header:border-t-0 @xl/month-header:border-l @xl/month-header:pt-0 @xl/month-header:pl-2",
   kpiValue:
     "font-heading text-xl leading-none font-semibold whitespace-nowrap text-ink tabular-nums @2xl/month-header:text-2xl",
   kpiValueUnconfirmed: "cursor-help text-muted-foreground",
-  layout: "flex flex-col gap-2 @lg/month-header:flex-row @lg/month-header:items-center",
-  nav: "flex min-h-10 items-center @lg/month-header:w-2/5 @lg/month-header:shrink-0 @lg/month-header:pr-3",
+  layout: "flex flex-col gap-2 @xl/month-header:flex-row @xl/month-header:items-center",
+  nav: "flex min-h-10 w-full items-center",
+  navBesideKpis: "@xl/month-header:w-auto @xl/month-header:shrink-0 @xl/month-header:pr-3",
   root: "@container/month-header min-h-22 justify-center gap-0 px-4 py-2.5",
 } as const;
 
@@ -39,16 +40,39 @@ type MonthKpi = {
 type MonthKpiValue = { kind: "known"; text: string } | { kind: "unconfirmed" };
 
 export function ReadingBooksMonthHeader({
+  children,
   displayRange,
   month,
   monthLabelRef,
   onMonthChange,
 }: {
+  children?: ReactNode;
   displayRange: ReadingStatisticsDateRange;
   month: ReadingCalendarMonth;
   monthLabelRef: RefObject<Nullable<HTMLSpanElement>>;
   onMonthChange: (month: string) => void;
 }) {
+  const hasKpis = children !== undefined && children !== null;
+
+  return (
+    <Card className={MONTH_HEADER_CLASS.root}>
+      <div className={MONTH_HEADER_CLASS.layout}>
+        <div className={cn(MONTH_HEADER_CLASS.nav, hasKpis && MONTH_HEADER_CLASS.navBesideKpis)}>
+          <ReadingBooksMonthNav
+            displayRange={displayRange}
+            month={month.monthKey}
+            monthLabelRef={monthLabelRef}
+            onMonthChange={onMonthChange}
+          />
+        </div>
+        {children}
+      </div>
+      <MonthBooksStatus monthLabelRef={monthLabelRef} status={month.monthBooksStatus} />
+    </Card>
+  );
+}
+
+export function ReadingBooksMonthKpis({ month }: { month: ReadingCalendarMonth }) {
   const locale = useLocale();
   const t = useTranslations("statistics.calendar.books");
   const { books, summary } = month;
@@ -73,52 +97,34 @@ export function ReadingBooksMonthHeader({
   ];
 
   return (
-    <Card className={MONTH_HEADER_CLASS.root}>
-      <div className={MONTH_HEADER_CLASS.layout}>
-        <div className={MONTH_HEADER_CLASS.nav}>
-          <ReadingBooksMonthNav
-            displayRange={displayRange}
-            month={month.monthKey}
-            monthLabelRef={monthLabelRef}
-            onMonthChange={onMonthChange}
-          />
+    <dl className={MONTH_HEADER_CLASS.kpiList}>
+      {kpis.map((kpi) => (
+        <div className={MONTH_HEADER_CLASS.kpi} key={kpi.label}>
+          <dt className={MONTH_HEADER_CLASS.kpiLabel}>{t(kpi.label)}</dt>
+          <dd className="flex items-center gap-1.5">
+            <UiIcon aria-hidden className={MONTH_HEADER_CLASS.kpiIcon} name={kpi.icon} size={18} />
+            {kpi.value.kind === "known" ? (
+              <span className={MONTH_HEADER_CLASS.kpiValue}>{kpi.value.text}</span>
+            ) : (
+              <>
+                <TooltipHint label={t("unconfirmedValueHint")}>
+                  <span
+                    aria-hidden
+                    className={cn(
+                      MONTH_HEADER_CLASS.kpiValue,
+                      MONTH_HEADER_CLASS.kpiValueUnconfirmed,
+                    )}
+                  >
+                    {t("unconfirmedValue")}
+                  </span>
+                </TooltipHint>
+                <span className="sr-only">{t("unconfirmedValueHint")}</span>
+              </>
+            )}
+          </dd>
         </div>
-        <dl className={MONTH_HEADER_CLASS.kpiList}>
-          {kpis.map((kpi) => (
-            <div className={MONTH_HEADER_CLASS.kpi} key={kpi.label}>
-              <dt className={MONTH_HEADER_CLASS.kpiLabel}>{t(kpi.label)}</dt>
-              <dd className="flex items-center gap-1.5">
-                <UiIcon
-                  aria-hidden
-                  className={MONTH_HEADER_CLASS.kpiIcon}
-                  name={kpi.icon}
-                  size={18}
-                />
-                {kpi.value.kind === "known" ? (
-                  <span className={MONTH_HEADER_CLASS.kpiValue}>{kpi.value.text}</span>
-                ) : (
-                  <>
-                    <TooltipHint label={t("unconfirmedValueHint")}>
-                      <span
-                        aria-hidden
-                        className={cn(
-                          MONTH_HEADER_CLASS.kpiValue,
-                          MONTH_HEADER_CLASS.kpiValueUnconfirmed,
-                        )}
-                      >
-                        {t("unconfirmedValue")}
-                      </span>
-                    </TooltipHint>
-                    <span className="sr-only">{t("unconfirmedValueHint")}</span>
-                  </>
-                )}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-      <MonthBooksStatus monthLabelRef={monthLabelRef} status={month.monthBooksStatus} />
-    </Card>
+      ))}
+    </dl>
   );
 }
 

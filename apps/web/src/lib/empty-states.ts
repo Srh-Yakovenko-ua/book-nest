@@ -47,6 +47,6 @@ export type EmptyStateIllustration =
   | "reading-goals/goal-first-goal-empty-state"
   | "reading-goals/goal-no-counted-books-yet";
 
-export type EmptyStateIllustrationSize = "lg" | "md" | "sm" | "xs";
+export type EmptyStateIllustrationSize = "lg" | "sm" | "xl" | "xs";
 
 export type EmptyStateLayout = "inline" | "stacked";

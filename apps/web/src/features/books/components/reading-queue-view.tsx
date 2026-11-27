@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReadingQueueItemView } from "@app/shared";
+import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
@@ -17,13 +18,19 @@ import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGenres } from "@/features/genres";
+import { useCreateButtonFocus } from "@/hooks/use-create-button-focus";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
+import { assertNever } from "@/lib/assert-never";
+import { collectionChrome } from "@/lib/collection-chrome";
+import { withPresenceRetry } from "@/lib/collection-presence";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 import { cn } from "@/lib/utils";
 
+import type { LibraryPresence } from "../api/use-library-presence";
 import type { LibraryBookLabels } from "../model/library-book";
 
+import { useLibraryPresence } from "../api/use-library-presence";
 import {
   useReadingQueue,
   useReadingQueueSummary,
@@ -32,6 +39,7 @@ import {
 import { useSeriesOrderIssues } from "../api/use-series-order-check";
 import { useSelectedTags } from "../api/use-tags-search";
 import { useQueueSummaryCards } from "../hooks/use-queue-summary-cards";
+import { BOOK_CREATE_PATH } from "../model/book-create-href";
 import { toQueuePickerItems } from "../model/queue-placement";
 import {
   type QueueFilterState,
@@ -54,6 +62,11 @@ import { StartReadingDialog } from "./start-reading-dialog";
 
 const SKELETON_COUNT = 6;
 
+const QUEUE_EMPTY_HREF = {
+  addFirstBook: BOOK_CREATE_PATH,
+  openLibrary: "/books",
+} as const;
+
 type StartTarget = {
   id: string;
   title: string;
@@ -66,7 +79,6 @@ export function ReadingQueueView() {
   const tStatus = useTranslations("books.readingStatus.options");
   const tOwnership = useTranslations("books.ownershipStatus.options");
   const tAgeCategory = useTranslations("books.classification.ageCategoryLabels");
-  const router = useRouter();
 
   const queue = useReadingQueueQuery();
   const {
@@ -79,6 +91,7 @@ export function ReadingQueueView() {
     refetch,
   } = useReadingQueue(queue.listParams);
   const summary = useReadingQueueSummary();
+  const presence = useLibraryPresence();
   const seriesOrderIssues = useSeriesOrderIssues({ limit: SERIES_ORDER_SIDEBAR_LIMIT });
   const genres = useGenres();
   const selectedTags = useSelectedTags(queue.state.tag);
@@ -90,7 +103,13 @@ export function ReadingQueueView() {
   const [startTarget, setStartTarget] = useState<null | StartTarget>(null);
 
   const serverItems = data?.items ?? [];
-  const count = data?.totalCount ?? 0;
+  const unfilteredQueueTotal = data?.totalCount;
+  const isQueueEmpty = unfilteredQueueTotal === 0;
+  const showHeaderAddBook = !isQueueEmpty || presence.kind !== "ready";
+  const queueChrome = collectionChrome({
+    baseTotal: unfilteredQueueTotal,
+    hasQuery: queue.isFiltered,
+  });
 
   const serverOrderKey = serverItems.map((item) => item.book.id).join("\n");
   const [localOrder, setLocalOrder] = useState<string[]>(() =>
@@ -120,6 +139,7 @@ export function ReadingQueueView() {
   const listHeadingRef = useRef<HTMLHeadingElement>(null);
   const resultsRegionRef = useRef<HTMLElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsRegionRef);
+  const { createButtonRef, focusCreateButtonOnClose } = useCreateButtonFocus();
   const previousServerOrderKey = useRef(serverOrderKey);
   useEffect(() => {
     const previousKey = previousServerOrderKey.current;
@@ -177,14 +197,6 @@ export function ReadingQueueView() {
     commitOrder(items);
   }
 
-  const emptyState: EmptyStateEntry = {
-    desc: t("empty.description"),
-    illu: "empty-queue",
-    primary: { icon: "plus", label: t("empty.cta") },
-    secondary: { icon: "book", label: t("empty.secondary") },
-    title: t("empty.title"),
-  };
-
   const errorState: EmptyStateEntry = {
     desc: t("error.description"),
     illu: "error-generic",
@@ -199,6 +211,25 @@ export function ReadingQueueView() {
     title: t("noSearchResults.title"),
   };
 
+  const dragHint = isQueueEmpty ? "hidden" : isFiltered ? "filtered" : "available";
+  const toolbar = (
+    <ReadingQueueToolbar
+      dragHint={dragHint}
+      filters={
+        <ReadingQueueFilters
+          activeCount={filterCount}
+          onApply={(next) => void queue.setState(toQueueFilterPatch(next))}
+          onRememberEntity={rememberEntity}
+          resolveEntityName={resolveEntityName}
+          state={filters}
+        />
+      }
+      onClearSearch={queue.clearSearch}
+      onSearchChange={queue.setSearch}
+      search={queue.state.q}
+    />
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-4 motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-1 sm:flex-row sm:items-end sm:justify-between">
@@ -211,10 +242,16 @@ export function ReadingQueueView() {
           </div>
           <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
-        <Button className="self-start sm:self-auto" onClick={() => setAddOpen(true)}>
-          <UiIcon name="plus" size={16} />
-          {t("addBook")}
-        </Button>
+        {showHeaderAddBook ? (
+          <Button
+            className="self-start sm:self-auto"
+            onClick={() => setAddOpen(true)}
+            ref={createButtonRef}
+          >
+            <UiIcon name="plus" size={16} />
+            {t("addBook")}
+          </Button>
+        ) : null}
       </header>
 
       <RefetchErrorBanner
@@ -237,12 +274,16 @@ export function ReadingQueueView() {
           </div>
         ) : isPending ? (
           <QueueSkeleton />
-        ) : count === 0 ? (
-          <EmptyState
-            onPrimary={() => setAddOpen(true)}
-            onSecondary={() => router.push("/books")}
-            state={emptyState}
-          />
+        ) : isQueueEmpty ? (
+          <>
+            {queueChrome.showTools ? toolbar : null}
+            <QueueEmptyCollection
+              onOpenPicker={() => setAddOpen(true)}
+              openPickerButtonRef={createButtonRef}
+              presence={withPresenceRetry({ presence, wrapRetry: withRetryFocus })}
+              retryButtonRef={retryButtonRef}
+            />
+          </>
         ) : (
           <>
             <SummaryError
@@ -269,21 +310,7 @@ export function ReadingQueueView() {
                   {t("listHeading")}
                 </h2>
                 <QueueVolumeBlock className="max-sm:hidden lg:hidden" items={serverItems} />
-                <ReadingQueueToolbar
-                  dragDisabled={isFiltered}
-                  filters={
-                    <ReadingQueueFilters
-                      activeCount={filterCount}
-                      onApply={(next) => void queue.setState(toQueueFilterPatch(next))}
-                      onRememberEntity={rememberEntity}
-                      resolveEntityName={resolveEntityName}
-                      state={filters}
-                    />
-                  }
-                  onClearSearch={queue.clearSearch}
-                  onSearchChange={queue.setSearch}
-                  search={queue.state.q}
-                />
+                {toolbar}
                 {isFiltered && displayItems.length === 0 ? (
                   <RefreshingRegion isRefreshing={isPlaceholderData}>
                     <EmptyState onPrimary={clearQueueFilters} state={noResultsState} />
@@ -318,6 +345,7 @@ export function ReadingQueueView() {
       </section>
 
       <AddBookToQueueDialog
+        onCloseAutoFocus={focusCreateButtonOnClose}
         onOpenChange={setAddOpen}
         open={addOpen}
         queueItems={toQueuePickerItems(serverItems)}
@@ -330,6 +358,73 @@ export function ReadingQueueView() {
       />
     </div>
   );
+}
+
+function QueueEmptyCollection({
+  onOpenPicker,
+  openPickerButtonRef,
+  presence,
+  retryButtonRef,
+}: {
+  onOpenPicker: () => void;
+  openPickerButtonRef: Ref<HTMLButtonElement>;
+  presence: LibraryPresence;
+  retryButtonRef: Ref<HTMLButtonElement>;
+}) {
+  const t = useTranslations("readingQueue");
+  const tBooks = useTranslations("books");
+  const router = useRouter();
+
+  switch (presence.kind) {
+    case "error": {
+      const errorState: EmptyStateEntry = {
+        desc: t("error.description"),
+        illu: "error-generic",
+        primary: { icon: "refresh", label: t("error.retry") },
+        title: t("error.title"),
+      };
+      return (
+        <div aria-live="assertive" role="alert">
+          <EmptyState onPrimary={presence.retry} primaryRef={retryButtonRef} state={errorState} />
+        </div>
+      );
+    }
+    case "pending":
+      return <QueueSkeleton />;
+    case "ready": {
+      if (presence.total === 0) {
+        const noBooksState: EmptyStateEntry = {
+          desc: t("empty.noBooks.description"),
+          illu: "empty-queue",
+          primary: { icon: "plus", label: tBooks("firstBook.cta") },
+          title: t("empty.noBooks.title"),
+        };
+        return (
+          <EmptyState
+            onPrimary={() => router.push(QUEUE_EMPTY_HREF.addFirstBook)}
+            state={noBooksState}
+          />
+        );
+      }
+      const emptyQueueState: EmptyStateEntry = {
+        desc: t("empty.description"),
+        illu: "empty-queue",
+        primary: { icon: "plus", label: t("empty.cta") },
+        secondary: { icon: "book", label: t("empty.secondary") },
+        title: t("empty.title"),
+      };
+      return (
+        <EmptyState
+          onPrimary={onOpenPicker}
+          onSecondary={() => router.push(QUEUE_EMPTY_HREF.openLibrary)}
+          primaryRef={openPickerButtonRef}
+          state={emptyQueueState}
+        />
+      );
+    }
+    default:
+      return assertNever(presence);
+  }
 }
 
 function QueueSkeleton() {

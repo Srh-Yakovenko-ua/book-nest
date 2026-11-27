@@ -13,12 +13,14 @@ import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-
 import { makeBookView } from "./book-details.fixtures";
 import { FavoritesView } from "./favorites-view";
 
+const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }));
+
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   ),
   usePathname: () => "/favorites",
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: routerPush, replace: vi.fn() }),
 }));
 
 vi.mock("sonner", () => ({
@@ -30,6 +32,8 @@ const fetchMock = vi.fn();
 let respondToBookUpdate: () => Response;
 let respondToBulkDelete: () => Response;
 let favoriteBooks: BookView[];
+let libraryTotal: number;
+let respondToOverview: () => Response;
 
 const library = messages.books.library;
 
@@ -59,6 +63,19 @@ const FAVORITES_SUMMARY: FavoritesSummaryView = {
   wantToRead: 25,
 };
 
+const EMPTY_FAVORITES_SUMMARY: FavoritesSummaryView = {
+  averageRating: null,
+  finished: 0,
+  reading: 0,
+  series: 0,
+  solo: 0,
+  topGenres: [],
+  topTags: [],
+  total: 0,
+  unrated: 0,
+  wantToRead: 0,
+};
+
 function chip(name: string): HTMLElement {
   const match = screen
     .getAllByRole("radio")
@@ -72,6 +89,26 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json" },
     status,
   });
+}
+
+function libraryOverview(total: number) {
+  return {
+    recentlyAdded: [],
+    summary: {
+      borrowed: 0,
+      favorites: 0,
+      finished: 0,
+      inTransit: 0,
+      reading: 0,
+      series: 0,
+      solo: 0,
+      total,
+      wantToBuy: 0,
+      wantToRead: 0,
+    },
+    topGenres: [],
+    topTags: [],
+  };
 }
 
 function mockApi(favoritesSummary: () => Response = () => jsonResponse(FAVORITES_SUMMARY)) {
@@ -89,6 +126,7 @@ function mockApi(favoritesSummary: () => Response = () => jsonResponse(FAVORITES
     if (url.pathname === "/api/books/favorites-summary") {
       return Promise.resolve(favoritesSummary());
     }
+    if (url.pathname === "/api/books/overview") return Promise.resolve(respondToOverview());
     if (url.pathname === "/api/books") {
       return Promise.resolve(
         jsonResponse({
@@ -130,6 +168,8 @@ beforeEach(() => {
   respondToBookUpdate = () => jsonResponse(makeBookView({ isFavorite: false }));
   respondToBulkDelete = () => jsonResponse({ message: "unexpected bulk delete" }, 500);
   favoriteBooks = [makeBookView({ isFavorite: true })];
+  libraryTotal = 3;
+  respondToOverview = () => jsonResponse(libraryOverview(libraryTotal));
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
 });
@@ -282,5 +322,85 @@ describe("FavoritesView remove from queue", () => {
     await waitFor(() =>
       expect(mutatingRequests()).toEqual([`DELETE /api/reading-queue/${queuedBookId}`]),
     );
+  });
+});
+
+describe("FavoritesView empty base", () => {
+  const { empty } = messages.favorites;
+
+  function mockEmptyFavorites(total: number) {
+    favoriteBooks = [];
+    libraryTotal = total;
+    mockApi(() => jsonResponse(EMPTY_FAVORITES_SUMMARY));
+  }
+
+  it("opens the create form from the empty favorites of an account without books", async () => {
+    mockEmptyFavorites(0);
+    renderFavorites();
+    await screen.findByRole("heading", { name: empty.noBooks.title });
+
+    await userEvent.click(screen.getByRole("button", { name: messages.books.firstBook.cta }));
+
+    expect(routerPush).toHaveBeenCalledWith("/books/new");
+  });
+
+  it("hides the summary cards while there are no favorites", async () => {
+    mockEmptyFavorites(0);
+    renderFavorites();
+    await screen.findByRole("heading", { name: empty.noBooks.title });
+
+    expect(screen.queryByText(messages.favorites.summary.total)).not.toBeInTheDocument();
+  });
+
+  it("leads to all books when the library has books but none is a favorite", async () => {
+    mockEmptyFavorites(4);
+    renderFavorites();
+    await screen.findByRole("heading", { name: empty.title });
+
+    await userEvent.click(screen.getByRole("button", { name: empty.cta }));
+
+    expect(routerPush).toHaveBeenCalledWith("/books");
+  });
+
+  it("explains how the heart adds a book to favorites when the library has books", async () => {
+    mockEmptyFavorites(4);
+    renderFavorites();
+    await screen.findByRole("heading", { name: empty.title });
+
+    expect(screen.getByText(empty.description)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: messages.books.firstBook.cta }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the retryable error instead of the empty favorites when the library check fails", async () => {
+    mockEmptyFavorites(4);
+    respondToOverview = () => jsonResponse({ message: "boom" }, 500);
+    renderFavorites();
+
+    const alert = await screen.findByRole("alert");
+
+    expect(within(alert).getByText(library.error.title)).toBeInTheDocument();
+    expect(within(alert).getByRole("button", { name: library.error.retry })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: empty.title })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: empty.noBooks.title })).not.toBeInTheDocument();
+  });
+
+  it("asks for the library again from the failed check and shows the empty favorites once it answers", async () => {
+    let overviewRequests = 0;
+    mockEmptyFavorites(4);
+    respondToOverview = () => {
+      overviewRequests += 1;
+      return overviewRequests === 1
+        ? jsonResponse({ message: "boom" }, 500)
+        : jsonResponse(libraryOverview(libraryTotal));
+    };
+    renderFavorites();
+
+    const alert = await screen.findByRole("alert");
+    await userEvent.click(within(alert).getByRole("button", { name: library.error.retry }));
+
+    expect(await screen.findByRole("heading", { name: empty.title })).toBeInTheDocument();
+    expect(overviewRequests).toBe(2);
   });
 });

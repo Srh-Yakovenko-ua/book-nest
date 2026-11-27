@@ -50,6 +50,7 @@ import { useRouter } from "@/i18n/navigation";
 import { emptyToNull } from "@/lib/empty-to-null";
 import { ApiError, type FieldError as ApiFieldError } from "@/lib/http-client";
 
+import type { BookCreateOwnershipStatus } from "../model/book-create-href";
 import type { BookFormMode } from "../model/book-form-mode";
 
 import { useCreateBook } from "../api/use-create-book";
@@ -116,6 +117,7 @@ import { useSectionCompletion } from "./use-section-completion";
 type BookFormProps =
   | { book: BookView; mode: "edit" }
   | {
+      initialOwnershipStatus?: BookCreateOwnershipStatus;
       initialPublisher?: PublisherSelection;
       initialSeries?: BookFormInitialSeries;
       mode: "create";
@@ -162,6 +164,10 @@ export function BookForm(props: BookFormProps) {
   const initial = props.mode === "edit" ? bookViewToFormState(props.book) : null;
   const initialSeries = props.mode === "create" ? (props.initialSeries ?? null) : null;
   const initialPublisher = props.mode === "create" ? (props.initialPublisher ?? null) : null;
+  const initialOwnershipStatus: OwnershipStatus =
+    props.mode === "create"
+      ? (props.initialOwnershipStatus ?? createBookFormDefaults.ownershipStatus)
+      : createBookFormDefaults.ownershipStatus;
 
   const locale = useLocale();
   const userId = useAuthStore((state) => state.user?.id ?? null);
@@ -187,16 +193,20 @@ export function BookForm(props: BookFormProps) {
       ? { seriesName: initialSeries.selection.name, source: initialGenresSuggestion.source }
       : null;
 
+  const createBaseDefaults = {
+    ...createBookFormDefaults,
+    ownershipStatus: initialOwnershipStatus,
+  } satisfies Partial<CreateBookFormValues>;
   const createSeriesDefaults = initialSeries
     ? ({
-        ...createBookFormDefaults,
+        ...createBaseDefaults,
         authors: initialSeries.selection.authors.map(authorSelectionToReference),
         bookType: "series_part",
         genres: prefilledSeriesGenres,
         partNumber: initialSeries.partNumber,
         seriesId: initialSeries.selection.id,
       } satisfies Partial<CreateBookFormValues>)
-    : createBookFormDefaults;
+    : createBaseDefaults;
   const defaultPublisherId =
     initialPublisher?.kind === "catalog"
       ? initialPublisher.id

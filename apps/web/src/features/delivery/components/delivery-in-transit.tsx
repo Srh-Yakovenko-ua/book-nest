@@ -8,12 +8,18 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import type { LibraryPresence } from "@/features/books/api/use-library-presence";
+
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { useLibraryPresence } from "@/features/books/api/use-library-presence";
 import { CancelDeliveryDialog } from "@/features/books/components/cancel-delivery-dialog";
 import { useDeliveryErrorText } from "@/features/books/hooks/use-delivery-error-text";
+import { BOOK_CREATE_PATH } from "@/features/books/model/book-create-href";
 import { useProfileTimeZone } from "@/features/settings";
 import { useRouter } from "@/i18n/navigation";
+import { assertNever } from "@/lib/assert-never";
+import { collectionChrome } from "@/lib/collection-chrome";
 import { todayIsoDay } from "@/lib/iso-day";
 
 import type { DeliverySummaryLabels } from "../model/in-transit-summary-cards";
@@ -71,6 +77,7 @@ export function DeliveryInTransit() {
   const quickCountsQuery = useInTransitQuickCounts(toInTransitQuickCountsParams(params.listParams));
   const summaryQuery = useInTransitSummary();
   const impactQuery = useInTransitImpact();
+  const libraryPresence = useLibraryPresence();
   const setShipmentStatus = useSetShipmentStatus();
   const pendingShipmentIds = usePendingShipmentStatusIds();
 
@@ -165,21 +172,26 @@ export function DeliveryInTransit() {
     else selectAllShipments(selectableShipments.map((shipment) => shipment.id));
   }
 
+  const hasActiveQuery = params.hasActiveFilters || params.hasActiveSearch;
   const content: DeliveryContent = listQuery.isLoadingError
     ? { kind: "error" }
     : listQuery.isPending
       ? { kind: "loading" }
       : orders.length === 0
-        ? params.hasActiveFilters || params.hasActiveSearch
+        ? hasActiveQuery
           ? { isRefreshing: listQuery.isPlaceholderData, kind: "filtered-empty" }
-          : { kind: "empty" }
+          : emptyContent(libraryPresence)
         : { isRefreshing: listQuery.isPlaceholderData, items: orders, kind: "ready" };
+  const hasNoLibraryBooks = libraryPresence.kind === "ready" && libraryPresence.total === 0;
 
   const showToolbar =
     !listQuery.isLoadingError &&
     (listQuery.isPending || orders.length > 0 || params.hasActiveSearch || params.hasActiveFilters);
 
   const summaryData = summaryQuery.data;
+  const activeOrdersTotal =
+    summaryData === undefined ? undefined : Math.max(summaryData.activeOrdersCount, orders.length);
+  const chrome = collectionChrome({ baseTotal: activeOrdersTotal, hasQuery: hasActiveQuery });
   const attention = summaryData?.attention ?? [];
   const activeAttentionReason = toDeliveryAttentionReason(params.filter);
 
@@ -302,11 +314,15 @@ export function DeliveryInTransit() {
         }
         content={content}
         headerActions={
-          <Button onClick={() => setCreateOrderOpen(true)}>
-            <UiIcon name="plus" size={16} />
-            {t("actions.addOrder")}
-          </Button>
+          content.kind === "first-book" ? null : (
+            <InTransitHeaderAction
+              hasNoLibraryBooks={hasNoLibraryBooks}
+              onAddFirstBook={() => router.push(BOOK_CREATE_PATH)}
+              onAddOrder={() => setCreateOrderOpen(true)}
+            />
+          )
         }
+        onAddFirstBook={() => router.push(BOOK_CREATE_PATH)}
         onGoToBooksToBuy={() => router.push("/books-to-buy")}
         onLoadMore={() => void listQuery.fetchNextPage()}
         onResetFilters={params.clearAll}
@@ -333,34 +349,38 @@ export function DeliveryInTransit() {
         }
         showToolbar={showToolbar}
         sidebar={
-          <DeliveryInTransitSidebar
-            activeAttentionReason={activeAttentionReason}
-            attention={attention}
-            impact={impactQuery.data?.items ?? []}
-            isLoading={summaryQuery.isPending}
-            nextShipment={nextShipmentCard}
-            onAttentionSelect={selectAttention}
-            onRevealNextShipment={revealNextShipment}
-            revealResetsFilters={nextShipmentNeedsReset}
-          />
+          chrome.showMetrics ? (
+            <DeliveryInTransitSidebar
+              activeAttentionReason={activeAttentionReason}
+              attention={attention}
+              impact={impactQuery.data?.items ?? []}
+              isLoading={summaryQuery.isPending}
+              nextShipment={nextShipmentCard}
+              onAttentionSelect={selectAttention}
+              onRevealNextShipment={revealNextShipment}
+              revealResetsFilters={nextShipmentNeedsReset}
+            />
+          ) : null
         }
         summary={
-          <DeliverySummaryCards
-            cards={summaryCards}
-            isLoading={summaryQuery.isPending}
-            mobileAction={
-              <DeliveryOverviewPanel
-                attention={{
-                  activeReason: activeAttentionReason,
-                  items: attention,
-                  onSelect: selectAttention,
-                }}
-                detailsTitle={tSummary("mobile.title")}
-                isLoading={summaryQuery.isPending}
-                summaryCards={summaryCards}
-              />
-            }
-          />
+          chrome.showMetrics ? (
+            <DeliverySummaryCards
+              cards={summaryCards}
+              isLoading={summaryQuery.isPending}
+              mobileAction={
+                <DeliveryOverviewPanel
+                  attention={{
+                    activeReason: activeAttentionReason,
+                    items: attention,
+                    onSelect: selectAttention,
+                  }}
+                  detailsTitle={tSummary("mobile.title")}
+                  isLoading={summaryQuery.isPending}
+                  summaryCards={summaryCards}
+                />
+              }
+            />
+          ) : null
         }
         toolbar={
           <DeliveryToolbar
@@ -407,7 +427,11 @@ export function DeliveryInTransit() {
         />
       )}
 
-      <CreateBookOrderDialog onOpenChange={setCreateOrderOpen} open={createOrderOpen} />
+      <CreateBookOrderDialog
+        onCreateBook={() => router.push(BOOK_CREATE_PATH)}
+        onOpenChange={setCreateOrderOpen}
+        open={createOrderOpen}
+      />
 
       {manageAction === null ? null : (
         <OrderShipmentActionDialog
@@ -441,5 +465,47 @@ export function DeliveryInTransit() {
         />
       )}
     </>
+  );
+}
+
+function emptyContent(libraryPresence: LibraryPresence): DeliveryContent {
+  switch (libraryPresence.kind) {
+    case "error":
+      return { kind: "library-error", onRetry: libraryPresence.retry };
+    case "pending":
+      return { kind: "loading" };
+    case "ready":
+      return libraryPresence.total === 0 ? { kind: "first-book" } : { kind: "empty" };
+    default:
+      return assertNever(libraryPresence);
+  }
+}
+
+function InTransitHeaderAction({
+  hasNoLibraryBooks,
+  onAddFirstBook,
+  onAddOrder,
+}: {
+  hasNoLibraryBooks: boolean;
+  onAddFirstBook: () => void;
+  onAddOrder: () => void;
+}) {
+  const t = useTranslations("delivery.actions");
+  const tBooks = useTranslations("books.firstBook");
+
+  if (hasNoLibraryBooks) {
+    return (
+      <Button onClick={onAddFirstBook}>
+        <UiIcon name="plus" size={16} />
+        {tBooks("cta")}
+      </Button>
+    );
+  }
+
+  return (
+    <Button onClick={onAddOrder}>
+      <UiIcon name="plus" size={16} />
+      {t("addOrder")}
+    </Button>
   );
 }

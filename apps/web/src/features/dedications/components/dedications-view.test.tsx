@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import {
   mockIntersectionObserver,
   renderWithProviders,
@@ -18,11 +19,13 @@ import {
 import { makeDedicationBook, makeDedicationsSummary } from "../model/dedications.fixtures";
 import { DedicationsView } from "./dedications-view";
 
+const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }));
+
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   ),
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: routerPush, replace: vi.fn() }),
 }));
 
 vi.mock("sonner", () => ({
@@ -42,6 +45,10 @@ let respondToList: (url: string) => Promise<Response> | Response;
 let respondToQuickCounts: (url: URL) => Promise<Response>;
 let respondToSummary: () => Response;
 let respondToUpdate: () => Response;
+let libraryBooks: ReturnType<typeof makeDedicationBook>[];
+let respondToLibraryBooks: () => Promise<Response>;
+
+const copy = messages.dedications;
 
 function chip(name: string): HTMLElement {
   const match = screen
@@ -64,6 +71,26 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json" },
     status,
   });
+}
+
+function libraryOverview(total: number) {
+  return {
+    recentlyAdded: [],
+    summary: {
+      borrowed: 0,
+      favorites: 0,
+      finished: 0,
+      inTransit: 0,
+      reading: 0,
+      series: 0,
+      solo: 0,
+      total,
+      wantToBuy: 0,
+      wantToRead: 0,
+    },
+    topGenres: [],
+    topTags: [],
+  };
 }
 
 function listUrls(): string[] {
@@ -114,6 +141,8 @@ beforeEach(() => {
   respondToQuickCounts = () => Promise.resolve(jsonResponse(quickCounts()));
   respondToSummary = () => jsonResponse(makeDedicationsSummary());
   respondToUpdate = () => jsonResponse(makeDedicationBook());
+  libraryBooks = [makeDedicationBook()];
+  respondToLibraryBooks = () => Promise.resolve(pageResponse({ items: libraryBooks }));
 
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
@@ -125,6 +154,10 @@ beforeEach(() => {
       return respondToQuickCounts(new URL(url, "http://localhost"));
     }
     if (url.includes("/api/books/dedications")) return Promise.resolve(respondToList(url));
+    if (url.includes("/api/books/overview")) {
+      return Promise.resolve(jsonResponse(libraryOverview(libraryBooks.length)));
+    }
+    if (url.includes("/api/books?")) return respondToLibraryBooks();
     if (url.includes("/api/genres")) return Promise.resolve(jsonResponse([]));
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
   });
@@ -194,7 +227,7 @@ describe("DedicationsView", () => {
       );
     renderView();
 
-    expect(await screen.findByText("Додайте першу присвяту")).toBeInTheDocument();
+    expect(await screen.findByText(copy.empty.title)).toBeInTheDocument();
     expect(
       screen.getAllByRole("presentation").map((image) => image.getAttribute("src")),
     ).toContainEqual(expect.stringContaining("empty-dedications.png"));
@@ -204,7 +237,7 @@ describe("DedicationsView", () => {
     respondToList = () => pageResponse({ items: [], totalCount: 0 });
     renderView("?filter=favorites");
 
-    expect(await screen.findByText("Нічого не знайдено")).toBeInTheDocument();
+    expect(await screen.findByText(copy.noResults.title)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Очистити фільтри/ })).toBeInTheDocument();
   });
 
@@ -312,8 +345,8 @@ describe("DedicationsView", () => {
     respondToList = () => pageResponse({ items: [], totalCount: 0 });
     renderView("?filter=favorites");
 
-    expect(await screen.findByText("Нічого не знайдено")).toBeInTheDocument();
-    expect(screen.queryByText("Додайте першу присвяту")).not.toBeInTheDocument();
+    expect(await screen.findByText(copy.noResults.title)).toBeInTheDocument();
+    expect(screen.queryByText(copy.empty.title)).not.toBeInTheDocument();
   });
 
   it("still shows the empty state when the summary fails and no filter is active", async () => {
@@ -321,8 +354,8 @@ describe("DedicationsView", () => {
     respondToList = () => pageResponse({ items: [], totalCount: 0 });
     renderView();
 
-    expect(await screen.findByText("Додайте першу присвяту")).toBeInTheDocument();
-    expect(screen.queryByText("Нічого не знайдено")).not.toBeInTheDocument();
+    expect(await screen.findByText(copy.empty.title)).toBeInTheDocument();
+    expect(screen.queryByText(copy.noResults.title)).not.toBeInTheDocument();
   });
 
   it("renders dedications as rows once the list view is chosen", async () => {
@@ -495,5 +528,78 @@ describe("DedicationsView quick filter counts", () => {
         expect(url.searchParams.has(param)).toBe(false);
       }
     }
+  });
+});
+
+describe("DedicationsView first step", () => {
+  beforeEach(() => {
+    respondToList = () => pageResponse({ items: [] });
+    respondToSummary = () =>
+      jsonResponse(
+        makeDedicationsSummary({
+          availableGenres: [],
+          favoriteCount: 0,
+          finishedCount: 0,
+          topAuthor: null,
+          topGenre: null,
+          totalCount: 0,
+          unfinishedCount: 0,
+        }),
+      );
+  });
+
+  it("opens the create form from the empty dedications of an account without books", async () => {
+    libraryBooks = [];
+    renderView();
+    await screen.findByRole("heading", { name: copy.empty.noBooks.title });
+
+    await userEvent.click(screen.getByRole("button", { name: messages.books.firstBook.cta }));
+
+    expect(routerPush).toHaveBeenCalledWith("/books/new");
+  });
+
+  it("explains in the picker that every book already has a dedication", async () => {
+    libraryBooks = [
+      makeDedicationBook({ id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", title: "Кров ельфів" }),
+      makeDedicationBook({ id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", title: "Час презирства" }),
+    ];
+    renderView();
+    await screen.findByRole("heading", { name: copy.empty.title });
+
+    await userEvent.click(screen.getByRole("button", { name: copy.empty.cta }));
+
+    const picker = await screen.findByRole("dialog", { name: copy.picker.title });
+    expect(await within(picker).findByText(copy.picker.allDedicated)).toBeInTheDocument();
+  });
+
+  it("puts the all-dedicated notice in place of the book list box", async () => {
+    libraryBooks = [
+      makeDedicationBook({ id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", title: "Кров ельфів" }),
+    ];
+    renderView();
+    await userEvent.click(await screen.findByRole("button", { name: copy.empty.cta }));
+
+    const picker = await screen.findByRole("dialog", { name: copy.picker.title });
+    await within(picker).findByText(copy.picker.allDedicated);
+
+    expect(within(picker).getByRole("link", { name: copy.picker.addNewBook })).toHaveAttribute(
+      "href",
+      "/books/new",
+    );
+    expect(within(picker).queryByText(copy.picker.empty)).not.toBeInTheDocument();
+  });
+
+  it("holds the all-dedicated notice back while the picker books are loading", async () => {
+    libraryBooks = [
+      makeDedicationBook({ id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", title: "Кров ельфів" }),
+    ];
+    respondToLibraryBooks = () => new Promise<Response>(() => {});
+    renderView();
+    await userEvent.click(await screen.findByRole("button", { name: copy.empty.cta }));
+
+    const picker = await screen.findByRole("dialog", { name: copy.picker.title });
+
+    expect(within(picker).getByRole("status")).toHaveAttribute("aria-busy", "true");
+    expect(within(picker).queryByText(copy.picker.allDedicated)).not.toBeInTheDocument();
   });
 });

@@ -2,6 +2,8 @@ import type { BookNoteSort, NoteEntityType, SeriesNoteSort, ValueOf } from "@app
 
 import { BookNoteSortSchema, SeriesNoteSortSchema } from "@app/shared";
 
+import { BOOK_CREATE_PATH } from "@/features/books/model/book-create-href";
+
 export type NoteArchiveSort = ValueOf<NotesArchiveSortByScope>;
 
 export type NotesArchiveConfig = {
@@ -56,3 +58,8 @@ export const NOTES_ARCHIVE_SCOPE_BY_ENTITY = {
   book: "books",
   series: "series",
 } as const satisfies Record<NoteEntityType, NotesArchiveScope>;
+
+export const NOTES_ENTITY_START_HREF = {
+  books: BOOK_CREATE_PATH,
+  series: "/series",
+} as const satisfies Record<NotesArchiveScope, string>;

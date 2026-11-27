@@ -4,6 +4,7 @@ import type { ComponentProps } from "react";
 
 import { describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import { mockIntersectionObserver, renderWithProviders, screen, userEvent } from "@/test-utils";
 
 import type { NotesArchiveListState } from "../model/notes-archive-list-state";
@@ -23,6 +24,8 @@ vi.mock("sonner", () => ({
 }));
 
 const viewport = mockIntersectionObserver();
+
+const archive = messages.notes.archive;
 
 const LOADED_NOTE = makeBookNote({ id: "note-1", text: "Завантажена нотатка." });
 const NEXT_PAGE_NOTE = makeBookNote({ id: "note-2", text: "Нотатка з наступної сторінки." });
@@ -69,7 +72,7 @@ describe("NotesArchiveContent", () => {
   it("invites the first note when the library is empty", async () => {
     const { onAddNote } = renderContent({ kind: "empty", reason: "library" });
 
-    expect(screen.getByText("У вас ще немає нотаток.")).toBeInTheDocument();
+    expect(screen.getByText(archive.empty.title)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Додати нотатку" }));
 
     expect(onAddNote).toHaveBeenCalledOnce();
@@ -78,7 +81,7 @@ describe("NotesArchiveContent", () => {
   it("offers to reset the filters when a search finds nothing", async () => {
     const { onClearFilters } = renderContent({ kind: "empty", reason: "search" });
 
-    expect(screen.getByText("Нічого не знайдено.")).toBeInTheDocument();
+    expect(screen.getByText(archive.emptySearch.title)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Додати нотатку" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Скинути фільтри" }));
 
@@ -88,7 +91,7 @@ describe("NotesArchiveContent", () => {
   it("offers to reset the filters when the filters leave nothing", async () => {
     const { onClearFilters } = renderContent({ kind: "empty", reason: "filters" });
 
-    expect(screen.getByText("За цими фільтрами нотаток немає.")).toBeInTheDocument();
+    expect(screen.getByText(archive.emptyFilters.title)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Скинути фільтри" }));
 
     expect(onClearFilters).toHaveBeenCalledOnce();
@@ -329,7 +332,7 @@ describe("NotesArchiveContent in the book notes tab", () => {
     );
 
     expect(screen.getByText("У цієї книги ще немає нотаток.")).toBeInTheDocument();
-    expect(screen.queryByText("У вас ще немає нотаток.")).not.toBeInTheDocument();
+    expect(screen.queryByText(archive.empty.title)).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Додати нотатку" }));
 
     expect(handlers.onAddNote).toHaveBeenCalledOnce();
@@ -345,7 +348,7 @@ describe("NotesArchiveContent in the book notes tab", () => {
       />,
     );
 
-    expect(screen.getByText("Нічого не знайдено.")).toBeInTheDocument();
+    expect(screen.getByText(archive.emptySearch.title)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Очистити пошук" }));
 
     expect(handlers.onClearSearch).toHaveBeenCalledOnce();
@@ -362,7 +365,7 @@ describe("NotesArchiveContent in the book notes tab", () => {
       />,
     );
 
-    expect(screen.getByText("За цими фільтрами нотаток немає.")).toBeInTheDocument();
+    expect(screen.getByText(archive.emptyFilters.title)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Скинути фільтри" }));
 
     expect(handlers.onClearFilters).toHaveBeenCalledOnce();
