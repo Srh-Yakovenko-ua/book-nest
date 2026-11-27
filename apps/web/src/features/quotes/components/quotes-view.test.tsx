@@ -532,6 +532,10 @@ describe("QuotesView overview blocks", () => {
 });
 
 describe("QuotesView overview blocks on a phone", () => {
+  afterEach(() => {
+    document.body.style.removeProperty("pointer-events");
+  });
+
   it("leaves the hidden sidebar out of the overview request", async () => {
     stubMobileViewport();
     mockQuotes(quotes(3), { overview: { memoryQuote: makeQuote(), postFinish: POST_FINISH } });

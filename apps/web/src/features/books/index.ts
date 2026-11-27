@@ -36,7 +36,6 @@ export { BOOK_GENRES_MAX } from "./model/book-classification-fields";
 export {
   BOOK_CREATE_PATH,
   bookCreateHref,
-  type BookCreateOwnershipStatus,
   BookCreateOwnershipStatusSchema,
 } from "./model/book-create-href";
 export { type AuthorSelection, authorSelectionToReference } from "./model/create-book-form";

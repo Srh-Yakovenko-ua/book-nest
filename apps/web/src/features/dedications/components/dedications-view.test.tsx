@@ -577,7 +577,9 @@ describe("DedicationsView first step", () => {
       makeDedicationBook({ id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", title: "Кров ельфів" }),
     ];
     renderView();
-    await userEvent.click(await screen.findByRole("button", { name: copy.empty.cta }));
+    await screen.findByRole("heading", { name: copy.empty.title });
+
+    await userEvent.click(screen.getByRole("button", { name: copy.empty.cta }));
 
     const picker = await screen.findByRole("dialog", { name: copy.picker.title });
     await within(picker).findByText(copy.picker.allDedicated);
@@ -595,7 +597,9 @@ describe("DedicationsView first step", () => {
     ];
     respondToLibraryBooks = () => new Promise<Response>(() => {});
     renderView();
-    await userEvent.click(await screen.findByRole("button", { name: copy.empty.cta }));
+    await screen.findByRole("heading", { name: copy.empty.title });
+
+    await userEvent.click(screen.getByRole("button", { name: copy.empty.cta }));
 
     const picker = await screen.findByRole("dialog", { name: copy.picker.title });
 
