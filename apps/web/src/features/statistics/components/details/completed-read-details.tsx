@@ -22,6 +22,7 @@ export function CompletedReadDetails({ read }: { read: CompletedReadRef }) {
     <div className="flex flex-col gap-3">
       <div className="flex items-start gap-3">
         <StatisticsBookCover
+          bookId={read.book.bookId}
           className="w-14 shrink-0"
           coverThumbUrl={read.book.coverThumbUrl}
           title={read.book.title}

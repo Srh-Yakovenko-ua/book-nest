@@ -463,6 +463,7 @@ function LibraryGridCard({
           authors={book.authors}
           cover={book.cover}
           coverActivateLabel={coverViewLabel}
+          coverSeed={book.id}
           formats={book.formats}
           genres={book.genres}
           href={book.href}

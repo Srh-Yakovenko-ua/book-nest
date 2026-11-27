@@ -5,7 +5,7 @@ import type { SeriesOrderBookView } from "@app/shared";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 
-import { UiIcon } from "@/components/icons";
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
 
 type SeriesOrderBookRowProps = {
@@ -35,19 +35,23 @@ export function SeriesOrderBookRow({ book, label }: SeriesOrderBookRowProps) {
 
 function BookCover({ book }: { book: SeriesOrderBookView }) {
   const t = useTranslations("readingQueue.seriesOrderCheck.card");
+  const alt = t("coverAlt", { title: book.title });
 
   if (book.cover === null) {
     return (
-      <div className="grid aspect-[3/4] w-9 shrink-0 place-items-center rounded-sm bg-accent text-accent-foreground/70">
-        <UiIcon name="book" size={14} />
-      </div>
+      <BookCoverFallback
+        alt={alt}
+        className="aspect-3/4 w-9 rounded-sm"
+        seed={book.id}
+        sizes="36px"
+      />
     );
   }
 
   return (
     <div className="relative aspect-[3/4] w-9 shrink-0 overflow-hidden rounded-sm bg-accent">
       <Image
-        alt={t("coverAlt", { title: book.title })}
+        alt={alt}
         className="object-cover"
         fill
         sizes="36px"

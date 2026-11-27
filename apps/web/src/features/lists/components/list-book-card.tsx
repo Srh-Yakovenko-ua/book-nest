@@ -77,6 +77,7 @@ export function ListBookCard({
           isPending && "opacity-60",
         )}
         cover={libraryBook.cover}
+        coverSeed={book.id}
         data-slot="list-book-card"
         formats={libraryBook.formats}
         genres={libraryBook.genres}

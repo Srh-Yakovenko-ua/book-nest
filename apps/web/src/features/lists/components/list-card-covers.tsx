@@ -4,6 +4,7 @@ import type { MediaView } from "@app/shared";
 
 import Image from "next/image";
 
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { UiIcon } from "@/components/icons";
 
 const MAX_COVERS = 4;
@@ -14,9 +15,10 @@ type ListCardCoversProps = {
   bookCount: number;
   coverAlt: string;
   covers: MediaView[];
+  seed: string;
 };
 
-export function ListCardCovers({ bookCount, coverAlt, covers }: ListCardCoversProps) {
+export function ListCardCovers({ bookCount, coverAlt, covers, seed }: ListCardCoversProps) {
   const visible = covers.slice(0, MAX_COVERS);
   const placeholderCount = Math.max(0, Math.min(MAX_COVERS, bookCount) - visible.length);
 
@@ -26,7 +28,13 @@ export function ListCardCovers({ bookCount, coverAlt, covers }: ListCardCoversPr
         <CoverTile alt={coverAlt} key={cover.id} src={cover.urls.thumb} />
       ))}
       {Array.from({ length: placeholderCount }, (_, index) => (
-        <PlaceholderTile key={index} />
+        <BookCoverFallback
+          alt={coverAlt}
+          className="aspect-3/4 rounded-md shadow-soft"
+          key={index}
+          seed={`${seed}:${visible.length + index}`}
+          sizes="48px"
+        />
       ))}
     </div>
   );
@@ -48,14 +56,6 @@ function CoverTile({ alt, src }: { alt: string; src: string }) {
   return (
     <span className="relative aspect-[3/4] overflow-hidden rounded-md bg-accent shadow-soft">
       <Image alt={alt} className="object-cover" fill sizes="48px" src={src} unoptimized />
-    </span>
-  );
-}
-
-function PlaceholderTile() {
-  return (
-    <span className="grid aspect-[3/4] place-items-center rounded-md bg-accent text-accent-foreground/60">
-      <UiIcon name="book" size={18} />
     </span>
   );
 }

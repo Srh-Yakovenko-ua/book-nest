@@ -27,6 +27,7 @@ import {
 } from "../model/character-spoiler";
 import { CharacterClampedText } from "./character-clamped-text";
 import { CharacterDetailsActionsMenu } from "./character-details-actions-menu";
+import { CharacterPortraitPlaceholder } from "./character-portrait-placeholder";
 import { CharacterSpoilerField } from "./character-spoiler-field";
 
 type CharacterDetailsHeroProps = {
@@ -42,6 +43,7 @@ const HERO_REVEAL_FIELDS: readonly HeroRevealField[] = ["displayName", "portrait
 
 const HERO_LAYOUT = {
   descriptionLines: 3,
+  portraitSizes: "(min-width: 640px) 152px, 104px",
   withDescription:
     "[grid-template-areas:'meta_meta''portrait_headline''description_description'] sm:grid-rows-[auto_auto_1fr] sm:[grid-template-areas:'portrait_meta''portrait_headline''portrait_description']",
   withoutDescription:
@@ -194,19 +196,21 @@ function HeroPortrait({ portrait, title }: { portrait: Nullable<MediaView>; titl
       {...revealFocusTarget("portrait")}
     >
       {portrait === null ? (
-        <div className="grid size-full place-items-center bg-gradient-to-br from-accent-border to-primary text-primary-foreground">
+        <CharacterPortraitPlaceholder sizes={HERO_LAYOUT.portraitSizes}>
           {initial.length === 0 ? (
             <UiIcon name="user-round" size={40} />
           ) : (
-            <span className="font-heading text-5xl leading-none font-semibold">{initial}</span>
+            <span className="font-heading text-4xl leading-none font-semibold sm:text-5xl">
+              {initial}
+            </span>
           )}
-        </div>
+        </CharacterPortraitPlaceholder>
       ) : (
         <Image
           alt={title}
           className="object-cover"
           fill
-          sizes="(min-width: 640px) 152px, 104px"
+          sizes={HERO_LAYOUT.portraitSizes}
           src={portrait.urls.card}
           unoptimized
         />

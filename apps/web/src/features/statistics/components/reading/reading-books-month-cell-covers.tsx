@@ -6,12 +6,12 @@ import { CALENDAR_BOOKS_PREVIEW_LIMIT } from "@app/shared";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 
-import { UiIcon } from "@/components/icons";
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { cn } from "@/lib/utils";
 
 const POSTER_CLASS = {
   cover: "object-cover",
-  fallback: "flex size-full items-center justify-center bg-accent text-accent-foreground/70",
+  fallback: "size-full",
   frame: "absolute inset-0 grid gap-0.5 bg-card",
   layouts: ["grid-cols-1", "grid-cols-2", "grid-cols-[55fr_45fr] grid-rows-2"],
   lead: "row-span-2",
@@ -68,9 +68,7 @@ function PosterSlot({
   return (
     <span className={cn(POSTER_CLASS.slot, className)} data-poster-slot={book.bookId}>
       {book.coverThumbUrl === null ? (
-        <span className={POSTER_CLASS.fallback}>
-          <UiIcon className="shrink-0" name="book" size={16} />
-        </span>
+        <BookCoverFallback className={POSTER_CLASS.fallback} seed={book.bookId} sizes="7rem" />
       ) : (
         <Image
           alt=""

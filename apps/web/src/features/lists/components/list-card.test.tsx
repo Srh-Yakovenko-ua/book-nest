@@ -78,6 +78,21 @@ describe("ListCard", () => {
     expect(screen.getAllByAltText("Обкладинка зі списку Детективи")).toHaveLength(2);
   });
 
+  it("fills the tiles of books without a preview cover with cover art named like the covers", () => {
+    renderCard({
+      bookCount: 3,
+      name: "Детективи",
+      previewCovers: [makeMediaView({ id: "cover-1" })],
+    });
+
+    const tiles = screen.getAllByRole("img", { name: "Обкладинка зі списку Детективи" });
+    expect(tiles.map((tile) => tile.getAttribute("src"))).toEqual([
+      "https://cdn.example.com/thumb.webp",
+      expect.stringMatching(/book-covers.*cover-\d\.png/),
+      expect.stringMatching(/book-covers.*cover-\d\.png/),
+    ]);
+  });
+
   it("invokes onEdit when the edit menu action is chosen", async () => {
     const onEdit = vi.fn();
     renderCard({ name: "Детективи" }, { onEdit });

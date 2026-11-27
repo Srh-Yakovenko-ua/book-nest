@@ -5,6 +5,7 @@ import type { TagView } from "@app/shared";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { GenreIcon, UiIcon } from "@/components/icons";
 import { TagChip } from "@/components/tag-chip";
 import { RatingScore } from "@/components/ui/rating-score";
@@ -112,6 +113,7 @@ export function BookRow({
         alt={book.cover?.alt ?? book.title}
         aspect={coverAspect}
         className={compact?.cover}
+        seed={book.id}
         src={book.cover?.src}
       />
 
@@ -238,26 +240,25 @@ function BookRowCover({
   alt,
   aspect,
   className,
+  seed,
   src,
 }: {
   alt: string;
   aspect: BookRowCoverAspect;
   className?: string;
+  seed: string;
   src?: string;
 }) {
   const frameClass = aspect === "portrait" ? "aspect-[2/3] self-start" : "self-stretch";
 
   if (src === undefined) {
     return (
-      <div
-        className={cn(
-          "grid w-24 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground/70",
-          frameClass,
-          className,
-        )}
-      >
-        <UiIcon name="book" size={32} />
-      </div>
+      <BookCoverFallback
+        alt={alt}
+        className={cn("w-24 rounded-lg", frameClass, className)}
+        seed={seed}
+        sizes="96px"
+      />
     );
   }
 

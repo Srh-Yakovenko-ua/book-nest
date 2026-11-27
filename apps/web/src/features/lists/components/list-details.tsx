@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { Illustration } from "@/components/illustration";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,7 +12,6 @@ import { infiniteScrollStateOf } from "@/hooks/use-infinite-scroll-sentinel";
 import { useRouter } from "@/i18n/navigation";
 import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 import { focusOnMount } from "@/lib/focus-on-mount";
-import { cn } from "@/lib/utils";
 
 import { useListDetail } from "../api/use-list-detail";
 import { useListDetailQuery } from "../model/use-list-detail-query";
@@ -71,14 +71,7 @@ export function ListDetails({ id }: ListDetailsProps) {
         className="mx-auto flex max-w-md flex-col items-center gap-4 px-6 py-16 text-center motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-2"
         role="alert"
       >
-        <span
-          className={cn(
-            "grid size-14 place-items-center rounded-full",
-            isNotFound ? "bg-accent text-icon" : "bg-error-soft text-error",
-          )}
-        >
-          <UiIcon name={isNotFound ? "search" : "alert-triangle"} size={28} />
-        </span>
+        <Illustration name={isNotFound ? "error-not-found" : "error-generic"} size="sm" />
         <div className="flex flex-col gap-2">
           <h1 className="font-heading text-xl font-medium text-ink">
             {isNotFound ? t("notFoundTitle") : t("errorTitle")}

@@ -3,6 +3,7 @@
 import type { ReactNode, Ref } from "react";
 
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 
 import type { UiIconName } from "@/components/icons";
 import type { EmptyStateEntry } from "@/lib/empty-states";
@@ -28,6 +29,12 @@ const SECTION_TONE: Record<StatisticsSectionStateKind, string> = {
   insufficient: "text-ink",
   unavailable: "text-muted-foreground",
 };
+
+const SECTION_ILLUSTRATION = {
+  calendar: "/illustrations/line-calendar-empty.png",
+} as const;
+
+type StatisticsSectionIllustration = keyof typeof SECTION_ILLUSTRATION;
 
 type StatisticsSectionStateDensity = "compact" | "default";
 
@@ -145,12 +152,14 @@ export function StatisticsSectionState({
   action,
   density = "default",
   description,
+  illustration,
   kind,
   title,
 }: {
   action?: ReactNode;
   density?: StatisticsSectionStateDensity;
   description?: string;
+  illustration?: StatisticsSectionIllustration;
   kind: StatisticsSectionStateKind;
   title: string;
 }) {
@@ -164,6 +173,16 @@ export function StatisticsSectionState({
       )}
       role={kind === "error" ? "alert" : undefined}
     >
+      {illustration === undefined ? null : (
+        <Image
+          alt=""
+          className="-ml-3 size-16 select-none"
+          height={512}
+          sizes="64px"
+          src={SECTION_ILLUSTRATION[illustration]}
+          width={512}
+        />
+      )}
       <span
         className={cn(
           "flex items-center gap-2 font-medium",
@@ -171,7 +190,9 @@ export function StatisticsSectionState({
           SECTION_TONE[kind],
         )}
       >
-        <UiIcon aria-hidden name={SECTION_ICON[kind]} size={15} />
+        {illustration === undefined ? (
+          <UiIcon aria-hidden name={SECTION_ICON[kind]} size={15} />
+        ) : null}
         {title}
       </span>
       {description === undefined ? null : (

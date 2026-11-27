@@ -43,7 +43,7 @@ export function HomeActiveBookCard({ book, isOpening, onAction, today }: HomeAct
         href={homeBookHref(book.id)}
         tabIndex={-1}
       >
-        <HomeBookCover className="w-full" cover={book.cover} sizes="5rem" />
+        <HomeBookCover className="w-full" cover={book.cover} seed={book.id} sizes="5rem" />
       </Link>
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <div className="flex min-w-0 items-start justify-between gap-2">

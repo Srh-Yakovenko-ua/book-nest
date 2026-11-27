@@ -24,6 +24,11 @@ const SERIES_NAME = "Емпіреї";
 const common = messages.common;
 const states = messages.series.details.states;
 
+const ILLUSTRATION = {
+  error: "error-generic.png",
+  notFound: "error-not-found.png",
+} as const;
+
 const fetchMock = vi.fn<(input: RequestInfo | URL) => Promise<Response>>();
 
 let detailStatus: number;
@@ -34,6 +39,14 @@ function json(body: unknown, status = 200): Promise<Response> {
       headers: { "Content-Type": "application/json" },
       status,
     }),
+  );
+}
+
+function renderSeriesDetails() {
+  return renderWithProviders(
+    <NuqsTestingAdapter>
+      <SeriesDetails id={SERIES_ID} />
+    </NuqsTestingAdapter>,
   );
 }
 
@@ -61,11 +74,7 @@ afterEach(() => {
 
 describe("SeriesDetails", () => {
   it("keeps the loaded series and shows the refresh banner when a refetch fails", async () => {
-    const { queryClient } = renderWithProviders(
-      <NuqsTestingAdapter>
-        <SeriesDetails id={SERIES_ID} />
-      </NuqsTestingAdapter>,
-    );
+    const { queryClient } = renderSeriesDetails();
     await screen.findByRole("heading", { level: 1, name: SERIES_NAME });
 
     detailStatus = 500;
@@ -79,16 +88,36 @@ describe("SeriesDetails", () => {
 
   it("moves focus to the series title when a retried first load succeeds", async () => {
     detailStatus = 500;
-    renderWithProviders(
-      <NuqsTestingAdapter>
-        <SeriesDetails id={SERIES_ID} />
-      </NuqsTestingAdapter>,
-    );
+    renderSeriesDetails();
     await screen.findByRole("heading", { name: states.errorTitle });
 
     detailStatus = 200;
     await userEvent.click(screen.getByRole("button", { name: common.retry }));
 
     expect(await screen.findByRole("heading", { level: 1, name: SERIES_NAME })).toHaveFocus();
+  });
+});
+
+describe("SeriesDetails illustrations", () => {
+  it("shows the not-found art when the first load returns 404", async () => {
+    detailStatus = 404;
+    renderSeriesDetails();
+
+    await screen.findByRole("heading", { name: states.notFoundTitle });
+    expect(screen.getByRole("presentation")).toHaveAttribute(
+      "src",
+      expect.stringContaining(ILLUSTRATION.notFound),
+    );
+  });
+
+  it("shows the generic error art when the first load fails", async () => {
+    detailStatus = 500;
+    renderSeriesDetails();
+
+    await screen.findByRole("heading", { name: states.errorTitle });
+    expect(screen.getByRole("presentation")).toHaveAttribute(
+      "src",
+      expect.stringContaining(ILLUSTRATION.error),
+    );
   });
 });

@@ -164,6 +164,7 @@ export function BooksToBuyRow({
       <BookCard
         authors={book.authors.map((author) => author.name)}
         cover={book.cover ? { alt: book.title, src: book.cover.urls.card } : undefined}
+        coverSeed={book.id}
         footer={storeSummary}
         href={`/books/${book.id}`}
         kebab={cardActions}

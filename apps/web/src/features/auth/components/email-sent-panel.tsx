@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { Illustration } from "@/components/illustration";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 
@@ -52,12 +53,7 @@ export function EmailSentPanel({
 
   return (
     <div>
-      <span
-        aria-hidden
-        className="mb-5 grid size-16 place-items-center rounded-full bg-accent text-primary"
-      >
-        <UiIcon name="mail" size={28} />
-      </span>
+      <Illustration className="mb-5" name="email-sent" size="xs" />
 
       <AuthHeading ref={headingRef} subtitle={lead} tabIndex={-1} title={title} />
 

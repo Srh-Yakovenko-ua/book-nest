@@ -22,6 +22,7 @@ import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
@@ -349,9 +350,12 @@ function StoreLinkBookPreview({ book }: { book: StoreLinkBook }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 p-3">
       {coverSrc === undefined ? (
-        <div className="grid aspect-[3/4] w-11 shrink-0 place-items-center rounded-md bg-accent text-accent-foreground/70">
-          <UiIcon name="book" size={18} />
-        </div>
+        <BookCoverFallback
+          alt={book.title}
+          className="aspect-3/4 w-11 rounded-md"
+          seed={book.id}
+          sizes="44px"
+        />
       ) : (
         <div className="relative aspect-[3/4] w-11 shrink-0 overflow-hidden rounded-md bg-accent">
           <Image

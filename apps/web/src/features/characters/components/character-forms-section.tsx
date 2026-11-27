@@ -20,6 +20,7 @@ import {
   revealFocusTarget,
 } from "../model/character-spoiler";
 import { CharacterHiddenGroupNotice } from "./character-hidden-group-notice";
+import { CharacterPortraitPlaceholder } from "./character-portrait-placeholder";
 
 type CharacterFormsSectionProps = {
   character: CharacterDetailsView;
@@ -108,9 +109,11 @@ function CharacterFormCard({ form }: { form: CharacterFormView }) {
         {form.portrait === null ? (
           <span
             aria-hidden
-            className="grid aspect-[3/4] w-[72px] shrink-0 place-items-center rounded-md bg-accent text-accent-foreground/70 sm:w-20"
+            className="relative aspect-[3/4] w-[72px] shrink-0 overflow-hidden rounded-md bg-accent sm:w-20"
           >
-            <UiIcon name="user-round" size={24} />
+            <CharacterPortraitPlaceholder sizes="80px">
+              <UiIcon name="user-round" size={24} />
+            </CharacterPortraitPlaceholder>
           </span>
         ) : (
           <button

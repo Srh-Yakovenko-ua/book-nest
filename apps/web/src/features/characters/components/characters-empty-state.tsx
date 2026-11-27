@@ -19,7 +19,7 @@ export function CharactersEmptyState({ onAdd }: CharactersEmptyStateProps) {
 
   const state: EmptyStateEntry = {
     desc: t("description"),
-    illu: "empty-authors",
+    illu: "empty-characters",
     primary: { icon: "plus", label: t("add") },
     title: t("title"),
   };

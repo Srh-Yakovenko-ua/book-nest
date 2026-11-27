@@ -24,6 +24,11 @@ const GOAL_ID = "goal-1";
 const GOAL_URL = `/api/goals/${GOAL_ID}`;
 
 const detail = messages.goals.detail;
+
+const ILLUSTRATION = {
+  error: "error-generic.png",
+  notFound: "error-not-found.png",
+} as const;
 const translateGoals = createTranslator({ locale: "uk", messages, namespace: "goals" });
 
 const { pushMock, replaceMock } = vi.hoisted(() => ({
@@ -211,6 +216,30 @@ describe("GoalDetails", () => {
     await userEvent.click(screen.getByRole("button", { name: "Повторити" }));
 
     expect(await screen.findByRole("progressbar")).toBeInTheDocument();
+  });
+
+  it("shows the not-found art when the goal is not found", async () => {
+    respondToDetail = () => jsonResponse({ message: "not found" }, 404);
+
+    renderDetails();
+
+    await screen.findByRole("heading", { name: detail.notFoundTitle });
+    expect(screen.getByRole("presentation")).toHaveAttribute(
+      "src",
+      expect.stringContaining(ILLUSTRATION.notFound),
+    );
+  });
+
+  it("shows the generic error art when the goal fails to load", async () => {
+    respondToDetail = () => jsonResponse({ message: "boom" }, 500);
+
+    renderDetails();
+
+    await screen.findByRole("heading", { name: detail.errorTitle });
+    expect(screen.getByRole("presentation")).toHaveAttribute(
+      "src",
+      expect.stringContaining(ILLUSTRATION.error),
+    );
   });
 
   it("returns focus to the archive button when the confirmation is cancelled", async () => {

@@ -98,7 +98,7 @@ export function ReadingDayDetails({
       <ReadingDayStats booksCount={data.booksCount} pagesRead={data.pagesRead} variant={variant} />
 
       {data.books.length === 0 ? (
-        <StatisticsSectionState kind="empty" title={t("empty")} />
+        <StatisticsSectionState illustration="calendar" kind="empty" title={t("empty")} />
       ) : (
         <ul className={variantClass.list}>
           {data.books.map((book) => (
@@ -143,6 +143,7 @@ function ReadingDayBookRow({
   const variantClass = DAY_DETAILS_CLASS[variant];
   const cover = (
     <StatisticsBookCover
+      bookId={book.bookId}
       className={isSole ? variantClass.soleCover : variantClass.cover}
       coverThumbUrl={book.coverThumbUrl}
       title={book.title}

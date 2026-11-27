@@ -21,6 +21,8 @@ const TITLE = "Гробниці Атуану";
 
 const COVER_URL = "https://covers.test/atuan.jpg";
 
+const FALLBACK_COVER = "cover-2.png";
+
 const CLAMPED_TWO_LINES = {
   clientHeight: 35,
   clientWidth: 120,
@@ -122,15 +124,18 @@ describe("CompletedReadCard compact", () => {
       <CompletedReadCard read={readWithCover(COVER_URL)} showFinishedAt variant="compact" />,
     );
 
-    expect(screen.getByRole("img", { name: TITLE })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: TITLE })).toHaveAttribute("src", COVER_URL);
   });
 
-  it("draws no cover image for a compact read without one and still names the book", () => {
+  it("draws the fallback art for a compact read without a cover and still names the book", () => {
     renderWithProviders(
       <CompletedReadCard read={readWithCover(null)} showFinishedAt variant="compact" />,
     );
 
-    expect(screen.queryByRole("img", { name: TITLE })).not.toBeInTheDocument();
+    expect(screen.getByRole("img", { name: TITLE })).toHaveAttribute(
+      "src",
+      expect.stringContaining(FALLBACK_COVER),
+    );
     expect(screen.getByRole("button", { name: openReadName(TITLE) })).toHaveTextContent(TITLE);
   });
 });

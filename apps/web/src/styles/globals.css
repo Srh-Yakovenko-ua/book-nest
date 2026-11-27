@@ -17,6 +17,9 @@
   --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
   --font-heading: var(--font-display);
 
+  --text-cover-title: 9cqi;
+  --text-cover-title--line-height: 1.2;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-ink: var(--ink);
@@ -41,6 +44,8 @@
   --color-ring: var(--ring);
 
   --color-brand: var(--brand);
+  --color-cover-ink: var(--cover-ink);
+  --color-cover-paper: var(--cover-paper);
   --color-icon: var(--icon);
   --color-chip: var(--chip);
   --color-chip-foreground: var(--chip-foreground);
@@ -221,6 +226,9 @@
     oklch(0.24 0.04 53 / 0) 35%,
     oklch(0.24 0.04 53 / 0.62) 100%
   );
+
+  --cover-ink: oklch(0.255 0.045 50);
+  --cover-paper: oklch(0.965 0.018 80);
 
   --book-cover-scrim: linear-gradient(
     to top,

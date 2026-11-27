@@ -16,6 +16,7 @@ import type { AttentionItem } from "@/components/attention-block";
 import type { UiIconName } from "@/components/icons";
 
 import { AttentionBlock } from "@/components/attention-block";
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
@@ -406,12 +407,18 @@ function SidebarBlock({ children, title }: { children: ReactNode; title: string 
   );
 }
 
-function SidebarLoanCover({ alt, src }: { alt: string; src: Nullable<string> }) {
+function SidebarLoanCover({
+  alt,
+  seed,
+  src,
+}: {
+  alt: string;
+  seed: string;
+  src: Nullable<string>;
+}) {
   if (src === null) {
     return (
-      <div className="grid aspect-[3/4] w-8 shrink-0 place-items-center rounded-sm bg-accent text-accent-foreground/70">
-        <UiIcon name="book" size={14} />
-      </div>
+      <BookCoverFallback alt={alt} className="aspect-3/4 w-8 rounded-sm" seed={seed} sizes="32px" />
     );
   }
 
@@ -429,7 +436,11 @@ function SidebarLoanRow({ loan, meta }: { loan: LoanListItemView; meta: ReactNod
         className="group/loan flex items-center gap-2.5 rounded-md px-1.5 py-1.5 no-underline transition-colors hover:bg-secondary motion-reduce:transition-none"
         href={`/books/${loan.book.id}`}
       >
-        <SidebarLoanCover alt={loan.book.title} src={loan.book.cover?.urls.thumb ?? null} />
+        <SidebarLoanCover
+          alt={loan.book.title}
+          seed={loan.book.id}
+          src={loan.book.cover?.urls.thumb ?? null}
+        />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="truncate text-sm font-medium text-ink transition-colors group-hover/loan:text-primary">
             {loan.book.title}

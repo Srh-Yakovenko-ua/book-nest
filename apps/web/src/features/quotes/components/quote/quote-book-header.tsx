@@ -22,7 +22,7 @@ export function QuoteBookHeader({ book }: { book: QuoteBookPreview }) {
         <QuoteCover
           alt={t("coverAlt", { title: book.title })}
           className="aspect-[3/4] w-10"
-          iconSize={16}
+          seed={book.id}
           sizes="40px"
           src={book.cover?.urls.thumb ?? null}
         />

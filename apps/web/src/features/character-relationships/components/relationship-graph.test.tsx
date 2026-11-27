@@ -353,6 +353,19 @@ describe("RelationshipGraph notices", () => {
   });
 });
 
+describe("RelationshipGraph empty state", () => {
+  it("greets a scope without visible relationships with the guided-start art", async () => {
+    graph = makeRelationshipGraph({ edges: [], nodes: [] });
+    renderGraph();
+
+    await screen.findByRole("heading", { name: graphCopy.empty.title });
+    expect(screen.getByRole("presentation")).toHaveAttribute(
+      "src",
+      expect.stringContaining("person-guided-start.png"),
+    );
+  });
+});
+
 describe("RelationshipGraph details and preview", () => {
   it("opens a clicked edge through the reader details endpoint in the book scope", async () => {
     renderGraph();

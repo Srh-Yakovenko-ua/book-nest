@@ -133,7 +133,7 @@ describe("StatisticsSubsetDetails", () => {
     expect(within(rated).getByRole("img", { name: "9/10" })).toBeInTheDocument();
     const unrated = readTrigger("Гробниці Атуану");
     expect(within(unrated).getByText("2 бер.")).toBeInTheDocument();
-    expect(within(unrated).queryByRole("img")).not.toBeInTheDocument();
+    expect(within(unrated).queryByRole("img", { name: /\/10$/ })).not.toBeInTheDocument();
   });
 
   it("notes the read whose book was moved to trash and only that one", async () => {

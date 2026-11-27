@@ -102,7 +102,7 @@ function EmptyCatalog() {
 
   const state: EmptyStateEntry = {
     desc: t("description"),
-    illu: "empty-authors",
+    illu: "empty-characters",
     title: t("title"),
   };
 

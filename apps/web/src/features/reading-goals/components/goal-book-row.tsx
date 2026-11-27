@@ -5,6 +5,7 @@ import type { Nullable, ReadingGoalBookView } from "@app/shared";
 import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -21,7 +22,6 @@ const GOAL_BOOK_ROW = {
   cover:
     "relative grid aspect-3/4 w-12 shrink-0 place-items-center overflow-hidden rounded-sm bg-accent text-icon",
   coverSizes: "48px",
-  fallbackIconSize: 18,
 } as const;
 
 type GoalBookRowProps = {
@@ -75,7 +75,7 @@ function GoalBookCover({ book }: GoalBookRowProps) {
   return (
     <div className={GOAL_BOOK_ROW.cover}>
       {book.cover === null ? (
-        <UiIcon aria-hidden name="book" size={GOAL_BOOK_ROW.fallbackIconSize} />
+        <BookCoverFallback className="size-full" seed={book.id} sizes={GOAL_BOOK_ROW.coverSizes} />
       ) : (
         <Image
           alt=""

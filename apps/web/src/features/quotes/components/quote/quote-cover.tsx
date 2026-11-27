@@ -2,30 +2,26 @@ import type { Nullable } from "@app/shared";
 
 import Image from "next/image";
 
-import { UiIcon } from "@/components/icons";
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { cn } from "@/lib/utils";
 
 type QuoteCoverProps = {
   alt: string;
   className: string;
-  iconSize: number;
+  seed: string;
   sizes: string;
   src: Nullable<string>;
 };
 
-export function QuoteCover({ alt, className, iconSize, sizes, src }: QuoteCoverProps) {
+export function QuoteCover({ alt, className, seed, sizes, src }: QuoteCoverProps) {
   if (src === null) {
     return (
-      <div
-        aria-label={alt}
-        className={cn(
-          "grid place-items-center rounded-md bg-accent text-accent-foreground/70",
-          className,
-        )}
-        role="img"
-      >
-        <UiIcon name="book" size={iconSize} />
-      </div>
+      <BookCoverFallback
+        alt={alt}
+        className={cn("rounded-md", className)}
+        seed={seed}
+        sizes={sizes}
+      />
     );
   }
 

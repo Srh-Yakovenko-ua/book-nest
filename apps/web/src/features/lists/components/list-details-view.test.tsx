@@ -260,6 +260,15 @@ describe("ListDetailsView", () => {
     expect(screen.getByRole("link", { name: "Повернутися до списків" })).toBeInTheDocument();
   });
 
+  it("shows the lists art in the empty state of a list with no books", () => {
+    renderView([makeCustomListDetail({ books: { items: [] }, name: "Порожній список" })]);
+
+    expect(screen.getByRole("presentation")).toHaveAttribute(
+      "src",
+      expect.stringContaining("empty-lists.png"),
+    );
+  });
+
   it("removes a book and offers an undo action through a toast", async () => {
     renderView([
       makeCustomListDetail({

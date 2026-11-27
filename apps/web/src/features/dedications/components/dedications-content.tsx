@@ -83,7 +83,7 @@ export function DedicationsContent({
 
     const emptyState: EmptyStateEntry = {
       desc: t("empty.description"),
-      illu: "empty-quotes",
+      illu: "empty-dedications",
       primary: { icon: "book", label: t("empty.cta") },
       title: t("empty.title"),
     };

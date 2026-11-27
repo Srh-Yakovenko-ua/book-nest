@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import Image from "next/image";
+
 import type { LegalBlock, LegalDocumentContent } from "../content/types";
 
 const INLINE_PATTERN = /\*\*(?<strong>[^*]+)\*\*|`(?<code>[^`]+)`/g;
@@ -8,6 +10,14 @@ export function LegalDocument({ lastUpdated, lead, sections, title }: LegalDocum
   return (
     <article className="flex flex-col gap-10">
       <header className="flex flex-col gap-3 border-b border-border pb-8">
+        <Image
+          alt=""
+          className="-mb-2 -ml-3 size-16 select-none"
+          height={512}
+          sizes="64px"
+          src="/illustrations/line-book-sprout.png"
+          width={512}
+        />
         <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
           {title}
         </h1>

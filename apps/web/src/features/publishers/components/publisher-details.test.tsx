@@ -6,6 +6,7 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeWishlistSummary } from "@/features/books-to-buy/model/books-to-buy.fixtures";
+import messages from "@/messages/uk.json";
 import { createTestQueryClient, renderWithProviders, screen, userEvent } from "@/test-utils";
 
 import { publisherKeys } from "../api/publisher-keys";
@@ -21,6 +22,13 @@ vi.mock("@/i18n/navigation", () => ({
   usePathname: () => "/publishers/publisher-1",
   useRouter: () => ({ push: pushMock, replace: vi.fn() }),
 }));
+
+const states = messages.publishers.details.states;
+
+const ILLUSTRATION = {
+  error: "error-generic.png",
+  notFound: "error-not-found.png",
+} as const;
 
 const fetchMock = vi.fn();
 
@@ -159,5 +167,31 @@ describe("PublisherDetails", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: "Vivat" })).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});
+
+describe("PublisherDetails illustrations", () => {
+  it("shows the not-found art when the first load returns 404", async () => {
+    respondToDetail = () => Promise.resolve(jsonResponse({ message: "not found" }, 404));
+
+    renderDetails();
+
+    await screen.findByRole("heading", { name: states.notFoundTitle });
+    expect(screen.getByRole("presentation")).toHaveAttribute(
+      "src",
+      expect.stringContaining(ILLUSTRATION.notFound),
+    );
+  });
+
+  it("shows the generic error art when the first load fails", async () => {
+    respondToDetail = () => Promise.resolve(jsonResponse({ message: "boom" }, 500));
+
+    renderDetails();
+
+    await screen.findByRole("heading", { name: states.errorTitle });
+    expect(screen.getByRole("presentation")).toHaveAttribute(
+      "src",
+      expect.stringContaining(ILLUSTRATION.error),
+    );
   });
 });

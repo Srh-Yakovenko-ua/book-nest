@@ -37,7 +37,7 @@ export function CatalogCharacterBooks({ character }: CatalogCharacterBooksProps)
                 className="block rounded-md px-1.5 py-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                 href={`/books/${book.id}`}
               >
-                <CharacterBookCover className="w-8" cover={book.cover} />
+                <CharacterBookCover className="w-8" cover={book.cover} seed={book.id} />
               </Link>
             </TooltipHint>
           </li>

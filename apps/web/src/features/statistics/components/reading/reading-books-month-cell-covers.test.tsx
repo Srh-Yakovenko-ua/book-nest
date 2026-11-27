@@ -17,6 +17,8 @@ const translateBooks = createTranslator({
 
 const OVERFLOW_CHIP = /^\+\d+$/;
 
+const FALLBACK_ART = /book-covers.*cover-\d\.png/;
+
 const POSTER = { books: "[data-poster-books]", slot: "[data-poster-slot]" } as const;
 
 const BOOKS = {
@@ -145,18 +147,20 @@ describe("ReadingBooksMonthCellCovers poster layout", () => {
 });
 
 describe("ReadingBooksMonthCellCovers missing covers", () => {
-  it("draws a neutral poster without the title when the only book has no cover", () => {
+  it("draws fallback cover art without the title when the only book has no cover", () => {
     renderCovers({
       booksCount: 1,
       booksPreview: [{ ...BOOKS.wizard, coverThumbUrl: null }],
     });
 
-    expect(posterImages()).toHaveLength(0);
+    expect(Array.from(posterImages(), (image) => image.getAttribute("src"))).toEqual([
+      expect.stringMatching(FALLBACK_ART),
+    ]);
     expect(posterSlots()).toHaveLength(1);
     expect(screen.queryByText(BOOKS.wizard.title)).not.toBeInTheDocument();
   });
 
-  it("falls back only in the slot whose book has no cover", () => {
+  it("draws fallback cover art only in the slot whose book has no cover", () => {
     renderCovers({
       booksCount: 2,
       booksPreview: [BOOKS.wizard, { ...BOOKS.tombs, coverThumbUrl: null }],
@@ -165,7 +169,7 @@ describe("ReadingBooksMonthCellCovers missing covers", () => {
     const [withCover, withoutCover] = posterSlots();
     if (withCover === undefined || withoutCover === undefined) throw new Error("missing slots");
     expect(slotImageSources(withCover)).toEqual([BOOKS.wizard.coverThumbUrl]);
-    expect(slotImageSources(withoutCover)).toEqual([]);
+    expect(slotImageSources(withoutCover)).toEqual([expect.stringMatching(FALLBACK_ART)]);
     expect(screen.queryByText(BOOKS.tombs.title)).not.toBeInTheDocument();
   });
 });

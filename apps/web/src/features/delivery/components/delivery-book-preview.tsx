@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 import Image from "next/image";
 
-import { UiIcon } from "@/components/icons";
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
 
 import type { DeliveryBookPreviewModel } from "../model/delivery-book-preview";
@@ -18,12 +18,10 @@ export function DeliveryBookCover({
 }) {
   return (
     <span
-      className={`relative shrink-0 overflow-hidden rounded bg-accent shadow-soft ${sizeClass}`}
+      className={`relative shrink-0 overflow-hidden rounded-sm bg-accent shadow-soft ${sizeClass}`}
     >
       {book.coverSrc === undefined ? (
-        <span className="grid h-full place-items-center text-accent-foreground/70">
-          <UiIcon name="book" size={14} />
-        </span>
+        <BookCoverFallback alt={book.title} className="size-full" seed={book.id} sizes="48px" />
       ) : (
         <Image
           alt={book.title}

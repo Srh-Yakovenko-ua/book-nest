@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useState } from "react";
 
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { UiIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
@@ -88,7 +89,6 @@ export function SeriesCardCover({
 function SeriesCardCoverLayer({ className, cover }: { className: string; cover: SeriesCoverBook }) {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  const initial = cover.title.trim().charAt(0).toUpperCase();
 
   return (
     <div
@@ -98,13 +98,7 @@ function SeriesCardCoverLayer({ className, cover }: { className: string; cover: 
       )}
     >
       {failed ? (
-        <div className="grid h-full w-full place-items-center text-accent-foreground">
-          {initial.length === 0 ? (
-            <UiIcon name="book" size={20} />
-          ) : (
-            <span className="font-heading text-lg leading-none font-semibold">{initial}</span>
-          )}
-        </div>
+        <BookCoverFallback alt={cover.title} className="size-full" seed={cover.id} sizes="110px" />
       ) : (
         <Image
           alt={cover.title}

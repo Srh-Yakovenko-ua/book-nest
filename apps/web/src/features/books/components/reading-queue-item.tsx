@@ -7,6 +7,7 @@ import type { PointerEvent, ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -116,7 +117,7 @@ export function ReadingQueueItem({
         {t("position", { position })}
       </span>
 
-      <QueueItemCover alt={book.cover?.alt ?? book.title} src={book.cover?.src} />
+      <QueueItemCover alt={book.cover?.alt ?? book.title} seed={book.id} src={book.cover?.src} />
 
       <div className="flex min-w-0 flex-1 flex-col gap-3 max-sm:gap-2 @2xl/queue-card:flex-row @2xl/queue-card:items-stretch @2xl/queue-card:gap-4">
         <QueueMeta book={book} />
@@ -179,13 +180,9 @@ export function ReadingQueueItem({
 const coverFrameClass =
   "w-24 shrink-0 self-stretch rounded-lg bg-accent max-sm:aspect-[2/3] max-sm:w-16 max-sm:self-start";
 
-function QueueItemCover({ alt, src }: { alt: string; src?: string }) {
+function QueueItemCover({ alt, seed, src }: { alt: string; seed: string; src?: string }) {
   if (src === undefined) {
-    return (
-      <div className={cn("grid place-items-center text-accent-foreground/70", coverFrameClass)}>
-        <UiIcon name="book" size={32} />
-      </div>
-    );
+    return <BookCoverFallback alt={alt} className={coverFrameClass} seed={seed} sizes="96px" />;
   }
 
   return (

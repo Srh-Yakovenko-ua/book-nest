@@ -212,6 +212,7 @@ function ReadingActivityOfBucket({ range }: { range: ReadingStatisticsDateRange 
                     tabIndex={-1}
                   >
                     <StatisticsBookCover
+                      bookId={item.book.bookId}
                       className="w-9 shrink-0"
                       coverThumbUrl={item.book.coverThumbUrl}
                       title={item.book.title}

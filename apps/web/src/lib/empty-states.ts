@@ -16,11 +16,18 @@ export type EmptyStateEntry = {
 };
 
 export type EmptyStateIllustration =
+  | "character-relationships/person-guided-start"
+  | "email-sent"
+  | "email-verified"
   | "empty-all-books"
   | "empty-authors"
   | "empty-borrowed"
+  | "empty-characters"
+  | "empty-contacts"
+  | "empty-dedications"
   | "empty-delivery"
   | "empty-favorites"
+  | "empty-genres"
   | "empty-library"
   | "empty-lists"
   | "empty-notes"
@@ -28,10 +35,15 @@ export type EmptyStateIllustration =
   | "empty-purchases"
   | "empty-queue"
   | "empty-quotes"
+  | "empty-reading-history-en"
+  | "empty-reading-history-uk"
   | "empty-search"
   | "empty-series"
   | "empty-tags"
   | "error-generic"
+  | "error-not-found"
+  | "maintenance"
+  | "reading-goals/goal-expired-hourglass"
   | "reading-goals/goal-first-goal-empty-state"
   | "reading-goals/goal-no-counted-books-yet";
 

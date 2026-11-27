@@ -186,6 +186,9 @@ describe("BookCharactersTab roster", () => {
 
     expect(await screen.findByText("Тут поки немає персонажів")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Додати персонажа" }).length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole("presentation").map((image) => image.getAttribute("src")),
+    ).toContainEqual(expect.stringContaining("empty-characters.png"));
   });
 
   it("shows an error state when the roster request fails", async () => {

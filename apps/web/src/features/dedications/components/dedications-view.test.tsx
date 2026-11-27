@@ -195,6 +195,9 @@ describe("DedicationsView", () => {
     renderView();
 
     expect(await screen.findByText("Додайте першу присвяту")).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("presentation").map((image) => image.getAttribute("src")),
+    ).toContainEqual(expect.stringContaining("empty-dedications.png"));
   });
 
   it("shows the no-results state when filters exclude everything", async () => {

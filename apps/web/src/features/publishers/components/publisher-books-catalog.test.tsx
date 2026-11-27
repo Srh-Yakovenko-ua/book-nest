@@ -147,7 +147,7 @@ describe("PublisherBooksCatalog", () => {
     mockApi({ books: [book], total: 1 });
     renderCatalog();
 
-    expect(await screen.findByText(book.title)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: book.title })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
     expect(screen.queryByText("Клуб Сімейного Дозвілля")).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText("Назва книги, автор або серія")).toBeInTheDocument();

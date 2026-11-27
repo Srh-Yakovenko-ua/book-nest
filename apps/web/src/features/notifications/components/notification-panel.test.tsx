@@ -202,6 +202,10 @@ describe("NotificationPanel states", () => {
     );
 
     expect(screen.getByText("Нагадувань немає")).toBeInTheDocument();
+    expect(screen.getByRole("presentation")).toHaveAttribute(
+      "src",
+      expect.stringContaining("line-notifications-empty.png"),
+    );
     expect(screen.queryByRole("button", { name: "Прочитати все" })).not.toBeInTheDocument();
   });
 

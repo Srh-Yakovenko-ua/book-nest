@@ -4,50 +4,37 @@ import type { Nullable } from "@app/shared";
 
 import Image from "next/image";
 
-import { UiIcon } from "@/components/icons";
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { cn } from "@/lib/utils";
 
-const COVER_SIZE = { height: 96, width: 64 } as const;
+const COVER = {
+  height: 96,
+  placeholderSizes: { icon: "4rem", titled: "(min-width: 640px) 8rem, 7rem" },
+  width: 64,
+} as const;
 
 export function StatisticsBookCover({
+  bookId,
   className,
   coverThumbUrl,
   placeholder = "icon",
   title,
 }: {
+  bookId: string;
   className?: string;
   coverThumbUrl: Nullable<string>;
   placeholder?: "icon" | "titled";
   title: string;
 }) {
-  if (coverThumbUrl === null && placeholder === "titled") {
-    return (
-      <span
-        aria-hidden
-        className={cn(
-          "flex aspect-2/3 w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-md bg-accent p-3 text-center text-accent-foreground",
-          className,
-        )}
-      >
-        <UiIcon className="text-accent-foreground/70" name="book" size={20} />
-        <span className="line-clamp-4 w-full font-heading text-xs leading-snug font-semibold break-words">
-          {title}
-        </span>
-      </span>
-    );
-  }
-
   if (coverThumbUrl === null) {
     return (
-      <span
-        aria-hidden
-        className={cn(
-          "grid aspect-[2/3] w-full place-items-center rounded-md bg-secondary text-muted-foreground",
-          className,
-        )}
-      >
-        <UiIcon name="book" size={18} />
-      </span>
+      <BookCoverFallback
+        alt={title}
+        className={cn("aspect-2/3 w-full rounded-md", className)}
+        seed={bookId}
+        sizes={COVER.placeholderSizes[placeholder]}
+        title={placeholder === "titled" ? title : undefined}
+      />
     );
   }
 
@@ -55,10 +42,10 @@ export function StatisticsBookCover({
     <Image
       alt={title}
       className={cn("aspect-[2/3] w-full rounded-md object-cover", className)}
-      height={COVER_SIZE.height}
+      height={COVER.height}
       src={coverThumbUrl}
       unoptimized
-      width={COVER_SIZE.width}
+      width={COVER.width}
     />
   );
 }

@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { UiIcon } from "@/components/icons";
 import { TooltipHint } from "@/components/tooltip-hint";
 import { Badge } from "@/components/ui/badge";
@@ -63,9 +64,12 @@ export function ListBookRow({
       </div>
 
       {cover === null ? (
-        <span className="grid h-15 w-10 shrink-0 place-items-center rounded-sm bg-accent text-accent-foreground/70">
-          <UiIcon name="book" size={18} />
-        </span>
+        <BookCoverFallback
+          alt={book.title}
+          className="h-15 w-10 rounded-sm"
+          seed={book.id}
+          sizes="40px"
+        />
       ) : (
         <span className="relative h-15 w-10 shrink-0 overflow-hidden rounded-sm bg-accent">
           <Image

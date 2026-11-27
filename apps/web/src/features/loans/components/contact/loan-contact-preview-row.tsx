@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 
 import Image from "next/image";
 
-import { UiIcon } from "@/components/icons";
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/navigation";
 
@@ -25,9 +25,7 @@ export function LoanContactPreviewRow({ book, meta }: LoanContactPreviewRowProps
         tabIndex={-1}
       >
         {book.cover === null ? (
-          <span className="grid h-full w-full place-items-center text-accent-foreground/70">
-            <UiIcon name="book" size={14} />
-          </span>
+          <BookCoverFallback alt={book.title} className="size-full" seed={book.id} sizes="36px" />
         ) : (
           <Image
             alt={book.title}
