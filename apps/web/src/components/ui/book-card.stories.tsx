@@ -37,6 +37,7 @@ function Kebab() {
 const meta = {
   args: {
     authors: ["Сара Дж. Маас"],
+    coverSeed: "00000000-0000-4000-8000-000000000001",
     status: reading,
     title: "Двір срібного полум'я",
   },
@@ -150,6 +151,7 @@ export const Grid: Story = {
     <div className="grid grid-cols-[repeat(auto-fill,minmax(290px,1fr))] gap-[18px]">
       <BookCard
         authors={["Сара Дж. Маас"]}
+        coverSeed="00000000-0000-4000-8000-000000000001"
         genres={[{ icon: "fentezi", label: "Фентезі" }]}
         href="#book"
         kebab={<Kebab />}
@@ -165,6 +167,7 @@ export const Grid: Story = {
       />
       <BookCard
         authors={["Лі Бардуго"]}
+        coverSeed="00000000-0000-4000-8000-000000000002"
         genres={[{ icon: "fentezi", label: "Фентезі" }]}
         href="#book"
         kebab={<Kebab />}
@@ -174,6 +177,7 @@ export const Grid: Story = {
       />
       <BookCard
         authors={["Медлін Міллер"]}
+        coverSeed="00000000-0000-4000-8000-000000000003"
         genres={[{ icon: "istorychnyy-roman", label: "Історична проза" }]}
         href="#book"
         kebab={<Kebab />}

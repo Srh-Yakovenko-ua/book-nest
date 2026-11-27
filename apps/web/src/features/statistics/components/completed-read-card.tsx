@@ -37,6 +37,7 @@ export function CompletedReadCard({
   const recentPreview = (
     <span className="group/recent flex w-full flex-col gap-2">
       <StatisticsBookCover
+        bookId={read.book.bookId}
         className="shadow-soft transition-shadow duration-150 group-hover/recent:shadow-hover"
         coverThumbUrl={read.book.coverThumbUrl}
         placeholder="titled"
@@ -58,7 +59,11 @@ export function CompletedReadCard({
 
   const rankingPreview = (
     <span className="flex w-full flex-col gap-1.5">
-      <StatisticsBookCover coverThumbUrl={read.book.coverThumbUrl} title={read.book.title} />
+      <StatisticsBookCover
+        bookId={read.book.bookId}
+        coverThumbUrl={read.book.coverThumbUrl}
+        title={read.book.title}
+      />
       <span className="line-clamp-2 text-xs font-medium text-foreground">{read.book.title}</span>
       <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[0.6875rem] text-muted-foreground">
         {isDateShown ? <time dateTime={read.finishedAt}>{finishedAtLabel}</time> : null}
@@ -70,6 +75,7 @@ export function CompletedReadCard({
   const compactPreview = (
     <span className="flex h-full w-full items-start gap-3 rounded-lg border border-border bg-secondary/40 p-2.5 text-start transition hover:border-primary/40 hover:bg-secondary/70 hover:shadow-soft">
       <StatisticsBookCover
+        bookId={read.book.bookId}
         className="w-14 shrink-0 bg-accent text-accent-foreground shadow-soft"
         coverThumbUrl={read.book.coverThumbUrl}
         title={read.book.title}

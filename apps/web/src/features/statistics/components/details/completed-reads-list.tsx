@@ -56,6 +56,7 @@ export function CompletedReadsList({
               triggerRef={focusRefFor(read)}
             >
               <StatisticsBookCover
+                bookId={read.book.bookId}
                 className="w-9 shrink-0"
                 coverThumbUrl={read.book.coverThumbUrl}
                 title={read.book.title}

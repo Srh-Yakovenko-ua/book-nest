@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { UiIcon } from "@/components/icons";
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -75,9 +76,7 @@ function BookSection({ book }: { book: LoanHistoryDetailView["book"] }) {
         tabIndex={-1}
       >
         {book.cover === null ? (
-          <span className="grid h-full w-full place-items-center text-accent-foreground/70">
-            <UiIcon name="book" size={24} />
-          </span>
+          <BookCoverFallback alt={book.title} className="size-full" seed={book.id} sizes="80px" />
         ) : (
           <Image
             alt={book.title}

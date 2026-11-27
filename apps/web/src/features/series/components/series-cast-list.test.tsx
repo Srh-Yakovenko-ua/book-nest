@@ -31,6 +31,8 @@ const CAST_PATH = `/api/series/${SERIES_ID}/characters`;
 
 const LOADING_MORE = messages.common.loadingMore;
 
+const castCopy = messages.series.details.characters.cast;
+
 const FIRST_OF_TWO_PAGES = {
   ...makeCharacterPage([makeRosterCharacter(GERALT)]),
   pagesCount: 2,
@@ -42,6 +44,7 @@ const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promis
 
 const viewport = mockIntersectionObserver();
 
+let castPage: unknown;
 let isHoldingCast = false;
 
 function castRequests(): URL[] {
@@ -59,6 +62,7 @@ function renderCastList() {
 }
 
 beforeEach(() => {
+  castPage = FIRST_OF_TWO_PAGES;
   isHoldingCast = false;
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
@@ -69,7 +73,7 @@ beforeEach(() => {
     }
     if (isHoldingCast) return new Promise<Response>(() => undefined);
     return Promise.resolve(
-      new Response(JSON.stringify(FIRST_OF_TWO_PAGES), {
+      new Response(JSON.stringify(castPage), {
         headers: { "Content-Type": "application/json" },
         status: 200,
       }),
@@ -108,5 +112,18 @@ describe("SeriesCastList load more", () => {
 
     expect(await screen.findByText(LOADING_MORE)).toBeInTheDocument();
     expect(castRequests().at(-1)?.searchParams.get("pageNumber")).toBe("2");
+  });
+});
+
+describe("SeriesCastList empty cast", () => {
+  it("shows the empty-characters art when the series has no cast and no search", async () => {
+    castPage = makeCharacterPage([]);
+    renderCastList();
+
+    expect(await screen.findByText(castCopy.empty.title)).toBeInTheDocument();
+    expect(screen.getByRole("presentation")).toHaveAttribute(
+      "src",
+      expect.stringContaining("empty-characters.png"),
+    );
   });
 });

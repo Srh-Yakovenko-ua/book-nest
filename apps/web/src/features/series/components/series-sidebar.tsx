@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 
 import { AttentionBlock } from "@/components/attention-block";
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { UiIcon, type UiIconName } from "@/components/icons";
 import { SummaryError } from "@/components/summary-error";
 import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
@@ -249,6 +250,7 @@ function EmptyText({ children }: { children: ReactNode }) {
 function NextBookRow({ nextBook }: { nextBook: SeriesNextBook }) {
   const t = useTranslations("series.sidebar");
   const cover = nextBook.cover;
+  const coverAlt = t("nextCoverAlt", { title: nextBook.title });
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -258,15 +260,15 @@ function NextBookRow({ nextBook }: { nextBook: SeriesNextBook }) {
         href={`/books/${nextBook.id}`}
       >
         {cover === null || cover === undefined ? (
-          <div
-            aria-hidden
-            className="grid aspect-[2/3] w-14 shrink-0 place-items-center rounded-md border border-border bg-accent text-accent-foreground/50"
-          >
-            <UiIcon name="book" size={18} />
-          </div>
+          <BookCoverFallback
+            alt={coverAlt}
+            className="aspect-2/3 w-14 rounded-md border border-border"
+            seed={nextBook.id}
+            sizes="3.5rem"
+          />
         ) : (
           <Image
-            alt={t("nextCoverAlt", { title: nextBook.title })}
+            alt={coverAlt}
             className="aspect-[2/3] w-14 shrink-0 rounded-md border border-border object-cover"
             height={84}
             src={cover.urls.thumb}

@@ -442,6 +442,9 @@ describe("Genres list states", () => {
     expect(
       await screen.findByRole("heading", { name: "У ваших книгах ще немає жанрів" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("presentation").map((image) => image.getAttribute("src")),
+    ).toContainEqual(expect.stringContaining("empty-genres.png"));
     expect(screen.queryByLabelText("Пошук жанру")).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Перейти до бібліотеки" }));

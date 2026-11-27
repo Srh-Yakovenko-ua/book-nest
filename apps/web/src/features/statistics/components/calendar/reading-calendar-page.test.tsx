@@ -348,6 +348,18 @@ describe("ReadingCalendarPage", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("shows the empty-calendar art in both calendars for a year without reading", async () => {
+    calendarResponse = (year) => {
+      const page = calendarPage(year);
+      return jsonResponse({ ...page, calendar: { ...page.calendar, days: [] } });
+    };
+    renderCalendar();
+
+    expect(await screen.findAllByText(text.calendar.empty)).toHaveLength(2);
+    const sources = screen.getAllByRole("presentation").map((image) => image.getAttribute("src"));
+    expect(sources.filter((src) => src?.includes("line-calendar-empty.png"))).toHaveLength(2);
+  });
+
   it.each([
     ["legacy_lower_bound", 1],
     ["exact", 0],

@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { type ReactNode, useState } from "react";
 
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { UiIcon, type UiIconName } from "@/components/icons";
 import { TagChip } from "@/components/tag-chip";
 import { RatingScore } from "@/components/ui/rating-score";
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 
 type BookPreviewProps = {
   authorName: string;
+  coverSeed: string;
   coverSrc?: string;
   description: string;
   formats?: readonly BookFormat[];
@@ -40,6 +42,7 @@ const FORMAT_ICONS: Record<BookFormat, UiIconName> = {
 
 export function BookPreview({
   authorName,
+  coverSeed,
   coverSrc,
   description,
   formats = [],
@@ -69,8 +72,6 @@ export function BookPreview({
 
   const showRating = readingStatus === "finished" && typeof rating === "number" && rating > 0;
 
-  const coverInitial = hasTitle ? title.trim().charAt(0).toUpperCase() : null;
-
   return (
     <aside
       aria-label={t("preview.eyebrow")}
@@ -84,15 +85,12 @@ export function BookPreview({
       <div className="flex gap-4">
         <div className="relative aspect-[3/4] w-24 shrink-0 overflow-hidden rounded-md bg-accent shadow-soft">
           {coverSrc === undefined ? (
-            <div className="grid h-full w-full place-items-center text-accent-foreground">
-              {coverInitial === null ? (
-                <UiIcon name="book" size={28} />
-              ) : (
-                <span className="font-heading text-3xl leading-none font-semibold">
-                  {coverInitial}
-                </span>
-              )}
-            </div>
+            <BookCoverFallback
+              alt={t("preview.coverAlt")}
+              className="size-full"
+              seed={coverSeed}
+              sizes="96px"
+            />
           ) : (
             <Image
               alt={t("preview.coverAlt")}

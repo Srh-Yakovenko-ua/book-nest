@@ -101,7 +101,7 @@ function SeriesCastContent({
   if (items.length === 0 && !hasSearch) {
     const empty: EmptyStateEntry = {
       desc: t("empty.description"),
-      illu: "empty-authors",
+      illu: "empty-characters",
       title: t("empty.title"),
     };
     return <EmptyState state={empty} />;

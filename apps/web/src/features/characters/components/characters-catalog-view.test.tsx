@@ -136,6 +136,10 @@ function catalogSkeleton(): HTMLElement {
   return skeleton;
 }
 
+function decorativeImageSources() {
+  return screen.getAllByRole("presentation").map((image) => image.getAttribute("src"));
+}
+
 function favoriteRequests(): { body: RequestInit["body"]; path: string }[] {
   return fetchMock.mock.calls
     .filter(([, init]) => init?.method === "PATCH")
@@ -354,9 +358,16 @@ describe("CharactersCatalogView catalog", () => {
 
     renderCatalog();
     expect(await screen.findByText("Персонажів ще немає")).toBeInTheDocument();
+    expect(decorativeImageSources()).toContainEqual(
+      expect.stringContaining("empty-characters.png"),
+    );
+    expect(decorativeImageSources()).not.toContainEqual(
+      expect.stringContaining("empty-search.png"),
+    );
 
     renderCatalog("q=zzz");
     expect(await screen.findByText("Нічого не знайдено")).toBeInTheDocument();
+    expect(decorativeImageSources()).toContainEqual(expect.stringContaining("empty-search.png"));
   });
 
   it("keeps the list still when the last page is already shown", async () => {

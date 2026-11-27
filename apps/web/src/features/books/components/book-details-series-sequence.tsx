@@ -8,6 +8,7 @@ import { type ReactNode, useLayoutEffect, useRef } from "react";
 
 import type { SeriesSlot } from "@/features/series";
 
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -34,12 +35,16 @@ export function BookDetailsSeriesSequence({ book }: { book: BookView }) {
   return <SeriesSequence book={book} series={book.series} />;
 }
 
-function AddedCover({ cover }: { cover: SeriesBookView["cover"] }) {
-  if (cover === null || cover === undefined) {
+function AddedCover({ book }: { book: SeriesBookView }) {
+  const cover = book.cover ?? null;
+  if (cover === null) {
     return (
-      <div className="grid aspect-[2/3] w-full place-items-center rounded-md bg-accent text-accent-foreground/70">
-        <UiIcon aria-hidden name="book" size={26} />
-      </div>
+      <BookCoverFallback
+        className="aspect-2/3 w-full rounded-md"
+        seed={book.id}
+        sizes="128px"
+        title={book.title}
+      />
     );
   }
 
@@ -72,7 +77,7 @@ function AddedSlot({
           isCurrent={isCurrent}
           tone="added"
         >
-          <AddedCover cover={book.cover} />
+          <AddedCover book={book} />
         </SlotFrame>
       </div>
       <p

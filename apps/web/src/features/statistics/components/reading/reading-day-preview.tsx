@@ -21,6 +21,7 @@ export function ReadingDayPreview({
     <span className={cn("flex items-center gap-1", className)}>
       {day.booksPreview.map((book) => (
         <StatisticsBookCover
+          bookId={book.bookId}
           className="w-6"
           coverThumbUrl={book.coverThumbUrl}
           key={book.bookId}

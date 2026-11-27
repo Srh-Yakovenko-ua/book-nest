@@ -245,6 +245,15 @@ describe("LoanContactsView", () => {
 
     expect(await screen.findByText(copy.states.noResults.title)).toBeInTheDocument();
   });
+
+  it("shows the contacts art when the reader has no contacts and no query", async () => {
+    renderView({ counts: { active: 0, all: 0, archived: 0 }, items: [], totalCount: 0 });
+
+    expect(await screen.findByText(copy.states.empty.title)).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("presentation").map((image) => image.getAttribute("src")),
+    ).toContainEqual(expect.stringContaining("empty-contacts.png"));
+  });
 });
 
 function applyStatusFilter(label: string) {

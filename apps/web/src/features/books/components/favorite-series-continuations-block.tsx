@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
@@ -103,24 +104,17 @@ export function FavoriteSeriesContinuationsBlock() {
 
 function ContinuationCover({
   cover,
-  title,
+  seed,
 }: {
   cover: FavoriteSeriesContinuationItem["nextBook"]["cover"];
-  title: string;
+  seed: string;
 }) {
   const src = cover?.urls.card;
-  const initial = title.trim().charAt(0).toUpperCase();
 
   return (
     <div className="relative aspect-[2/3] w-16 shrink-0 overflow-hidden rounded-md bg-accent shadow-soft">
       {src === undefined ? (
-        <div className="grid h-full w-full place-items-center text-accent-foreground">
-          {initial.length === 0 ? (
-            <UiIcon name="book" size={18} />
-          ) : (
-            <span className="font-heading text-lg leading-none font-semibold">{initial}</span>
-          )}
-        </div>
+        <BookCoverFallback className="size-full" seed={seed} sizes="64px" />
       ) : (
         <Image alt="" className="object-cover" fill sizes="48px" src={src} unoptimized />
       )}
@@ -192,7 +186,7 @@ function ContinuationRow({
         className="shrink-0"
         href={bookHref}
       >
-        <ContinuationCover cover={nextBook.cover} title={nextBook.title} />
+        <ContinuationCover cover={nextBook.cover} seed={nextBook.id} />
       </MobilePageOverviewLink>
       <div className="flex min-w-0 flex-col gap-1.5">
         <MobilePageOverviewLink className="group min-w-0" href={bookHref}>

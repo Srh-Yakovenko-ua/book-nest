@@ -45,7 +45,7 @@ export function QuoteFullViewDialog({
     <QuoteCover
       alt={t("coverAlt", { title: quote.book.title })}
       className="aspect-[3/4] w-16 shrink-0"
-      iconSize={22}
+      seed={quote.book.id}
       sizes="64px"
       src={quote.book.cover?.urls.thumb ?? null}
     />

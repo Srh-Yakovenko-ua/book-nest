@@ -73,7 +73,7 @@ function CharacterBookRow({ book }: { book: CharacterAppearanceBook }) {
         className="flex min-h-11 items-center gap-3 rounded-lg px-2 py-2 transition-colors outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none"
         href={`/books/${book.id}`}
       >
-        <CharacterBookCover className="w-10" cover={book.cover} />
+        <CharacterBookCover className="w-10" cover={book.cover} seed={book.id} />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="line-clamp-2 text-sm font-medium wrap-anywhere text-foreground">
             {book.title}

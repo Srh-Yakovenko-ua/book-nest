@@ -16,6 +16,7 @@ import Image from "next/image";
 
 import type { UiIconName } from "@/components/icons";
 
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
@@ -139,9 +140,11 @@ function OverviewBookRow({
         className={cn("relative shrink-0 overflow-hidden bg-accent", OVERVIEW_BLOCK.cover)}
       >
         {book.cover === null ? (
-          <span className="grid h-full place-items-center text-accent-foreground/70">
-            <UiIcon name="book" size={14} />
-          </span>
+          <BookCoverFallback
+            className="size-full"
+            seed={book.id}
+            sizes={OVERVIEW_BLOCK.coverSizes}
+          />
         ) : (
           <Image
             alt=""

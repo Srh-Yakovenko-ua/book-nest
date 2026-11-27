@@ -28,9 +28,15 @@ vi.mock("sonner", () => ({
 
 const BOOK_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const BOOK_TITLE = "Останнє бажання";
+const COVER_ALT = messages.books.details.coverAlt.replace("{title}", BOOK_TITLE);
 
 const common = messages.common;
 const states = messages.books.details.states;
+
+const ILLUSTRATION = {
+  error: "error-generic.png",
+  notFound: "error-not-found.png",
+} as const;
 
 const PATHS = {
   bookQuotes: `/api/books/${BOOK_ID}/quotes`,
@@ -242,5 +248,39 @@ describe("BookDetails load and refresh errors", () => {
     expect(await screen.findByRole("heading", { name: states.notFoundTitle })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: BOOK_TITLE })).not.toBeInTheDocument();
     expect(screen.queryByText(common.refetchError)).not.toBeInTheDocument();
+  });
+});
+
+describe("BookDetails illustrations", () => {
+  it("shows cover art under the translated cover alt when the book has no cover", async () => {
+    renderBookDetails();
+
+    await screen.findByRole("heading", { level: 1, name: BOOK_TITLE });
+    expect(screen.getByRole("img", { name: COVER_ALT })).toHaveAttribute(
+      "src",
+      expect.stringMatching(/book-covers.*cover-\d\.png/),
+    );
+  });
+
+  it("shows the not-found art when the first load returns 404", async () => {
+    detailStatus = 404;
+    renderBookDetails();
+
+    await screen.findByRole("heading", { name: states.notFoundTitle });
+    expect(screen.getByRole("presentation")).toHaveAttribute(
+      "src",
+      expect.stringContaining(ILLUSTRATION.notFound),
+    );
+  });
+
+  it("shows the generic error art when the first load fails", async () => {
+    detailStatus = 500;
+    renderBookDetails();
+
+    await screen.findByRole("heading", { name: states.errorTitle });
+    expect(screen.getByRole("presentation")).toHaveAttribute(
+      "src",
+      expect.stringContaining(ILLUSTRATION.error),
+    );
   });
 });

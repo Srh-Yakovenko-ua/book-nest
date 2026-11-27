@@ -25,6 +25,7 @@ const preview = messages.readingQueue.seriesOrderCheck.preview;
 const EXTRA_BOOK_ID = "book-extra";
 const EXTRA_BOOK_TITLE = "Третя книга";
 const EXTRA_BOOK_COVER_ALT = `Обкладинка «${EXTRA_BOOK_TITLE}»`;
+const FALLBACK_ART = /book-covers.*cover-\d\.png/;
 
 const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
 
@@ -123,15 +124,21 @@ describe("SeriesOrderFixPreviewDialog added-book cover", () => {
     handlePreview = () => Promise.resolve(jsonResponse(previewWithExtraAdded));
     renderDialog(makeTarget(makeSeriesOrderCover()));
 
-    expect(await screen.findByRole("img", { name: EXTRA_BOOK_COVER_ALT })).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: EXTRA_BOOK_COVER_ALT })).toHaveAttribute(
+      "src",
+      "https://cdn.test/thumb.webp",
+    );
   });
 
-  it("shows a placeholder for an added book whose recommended-order cover is null", async () => {
+  it("shows cover art for an added book whose recommended-order cover is null", async () => {
     handlePreview = () => Promise.resolve(jsonResponse(previewWithExtraAdded));
     renderDialog(makeTarget(null));
 
     await screen.findByText(preview.addedTitle);
 
-    expect(screen.queryByRole("img", { name: EXTRA_BOOK_COVER_ALT })).toBeNull();
+    expect(screen.getByRole("img", { name: EXTRA_BOOK_COVER_ALT })).toHaveAttribute(
+      "src",
+      expect.stringMatching(FALLBACK_ART),
+    );
   });
 });

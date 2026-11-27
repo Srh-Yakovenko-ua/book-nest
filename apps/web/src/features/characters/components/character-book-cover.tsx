@@ -5,15 +5,16 @@ import type { MediaView, Nullable } from "@app/shared";
 import Image from "next/image";
 import { useState } from "react";
 
-import { UiIcon } from "@/components/icons";
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { cn } from "@/lib/utils";
 
 type CharacterBookCoverProps = {
   className?: string;
   cover: Nullable<MediaView>;
+  seed: string;
 };
 
-export function CharacterBookCover({ className, cover }: CharacterBookCoverProps) {
+export function CharacterBookCover({ className, cover, seed }: CharacterBookCoverProps) {
   const [failedSrc, setFailedSrc] = useState<Nullable<string>>(null);
   const src = cover?.urls.thumb ?? null;
 
@@ -25,9 +26,7 @@ export function CharacterBookCover({ className, cover }: CharacterBookCoverProps
       )}
     >
       {src === null || src === failedSrc ? (
-        <span className="grid size-full place-items-center text-accent-foreground/70">
-          <UiIcon name="book" size={14} />
-        </span>
+        <BookCoverFallback className="size-full" seed={seed} sizes="40px" />
       ) : (
         <Image
           alt=""

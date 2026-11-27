@@ -12,6 +12,7 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { UiIcon } from "@/components/icons";
 import { TooltipHint } from "@/components/tooltip-hint";
 import { Button } from "@/components/ui/button";
@@ -73,21 +74,33 @@ export function SeriesOrderFixPreviewDialog({
   );
 }
 
-function BookCover({ cover, title }: { cover: Nullable<MediaView>; title: string }) {
+function BookCover({
+  cover,
+  seed,
+  title,
+}: {
+  cover: Nullable<MediaView>;
+  seed: string;
+  title: string;
+}) {
   const t = useTranslations("readingQueue.seriesOrderCheck.card");
+  const alt = t("coverAlt", { title });
 
   if (cover === null) {
     return (
-      <div className="grid aspect-[3/4] w-12 shrink-0 place-items-center rounded-sm bg-accent text-accent-foreground/70">
-        <UiIcon name="book" size={16} />
-      </div>
+      <BookCoverFallback
+        alt={alt}
+        className="aspect-3/4 w-12 rounded-sm"
+        seed={seed}
+        sizes="48px"
+      />
     );
   }
 
   return (
     <div className="relative aspect-[3/4] w-12 shrink-0 overflow-hidden rounded-sm bg-accent">
       <Image
-        alt={t("coverAlt", { title })}
+        alt={alt}
         className="object-cover"
         fill
         sizes="48px"
@@ -280,6 +293,7 @@ function PreviewBody({
               >
                 <BookCover
                   cover={coverInfo.get(change.bookId)?.cover ?? null}
+                  seed={change.bookId}
                   title={change.title}
                 />
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">

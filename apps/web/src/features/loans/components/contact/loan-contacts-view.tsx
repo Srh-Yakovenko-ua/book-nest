@@ -201,7 +201,7 @@ function LoanContactsContent({
         onPrimary={onCreate}
         state={{
           desc: t("empty.description"),
-          illu: "empty-borrowed",
+          illu: "empty-contacts",
           primary: { icon: "plus", label: t("empty.cta") },
           title: t("empty.title"),
         }}

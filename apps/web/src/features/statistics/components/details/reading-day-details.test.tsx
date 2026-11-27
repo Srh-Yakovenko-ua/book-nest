@@ -250,3 +250,16 @@ describe("ReadingDayDetails book pages", () => {
     expect(screen.getByText("5 сторінок")).toBeInTheDocument();
   });
 });
+
+describe("ReadingDayDetails empty day", () => {
+  it("shows the empty-calendar art when no book was read that day", async () => {
+    dayResponse = () => jsonResponse({ ...DAY_DETAILS, books: [], booksCount: 0, pagesRead: 0 });
+    renderWithProviders(<ReadingDayDetails date={DAY.date} />);
+
+    expect(await screen.findByText(dayText.empty)).toBeInTheDocument();
+    expect(screen.getByRole("presentation")).toHaveAttribute(
+      "src",
+      expect.stringContaining("line-calendar-empty.png"),
+    );
+  });
+});

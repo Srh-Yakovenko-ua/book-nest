@@ -1078,6 +1078,7 @@ export function BookForm(props: BookFormProps) {
         />
         <BookPreview
           authorName={previewAuthorName}
+          coverSeed={bookId ?? "new-book"}
           coverSrc={coverPreviewSrc(coverState)}
           description={descriptionValue}
           formats={previewFormats}

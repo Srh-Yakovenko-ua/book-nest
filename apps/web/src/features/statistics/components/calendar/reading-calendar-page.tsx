@@ -338,7 +338,7 @@ function ReadingCalendarState({ calendar }: { calendar: ReadingStatisticsCalenda
     );
   }
 
-  return <StatisticsSectionState kind="empty" title={t("empty")} />;
+  return <StatisticsSectionState illustration="calendar" kind="empty" title={t("empty")} />;
 }
 
 function ReadingCalendarYearPicker({

@@ -7,6 +7,7 @@ import { BookPreview } from "./book-preview";
 const meta = {
   args: {
     authorName: "",
+    coverSeed: "00000000-0000-4000-8000-000000000001",
     description: "",
     publisherName: "",
     title: "",

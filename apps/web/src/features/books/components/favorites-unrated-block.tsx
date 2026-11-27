@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useState } from "react";
 
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
@@ -186,18 +187,11 @@ function FavoritesUnratedSkeleton() {
 
 function PreviewCover({ book }: { book: BookView }) {
   const src = book.cover?.urls.card;
-  const initial = book.title.trim().charAt(0).toUpperCase();
 
   return (
     <div className="relative aspect-[2/3] w-16 shrink-0 overflow-hidden rounded-md bg-accent shadow-soft">
       {src === undefined ? (
-        <div className="grid h-full w-full place-items-center text-accent-foreground">
-          {initial.length === 0 ? (
-            <UiIcon name="book" size={18} />
-          ) : (
-            <span className="font-heading text-lg leading-none font-semibold">{initial}</span>
-          )}
-        </div>
+        <BookCoverFallback className="size-full" seed={book.id} sizes="64px" />
       ) : (
         <Image alt="" className="object-cover" fill sizes="48px" src={src} unoptimized />
       )}

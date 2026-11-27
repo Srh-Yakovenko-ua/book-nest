@@ -313,6 +313,10 @@ describe("ReadingHistoryTab", () => {
     expect(
       screen.queryByRole("heading", { name: "Усі оновлення прогресу" }),
     ).not.toBeInTheDocument();
+    expect(screen.getByRole("presentation")).toHaveAttribute(
+      "src",
+      expect.stringContaining("empty-reading-history-uk.png"),
+    );
   });
 
   it("renders the legacy message without looping when totalPages is zero but progress exists", async () => {

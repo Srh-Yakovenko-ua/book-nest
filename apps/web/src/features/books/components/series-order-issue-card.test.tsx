@@ -212,13 +212,15 @@ describe("SeriesOrderIssueCard books", () => {
 
     expect(
       screen.getByRole("img", { name: `Обкладинка «${AFFECTED_BOOK_TITLE}»` }),
-    ).toBeInTheDocument();
+    ).toHaveAttribute("src", "https://cdn.test/thumb.webp");
   });
 
-  it("renders no image when the book has no cover", () => {
+  it("shows cover art under the same alt text when the book has no cover", () => {
     renderCard({ previousBook: null });
 
-    expect(screen.queryByRole("img", { name: /Обкладинка/ })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: `Обкладинка «${AFFECTED_BOOK_TITLE}»` }),
+    ).toHaveAttribute("src", expect.stringMatching(/book-covers.*cover-\d\.png/));
   });
 
   it("clamps a very long book title instead of overflowing", () => {

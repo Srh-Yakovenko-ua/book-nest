@@ -1,9 +1,10 @@
 "use client";
 
-import { BookOpen, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 
+import { Illustration } from "@/components/illustration";
 import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
 
@@ -24,7 +25,7 @@ export function MaintenanceScreen({ checking, longWait, onRetry }: MaintenanceSc
   return (
     <div
       aria-live="polite"
-      className="fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-background px-6 py-12 text-foreground outline-none"
+      className="fixed inset-0 z-100 flex items-center-safe justify-center overflow-y-auto bg-background px-6 py-12 text-foreground outline-none"
       ref={container}
       role="status"
       tabIndex={-1}
@@ -39,9 +40,7 @@ export function MaintenanceScreen({ checking, longWait, onRetry }: MaintenanceSc
       />
 
       <main className="relative w-full max-w-lg text-center">
-        <span className="inline-flex size-16 items-center justify-center rounded-2xl border border-border bg-card shadow-sm">
-          <BookOpen className="size-7 text-primary motion-safe:animate-pulse" />
-        </span>
+        <Illustration className="mx-auto lg:h-70" name="maintenance" size="sm" />
 
         <h1 className="mt-7 font-display text-[clamp(1.75rem,5vw,2.25rem)] font-semibold tracking-[-0.01em]">
           {t("title")}

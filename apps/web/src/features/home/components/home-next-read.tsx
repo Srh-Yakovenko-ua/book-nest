@@ -231,7 +231,12 @@ function NextReadCandidates({
           href={homeBookHref(candidate.book.id)}
           tabIndex={-1}
         >
-          <HomeBookCover className="w-full" cover={candidate.book.cover} sizes="5rem" />
+          <HomeBookCover
+            className="w-full"
+            cover={candidate.book.cover}
+            seed={candidate.book.id}
+            sizes="5rem"
+          />
         </Link>
         <CandidateDetails candidate={candidate} />
         <Image

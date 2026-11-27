@@ -32,3 +32,14 @@ describe("BookRow publisher metadata", () => {
     expect(screen.getByText("Маруся Чурай")).toBeInTheDocument();
   });
 });
+
+describe("BookRow cover", () => {
+  it("shows cover art named with the title when the book has no cover", () => {
+    renderWithProviders(<BookRow book={book} />);
+
+    expect(screen.getByRole("img", { name: "Маруся Чурай" })).toHaveAttribute(
+      "src",
+      expect.stringMatching(/book-covers.*cover-\d\.png/),
+    );
+  });
+});

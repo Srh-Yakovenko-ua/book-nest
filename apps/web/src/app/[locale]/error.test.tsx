@@ -39,6 +39,15 @@ describe("route error boundary", () => {
     expect(screen.getByText(copy.description)).toBeInTheDocument();
   });
 
+  it("shows the generic error illustration", () => {
+    showRouteError();
+
+    expect(screen.getByRole("presentation")).toHaveAttribute(
+      "src",
+      expect.stringContaining("error-generic.png"),
+    );
+  });
+
   it("shows no untranslated debug labels", () => {
     showRouteError();
 

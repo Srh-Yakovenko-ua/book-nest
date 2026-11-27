@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useId } from "react";
 
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { UiIcon } from "@/components/icons";
 import { TooltipHint } from "@/components/tooltip-hint";
 import { Badge } from "@/components/ui/badge";
@@ -192,9 +193,7 @@ function AppearanceRow({
         >
           <span className="relative aspect-[3/4] w-10 shrink-0 overflow-hidden rounded-sm bg-accent">
             {book.cover === null ? (
-              <span className="grid size-full place-items-center text-accent-foreground/70">
-                <UiIcon name="book" size={16} />
-              </span>
+              <BookCoverFallback className="size-full" seed={book.id} sizes="40px" />
             ) : (
               <Image
                 alt=""

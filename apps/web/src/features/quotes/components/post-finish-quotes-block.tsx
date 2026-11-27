@@ -92,7 +92,7 @@ function PostFinishRecap({
         <QuoteCover
           alt={tCard("coverAlt", { title: postFinish.book.title })}
           className="aspect-[3/4] w-12 shrink-0"
-          iconSize={18}
+          seed={postFinish.book.id}
           sizes="48px"
           src={postFinish.book.cover?.urls.thumb ?? null}
         />

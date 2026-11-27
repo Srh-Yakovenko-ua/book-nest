@@ -69,7 +69,13 @@ function RecentBookItem({ item }: { item: HomeRecentBook }) {
         className="group flex h-full cursor-pointer flex-col gap-1.5 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         href={homeBookHref(book.id)}
       >
-        <HomeBookCover className="w-full" cover={book.cover ?? null} sizes="7rem" />
+        <HomeBookCover
+          className="w-full"
+          cover={book.cover ?? null}
+          seed={book.id}
+          sizes="7rem"
+          title={book.title}
+        />
         <span className="line-clamp-2 text-sm leading-snug font-medium wrap-anywhere text-ink group-hover:text-primary">
           {book.title}
         </span>

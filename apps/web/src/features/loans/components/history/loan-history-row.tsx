@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import { useId } from "react";
 
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { UiIcon } from "@/components/icons";
 import { TooltipHint } from "@/components/tooltip-hint";
 import { Badge } from "@/components/ui/badge";
@@ -52,9 +53,12 @@ export function LoanHistoryRow({
         tabIndex={-1}
       >
         {loan.book.cover === null ? (
-          <span className="grid h-full w-full place-items-center text-accent-foreground/70">
-            <UiIcon name="book" size={24} />
-          </span>
+          <BookCoverFallback
+            alt={loan.book.title}
+            className="size-full"
+            seed={loan.book.id}
+            sizes="80px"
+          />
         ) : (
           <Image
             alt={loan.book.title}

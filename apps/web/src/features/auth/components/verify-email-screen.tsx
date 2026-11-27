@@ -4,11 +4,10 @@ import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
-import { UiIcon } from "@/components/icons";
+import { Illustration } from "@/components/illustration";
 import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "@/i18n/navigation";
-import { cn } from "@/lib/utils";
 
 import { useVerifyEmail } from "../api/use-verify-email";
 import { safeInternalPath } from "../lib/safe-redirect";
@@ -21,14 +20,6 @@ type VerifyEmailScreenProps = {
 };
 
 const REDIRECT_COUNTDOWN_SECONDS = 5;
-
-type BigIconTone = "destructive" | "neutral" | "success";
-
-const TONE_STYLES = {
-  destructive: "bg-destructive/10 text-destructive",
-  neutral: "bg-accent text-primary",
-  success: "bg-success-soft text-success",
-} as const satisfies Record<BigIconTone, string>;
 
 export function VerifyEmailScreen({ token }: VerifyEmailScreenProps) {
   const t = useTranslations("auth");
@@ -57,9 +48,11 @@ export function VerifyEmailScreen({ token }: VerifyEmailScreenProps) {
   if (!hasToken || verify.isError) {
     return (
       <div className="flex flex-col">
-        <BigIcon tone="destructive">
-          <UiIcon aria-hidden name="alert-triangle" size={28} />
-        </BigIcon>
+        <Illustration
+          className="mb-5 self-start"
+          name="reading-goals/goal-expired-hourglass"
+          size="xs"
+        />
         <AuthHeading title={t("verify.title")} />
         <FormBanner className="mt-6" variant="error">
           {t("errors.invalidToken")}
@@ -78,7 +71,7 @@ export function VerifyEmailScreen({ token }: VerifyEmailScreenProps) {
 
   return (
     <div className="flex flex-col items-center text-center" role="status">
-      <BigIcon tone="neutral">
+      <BigIcon>
         <Spinner size="lg" />
       </BigIcon>
       <AuthHeading subtitle={t("verify.subtitle")} title={t("verify.title")} />
@@ -86,9 +79,9 @@ export function VerifyEmailScreen({ token }: VerifyEmailScreenProps) {
   );
 }
 
-function BigIcon({ children, tone }: { children: ReactNode; tone: BigIconTone }) {
+function BigIcon({ children }: { children: ReactNode }) {
   return (
-    <div className={cn("mb-5 grid size-16 place-items-center rounded-full", TONE_STYLES[tone])}>
+    <div className="mb-5 grid size-16 place-items-center rounded-full bg-accent text-primary">
       {children}
     </div>
   );
@@ -121,9 +114,7 @@ function VerifyEmailSuccess({ destination }: { destination: string }) {
   return (
     <div className="flex flex-col items-center text-center">
       <div className="flex flex-col items-center" role="status">
-        <BigIcon tone="success">
-          <UiIcon aria-hidden name="check-circle" size={28} />
-        </BigIcon>
+        <Illustration className="mb-5" name="email-verified" size="xs" />
         <AuthHeading title={t("verify.success")} />
       </div>
       <p className="mt-2 text-base text-muted-foreground">{t("verify.redirecting", { seconds })}</p>

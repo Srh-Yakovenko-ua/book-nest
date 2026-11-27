@@ -38,7 +38,7 @@ export function DedicationCard({ book, onOpen }: DedicationCardProps) {
           <DedicationCover
             alt={t("coverAlt", { title: book.title })}
             className="aspect-[3/4] w-12"
-            iconSize={16}
+            seed={book.id}
             sizes="48px"
             src={book.cover?.urls.thumb ?? null}
           />

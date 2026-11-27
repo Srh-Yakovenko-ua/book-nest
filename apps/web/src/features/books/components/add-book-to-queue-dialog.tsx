@@ -8,7 +8,7 @@ import Image from "next/image";
 import { useDeferredValue, useState } from "react";
 import { toast } from "sonner";
 
-import { UiIcon } from "@/components/icons";
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -185,12 +185,10 @@ function AddBookToQueueForm({
   );
 }
 
-function PickerCover({ alt, src }: { alt: string; src?: string }) {
+function PickerCover({ alt, seed, src }: { alt: string; seed: string; src?: string }) {
   if (src === undefined) {
     return (
-      <div className="grid aspect-[3/4] w-9 shrink-0 place-items-center rounded-sm bg-accent text-accent-foreground/70">
-        <UiIcon name="book" size={15} />
-      </div>
+      <BookCoverFallback alt={alt} className="aspect-3/4 w-9 rounded-sm" seed={seed} sizes="36px" />
     );
   }
 
@@ -274,7 +272,7 @@ function PickerList({
             id={`picker-${book.id}`}
             value={book.id}
           />
-          <PickerCover alt={book.title} src={book.cover?.urls.thumb} />
+          <PickerCover alt={book.title} seed={book.id} src={book.cover?.urls.thumb} />
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="truncate text-sm font-medium text-ink">{book.title}</span>
             <span className="truncate text-xs text-muted-foreground">

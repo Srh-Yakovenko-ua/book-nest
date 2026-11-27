@@ -1,23 +1,11 @@
 import type { Ref } from "react";
 
-import Image from "next/image";
-
-import type {
-  EmptyStateEntry,
-  EmptyStateIllustrationSize,
-  EmptyStateLayout,
-} from "@/lib/empty-states";
+import type { EmptyStateEntry, EmptyStateLayout } from "@/lib/empty-states";
 
 import { UiIcon } from "@/components/icons";
+import { Illustration } from "@/components/illustration";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-const ILLU_SIZE = {
-  lg: "h-84 w-auto",
-  md: "h-70 w-auto",
-  sm: "h-56 w-auto",
-  xs: "h-36 w-auto",
-} as const satisfies Record<EmptyStateIllustrationSize, string>;
 
 const EMPTY_STATE_LAYOUT = {
   inline: {
@@ -54,7 +42,6 @@ export function EmptyState({
   primaryRef,
   state,
 }: EmptyStateProps) {
-  const illuSizeClass = ILLU_SIZE[state.illuSize ?? "lg"];
   const layout = EMPTY_STATE_LAYOUT[state.layout ?? "stacked"];
 
   return (
@@ -65,14 +52,7 @@ export function EmptyState({
         className,
       )}
     >
-      <Image
-        alt=""
-        className={cn("select-none", illuSizeClass, layout.art)}
-        height={352}
-        loading="eager"
-        src={`/illustrations/${state.illu}.png`}
-        width={352}
-      />
+      <Illustration className={layout.art} name={state.illu} size={state.illuSize ?? "lg"} />
 
       <div className={layout.copy}>
         <h2 className={cn("font-heading text-xl font-medium text-ink", layout.title)}>

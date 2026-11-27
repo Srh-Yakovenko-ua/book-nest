@@ -88,7 +88,7 @@ function GenresEmpty({
     case "library": {
       const entry: EmptyStateEntry = {
         desc: t("empty.description"),
-        illu: "empty-library",
+        illu: "empty-genres",
         primary: { icon: "library", label: t("empty.action") },
         title: t("empty.title"),
       };

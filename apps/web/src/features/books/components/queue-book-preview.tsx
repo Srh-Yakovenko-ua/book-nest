@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useState } from "react";
 
-import { UiIcon } from "@/components/icons";
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { cn } from "@/lib/utils";
 
 type QueueBookPreviewProps = {
@@ -22,22 +22,16 @@ export function QueueBookPreview({ book, children }: QueueBookPreviewProps) {
 
   const coverSrc = book.cover?.urls.card;
   const authorNames = book.authors.map((author) => author.name).join(", ");
-  const initial = book.title.trim().charAt(0).toUpperCase();
+  const coverAlt = t("details.coverAlt", { title: book.title });
 
   return (
     <div className="flex gap-4 rounded-lg border border-border bg-secondary/40 p-3.5">
       <div className="relative aspect-[3/4] w-16 shrink-0 overflow-hidden rounded-md bg-accent shadow-soft">
         {coverSrc === undefined || coverFailed ? (
-          <div className="grid h-full w-full place-items-center text-accent-foreground">
-            {initial.length === 0 ? (
-              <UiIcon name="book" size={22} />
-            ) : (
-              <span className="font-heading text-2xl leading-none font-semibold">{initial}</span>
-            )}
-          </div>
+          <BookCoverFallback alt={coverAlt} className="size-full" seed={book.id} sizes="64px" />
         ) : (
           <Image
-            alt={t("details.coverAlt", { title: book.title })}
+            alt={coverAlt}
             className={cn(
               "object-cover transition-opacity duration-500 ease-out",
               coverLoaded ? "opacity-100" : "motion-safe:opacity-0",

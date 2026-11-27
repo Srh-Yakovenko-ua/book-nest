@@ -3,6 +3,7 @@
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Illustration } from "@/components/illustration";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { buildDocumentTitle } from "@/lib/document-title";
@@ -15,25 +16,29 @@ export function RouteError({ reset }: { reset: () => void }) {
   return (
     <>
       <title>{buildDocumentTitle({ appName: tHome("title"), page: t("headline") })}</title>
-      <section className="flex-1">
-        <p className="font-mono text-xs tracking-[0.24em] text-muted-foreground uppercase">
-          {t("eyebrow")}
-        </p>
+      <section className="flex flex-1 flex-col gap-8 md:flex-row md:flex-wrap md:content-start md:items-center md:gap-12">
+        <div className="md:flex-1">
+          <p className="font-mono text-xs tracking-[0.24em] text-muted-foreground uppercase">
+            {t("eyebrow")}
+          </p>
 
-        <h1
-          className="mt-6 font-display text-[clamp(2rem,4vw,3.5rem)] leading-[0.86] font-semibold tracking-[-0.035em] outline-none"
-          ref={focusOnMount}
-          tabIndex={-1}
-        >
-          {t("headline")}
-          <span className="text-error">.</span>
-        </h1>
+          <h1
+            className="mt-6 font-display text-[clamp(2rem,4vw,3.5rem)] leading-[0.86] font-semibold tracking-[-0.035em] outline-none"
+            ref={focusOnMount}
+            tabIndex={-1}
+          >
+            {t("headline")}
+            <span className="text-error">.</span>
+          </h1>
 
-        <div className="mt-3 h-0.5 w-12 rounded-full bg-gradient-to-r from-error to-error/40" />
+          <div className="mt-3 h-0.5 w-12 rounded-full bg-gradient-to-r from-error to-error/40" />
 
-        <p className="mt-8 max-w-180 text-base leading-relaxed text-foreground md:text-lg">
-          {t("description")}
-        </p>
+          <p className="mt-8 max-w-180 text-base leading-relaxed text-foreground md:text-lg">
+            {t("description")}
+          </p>
+        </div>
+
+        <Illustration className="self-center md:h-70" name="error-generic" size="sm" />
       </section>
 
       <footer className="mt-16 flex flex-col items-start justify-between gap-6 border-t border-border pt-8 md:flex-row md:items-center">

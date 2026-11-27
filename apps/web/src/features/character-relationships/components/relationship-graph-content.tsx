@@ -54,7 +54,11 @@ export function RelationshipGraphContent({
     case "empty":
       return (
         <EmptyState
-          state={{ desc: t("empty.description"), illu: "empty-notes", title: t("empty.title") }}
+          state={{
+            desc: t("empty.description"),
+            illu: "character-relationships/person-guided-start",
+            title: t("empty.title"),
+          }}
         />
       );
     case "error":

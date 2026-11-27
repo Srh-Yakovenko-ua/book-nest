@@ -9,6 +9,7 @@ import Image from "next/image";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { GenreIcon, isGenreIconName, UiIcon } from "@/components/icons";
 import { TagChip } from "@/components/tag-chip";
 import { Button } from "@/components/ui/button";
@@ -172,6 +173,7 @@ export function BookDetailsHero({ book, titleRef }: BookDetailsHeroProps) {
         <div className="[grid-area:cover]">
           <BookDetailsCover
             alt={t("details.coverAlt", { title: book.title })}
+            seed={book.id}
             src={book.cover?.urls.card}
             title={book.title}
           />
@@ -319,21 +321,30 @@ export function BookDetailsHero({ book, titleRef }: BookDetailsHeroProps) {
   );
 }
 
-function BookDetailsCover({ alt, src, title }: { alt: string; src?: string; title: string }) {
+function BookDetailsCover({
+  alt,
+  seed,
+  src,
+  title,
+}: {
+  alt: string;
+  seed: string;
+  src?: string;
+  title: string;
+}) {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  const initial = title.trim().charAt(0).toUpperCase();
 
   return (
     <div className="relative aspect-[3/4] w-28 shrink-0 overflow-hidden rounded-xl bg-accent shadow-detail-cover sm:w-[210px]">
       {src === undefined || failed ? (
-        <div className="grid h-full w-full place-items-center text-accent-foreground">
-          {initial.length === 0 ? (
-            <UiIcon name="book" size={40} />
-          ) : (
-            <span className="font-heading text-5xl leading-none font-semibold">{initial}</span>
-          )}
-        </div>
+        <BookCoverFallback
+          alt={alt}
+          className="size-full"
+          seed={seed}
+          sizes="(min-width: 640px) 210px, 112px"
+          title={title}
+        />
       ) : (
         <Image
           alt={alt}

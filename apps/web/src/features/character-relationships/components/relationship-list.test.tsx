@@ -206,6 +206,21 @@ describe("RelationshipList empty states", () => {
     },
   );
 
+  it.each(Object.values(SCOPES))(
+    "greets an empty $kind scope with the guided-start art",
+    async (scope) => {
+      respondToList = () => json(makeRelationshipPage([]));
+
+      renderList({ scope });
+
+      await screen.findByRole("heading", { name: copy.list.empty[scope.kind].title });
+      expect(screen.getByRole("presentation")).toHaveAttribute(
+        "src",
+        expect.stringContaining("person-guided-start.png"),
+      );
+    },
+  );
+
   it("offers to add the first relationship when the page can create one", async () => {
     const onCreate = vi.fn<() => void>();
     respondToList = () => json(makeRelationshipPage([]));

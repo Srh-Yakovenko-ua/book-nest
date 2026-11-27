@@ -52,6 +52,7 @@ export function ListCard({ list, onDelete, onEdit }: ListCardProps) {
           bookCount={list.bookCount}
           coverAlt={t("coverAlt", { name: list.name })}
           covers={list.previewCovers}
+          seed={list.id}
         />
       )}
 

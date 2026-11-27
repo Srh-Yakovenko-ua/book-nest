@@ -11,6 +11,7 @@ import type { LibraryBookLabels } from "@/features/books/model/library-book";
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
 import { UiIcon } from "@/components/icons";
+import { Illustration } from "@/components/illustration";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { RefreshingRegion } from "@/components/refreshing-region";
 import { Button } from "@/components/ui/button";
@@ -476,9 +477,7 @@ function EmptyList({ onAddBooks }: { onAddBooks: () => void }) {
 
   return (
     <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-border px-6 py-12 text-center">
-      <span className="grid size-12 place-items-center rounded-full bg-accent text-icon">
-        <UiIcon name="list" size={24} />
-      </span>
+      <Illustration name="empty-lists" size="xs" />
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium text-ink">{t("empty.title")}</p>
         <p className="text-sm text-muted-foreground">{t("empty.description")}</p>

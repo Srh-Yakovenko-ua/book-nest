@@ -6,6 +6,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import Image from "next/image";
 import * as React from "react";
 
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { GenreIcon, type GenreIconName, UiIcon, type UiIconName } from "@/components/icons";
 import { TagChip } from "@/components/tag-chip";
 import { RatingScore } from "@/components/ui/rating-score";
@@ -46,6 +47,7 @@ type BookCardProps = Omit<React.ComponentProps<"article">, "title"> &
     authors: string[];
     cover?: { alt?: string; src: string };
     coverActivateLabel?: string;
+    coverSeed: string;
     footer?: React.ReactNode;
     formats?: { icon: UiIconName; label: string; value: string }[];
     genres?: { icon?: GenreIconName; label: string }[];
@@ -103,6 +105,7 @@ function BookCard({
   className,
   cover,
   coverActivateLabel,
+  coverSeed,
   footer,
   formats,
   genres,
@@ -143,11 +146,17 @@ function BookCard({
           activateLabel={coverActivateLabel}
           alt={cover?.alt ?? title}
           onActivate={onCoverActivate}
+          seed={coverSeed}
           src={cover?.src}
+          title={title}
         />
 
-        <div className="pointer-events-none absolute inset-0 bg-[image:var(--book-cover-scrim-top)]" />
-        <div className="pointer-events-none absolute inset-0 bg-[image:var(--book-cover-scrim)]" />
+        {cover === undefined ? null : (
+          <>
+            <div className="pointer-events-none absolute inset-0 bg-[image:var(--book-cover-scrim-top)]" />
+            <div className="pointer-events-none absolute inset-0 bg-[image:var(--book-cover-scrim)]" />
+          </>
+        )}
 
         {status === undefined && ageBadge === undefined ? null : (
           <div
@@ -417,24 +426,35 @@ function MorePill({ items, prefix = "" }: { items: string[]; prefix?: string }) 
   );
 }
 
-const coverBoxClass = "relative aspect-[3/4] w-full overflow-hidden bg-accent";
+const COVER = {
+  boxClass: "relative aspect-3/4 w-full overflow-hidden bg-accent",
+  sizes: "(min-width:1280px) 22rem, (min-width:640px) 45vw, 90vw",
+} as const;
 
 function BookCover({
   activateLabel,
   alt,
   onActivate,
+  seed,
   src,
+  title,
 }: {
   activateLabel?: string;
   alt: string;
   onActivate?: () => void;
+  seed: string;
   src?: string;
+  title: string;
 }) {
   if (src === undefined) {
     return (
-      <div className="grid aspect-[3/4] w-full place-items-center bg-accent text-accent-foreground/70">
-        <UiIcon name="book" size={48} />
-      </div>
+      <BookCoverFallback
+        alt={alt}
+        className="aspect-3/4 w-full"
+        seed={seed}
+        sizes={COVER.sizes}
+        title={title}
+      />
     );
   }
 
@@ -465,21 +485,21 @@ function BookCoverImage({
       )}
       fill
       onLoad={() => setLoaded(true)}
-      sizes="(min-width:1280px) 22rem, (min-width:640px) 45vw, 90vw"
+      sizes={COVER.sizes}
       src={src}
       unoptimized
     />
   );
 
   if (onActivate === undefined) {
-    return <div className={coverBoxClass}>{image}</div>;
+    return <div className={COVER.boxClass}>{image}</div>;
   }
 
   return (
     <button
       aria-label={activateLabel}
       className={cn(
-        coverBoxClass,
+        COVER.boxClass,
         "z-10 block cursor-zoom-in transition duration-300 ease-out hover:brightness-105 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-inset",
       )}
       onClick={onActivate}

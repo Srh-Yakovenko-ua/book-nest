@@ -3,6 +3,7 @@
 import type { ChangelogCategory, ChangelogEntryView, ChangelogLocale } from "@app/shared";
 
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 import { GroupedVirtuoso } from "react-virtuoso";
 
 import { UiIcon } from "@/components/icons";
@@ -130,7 +131,14 @@ function ChangelogPopoverBody({ locale, onRetry, state }: ChangelogPopoverConten
   if (state.kind === "empty") {
     return (
       <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
-        <UiIcon className="text-muted-foreground" name="bell" size={22} />
+        <Image
+          alt=""
+          className="size-16 select-none"
+          height={512}
+          sizes="64px"
+          src="/illustrations/line-book-sprout.png"
+          width={512}
+        />
         <div className="flex flex-col gap-1">
           <p className="text-sm font-medium text-foreground">{t("empty.title")}</p>
           <p className="text-xs text-muted-foreground">{t("empty.description")}</p>

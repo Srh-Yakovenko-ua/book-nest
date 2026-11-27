@@ -5,7 +5,7 @@ import type { ListBookView, ListOverviewView, Nullable } from "@app/shared";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 
-import { UiIcon } from "@/components/icons";
+import { BookCoverFallback } from "@/components/book-cover-fallback";
 import { Progress } from "@/components/ui/progress";
 import { Link } from "@/i18n/navigation";
 
@@ -78,21 +78,22 @@ export function ListCurrentlyReadingCard({ overview }: { overview: Nullable<List
 function BookCover({ book }: { book: ListBookView }) {
   const t = useTranslations("lists.details.sidebar.currentlyReading");
   const cover = book.cover ?? null;
+  const alt = t("coverAlt", { title: book.title });
 
   if (cover === null) {
     return (
-      <span
-        aria-hidden
-        className="grid aspect-[2/3] w-14 shrink-0 place-items-center rounded-md border border-border bg-accent text-accent-foreground/50"
-      >
-        <UiIcon name="book" size={18} />
-      </span>
+      <BookCoverFallback
+        alt={alt}
+        className="aspect-2/3 w-14 rounded-md border border-border"
+        seed={book.id}
+        sizes="3.5rem"
+      />
     );
   }
 
   return (
     <Image
-      alt={t("coverAlt", { title: book.title })}
+      alt={alt}
       className="aspect-[2/3] w-14 shrink-0 rounded-md border border-border object-cover"
       height={84}
       src={cover.urls.thumb}

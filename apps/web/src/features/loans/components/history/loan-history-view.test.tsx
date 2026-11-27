@@ -1235,7 +1235,8 @@ describe("LoanHistoryView row", () => {
     renderHistory();
 
     const row = await findRow("Дюна");
-    expect(within(row).getByRole("link", { name: "Дюна" })).toHaveAttribute(
+    const heading = within(row).getByRole("heading", { name: "Дюна" });
+    expect(within(heading).getByRole("link", { name: "Дюна" })).toHaveAttribute(
       "href",
       "/books/book-dune",
     );
@@ -1339,7 +1340,8 @@ describe("LoanHistoryView detail sheet", () => {
     renderHistory();
 
     const row = await findRow("Дюна");
-    const title = within(row).getByRole("link", { name: "Дюна" });
+    const heading = within(row).getByRole("heading", { name: "Дюна" });
+    const title = within(heading).getByRole("link", { name: "Дюна" });
 
     await userEvent.click(title);
 
@@ -1361,6 +1363,18 @@ describe("LoanHistoryView detail sheet", () => {
 
     expect(cover).toHaveAttribute("href", "/books/book-dune");
     expect(screen.queryByRole("dialog", { name: copy.detail.title })).not.toBeInTheDocument();
+  });
+
+  it("draws cover art named after the book when the loaned book has no cover", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    const row = await findRow("Дюна");
+    expect(within(row).getByRole("img", { name: "Дюна" })).toHaveAttribute(
+      "src",
+      expect.stringMatching(/book-covers.*cover-\d\.png/),
+    );
   });
 
   it("leaves the details closed when the reader opens the row menu", async () => {

@@ -69,7 +69,7 @@ export function RelationshipListContent({
             onPrimary={onCreate}
             state={{
               desc: t(`empty.${scope.kind}.description`),
-              illu: "empty-notes",
+              illu: "character-relationships/person-guided-start",
               primary: createAction,
               title: t(`empty.${scope.kind}.title`),
             }}

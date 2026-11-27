@@ -164,9 +164,10 @@ describe("QuoteFullViewDialog without a book link", () => {
     const dialog = await openHarness({ bookHref: null, quote: makeQuote({ text: QUOTE_TEXT }) });
 
     expect(within(dialog).getByText("Дюна")).toBeInTheDocument();
-    expect(
-      within(dialog).getByRole("img", { name: "Обкладинка книги «Дюна»" }),
-    ).toBeInTheDocument();
+    expect(within(dialog).getByRole("img", { name: "Обкладинка книги «Дюна»" })).toHaveAttribute(
+      "src",
+      expect.stringMatching(/book-covers.*cover-\d\.png/),
+    );
     expect(within(dialog).queryByRole("link")).not.toBeInTheDocument();
   });
 });
