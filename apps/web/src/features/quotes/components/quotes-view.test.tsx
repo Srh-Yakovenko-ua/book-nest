@@ -17,6 +17,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import messages from "@/messages/uk.json";
 import {
+  cleanup,
   mockIntersectionObserver,
   renderWithProviders,
   screen,
@@ -533,6 +534,7 @@ describe("QuotesView overview blocks", () => {
 
 describe("QuotesView overview blocks on a phone", () => {
   afterEach(() => {
+    cleanup();
     document.body.style.removeProperty("pointer-events");
   });
 
