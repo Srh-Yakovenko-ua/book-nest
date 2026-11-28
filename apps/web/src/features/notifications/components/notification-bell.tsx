@@ -68,8 +68,18 @@ export function NotificationBell() {
 
   const reminderUnread = unreadCountQuery.data?.unreadCount ?? 0;
   const changelogUnread = changelogQuery.data?.pages[0]?.unreadCount ?? 0;
-  const totalUnread = reminderUnread + changelogUnread;
-  const unreadLabel = t("bell.ariaLabelUnread", { count: totalUnread });
+  const hasProductUpdates = changelogUnread > 0;
+
+  function describeUnread(): Nullable<string> {
+    if (reminderUnread > 0 && hasProductUpdates) {
+      return t("bell.ariaLabelUnreadWithUpdates", { count: reminderUnread });
+    }
+    if (reminderUnread > 0) return t("bell.ariaLabelUnread", { count: reminderUnread });
+    if (hasProductUpdates) return t("bell.ariaLabelUpdates");
+    return null;
+  }
+
+  const unreadLabel = describeUnread();
 
   function revealChangelog() {
     if (changelogUnread > 0 && !markChangelogSeen.isPending) markChangelogSeen.mutate();
@@ -89,24 +99,31 @@ export function NotificationBell() {
   return (
     <>
       <span className="sr-only" role="status">
-        {totalUnread > 0 ? unreadLabel : t("bell.ariaLabelAllRead")}
+        {unreadLabel ?? t("bell.ariaLabelAllRead")}
       </span>
       <Popover onOpenChange={handleOpenChange} open={open}>
         <PopoverTrigger asChild>
           <Button
-            aria-label={totalUnread > 0 ? unreadLabel : t("bell.ariaLabel")}
+            aria-label={unreadLabel ?? t("bell.ariaLabel")}
             className="relative size-9 rounded-lg text-muted-foreground transition-all duration-150 hover:bg-muted hover:text-foreground"
             size="icon"
             variant="ghost"
           >
             <UiIcon name="bell" size={18} />
-            {totalUnread > 0 ? (
+            {reminderUnread > 0 ? (
               <span
                 aria-hidden
                 className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-semibold text-primary-foreground tabular-nums ring-2 ring-background"
               >
-                {formatBadgeCount(totalUnread)}
+                {formatBadgeCount(reminderUnread)}
               </span>
+            ) : null}
+            {hasProductUpdates ? (
+              <span
+                aria-hidden
+                className="absolute right-1.5 bottom-1.5 size-2 rounded-full bg-info ring-2 ring-background"
+                data-testid="product-updates-dot"
+              />
             ) : null}
           </Button>
         </PopoverTrigger>
@@ -125,7 +142,7 @@ export function NotificationBell() {
                 </TabsTrigger>
                 <TabsTrigger value={NOTIFICATION_TABS.changelog}>
                   {t("tabs.changelog")}
-                  <TabCount value={changelogUnread} />
+                  {hasProductUpdates ? <ProductUpdatesDot /> : null}
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -187,6 +204,17 @@ function PanelFallback() {
         </div>
       ))}
     </div>
+  );
+}
+
+function ProductUpdatesDot() {
+  const t = useTranslations("notifications.tabs");
+
+  return (
+    <>
+      <span aria-hidden className="size-2 shrink-0 rounded-full bg-info" />
+      <span className="sr-only">{t("updatesAvailable")}</span>
+    </>
   );
 }
 

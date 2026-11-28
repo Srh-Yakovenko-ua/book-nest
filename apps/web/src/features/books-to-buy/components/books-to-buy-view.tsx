@@ -13,10 +13,12 @@ import { UiIcon } from "@/components/icons";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
+import { bookCreateHref, useLibraryPresence } from "@/features/books";
 import { useSelectedTags } from "@/features/books/api/use-tags-search";
 import { useGenres } from "@/features/genres";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
+import { withPresenceRetry } from "@/lib/collection-presence";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +50,7 @@ export function BooksToBuyView() {
     refetch,
   } = useWishlist(wishlist.listParams);
   const facets = useWishlistFacets();
+  const libraryPresence = useLibraryPresence();
   const genres = useGenres();
   const selectedTags = useSelectedTags(wishlist.state.tag);
   const [entityLabels, setEntityLabels] = useState<Record<string, string>>({});
@@ -77,10 +80,12 @@ export function BooksToBuyView() {
     state: wishlist.state,
   });
 
-  const onAddBook = () => router.push("/books/new");
+  const onAddBook = () => router.push(bookCreateHref({ ownershipStatus: "want_to_buy" }));
   const showOverview = !isLoadingError && (isPending || allBooks.length > 0);
   const hasAnyBooks = allBooks.length > 0 || wishlist.hasActiveFilters || wishlist.hasActiveSearch;
   const isLoadingResults = isPending || (isPlaceholderData && !hasAnyBooks);
+  const showHeaderAddBook =
+    isLoadingError || isLoadingResults || hasAnyBooks || libraryPresence.kind !== "ready";
 
   const bestOffers = deriveWishlistBestOffers(allBooks);
   const summary = data?.summary;
@@ -153,10 +158,12 @@ export function BooksToBuyView() {
             {t("subtitle")}
           </p>
         </div>
-        <Button className="self-start sm:self-auto" onClick={onAddBook}>
-          <UiIcon name="plus" size={16} />
-          {t("addBook")}
-        </Button>
+        {showHeaderAddBook ? (
+          <Button className="self-start sm:self-auto" onClick={onAddBook}>
+            <UiIcon name="plus" size={16} />
+            {t("addBook")}
+          </Button>
+        ) : null}
       </header>
 
       {showOverview ? (
@@ -222,6 +229,10 @@ export function BooksToBuyView() {
             isError={isLoadingError}
             isPending={isLoadingResults}
             isRefreshing={isPlaceholderData}
+            libraryPresence={withPresenceRetry({
+              presence: libraryPresence,
+              wrapRetry: withRetryFocus,
+            })}
             onAddBook={onAddBook}
             onClearFilters={wishlist.clearAll}
             onOpenLibrary={() => router.push("/books")}

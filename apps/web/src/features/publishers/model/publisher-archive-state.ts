@@ -1,4 +1,4 @@
-import type { LibraryPublisherListItem, Nullable } from "@app/shared";
+import type { LibraryPublisherListItem, LibraryPublishersSummary, Nullable } from "@app/shared";
 
 export type PublishersArchiveState =
   | {
@@ -13,6 +13,9 @@ export type PublishersArchiveState =
   | { kind: "noFilteredResults" }
   | { kind: "noSearchResults" };
 
+export type PublishersEmptyEntry =
+  "addBook" | "addFirstBook" | "error" | "fillMissingPublishers" | "pending";
+
 type ResolvePublishersArchiveStateInput = {
   hasActiveFilters: boolean;
   hasActiveSearch: boolean;
@@ -21,6 +24,13 @@ type ResolvePublishersArchiveStateInput = {
   listIsPlaceholder: boolean;
   summaryPending: boolean;
   summaryPublishersCount: Nullable<number>;
+};
+
+type ResolvePublishersEmptyEntryInput = {
+  summary: Nullable<
+    Pick<LibraryPublishersSummary, "booksWithoutPublisherCount" | "booksWithPublisherCount">
+  >;
+  summaryFailed: boolean;
 };
 
 export function resolvePublishersArchiveState({
@@ -47,4 +57,16 @@ export function resolvePublishersArchiveState({
   if (hasActiveFilters) return { kind: "noFilteredResults" };
   if (hasActiveSearch) return { kind: "noSearchResults" };
   return { kind: "empty" };
+}
+
+export function resolvePublishersEmptyEntry({
+  summary,
+  summaryFailed,
+}: ResolvePublishersEmptyEntryInput): PublishersEmptyEntry {
+  if (summary === null) return summaryFailed ? "error" : "pending";
+  if (summary.booksWithoutPublisherCount + summary.booksWithPublisherCount === 0) {
+    return "addFirstBook";
+  }
+  if (summary.booksWithoutPublisherCount > 0) return "fillMissingPublishers";
+  return "addBook";
 }

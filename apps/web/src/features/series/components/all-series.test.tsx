@@ -153,6 +153,35 @@ describe("AllSeries first load failure", () => {
   });
 });
 
+describe("AllSeries empty base", () => {
+  it("hides the summary cards when the reader has no series", async () => {
+    fetchMock.mockImplementation(replyWithNoSeries);
+    renderAllSeries();
+
+    await screen.findByRole("heading", { name: seriesStates.empty.title });
+
+    expect(screen.queryByText(messages.series.summary.total)).not.toBeInTheDocument();
+  });
+
+  it("leaves one create action when the reader has no series", async () => {
+    fetchMock.mockImplementation(replyWithNoSeries);
+    renderAllSeries();
+
+    await screen.findByRole("heading", { name: seriesStates.empty.title });
+
+    expect(screen.getAllByRole("button", { name: messages.series.page.create })).toHaveLength(1);
+  });
+
+  it("keeps the search for a query in the url so it can be reset", async () => {
+    fetchMock.mockImplementation(replyWithNoSeries);
+    renderAllSeries("?q=abc");
+
+    await screen.findByRole("heading", { name: seriesStates.empty.title });
+
+    expect(screen.getByLabelText(messages.series.toolbar.searchLabel)).toHaveValue("abc");
+  });
+});
+
 function failSecondPage(request: SeriesPageRequest): Promise<Response> {
   return request.pageNumber === 2 ? serverError() : seriesPage(request);
 }
@@ -170,9 +199,9 @@ function pageRequests(pageNumber: number): number {
   return requestedPages.filter((requested) => requested === pageNumber).length;
 }
 
-function renderAllSeries() {
+function renderAllSeries(searchParams = "") {
   return renderWithProviders(
-    <NuqsTestingAdapter>
+    <NuqsTestingAdapter searchParams={searchParams}>
       <AllSeries />
     </NuqsTestingAdapter>,
   );
@@ -189,6 +218,21 @@ function reply(input: RequestInfo | URL): Promise<Response> {
   if (url.pathname === "/api/genres") return json([]);
   if (url.pathname === "/api/books/facets") return json({ authors: [], genres: [] });
   return Promise.reject(new Error(`unexpected fetch: ${url.pathname}`));
+}
+
+function replyWithNoSeries(input: RequestInfo | URL): Promise<Response> {
+  const url = new URL(String(input), "http://localhost");
+  if (url.pathname === "/api/series") {
+    return json({
+      items: [],
+      page: 1,
+      pagesCount: 0,
+      pageSize: SERIES_LIST.pageSize,
+      totalCount: 0,
+    });
+  }
+  if (url.pathname === "/api/series/overview") return json(makeSeriesOverview({ totalSeries: 0 }));
+  return reply(input);
 }
 
 function seriesName(pageNumber: number): string {

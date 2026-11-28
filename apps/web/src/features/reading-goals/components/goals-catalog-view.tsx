@@ -22,6 +22,7 @@ import type { GoalsCatalogContent } from "../model/goals-catalog-content";
 import type { GoalsStatus, GoalsViewMode } from "../model/goals-query";
 
 import { GoalCatalogCard, GoalCatalogRow } from "./goal-catalog-card";
+import { GoalsFirstStepState, ShowUntilFirstStepResolved } from "./goals-first-step-state";
 
 const GOALS_LAYOUT = {
   grid: "grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3",
@@ -63,6 +64,12 @@ export function GoalsCatalogView({
   const hasNoGoals = content.kind === "empty";
   const listHeadingRef = useRef<HTMLHeadingElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(listHeadingRef);
+  const createButton = (
+    <Button className="self-start sm:self-auto" onClick={onCreate} ref={createButtonRef}>
+      <UiIcon name="plus" size={16} />
+      {t("create")}
+    </Button>
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -76,10 +83,11 @@ export function GoalsCatalogView({
           </div>
           <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
-        <Button className="self-start sm:self-auto" onClick={onCreate} ref={createButtonRef}>
-          <UiIcon name="plus" size={16} />
-          {t("create")}
-        </Button>
+        {hasNoGoals ? (
+          <ShowUntilFirstStepResolved>{createButton}</ShowUntilFirstStepResolved>
+        ) : (
+          createButton
+        )}
       </header>
 
       {hasNoGoals ? null : overview}
@@ -92,12 +100,14 @@ export function GoalsCatalogView({
         </h2>
         <GoalsContent
           content={content}
+          createButtonRef={createButtonRef}
           onClearStatus={onClearStatus}
           onCreate={onCreate}
           onLoadMore={onLoadMore}
           onRetry={withRetryFocus(onRetry)}
           retryButtonRef={retryButtonRef}
           view={view}
+          withRetryFocus={withRetryFocus}
         />
       </section>
     </div>
@@ -118,28 +128,31 @@ function GoalCardSkeleton() {
 
 function GoalsContent({
   content,
+  createButtonRef,
   onClearStatus,
   onCreate,
   onLoadMore,
   onRetry,
   retryButtonRef,
   view,
-}: Omit<GoalsCatalogViewProps, "createButtonRef" | "overview" | "toolbar"> & {
+  withRetryFocus,
+}: Omit<GoalsCatalogViewProps, "overview" | "toolbar"> & {
   retryButtonRef: Ref<HTMLButtonElement>;
+  withRetryFocus: (onRetry: () => void) => () => void;
 }) {
   const t = useTranslations("goals.catalog");
 
   switch (content.kind) {
-    case "empty": {
-      const emptyState: EmptyStateEntry = {
-        desc: t("empty.description"),
-        illu: "reading-goals/goal-first-goal-empty-state",
-        illuSize: "sm",
-        primary: { icon: "plus", label: t("empty.create") },
-        title: t("empty.title"),
-      };
-      return <EmptyState onPrimary={onCreate} state={emptyState} />;
-    }
+    case "empty":
+      return (
+        <GoalsFirstStepState
+          createButtonRef={createButtonRef}
+          onCreate={onCreate}
+          pendingFallback={<GoalsSkeleton view={view} />}
+          retryButtonRef={retryButtonRef}
+          withRetryFocus={withRetryFocus}
+        />
+      );
     case "error": {
       const errorState: EmptyStateEntry = {
         desc: t("error.description"),
@@ -184,14 +197,18 @@ function GoalsContent({
         </>
       );
     case "loading":
-      return (
-        <div aria-busy className={GOALS_LAYOUT[view]}>
-          {Array.from({ length: GOALS_LAYOUT.skeletonCount }, (_, index) => (
-            <GoalCardSkeleton key={index} />
-          ))}
-        </div>
-      );
+      return <GoalsSkeleton view={view} />;
     default:
       return assertNever(content);
   }
+}
+
+function GoalsSkeleton({ view }: { view: GoalsViewMode }) {
+  return (
+    <div aria-busy className={GOALS_LAYOUT[view]}>
+      {Array.from({ length: GOALS_LAYOUT.skeletonCount }, (_, index) => (
+        <GoalCardSkeleton key={index} />
+      ))}
+    </div>
+  );
 }

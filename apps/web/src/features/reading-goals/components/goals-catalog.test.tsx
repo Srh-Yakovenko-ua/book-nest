@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 
-import type { Nullable, ReadingGoalListItem } from "@app/shared";
+import type { CustomListCard, Nullable, ReadingGoalListItem } from "@app/shared";
 import type { UrlUpdateEvent } from "nuqs/adapters/testing";
 import type { ReactNode } from "react";
 
@@ -8,6 +8,7 @@ import { createTranslator } from "next-intl";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { makeCustomListCard } from "@/features/lists/model/lists.fixtures";
 import messages from "@/messages/uk.json";
 import {
   mockIntersectionObserver,
@@ -21,13 +22,15 @@ import {
 import { makeReadingGoalListItem, makeReadingGoalsOverview } from "../model/reading-goals.fixtures";
 import { GoalsCatalog } from "./goals-catalog";
 
+const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }));
+
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href, ...rest }: { children: ReactNode; href: string }) => (
     <a href={href} {...rest}>
       {children}
     </a>
   ),
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: routerPush, replace: vi.fn() }),
 }));
 
 const fetchMock = vi.fn();
@@ -49,8 +52,12 @@ const EMPTY_ILLUSTRATION = {
   firstGoal: "goal-first-goal-empty-state.png",
 } as const;
 
+const FILLED_LIST = makeCustomListCard({ bookCount: 3, id: "list-1", name: "Осіннє читання" });
+
 let respondToCatalog: (url: URL) => Response;
 let respondToOverview: () => Response;
+let libraryTotal: number;
+let eligibleLists: CustomListCard[];
 
 function catalogPage(items: ReadingGoalListItem[], nextCursor: Nullable<string> = null) {
   return { items, nextCursor };
@@ -67,6 +74,30 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json" },
     status,
   });
+}
+
+function libraryOverview(total: number) {
+  return {
+    recentlyAdded: [],
+    summary: {
+      borrowed: 0,
+      favorites: 0,
+      finished: 0,
+      inTransit: 0,
+      reading: 0,
+      series: 0,
+      solo: 0,
+      total,
+      wantToBuy: 0,
+      wantToRead: 0,
+    },
+    topGenres: [],
+    topTags: [],
+  };
+}
+
+function listsPage(items: CustomListCard[]) {
+  return { items, page: 1, pagesCount: 1, pageSize: 24, totalCount: items.length };
 }
 
 function renderCatalog(searchParams = "", events: UrlUpdateEvent[] = []) {
@@ -90,12 +121,20 @@ function twoPageCatalog(url: URL): Response {
 beforeEach(() => {
   respondToOverview = () => jsonResponse(makeReadingGoalsOverview());
   respondToCatalog = () => jsonResponse(catalogPage([FIRST_GOAL]));
+  libraryTotal = 3;
+  eligibleLists = [FILLED_LIST];
 
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL) => {
     const url = new URL(String(input), "http://localhost");
     if (url.pathname === "/api/goals/overview") return Promise.resolve(respondToOverview());
     if (url.pathname === "/api/goals") return Promise.resolve(respondToCatalog(url));
+    if (url.pathname === "/api/books/overview") {
+      return Promise.resolve(jsonResponse(libraryOverview(libraryTotal)));
+    }
+    if (url.pathname === "/api/lists") {
+      return Promise.resolve(jsonResponse(listsPage(eligibleLists)));
+    }
     return Promise.reject(new Error(`unexpected ${url.pathname}`));
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -253,7 +292,7 @@ describe("GoalsCatalog states", () => {
     respondToCatalog = () => jsonResponse(catalogPage([]));
 
     const { unmount } = renderCatalog();
-    expect(await screen.findByText("Поставте першу ціль читання")).toBeInTheDocument();
+    expect(await screen.findByText(catalogCopy.empty.title)).toBeInTheDocument();
     unmount();
 
     renderCatalog("status=archived");
@@ -333,13 +372,13 @@ describe("GoalsCatalog illustrations", () => {
     );
   });
 
-  it("adds a create button to the first-goal empty state besides the header one", async () => {
+  it("leaves the first-goal empty state as the only create button", async () => {
     respondToCatalog = () => jsonResponse(catalogPage([]));
 
     renderCatalog();
 
     await screen.findByText(catalogCopy.empty.title);
-    expect(screen.getAllByRole("button", { name: catalogCopy.empty.create })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: catalogCopy.empty.create })).toHaveLength(1);
   });
 
   it("keeps the search art for a status filter that matches nothing", async () => {
@@ -446,5 +485,64 @@ describe("GoalsCatalog return state", () => {
 
     expect(detailUrl.pathname).toBe("/goals/goal-1");
     expect(detailUrl.searchParams.get("catalog")).toBe("status=completed&view=list");
+  });
+});
+
+describe("GoalsCatalog first step", () => {
+  const { empty } = catalogCopy;
+
+  beforeEach(() => {
+    respondToCatalog = () => jsonResponse(catalogPage([]));
+  });
+
+  it("opens the create form when the account has no books", async () => {
+    libraryTotal = 0;
+    renderCatalog();
+    await screen.findByRole("heading", { name: empty.noBooks.title });
+
+    await userEvent.click(screen.getByRole("button", { name: messages.books.firstBook.cta }));
+
+    expect(routerPush).toHaveBeenCalledWith("/books/new");
+  });
+
+  it("leads to the lists when no list holds books yet", async () => {
+    eligibleLists = [];
+    renderCatalog();
+    await screen.findByRole("heading", { name: empty.noLists.title });
+
+    await userEvent.click(screen.getByRole("button", { name: empty.noLists.cta }));
+
+    expect(routerPush).toHaveBeenCalledWith("/lists");
+  });
+
+  it("explains that a list has to be created or filled before a goal", async () => {
+    eligibleLists = [];
+    renderCatalog();
+    await screen.findByRole("heading", { name: empty.noLists.title });
+
+    expect(screen.getByText(empty.noLists.description)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: empty.create })).not.toBeInTheDocument();
+  });
+
+  it("opens the list picker from the empty state once a list holds books", async () => {
+    renderCatalog();
+    await screen.findByRole("heading", { name: empty.title });
+
+    await userEvent.click(screen.getByRole("button", { name: empty.create }));
+
+    expect(
+      await screen.findByRole("dialog", { name: messages.goals.picker.title }),
+    ).toBeInTheDocument();
+  });
+
+  it("returns focus to the empty-state create button when the picker closes", async () => {
+    renderCatalog();
+    await screen.findByRole("heading", { name: empty.title });
+    await userEvent.click(screen.getByRole("button", { name: empty.create }));
+    await screen.findByRole("dialog", { name: messages.goals.picker.title });
+
+    await userEvent.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.getByRole("button", { name: empty.create })).toHaveFocus());
   });
 });

@@ -6,11 +6,13 @@ import type { Ref } from "react";
 import { DEDICATIONS_PAGE_SIZE_DEFAULT } from "@app/shared";
 import { useTranslations } from "next-intl";
 
+import type { LibraryPresence } from "@/features/books/api/use-library-presence";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { RefreshingRegion } from "@/components/refreshing-region";
 import { Skeleton } from "@/components/ui/skeleton";
+import { assertNever } from "@/lib/assert-never";
 
 import type { DedicationView } from "../model/dedications-query";
 
@@ -25,6 +27,8 @@ type DedicationsContentProps = {
   isError: boolean;
   isPending: boolean;
   isPlaceholderData: boolean;
+  libraryPresence: LibraryPresence;
+  onAddFirstBook: () => void;
   onChooseBook: () => void;
   onClearFilters: () => void;
   onOpenDedication: (book: BookView) => void;
@@ -39,6 +43,8 @@ export function DedicationsContent({
   isError,
   isPending,
   isPlaceholderData,
+  libraryPresence,
+  onAddFirstBook,
   onChooseBook,
   onClearFilters,
   onOpenDedication,
@@ -47,14 +53,16 @@ export function DedicationsContent({
   view,
 }: DedicationsContentProps) {
   const t = useTranslations("dedications");
+  const tBooks = useTranslations("books");
+
+  const errorState: EmptyStateEntry = {
+    desc: t("error.description"),
+    illu: "error-generic",
+    primary: { icon: "refresh", label: t("error.retry") },
+    title: t("error.title"),
+  };
 
   if (isError) {
-    const errorState: EmptyStateEntry = {
-      desc: t("error.description"),
-      illu: "error-generic",
-      primary: { icon: "refresh", label: t("error.retry") },
-      title: t("error.title"),
-    };
     return (
       <div aria-live="assertive" role="alert">
         <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
@@ -81,13 +89,40 @@ export function DedicationsContent({
       );
     }
 
-    const emptyState: EmptyStateEntry = {
-      desc: t("empty.description"),
-      illu: "empty-dedications",
-      primary: { icon: "book", label: t("empty.cta") },
-      title: t("empty.title"),
-    };
-    return <EmptyState onPrimary={onChooseBook} state={emptyState} />;
+    switch (libraryPresence.kind) {
+      case "error":
+        return (
+          <div aria-live="assertive" role="alert">
+            <EmptyState
+              onPrimary={libraryPresence.retry}
+              primaryRef={retryButtonRef}
+              state={errorState}
+            />
+          </div>
+        );
+      case "pending":
+        return <DedicationsSkeleton view={view} />;
+      case "ready": {
+        if (libraryPresence.total === 0) {
+          const noBooksState: EmptyStateEntry = {
+            desc: t("empty.noBooks.description"),
+            illu: "empty-dedications",
+            primary: { icon: "plus", label: tBooks("firstBook.cta") },
+            title: t("empty.noBooks.title"),
+          };
+          return <EmptyState onPrimary={onAddFirstBook} state={noBooksState} />;
+        }
+        const emptyState: EmptyStateEntry = {
+          desc: t("empty.description"),
+          illu: "empty-dedications",
+          primary: { icon: "book", label: t("empty.cta") },
+          title: t("empty.title"),
+        };
+        return <EmptyState onPrimary={onChooseBook} state={emptyState} />;
+      }
+      default:
+        return assertNever(libraryPresence);
+    }
   }
 
   if (view === "list") {

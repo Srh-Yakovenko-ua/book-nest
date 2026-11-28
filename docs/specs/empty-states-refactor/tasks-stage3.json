@@ -1,0 +1,548 @@
+{
+  "spec": "docs/specs/empty-states-refactor/spec.md",
+  "generatedAt": "2026-11-27T14:22:18Z",
+  "scope": {
+    "included": ["Етап 3. Статистика, календар і сповіщення", "Цільовий QA, пункт 5"],
+    "excluded": ["Етап 1", "Етап 2", "Етап 4 (other agents)", "Цільовий QA 1-4 (other agents)"]
+  },
+  "tasks": [
+    {
+      "id": "S3-01",
+      "title": "Statistics reading-presence resolver: distinguish no reading at all time vs none in the selected period, plus has-books",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/model/statistics-reading-presence.ts",
+        "apps/web/src/features/statistics/model/statistics-reading-presence.test.ts",
+        "apps/web/src/features/statistics/components/overview/statistics-overview.tsx",
+        "apps/web/src/features/statistics/api/use-reading-statistics-overview.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "apps/web/src/features/statistics/components/overview/statistics-overview-tab.tsx:87-93 hasReadingActivity only inspects the selected period",
+        "packages/shared/src/reading-statistics-calendar.ts:127 calendar.reason NO_ACTIVITY_HISTORY is the only all-time signal",
+        "apps/api/src/modules/statistics/application/statistics-calendar.composer.ts:144-152 that reason is emitted only when period.from === null (all_time) and findEarliestActivityDate is null, so a year/last_12_months/custom response cannot tell all-time absence",
+        "packages/shared/src/reading-statistics.ts:46-66 overview has no lifetime/has-books field",
+        "apps/web/src/features/books/api/use-library-overview.ts:16-31 useLibraryOverview('all').summary.total (packages/shared/src/books.ts:1249-1260) is the existing has-books source, already consumed cross-feature by apps/web/src/features/home/components/home-dashboard.tsx:8,72"
+      ],
+      "doneWhen": [
+        "A pure model function returns a discriminated union with exactly these kinds: 'has_activity' | 'period_empty' | 'no_activity' (carrying hasBooks: boolean) | 'pending'",
+        "'has_activity' when hasReadingActivity(selected overview) is true",
+        "When the selected period is all_time and it has no activity, the result is 'no_activity' with no second request",
+        "When the selected period is not all_time and has no activity, a second overview query with period=all_time runs (enabled only in that case, keyed by the existing statistics key factory so 'Показати весь час' reuses the cache); its hasReadingActivity decides 'period_empty' vs 'no_activity'",
+        "hasBooks comes from useLibraryOverview('all').data.summary.total > 0 (or the shared has-books hook if Етап 1 introduced one); while either query is pending the kind is 'pending'",
+        "If the all-time query errors, the kind falls back to 'period_empty' (the safe path that still offers a period change)",
+        "No change under apps/api or packages/shared",
+        "Unit test covers all four kinds and the all_time short-circuit (no second query)"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S3-02",
+      "title": "Overview tab: no 'Показати весь час' when all_time is selected; all-time-empty CTA by has-books; keep period change when only the period is empty",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/components/overview/statistics-overview-tab.tsx",
+        "apps/web/src/features/statistics/components/statistics-states.tsx",
+        "apps/web/src/features/statistics/components/overview/statistics-overview.test.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["S3-01"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "apps/web/src/features/statistics/components/statistics-states.tsx:100-111 StatisticsPeriodEmpty always renders primary 'periodEmpty.action' (uk: 'Показати весь час')",
+        "apps/web/src/features/statistics/components/overview/statistics-overview-tab.tsx:42-48 the same component renders for every period, all_time included",
+        "apps/web/src/features/statistics/components/overview/statistics-overview.tsx:72-75 showAllTime focuses the period trigger and sets all_time"
+      ],
+      "doneWhen": [
+        "With period.kind === 'all_time' and no activity, no button labelled 'Показати весь час' / 'Show all time' is in the DOM",
+        "'no_activity' + hasBooks=false: one empty state with primary action linking to /books/new ('Додати книгу')",
+        "'no_activity' + hasBooks=true: one empty state with primary action leading to the books list where progress is recorded ('Записати прогрес'), text says to open a book and record progress",
+        "'period_empty': title says there is no reading in this period, primary 'Показати весь час' remains and still focuses the period trigger, the period controls stay rendered",
+        "'pending': no CTA button is shown (title-only or skeleton), never the wrong CTA",
+        "New uk strings use 'ти'; en keys added for every new uk key",
+        "statistics-overview.test.tsx asserts the absent button on all_time and each CTA href"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S3-03",
+      "title": "Overview tab: remove the empty 'Поточна ціль' duplicate from the empty overview",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/components/overview/statistics-overview-tab.tsx",
+        "apps/web/src/features/statistics/components/overview/statistics-overview.test.tsx"
+      ],
+      "dependsOn": ["S3-02"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "apps/web/src/features/statistics/components/overview/statistics-overview-tab.tsx:38-40,46 compact goal card rendered next to the empty state",
+        "apps/web/src/features/statistics/components/progress/reading-goal-card.tsx:65-78 with primaryGoal === null it renders a card titled 'Поточна ціль' with 'Активної цілі немає' + 'Створити ціль'",
+        "apps/web/src/features/statistics/components/overview/statistics-overview.tsx:290 the Progress tab already renders the full goal card with the /goals path"
+      ],
+      "doneWhen": [
+        "In the empty overview branch (any presence kind other than has_activity), the compact goal card is rendered only when goal.primaryGoal !== null",
+        "An active primary goal is still shown in the empty branch when the period includes today",
+        "The Progress tab goal card is unchanged",
+        "Test: empty overview + primaryGoal null has no 'Поточна ціль' heading"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S3-04",
+      "title": "Activity tab: one explanation with action when there is no reading at all time; keep calendar link and the known-zero vs incomplete-history distinction",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/components/overview/statistics-overview.tsx",
+        "apps/web/src/features/statistics/components/statistics-states.tsx",
+        "apps/web/src/features/statistics/components/overview/statistics-overview.test.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["S3-01", "S3-02"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "apps/web/src/features/statistics/components/overview/statistics-overview.tsx:228-258 activity panel renders ReadingDynamicsCard, ReadingHabitsSection, ReadingWeekdayActivity unconditionally",
+        "apps/web/src/features/statistics/components/reading/reading-habits-section.tsx:22,50 isLowerBound passes into the summary, which prints lowerBoundValue '≥ {value}' (uk.json statistics.calendar.summary.lowerBoundValue) so a new account sees '≥ 0'",
+        "apps/web/src/features/statistics/components/reading/reading-dynamics-card.tsx:160-161 empty chart state; reading-dynamics-chart.tsx:292 openHint shown under a zero chart",
+        "apps/web/src/features/statistics/components/reading/reading-weekday-activity.tsx:68-69 separate weekday 'empty' text",
+        "apps/web/src/features/statistics/components/reading/reading-calendar-link.tsx:12-31 calendar link card"
+      ],
+      "doneWhen": [
+        "When the presence kind is 'no_activity', the activity panel contains exactly one empty state (same CTA logic as S3-02) and no ReadingDynamicsCard, ReadingHabitsSection, ReadingWeekdayActivity, no '≥' text and no chart openHint",
+        "ReadingCalendarLink stays rendered in that state",
+        "For 'period_empty' and 'has_activity' the current blocks render as today, including lowerBound '≥' marking when selectedPeriodQuality is legacy_lower_bound (subject to S3-11 for confirmed new accounts)",
+        "Test covers no_activity (single state + calendar link present) and has_activity (blocks present)"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S3-05",
+      "title": "Tastes tab: one tab-level empty state when there are no completed reads; keep local states otherwise",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/components/overview/statistics-overview.tsx",
+        "apps/web/src/features/statistics/components/statistics-states.tsx",
+        "apps/web/src/features/statistics/components/overview/statistics-overview.test.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["S3-01"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "apps/web/src/features/statistics/components/overview/statistics-overview.tsx:260-283 tastes panel renders Ratings, Genres, Authors, Publishers, Languages and Discoveries each with its own empty state",
+        "packages/shared/src/reading-statistics-tastes.ts:39,48-49,123-124 taste sections are built from completed reads of the period",
+        "packages/shared/src/reading-statistics-sections.ts:68-71 kpis.completedReads.value is the period count"
+      ],
+      "doneWhen": [
+        "When overview.kpis.completedReads.value === 0, the tastes panel shows exactly one empty state and none of the six section components",
+        "Its action: 'Показати весь час' only when period.kind !== 'all_time' and the all-time query from S3-01 reports completedReads > 0; otherwise the S3-02 has-books CTA (add book / record progress)",
+        "When completedReads.value > 0, all six sections render with their existing local empty/insufficient states (missing ratings, genres, authors, publishers, languages)",
+        "Test covers both branches"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S3-06",
+      "title": "Progress tab: library balance only with owned books; forecast, series and records only with data; one tab-level explanation when several blocks lack data",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/model/statistics-progress-blocks.ts",
+        "apps/web/src/features/statistics/model/statistics-progress-blocks.test.ts",
+        "apps/web/src/features/statistics/components/overview/statistics-overview.tsx",
+        "apps/web/src/features/statistics/components/progress/library-balance-section.tsx",
+        "apps/web/src/features/statistics/components/progress/series-section.tsx",
+        "apps/web/src/features/statistics/components/progress/records-section.tsx",
+        "apps/web/src/features/statistics/components/progress/library-balance-section.test.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "apps/web/src/features/statistics/components/overview/statistics-overview.tsx:285-300 goal, library balance, series and records always rendered",
+        "apps/web/src/features/statistics/components/progress/library-balance-section.tsx:26-50,96-130 renders with currentOwnedTotal 0 and readRatio null ('—' + readRatioEmpty)",
+        "apps/web/src/features/statistics/components/progress/library-balance-section.tsx:60-71 forecast row prints forecastNoData + reason hint when unavailable",
+        "apps/web/src/features/statistics/components/progress/series-section.tsx:31-59 unavailable and completedReadsCount === 0 each render a full card with an empty state",
+        "apps/web/src/features/statistics/components/progress/records-section.tsx:71-72 records card with empty state",
+        "packages/shared/src/reading-statistics-sections.ts:209-229 libraryBalance.currentOwnedTotal and forecast.availability/data are the deciding fields"
+      ],
+      "doneWhen": [
+        "LibraryBalanceSection renders only when libraryBalance.currentOwnedTotal > 0",
+        "Inside it, the forecast row renders only when forecast.availability !== 'unavailable' and forecast.data !== null",
+        "SeriesSection renders only when series.availability !== 'unavailable' and series.completedReadsCount > 0",
+        "RecordsSection renders only when records.items.length > 0",
+        "When two or more of {library balance, series, records} are hidden, the tab shows one explanation block naming what will appear and after which action, instead of separate empty cards; with exactly one hidden it is simply omitted",
+        "The goal card (ReadingGoalDashboard) always renders (see S3-07)",
+        "Grid has no empty cell: remaining cards fill the row",
+        "Model unit test for the block-visibility function; library-balance test for currentOwnedTotal 0"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S3-07",
+      "title": "Progress tab: keep the goal path and respect its prerequisites",
+      "layer": "web",
+      "files": ["apps/web/src/features/statistics/components/progress/reading-goal-dashboard.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "PARTIAL",
+      "evidence": [
+        "apps/web/src/features/statistics/components/progress/reading-goal-dashboard.tsx:29-49 primaryGoal null renders 'Створити ціль' linking to /goals",
+        "Prerequisites (no books / no list with books) are resolved on /goals by the Етап 1 'Цілі читання' task, not here"
+      ],
+      "doneWhen": [
+        "The null-goal card still links to /goals and is never hidden by S3-06",
+        "The description does not promise direct creation: it says a goal is built on a list of books (text change only), consistent with the Етап 1 /goals empty state",
+        "Browser pass on a book-less account: Progress -> 'Створити ціль' lands on /goals showing the 'add first book' state from Етап 1"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S3-08",
+      "title": "Delivery statistics: budget available before the first order",
+      "layer": "web",
+      "files": ["apps/web/src/features/delivery/components/delivery-statistics.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "ALREADY DONE",
+      "evidence": [
+        "apps/web/src/features/delivery/components/delivery-statistics.tsx:251-258 all-time empty branch renders budgetCard",
+        "apps/web/src/features/delivery/components/delivery-statistics.tsx:266 period-empty branch renders budgetCard",
+        "apps/web/src/features/delivery/components/delivery-statistics.tsx:236,243 error and skeleton branches keep budgetCard"
+      ],
+      "doneWhen": [
+        "S3-09 and S3-10 keep budgetCard in every branch listed in the evidence",
+        "Browser pass (QA 5): on an account without orders the budget card is visible and its dialog opens"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S3-09",
+      "title": "Delivery statistics: 'add first order' when there are no orders at all time; 'change period' only when orders exist outside the period",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/delivery/model/statistics-empty.ts",
+        "apps/web/src/features/delivery/components/delivery-statistics.tsx",
+        "apps/web/src/features/delivery/components/statistics/statistics-states.tsx",
+        "apps/web/src/features/delivery/components/delivery-statistics.test.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "PARTIAL",
+      "evidence": [
+        "apps/web/src/features/delivery/model/statistics-empty.ts:5-16 kind depends only on filters and preset, never on all-time order existence",
+        "apps/web/src/features/delivery/components/delivery-statistics.tsx:251-274 preset != all_time with zero orders always offers 'Змінити період' even when no order ever existed",
+        "apps/web/src/features/delivery/components/statistics/statistics-states.tsx:49-59 StatisticsAllTimeEmpty has no primary action",
+        "packages/shared/src/order-statistics.ts:108-117 snapshot.activeOrdersCount ignores the period filter",
+        "packages/shared/src/orders.ts:1021-1030 history summary completedOrdersCount is all-time (apps/web/src/features/delivery/api/use-history-summary.ts:10-16)"
+      ],
+      "doneWhen": [
+        "statisticsEmptyKind gains an all-time input and returns 'filters' | 'no_orders' | 'period'; 'no_orders' when no filters and view.snapshot.activeOrdersCount === 0 and historySummary.completedOrdersCount === 0",
+        "'no_orders' (any preset) renders the onboarding empty state with a primary action to the order-creation entry used by Етап 1 'Книги в дорозі' (/delivery/in-transit), no 'Змінити період' button",
+        "'period' renders only when orders exist outside the period and keeps 'Змінити період'",
+        "While the history summary is pending no CTA is shown; on its error the state falls back to 'period'",
+        "Filtered empty ('Скинути фільтри') unchanged",
+        "Test covers no_orders on a year preset and period-empty with existing history"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S3-10",
+      "title": "Delivery statistics: hide empty active-order analytics when there are no active orders",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/delivery/components/delivery-statistics.tsx",
+        "apps/web/src/features/delivery/components/delivery-statistics.test.tsx"
+      ],
+      "dependsOn": ["S3-09"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "apps/web/src/features/delivery/components/delivery-statistics.tsx:263-265 zero snapshot StatisticsKpi rendered in the period-empty branch",
+        "apps/web/src/features/delivery/components/delivery-statistics.tsx:188,237,272,286,383 activeAgeCard (active money age) rendered regardless of active orders",
+        "packages/shared/src/order-statistics.ts:108-117 snapshot.activeOrdersCount is the deciding field"
+      ],
+      "doneWhen": [
+        "When view.snapshot.activeOrdersCount === 0, StatisticsActiveAge is not rendered in any branch and the snapshot KPI is not rendered in the empty branches",
+        "With active orders > 0 both render as today",
+        "Skeleton/error branches before data arrive keep current behaviour (no flash of hidden cards decided on undefined data)",
+        "Test asserts absence with zero active orders"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S3-11",
+      "title": "Reading calendar: account-creation boundary and no lost-history assumption for a confirmed new account",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/model/statistics-account-history.ts",
+        "apps/web/src/features/statistics/model/statistics-account-history.test.ts",
+        "apps/web/src/features/statistics/model/statistics-calendar.ts",
+        "apps/web/src/features/statistics/hooks/use-reading-calendar-month.ts",
+        "apps/web/src/features/statistics/components/calendar/reading-calendar-page.tsx",
+        "apps/web/src/features/statistics/components/reading/reading-books-month-grid.tsx",
+        "apps/web/src/features/statistics/components/reading/reading-books-month-legend.tsx",
+        "apps/web/src/features/statistics/components/reading/reading-books-day-panel.tsx",
+        "apps/web/src/features/statistics/components/reading/reading-heatmap.tsx",
+        "apps/web/src/features/statistics/components/calendar/reading-calendar-page.test.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "apps/api/src/modules/books/application/reading-history-provenance.service.ts:58-72 reliableFrom = max(account creation day in profile tz, rollout boundary)",
+        "apps/api/src/modules/statistics/domain/activity-history-quality.ts:19-45 any period starting before reliableFrom (all_time always) is legacy_lower_bound and every earlier day is legacy_observed_only, so a brand-new account gets the lost-history wording",
+        "apps/web/src/features/statistics/components/calendar/reading-calendar-page.tsx:185-187 lowerBound note on the page",
+        "apps/web/src/features/statistics/model/statistics-calendar.ts:135-137,192-193 pre-reliableFrom zero days become 'unknown' / hasLegacyHistory",
+        "apps/web/src/features/statistics/components/reading/reading-books-month-grid.tsx:148,200-202 and reading-books-month-legend.tsx:17-24 'dayUnknown' / legacyMonthNote; reading-books-day-panel.tsx:61-64 dayPanelEmptyUncertain",
+        "Account creation date IS on the client: packages/shared/src/auth.ts:112-113 UserView.createdAt (z.string), API maps ISO at apps/api/src/modules/auth/domain/user.mapper.ts:9, stored in apps/web/src/features/auth/model/auth-store.ts:16 (parsed via AuthResultViewSchema in features/auth/api/session.ts:17)",
+        "Timezone for the day conversion: meta.timezone (packages/shared/src/reading-statistics-sections.ts:38) or useProfileTimeZone (apps/web/src/features/settings/hooks/use-profile-time-zone.ts:7)"
+      ],
+      "doneWhen": [
+        "A model function derives accountCreatedDay = formatInTimeZone(createdAt, meta.timezone, 'yyyy-MM-dd') only when useAuthStore user is present and createdAt parses with isValid; otherwise null (no boundary marking at all)",
+        "isConfirmedNewAccount is true only when accountCreatedDay !== null and meta.activityHistory.reliableFrom <= addDays(accountCreatedDay, 1) (tolerance for a later timezone change)",
+        "With a confirmed new account: days before accountCreatedDay render a distinct 'before account' tone and label (not dayUnknown, not intensity), the page lowerBound note, legacyMonthNote, dayPanelEmptyUncertain and month header '≥'/'—' unconfirmed values are not shown",
+        "Without a reliable createdAt, or when reliableFrom is later than the tolerance (account predates the rollout), today's unknown/legacy rendering is unchanged",
+        "Future days keep the existing 'future' tone and dayFuture label; known-zero days keep dayEmpty",
+        "All date math through date-fns / date-fns-tz, no getTime arithmetic",
+        "Model unit tests for both functions; calendar page test for a new-account fixture with no lowerBound note"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S3-12",
+      "title": "Reading calendar: keep the future / no-reading / incomplete-history distinction, grid and navigation",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/model/statistics-calendar.ts",
+        "apps/web/src/features/statistics/components/reading/reading-books-month-grid.tsx",
+        "apps/web/src/features/statistics/components/reading/reading-heatmap.tsx"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "ALREADY DONE",
+      "evidence": [
+        "apps/web/src/features/statistics/model/statistics-calendar.ts:32-35,105-111 slot kinds future vs missing vs day",
+        "apps/web/src/features/statistics/model/statistics-calendar.ts:135-137 unknown = zero pages + legacy_observed_only",
+        "apps/web/src/features/statistics/components/reading/reading-books-month-grid.tsx:34-50,148,200-202,245-255 future / unknown / empty tones and labels",
+        "apps/web/src/features/statistics/components/reading/reading-heatmap.tsx:25,39,73,130-137,227-248 heatmap legend for unknown and future",
+        "apps/web/src/features/statistics/components/calendar/reading-calendar-page.tsx:80-83,258-265 year picker and month navigation"
+      ],
+      "doneWhen": [
+        "After S3-11/S3-13/S3-14 the three tones still exist and the year picker plus month header navigation remain rendered for an account with no activity"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S3-13",
+      "title": "Reading calendar: short hint that reading appears after recording progress",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/components/calendar/reading-calendar-page.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "apps/web/src/messages/uk.json statistics.calendar.books has emptyMonth / dayPanelEmpty but no 'record progress' hint (printed this run); readingCalendar namespace keys are only metaTitle,title,subtitle,resultsLabel,activity,books",
+        "apps/web/src/features/statistics/components/calendar/reading-calendar-page.tsx:328-342 ReadingCalendarState shows only 'empty'/'unavailable' titles"
+      ],
+      "doneWhen": [
+        "When the shown year has calendar.activeDays === 0 (or availability unavailable), one short hint line says reading appears here after progress is recorded on a book; it is rendered once, not per card",
+        "The hint is plain text in the page flow, reachable by screen reader in reading order before or after the grid, and does not move the month navigation",
+        "uk ('ти') and en keys added"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S3-14",
+      "title": "Reading calendar: simplify summaries and the intensity block when there is no activity, keep navigation",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/statistics/components/calendar/reading-calendar-page.tsx",
+        "apps/web/src/features/statistics/components/reading/reading-books-month-header.tsx",
+        "apps/web/src/features/statistics/components/reading/reading-quarter-activity-card.tsx",
+        "apps/web/src/features/statistics/components/reading/reading-books-month-legend.tsx",
+        "apps/web/src/features/statistics/components/calendar/reading-calendar-page.test.tsx"
+      ],
+      "dependsOn": ["S3-11", "S3-13"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "apps/web/src/features/statistics/components/calendar/reading-calendar-page.tsx:177,189-196 any year with days renders the full month layout",
+        "apps/web/src/features/statistics/components/calendar/reading-calendar-page.tsx:258-265 month header with monthActiveDays/monthBooks/monthPages summary",
+        "apps/web/src/features/statistics/components/calendar/reading-calendar-page.tsx:286-293 ReadingQuarterActivityCard (intensity) always rendered",
+        "apps/web/src/features/statistics/components/calendar/reading-calendar-page.tsx:267-269 month legend"
+      ],
+      "doneWhen": [
+        "With calendar.activeDays === 0 for the shown year: month header keeps prev/next month controls but drops the zero metrics; the quarter intensity card and intensity legend are not rendered (or collapse to a single line)",
+        "Year picker, month navigation and the books grid stay; keyboard order unchanged",
+        "With activeDays > 0 nothing changes",
+        "Test: zero-activity fixture has month nav buttons and no quarter-activity heading"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S3-15",
+      "title": "Bell: separate the product-updates indicator from the personal reminders count",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/notifications/components/notification-bell.tsx",
+        "apps/web/src/features/notifications/components/notification-bell.test.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": [
+        "apps/web/src/features/notifications/components/notification-bell.tsx:69-72 totalUnread = reminderUnread + changelogUnread feeds the badge and aria label",
+        "apps/web/src/features/notifications/components/notification-bell.tsx:103-108,167-171 numeric badge capped to '99+'",
+        "apps/api/src/modules/changelog/application/changelog.service.ts:46-56 a user with no read row gets every published entry as unread (the 140 seen on a new account)",
+        "Read state: changelog lastSeenAt upsert at changelog.service.ts:43 via useMarkChangelogSeen on reveal (notification-bell.tsx:75); reminders via use-mark-notifications-read / use-mark-all-notifications-read"
+      ],
+      "doneWhen": [
+        "The numeric badge shows reminderUnread only (hidden at 0, '99+' cap kept)",
+        "changelogUnread > 0 shows a separate non-numeric indicator (dot) on the bell, visually distinct from the count badge and token-coloured",
+        "Bell aria-label names both states separately (e.g. 'N нагадувань, є оновлення продукту'); with zero of both it is the all-read label",
+        "Tab counts: reminders tab keeps its number; changelog tab shows the indicator, not 140",
+        "No change to read-state mechanics: markChangelogSeen still fires on revealing the changelog tab, mark-read endpoints unchanged, no API change",
+        "notification-bell.test.tsx: reminders 0 + changelog 140 renders no numeric badge and the updates indicator"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S3-16",
+      "title": "Bell: keep the 'Нагадувань немає' state",
+      "layer": "web",
+      "files": ["apps/web/src/features/notifications/components/notification-panel.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "ALREADY DONE",
+      "evidence": [
+        "apps/web/src/features/notifications/components/notification-panel.tsx:77-92 NotificationEmptyBlock with illustration, empty.title and empty.description (exact uk wording not compared this run)"
+      ],
+      "doneWhen": ["notification-panel.tsx empty block is unchanged by S3-15"],
+      "status": "todo"
+    },
+    {
+      "id": "S3-17",
+      "title": "Settings: keep functional sections and the profile form, no empty block for the optional bio",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/settings/components/settings-view.tsx",
+        "apps/web/src/features/profile/components/profile-edit-form.tsx"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "verdict": "ALREADY DONE",
+      "evidence": [
+        "grep for EmptyState / bio empty markers in apps/web/src/features/settings and features/profile components returned nothing this run",
+        "apps/web/src/features/profile/components/profile-edit-form.tsx:48-50,143 bio is a plain optional form field"
+      ],
+      "doneWhen": [
+        "No file under features/settings or features/profile in the stage diff adds an empty-state block for bio",
+        "Browser pass: /settings on a new account shows its sections and the profile form"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "S3-18",
+      "title": "QA 5: 'Показати весь час' transition and its absence on all_time; budget without orders; separate updates and reminders indicators",
+      "layer": "web",
+      "files": [],
+      "dependsOn": ["S3-02", "S3-08", "S3-09", "S3-15"],
+      "mandatory": true,
+      "verdict": "CONFIRMED gap",
+      "evidence": ["spec.md:96 Цільовий QA item 5"],
+      "doneWhen": [
+        "Browser, fresh local account, /statistics?period=year with a reading entry only in an earlier year: 'Показати весь час' switches to all_time, focus lands on the period trigger, the button is then absent",
+        "Browser, fresh account, /statistics?period=all_time: no 'Показати весь час', CTA is 'Додати книгу'",
+        "Browser, account without orders, /delivery/statistics: budget card visible and usable",
+        "Browser, fresh account: bell shows no number with 0 reminders and a separate updates indicator; after opening 'Що нового' the indicator clears and stays cleared on reload",
+        "Each checked at 1366x768 and 390x844"
+      ],
+      "status": "todo"
+    }
+  ],
+  "excluded": [
+    {
+      "requirement": "API or shared-contract change for all-time reading presence, account creation day or delivery all-time order existence",
+      "reason": "Web derives each condition from existing data: conditional all_time overview query (S3-01), UserView.createdAt + meta.timezone + reliableFrom (S3-11), snapshot.activeOrdersCount + history summary completedOrdersCount (S3-09)."
+    },
+    {
+      "requirement": "Changing changelog read semantics for new accounts (treating old entries as seen)",
+      "reason": "Spec says keep the current read state (spec.md:75); only the indicator is separated."
+    },
+    {
+      "requirement": "Illustration sizing and vertical rhythm of the new statistics empty states",
+      "reason": "Етап 4 owns illustration and composition; Stage 3 tasks reuse EmptyState / StatisticsSectionState."
+    }
+  ],
+  "assumptions": [
+    {
+      "decision": "Source for 'no reading at all time' when the selected period is not all_time",
+      "chosen": "Second overview query with period=all_time, enabled only when the selected period is not all_time and has no activity",
+      "why": "calendar.reason NO_ACTIVITY_HISTORY exists only for all_time (statistics-calendar.composer.ts:144-152). Reusing the statistics key means 'Показати весь час' then renders from cache. Home's readingWeek.hasReadingHistory (packages/shared/src/home.ts:111) would make statistics depend on the home feature; an API field would be a contract change the brief allows only when the web cannot derive it."
+    },
+    {
+      "decision": "Has-books source",
+      "chosen": "useLibraryOverview('all').summary.total > 0 from @/features/books, or the shared has-books hook if Етап 1 adds one",
+      "why": "Already the cross-feature source on Home (home-dashboard.tsx:8,72); one source of truth across stages."
+    },
+    {
+      "decision": "Destination of 'Записати прогрес' when books exist but nothing was read",
+      "chosen": "Link to /books with text telling the user to open a book and record progress",
+      "why": "Progress is recorded on the book page (features/books/components/reading-progress/reading-progress-block.tsx); there is no global progress dialog."
+    },
+    {
+      "decision": "Scope of removing the empty 'Поточна ціль' duplicate",
+      "chosen": "Only in the empty overview branch; the active branch keeps today's compact card",
+      "why": "The spec bullet describes the empty overview; hiding it for active readers would remove a CTA the spec did not ask to remove. Alternative was hiding it whenever primaryGoal is null."
+    },
+    {
+      "decision": "Tastes single empty-state condition",
+      "chosen": "kpis.completedReads.value === 0 in the selected period; action depends on all-time completed reads from the S3-01 query",
+      "why": "All taste sections are built from completed reads of the period (reading-statistics-tastes.ts:48-49,123-124)."
+    },
+    {
+      "decision": "Confirmed new account test",
+      "chosen": "reliableFrom <= accountCreatedDay + 1 day, with accountCreatedDay from UserView.createdAt in meta.timezone; no marking when createdAt is missing or invalid",
+      "why": "reliableFrom equals the account creation day for accounts created after the rollout (reading-history-provenance.service.ts:58-72); one day of tolerance covers a timezone change after reliableFrom was stored."
+    },
+    {
+      "decision": "Apply the new-account rule to the statistics overview lowerBound note too",
+      "chosen": "Yes, the overview's isLowerBound (statistics-overview.tsx:161,169) uses the same isConfirmedNewAccount gate",
+      "why": "Same false lost-history assumption, same data; otherwise the calendar and statistics disagree for one account."
+    },
+    {
+      "decision": "Delivery 'orders exist at all time' signal",
+      "chosen": "snapshot.activeOrdersCount > 0 || historySummary.completedOrdersCount > 0",
+      "why": "Both are period-independent (order-statistics.ts:108-117, orders.ts:1021-1030) and already have hooks; no extra endpoint."
+    },
+    {
+      "decision": "Order-creation target for delivery 'add first order'",
+      "chosen": "/delivery/in-transit, using whatever open-form entry Етап 1 'Книги в дорозі' defines",
+      "why": "No URL param to open the order form was found in features/delivery this run; Етап 1 owns that entry."
+    },
+    {
+      "decision": "Bell updates indicator form",
+      "chosen": "Non-numeric dot on the bell and on the changelog tab; numeric badge for reminders only",
+      "why": "The spec asks to separate the indicators; a number for 140 historic entries is the defect itself."
+    }
+  ]
+}

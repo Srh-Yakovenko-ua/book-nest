@@ -4,16 +4,22 @@ import { useTranslations } from "next-intl";
 import { useRef } from "react";
 
 import { type ActiveFilterChip, ActiveFilters } from "@/components/catalog/active-filters";
+import { UiIcon } from "@/components/icons";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
+import { Button } from "@/components/ui/button";
+import { BOOK_CREATE_PATH } from "@/features/books/model/book-create-href";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
+import { collectionChrome } from "@/lib/collection-chrome";
 
 import { usePublisherQuickCounts } from "../api/use-publisher-quick-counts";
 import { usePublisherSummary } from "../api/use-publisher-summary";
 import { usePublishersList } from "../api/use-publishers-list";
+import { buildMissingPublisherBooksHref } from "../model/missing-publisher-books-href";
 import {
   type PublishersArchiveState,
   resolvePublishersArchiveState,
+  resolvePublishersEmptyEntry,
 } from "../model/publisher-archive-state";
 import {
   PUBLISHERS_BOOLEAN_FILTERS,
@@ -55,8 +61,16 @@ export function AllPublishers() {
     state.kind === "results" && state.isRefreshing
       ? tCommon("updating")
       : announceResults(state, t);
+  const emptyEntry = resolvePublishersEmptyEntry({
+    summary: summary.data ?? null,
+    summaryFailed: summary.isLoadingError,
+  });
+  const hasQuery = query.hasActiveFilters || query.hasActiveSearch;
+  const chrome = collectionChrome({ baseTotal: summary.data?.publishersCount, hasQuery });
+  const showControls = chrome.showTools && (state.kind !== "empty" || hasQuery);
+  const showHeaderAction = state.kind !== "empty" || emptyEntry !== "addFirstBook";
   const showInsights = state.kind !== "empty" && hasPublisherInsights(summary.data);
-  const onAddBook = () => router.push("/books/new");
+  const onAddBook = () => router.push(BOOK_CREATE_PATH);
 
   const chips: ActiveFilterChip[] = [];
   const search = query.state.q.trim();
@@ -96,6 +110,14 @@ export function AllPublishers() {
 
   return (
     <AllPublishersView
+      action={
+        showHeaderAction ? (
+          <Button className="self-start sm:self-auto" onClick={onAddBook}>
+            <UiIcon name="plus" size={16} />
+            {t("page.addBook")}
+          </Button>
+        ) : null
+      }
       content={
         <>
           <RefetchErrorBanner
@@ -106,6 +128,7 @@ export function AllPublishers() {
             }
           />
           <PublishersContent
+            emptyEntry={emptyEntry}
             hasSidebar={showInsights}
             loadMore={{
               hasNextPage: list.hasNextPage && !list.isPlaceholderData,
@@ -116,8 +139,10 @@ export function AllPublishers() {
             onAddBook={onAddBook}
             onClearAll={query.clearAll}
             onClearSearch={query.clearSearch}
+            onOpenBooksWithoutPublisher={() => router.push(buildMissingPublisherBooksHref())}
             onResetFilters={query.resetFilters}
             onRetry={withRetryFocus(() => void list.refetch())}
+            onRetrySummary={withRetryFocus(() => void summary.refetch())}
             retryButtonRef={retryButtonRef}
             state={state}
             view={query.state.view}
@@ -125,7 +150,7 @@ export function AllPublishers() {
         </>
       }
       controls={
-        state.kind === "empty" ? null : (
+        showControls ? (
           <div className="flex flex-col gap-4">
             <PublisherToolbar
               advancedFilters={query.advancedFilters}
@@ -149,30 +174,31 @@ export function AllPublishers() {
               {resultsAnnouncement}
             </p>
           </div>
-        )
+        ) : null
       }
       insights={
         showInsights && summary.data !== undefined ? (
           <PublisherInsights summary={summary.data} />
         ) : null
       }
-      onAddBook={onAddBook}
       resultsHeadingRef={resultsHeadingRef}
       summary={
-        <PublisherSummaryCards
-          cards={summaryCards}
-          isError={summary.isLoadingError}
-          isLoading={summary.isPending}
-          mobileAction={
-            <PublisherOverviewPanel
-              isLoading={summary.isPending}
-              showInsights={showInsights}
-              summary={summary.data}
-              summaryCards={summaryCards}
-            />
-          }
-          onRetry={() => void summary.refetch()}
-        />
+        chrome.showMetrics ? (
+          <PublisherSummaryCards
+            cards={summaryCards}
+            isError={summary.isLoadingError}
+            isLoading={summary.isPending}
+            mobileAction={
+              <PublisherOverviewPanel
+                isLoading={summary.isPending}
+                showInsights={showInsights}
+                summary={summary.data}
+                summaryCards={summaryCards}
+              />
+            }
+            onRetry={() => void summary.refetch()}
+          />
+        ) : null
       }
     />
   );

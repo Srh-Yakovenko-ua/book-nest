@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReadingStatisticsOverview } from "@app/shared";
+import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -9,7 +10,8 @@ import type { UseStatisticsViewResult } from "../../model/use-statistics-view";
 import { isPeriodIncludingDay } from "../../model/statistics-period";
 import { ReadingGoalCard } from "../progress/reading-goal-card";
 import { ReadingDynamicsCard } from "../reading/reading-dynamics-card";
-import { StatisticsPeriodEmpty } from "../statistics-states";
+import { StatisticsPresenceGate } from "../statistics-presence-gate";
+import { StatisticsReadingEmpty } from "../statistics-reading-empty";
 import { StatisticsInsights } from "./statistics-insights";
 import { StatisticsKpiGrid } from "./statistics-kpi-grid";
 import { StatisticsRecentReads } from "./statistics-recent-reads";
@@ -35,19 +37,51 @@ export function StatisticsOverviewTab({
   today: string;
   view: UseStatisticsViewResult;
 }) {
-  const currentGoal = isPeriodIncludingDay({ day: today, period: overview.period }) ? (
+  const includesToday = isPeriodIncludingDay({ day: today, period: overview.period });
+  const currentGoal = includesToday ? (
     <ReadingGoalCard goal={overview.goal} variant="compact" />
   ) : null;
+  const activeGoal = overview.goal.primaryGoal === null ? null : currentGoal;
 
-  if (!hasReadingActivity(overview)) {
-    return (
-      <>
-        <StatisticsPeriodEmpty onShowAllTime={onShowAllTime} />
-        {currentGoal}
-      </>
-    );
-  }
+  return (
+    <StatisticsPresenceGate
+      overview={overview}
+      renderAbsent={(presence) => (
+        <>
+          <StatisticsReadingEmpty
+            onShowAllTime={onShowAllTime}
+            presence={presence}
+            signal="reading"
+          />
+          {activeGoal}
+        </>
+      )}
+      signal="reading"
+    >
+      <ActiveOverview
+        currentGoal={currentGoal}
+        isComparisonLowerBound={isComparisonLowerBound}
+        isLowerBound={isLowerBound}
+        overview={overview}
+        view={view}
+      />
+    </StatisticsPresenceGate>
+  );
+}
 
+function ActiveOverview({
+  currentGoal,
+  isComparisonLowerBound,
+  isLowerBound,
+  overview,
+  view,
+}: {
+  currentGoal: ReactNode;
+  isComparisonLowerBound: boolean;
+  isLowerBound: boolean;
+  overview: ReadingStatisticsOverview;
+  view: UseStatisticsViewResult;
+}) {
   const insights = overview.overviewInsights[view.metric];
 
   return (
@@ -81,13 +115,5 @@ export function StatisticsOverviewTab({
         {currentGoal}
       </div>
     </>
-  );
-}
-
-function hasReadingActivity(overview: ReadingStatisticsOverview): boolean {
-  return (
-    overview.kpis.completedReads.value > 0 ||
-    (overview.kpis.pagesRead.value ?? 0) > 0 ||
-    overview.calendar.activeDays > 0
   );
 }

@@ -36,6 +36,7 @@ const SERIES_RESULTS_PANEL_ID = "series-results";
 type AllSeriesViewProps = {
   activeFilters: ReactNode;
   counterLabel: string;
+  createButtonRef: Ref<HTMLButtonElement>;
   hasActiveQuery: boolean;
   hasAnySeries: boolean;
   isError: boolean;
@@ -51,7 +52,7 @@ type AllSeriesViewProps = {
   refetchError: Nullable<RefetchErrorState>;
   series: SeriesView[];
   sidebar: ReactNode;
-  summaryCards: SummaryCard[];
+  summaryCards: Nullable<SummaryCard[]>;
   summaryError: boolean;
   summaryLoading: boolean;
   summaryMobileAction?: ReactNode;
@@ -64,6 +65,7 @@ type AllSeriesViewProps = {
 export function AllSeriesView({
   activeFilters,
   counterLabel,
+  createButtonRef,
   hasActiveQuery,
   hasAnySeries,
   isError,
@@ -89,7 +91,9 @@ export function AllSeriesView({
   view,
 }: AllSeriesViewProps) {
   const t = useTranslations("series");
-  const showToolbar = !isError && (isPending || hasAnySeries);
+  const showsFirstSeriesState = !isError && !isPending && !hasAnySeries;
+  const showToolbar = !isError && (isPending || hasAnySeries || hasActiveQuery);
+  const showHeaderCreate = !showsFirstSeriesState || hasActiveQuery;
   const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsHeadingRef);
 
@@ -115,19 +119,27 @@ export function AllSeriesView({
             </div>
             <p className="text-sm text-muted-foreground">{t("page.subtitle")}</p>
           </div>
-          <Button className="self-start sm:self-auto" onClick={onCreateSeries}>
-            <UiIcon name="plus" size={16} />
-            {t("page.create")}
-          </Button>
+          {showHeaderCreate ? (
+            <Button
+              className="self-start sm:self-auto"
+              onClick={onCreateSeries}
+              ref={createButtonRef}
+            >
+              <UiIcon name="plus" size={16} />
+              {t("page.create")}
+            </Button>
+          ) : null}
         </div>
 
-        <SeriesSummaryCards
-          cards={summaryCards}
-          isError={summaryError}
-          isLoading={summaryLoading}
-          mobileAction={summaryMobileAction}
-          onRetry={onOverviewRetry}
-        />
+        {summaryCards === null ? null : (
+          <SeriesSummaryCards
+            cards={summaryCards}
+            isError={summaryError}
+            isLoading={summaryLoading}
+            mobileAction={summaryMobileAction}
+            onRetry={onOverviewRetry}
+          />
+        )}
       </header>
 
       {showToolbar ? (
@@ -162,6 +174,7 @@ export function AllSeriesView({
           </h2>
           <RefetchErrorBanner state={refetchError} />
           <SeriesContent
+            firstSeriesButtonRef={showHeaderCreate ? null : createButtonRef}
             hasActiveQuery={hasActiveQuery}
             hasAnySeries={hasAnySeries}
             isError={isError}
@@ -211,6 +224,7 @@ function SeriesCardSkeleton() {
 }
 
 function SeriesContent({
+  firstSeriesButtonRef,
   hasActiveQuery,
   hasAnySeries,
   isError,
@@ -226,6 +240,7 @@ function SeriesContent({
   tab,
   view,
 }: {
+  firstSeriesButtonRef: Ref<HTMLButtonElement>;
   hasActiveQuery: boolean;
   hasAnySeries: boolean;
   isError: boolean;
@@ -274,7 +289,14 @@ function SeriesContent({
 
   if (series.length === 0) {
     if (!hasAnySeries) {
-      return <EmptyState onPrimary={onCreateSeries} onSecondary={onAddBook} state={emptyState} />;
+      return (
+        <EmptyState
+          onPrimary={onCreateSeries}
+          onSecondary={onAddBook}
+          primaryRef={firstSeriesButtonRef}
+          state={emptyState}
+        />
+      );
     }
     if (tab === "unfinished" && !hasActiveQuery) {
       return (

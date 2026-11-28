@@ -17,6 +17,7 @@ import { TitleLeaf } from "@/components/title-leaf";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { YearPicker } from "@/components/ui/year-picker";
+import { useAuthStore } from "@/features/auth";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 
@@ -27,11 +28,15 @@ import { useReadingCalendarPage } from "../../api/use-reading-calendar-page";
 import { useBooksCalendarJump } from "../../hooks/use-books-calendar-jump";
 import { useMobileViewport } from "../../hooks/use-mobile-viewport";
 import { useReadingCalendarMonth } from "../../hooks/use-reading-calendar-month";
+import { newAccountStart, withNewAccountHistory } from "../../model/statistics-account-history";
 import { toStatisticsScopeState } from "../../model/statistics-scope-state";
 import { useReadingCalendarParams } from "../../model/use-reading-calendar-params";
 import { ReadingBooksCalendar } from "../reading/reading-books-calendar";
 import { ReadingBooksDayPanel } from "../reading/reading-books-day-panel";
-import { ReadingBooksMonthHeader } from "../reading/reading-books-month-header";
+import {
+  ReadingBooksMonthHeader,
+  ReadingBooksMonthKpis,
+} from "../reading/reading-books-month-header";
 import { ReadingBooksMonthLegend } from "../reading/reading-books-month-legend";
 import { ReadingQuarterActivityCard } from "../reading/reading-quarter-activity-card";
 import { StatisticsSection } from "../statistics-section";
@@ -163,6 +168,7 @@ function ReadingCalendarBody({
 }) {
   const t = useTranslations("readingCalendar");
   const tStates = useTranslations("statistics.states");
+  const user = useAuthStore((state) => state.user);
   const page = scope.data;
 
   if (scope.isInitialError) {
@@ -173,8 +179,13 @@ function ReadingCalendarBody({
     return <ReadingCalendarSkeleton />;
   }
 
-  const { calendar, meta } = page;
+  const { meta } = page;
+  const accountStart = newAccountStart({ meta, user });
+  const calendar = withNewAccountHistory({ accountStart, calendar: page.calendar });
   const isCalendarShown = calendar.availability !== "unavailable" && calendar.days.length > 0;
+  const hasNoActivity = calendar.availability === "unavailable" || calendar.activeDays === 0;
+  const isLowerBound =
+    accountStart === null && meta.activityHistory.selectedPeriodQuality === "legacy_lower_bound";
 
   return (
     <RefreshingRegion
@@ -182,12 +193,11 @@ function ReadingCalendarBody({
       className="flex flex-col gap-4"
       isRefreshing={scope.isPlaceholderData}
     >
-      {meta.activityHistory.selectedPeriodQuality === "legacy_lower_bound" ? (
-        <StatisticsNote>{tStates("lowerBound")}</StatisticsNote>
-      ) : null}
+      {isLowerBound ? <StatisticsNote>{tStates("lowerBound")}</StatisticsNote> : null}
 
       {isCalendarShown ? (
         <ReadingCalendarMonthLayout
+          accountStart={accountStart}
           booksSectionRef={booksSectionRef}
           calendar={calendar}
           jump={jump}
@@ -197,9 +207,12 @@ function ReadingCalendarBody({
       ) : (
         <ReadingCalendarColumns
           primary={
-            <ReadingBooksSection sectionRef={booksSectionRef}>
-              <ReadingCalendarState calendar={calendar} />
-            </ReadingBooksSection>
+            <>
+              <ReadingBooksSection sectionRef={booksSectionRef}>
+                <ReadingCalendarState calendar={calendar} />
+              </ReadingBooksSection>
+              {hasNoActivity ? <RecordProgressHint /> : null}
+            </>
           }
           secondary={
             <StatisticsSection title={t("activity.title")}>
@@ -230,12 +243,14 @@ function ReadingCalendarColumns({
 }
 
 function ReadingCalendarMonthLayout({
+  accountStart,
   booksSectionRef,
   calendar,
   jump,
   params,
   weekStartDay,
 }: {
+  accountStart: Nullable<string>;
   booksSectionRef: RefObject<Nullable<HTMLDivElement>>;
   calendar: ReadingStatisticsCalendarSection;
   jump: ReturnType<typeof useBooksCalendarJump>;
@@ -246,10 +261,12 @@ function ReadingCalendarMonthLayout({
   const panelId = useId();
   const monthLabelRef = useRef<HTMLSpanElement>(null);
   const month = useReadingCalendarMonth({
+    accountStart,
     calendar,
     month: params.month,
     selectedDay: params.day,
   });
+  const hasActivity = calendar.activeDays > 0;
 
   return (
     <ReadingCalendarColumns
@@ -261,11 +278,19 @@ function ReadingCalendarMonthLayout({
               month={month}
               monthLabelRef={monthLabelRef}
               onMonthChange={params.setMonth}
-            />
+            >
+              {hasActivity ? <ReadingBooksMonthKpis month={month} /> : null}
+            </ReadingBooksMonthHeader>
           )}
+          {hasActivity ? null : <RecordProgressHint />}
           <ReadingBooksSection
             legend={
-              isMobile === false ? <ReadingBooksMonthLegend summary={month.summary} /> : undefined
+              isMobile === false ? (
+                <ReadingBooksMonthLegend
+                  hasDaysBeforeAccount={month.hasDaysBeforeAccount}
+                  summary={month.summary}
+                />
+              ) : undefined
             }
             sectionRef={booksSectionRef}
           >
@@ -283,14 +308,17 @@ function ReadingCalendarMonthLayout({
       }
       secondary={
         <>
-          <ReadingQuarterActivityCard
-            days={calendar.days}
-            displayRange={calendar.displayRange}
-            month={month.monthKey ?? params.month}
-            onShowInBooksCalendar={jump.showInBooksCalendar}
-            today={params.today}
-            weekStartDay={weekStartDay}
-          />
+          {hasActivity ? (
+            <ReadingQuarterActivityCard
+              accountStart={accountStart}
+              days={calendar.days}
+              displayRange={calendar.displayRange}
+              month={month.monthKey ?? params.month}
+              onShowInBooksCalendar={jump.showInBooksCalendar}
+              today={params.today}
+              weekStartDay={weekStartDay}
+            />
+          ) : null}
           {isMobile === false && month.monthKey !== null ? (
             <ReadingBooksDayPanel
               id={panelId}
@@ -366,4 +394,10 @@ function ReadingCalendarYearPicker({
       />
     </div>
   );
+}
+
+function RecordProgressHint() {
+  const t = useTranslations("readingCalendar");
+
+  return <p className="text-sm text-muted-foreground">{t("recordProgressHint")}</p>;
 }

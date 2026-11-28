@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { collectionChrome } from "@/lib/collection-chrome";
 import { formatNumber } from "@/lib/format";
 
 import { useCharactersCatalog } from "../api/use-characters-catalog";
@@ -68,6 +69,10 @@ export function CharactersCatalogView() {
     state,
   });
   const summaryCards = useCharactersSummaryCards(overview.data);
+  const chrome = collectionChrome({
+    baseTotal: overview.data?.totalCount,
+    hasQuery: hasActiveFilters,
+  });
 
   const loadMoreState: InfiniteScrollState = catalog.isFetchNextPageError
     ? "error"
@@ -93,108 +98,116 @@ export function CharactersCatalogView() {
         </div>
       </header>
 
-      <SummaryError
-        state={overview.isLoadingError ? { onRetry: () => void overview.refetch() } : null}
-      >
-        <SummaryCards cards={summaryCards} isLoading={overview.isPending} mobileLayout="compact" />
-      </SummaryError>
+      {chrome.showMetrics ? (
+        <SummaryError
+          state={overview.isLoadingError ? { onRetry: () => void overview.refetch() } : null}
+        >
+          <SummaryCards
+            cards={summaryCards}
+            isLoading={overview.isPending}
+            mobileLayout="compact"
+          />
+        </SummaryError>
+      ) : null}
 
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-          <div className="min-w-0 flex-1">
-            <DebouncedSearchInput
-              clearLabel={t("searchClear")}
-              label={t("searchLabel")}
-              onClear={() => setSearch("")}
-              onSearch={setSearch}
-              placeholder={t("searchPlaceholder")}
-              value={state.q}
-            />
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="w-full sm:w-80">
-              <Select onValueChange={(next) => setSort(toSort(next))} value={state.sort}>
-                <SelectTrigger
-                  aria-label={t("sortLabel")}
-                  className="w-full data-[size=default]:h-10"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CHARACTERS_CATALOG_SORTS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {t(`sort.${option}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      {chrome.showTools ? (
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+            <div className="min-w-0 flex-1">
+              <DebouncedSearchInput
+                clearLabel={t("searchClear")}
+                label={t("searchLabel")}
+                onClear={() => setSearch("")}
+                onSearch={setSearch}
+                placeholder={t("searchPlaceholder")}
+                value={state.q}
+              />
             </div>
 
-            <CharactersCatalogFilters
-              activeCount={activeAdvancedCount}
-              onApply={applyAdvanced}
-              speciesNames={speciesNames}
-              state={state}
-            />
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="w-full sm:w-80">
+                <Select onValueChange={(next) => setSort(toSort(next))} value={state.sort}>
+                  <SelectTrigger
+                    aria-label={t("sortLabel")}
+                    className="w-full data-[size=default]:h-10"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CHARACTERS_CATALOG_SORTS.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {t(`sort.${option}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <Segmented
-              className="ml-auto h-10 shrink-0 items-stretch sm:ml-0 [&_[data-slot=segmented-item]]:py-0 max-sm:[&_[data-slot=segmented-item]]:px-2.5"
-              label={t("viewLabel")}
-              onValueChange={(next) => setView(toView(next))}
-              options={[
-                {
-                  icon: <LayoutGrid />,
-                  label: <span className="max-sm:sr-only">{t("view.grid")}</span>,
-                  value: "grid",
-                },
-                {
-                  icon: <List />,
-                  label: <span className="max-sm:sr-only">{t("view.list")}</span>,
-                  value: "list",
-                },
-              ]}
-              value={state.view}
-            />
+              <CharactersCatalogFilters
+                activeCount={activeAdvancedCount}
+                onApply={applyAdvanced}
+                speciesNames={speciesNames}
+                state={state}
+              />
+
+              <Segmented
+                className="ml-auto h-10 shrink-0 items-stretch sm:ml-0 [&_[data-slot=segmented-item]]:py-0 max-sm:[&_[data-slot=segmented-item]]:px-2.5"
+                label={t("viewLabel")}
+                onValueChange={(next) => setView(toView(next))}
+                options={[
+                  {
+                    icon: <LayoutGrid />,
+                    label: <span className="max-sm:sr-only">{t("view.grid")}</span>,
+                    value: "grid",
+                  },
+                  {
+                    icon: <List />,
+                    label: <span className="max-sm:sr-only">{t("view.list")}</span>,
+                    value: "list",
+                  },
+                ]}
+                value={state.view}
+              />
+            </div>
           </div>
+
+          <ChipGroup
+            countsPending={overview.isPending}
+            label={t("quickLabel")}
+            mode="single"
+            onValueChange={(next) => setFilter(toQuickFilter(next))}
+            options={[
+              { count: overview.data?.totalCount, label: t("quick.all"), value: "all" },
+              {
+                count: overview.data?.favoriteCount,
+                label: t("quick.favorites"),
+                value: "favorites",
+              },
+              {
+                count: overview.data?.multipleBooksCount,
+                label: t("quick.multipleBooks"),
+                value: "multiple_books",
+              },
+              {
+                count: overview.data?.withPersonalImpressionCount,
+                label: t("quick.withImpression"),
+                value: "with_impression",
+              },
+            ]}
+            value={state.filter}
+          />
+
+          <ActiveFilters chips={filterChips} onClearAll={clearAll} />
+
+          {catalog.isLoadingError ? null : (
+            <p aria-live="polite" className="text-sm text-muted-foreground">
+              {catalog.isPending || catalog.isPlaceholderData
+                ? t("states.loading")
+                : t("counter", countShownCharacters(pages))}
+            </p>
+          )}
         </div>
-
-        <ChipGroup
-          countsPending={overview.isPending}
-          label={t("quickLabel")}
-          mode="single"
-          onValueChange={(next) => setFilter(toQuickFilter(next))}
-          options={[
-            { count: overview.data?.totalCount, label: t("quick.all"), value: "all" },
-            {
-              count: overview.data?.favoriteCount,
-              label: t("quick.favorites"),
-              value: "favorites",
-            },
-            {
-              count: overview.data?.multipleBooksCount,
-              label: t("quick.multipleBooks"),
-              value: "multiple_books",
-            },
-            {
-              count: overview.data?.withPersonalImpressionCount,
-              label: t("quick.withImpression"),
-              value: "with_impression",
-            },
-          ]}
-          value={state.filter}
-        />
-
-        <ActiveFilters chips={filterChips} onClearAll={clearAll} />
-
-        {catalog.isLoadingError ? null : (
-          <p aria-live="polite" className="text-sm text-muted-foreground">
-            {catalog.isPending || catalog.isPlaceholderData
-              ? t("states.loading")
-              : t("counter", countShownCharacters(pages))}
-          </p>
-        )}
-      </div>
+      ) : null}
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-6">
@@ -221,7 +234,7 @@ export function CharactersCatalogView() {
           )}
         </div>
 
-        <CharactersCatalogSidebar />
+        {chrome.showMetrics ? <CharactersCatalogSidebar /> : null}
       </div>
     </div>
   );

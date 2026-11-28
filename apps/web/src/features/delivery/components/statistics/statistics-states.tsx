@@ -12,6 +12,7 @@ import { UiIcon } from "@/components/icons";
 import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRouter } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 export type StatisticsDataQualityKind = "estimated" | "partial" | "truncated";
@@ -45,18 +46,6 @@ const SECTION_TONE: Record<StatisticsSectionStateKind, string> = {
   insufficient: "text-ink",
   unavailable: "text-favorite",
 };
-
-export function StatisticsAllTimeEmpty() {
-  const t = useTranslations("delivery.statistics.states");
-
-  const onboarding: EmptyStateEntry = {
-    desc: t("allTimeEmpty.description"),
-    illu: "empty-purchases",
-    title: t("allTimeEmpty.title"),
-  };
-
-  return <EmptyState state={onboarding} />;
-}
 
 export function StatisticsDataQualityNote({
   children,
@@ -96,29 +85,42 @@ export function StatisticsError({
   );
 }
 
+export function StatisticsNoOrdersEmpty() {
+  const t = useTranslations("delivery.statistics.states");
+  const router = useRouter();
+
+  const onboarding: EmptyStateEntry = {
+    desc: t("allTimeEmpty.description"),
+    illu: "empty-purchases",
+    primary: { icon: "plus", label: t("allTimeEmpty.action") },
+    title: t("allTimeEmpty.title"),
+  };
+
+  return <EmptyState onPrimary={() => router.push("/delivery/in-transit")} state={onboarding} />;
+}
+
 export function StatisticsPeriodEmpty({
   kind,
   onChangePeriod,
   onResetFilters,
 }: {
   kind: StatisticsPeriodEmptyKind;
-  onChangePeriod: () => void;
+  onChangePeriod?: () => void;
   onResetFilters: () => void;
 }) {
   const t = useTranslations("delivery.statistics.states");
   const isFiltered = kind === "filters";
   const scope = isFiltered ? "filteredEmpty" : "periodEmpty";
+  const onAction = isFiltered ? onResetFilters : onChangePeriod;
 
   return (
     <StatisticsSectionState
       action={
-        <Button
-          onClick={isFiltered ? onResetFilters : onChangePeriod}
-          size="sm"
-          variant="secondary"
-        >
-          {t(`${scope}.action`)}
-        </Button>
+        onAction === undefined ? null : (
+          <Button onClick={onAction} size="sm" variant="secondary">
+            {t(`${scope}.action`)}
+          </Button>
+        )
       }
       description={t(`${scope}.description`)}
       kind="empty"

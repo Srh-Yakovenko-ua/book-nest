@@ -32,6 +32,12 @@ const ENTRIES = {
     secondary: { icon: "book", label: library.empty.my.secondary },
     title: library.empty.my.title,
   },
+  listCompact: {
+    desc: messages.lists.details.empty.description,
+    illu: "empty-lists",
+    illuSize: "xs",
+    title: messages.lists.details.empty.title,
+  },
   lists: {
     desc: lists.empty.description,
     illu: "empty-lists",
@@ -49,6 +55,13 @@ const ENTRIES = {
   search: {
     desc: lists.noResults.description,
     illu: "empty-search",
+    primary: { icon: "x", label: lists.noResults.clear },
+    title: lists.noResults.title,
+  },
+  searchCompact: {
+    desc: lists.noResults.description,
+    illu: "empty-search",
+    illuSize: "sm",
     primary: { icon: "x", label: lists.noResults.clear },
     title: lists.noResults.title,
   },
@@ -110,6 +123,41 @@ export const GenericError: Story = {
 
 export const Favorites: Story = {
   args: { state: ENTRIES.favorites },
+};
+
+export const Scale: Story = {
+  play: async ({ canvasElement }) => {
+    const squareArt = canvasElement.querySelector('img[src*="empty-favorites"]');
+    await expect(squareArt?.getAttribute("width")).toBe("1024");
+    await expect(squareArt?.getAttribute("height")).toBe("1024");
+    await expect(squareArt?.getAttribute("sizes")).toBe(
+      "(min-width: 64rem) and (min-height: 50rem) 224px, (min-width: 40rem) and (min-height: 50rem) 192px, 144px",
+    );
+
+    const wideArt = canvasElement.querySelector('img[src*="empty-library"]');
+    await expect(wideArt?.getAttribute("width")).toBe("1536");
+    await expect(wideArt?.getAttribute("height")).toBe("1024");
+    await expect(wideArt?.getAttribute("sizes")).toBe(
+      "(min-width: 40rem) and (min-height: 50rem) 288px, 216px",
+    );
+
+    const compactArt = canvasElement.querySelector('img[src*="empty-search"]');
+    await expect(compactArt?.getAttribute("sizes")).toBe("224px");
+
+    const tinyArt = canvasElement.querySelector('img[src*="empty-lists"]');
+    await expect(tinyArt?.getAttribute("sizes")).toBe("216px");
+  },
+  render: () => (
+    <div className="flex flex-col gap-6">
+      {[ENTRIES.favorites, ENTRIES.library, ENTRIES.searchCompact, ENTRIES.listCompact].map(
+        (entry) => (
+          <div className="rounded-xl border border-border" key={entry.illu}>
+            <EmptyState state={entry} />
+          </div>
+        ),
+      )}
+    </div>
+  ),
 };
 
 export const Gallery: Story = {

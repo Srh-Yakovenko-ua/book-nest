@@ -4,6 +4,7 @@ import {
   buildMonthGrid,
   buildMonthSlots,
   clipCalendarMonth,
+  hasDaysBeforeAccountStart,
   listCalendarMonths,
   resolveCalendarMonth,
   resolveSelectedCalendarDay,
@@ -50,12 +51,19 @@ describe("buildMonthSlots", () => {
     ["2026-08", 6],
   ])("lays %s out in %i Monday-first weeks", (monthKey, weeks) => {
     expect(
-      buildMonthSlots({ days: [], monthKey, today: "2027-12-31", weekStartDay: "monday" }),
+      buildMonthSlots({
+        accountStart: null,
+        days: [],
+        monthKey,
+        today: "2027-12-31",
+        weekStartDay: "monday",
+      }),
     ).toHaveLength(weeks);
   });
 
   it("leaves the padding around the month blank and keeps each day under its weekday", () => {
     const weeks = buildMonthSlots({
+      accountStart: null,
       days: MARCH_2026,
       monthKey: "2026-03",
       today: "2026-03-31",
@@ -69,6 +77,7 @@ describe("buildMonthSlots", () => {
 
   it("splits the dates the calendar does not carry into missing up to today and future after it", () => {
     const weeks = buildMonthSlots({
+      accountStart: null,
       days: MARCH_2026,
       monthKey: "2026-03",
       today: "2026-03-20",
@@ -80,6 +89,119 @@ describe("buildMonthSlots", () => {
     expect(slots).toContainEqual({ date: "2026-03-21", kind: "future" });
     expect(slots).toContainEqual({ date: "2026-03-31", kind: "future" });
     expect(slots.filter((slot) => slot.kind !== "blank")).toHaveLength(31);
+  });
+
+  it.each([
+    ["an exact unread day", readingDay("2026-03-03", 0)],
+    [
+      "an unknown legacy day",
+      calendarDayFixture({
+        date: "2026-03-03",
+        drilldown: { date: "2026-03-03", kind: "reading_day" },
+        historyQuality: "legacy_observed_only",
+      }),
+    ],
+  ])("shows %s before the account start as before_account", (_label, day) => {
+    const slots = buildMonthSlots({
+      accountStart: "2026-03-05",
+      days: [day],
+      monthKey: "2026-03",
+      today: "2026-03-20",
+      weekStartDay: "monday",
+    }).flat();
+
+    expect(slots).toContainEqual({ date: "2026-03-03", kind: "before_account" });
+  });
+
+  it.each([
+    [
+      "pages read",
+      calendarDayFixture({
+        booksCount: 1,
+        date: "2026-03-03",
+        drilldown: { date: "2026-03-03", kind: "reading_day" },
+        pagesRead: 40,
+      }),
+    ],
+    ["a book without pages", readingDay("2026-03-03", 1)],
+  ])("keeps a day with %s before the account start as a day", (_label, day) => {
+    const slots = buildMonthSlots({
+      accountStart: "2026-03-05",
+      days: [day],
+      monthKey: "2026-03",
+      today: "2026-03-20",
+      weekStartDay: "monday",
+    }).flat();
+
+    expect(slots).toContainEqual({ day, kind: "day" });
+  });
+
+  it("keeps unread days from the account start on as days", () => {
+    const startDay = readingDay("2026-03-05", 0);
+    const laterDay = readingDay("2026-03-10", 0);
+    const slots = buildMonthSlots({
+      accountStart: "2026-03-05",
+      days: [startDay, laterDay],
+      monthKey: "2026-03",
+      today: "2026-03-20",
+      weekStartDay: "monday",
+    }).flat();
+
+    expect(slots).toContainEqual({ day: startDay, kind: "day" });
+    expect(slots).toContainEqual({ day: laterDay, kind: "day" });
+  });
+
+  it("marks uncarried dates before the account start as before_account and from it on as missing", () => {
+    const slots = buildMonthSlots({
+      accountStart: "2026-03-05",
+      days: [],
+      monthKey: "2026-03",
+      today: "2026-03-20",
+      weekStartDay: "monday",
+    }).flat();
+
+    expect(slots).toContainEqual({ date: "2026-03-01", kind: "before_account" });
+    expect(slots).toContainEqual({ date: "2026-03-04", kind: "before_account" });
+    expect(slots).toContainEqual({ date: "2026-03-05", kind: "missing" });
+  });
+
+  it("keeps dates after today future even when they fall before the account start", () => {
+    const slots = buildMonthSlots({
+      accountStart: "2026-03-25",
+      days: [],
+      monthKey: "2026-03",
+      today: "2026-03-20",
+      weekStartDay: "monday",
+    }).flat();
+
+    expect(slots).toContainEqual({ date: "2026-03-20", kind: "before_account" });
+    expect(slots).toContainEqual({ date: "2026-03-21", kind: "future" });
+  });
+});
+
+describe("hasDaysBeforeAccountStart", () => {
+  it("reports an unread day before the account start", () => {
+    expect(
+      hasDaysBeforeAccountStart({
+        accountStart: "2026-03-05",
+        days: [readingDay("2026-03-04", 0), readingDay("2026-03-06", 0)],
+      }),
+    ).toBe(true);
+  });
+
+  it("ignores days with reading before the account start and unread days from it on", () => {
+    expect(
+      hasDaysBeforeAccountStart({
+        accountStart: "2026-03-05",
+        days: [readingDay("2026-03-02", 1), readingDay("2026-03-05", 0)],
+      }),
+    ).toBe(false);
+  });
+
+  it("reports nothing without an account start", () => {
+    expect(
+      hasDaysBeforeAccountStart({ accountStart: null, days: [readingDay("2026-03-02", 0)] }),
+    ).toBe(false);
   });
 });
 

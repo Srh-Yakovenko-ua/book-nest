@@ -15,6 +15,7 @@ import { Illustration } from "@/components/illustration";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { RefreshingRegion } from "@/components/refreshing-region";
 import { Button } from "@/components/ui/button";
+import { BOOK_CREATE_PATH, useLibraryPresence } from "@/features/books";
 import { useAddToReadingQueue } from "@/features/books/api/use-reading-queue";
 import { useGenres } from "@/features/genres";
 import { ListGoalCard } from "@/features/reading-goals";
@@ -376,6 +377,7 @@ export function ListDetailsView({
       <ListDetailsHeader
         description={firstPage.description}
         isDuplicating={duplicateList.isPending}
+        isListEmpty={isListEmpty}
         name={firstPage.name}
         onAddBooks={() => setAddBooksOpen(true)}
         onDelete={() => setDeleteOpen(true)}
@@ -472,21 +474,33 @@ export function ListDetailsView({
 }
 
 function EmptyList({ onAddBooks }: { onAddBooks: () => void }) {
-  const t = useTranslations("lists.details");
   const tEmpty = useTranslations("lists.details.empty");
+  const library = useLibraryPresence();
+  const hasNoBooks = library.kind === "ready" && library.total === 0;
 
   return (
     <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-border px-6 py-12 text-center">
       <Illustration name="empty-lists" size="xs" />
       <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium text-ink">{t("empty.title")}</p>
-        <p className="text-sm text-muted-foreground">{t("empty.description")}</p>
+        <p className="text-sm font-medium text-ink">{tEmpty("title")}</p>
+        <p className="text-sm text-muted-foreground">
+          {hasNoBooks ? tEmpty("noBooks.description") : tEmpty("description")}
+        </p>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-2.5">
-        <Button onClick={onAddBooks}>
-          <UiIcon name="plus" size={16} />
-          {tEmpty("addBooks")}
-        </Button>
+        {hasNoBooks ? (
+          <Button asChild>
+            <Link href={BOOK_CREATE_PATH}>
+              <UiIcon name="plus" size={16} />
+              {tEmpty("noBooks.cta")}
+            </Link>
+          </Button>
+        ) : (
+          <Button onClick={onAddBooks}>
+            <UiIcon name="plus" size={16} />
+            {tEmpty("addBooks")}
+          </Button>
+        )}
         <Button asChild variant="secondary">
           <Link href="/lists">
             <UiIcon name="arrow-left" size={16} />

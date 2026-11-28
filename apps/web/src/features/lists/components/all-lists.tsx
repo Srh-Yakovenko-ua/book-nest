@@ -6,6 +6,8 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { useLibraryPresence } from "@/features/books";
+import { useCreateButtonFocus } from "@/hooks/use-create-button-focus";
 import { useRouter } from "@/i18n/navigation";
 
 import { useDeleteList } from "../api/use-delete-list";
@@ -41,8 +43,11 @@ export function AllLists() {
     refetch,
   } = useLists(lists.listParams);
   const summary = useListsSummary();
+  const libraryPresence = useLibraryPresence();
+  const hasLibraryBooks = libraryPresence.kind === "ready" && libraryPresence.total > 0;
 
   const [createOpen, setCreateOpen] = useState(false);
+  const { createButtonRef, focusCreateButtonOnClose } = useCreateButtonFocus();
   const [editing, setEditing] = useState<Nullable<CustomListCard>>(null);
   const [deleting, setDeleting] = useState<Nullable<CustomListCard>>(null);
 
@@ -73,6 +78,7 @@ export function AllLists() {
     <>
       <AllListsView
         allShownLabel={tCatalog("allShown")}
+        createButtonRef={createButtonRef}
         hasActiveFilters={lists.hasActiveFilters}
         hasAnyLists={hasAnyLists}
         hasNextPage={hasNextPage}
@@ -88,7 +94,7 @@ export function AllLists() {
         onDeleteList={setDeleting}
         onEditList={setEditing}
         onLoadMore={() => void fetchNextPage()}
-        onOpenLibrary={() => router.push("/books")}
+        onOpenLibrary={hasLibraryBooks ? () => router.push("/books") : null}
         onRetry={() => void refetch()}
         refetchError={
           isRefetchError ? { isRetrying: isRefetching, onRetry: () => void refetch() } : null
@@ -138,7 +144,11 @@ export function AllLists() {
         view={lists.state.view}
       />
 
-      <CreateListDialog onOpenChange={setCreateOpen} open={createOpen} />
+      <CreateListDialog
+        onCloseAutoFocus={focusCreateButtonOnClose}
+        onOpenChange={setCreateOpen}
+        open={createOpen}
+      />
 
       {editing === null ? null : (
         <EditListDialog

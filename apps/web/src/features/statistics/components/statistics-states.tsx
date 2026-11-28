@@ -97,19 +97,6 @@ export function StatisticsNote({
   );
 }
 
-export function StatisticsPeriodEmpty({ onShowAllTime }: { onShowAllTime: () => void }) {
-  const t = useTranslations("statistics.states");
-
-  const entry: EmptyStateEntry = {
-    desc: t("periodEmpty.description"),
-    illu: "empty-library",
-    primary: { icon: "chart", label: t("periodEmpty.action") },
-    title: t("periodEmpty.title"),
-  };
-
-  return <EmptyState onPrimary={onShowAllTime} state={entry} />;
-}
-
 export function StatisticsProgressSkeleton() {
   const t = useTranslations("statistics.states");
 

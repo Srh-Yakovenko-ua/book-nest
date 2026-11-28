@@ -67,10 +67,14 @@
     "addBook": "Add a book to the queue",
     "listHeading": "Queue",
     "empty": {
-      "title": "Plan your next reads",
+      "title": "No books in your queue yet",
       "description": "Add books to the queue, arrange them in the right order, and always know what to read next.",
       "cta": "Add book to queue",
-      "secondary": "View all books"
+      "secondary": "View all books",
+      "noBooks": {
+        "title": "You don’t have any books yet",
+        "description": "Add your first book to the library, and you can put it in your reading queue."
+      }
     },
     "error": {
       "title": "Couldn’t load the reading queue",
@@ -78,8 +82,8 @@
       "retry": "Try again"
     },
     "noSearchResults": {
-      "title": "Nothing found",
-      "description": "Try changing your search query or clearing the search.",
+      "title": "Nothing matches the current search or filters",
+      "description": "Try a different query or filters, or clear them.",
       "clear": "Clear search"
     },
     "toolbar": {
@@ -128,6 +132,9 @@
       "searchLabel": "Search your library",
       "searchPlaceholder": "Search your library…",
       "empty": "No books found",
+      "noBooks": "You don’t have any books yet. Add your first one to put it in the queue.",
+      "allQueued": "All your books are already in the queue. Add a new book to plan it too.",
+      "addNewBook": "Add a new book",
       "loadError": "Couldn’t load your library",
       "loadMore": "Load more",
       "alreadyInQueue": "Already in queue",
@@ -933,6 +940,9 @@
     }
   },
   "books": {
+    "firstBook": {
+      "cta": "Add your first book"
+    },
     "library": {
       "all": {
         "title": "All books",
@@ -1070,19 +1080,18 @@
       },
       "empty": {
         "all": {
-          "title": "Your book collection starts here",
-          "description": "Add your first book to keep track of what you've read, what you're planning, and what you want to discover next.",
-          "cta": "Add book"
+          "title": "You don’t have any books yet",
+          "description": "Add your first book to keep track of what you've read, what you're planning, and what you want to discover next."
         },
         "my": {
-          "title": "Build your home library",
+          "title": "You don’t own any books yet",
           "description": "Add the books you own or mark existing books as owned, and they'll appear here.",
           "cta": "Add book",
-          "secondary": "View all books"
+          "secondary": "Mark existing books as owned"
         }
       },
       "noSearchResults": {
-        "title": "Nothing found",
+        "title": "Nothing matches the current search",
         "description": "Try changing your search query or clearing the search.",
         "clearSearch": "Clear search"
       },
@@ -2158,13 +2167,15 @@
             "emptyTitle": "No books to lend",
             "emptyHint": "Add a book to your library first, then lend it to someone.",
             "multiTitle": "Which books are you lending?",
-            "multiDescription": "Pick the books you are handing to {name}."
+            "multiDescription": "Pick the books you are handing to {name}.",
+            "pickDescription": "Pick the books you want to lend. You will choose who gets them on the next step."
           },
           "borrowed": {
             "emptyTitle": "No books to borrow",
             "emptyHint": "Add the book to BookNest first, then record the loan.",
             "multiTitle": "Which books are you borrowing?",
-            "multiDescription": "Pick the books you are borrowing from {name}."
+            "multiDescription": "Pick the books you are borrowing from {name}.",
+            "pickDescription": "Pick the books you are borrowing. You will choose who you are borrowing from on the next step."
           }
         },
         "back": "Back",
@@ -2539,7 +2550,7 @@
       }
     },
     "empty": {
-      "title": "Save books for future purchases",
+      "title": "You don’t have any books on your wishlist yet",
       "description": "Mark the books you want to buy so you can keep track of editions, stores, and prices.",
       "cta": "Add book",
       "secondary": "View all books"
@@ -2781,9 +2792,13 @@
       }
     },
     "empty": {
-      "title": "Add your first dedication",
+      "title": "No dedications yet",
       "description": "Pick a book from your library and add an author's dedication on its edit page.",
-      "cta": "Choose a book"
+      "cta": "Choose a book",
+      "noBooks": {
+        "title": "You don’t have any books yet",
+        "description": "Add your first book, then keep its author's dedication here."
+      }
     },
     "picker": {
       "title": "Choose a book",
@@ -2791,6 +2806,9 @@
       "searchLabel": "Search books",
       "searchPlaceholder": "Title or author",
       "empty": "No books found",
+      "noBooks": "You don’t have any books yet. Add your first one to keep its dedication.",
+      "allDedicated": "All your books already have dedications. Add a new book to keep another one.",
+      "addNewBook": "Add a new book",
       "loadError": "Failed to load books",
       "loadMore": "Show more",
       "selectBookAria": "Choose “{title}”",
@@ -2798,7 +2816,7 @@
       "submit": "Add dedication"
     },
     "noResults": {
-      "title": "Nothing found",
+      "title": "Nothing matches the current search or filters",
       "description": "Try changing your query or clearing the filters.",
       "clear": "Clear filters"
     },
@@ -2882,6 +2900,11 @@
       },
       "bookPicker": {
         "title": "Add books",
+        "noBooks": {
+          "title": "No books to order",
+          "hint": "This list shows books you do not own yet that have no active order. Add such a book to pick it here.",
+          "cta": "Add a book"
+        },
         "description": "Select one or more books from your library for this order.",
         "library": "Your library",
         "selected": "Selected books: {count}",
@@ -3388,9 +3411,13 @@
         "retry": "Try again"
       },
       "empty": {
-        "title": "Track your book orders",
+        "title": "You have no books in transit yet",
         "description": "Mark an ordered book as \"In transit\" and add the store and delivery details to follow its journey.",
         "cta": "View wishlist"
+      },
+      "firstBook": {
+        "title": "You have no books yet",
+        "description": "Add your first book to the library, then place an order for it and follow the delivery here."
       },
       "filteredEmpty": {
         "title": "Nothing found",
@@ -3606,12 +3633,12 @@
         },
         "empty": {
           "received": {
-            "title": "No received orders yet",
-            "description": "As soon as you mark a book as received, it shows up here.",
+            "title": "You have no received orders yet",
+            "description": "Both received and cancelled orders appear here. Mark a book as received or cancel it in Books in transit, and it shows up here.",
             "cta": "Go to books in transit"
           },
           "cancelled": {
-            "title": "No cancelled orders",
+            "title": "You have no cancelled orders yet",
             "description": "Orders you cancel are kept here."
           }
         },
@@ -4250,8 +4277,9 @@
           "retry": "Try again"
         },
         "allTimeEmpty": {
-          "title": "No purchases yet",
-          "description": "Add your first book order and the spending statistics will show up here."
+          "title": "You don’t have any purchases yet",
+          "description": "Add your first book order and the spending statistics will show up here.",
+          "action": "Add your first order"
         },
         "periodEmpty": {
           "title": "No orders in the selected period",
@@ -4360,9 +4388,13 @@
       }
     },
     "empty": {
-      "title": "Collect the books that feel special",
-      "description": "Mark a book with a heart to save it to your favorites and easily find it again.",
-      "cta": "View all books"
+      "title": "No favorite books yet",
+      "description": "Tap the heart on a book card in your book list, and it will show up here.",
+      "cta": "View all books",
+      "noBooks": {
+        "title": "You don’t have any books yet",
+        "description": "Add your first book, then mark the ones you want to come back to with a heart."
+      }
     },
     "remove": {
       "toast": "Book removed from favorites",
@@ -4653,7 +4685,7 @@
     "states": {
       "loading": "Loading series…",
       "empty": {
-        "title": "Create your first book series",
+        "title": "You don’t have any series yet",
         "description": "Create a series or add a book to one to see the volume order and track your reading progress.",
         "create": "Create series",
         "addBook": "Add book"
@@ -4664,7 +4696,7 @@
         "showAll": "Show all series"
       },
       "noResults": {
-        "title": "No series found",
+        "title": "Nothing matches the current search or filters",
         "description": "Try changing your search or resetting the filters.",
         "clear": "Reset filters"
       },
@@ -4975,15 +5007,19 @@
         "startedReading": "Reading started"
       },
       "noResults": {
-        "title": "No books found",
+        "title": "Nothing matches the current search",
         "description": "Try changing your search query or clearing the search.",
         "clear": "Clear search"
       },
       "empty": {
         "title": "This list is empty",
-        "description": "Add books from your library to fill this list.",
+        "description": "Select “Add books” and pick them from your library to fill this list.",
         "addBooks": "Add books",
         "back": "Back to lists",
+        "noBooks": {
+          "description": "You don’t have any books yet. Add your first one, then put it in this list.",
+          "cta": "Add your first book"
+        },
         "filtered": {
           "title": "No books match these conditions",
           "description": "Try removing some of the filters or reset them all.",
@@ -5264,7 +5300,7 @@
         "coverAlt": "Cover from {name}"
       },
       "empty": {
-        "title": "Create your first themed collection",
+        "title": "You don’t have any lists yet",
         "description": "Group books by mood, genre, topic, or reading plan and return to any collection whenever you need it.",
         "create": "Create list",
         "secondary": "View all books"
@@ -5497,8 +5533,8 @@
       "states": {
         "loading": "Loading contacts…",
         "empty": {
-          "title": "No contacts yet",
-          "description": "Add the first person and they will show up in your loans.",
+          "title": "You have no contacts yet",
+          "description": "Add the first person, and you can pick them when you add a loan.",
           "cta": "Add contact"
         },
         "noResults": {
@@ -5818,17 +5854,18 @@
     "states": {
       "loading": "Loading your borrowed books...",
       "empty": {
-        "cta": "Add borrowed book",
         "secondary": "View all books"
       },
       "typeEmpty": {
         "borrowed": {
-          "title": "No books to return yet",
+          "cta": "Add borrowed book",
+          "title": "You don’t have any borrowed books yet",
           "description": "Books you borrow from other readers will show up here with their return dates and reminders.",
           "openOther": "View “Lent out”"
         },
         "lent": {
-          "title": "Nothing lent out yet",
+          "cta": "Lend a book",
+          "title": "You don’t have any books lent out yet",
           "description": "Books you lend to other readers will show up here with who has them and when they are due back.",
           "openOther": "View “To return”"
         }
@@ -6112,8 +6149,9 @@
       "states": {
         "loading": "Loading your loan history...",
         "empty": {
-          "title": "The loan history is still empty",
-          "description": "Completed loans show up here once a book is marked as returned."
+          "title": "You have no loan history yet",
+          "description": "Completed loans show up here once a book is marked as returned.",
+          "cta": "Go to active loans"
         },
         "noResults": {
           "title": "Nothing matches these conditions",
@@ -6325,6 +6363,14 @@
         "metaTitle": "Book notes",
         "title": "Book notes",
         "subtitle": "Thoughts, impressions, questions and ideas saved to individual books.",
+        "empty": {
+          "title": "You have no book notes yet",
+          "description": "Add thoughts, impressions and questions to your books to build your own reading archive."
+        },
+        "noEntities": {
+          "title": "You don’t have any books yet",
+          "description": "Add your first book, then keep your thoughts, impressions and questions about it."
+        },
         "searchLabel": "Search book notes",
         "searchPlaceholder": "Search by text, book, author or custom category…",
         "summary": {
@@ -6348,6 +6394,15 @@
         "metaTitle": "Series notes",
         "title": "Series notes",
         "subtitle": "Your personal archive of thoughts, impressions, questions and ideas about book series.",
+        "empty": {
+          "title": "You have no series notes yet",
+          "description": "Write down thoughts about a whole cycle: reading order, favorite characters and what you expect from the next volumes."
+        },
+        "noEntities": {
+          "title": "You don’t have any series yet",
+          "description": "Create your first series in the series catalog, then add notes about the cycle as a whole.",
+          "cta": "Go to series"
+        },
         "searchLabel": "Search series notes",
         "searchPlaceholder": "Search by text, series, author or custom category…",
         "summary": {
@@ -6368,17 +6423,17 @@
         }
       },
       "empty": {
-        "title": "You have no notes yet.",
+        "title": "You have no notes yet",
         "description": "Add thoughts about books and series to build your own reading archive.",
         "cta": "Add note"
       },
       "emptySearch": {
-        "title": "Nothing found.",
+        "title": "Nothing found for the current search",
         "description": "Try changing your search query or filters.",
         "clear": "Reset filters"
       },
       "emptyFilters": {
-        "title": "No notes match these filters.",
+        "title": "No notes match these filters",
         "description": "Try changing or resetting the filters.",
         "clear": "Reset filters"
       },
@@ -6555,10 +6610,11 @@
       "bookPicker": {
         "change": "Change",
         "collapse": "Collapse",
-        "empty": "No books found",
+        "empty": "You don’t have any books yet",
         "loadError": "Could not load books",
         "loadMoreError": "Could not load more books",
         "loading": "Searching books...",
+        "noMatch": "Nothing found for this search",
         "results": "Your books",
         "resultsCount": "Showing {count, plural, one {# book} other {# books}}",
         "retry": "Try again",
@@ -6567,7 +6623,8 @@
       "seriesPicker": {
         "change": "Change",
         "collapse": "Collapse",
-        "empty": "No series found",
+        "empty": "You don’t have any series yet",
+        "noMatch": "Nothing found for this search",
         "loadError": "Could not load series",
         "loadMoreError": "Could not load more series",
         "loading": "Searching series...",
@@ -6862,12 +6919,13 @@
         "retry": "Try again"
       },
       "empty": {
-        "title": "Your books have no genres yet",
-        "description": "Add genres while creating or editing a book, and this page will show your library by genre.",
+        "title": "You have no genres yet",
+        "description": "Genres are set in the book edit form. Open a book in your library and fill in its genres.",
+        "noBooksDescription": "Genres come from your books. Add your first book and set its genres.",
         "action": "Go to library"
       },
       "emptySearch": {
-        "title": "No genres match this search",
+        "title": "Nothing matches your current search",
         "description": "Check the spelling or try another genre name.",
         "action": "Clear search"
       },
@@ -6921,6 +6979,8 @@
         "allUsed": "None unused",
         "booksShare": "{percent} of the library",
         "charactersShare": "{percent} of all characters",
+        "noBooks": "No books in the library yet",
+        "noCharacters": "No characters yet",
         "leaderBreakdown": "Books: {books} · Characters: {characters}",
         "tieMore": "{count, plural, one {# more tag} other {# more tags}}",
         "noLeader": "No tags in use yet"
@@ -7198,10 +7258,12 @@
       "bookPicker": {
         "change": "Change",
         "collapse": "Collapse",
-        "empty": "No books found",
+        "empty": "You don’t have any books yet",
         "loadError": "Could not load the books",
         "loadMoreError": "Could not load more books",
         "loading": "Searching books...",
+        "noBooks": "To save a quote, add a book to your library first.",
+        "noMatch": "Nothing found for this search",
         "results": "Your books",
         "resultsCount": "Showing {count, plural, one {# book} other {# books}}",
         "retry": "Try again",
@@ -7246,7 +7308,11 @@
     "empty": {
       "title": "You have no quotes yet",
       "description": "Save favorite lines from books, your own thoughts and passages that matter — they will show up here.",
-      "secondary": "Go to books"
+      "secondary": "Go to books",
+      "noBooks": {
+        "title": "You don’t have any books yet",
+        "description": "Add your first book, then keep your favorite lines from it here."
+      }
     },
     "error": {
       "load": "Could not load the quotes",
@@ -7273,7 +7339,7 @@
     "subtitle": "Your personal archive of favorite lines from books",
     "listLabel": "Quote list",
     "noResults": {
-      "title": "Nothing found",
+      "title": "Nothing matches the current search or filters",
       "description": "Try changing your search query or clearing the filters.",
       "clear": "Reset filters"
     },
@@ -7979,12 +8045,15 @@
     },
     "states": {
       "empty": {
-        "title": "No publishers yet",
-        "description": "Add your first book with a publisher, and it will show up here automatically.",
-        "addBook": "Add book"
+        "title": "You have no publishers yet",
+        "description": "Add a book with a publisher, and it will show up here automatically.",
+        "addBook": "Add book",
+        "noBooksDescription": "Publishers come from your books. Add your first book and set its publisher.",
+        "missingPublisherDescription": "Some of your books have no publisher yet. Open them and fill it in so publishers show up here.",
+        "openBooksWithoutPublisher": "Books without a publisher"
       },
       "noSearchResults": {
-        "title": "No publishers found",
+        "title": "Nothing matches your current search",
         "description": "Try a different search or clear it.",
         "clear": "Clear search"
       },
@@ -8278,8 +8347,11 @@
       },
       "counter": "Showing {shown} of {total, plural, one {# character} other {# characters}}",
       "empty": {
-        "description": "Characters appear here once you add them to your books.",
-        "title": "No characters yet"
+        "description": "Characters are added on a book page, in its Characters tab. Open your latest book or pick another one in the library.",
+        "noBooksDescription": "Characters live in books. Add your first book, and you can record its characters.",
+        "openLatestBook": "Open latest book",
+        "openLibrary": "Go to library",
+        "title": "You have no characters yet"
       },
       "filters": {
         "anyBook": "Any book",
@@ -8329,8 +8401,8 @@
       "metaTitle": "Characters",
       "noResults": {
         "clear": "Clear filters",
-        "description": "Nothing matches the current search and filters.",
-        "title": "Nothing found"
+        "description": "Try a different query or clear the filters.",
+        "title": "Nothing matches your current search"
       },
       "quick": {
         "all": "All",
@@ -9018,12 +9090,15 @@
     "bell": {
       "ariaLabel": "Notifications",
       "ariaLabelAllRead": "All read",
-      "ariaLabelUnread": "Notifications, {count} unread"
+      "ariaLabelUnread": "Notifications, {count, plural, one {# unread reminder} other {# unread reminders}}",
+      "ariaLabelUnreadWithUpdates": "Notifications, {count, plural, one {# unread reminder} other {# unread reminders}}, product updates available",
+      "ariaLabelUpdates": "Notifications, product updates available"
     },
     "tabs": {
       "reminders": "Reminders",
       "changelog": "What's new",
-      "unreadCount": "{count, plural, one {# unread} other {# unread}}"
+      "unreadCount": "{count, plural, one {# unread} other {# unread}}",
+      "updatesAvailable": "product updates available"
     },
     "list": {
       "ariaLabel": "Notification list"
@@ -9559,9 +9634,18 @@
         "completedOn": "reached on {date}"
       },
       "empty": {
-        "title": "Set your first reading goal",
+        "title": "No reading goals yet",
         "description": "Pick a book list, decide how many to read and by when, and progress is tracked automatically.",
-        "create": "New goal"
+        "create": "New goal",
+        "noBooks": {
+          "title": "You don’t have any books yet",
+          "description": "A goal counts books from one list. Add your first book, put it in a list, and come back here."
+        },
+        "noLists": {
+          "title": "You don’t have a list with books yet",
+          "description": "A goal is set for a book list. Create a list or fill an existing one, then set your goal here.",
+          "cta": "Go to lists"
+        }
       },
       "filteredEmpty": {
         "title": "No goals with this status",
@@ -9612,6 +9696,7 @@
       "noMatches": "No list matches this name",
       "emptyTitle": "No lists with books yet",
       "emptyDescription": "A goal is set for a book list. Create a list or add books to one, then come back here.",
+      "emptyNoBooksDescription": "A goal is set for a book list. Add a book first, then put it in a list.",
       "toLists": "Go to lists"
     }
   },
@@ -9641,6 +9726,35 @@
         "title": "No reading in this period yet",
         "description": "Pick another period or look at the all-time summary.",
         "action": "Show all time"
+      },
+      "noReading": {
+        "noBooks": {
+          "title": "You don’t have any reading records yet",
+          "description": "Add your first book and record your reading progress, and the statistics will build up on their own.",
+          "action": "Add a book"
+        },
+        "withBooks": {
+          "title": "No reading recorded yet",
+          "description": "Open a book in your library and record your progress, and the statistics will appear here.",
+          "action": "Record progress"
+        }
+      },
+      "noCompletedReads": {
+        "noBooks": {
+          "title": "Your tastes will show up here",
+          "description": "Add your first book and finish it, and your ratings, genres and authors will appear here.",
+          "action": "Add a book"
+        },
+        "periodEmpty": {
+          "title": "No finished books in this period",
+          "description": "Tastes are built from finished books. Pick another period or look at all time.",
+          "action": "Show all time"
+        },
+        "withBooks": {
+          "title": "No finished books yet",
+          "description": "Open a book in your library and record your progress to the end, and your ratings, genres and authors will appear here.",
+          "action": "Record progress"
+        }
       },
       "invalidRange": {
         "description": "Pick a valid start and end date to see the statistics for that period.",
@@ -9863,7 +9977,8 @@
         "dayUnknown": "{date}: this day may be missing from the history",
         "daySummary": "{date}: {pages, plural, one {# page} other {# pages}}, {books, plural, one {# book} other {# books}}",
         "unknownLegend": "Unknown history",
-        "futureLegend": "Upcoming days"
+        "futureLegend": "Upcoming days",
+        "beforeAccountLegend": "Before your account"
       },
       "books": {
         "more": "+{count}",
@@ -9883,6 +9998,7 @@
         "dayEmpty": "{date}: no reading",
         "dayUnknown": "{date}: this day may be missing from the history",
         "dayFuture": "{date}: this day has not come yet",
+        "dayBeforeAccount": "{date}: before your account was created",
         "diaryMeta": "{books, plural, one {# book} other {# books}} · {pages, plural, one {# page} other {# pages}}",
         "monthActiveDays": "Reading days",
         "monthBooks": "Books",
@@ -10063,6 +10179,14 @@
       "snapshot": "As of today",
       "period": "For the selected period"
     },
+    "progressPending": {
+      "title": "What else will appear here",
+      "items": {
+        "libraryBalance": "Library balance appears once you add books you own.",
+        "series": "Series reading appears once you finish at least one book in this period.",
+        "records": "Records appear once you record reading progress in this period."
+      }
+    },
     "progressHint": {
       "label": "Explanation: {topic}"
     },
@@ -10071,7 +10195,7 @@
       "currentTitle": "Current goal",
       "description": "Your active goal with the nearest deadline. The period does not change it.",
       "empty": "No active goal",
-      "emptyDescription": "Create a goal to see its progress right here.",
+      "emptyDescription": "A goal is built on a list of books: pick a list, how many to read and by when, and its progress will show up here.",
       "create": "Create a goal",
       "deadline": "By {date}",
       "deadlineLabel": "Deadline",
@@ -10099,9 +10223,6 @@
     "series": {
       "title": "Series reading",
       "description": "How you moved through book series in the selected period.",
-      "unavailable": "Series data is unavailable",
-      "noReadsTitle": "No finished reads in the selected period",
-      "noReadsDescription": "Series share and rankings will appear once the period has at least one finished read.",
       "shareUnknown": "The share of series reading could not be computed.",
       "shareCount": "<num>{series}</num> of <num>{total}</num> {total, plural, one {read} other {reads}} in series",
       "shareProgressLabel": "Share of reads in series: {percent}%",
@@ -10143,21 +10264,14 @@
       "legendRead": "Read: {count, plural, one {# book} other {# books}}",
       "legendUnread": "Unread: {count, plural, one {# book} other {# books}}",
       "forecastLabel": "Forecast",
-      "forecastNoData": "not enough data",
       "forecastEstimate": "≈ {months} mo · pace {rate}/mo",
       "forecastBasis": "How many months your unread owned books would last at the current pace. Pace: owned books first finished in the last 12 months. Future purchases are not counted.",
       "flow": "In {inflow} · out {outflow} · net {net}",
-      "flowLabel": "Library flow",
-      "forecastReason": {
-        "INSUFFICIENT_SAMPLE": "Too little reading history to estimate a pace.",
-        "LOW_CONFIDENCE": "The reading pace is too uneven for a reliable estimate.",
-        "LEGACY_HISTORY_INCOMPLETE": "Part of the history is incomplete, so a pace estimate would mislead."
-      }
+      "flowLabel": "Library flow"
     },
     "records": {
       "title": "Your records",
       "description": "A selection of up to {limit, plural, one {# standout record} other {# standout records}} from the selected period.",
-      "empty": "No records in this period yet.",
       "openDay": "Day details",
       "types": {
         "longest_completed_book": "Longest book finished",
@@ -10186,6 +10300,7 @@
     "title": "Reading calendar",
     "subtitle": "Your reading year day by day: activity and books.",
     "resultsLabel": "Calendar for the selected year",
+    "recordProgressHint": "Your reading shows up here once you record progress on a book.",
     "activity": {
       "title": "Reading intensity",
       "quarterLabel": "{months} {year}",

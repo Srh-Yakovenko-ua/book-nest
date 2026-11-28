@@ -17,6 +17,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import messages from "@/messages/uk.json";
 import {
+  cleanup,
   mockIntersectionObserver,
   renderWithProviders,
   screen,
@@ -38,19 +39,24 @@ const viewport = mockIntersectionObserver();
 
 type QuotesMockOptions = {
   facetsFor?: (url: string) => QuotesFacetsView;
+  libraryStatus?: number;
+  libraryTotal?: number;
   listHeldUntil?: (url: string) => Promise<void>;
   listStatus?: number;
   overview?: QuotesOverviewView;
+  summary?: QuotesSummaryView;
   summaryStatus?: number;
 };
 
 const requestedUrls: string[] = [];
 
+const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }));
+
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   ),
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: routerPush, replace: vi.fn() }),
 }));
 
 const FACETS: QuotesFacetsView = {
@@ -93,6 +99,29 @@ const SUMMARY: QuotesSummaryView = {
   withoutSpoilerCount: 12,
 };
 
+const EMPTY_SUMMARY: QuotesSummaryView = {
+  averageQuotesPerQuotedBook: null,
+  favoritesCount: 0,
+  quotedBooksCount: 0,
+  spoilerCount: 0,
+  topAuthor: null,
+  topBook: null,
+  totalCount: 0,
+  withCommentCount: 0,
+  withoutSpoilerCount: 0,
+};
+
+const EMPTY_FACETS: QuotesFacetsView = {
+  authors: [],
+  books: [],
+  favoritesCount: 0,
+  spoilerCount: 0,
+  totalCount: 0,
+  withCommentCount: 0,
+  withoutCommentCount: 0,
+  withoutSpoilerCount: 0,
+};
+
 const EMPTY_OVERVIEW: QuotesOverviewView = { memoryQuote: null, postFinish: null };
 
 const POST_FINISH: PostFinishQuotesView = {
@@ -112,6 +141,7 @@ const POST_FINISH: PostFinishQuotesView = {
 afterEach(() => {
   vi.unstubAllGlobals();
   requestedUrls.length = 0;
+  routerPush.mockClear();
 });
 
 describe("QuotesView sorting", () => {
@@ -503,6 +533,11 @@ describe("QuotesView overview blocks", () => {
 });
 
 describe("QuotesView overview blocks on a phone", () => {
+  afterEach(() => {
+    cleanup();
+    document.body.style.removeProperty("pointer-events");
+  });
+
   it("leaves the hidden sidebar out of the overview request", async () => {
     stubMobileViewport();
     mockQuotes(quotes(3), { overview: { memoryQuote: makeQuote(), postFinish: POST_FINISH } });
@@ -536,6 +571,86 @@ describe("QuotesView overview blocks on a phone", () => {
   });
 });
 
+describe("QuotesView empty base", () => {
+  const copy = messages.quotes;
+
+  async function waitForEmptyBaseChrome() {
+    await waitFor(() =>
+      expect(screen.queryByRole("complementary", { name: "Огляд цитат" })).not.toBeInTheDocument(),
+    );
+  }
+
+  it("offers only to add the first book when the library has no books", async () => {
+    mockEmptyBase({ libraryTotal: 0 });
+    renderQuotes();
+
+    expect(
+      await screen.findByRole("heading", { name: copy.empty.noBooks.title }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: copy.empty.secondary })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: messages.books.firstBook.cta }));
+
+    expect(routerPush).toHaveBeenCalledWith("/books/new");
+  });
+
+  it("hides the stats, toolbar, sidebar and header action while there are no quotes", async () => {
+    mockEmptyBase({ libraryTotal: 0 });
+    renderQuotes();
+
+    expect(
+      await screen.findByRole("heading", { name: copy.empty.noBooks.title }),
+    ).toBeInTheDocument();
+    await waitForEmptyBaseChrome();
+
+    expect(summaryCardTexts()).toHaveLength(0);
+    expect(
+      screen.queryByRole("textbox", { name: copy.toolbar.searchLabel }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: SORT_LABEL })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Показано 0 із 0/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: copy.actions.add })).not.toBeInTheDocument();
+  });
+
+  it("opens the quote dialog from the empty state when the library has books", async () => {
+    mockEmptyBase({ libraryTotal: 3 });
+    renderQuotes();
+
+    expect(await screen.findByRole("heading", { name: copy.empty.title })).toBeInTheDocument();
+    await waitForEmptyBaseChrome();
+    await userEvent.click(await screen.findByRole("button", { name: copy.actions.add }));
+
+    const dialog = await screen.findByRole("dialog", { name: copy.dialog.addTitle });
+    expect(
+      within(dialog).getByRole("textbox", { name: copy.dialog.bookPicker.search }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the toolbar so a search that found nothing can be changed", async () => {
+    mockEmptyBase();
+    renderQuotes("?q=дюна");
+
+    expect(await screen.findByRole("heading", { name: copy.noResults.title })).toBeInTheDocument();
+    await waitForEmptyBaseChrome();
+
+    expect(screen.getByRole("textbox", { name: copy.toolbar.searchLabel })).toHaveValue("дюна");
+  });
+
+  it("shows the error state when the library check fails and retries that check", async () => {
+    mockEmptyBase({ libraryStatus: 500 });
+    renderQuotes();
+
+    expect(await screen.findByRole("heading", { name: copy.error.load })).toBeInTheDocument();
+
+    mockEmptyBase({ libraryTotal: 0 });
+    await userEvent.click(screen.getByRole("button", { name: copy.actions.retry }));
+
+    expect(
+      await screen.findByRole("heading", { name: copy.empty.noBooks.title }),
+    ).toBeInTheDocument();
+  });
+});
+
 function filterChipTexts(): string[] {
   return within(screen.getByRole("radiogroup", { name: "Швидкі фільтри цитат" }))
     .getAllByRole("radio")
@@ -555,6 +670,26 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+function libraryOverview(total: number) {
+  return {
+    recentlyAdded: [],
+    summary: {
+      borrowed: 0,
+      favorites: 0,
+      finished: 0,
+      inTransit: 0,
+      reading: 0,
+      series: 0,
+      solo: 0,
+      total,
+      wantToBuy: 0,
+      wantToRead: 0,
+    },
+    topGenres: [],
+    topTags: [],
+  };
+}
+
 function listUrl(): string {
   const [found] = listUrls();
   if (found === undefined) throw new Error("the quotes list was never requested");
@@ -565,12 +700,19 @@ function listUrls(): string[] {
   return requestedUrls.filter((url) => pathnameOf(url) === "/api/quotes");
 }
 
+function mockEmptyBase(options: QuotesMockOptions = {}) {
+  mockQuotes([], { facetsFor: () => EMPTY_FACETS, summary: EMPTY_SUMMARY, ...options });
+}
+
 function mockQuotes(items: QuoteView[], options: QuotesMockOptions = {}) {
   const {
     facetsFor = () => FACETS,
+    libraryStatus = 200,
+    libraryTotal = 5,
     listHeldUntil = () => Promise.resolve(),
     listStatus = 200,
     overview = EMPTY_OVERVIEW,
+    summary = SUMMARY,
     summaryStatus = 200,
   } = options;
 
@@ -580,13 +722,18 @@ function mockQuotes(items: QuoteView[], options: QuotesMockOptions = {}) {
       const url = String(input);
       requestedUrls.push(url);
       if (url.includes("/api/quotes/summary")) {
-        return Promise.resolve(jsonResponse(summaryStatus === 200 ? SUMMARY : {}, summaryStatus));
+        return Promise.resolve(jsonResponse(summaryStatus === 200 ? summary : {}, summaryStatus));
       }
       if (url.includes("/api/quotes/overview")) return Promise.resolve(jsonResponse(overview));
       if (url.includes("/api/quotes/facets")) return Promise.resolve(jsonResponse(facetsFor(url)));
       if (url.includes("/api/quotes")) {
         return listHeldUntil(url).then(() =>
           listStatus === 200 ? jsonResponse(quotesPage(items, url)) : jsonResponse({}, listStatus),
+        );
+      }
+      if (pathnameOf(url) === "/api/books/overview") {
+        return Promise.resolve(
+          jsonResponse(libraryStatus === 200 ? libraryOverview(libraryTotal) : {}, libraryStatus),
         );
       }
       if (url.includes("/api/books")) {

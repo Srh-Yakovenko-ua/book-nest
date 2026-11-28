@@ -1,10 +1,10 @@
 import type { Nullable } from "@app/shared";
 import type { ReactNode, RefObject } from "react";
 
-import { UiIcon } from "@/components/icons";
 import { TitleLeaf } from "@/components/title-leaf";
-import { Button } from "@/components/ui/button";
 import { assertNever } from "@/lib/assert-never";
+import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import { NotesContextualSidebarSkeleton } from "./notes-contextual-sidebar";
 
@@ -15,9 +15,9 @@ type NotesArchivePageShellProps = {
   archive: ReactNode;
   archiveRef: RefObject<Nullable<HTMLDivElement>>;
   contextual: NotesContextualColumn;
-  createLabel: string;
+  createAction: ReactNode;
   dialogs: ReactNode;
-  onCreate: () => void;
+  resultsHeadingRef: RefObject<Nullable<HTMLHeadingElement>>;
   resultsTitle: string;
   subtitle: string;
   summary: ReactNode;
@@ -29,9 +29,9 @@ export function NotesArchivePageShell({
   archive,
   archiveRef,
   contextual,
-  createLabel,
+  createAction,
   dialogs,
-  onCreate,
+  resultsHeadingRef,
   resultsTitle,
   subtitle,
   summary,
@@ -52,10 +52,7 @@ export function NotesArchivePageShell({
             {subtitle}
           </p>
         </div>
-        <Button className="self-start sm:self-auto" onClick={onCreate}>
-          <UiIcon name="plus" size={16} />
-          {createLabel}
-        </Button>
+        {createAction}
       </header>
 
       {summary}
@@ -64,10 +61,15 @@ export function NotesArchivePageShell({
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <div
-          className="flex min-w-0 flex-1 scroll-mt-[calc(var(--shell-header-height)+1rem)] flex-col gap-6"
+          className={cn(
+            "flex min-w-0 flex-1 scroll-mt-[calc(var(--shell-header-height)+1rem)] flex-col gap-6",
+            RETRY_FOCUS_RING.aroundHiddenHeading,
+          )}
           ref={archiveRef}
         >
-          <h2 className="sr-only">{resultsTitle}</h2>
+          <h2 className="sr-only" ref={resultsHeadingRef} tabIndex={-1}>
+            {resultsTitle}
+          </h2>
           {archive}
         </div>
         <NotesContextualColumnSlot contextual={contextual} />

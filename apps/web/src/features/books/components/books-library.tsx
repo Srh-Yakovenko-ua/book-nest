@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
+import { createSerializer } from "nuqs";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
@@ -10,27 +11,61 @@ import { type SummaryCard } from "@/components/catalog/summary-cards";
 import { Progress } from "@/components/ui/progress";
 import { useGenres } from "@/features/genres";
 import { Link, useRouter } from "@/i18n/navigation";
+import { collectionChrome } from "@/lib/collection-chrome";
 import { formatNumber } from "@/lib/format";
+import { BooksControllerListOwnerItem } from "@/shared/api/generated/model";
 
 import type { LibraryScope } from "../model/library-query";
 
 import { useLibraryOverview } from "../api/use-library-overview";
+import { useLibraryPresence } from "../api/use-library-presence";
+import { BOOK_CREATE_PATH, bookCreateHref } from "../model/book-create-href";
+import { libraryQueryParsers } from "../model/library-query";
+import { useLibraryQuery } from "../model/use-library-query";
 import { BooksArchive } from "./books-archive";
 import { LibraryOverviewPanel } from "./library-overview-panel";
 import { LibraryPageHeader } from "./library-page-header";
 import { LibrarySummarySidebar } from "./library-summary-sidebar";
 
-export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorites"> }) {
+type BooksLibraryScope = Exclude<LibraryScope, "favorites">;
+
+const serializeLibrary = createSerializer(libraryQueryParsers);
+
+const BOOKS_LIBRARY_LINKS = {
+  createBook: {
+    all: BOOK_CREATE_PATH,
+    my: bookCreateHref({ ownershipStatus: "owned" }),
+  } satisfies Record<BooksLibraryScope, string>,
+  notOwnedBooks: serializeLibrary("/books", {
+    owner: [
+      BooksControllerListOwnerItem.none,
+      BooksControllerListOwnerItem.want_to_buy,
+      BooksControllerListOwnerItem.in_transit,
+    ],
+  }),
+};
+
+export function BooksLibrary({ scope }: { scope: BooksLibraryScope }) {
   const t = useTranslations("books.library");
+  const tBooks = useTranslations("books");
   const locale = useLocale();
   const router = useRouter();
 
   const overview = useLibraryOverview(scope);
+  const presence = useLibraryPresence();
+  const library = useLibraryQuery(scope);
   const genres = useGenres();
 
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
 
-  const onAddBook = () => router.push("/books/new");
+  const onAddBook = () => router.push(BOOKS_LIBRARY_LINKS.createBook[scope]);
+  const offersNotOwnedBooks = scope === "my" && presence.kind === "ready" && presence.total > 0;
+  const libraryChrome = collectionChrome({
+    baseTotal: overview.data?.summary.total,
+    hasQuery: library.hasActiveSearch || library.hasActiveFilters,
+  });
+  const isEmptyStatePreconditionReady = scope === "all" || presence.kind === "ready";
+  const showHeaderAddBook = libraryChrome.showTools || !isEmptyStatePreconditionReady;
 
   const summary = overview.data?.summary;
   const activeReading = overview.data?.activeReading;
@@ -146,8 +181,11 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
     desc: t(`empty.${scope}.description`),
     illu: scope === "all" ? "empty-all-books" : "empty-library",
     illuSize: "lg",
-    primary: { icon: "plus", label: t(`empty.${scope}.cta`) },
-    secondary: scope === "my" ? { icon: "book", label: t("empty.my.secondary") } : undefined,
+    primary: {
+      icon: "plus",
+      label: scope === "all" ? tBooks("firstBook.cta") : t("empty.my.cta"),
+    },
+    secondary: offersNotOwnedBooks ? { icon: "book", label: t("empty.my.secondary") } : undefined,
     title: t(`empty.${scope}.title`),
   };
 
@@ -190,13 +228,14 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
   return (
     <BooksArchive
       emptyState={emptyState}
+      emptyStatePrecondition={scope === "my" ? presence : undefined}
       errorState={errorState}
       header={
         <LibraryPageHeader
           addBookLabel={t("addBook")}
-          onAddBook={onAddBook}
+          onAddBook={showHeaderAddBook ? onAddBook : undefined}
           subtitle={t(`${scope}.subtitle`)}
-          summaryCards={summaryCards}
+          summaryCards={libraryChrome.showMetrics ? summaryCards : null}
           summaryError={overview.isLoadingError ? { onRetry: () => void overview.refetch() } : null}
           summaryLoading={overview.isPending}
           summaryMobileAction={
@@ -213,7 +252,9 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
         />
       }
       onAddBook={onAddBook}
-      onEmptySecondary={scope === "my" ? () => router.push("/books") : undefined}
+      onEmptySecondary={
+        offersNotOwnedBooks ? () => router.push(BOOKS_LIBRARY_LINKS.notOwnedBooks) : undefined
+      }
       scope={scope}
       sidebar={overview.isLoadingError ? undefined : sidebar}
     />

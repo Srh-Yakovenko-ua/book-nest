@@ -1,6 +1,6 @@
 "use client";
 
-import type { StatisticsCalendarDay, WeekStartDay } from "@app/shared";
+import type { Nullable, StatisticsCalendarDay, WeekStartDay } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 import { useRef } from "react";
@@ -21,6 +21,7 @@ import { StatisticsDetailSurface } from "../details/statistics-detail-surface";
 import { READING_INTENSITY_CLASS } from "./reading-intensity";
 
 const HEATMAP_CLASS = {
+  beforeAccount: "bg-transparent ring-1 ring-border/40 ring-inset",
   cell: "size-(--quarter-cell) rounded-[3px] outline-none",
   future: "bg-muted/40",
   grid: "flex gap-1 [--quarter-cell:clamp(0.625rem,calc((100cqi-var(--quarter-labels)-3.375rem)/18),1.125rem)] [--quarter-gap:2px] [--quarter-labels:0rem] @xs/quarter:[--quarter-labels:1.25rem]",
@@ -47,6 +48,7 @@ const HEATMAP_CLASS = {
 const VISIBLE_WEEKDAY_ROWS = [0, 2, 4] as const;
 
 export function ReadingHeatmap({
+  accountStart,
   days,
   months,
   onShowInBooksCalendar,
@@ -54,6 +56,7 @@ export function ReadingHeatmap({
   today,
   weekStartDay,
 }: {
+  accountStart: Nullable<string>;
   days: readonly StatisticsCalendarDay[];
   months: readonly string[];
   onShowInBooksCalendar?: (date: string) => void;
@@ -66,11 +69,12 @@ export function ReadingHeatmap({
   const order = weekdayOrder(weekStartDay);
   const monthSlots = months.map((monthKey) => ({
     monthKey,
-    weeks: buildMonthSlots({ days, monthKey, today, weekStartDay }),
+    weeks: buildMonthSlots({ accountStart, days, monthKey, today, weekStartDay }),
   }));
   const slots = monthSlots.flatMap(({ weeks }) => weeks.flat());
   const hasUnknownDays = slots.some(isUnknownSlot);
   const hasFutureDays = slots.some((slot) => slot.kind === "future");
+  const hasDaysBeforeAccount = slots.some((slot) => slot.kind === "before_account");
 
   return (
     <div className={HEATMAP_CLASS.root}>
@@ -129,6 +133,15 @@ export function ReadingHeatmap({
           <span className={HEATMAP_CLASS.legendItem}>
             <span aria-hidden className={cn(HEATMAP_CLASS.legendSwatch, HEATMAP_CLASS.unknown)} />
             <span>{t("unknownLegend")}</span>
+          </span>
+        ) : null}
+        {hasDaysBeforeAccount ? (
+          <span className={HEATMAP_CLASS.legendItem}>
+            <span
+              aria-hidden
+              className={cn(HEATMAP_CLASS.legendSwatch, HEATMAP_CLASS.beforeAccount)}
+            />
+            <span>{t("beforeAccountLegend")}</span>
           </span>
         ) : null}
         {hasFutureDays ? (
@@ -220,6 +233,14 @@ function HeatmapSlot({
   const tBooks = useTranslations("statistics.calendar.books");
 
   switch (slot.kind) {
+    case "before_account":
+      return (
+        <span
+          aria-label={tBooks("dayBeforeAccount", { date: formatDayLong(slot.date, locale) })}
+          className={cn(HEATMAP_CLASS.cell, HEATMAP_CLASS.beforeAccount)}
+          role="img"
+        />
+      );
     case "blank":
       return <span aria-hidden className={HEATMAP_CLASS.cell} />;
     case "day":

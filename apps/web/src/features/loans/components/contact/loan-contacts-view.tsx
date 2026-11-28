@@ -18,7 +18,9 @@ import { RefreshingRegion } from "@/components/refreshing-region";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCreateButtonFocus } from "@/hooks/use-create-button-focus";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { collectionChrome } from "@/lib/collection-chrome";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 import { cn } from "@/lib/utils";
 
@@ -40,10 +42,14 @@ export function LoanContactsView() {
   const [isCreating, setIsCreating] = useState(false);
   const resultsRegionRef = useRef<HTMLElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(resultsRegionRef);
+  const { createButtonRef, focusCreateButtonOnClose } = useCreateButtonFocus();
 
   const loadedPages = list.data?.pages ?? [];
   const items = loadedPages.flatMap((page) => page.items);
   const counts: Nullable<LoanContactCounts> = loadedPages[0]?.counts ?? null;
+  const baseTotal = query.hasActiveQuery ? undefined : counts?.all;
+  const chrome = collectionChrome({ baseTotal, hasQuery: query.hasActiveQuery });
+  const isBaseEmpty = baseTotal === 0;
 
   function handleResolved({ contact, kind }: LoanContactResolution) {
     setIsCreating(false);
@@ -67,17 +73,25 @@ export function LoanContactsView() {
           <p className="max-w-2xl text-sm text-muted-foreground md:text-base">{t("subtitle")}</p>
         </div>
 
-        <Button className="shrink-0 max-sm:w-full" onClick={() => setIsCreating(true)}>
-          <UiIcon name="plus" size={18} />
-          {t("create.cta")}
-        </Button>
+        {isBaseEmpty ? null : (
+          <Button
+            className="shrink-0 max-sm:w-full"
+            onClick={() => setIsCreating(true)}
+            ref={createButtonRef}
+          >
+            <UiIcon name="plus" size={18} />
+            {t("create.cta")}
+          </Button>
+        )}
       </header>
 
-      <LoanContactsToolbar
-        counts={counts ?? undefined}
-        countsPending={list.isPending}
-        query={query}
-      />
+      {chrome.showTools ? (
+        <LoanContactsToolbar
+          counts={counts ?? undefined}
+          countsPending={list.isPending}
+          query={query}
+        />
+      ) : null}
 
       <RefetchErrorBanner
         state={
@@ -94,6 +108,7 @@ export function LoanContactsView() {
         tabIndex={-1}
       >
         <LoanContactsContent
+          firstContactButtonRef={isBaseEmpty ? createButtonRef : null}
           hasActiveQuery={query.hasActiveQuery}
           isError={list.isLoadingError}
           isPending={list.isPending}
@@ -117,6 +132,7 @@ export function LoanContactsView() {
 
       <CreateLoanContactDialog
         conflictAction="open"
+        onCloseAutoFocus={focusCreateButtonOnClose}
         onOpenChange={setIsCreating}
         onResolved={handleResolved}
         open={isCreating}
@@ -128,6 +144,7 @@ export function LoanContactsView() {
 }
 
 function LoanContactsContent({
+  firstContactButtonRef,
   hasActiveQuery,
   isError,
   isPending,
@@ -139,6 +156,7 @@ function LoanContactsContent({
   onRetry,
   retryButtonRef,
 }: {
+  firstContactButtonRef: Ref<HTMLButtonElement>;
   hasActiveQuery: boolean;
   isError: boolean;
   isPending: boolean;
@@ -199,6 +217,7 @@ function LoanContactsContent({
     return (
       <EmptyState
         onPrimary={onCreate}
+        primaryRef={firstContactButtonRef}
         state={{
           desc: t("empty.description"),
           illu: "empty-contacts",

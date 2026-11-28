@@ -19,6 +19,9 @@ vi.mock("@/i18n/navigation", () => ({
 
 const REMINDERS_TAB = "Нагадування";
 const CHANGELOG_TAB = "Що нового";
+const WITH_UPDATES_LABEL = "Сповіщення, 2 непрочитані нагадування, є оновлення продукту";
+const UPDATES_ONLY_LABEL = "Сповіщення, є оновлення продукту";
+const UPDATES_DOT = "product-updates-dot";
 
 const fetchMock = vi.fn();
 
@@ -125,17 +128,34 @@ describe("NotificationBell badge", () => {
     const trigger = await screen.findByRole("button", { name: "Сповіщення" });
     await waitFor(() => expect(calls.changelogList).toBe(1));
     expect(trigger.textContent).toBe("");
+    expect(screen.queryByTestId(UPDATES_DOT)).not.toBeInTheDocument();
     expect(screen.getByRole("status").textContent).toBe("Усе прочитано");
   });
 
-  it("sums the reminder and changelog unread counts into one badge", async () => {
+  it("counts only the unread reminders in the number badge", async () => {
     renderWithProviders(<NotificationBell />);
 
-    const trigger = await screen.findByRole("button", { name: "Сповіщення, 3 непрочитані" });
-    expect(trigger).toHaveTextContent("3");
-    await waitFor(() =>
-      expect(screen.getByRole("status")).toHaveTextContent("Сповіщення, 3 непрочитані"),
-    );
+    const trigger = await screen.findByRole("button", { name: WITH_UPDATES_LABEL });
+    expect(trigger).toHaveTextContent(/^2$/);
+  });
+
+  it("marks unread product updates with a separate dot next to the reminder count", async () => {
+    renderWithProviders(<NotificationBell />);
+
+    await screen.findByRole("button", { name: WITH_UPDATES_LABEL });
+    expect(screen.getByTestId(UPDATES_DOT)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(WITH_UPDATES_LABEL));
+  });
+
+  it("shows only the updates dot when every reminder is read and many updates are unseen", async () => {
+    respondToUnreadCount = () => jsonResponse({ unreadCount: 0 });
+    respondToChangelog = () => jsonResponse(makeChangelogPage(140));
+
+    renderWithProviders(<NotificationBell />);
+
+    const trigger = await screen.findByRole("button", { name: UPDATES_ONLY_LABEL });
+    expect(trigger.textContent).toBe("");
+    expect(screen.getByTestId(UPDATES_DOT)).toBeInTheDocument();
   });
 
   it("caps the badge at 99 while the accessible name keeps the exact count", async () => {
@@ -144,7 +164,9 @@ describe("NotificationBell badge", () => {
 
     renderWithProviders(<NotificationBell />);
 
-    const trigger = await screen.findByRole("button", { name: "Сповіщення, 120 непрочитаних" });
+    const trigger = await screen.findByRole("button", {
+      name: "Сповіщення, 120 непрочитаних нагадувань",
+    });
     expect(trigger).toHaveTextContent("99+");
   });
 
@@ -155,7 +177,7 @@ describe("NotificationBell badge", () => {
     renderWithProviders(<NotificationBell />);
 
     expect(
-      await screen.findByRole("button", { name: "Сповіщення, 1 непрочитане" }),
+      await screen.findByRole("button", { name: "Сповіщення, 1 непрочитане нагадування" }),
     ).toBeInTheDocument();
   });
 });
@@ -165,7 +187,7 @@ describe("NotificationBell panel", () => {
     respondToChangelog = () => jsonResponse(makeChangelogPage(0));
 
     renderWithProviders(<NotificationBell />);
-    await screen.findByRole("button", { name: "Сповіщення, 2 непрочитані" });
+    await screen.findByRole("button", { name: "Сповіщення, 2 непрочитані нагадування" });
 
     await openBell();
 
@@ -192,7 +214,7 @@ describe("NotificationBell panel", () => {
 
   it("marks nothing read when the panel opens", async () => {
     renderWithProviders(<NotificationBell />);
-    await screen.findByRole("button", { name: "Сповіщення, 3 непрочитані" });
+    await screen.findByRole("button", { name: WITH_UPDATES_LABEL });
 
     await openBell();
     await findMarkAllRead();
@@ -204,7 +226,7 @@ describe("NotificationBell panel", () => {
 
   it("marks the changelog seen when its tab is revealed", async () => {
     renderWithProviders(<NotificationBell />);
-    await screen.findByRole("button", { name: "Сповіщення, 3 непрочитані" });
+    await screen.findByRole("button", { name: WITH_UPDATES_LABEL });
 
     await openBell();
     await screen.findByRole("tab", { name: new RegExp(CHANGELOG_TAB) });
@@ -218,9 +240,37 @@ describe("NotificationBell panel", () => {
     expect(calls.markAllRead).toBe(0);
   });
 
-  it("drops the badge to the changelog-only count after marking everything read", async () => {
+  it("clears the updates dot once the revealed changelog reports nothing unseen", async () => {
     renderWithProviders(<NotificationBell />);
-    await screen.findByRole("button", { name: "Сповіщення, 3 непрочитані" });
+    await screen.findByRole("button", { name: WITH_UPDATES_LABEL });
+    expect(screen.getByTestId(UPDATES_DOT)).toBeInTheDocument();
+
+    await openBell();
+    respondToChangelog = () => jsonResponse(makeChangelogPage(0));
+    await userEvent.click(await screen.findByRole("tab", { name: new RegExp(CHANGELOG_TAB) }));
+
+    expect(
+      await screen.findByRole("button", { name: "Сповіщення, 2 непрочитані нагадування" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId(UPDATES_DOT)).not.toBeInTheDocument();
+  });
+
+  it("marks the changelog tab with an updates indicator instead of the unseen count", async () => {
+    respondToChangelog = () => jsonResponse(makeChangelogPage(140));
+
+    renderWithProviders(<NotificationBell />);
+    await screen.findByRole("button", { name: WITH_UPDATES_LABEL });
+
+    await openBell();
+
+    const changelogTab = await screen.findByRole("tab", { name: /є оновлення продукту/ });
+    expect(changelogTab).toHaveTextContent(CHANGELOG_TAB);
+    expect(changelogTab).not.toHaveTextContent("140");
+  });
+
+  it("drops the reminder badge and keeps the updates dot after marking every reminder read", async () => {
+    renderWithProviders(<NotificationBell />);
+    await screen.findByRole("button", { name: WITH_UPDATES_LABEL });
 
     await openBell();
     const markAllRead = await findMarkAllRead();
@@ -237,16 +287,16 @@ describe("NotificationBell panel", () => {
     await userEvent.click(markAllRead);
 
     await waitFor(() => expect(calls.markAllRead).toBe(1));
-    expect(
-      await screen.findByRole("button", { name: "Сповіщення, 1 непрочитане" }),
-    ).toBeInTheDocument();
+    const trigger = await screen.findByRole("button", { name: UPDATES_ONLY_LABEL });
+    expect(trigger).not.toHaveTextContent("2");
+    expect(screen.getByTestId(UPDATES_DOT)).toBeInTheDocument();
   });
 
   it("shows the reminder error state as an alert and recovers on retry", async () => {
     respondToList = () => jsonResponse({ message: "boom" }, 500);
 
     renderWithProviders(<NotificationBell />);
-    await screen.findByRole("button", { name: "Сповіщення, 3 непрочитані" });
+    await screen.findByRole("button", { name: WITH_UPDATES_LABEL });
 
     await openBell();
 
@@ -261,7 +311,7 @@ describe("NotificationBell panel", () => {
 
   it("keeps the loaded notifications when the refetch behind mark-all-read fails", async () => {
     renderWithProviders(<NotificationBell />);
-    await screen.findByRole("button", { name: "Сповіщення, 3 непрочитані" });
+    await screen.findByRole("button", { name: WITH_UPDATES_LABEL });
 
     await openBell();
     const markAllRead = await findMarkAllRead();
@@ -290,7 +340,7 @@ describe("NotificationBell panel", () => {
       );
 
     renderWithProviders(<NotificationBell />);
-    await screen.findByRole("button", { name: "Сповіщення, 3 непрочитані" });
+    await screen.findByRole("button", { name: WITH_UPDATES_LABEL });
 
     await openBell();
     const loadMore = await screen.findByRole("button", { name: "Показати ще" });

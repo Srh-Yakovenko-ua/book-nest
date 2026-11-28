@@ -40,7 +40,7 @@ export function MaintenanceScreen({ checking, longWait, onRetry }: MaintenanceSc
       />
 
       <main className="relative w-full max-w-lg text-center">
-        <Illustration className="mx-auto lg:h-70" name="maintenance" size="sm" />
+        <Illustration className="mx-auto" name="maintenance" size="xl" />
 
         <h1 className="mt-7 font-display text-[clamp(1.75rem,5vw,2.25rem)] font-semibold tracking-[-0.01em]">
           {t("title")}

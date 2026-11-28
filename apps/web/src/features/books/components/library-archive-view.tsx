@@ -23,9 +23,11 @@ import { Segmented } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
 import { infiniteScrollStateOf } from "@/hooks/use-infinite-scroll-sentinel";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { withPresenceRetry } from "@/lib/collection-presence";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 import { cn } from "@/lib/utils";
 
+import type { LibraryPresence } from "../api/use-library-presence";
 import type { LibraryActions, PendingBookAction } from "../model/book-card-actions";
 import type { LibraryBook, LibraryBookLinkComponent } from "../model/library-book";
 import type { LibraryViewMode } from "../model/library-query";
@@ -50,6 +52,7 @@ export type LibraryArchiveViewProps = {
   counterLabel: string;
   coverViewLabel: string;
   emptyState: EmptyStateEntry;
+  emptyStatePrecondition?: LibraryPresence;
   errorState: EmptyStateEntry;
   hasActiveFilters: boolean;
   hasActiveSearch: boolean;
@@ -115,6 +118,7 @@ export function LibraryArchiveView(props: LibraryArchiveViewProps) {
   const {
     actions,
     books,
+    emptyStatePrecondition,
     hasActiveFilters,
     hasActiveSearch,
     header,
@@ -167,6 +171,11 @@ export function LibraryArchiveView(props: LibraryArchiveViewProps) {
           },
         };
 
+  const emptyStatePreconditionRetryingFocus =
+    emptyStatePrecondition === undefined
+      ? undefined
+      : withPresenceRetry({ presence: emptyStatePrecondition, wrapRetry: withRetryFocus });
+
   const showToolbar =
     !isError && (isPending || books.length > 0 || hasActiveSearch || hasActiveFilters);
 
@@ -186,6 +195,7 @@ export function LibraryArchiveView(props: LibraryArchiveViewProps) {
           <RefetchErrorBanner state={refetchError} />
           <LibraryContent
             {...props}
+            emptyStatePrecondition={emptyStatePreconditionRetryingFocus}
             invalidRange={invalidRangeFocusingResults}
             onRetry={withRetryFocus(onRetry)}
             renderActions={renderActions}
@@ -283,6 +293,7 @@ function LibraryContent({
   books,
   coverViewLabel,
   emptyState,
+  emptyStatePrecondition,
   errorState,
   hasActiveFilters,
   hasActiveSearch,
@@ -337,7 +348,16 @@ function LibraryContent({
 
   if (books.length === 0) {
     if (!libraryTotalLoading && libraryTotal === 0) {
-      return <EmptyState onPrimary={onAddBook} onSecondary={onEmptySecondary} state={emptyState} />;
+      return (
+        <LibraryEmptyCollection
+          emptyState={emptyState}
+          errorState={errorState}
+          onAddBook={onAddBook}
+          onEmptySecondary={onEmptySecondary}
+          precondition={emptyStatePrecondition}
+          retryButtonRef={retryButtonRef}
+        />
+      );
     }
     if (hasActiveSearch && !hasActiveFilters) {
       return (
@@ -357,7 +377,16 @@ function LibraryContent({
         </RefreshingRegion>
       );
     }
-    return <EmptyState onPrimary={onAddBook} onSecondary={onEmptySecondary} state={emptyState} />;
+    return (
+      <LibraryEmptyCollection
+        emptyState={emptyState}
+        errorState={errorState}
+        onAddBook={onAddBook}
+        onEmptySecondary={onEmptySecondary}
+        precondition={emptyStatePrecondition}
+        retryButtonRef={retryButtonRef}
+      />
+    );
   }
 
   return (
@@ -413,6 +442,30 @@ function LibraryContent({
       )}
     </div>
   );
+}
+
+function LibraryEmptyCollection({
+  emptyState,
+  errorState,
+  onAddBook,
+  onEmptySecondary,
+  precondition,
+  retryButtonRef,
+}: Pick<LibraryArchiveViewProps, "emptyState" | "errorState" | "onAddBook" | "onEmptySecondary"> & {
+  precondition?: LibraryPresence;
+  retryButtonRef: Ref<HTMLButtonElement>;
+}) {
+  if (precondition?.kind === "pending") return <BooksGridSkeleton />;
+
+  if (precondition?.kind === "error") {
+    return (
+      <div aria-live="assertive" role="alert">
+        <EmptyState onPrimary={precondition.retry} primaryRef={retryButtonRef} state={errorState} />
+      </div>
+    );
+  }
+
+  return <EmptyState onPrimary={onAddBook} onSecondary={onEmptySecondary} state={emptyState} />;
 }
 
 function LibraryGridCard({

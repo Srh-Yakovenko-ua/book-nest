@@ -8,6 +8,7 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { listKeys } from "../api/list-keys";
@@ -37,6 +38,7 @@ let respondToOverview: () => Response;
 let respondToRelated: () => Response;
 let respondToMove: () => Response;
 let respondToAddBooks: () => Response;
+let libraryTotal: number;
 
 type RenderQuickFilterListOptions = RenderViewOptions & {
   counts?: Partial<CustomListDetail["quickCounts"]>;
@@ -71,6 +73,26 @@ function lastSearchParams(events: UrlUpdateEvent[]): URLSearchParams {
   const last = events.at(-1);
   if (last === undefined) throw new Error("no url update was recorded");
   return last.searchParams;
+}
+
+function libraryOverview(total: number) {
+  return {
+    recentlyAdded: [],
+    summary: {
+      borrowed: 0,
+      favorites: 0,
+      finished: 0,
+      inTransit: 0,
+      reading: 0,
+      series: 0,
+      solo: 0,
+      total,
+      wantToBuy: 0,
+      wantToRead: 0,
+    },
+    topGenres: [],
+    topTags: [],
+  };
 }
 
 function pressUndoOnLastToast() {
@@ -208,12 +230,16 @@ beforeEach(() => {
   respondToOverview = () => jsonResponse(makeListOverviewView());
   respondToRelated = () => jsonResponse({ lists: [] });
   respondToAddBooks = () => jsonResponse({ added: 2, bookCount: 2 });
+  libraryTotal = 3;
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
     if (url.includes("/api/genres")) return Promise.resolve(jsonResponse([]));
     if (url.includes("/facets")) return Promise.resolve(jsonResponse({ authors: [], genres: [] }));
+    if (url.includes("/api/books/overview")) {
+      return Promise.resolve(jsonResponse(libraryOverview(libraryTotal)));
+    }
     if (url.includes("/overview")) return Promise.resolve(respondToOverview());
     if (url.includes("/related")) return Promise.resolve(respondToRelated());
     if (url.includes("/goal")) return Promise.resolve(new Response(null, { status: 204 }));
@@ -267,6 +293,38 @@ describe("ListDetailsView", () => {
       "src",
       expect.stringContaining("empty-lists.png"),
     );
+  });
+
+  it("explains how to fill an empty list on an account with books", async () => {
+    renderView([makeCustomListDetail({ books: { items: [] }, name: "Порожній список" })]);
+
+    expect(await screen.findByText(messages.lists.details.empty.description)).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: messages.lists.details.empty.addBooks }),
+    ).not.toHaveLength(0);
+  });
+
+  it("offers the first book on an empty list when the account has no books", async () => {
+    libraryTotal = 0;
+    renderView([makeCustomListDetail({ books: { items: [] }, name: "Порожній список" })]);
+
+    const links = await screen.findAllByRole("link", {
+      name: messages.lists.details.empty.noBooks.cta,
+    });
+
+    expect(links.map((link) => link.getAttribute("href"))).toContain("/books/new");
+    expect(screen.getByText(messages.lists.details.empty.noBooks.description)).toBeInTheDocument();
+  });
+
+  it("offers the first book once, from the empty state alone, when the account has no books", async () => {
+    libraryTotal = 0;
+    renderView([makeCustomListDetail({ books: { items: [] }, name: "Порожній список" })]);
+
+    await screen.findByText(messages.lists.details.empty.noBooks.description);
+
+    expect(
+      screen.getAllByRole("link", { name: messages.lists.details.empty.noBooks.cta }),
+    ).toHaveLength(1);
   });
 
   it("removes a book and offers an undo action through a toast", async () => {

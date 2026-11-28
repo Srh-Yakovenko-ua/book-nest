@@ -20,11 +20,13 @@ import {
 } from "../model/books-to-buy.fixtures";
 import { BooksToBuyView } from "./books-to-buy-view";
 
+const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }));
+
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   ),
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: routerPush, replace: vi.fn() }),
 }));
 
 vi.mock("sonner", () => ({
@@ -41,6 +43,8 @@ const COPY = {
   updating: messages.common.updating,
 };
 
+let libraryTotal: number;
+let respondToOverview: () => Promise<Response>;
 let respondToWishlist: (url: string) => Promise<Response>;
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -48,6 +52,26 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json" },
     status,
   });
+}
+
+function overviewOf(total: number) {
+  return {
+    recentlyAdded: [],
+    summary: {
+      borrowed: 0,
+      favorites: 0,
+      finished: 0,
+      inTransit: 0,
+      reading: 0,
+      series: 0,
+      solo: 0,
+      total,
+      wantToBuy: 0,
+      wantToRead: 0,
+    },
+    topGenres: [],
+    topTags: [],
+  };
 }
 
 function renderWishlist(searchParams = "", onUrlUpdate?: OnUrlUpdateFunction) {
@@ -74,6 +98,8 @@ function wishlistOf(books: WishlistBookView[], summary?: Partial<WishlistSummary
 }
 
 beforeEach(() => {
+  libraryTotal = 3;
+  respondToOverview = () => Promise.resolve(jsonResponse(overviewOf(libraryTotal)));
   respondToWishlist = () => Promise.resolve(jsonResponse(wishlistOf([makeWishlistBook()])));
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
@@ -89,6 +115,7 @@ beforeEach(() => {
       );
     }
     if (url.includes("/api/books/wishlist")) return respondToWishlist(url);
+    if (url.includes("/api/books/overview")) return respondToOverview();
     if (url.includes("/api/books?")) {
       return Promise.resolve(
         jsonResponse({ items: [], page: 1, pagesCount: 0, pageSize: 24, totalCount: 0 }),
@@ -175,8 +202,91 @@ describe("BooksToBuyView", () => {
 
     renderWishlist();
 
-    expect(await screen.findByText("Збережи книги для майбутніх покупок")).toBeInTheDocument();
+    expect(await screen.findByText(messages.booksToBuy.empty.title)).toBeInTheDocument();
     expect(screen.queryByRole("radiogroup", { name: "Посилання та ціни" })).toBeNull();
+  });
+
+  it("keeps one add-book action on an empty wishlist and opens the create form with the wishlist status", async () => {
+    respondToWishlist = () => Promise.resolve(jsonResponse(wishlistOf([])));
+    renderWishlist();
+    await screen.findByText(messages.booksToBuy.empty.title);
+
+    const addButtons = screen.getAllByRole("button", { name: messages.booksToBuy.empty.cta });
+    expect(addButtons).toHaveLength(1);
+    expect(addButtons[0]?.closest("header")).toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: messages.booksToBuy.empty.cta }));
+
+    expect(routerPush.mock.calls).toEqual([["/books/new?ownershipStatus=want_to_buy"]]);
+  });
+
+  it("keeps the header add-book action while the wishlist is still loading", () => {
+    respondToWishlist = () => new Promise<Response>(() => {});
+
+    renderWishlist();
+
+    expect(screen.getByRole("button", { name: messages.booksToBuy.addBook })).toBeInTheDocument();
+  });
+
+  it("leads an empty wishlist to the library when the account has books", async () => {
+    respondToWishlist = () => Promise.resolve(jsonResponse(wishlistOf([])));
+    renderWishlist();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: messages.booksToBuy.empty.secondary }),
+    );
+
+    expect(routerPush).toHaveBeenCalledWith("/books");
+  });
+
+  it("drops the library path from an empty wishlist when the account has no books", async () => {
+    libraryTotal = 0;
+    respondToWishlist = () => Promise.resolve(jsonResponse(wishlistOf([])));
+    renderWishlist();
+
+    await screen.findByText(messages.booksToBuy.empty.title);
+
+    expect(
+      screen.queryByRole("button", { name: messages.booksToBuy.empty.secondary }),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: messages.booksToBuy.empty.cta })).toHaveLength(1);
+  });
+
+  it("shows the error state instead of the empty invitation when the library check fails", async () => {
+    respondToOverview = () => Promise.resolve(jsonResponse({ message: "boom" }, 500));
+    respondToWishlist = () => Promise.resolve(jsonResponse(wishlistOf([])));
+    renderWishlist();
+
+    const alert = await screen.findByRole("alert");
+
+    expect(within(alert).getByText(messages.booksToBuy.error.title)).toBeInTheDocument();
+    expect(
+      within(alert).getByRole("button", { name: messages.booksToBuy.error.retry }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(messages.booksToBuy.empty.title)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: messages.booksToBuy.addBook })).toBeInTheDocument();
+  });
+
+  it("asks for the library again from the failed check and shows the empty invitation once it answers", async () => {
+    let overviewRequests = 0;
+    respondToOverview = () => {
+      overviewRequests += 1;
+      return Promise.resolve(
+        overviewRequests === 1
+          ? jsonResponse({ message: "boom" }, 500)
+          : jsonResponse(overviewOf(0)),
+      );
+    };
+    respondToWishlist = () => Promise.resolve(jsonResponse(wishlistOf([])));
+    renderWishlist();
+
+    const alert = await screen.findByRole("alert");
+    await userEvent.click(
+      within(alert).getByRole("button", { name: messages.booksToBuy.error.retry }),
+    );
+
+    expect(await screen.findByText(messages.booksToBuy.empty.title)).toBeInTheDocument();
+    expect(overviewRequests).toBe(2);
   });
 
   it("shows the wishlist overview alongside a loaded wishlist", async () => {
@@ -240,7 +350,8 @@ describe("BooksToBuyView", () => {
 
     expect(await screen.findByText("Нічого не знайдено")).toBeInTheDocument();
     expect(await screen.findByText(/^Показано 0 з /)).toBeInTheDocument();
-    expect(screen.queryByText("Збережи книги для майбутніх покупок")).not.toBeInTheDocument();
+    expect(screen.queryByText(messages.booksToBuy.empty.title)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: messages.booksToBuy.addBook })).toBeInTheDocument();
   });
 
   it("drops every filter from the url when the reader clears a filtered-out list", async () => {

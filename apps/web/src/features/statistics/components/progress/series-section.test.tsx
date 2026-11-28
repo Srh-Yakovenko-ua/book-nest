@@ -45,17 +45,6 @@ const ZERO_LIFECYCLE: ReadingStatisticsSeriesSection["lifecycle"] = {
   data: { caughtUp: 0, completed: 0, continued: 0, started: 0 },
 };
 
-const ZERO_READS: ReadingStatisticsSeriesSection = {
-  ...series,
-  completedReadsCount: 0,
-  lifecycle: ZERO_LIFECYCLE,
-  marathon: NO_MARATHON,
-  mostActive: [],
-  seriesCompletedReadsCount: 0,
-  seriesShare: null,
-  topProgress: [],
-};
-
 const LEGACY_LIFECYCLE: ReadingStatisticsSeriesSection["lifecycle"] = {
   availability: "unavailable",
   data: null,
@@ -100,31 +89,6 @@ function withTextContent(expected: string) {
 describe("SeriesSection", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
-  });
-
-  it("shows one empty state and nothing else when the period has no completed reads", () => {
-    renderWithProviders(<SeriesSection series={ZERO_READS} />);
-
-    expect(screen.getAllByText(seriesText.noReadsTitle)).toHaveLength(1);
-    expect(screen.getByText(seriesText.noReadsDescription)).toBeInTheDocument();
-    expect(screen.queryByText("0%", { exact: false })).not.toBeInTheDocument();
-    expect(screen.queryByText(seriesText.shareUnknown)).not.toBeInTheDocument();
-    expect(screen.queryByText(seriesText.empty)).not.toBeInTheDocument();
-    expect(screen.queryByText(seriesText.mostActiveTitle)).not.toBeInTheDocument();
-    expect(screen.queryByText(seriesText.topProgressTitle)).not.toBeInTheDocument();
-    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
-    expect(screen.queryByRole("list")).not.toBeInTheDocument();
-    expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
-    for (const label of LIFECYCLE_LABELS) {
-      expect(screen.queryByText(label)).not.toBeInTheDocument();
-    }
-  });
-
-  it("reports unavailable series data rather than an empty period", () => {
-    renderWithProviders(<SeriesSection series={{ ...ZERO_READS, availability: "unavailable" }} />);
-
-    expect(screen.getByText(seriesText.unavailable)).toBeInTheDocument();
-    expect(screen.queryByText(seriesText.noReadsTitle)).not.toBeInTheDocument();
   });
 
   it("shows a zero share and an empty ranking when no completed read belongs to a series", () => {

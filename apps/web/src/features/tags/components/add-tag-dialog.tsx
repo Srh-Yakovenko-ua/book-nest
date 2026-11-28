@@ -26,11 +26,12 @@ import { createTagFormSchema, isDuplicateTagNameError } from "../model/tag-form"
 import { TagFormFields } from "./tag-form-fields";
 
 type AddTagDialogProps = {
+  onCloseAutoFocus?: (event: Event) => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 };
 
-export function AddTagDialog({ onOpenChange, open }: AddTagDialogProps) {
+export function AddTagDialog({ onCloseAutoFocus, onOpenChange, open }: AddTagDialogProps) {
   const t = useTranslations("tags.tagDialog");
   const createTag = useCreateTag();
 
@@ -42,7 +43,7 @@ export function AddTagDialog({ onOpenChange, open }: AddTagDialogProps) {
       }}
       open={open}
     >
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{t("addTitle")}</DialogTitle>
           <DialogDescription>{t("addSubtitle")}</DialogDescription>

@@ -4,6 +4,7 @@ import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
 
+import type { LibraryPresence } from "@/features/books";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
@@ -23,6 +24,8 @@ const GENRES_GRID = {
 } as const;
 
 type GenresContentProps = {
+  libraryPresence: LibraryPresence;
+  onAddFirstBook: () => void;
   onClearSearch: () => void;
   onLoadMore: () => void;
   onOpenLibrary: () => void;
@@ -33,6 +36,8 @@ type GenresContentProps = {
 };
 
 export function GenresContent({
+  libraryPresence,
+  onAddFirstBook,
   onClearSearch,
   onLoadMore,
   onOpenLibrary,
@@ -43,10 +48,19 @@ export function GenresContent({
 }: GenresContentProps) {
   switch (state.kind) {
     case "empty":
+      if (state.reason === "library") {
+        return (
+          <GenresLibraryEmpty
+            onAddFirstBook={onAddFirstBook}
+            onOpenLibrary={onOpenLibrary}
+            presence={libraryPresence}
+            retryButtonRef={retryButtonRef}
+          />
+        );
+      }
       return (
         <GenresEmpty
           onClearSearch={onClearSearch}
-          onOpenLibrary={onOpenLibrary}
           onResetFilters={onResetFilters}
           reason={state.reason}
         />
@@ -64,14 +78,12 @@ export function GenresContent({
 
 function GenresEmpty({
   onClearSearch,
-  onOpenLibrary,
   onResetFilters,
   reason,
 }: {
   onClearSearch: () => void;
-  onOpenLibrary: () => void;
   onResetFilters: () => void;
-  reason: GenresEmptyReason;
+  reason: Exclude<GenresEmptyReason, "library">;
 }) {
   const t = useTranslations("genres.states");
 
@@ -84,15 +96,6 @@ function GenresEmpty({
         title: t("emptyFilters.title"),
       };
       return <EmptyState onPrimary={onResetFilters} state={entry} />;
-    }
-    case "library": {
-      const entry: EmptyStateEntry = {
-        desc: t("empty.description"),
-        illu: "empty-genres",
-        primary: { icon: "library", label: t("empty.action") },
-        title: t("empty.title"),
-      };
-      return <EmptyState onPrimary={onOpenLibrary} state={entry} />;
     }
     case "search": {
       const entry: EmptyStateEntry = {
@@ -192,4 +195,46 @@ function GenresGridSkeleton() {
       ))}
     </div>
   );
+}
+
+function GenresLibraryEmpty({
+  onAddFirstBook,
+  onOpenLibrary,
+  presence,
+  retryButtonRef,
+}: {
+  onAddFirstBook: () => void;
+  onOpenLibrary: () => void;
+  presence: LibraryPresence;
+  retryButtonRef: Ref<HTMLButtonElement>;
+}) {
+  const t = useTranslations("genres.states.empty");
+  const tBooks = useTranslations("books");
+
+  switch (presence.kind) {
+    case "error":
+      return <GenresError onRetry={presence.retry} retryButtonRef={retryButtonRef} />;
+    case "pending":
+      return <GenresGridSkeleton />;
+    case "ready": {
+      if (presence.total === 0) {
+        const entry: EmptyStateEntry = {
+          desc: t("noBooksDescription"),
+          illu: "empty-genres",
+          primary: { icon: "plus", label: tBooks("firstBook.cta") },
+          title: t("title"),
+        };
+        return <EmptyState onPrimary={onAddFirstBook} state={entry} />;
+      }
+      const entry: EmptyStateEntry = {
+        desc: t("description"),
+        illu: "empty-genres",
+        primary: { icon: "library", label: t("action") },
+        title: t("title"),
+      };
+      return <EmptyState onPrimary={onOpenLibrary} state={entry} />;
+    }
+    default:
+      return assertNever(presence);
+  }
 }

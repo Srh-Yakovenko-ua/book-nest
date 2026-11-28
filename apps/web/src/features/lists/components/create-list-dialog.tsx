@@ -27,6 +27,7 @@ import { HTTP_STATUS, isApiErrorStatus } from "@/lib/api-errors";
 import { useCreateList } from "../api/use-create-list";
 
 type CreateListDialogProps = {
+  onCloseAutoFocus?: (event: Event) => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 };
@@ -34,12 +35,12 @@ type CreateListDialogProps = {
 type ListFormInput = z.input<typeof NewListInputSchema>;
 type ListFormOutput = z.output<typeof NewListInputSchema>;
 
-export function CreateListDialog({ onOpenChange, open }: CreateListDialogProps) {
+export function CreateListDialog({ onCloseAutoFocus, onOpenChange, open }: CreateListDialogProps) {
   const t = useTranslations("lists.manage");
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{t("create.title")}</DialogTitle>
           <DialogDescription>{t("create.subtitle")}</DialogDescription>

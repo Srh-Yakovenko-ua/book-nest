@@ -11,6 +11,7 @@ import { ActiveFilters } from "@/components/catalog/active-filters";
 import { topGenreIconSlot } from "@/components/icons";
 import { useGenres } from "@/features/genres";
 import { Link, useRouter } from "@/i18n/navigation";
+import { collectionChrome } from "@/lib/collection-chrome";
 
 import type { LibraryActions } from "../model/book-card-actions";
 import type { LibraryBook } from "../model/library-book";
@@ -28,9 +29,11 @@ import {
 } from "../api/use-book-actions";
 import { useLibraryBooks } from "../api/use-books";
 import { useFavoritesSummary } from "../api/use-favorites-summary";
+import { useLibraryPresence } from "../api/use-library-presence";
 import { useLibraryQuickCounts } from "../api/use-library-quick-counts";
 import { useRemoveFromQueue } from "../api/use-reading-queue";
 import { useSelectedTags } from "../api/use-tags-search";
+import { BOOK_CREATE_PATH } from "../model/book-create-href";
 import { toLibraryBook } from "../model/library-book";
 import { LIBRARY_SORT_ORDER } from "../model/library-query";
 import {
@@ -49,9 +52,14 @@ import { LibrarySearchInput } from "./library-search-input";
 
 const FAVORITES_SCOPE: LibraryScope = "favorites";
 const FAVORITES_MOBILE_TILE_COUNT = 4;
+const FAVORITES_EMPTY_HREF = {
+  addFirstBook: BOOK_CREATE_PATH,
+  openLibrary: "/books",
+} as const;
 
 export function FavoritesView() {
   const t = useTranslations("books.library");
+  const tBooks = useTranslations("books");
   const tFav = useTranslations("favorites");
   const tCover = useTranslations("books.cover");
   const tFormat = useTranslations("books.format.options");
@@ -79,6 +87,7 @@ export function FavoritesView() {
     toLibraryQuickCountsParams(library.listParams, FAVORITES_SCOPE),
   );
   const summary = useFavoritesSummary();
+  const presence = useLibraryPresence();
   const genres = useGenres();
   const selectedTags = useSelectedTags(library.state.tag);
   const [entityLabels, setEntityLabels] = useState<Record<string, string>>({});
@@ -329,6 +338,11 @@ export function FavoritesView() {
   ];
 
   const mobileSummaryCards = summaryCards.slice(0, FAVORITES_MOBILE_TILE_COUNT);
+  const favoritesChrome = collectionChrome({
+    baseTotal: summary.data?.total,
+    hasQuery: library.hasActiveSearch || library.hasActiveFilters,
+  });
+  const hasLibraryBooks = presence.kind === "ready" && presence.total > 0;
 
   const sortOptions = LIBRARY_SORT_ORDER.map((value) => ({ label: tSortOptions(value), value }));
 
@@ -395,12 +409,19 @@ export function FavoritesView() {
     onToggleFavorite: (input) => void toggleFavoriteWithUndo(input),
   };
 
-  const emptyState: EmptyStateEntry = {
-    desc: tFav("empty.description"),
-    illu: "empty-favorites",
-    primary: { icon: "book", label: tFav("empty.cta") },
-    title: tFav("empty.title"),
-  };
+  const emptyState: EmptyStateEntry = hasLibraryBooks
+    ? {
+        desc: tFav("empty.description"),
+        illu: "empty-favorites",
+        primary: { icon: "book", label: tFav("empty.cta") },
+        title: tFav("empty.title"),
+      }
+    : {
+        desc: tFav("empty.noBooks.description"),
+        illu: "empty-favorites",
+        primary: { icon: "plus", label: tBooks("firstBook.cta") },
+        title: tFav("empty.noBooks.title"),
+      };
 
   const errorState: EmptyStateEntry = {
     desc: t("error.description"),
@@ -444,6 +465,7 @@ export function FavoritesView() {
         counterLabel={t("counter", { shown: books.length, total: totalCount })}
         coverViewLabel={tCover("viewer.open")}
         emptyState={emptyState}
+        emptyStatePrecondition={presence}
         errorState={errorState}
         hasActiveFilters={library.hasActiveFilters}
         hasActiveSearch={library.hasActiveSearch}
@@ -460,7 +482,11 @@ export function FavoritesView() {
         loadMoreErrorLabel={t("loadMoreError")}
         noFilteredResultsState={noFilteredResultsState}
         noSearchResultsState={noSearchResultsState}
-        onAddBook={() => router.push("/books")}
+        onAddBook={() =>
+          router.push(
+            hasLibraryBooks ? FAVORITES_EMPTY_HREF.openLibrary : FAVORITES_EMPTY_HREF.addFirstBook,
+          )
+        }
         onClearAll={library.clearAll}
         onClearFilters={library.clearFilters}
         onClearSearch={library.clearSearch}
@@ -492,7 +518,7 @@ export function FavoritesView() {
         sortLabel={t("sort.label")}
         sortOptions={sortOptions}
         subtitle={tFav("subtitle")}
-        summaryCards={summaryCards}
+        summaryCards={favoritesChrome.showMetrics ? summaryCards : null}
         summaryError={summary.isLoadingError ? { onRetry: () => void summary.refetch() } : null}
         summaryLoading={summary.isPending}
         summaryMobileAction={

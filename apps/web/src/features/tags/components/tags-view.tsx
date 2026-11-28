@@ -3,13 +3,16 @@
 import type { TagCatalogListItem } from "@app/shared";
 import type { ReactNode } from "react";
 
+import { TAG_QUICK_FILTER_DEFAULT } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
+import { useCreateButtonFocus } from "@/hooks/use-create-button-focus";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { collectionChrome } from "@/lib/collection-chrome";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +52,7 @@ export function TagsView() {
   const [dialog, setDialog] = useState<TagDialog>(CLOSED_DIALOG);
   const catalogHeadingRef = useRef<HTMLHeadingElement>(null);
   const { retryButtonRef, withRetryFocus } = useRetryFocus(catalogHeadingRef);
+  const { createButtonRef, focusCreateButtonOnClose } = useCreateButtonFocus();
 
   const listState = tagsListState({
     catalog,
@@ -65,6 +69,10 @@ export function TagsView() {
             unusedCount: summary.data.usageDistribution.unused,
           },
   });
+
+  const hasQuery = query.hasContextualCriteria || query.state.filter !== TAG_QUICK_FILTER_DEFAULT;
+  const chrome = collectionChrome({ baseTotal: summary.data?.totalTagsCount, hasQuery });
+  const showHeaderAction = chrome.showMetrics || listState.kind !== "first-use";
 
   function closeDialog() {
     setDialog(CLOSED_DIALOG);
@@ -89,25 +97,35 @@ export function TagsView() {
             {t("page.subtitle")}
           </p>
         </div>
-        <Button className="self-start sm:self-auto" onClick={() => setDialog({ kind: "add" })}>
-          <UiIcon name="plus" size={16} />
-          {t("page.addTag")}
-        </Button>
+        {showHeaderAction ? (
+          <Button
+            className="self-start sm:self-auto"
+            onClick={() => setDialog({ kind: "add" })}
+            ref={createButtonRef}
+          >
+            <UiIcon name="plus" size={16} />
+            {t("page.addTag")}
+          </Button>
+        ) : null}
       </header>
 
-      <TagsSummaryCards
-        cards={summaryCards}
-        onRetry={() => void summary.refetch()}
-        status={summaryStatus}
-      />
+      {chrome.showMetrics ? (
+        <>
+          <TagsSummaryCards
+            cards={summaryCards}
+            onRetry={() => void summary.refetch()}
+            status={summaryStatus}
+          />
 
-      <TagsOverviewPanel
-        cards={summaryCards}
-        onRetry={() => void summary.refetch()}
-        query={query}
-        status={summaryStatus}
-        summary={summary.data}
-      />
+          <TagsOverviewPanel
+            cards={summaryCards}
+            onRetry={() => void summary.refetch()}
+            query={query}
+            status={summaryStatus}
+            summary={summary.data}
+          />
+        </>
+      ) : null}
 
       {toolbarSlot(listState)}
 
@@ -120,6 +138,7 @@ export function TagsView() {
             {t("catalog.title")}
           </h2>
           <TagsCatalog
+            firstTagButtonRef={showHeaderAction ? null : createButtonRef}
             onAddTag={() => setDialog({ kind: "add" })}
             onClearAll={query.clearAll}
             onClearSearch={query.clearSearch}
@@ -133,10 +152,13 @@ export function TagsView() {
             view={query.state.view}
           />
         </section>
-        <TagsSidebar query={query} status={summaryStatus} summary={summary.data} />
+        {chrome.showMetrics ? (
+          <TagsSidebar query={query} status={summaryStatus} summary={summary.data} />
+        ) : null}
       </div>
 
       <AddTagDialog
+        onCloseAutoFocus={focusCreateButtonOnClose}
         onOpenChange={(open) => setDialog(open ? { kind: "add" } : CLOSED_DIALOG)}
         open={dialog.kind === "add"}
       />
@@ -150,7 +172,7 @@ export function TagsView() {
 
   function toolbarSlot(state: TagsListState): ReactNode {
     if (state.kind === "loading" && catalog.data === undefined) return <TagsToolbarSkeleton />;
-    if (state.kind === "first-use") return null;
+    if (state.kind === "first-use" && !hasQuery) return null;
     return (
       <TagsToolbar
         query={query}

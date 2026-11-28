@@ -15,7 +15,6 @@ import { resolveReadingDayTarget, toContextActionLink } from "../../model/statis
 import { formatDayLong, formatMonthKey } from "../../model/statistics-format";
 import { ReadingDayDetails } from "../details/reading-day-details";
 import { StatisticsDetailSurface } from "../details/statistics-detail-surface";
-import { StatisticsSectionState } from "../statistics-states";
 import { ProgressCard } from "./progress-card";
 import { ProgressInfoHint } from "./progress-info-hint";
 
@@ -68,23 +67,19 @@ export function RecordsSection({
       illustration="records"
       title={t("title")}
     >
-      {records.items.length === 0 ? (
-        <StatisticsSectionState density="compact" kind="empty" title={t("empty")} />
-      ) : (
-        <ul className="grid grid-cols-1 gap-3 @md:grid-cols-2">
-          {records.items.map((record, index) => (
-            <li className="min-w-0" key={record.type}>
-              <RecordTile
-                isLowerBound={isLowerBound}
-                record={record}
-                tone={
-                  RECORD_VISUAL.tones[index % RECORD_VISUAL.tones.length] ?? RECORD_VISUAL.tones[0]
-                }
-              />
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul className="grid grid-cols-1 gap-3 @md:grid-cols-2">
+        {records.items.map((record, index) => (
+          <li className="min-w-0" key={record.type}>
+            <RecordTile
+              isLowerBound={isLowerBound}
+              record={record}
+              tone={
+                RECORD_VISUAL.tones[index % RECORD_VISUAL.tones.length] ?? RECORD_VISUAL.tones[0]
+              }
+            />
+          </li>
+        ))}
+      </ul>
     </ProgressCard>
   );
 }

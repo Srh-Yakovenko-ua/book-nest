@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
-import { makeSeriesView } from "@/features/series/model/series.fixtures";
+import { makeSeriesOverview, makeSeriesView } from "@/features/series/model/series.fixtures";
 import messages from "@/messages/uk.json";
 import {
   createTestQueryClient,
@@ -29,6 +29,10 @@ import { NoteFormDialog } from "./note-form-dialog";
 
 vi.mock("sonner", () => ({
   toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
+}));
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ children, ...props }: ComponentProps<"a">) => <a {...props}>{children}</a>,
 }));
 
 type DialogTarget = ComponentProps<typeof NoteFormDialog>["target"];
@@ -106,12 +110,13 @@ const LIBRARY: {
 
 const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
 
+let account: { books: BookView[]; series: SeriesView[] };
 let respondToWrite: (call: WriteCall) => Promise<Response>;
 
 function bookDetailRequests(): string[] {
   return fetchMock.mock.calls
     .map(([input]) => String(input))
-    .filter((url) => /^\/api\/books\/[^/?]+$/.test(url));
+    .filter((url) => /^\/api\/books\/[^/?]+$/.test(url) && url !== "/api/books/overview");
 }
 
 function bookEntity(note: NoteView): NoteEntityRef {
@@ -157,6 +162,26 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json" },
     status,
   });
+}
+
+function libraryOverview(total: number) {
+  return {
+    recentlyAdded: [],
+    summary: {
+      borrowed: 0,
+      favorites: 0,
+      finished: 0,
+      inTransit: 0,
+      reading: 0,
+      series: 0,
+      solo: 0,
+      total,
+      wantToBuy: 0,
+      wantToRead: 0,
+    },
+    topGenres: [],
+    topTags: [],
+  };
 }
 
 function noteFromWrite(call: WriteCall): NoteView {
@@ -208,16 +233,25 @@ function writes(): WriteCall[] {
 }
 
 beforeEach(() => {
+  account = { books: LIBRARY.books, series: LIBRARY.series };
   respondToWrite = (call) => Promise.resolve(jsonResponse(noteFromWrite(call)));
 
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     const method = String(init?.method ?? "GET").toUpperCase();
-    if (method === "GET" && url.startsWith("/api/books?"))
-      return Promise.resolve(page(LIBRARY.books));
+    if (method === "GET" && url === "/api/books/overview")
+      return Promise.resolve(jsonResponse(libraryOverview(account.books.length)));
+    if (method === "GET" && url === "/api/series/overview")
+      return Promise.resolve(
+        jsonResponse(makeSeriesOverview({ totalSeries: account.series.length })),
+      );
+    if (method === "GET" && url.startsWith("/api/books?")) {
+      const query = new URLSearchParams(url.slice(url.indexOf("?"))).get("q");
+      return Promise.resolve(page(query === null ? account.books : []));
+    }
     if (method === "GET" && url.startsWith("/api/series?"))
-      return Promise.resolve(page(LIBRARY.series));
+      return Promise.resolve(page(account.series));
     const chaptersBookId = /^\/api\/books\/([^/?]+)\/chapters$/.exec(url)?.[1];
     if (method === "GET" && chaptersBookId !== undefined)
       return Promise.resolve(jsonResponse({ chapters: LIBRARY.chapters[chaptersBookId] ?? [] }));
@@ -333,6 +367,33 @@ describe("NoteFormDialog book create", () => {
     expect(await screen.findByText("Введіть текст нотатки.")).toBeInTheDocument();
     expect(writes()).toHaveLength(0);
   });
+
+  it("says once that the book search found nothing, instead of claiming there are no books", async () => {
+    const bookPicker = messages.notes.form.bookPicker;
+    renderDialog({ entityType: "book", mode: "pick" });
+    await screen.findByRole("radio", { name: /Дюна/ });
+
+    await userEvent.type(screen.getByRole("textbox", { name: NAMES.bookSearch }), "Гамлет");
+
+    expect(
+      await screen.findByText(bookPicker.noMatch, { ignore: "[role=status]" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(bookPicker.empty)).not.toBeInTheDocument();
+  });
+
+  it("offers to add the first book instead of the picker when the library is empty", async () => {
+    account = { ...account, books: [] };
+    renderDialog({ entityType: "book", mode: "pick" });
+
+    const dialog = await screen.findByRole("dialog", { name: NAMES.createTitle });
+    expect(
+      await within(dialog).findByRole("link", { name: messages.books.firstBook.cta }),
+    ).toHaveAttribute("href", "/books/new");
+    expect(within(dialog).getByText(messages.notes.form.bookPicker.empty)).toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole("textbox", { name: NAMES.bookSearch }),
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe("NoteFormDialog book page limit", () => {
@@ -440,6 +501,22 @@ describe("NoteFormDialog series create", () => {
       screen.getByRole("textbox", { name: NAMES.seriesSearch }),
     );
     expect(screen.getByRole("radiogroup", { name: "Ваші серії" })).toBeInTheDocument();
+  });
+
+  it("leads to the series catalog instead of the picker when there are no series", async () => {
+    account = { ...account, series: [] };
+    renderDialog({ entityType: "series", mode: "pick" });
+
+    const dialog = await screen.findByRole("dialog", { name: NAMES.createTitle });
+    expect(
+      await within(dialog).findByRole("link", {
+        name: messages.notes.archive.series.noEntities.cta,
+      }),
+    ).toHaveAttribute("href", "/series");
+    expect(within(dialog).getByText(messages.notes.form.seriesPicker.empty)).toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole("textbox", { name: NAMES.seriesSearch }),
+    ).not.toBeInTheDocument();
   });
 });
 

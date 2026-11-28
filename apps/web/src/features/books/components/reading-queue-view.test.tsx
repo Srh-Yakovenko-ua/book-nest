@@ -10,7 +10,7 @@ import type {
 import type { ReactNode } from "react";
 
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
@@ -19,6 +19,8 @@ import { makeSeriesView } from "../../series/model/series.fixtures";
 import { makeQueueVolumeSummary } from "../model/queue-volume.fixtures";
 import { makeBookView } from "./book-details.fixtures";
 import { ReadingQueueView } from "./reading-queue-view";
+
+const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }));
 
 function renderQueue(searchParams = "") {
   return renderWithProviders(
@@ -32,7 +34,7 @@ vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   ),
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: routerPush, replace: vi.fn() }),
 }));
 
 const copy = messages.readingQueue;
@@ -57,6 +59,9 @@ const genresFixture = [
 
 const emptyPage = { items: [], page: 1, pagesCount: 0, pageSize: 20, totalCount: 0 };
 
+let libraryTotal: number;
+let respondToOverview: () => Response;
+
 function countOwnership(items: ReadingQueueItemView[], status: OwnershipStatus): number {
   return items.filter((item) => item.book.ownershipStatus === status).length;
 }
@@ -70,6 +75,26 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json" },
     status,
   });
+}
+
+function libraryOverview(total: number) {
+  return {
+    recentlyAdded: [],
+    summary: {
+      borrowed: 0,
+      favorites: 0,
+      finished: 0,
+      inTransit: 0,
+      reading: 0,
+      series: 0,
+      solo: 0,
+      total,
+      wantToBuy: 0,
+      wantToRead: 0,
+    },
+    topGenres: [],
+    topTags: [],
+  };
 }
 
 function mixedAvailabilityItems(): ReadingQueueItemView[] {
@@ -107,6 +132,7 @@ function mockQueueFetch(
     "fetch",
     vi.fn((input: RequestInfo | URL) => {
       const url = String(input);
+      if (url.includes("/api/books/overview")) return Promise.resolve(respondToOverview());
       if (url.includes("/api/reading-queue/summary")) {
         return Promise.resolve(jsonResponse(summaryOf(items)));
       }
@@ -201,8 +227,14 @@ function twoPriorityItems(): ReadingQueueItemView[] {
   ];
 }
 
+beforeEach(() => {
+  libraryTotal = 3;
+  respondToOverview = () => jsonResponse(libraryOverview(libraryTotal));
+});
+
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.clearAllMocks();
 });
 
 describe("ReadingQueueView", () => {
@@ -502,5 +534,95 @@ describe("ReadingQueueView", () => {
     expect(within(alert).getByRole("button", { name: summaryError.retry })).toBeInTheDocument();
     expect(await screen.findByText("#1")).toBeInTheDocument();
     expect(screen.queryByText(stats.total.label)).not.toBeInTheDocument();
+  });
+});
+
+describe("ReadingQueueView empty queue", () => {
+  it("opens the create form from the empty queue of an account without books", async () => {
+    libraryTotal = 0;
+    mockQueue([]);
+    renderQueue();
+    await screen.findByRole("heading", { name: copy.empty.noBooks.title });
+
+    await userEvent.click(screen.getByRole("button", { name: messages.books.firstBook.cta }));
+
+    expect(routerPush).toHaveBeenCalledWith("/books/new");
+  });
+
+  it("drops the header add button while the account has no books", async () => {
+    libraryTotal = 0;
+    mockQueue([]);
+    renderQueue();
+    await screen.findByRole("heading", { name: copy.empty.noBooks.title });
+
+    expect(screen.queryByRole("button", { name: copy.addBook })).not.toBeInTheDocument();
+  });
+
+  it("drops the all-books link while the account has no books", async () => {
+    libraryTotal = 0;
+    mockQueue([]);
+    renderQueue();
+    await screen.findByRole("heading", { name: copy.empty.noBooks.title });
+
+    expect(screen.queryByRole("button", { name: copy.empty.secondary })).not.toBeInTheDocument();
+  });
+
+  it("opens the queue picker from the empty queue when the library has books", async () => {
+    mockQueue([]);
+    renderQueue();
+    await screen.findByRole("heading", { name: copy.empty.title });
+
+    await userEvent.click(screen.getByRole("button", { name: copy.empty.cta }));
+
+    expect(await screen.findByRole("dialog", { name: copy.add.title })).toBeInTheDocument();
+  });
+
+  it("keeps the search toolbar when a search runs over an empty queue", async () => {
+    mockQueue([]);
+    renderQueue("?q=x");
+
+    expect(await screen.findByRole("textbox", { name: copy.toolbar.searchLabel })).toHaveValue("x");
+  });
+
+  it("shows no drag hint when a search runs over an empty queue", async () => {
+    mockQueue([]);
+    renderQueue("?q=x");
+    await screen.findByRole("textbox", { name: copy.toolbar.searchLabel });
+
+    expect(screen.queryByText(copy.toolbar.dragHint)).not.toBeInTheDocument();
+    expect(screen.queryByText(copy.toolbar.dragDisabledHint)).not.toBeInTheDocument();
+  });
+
+  it("shows the retryable error instead of the empty queue when the library check fails", async () => {
+    respondToOverview = () => jsonResponse({ message: "boom" }, 500);
+    mockQueue([]);
+    renderQueue();
+
+    const alert = await screen.findByRole("alert");
+
+    expect(alert).toHaveTextContent(copy.error.title);
+    expect(within(alert).getByRole("button", { name: copy.error.retry })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: copy.empty.title })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: copy.empty.noBooks.title }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("asks for the library again from the failed check and shows the empty queue once it answers", async () => {
+    let overviewRequests = 0;
+    respondToOverview = () => {
+      overviewRequests += 1;
+      return overviewRequests === 1
+        ? jsonResponse({ message: "boom" }, 500)
+        : jsonResponse(libraryOverview(libraryTotal));
+    };
+    mockQueue([]);
+    renderQueue();
+
+    const alert = await screen.findByRole("alert");
+    await userEvent.click(within(alert).getByRole("button", { name: copy.error.retry }));
+
+    expect(await screen.findByRole("heading", { name: copy.empty.title })).toBeInTheDocument();
+    expect(overviewRequests).toBe(2);
   });
 });

@@ -28,12 +28,15 @@ export type DeliveryContent =
   | { isRefreshing: boolean; kind: "filtered-empty" }
   | { kind: "empty" }
   | { kind: "error" }
+  | { kind: "first-book" }
+  | { kind: "library-error"; onRetry: () => void }
   | { kind: "loading" };
 
 type DeliveryInTransitViewProps = {
   bulkBar?: ReactNode;
   content: DeliveryContent;
   headerActions?: ReactNode;
+  onAddFirstBook: () => void;
   onGoToBooksToBuy: () => void;
   onLoadMore: () => void;
   onResetFilters: () => void;
@@ -58,6 +61,7 @@ export function DeliveryInTransitView({
   bulkBar,
   content,
   headerActions,
+  onAddFirstBook,
   onGoToBooksToBuy,
   onLoadMore,
   onResetFilters,
@@ -105,7 +109,12 @@ export function DeliveryInTransitView({
           </h2>
           <RefetchErrorBanner state={refetchError} />
           <DeliveryContentArea
-            content={content}
+            content={
+              content.kind === "library-error"
+                ? { kind: "library-error", onRetry: withRetryFocus(content.onRetry) }
+                : content
+            }
+            onAddFirstBook={onAddFirstBook}
             onGoToBooksToBuy={onGoToBooksToBuy}
             onLoadMore={onLoadMore}
             onResetFilters={onResetFilters}
@@ -126,6 +135,7 @@ export function DeliveryInTransitView({
 
 function DeliveryContentArea({
   content,
+  onAddFirstBook,
   onGoToBooksToBuy,
   onLoadMore,
   onResetFilters,
@@ -137,6 +147,7 @@ function DeliveryContentArea({
 }: Pick<
   DeliveryInTransitViewProps,
   | "content"
+  | "onAddFirstBook"
   | "onGoToBooksToBuy"
   | "onLoadMore"
   | "onResetFilters"
@@ -146,8 +157,9 @@ function DeliveryContentArea({
   | "selectAll"
 > & { retryButtonRef: Ref<HTMLButtonElement> }) {
   const t = useTranslations("delivery");
+  const tBooks = useTranslations("books");
 
-  if (content.kind === "error") {
+  if (content.kind === "error" || content.kind === "library-error") {
     const errorState: EmptyStateEntry = {
       desc: t("states.error.description"),
       illu: "error-generic",
@@ -156,7 +168,11 @@ function DeliveryContentArea({
     };
     return (
       <div aria-live="assertive" role="alert">
-        <EmptyState onPrimary={onRetry} primaryRef={retryButtonRef} state={errorState} />
+        <EmptyState
+          onPrimary={content.kind === "library-error" ? content.onRetry : onRetry}
+          primaryRef={retryButtonRef}
+          state={errorState}
+        />
       </div>
     );
   }
@@ -173,6 +189,16 @@ function DeliveryContentArea({
       title: t("states.empty.title"),
     };
     return <EmptyState onPrimary={onGoToBooksToBuy} state={emptyState} />;
+  }
+
+  if (content.kind === "first-book") {
+    const firstBookState: EmptyStateEntry = {
+      desc: t("states.firstBook.description"),
+      illu: "empty-delivery",
+      primary: { icon: "plus", label: tBooks("firstBook.cta") },
+      title: t("states.firstBook.title"),
+    };
+    return <EmptyState onPrimary={onAddFirstBook} state={firstBookState} />;
   }
 
   if (content.kind === "filtered-empty") {

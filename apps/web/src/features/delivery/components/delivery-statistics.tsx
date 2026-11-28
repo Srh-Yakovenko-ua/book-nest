@@ -14,9 +14,11 @@ import { TitleLeaf } from "@/components/title-leaf";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
+import { cn } from "@/lib/utils";
 
 import type { StatisticsDrilldownContext } from "../model/statistics-drilldown";
 import type { DynamicsMetric } from "../model/statistics-dynamics";
+import type { StatisticsCompletedOrders } from "../model/statistics-empty";
 import type { DeliveryStatisticsQueryState } from "../model/statistics-params";
 import type { StatisticsScopeState } from "../model/statistics-scope-state";
 import type { StoreMetric } from "../model/statistics-stores";
@@ -24,10 +26,11 @@ import type { UseStatisticsParamsResult } from "../model/use-statistics-params";
 
 import { useActiveMoneyAge } from "../api/use-active-money-age";
 import { useBookBudgets } from "../api/use-book-budgets";
+import { useHistorySummary } from "../api/use-history-summary";
 import { useStatistics } from "../api/use-statistics";
 import { useStoreHighlight } from "../hooks/use-store-highlight";
 import { statisticsCurrencies } from "../model/statistics-currency";
-import { statisticsEmptyKind } from "../model/statistics-empty";
+import { statisticsEmptyKind, toStatisticsCompletedOrders } from "../model/statistics-empty";
 import { formatPeriodRange } from "../model/statistics-format";
 import { toStatisticsScopeState } from "../model/statistics-scope-state";
 import { STORE_METRICS } from "../model/statistics-stores";
@@ -46,8 +49,8 @@ import { StatisticsPulse } from "./statistics/statistics-pulse";
 import { StatisticsRecords } from "./statistics/statistics-records";
 import { StatisticsMetricTabs, StatisticsSection } from "./statistics/statistics-section";
 import {
-  StatisticsAllTimeEmpty,
   StatisticsError,
+  StatisticsNoOrdersEmpty,
   StatisticsPeriodEmpty,
   StatisticsRefreshingNote,
   StatisticsSectionState,
@@ -77,6 +80,7 @@ type StatisticsBodyProps = {
   activeAgeCard: ReactNode;
   budgetCard: ReactNode;
   comparisonLabel: Nullable<string>;
+  completedOrders: StatisticsCompletedOrders;
   currentLabel: Nullable<string>;
   displayCurrency: Nullable<Currency>;
   drilldown: StatisticsDrilldownContext;
@@ -106,10 +110,12 @@ export function DeliveryStatistics() {
     ...(params.state.store.trim() === "" ? {} : { store: params.state.store.trim() }),
   });
   const budgets = useBookBudgets();
+  const historySummary = useHistorySummary();
 
   const period = toStatisticsScopeState(statistics);
   const activeAge = toStatisticsScopeState(activeAgeQuery);
   const budgetScope = toStatisticsScopeState(budgets);
+  const completedOrders = toStatisticsCompletedOrders(toStatisticsScopeState(historySummary));
 
   const currencies = view === undefined ? [] : statisticsCurrencies(view);
   const storeNames = (view?.byStore ?? []).map((entry) => entry.store);
@@ -194,6 +200,7 @@ export function DeliveryStatistics() {
             />
           }
           comparisonLabel={comparisonLabel}
+          completedOrders={completedOrders}
           currentLabel={currentLabel}
           displayCurrency={displayCurrency}
           drilldown={drilldown}
@@ -213,6 +220,7 @@ function StatisticsBody({
   activeAgeCard,
   budgetCard,
   comparisonLabel,
+  completedOrders,
   currentLabel,
   displayCurrency,
   drilldown,
@@ -243,16 +251,29 @@ function StatisticsBody({
     return <StatisticsSkeleton activeAge={activeAgeCard} budget={budgetCard} />;
   }
 
-  const emptyKind = statisticsEmptyKind({
-    hasActiveFilters: params.hasActiveFilters,
-    preset: params.state.period,
-  });
+  const hasActiveOrders = view.snapshot.activeOrdersCount > 0;
+  const activeAge = hasActiveOrders ? activeAgeCard : null;
 
   if (!hasAnyOrders(view)) {
-    if (emptyKind === "all_time") {
+    const emptyKind = statisticsEmptyKind({
+      activeOrdersCount: view.snapshot.activeOrdersCount,
+      completedOrders,
+      hasActiveFilters: params.hasActiveFilters,
+    });
+
+    if (emptyKind === "no_orders") {
       return (
         <div className="flex flex-col gap-6">
-          <StatisticsAllTimeEmpty />
+          <StatisticsNoOrdersEmpty />
+          {budgetCard}
+        </div>
+      );
+    }
+
+    if (emptyKind === "pending") {
+      return (
+        <div className="flex flex-col gap-6">
+          <Skeleton className="h-64 w-full rounded-xl" />
           {budgetCard}
         </div>
       );
@@ -260,16 +281,18 @@ function StatisticsBody({
 
     return (
       <div className="flex flex-col gap-6">
-        {displayCurrency === null ? null : (
+        {displayCurrency === null || !hasActiveOrders ? null : (
           <StatisticsKpi currency={displayCurrency} snapshot={view.snapshot} view={view} />
         )}
         {budgetCard}
         <StatisticsPeriodEmpty
           kind={emptyKind}
-          onChangePeriod={() => params.setPeriod("all_time")}
+          onChangePeriod={
+            params.state.period === "all_time" ? undefined : () => params.setPeriod("all_time")
+          }
           onResetFilters={params.clearFilters}
         />
-        {activeAgeCard}
+        {activeAge}
       </div>
     );
   }
@@ -283,7 +306,7 @@ function StatisticsBody({
           title={t("displayCurrency.none")}
         />
         {budgetCard}
-        {activeAgeCard}
+        {activeAge}
       </div>
     );
   }
@@ -371,7 +394,9 @@ function StatisticsBody({
         </div>
       </StatisticsSection>
 
-      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
+      <div
+        className={cn("grid grid-cols-1 items-stretch gap-4", hasActiveOrders && "lg:grid-cols-2")}
+      >
         <StatisticsLifecycle
           comparisonLabel={comparisonLabel}
           currentLabel={currentLabel}
@@ -380,7 +405,7 @@ function StatisticsBody({
           lifecycle={view.lifecycle}
           period={view.meta.currentPeriod}
         />
-        {activeAgeCard}
+        {activeAge}
       </div>
 
       <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">

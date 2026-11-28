@@ -6,6 +6,7 @@ import type {
   CreateLoansBatchInput,
   LoanContactView,
   LoanDirection,
+  Nullable,
 } from "@app/shared";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -42,6 +43,7 @@ import {
   type CloseGuardDraft,
   useCloseGuard,
 } from "@/hooks/use-close-guard";
+import { assertNever } from "@/lib/assert-never";
 import { emptyToNull } from "@/lib/empty-to-null";
 import { ISO_DAY, todayIsoDay } from "@/lib/iso-day";
 
@@ -53,7 +55,9 @@ import { LoanBooksStep } from "./loan-books-step";
 const NOTE_MAX = 300;
 
 export type LoanDialogContext =
-  { book: BookView; kind: "book" } | { contact: LoanContactView; kind: "contact" };
+  | { book: BookView; kind: "book" }
+  | { contact: LoanContactView; kind: "contact" }
+  | { kind: "library" };
 
 type LoanDialogProps = {
   context: LoanDialogContext;
@@ -64,7 +68,8 @@ type LoanDialogProps = {
 
 type LoanFormTarget =
   | { book: BookView; kind: "book" }
-  | { books: BookView[]; contact: LoanContactView; kind: "contactBooks"; onBack: () => void };
+  | { books: BookView[]; contact: LoanContactView; kind: "contactBooks"; onBack: () => void }
+  | { books: BookView[]; kind: "libraryBooks"; onBack: () => void };
 
 type LoanMessages = {
   contactRequired: string;
@@ -107,7 +112,7 @@ export function LoanDialog({ context, direction, onOpenChange, open }: LoanDialo
       >
         <DialogContent
           className={
-            context.kind === "contact" ? "max-h-[92vh] overflow-y-auto sm:max-w-3xl" : "sm:max-w-md"
+            context.kind === "book" ? "sm:max-w-md" : "max-h-[92vh] overflow-y-auto sm:max-w-3xl"
           }
           ref={contentRef}
         >
@@ -214,7 +219,7 @@ function LoanDialogBody({
   const fixedContact = context.kind === "contact" ? context.contact : null;
   const [selected, setSelected] = useState<BookView[]>([]);
   const [createName, setCreateName] = useState("");
-  const [step, setStep] = useState<LoanStep>(fixedContact === null ? "form" : "books");
+  const [step, setStep] = useState<LoanStep>(context.kind === "book" ? "form" : "books");
   const today = todayIsoDay(useProfileTimeZone());
   const createLoan = useCreateLoan();
   const createLoansBatch = useCreateLoansBatch();
@@ -251,6 +256,24 @@ function LoanDialogBody({
     onDraftChange({ isDirty, isPending });
   }, [isDirty, isPending, onDraftChange]);
 
+  function toLoanFormTarget(): LoanFormTarget {
+    switch (context.kind) {
+      case "book":
+        return { book: context.book, kind: "book" };
+      case "contact":
+        return {
+          books: selected,
+          contact: context.contact,
+          kind: "contactBooks",
+          onBack: () => setStep("books"),
+        };
+      case "library":
+        return { books: selected, kind: "libraryBooks", onBack: () => setStep("books") };
+      default:
+        return assertNever(context);
+    }
+  }
+
   if (step === "create-contact") {
     return (
       <CreateLoanContactStep
@@ -266,14 +289,14 @@ function LoanDialogBody({
     );
   }
 
-  if (context.kind === "contact" && (step === "books" || selected.length === 0)) {
+  if (context.kind !== "book" && (step === "books" || selected.length === 0)) {
     return (
       <LoanBooksStep
         direction={direction}
         onCancel={onCancel}
         onNext={() => setStep("form")}
         onSelectedChange={setSelected}
-        personName={context.contact.name}
+        personName={fixedContact?.name ?? null}
         selected={selected}
       />
     );
@@ -291,16 +314,7 @@ function LoanDialogBody({
         setCreateName(name);
         setStep("create-contact");
       }}
-      target={
-        context.kind === "contact"
-          ? {
-              books: selected,
-              contact: context.contact,
-              kind: "contactBooks",
-              onBack: () => setStep("books"),
-            }
-          : { book: context.book, kind: "book" }
-      }
+      target={toLoanFormTarget()}
       today={today}
     />
   );
@@ -401,7 +415,7 @@ function LoanForm({
   return (
     <form className="flex flex-col gap-5" noValidate onSubmit={onSubmit}>
       <DialogHeader>
-        {target.kind === "contactBooks" ? (
+        {target.kind === "book" ? null : (
           <button
             className="inline-flex w-fit cursor-pointer items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
             onClick={target.onBack}
@@ -410,14 +424,22 @@ function LoanForm({
             <UiIcon aria-hidden name="arrow-left" size={16} />
             {t("back")}
           </button>
-        ) : null}
+        )}
         <DialogTitle>{t(`${variant}.title`)}</DialogTitle>
         <DialogDescription>
           {target.kind === "book" ? t(`${variant}.description`) : tBatch(`${variant}.description`)}
         </DialogDescription>
       </DialogHeader>
 
-      {target.kind === "book" ? (
+      {target.kind === "book" ? null : (
+        <SelectedLoanBooks
+          books={target.books}
+          contactName={target.kind === "contactBooks" ? target.contact.name : null}
+          personLabel={t(`${variant}.personName`)}
+        />
+      )}
+
+      {target.kind === "contactBooks" ? null : (
         <div className="flex flex-col gap-2">
           <Label htmlFor="loan-contact-picker">{t(`${variant}.personName`)}</Label>
           <LoanContactPicker
@@ -432,35 +454,6 @@ function LoanForm({
             value={contactSelection}
           />
           <FieldError error={errors.loanContactId} id="loan-contact-picker-error" />
-        </div>
-      ) : (
-        <div className="flex flex-col gap-3 rounded-md border border-border bg-secondary/40 p-3.5">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-xs text-muted-foreground">{t(`${variant}.personName`)}</span>
-            <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
-              <UiIcon
-                aria-hidden
-                className="shrink-0 text-muted-foreground"
-                name="user"
-                size={16}
-              />
-              <span className="truncate">{target.contact.name}</span>
-            </span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {tBatch("appliesTo", { count: target.books.length })}
-          </p>
-          <ul className="flex flex-wrap gap-2">
-            {target.books.map((entry) => (
-              <li
-                className="flex max-w-full min-w-0 items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5"
-                key={entry.id}
-              >
-                <BookThumb book={entry} />
-                <span className="truncate text-xs font-medium text-ink">{entry.title}</span>
-              </li>
-            ))}
-          </ul>
         </div>
       )}
 
@@ -583,5 +576,45 @@ function LoanForm({
         </Button>
       </DialogFooter>
     </form>
+  );
+}
+
+function SelectedLoanBooks({
+  books,
+  contactName,
+  personLabel,
+}: {
+  books: BookView[];
+  contactName: Nullable<string>;
+  personLabel: string;
+}) {
+  const tBatch = useTranslations("books.details.loan.batch");
+
+  return (
+    <div className="flex flex-col gap-3 rounded-md border border-border bg-secondary/40 p-3.5">
+      {contactName === null ? null : (
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs text-muted-foreground">{personLabel}</span>
+          <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
+            <UiIcon aria-hidden className="shrink-0 text-muted-foreground" name="user" size={16} />
+            <span className="truncate">{contactName}</span>
+          </span>
+        </div>
+      )}
+      <p className="text-xs text-muted-foreground">
+        {tBatch("appliesTo", { count: books.length })}
+      </p>
+      <ul className="flex flex-wrap gap-2">
+        {books.map((entry) => (
+          <li
+            className="flex max-w-full min-w-0 items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5"
+            key={entry.id}
+          >
+            <BookThumb book={entry} />
+            <span className="truncate text-xs font-medium text-ink">{entry.title}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

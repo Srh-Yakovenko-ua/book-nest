@@ -11,6 +11,7 @@ import { useTranslations } from "next-intl";
 import { useReducer, useState } from "react";
 import { toast } from "sonner";
 
+import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
 import { UiIcon } from "@/components/icons";
 import {
   AlertDialog,
@@ -41,6 +42,7 @@ import {
   createBookOrderDraftReducer,
   EMPTY_CREATE_BOOK_ORDER_DRAFT,
   hasCompleteItemPrices,
+  hasCreateBookOrderInput,
   optionalNumber,
   toCreateBookOrderInput,
 } from "../model/create-book-order-draft";
@@ -72,9 +74,11 @@ type CreateOrderView = "books" | "form";
 type DraftIssue = { code: string; message: string; path: readonly PropertyKey[] };
 
 export function CreateBookOrderDialog({
+  onCreateBook,
   onOpenChange,
   open,
 }: {
+  onCreateBook: () => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 }) {
@@ -99,6 +103,7 @@ export function CreateBookOrderDialog({
           {open ? (
             <CreateBookOrderForm
               createBookOrder={createBookOrder}
+              onCreateBook={onCreateBook}
               onDone={() => changeOpen(false)}
               onViewChange={setView}
               view={view}
@@ -112,11 +117,13 @@ export function CreateBookOrderDialog({
 
 function CreateBookOrderForm({
   createBookOrder,
+  onCreateBook,
   onDone,
   onViewChange,
   view,
 }: {
   createBookOrder: ReturnType<typeof useCreateBookOrder>;
+  onCreateBook: () => void;
   onDone: () => void;
   onViewChange: (view: CreateOrderView) => void;
   view: CreateOrderView;
@@ -124,6 +131,7 @@ function CreateBookOrderForm({
   const t = useTranslations("delivery.createOrder");
   const deliveryErrorText = useDeliveryErrorText();
   const [draft, dispatch] = useReducer(createBookOrderDraftReducer, EMPTY_CREATE_BOOK_ORDER_DRAFT);
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const { books, financialMode, order, shipments, shipmentToRemoveId, submitAttempted } = draft;
   const shipmentToRemove = shipments.find(({ id }) => id === shipmentToRemoveId) ?? null;
   const shipmentToRemoveNumber = shipments.findIndex(({ id }) => id === shipmentToRemoveId) + 1;
@@ -167,6 +175,19 @@ function CreateBookOrderForm({
     onViewChange("books");
   }
 
+  function leaveForNewBook() {
+    onDone();
+    onCreateBook();
+  }
+
+  function requestNewBook() {
+    if (hasCreateBookOrderInput(draft)) {
+      setLeaveConfirmOpen(true);
+      return;
+    }
+    leaveForNewBook();
+  }
+
   function submit() {
     dispatch({ type: "submitAttempted" });
     if (itemPricesIncomplete || !parsedDraft.success) return;
@@ -181,17 +202,25 @@ function CreateBookOrderForm({
 
   if (view === "books") {
     return (
-      <CreateOrderBookPickerView
-        onBack={() => onViewChange("form")}
-        onDone={() => {
-          dispatch({ type: "pickerSelectionApplied" });
-          onViewChange("form");
-        }}
-        onSelectedChange={(selected) =>
-          dispatch({ books: selected, type: "pickerSelectionChanged" })
-        }
-        selected={draft.pickerSelection}
-      />
+      <>
+        <CreateOrderBookPickerView
+          onBack={() => onViewChange("form")}
+          onCreateBook={requestNewBook}
+          onDone={() => {
+            dispatch({ type: "pickerSelectionApplied" });
+            onViewChange("form");
+          }}
+          onSelectedChange={(selected) =>
+            dispatch({ books: selected, type: "pickerSelectionChanged" })
+          }
+          selected={draft.pickerSelection}
+        />
+        <DiscardChangesDialog
+          onConfirm={leaveForNewBook}
+          onOpenChange={setLeaveConfirmOpen}
+          open={leaveConfirmOpen}
+        />
+      </>
     );
   }
 

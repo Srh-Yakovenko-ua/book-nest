@@ -1,6 +1,6 @@
 "use client";
 
-import type { BookView, LoanDirection } from "@app/shared";
+import type { BookView, LoanDirection, Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 
@@ -17,7 +17,7 @@ type LoanBooksStepProps = {
   onCancel: () => void;
   onNext: () => void;
   onSelectedChange: (books: BookView[]) => void;
-  personName: string;
+  personName: Nullable<string>;
   selected: BookView[];
 };
 
@@ -38,7 +38,9 @@ export function LoanBooksStep({
       <DialogHeader>
         <DialogTitle>{t(`${direction}.multiTitle`)}</DialogTitle>
         <DialogDescription>
-          {t(`${direction}.multiDescription`, { name: personName })}
+          {personName === null
+            ? t(`${direction}.pickDescription`)
+            : t(`${direction}.multiDescription`, { name: personName })}
         </DialogDescription>
       </DialogHeader>
 

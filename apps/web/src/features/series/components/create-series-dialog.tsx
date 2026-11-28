@@ -44,6 +44,7 @@ const NAME_MAX = 120;
 const TOTAL_BOOKS_MIN = 1;
 const TOTAL_BOOKS_MAX = 999;
 type CreateSeriesDialogProps = {
+  onCloseAutoFocus?: (event: Event) => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 };
@@ -51,12 +52,16 @@ type CreateSeriesDialogProps = {
 type CreateSeriesFormInput = z.input<typeof NewSeriesInputSchema>;
 type CreateSeriesFormOutput = z.output<typeof NewSeriesInputSchema>;
 
-export function CreateSeriesDialog({ onOpenChange, open }: CreateSeriesDialogProps) {
+export function CreateSeriesDialog({
+  onCloseAutoFocus,
+  onOpenChange,
+  open,
+}: CreateSeriesDialogProps) {
   const t = useTranslations("series.dialog");
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>{t("description")}</DialogDescription>

@@ -12,6 +12,7 @@ import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { RefetchErrorBanner } from "@/components/refetch-error-banner";
 import { TitleLeaf } from "@/components/title-leaf";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
+import { useRouter } from "@/i18n/navigation";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,7 @@ import {
   restoreLoanHistoryDetailFocus,
   restoreLoanTriggerFocus,
 } from "../../model/loan-focus";
+import { LOAN_PAGES } from "../../model/loan-pages";
 import { useLoanContactDrawer } from "../../model/use-loan-contact-drawer";
 import { useLoanHistoryFilterChips } from "../../model/use-loan-history-filter-chips";
 import { useLoanHistoryQuery } from "../../model/use-loan-history-query";
@@ -46,6 +48,7 @@ export function LoanHistoryView() {
   const t = useTranslations("loans.history");
   const tPage = useTranslations("loans.pages.history");
   const tCommon = useTranslations("common");
+  const router = useRouter();
 
   const query = useLoanHistoryQuery();
   const overview = useLoanHistoryOverview(query.overviewParams);
@@ -110,6 +113,7 @@ export function LoanHistoryView() {
         onClearFilters={query.clearFilters}
         onCorrectDate={(loanId) => setCorrection({ loanId, mode: "date", origin: "row" })}
         onEditNote={(loanId) => setCorrection({ loanId, mode: "note", origin: "row" })}
+        onOpenActiveLoans={() => router.push(LOAN_PAGES.borrowed_from_someone.href)}
         onOpenContact={contactDrawer.openContact}
         onOpenDetails={openDetails}
         onRetry={withRetryFocus(() => void list.refetch())}

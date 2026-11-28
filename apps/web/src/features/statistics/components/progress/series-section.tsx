@@ -26,67 +26,6 @@ const SERIES_RANKING_MODES = ["mostActive", "topProgress"] as const;
 type SeriesRankingMode = (typeof SERIES_RANKING_MODES)[number];
 
 export function SeriesSection({ series }: { series: ReadingStatisticsSeriesSection }) {
-  const t = useTranslations("statistics.series");
-
-  if (series.availability === "unavailable") {
-    return (
-      <ProgressCard
-        description={t("description")}
-        icon="book-copy"
-        illustration="series"
-        title={t("title")}
-      >
-        <StatisticsSectionState kind="unavailable" title={t("unavailable")} />
-      </ProgressCard>
-    );
-  }
-
-  if (series.completedReadsCount === 0) {
-    return (
-      <ProgressCard
-        description={t("description")}
-        icon="book-copy"
-        illustration="series"
-        title={t("title")}
-      >
-        <StatisticsSectionState
-          description={t("noReadsDescription")}
-          kind="empty"
-          title={t("noReadsTitle")}
-        />
-      </ProgressCard>
-    );
-  }
-
-  return <SeriesActivity series={series} />;
-}
-
-function MostActiveRanking({ series }: { series: ReadingStatisticsSeriesSection }) {
-  const t = useTranslations("statistics.series");
-
-  if (series.mostActive.length === 0) {
-    return <StatisticsSectionState density="compact" kind="empty" title={t("empty")} />;
-  }
-
-  return (
-    <SeriesRankingList
-      label={t("mostActiveTitle")}
-      rows={series.mostActive.map((entry) => ({
-        href: openSeriesHref(entry.contextActions),
-        key: entry.seriesId,
-        name: entry.name,
-        value: entry.completedReadCycles,
-        valueLabel: t("reads", { count: entry.completedReadCycles }),
-      }))}
-    />
-  );
-}
-
-function openSeriesHref(actions: readonly ReadingStatisticsContextAction[]): Nullable<string> {
-  return toContextActionLinks(actions).find((link) => link.kind === "open_series")?.href ?? null;
-}
-
-function SeriesActivity({ series }: { series: ReadingStatisticsSeriesSection }) {
   const locale = useLocale();
   const t = useTranslations("statistics.series");
   const [mode, setMode] = useState<SeriesRankingMode>("mostActive");
@@ -142,6 +81,31 @@ function SeriesActivity({ series }: { series: ReadingStatisticsSeriesSection }) 
       )}
     </ProgressCard>
   );
+}
+
+function MostActiveRanking({ series }: { series: ReadingStatisticsSeriesSection }) {
+  const t = useTranslations("statistics.series");
+
+  if (series.mostActive.length === 0) {
+    return <StatisticsSectionState density="compact" kind="empty" title={t("empty")} />;
+  }
+
+  return (
+    <SeriesRankingList
+      label={t("mostActiveTitle")}
+      rows={series.mostActive.map((entry) => ({
+        href: openSeriesHref(entry.contextActions),
+        key: entry.seriesId,
+        name: entry.name,
+        value: entry.completedReadCycles,
+        valueLabel: t("reads", { count: entry.completedReadCycles }),
+      }))}
+    />
+  );
+}
+
+function openSeriesHref(actions: readonly ReadingStatisticsContextAction[]): Nullable<string> {
+  return toContextActionLinks(actions).find((link) => link.kind === "open_series")?.href ?? null;
 }
 
 function SeriesShare({ series }: { series: ReadingStatisticsSeriesSection }) {

@@ -38,7 +38,7 @@ export function RouteError({ reset }: { reset: () => void }) {
           </p>
         </div>
 
-        <Illustration className="self-center md:h-70" name="error-generic" size="sm" />
+        <Illustration className="self-center" name="error-generic" size="xl" />
       </section>
 
       <footer className="mt-16 flex flex-col items-start justify-between gap-6 border-t border-border pt-8 md:flex-row md:items-center">

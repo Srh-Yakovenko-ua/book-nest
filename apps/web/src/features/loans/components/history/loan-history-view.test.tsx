@@ -74,11 +74,13 @@ vi.mock("sonner", () => ({
   toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
 }));
 
+const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }));
+
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   ),
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: routerPush, replace: vi.fn() }),
 }));
 
 const OVERVIEW: LoanHistoryOverviewView = {
@@ -135,6 +137,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.mocked(toast.success).mockClear();
+  routerPush.mockClear();
   requests.length = 0;
 });
 
@@ -150,6 +153,15 @@ describe("LoanHistoryView states", () => {
       screen.queryByRole("button", { name: new RegExp(advanced.trigger) }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+  });
+
+  it("leads an empty history to the active loans", async () => {
+    mockHistory([]);
+    renderHistory();
+
+    await userEvent.click(await screen.findByRole("button", { name: copy.states.empty.cta }));
+
+    expect(routerPush).toHaveBeenCalledWith("/loans/borrowed");
   });
 
   it("keeps the cards, the toolbar and the clear action when the filters match nothing", async () => {

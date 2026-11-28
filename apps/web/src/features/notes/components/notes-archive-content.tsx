@@ -1,6 +1,7 @@
 "use client";
 
 import type { Nullable } from "@app/shared";
+import type { Ref } from "react";
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -37,6 +38,7 @@ type NotesArchiveContentProps = {
   onClearSearch?: () => void;
   onLoadMore: () => void;
   onRetry: () => void;
+  retryButtonRef?: Ref<HTMLButtonElement>;
   state: NotesArchiveListState;
   view: NotesArchiveLayout;
 };
@@ -53,6 +55,7 @@ export function NotesArchiveContent({
   onClearSearch = onClearFilters,
   onLoadMore,
   onRetry,
+  retryButtonRef,
   state,
   view,
 }: NotesArchiveContentProps) {
@@ -72,7 +75,7 @@ export function NotesArchiveContent({
         />
       );
     case "error":
-      return <NotesErrorState onRetry={onRetry} />;
+      return <NotesErrorState onRetry={onRetry} retryButtonRef={retryButtonRef} />;
     case "loading":
       return <NotesArchiveSkeleton view={view} />;
     case "ready":

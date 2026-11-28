@@ -1,4 +1,4 @@
-import type { StatisticsCalendarDay } from "@app/shared";
+import type { Nullable, StatisticsCalendarDay } from "@app/shared";
 
 import { eachDayOfInterval, formatISO, parseISO } from "date-fns";
 import { createTranslator } from "next-intl";
@@ -25,7 +25,11 @@ const translateBooks = createTranslator({
 
 const dayText = messages.statistics.details.day;
 
-const CELL_CLASS = { recordedZero: "bg-secondary", unknown: "ring-1" } as const;
+const CELL_CLASS = {
+  beforeAccount: "bg-transparent",
+  recordedZero: "bg-secondary",
+  unknown: "ring-1",
+} as const;
 
 const MONTH_LABEL_CLASS = { selected: "text-primary" } as const;
 
@@ -70,6 +74,12 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+function beforeAccountCell(date: string) {
+  return screen.getByRole("img", {
+    name: translateBooks("dayBeforeAccount", { date: formatDayLong(date, "uk") }),
+  });
+}
+
 function dayCell(key: "dayEmpty" | "dayUnknown", date: string) {
   return screen.getByRole("img", {
     name: translateHeatmap(key, { date: formatDayLong(date, "uk") }),
@@ -96,9 +106,11 @@ function renderQuarter(
   days: readonly StatisticsCalendarDay[],
   quarter: { months: readonly string[]; today: string },
   selectedMonth = OUTSIDE_MONTH,
+  accountStart: Nullable<string> = null,
 ) {
   return renderWithProviders(
     <ReadingHeatmap
+      accountStart={accountStart}
       days={days}
       months={quarter.months}
       selectedMonth={selectedMonth}
@@ -169,6 +181,21 @@ describe("ReadingHeatmap day states", () => {
     );
 
     expect(dayCell("dayUnknown", "2026-07-04")).toHaveClass(CELL_CLASS.unknown);
+  });
+
+  it("marks the days before the account was created apart from recorded zeros", () => {
+    renderQuarter(
+      quietDaysBetween("2026-07-01", "2026-09-30"),
+      QUARTERS.summer2026,
+      OUTSIDE_MONTH,
+      "2026-08-10",
+    );
+
+    const beforeAccount = beforeAccountCell("2026-08-09");
+    expect(beforeAccount).toHaveClass(CELL_CLASS.beforeAccount);
+    expect(beforeAccount).not.toHaveClass(CELL_CLASS.recordedZero);
+    expect(beforeAccountCell("2026-07-01")).toBeInTheDocument();
+    expect(dayCell("dayEmpty", "2026-08-10")).toHaveClass(CELL_CLASS.recordedZero);
   });
 
   it("shows the days after today as not yet come rather than as recorded zeros", () => {
@@ -258,5 +285,17 @@ describe("ReadingHeatmap legend", () => {
     );
 
     expect(screen.getByText(translateHeatmap("unknownLegend"))).toBeInTheDocument();
+  });
+
+  it("explains the days before the account once the quarter reaches back past it", () => {
+    renderQuarter(
+      quietDaysBetween("2026-07-01", "2026-09-30"),
+      QUARTERS.summer2026,
+      OUTSIDE_MONTH,
+      "2026-08-10",
+    );
+
+    expect(screen.getByText(translateHeatmap("beforeAccountLegend"))).toBeInTheDocument();
+    expect(screen.queryByText(translateHeatmap("unknownLegend"))).not.toBeInTheDocument();
   });
 });

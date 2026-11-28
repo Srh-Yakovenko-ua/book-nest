@@ -21,6 +21,7 @@ import {
 
 import { parseIsoDay } from "@/lib/format";
 
+import { isBeforeAccountStart } from "./statistics-account-history";
 import { resolveReadingDayTarget } from "./statistics-drilldown";
 
 const ISO_DAY_FORMAT = "yyyy-MM-dd";
@@ -30,7 +31,7 @@ const ISO_MONTH_FORMAT = "yyyy-MM";
 const DAYS_IN_WEEK = 7;
 
 export type CalendarMonthSlot =
-  | { date: string; kind: "future" | "missing" }
+  | { date: string; kind: CalendarUnrecordedSlotKind }
   | { day: StatisticsCalendarDay; kind: "day" }
   | { kind: "blank" };
 
@@ -41,6 +42,8 @@ export type CalendarMonthSummary = {
   hasUnknownDays: boolean;
   pagesRead: number;
 };
+
+export type CalendarUnrecordedSlotKind = "before_account" | "future" | "missing";
 
 export type SelectableCalendarDay = { date: string; detailDate: string };
 
@@ -84,11 +87,13 @@ export function buildMonthGrid({
 }
 
 export function buildMonthSlots({
+  accountStart,
   days,
   monthKey,
   today,
   weekStartDay,
 }: {
+  accountStart: Nullable<string>;
   days: readonly StatisticsCalendarDay[];
   monthKey: string;
   today: string;
@@ -101,14 +106,15 @@ export function buildMonthSlots({
 
   return buildMonthGrid({ days, monthKey, weekStartDay }).map((week, weekIndex) =>
     week.map((day, weekdayIndex): CalendarMonthSlot => {
-      if (day !== null) return { day, kind: "day" };
+      if (day !== null) {
+        return isUnreadDay(day) && isBeforeAccountStart({ accountStart, date: day.date })
+          ? { date: day.date, kind: "before_account" }
+          : { day, kind: "day" };
+      }
       const dayOffset = weekIndex * DAYS_IN_WEEK + weekdayIndex - leadingSlots;
       if (dayOffset < 0 || dayOffset >= monthLength) return { kind: "blank" };
-      const date = addDays(monthStart, dayOffset);
-      return {
-        date: format(date, ISO_DAY_FORMAT),
-        kind: isAfter(date, todayDate) ? "future" : "missing",
-      };
+      const date = format(addDays(monthStart, dayOffset), ISO_DAY_FORMAT);
+      return { date, kind: unrecordedSlotKind({ accountStart, date, todayDate }) };
     }),
   );
 }
@@ -126,6 +132,18 @@ export function clipCalendarMonth({
     from: format(max([monthStart, parseIsoDay(range.from)]), ISO_DAY_FORMAT),
     to: format(min([endOfMonth(monthStart), parseIsoDay(range.to)]), ISO_DAY_FORMAT),
   };
+}
+
+export function hasDaysBeforeAccountStart({
+  accountStart,
+  days,
+}: {
+  accountStart: Nullable<string>;
+  days: readonly StatisticsCalendarDay[];
+}): boolean {
+  return days.some(
+    (day) => isUnreadDay(day) && isBeforeAccountStart({ accountStart, date: day.date }),
+  );
 }
 
 export function isDateInMonth(date: string, monthKey: string): boolean {
@@ -220,6 +238,10 @@ function enumerateDays({ from, to }: { from: string; to: string }): string[] {
   return days;
 }
 
+function isUnreadDay(day: StatisticsCalendarDay): boolean {
+  return day.pagesRead === 0 && day.booksCount === 0;
+}
+
 function padLeadingCells({
   date,
   weekStartDay,
@@ -232,6 +254,19 @@ function padLeadingCells({
 
 function padTrailingCells(week: CalendarWeek): CalendarWeek {
   return [...week, ...Array.from({ length: DAYS_IN_WEEK - week.length }, () => null)];
+}
+
+function unrecordedSlotKind({
+  accountStart,
+  date,
+  todayDate,
+}: {
+  accountStart: Nullable<string>;
+  date: string;
+  todayDate: Date;
+}): CalendarUnrecordedSlotKind {
+  if (isAfter(parseIsoDay(date), todayDate)) return "future";
+  return isBeforeAccountStart({ accountStart, date }) ? "before_account" : "missing";
 }
 
 function weekdayColumn({

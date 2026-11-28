@@ -128,6 +128,8 @@ export const EMPTY_ORDER: OrderDraft = {
   totalAmount: "",
 };
 
+const ORDER_DRAFT_FIELDS = Object.keys(EMPTY_ORDER).filter(isOrderDraftField);
+
 export const EMPTY_CREATE_BOOK_ORDER_DRAFT: CreateBookOrderDraft = {
   books: [],
   financialMode: "total",
@@ -219,6 +221,20 @@ export function createEmptyShipment(id = crypto.randomUUID()): ShipmentDraft {
 
 export function hasCompleteItemPrices(books: OrderBookDraft[]): boolean {
   return books.length > 0 && books.every(({ price }) => price.trim() !== "");
+}
+
+export function hasCreateBookOrderInput(draft: CreateBookOrderDraft): boolean {
+  const orderChanged = ORDER_DRAFT_FIELDS.some(
+    (field) => draft.order[field] !== EMPTY_ORDER[field],
+  );
+
+  return (
+    orderChanged ||
+    draft.books.length > 0 ||
+    draft.pickerSelection.length > 0 ||
+    draft.shipping !== EMPTY_CREATE_BOOK_ORDER_DRAFT.shipping ||
+    draft.financialMode !== EMPTY_CREATE_BOOK_ORDER_DRAFT.financialMode
+  );
 }
 
 export function optionalNumber(value: string): null | number {
@@ -334,6 +350,10 @@ function enableShipping(draft: CreateBookOrderDraft, shipmentId: string): Create
 
 function inTransitShipment(id: string): ShipmentDraft {
   return { ...createEmptyShipment(id), status: "in_transit" };
+}
+
+function isOrderDraftField(key: string): key is keyof OrderDraft {
+  return key in EMPTY_ORDER;
 }
 
 function optionalNumberProperty<K extends string>(

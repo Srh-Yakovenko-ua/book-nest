@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 
 import { TitleLeaf } from "@/components/title-leaf";
-import { CreateBookForm } from "@/features/books";
+import { BookCreateOwnershipStatusSchema, CreateBookForm } from "@/features/books";
 import { routing } from "@/i18n/routing";
 
 type Props = {
@@ -35,6 +35,7 @@ export default async function NewBookPage({ params, searchParams }: Props) {
   const seriesId = seriesIdParam.safeParse(query.seriesId).data;
   const publisherId = publisherIdParam.safeParse(query.publisherId).data;
   const partNumber = partNumberParam.safeParse(query.partNumber).data;
+  const ownershipStatus = BookCreateOwnershipStatusSchema.safeParse(query.ownershipStatus).data;
 
   return (
     <main className="mx-auto w-full max-w-7xl flex-1 px-5 pt-8 pb-16 md:px-8 lg:px-12">
@@ -50,7 +51,12 @@ export default async function NewBookPage({ params, searchParams }: Props) {
         </p>
       </header>
 
-      <CreateBookForm partNumber={partNumber} publisherId={publisherId} seriesId={seriesId} />
+      <CreateBookForm
+        ownershipStatus={ownershipStatus}
+        partNumber={partNumber}
+        publisherId={publisherId}
+        seriesId={seriesId}
+      />
     </main>
   );
 }

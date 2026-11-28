@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { type ReactNode, useId } from "react";
 
 import { DateField } from "@/components/date-field";
 import { UiIcon, type UiIconName } from "@/components/icons";
@@ -157,10 +157,12 @@ export function TextField({
   type?: string;
   value: string;
 }) {
+  const inputId = useId();
   return (
-    <Field className={className} label={label} optional={optional}>
+    <Field className={className} htmlFor={inputId} label={label} optional={optional}>
       <Input
         className="h-10"
+        id={inputId}
         onChange={(event) => onChange(event.target.value)}
         type={type}
         value={value}

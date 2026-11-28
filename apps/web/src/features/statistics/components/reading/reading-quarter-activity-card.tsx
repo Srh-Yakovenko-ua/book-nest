@@ -1,6 +1,11 @@
 "use client";
 
-import type { ReadingStatisticsDateRange, StatisticsCalendarDay, WeekStartDay } from "@app/shared";
+import type {
+  Nullable,
+  ReadingStatisticsDateRange,
+  StatisticsCalendarDay,
+  WeekStartDay,
+} from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
@@ -21,6 +26,7 @@ import { ReadingHeatmap } from "./reading-heatmap";
 const QUARTER_STEP_CLASS = "size-10 aria-disabled:cursor-not-allowed aria-disabled:opacity-50";
 
 export function ReadingQuarterActivityCard({
+  accountStart,
   days,
   displayRange,
   month,
@@ -28,6 +34,7 @@ export function ReadingQuarterActivityCard({
   today,
   weekStartDay,
 }: {
+  accountStart: Nullable<string>;
   days: readonly StatisticsCalendarDay[];
   displayRange: ReadingStatisticsDateRange;
   month: string;
@@ -88,6 +95,7 @@ export function ReadingQuarterActivityCard({
         </Button>
       </div>
       <ReadingHeatmap
+        accountStart={accountStart}
         days={days}
         months={listQuarterMonths(quarter)}
         onShowInBooksCalendar={onShowInBooksCalendar}

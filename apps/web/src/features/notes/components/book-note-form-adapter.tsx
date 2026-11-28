@@ -6,11 +6,13 @@ import { NOTE_INPUT_LIMITS } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { Controller } from "react-hook-form";
 
+import { PickerNoEntities } from "@/components/picker-no-entities";
 import { SuggestionCombobox } from "@/components/suggestion-combobox";
 import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useBookChapters } from "@/features/books/api/use-book-chapters";
+import { useLibraryPresence } from "@/features/books/api/use-library-presence";
 import { BookSingleSelectPicker } from "@/features/books/components/book-single-select-picker";
 import { BookSingleSelectValue } from "@/features/books/components/book-single-select-value";
 import {
@@ -21,6 +23,7 @@ import {
 import type { NoteFormControl, NoteFormErrors } from "../model/note-form-schema";
 
 import { bookSelectOptionFromPreview, noteEntityRefFromBook } from "../model/note-entity-options";
+import { NOTES_ENTITY_START_HREF } from "../model/notes-archive-config";
 import { NOTE_FORM_FIELD_IDS } from "./note-form-field-ids";
 
 export function BookNoteLinkedEntity({ book }: { book: NoteBookPreview }) {
@@ -113,6 +116,21 @@ export function BookNotePickerField({
   error: NoteFormErrors["entity"];
 }) {
   const t = useTranslations("notes.form.bookPicker");
+  const tBooks = useTranslations("books");
+  const library = useLibraryPresence();
+
+  if (library.kind === "ready" && library.total === 0) {
+    return (
+      <PickerNoEntities
+        action={{
+          href: NOTES_ENTITY_START_HREF.books,
+          icon: "plus",
+          label: tBooks("firstBook.cta"),
+        }}
+        message={t("empty")}
+      />
+    );
+  }
 
   return (
     <Controller
@@ -131,6 +149,7 @@ export function BookNotePickerField({
             loadError: t("loadError"),
             loading: t("loading"),
             loadMoreError: t("loadMoreError"),
+            noMatch: t("noMatch"),
             results: t("results"),
             resultsCount: (count) => t("resultsCount", { count }),
             retry: t("retry"),

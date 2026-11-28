@@ -1,5 +1,7 @@
 "use client";
 
+import type { Ref } from "react";
+
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
@@ -7,9 +9,10 @@ import { Button } from "@/components/ui/button";
 
 type NotesErrorStateProps = {
   onRetry: () => void;
+  retryButtonRef?: Ref<HTMLButtonElement>;
 };
 
-export function NotesErrorState({ onRetry }: NotesErrorStateProps) {
+export function NotesErrorState({ onRetry, retryButtonRef }: NotesErrorStateProps) {
   const t = useTranslations("notes.states");
 
   return (
@@ -24,7 +27,7 @@ export function NotesErrorState({ onRetry }: NotesErrorStateProps) {
         <p className="text-sm font-medium text-foreground">{t("errorTitle")}</p>
         <p className="text-xs text-muted-foreground">{t("errorDescription")}</p>
       </div>
-      <Button onClick={onRetry} size="sm" variant="secondary">
+      <Button onClick={onRetry} ref={retryButtonRef} size="sm" variant="secondary">
         <UiIcon name="refresh" size={14} />
         {t("retry")}
       </Button>

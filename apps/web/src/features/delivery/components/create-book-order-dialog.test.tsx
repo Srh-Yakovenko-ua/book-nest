@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { CreateBookOrderDialog } from "./create-book-order-dialog";
@@ -29,6 +30,21 @@ const inTransitWithoutActiveOrder = makeBookView({
   title: "У дорозі без активного замовлення",
 });
 const fetchMock = vi.fn();
+
+const bookPicker = messages.delivery.createOrder.bookPicker;
+const discardChanges = messages.common.discardChanges;
+const orderCopy = messages.delivery.createOrder.order;
+
+function answerWithNoBooks() {
+  fetchMock.mockImplementation((input: RequestInfo | URL) => {
+    const body = String(input).includes("purchase-stores")
+      ? []
+      : { items: [], page: 1, pagesCount: 0, pageSize: 24, totalCount: 0 };
+    return Promise.resolve(
+      new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } }),
+    );
+  });
+}
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -69,7 +85,9 @@ describe("CreateBookOrderDialog book picker view", () => {
         new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } }),
       );
     });
-    renderWithProviders(<CreateBookOrderDialog onOpenChange={vi.fn()} open />);
+    renderWithProviders(
+      <CreateBookOrderDialog onCreateBook={vi.fn()} onOpenChange={vi.fn()} open />,
+    );
 
     await userEvent.click(screen.getByRole("button", { name: "Додати книгу" }));
     await screen.findByText("У дорозі без активного замовлення");
@@ -85,7 +103,9 @@ describe("CreateBookOrderDialog book picker view", () => {
   });
 
   it("asks the library to drop books that already sit in an active order", async () => {
-    renderWithProviders(<CreateBookOrderDialog onOpenChange={vi.fn()} open />);
+    renderWithProviders(
+      <CreateBookOrderDialog onCreateBook={vi.fn()} onOpenChange={vi.fn()} open />,
+    );
 
     await userEvent.click(screen.getByRole("button", { name: "Додати книгу" }));
     await screen.findByText("Доступна книга");
@@ -101,7 +121,9 @@ describe("CreateBookOrderDialog book picker view", () => {
   });
 
   it("presents the form as four described sections", () => {
-    renderWithProviders(<CreateBookOrderDialog onOpenChange={vi.fn()} open />);
+    renderWithProviders(
+      <CreateBookOrderDialog onCreateBook={vi.fn()} onOpenChange={vi.fn()} open />,
+    );
 
     expect(screen.getByRole("heading", { name: "Замовлення" })).toBeVisible();
     expect(screen.getByText("Де і коли ви оформили покупку.")).toBeVisible();
@@ -122,7 +144,9 @@ describe("CreateBookOrderDialog book picker view", () => {
   });
 
   it("keeps one dialog, form data and selection across view changes", async () => {
-    renderWithProviders(<CreateBookOrderDialog onOpenChange={vi.fn()} open />);
+    renderWithProviders(
+      <CreateBookOrderDialog onCreateBook={vi.fn()} onOpenChange={vi.fn()} open />,
+    );
     const store = screen.getByLabelText("Магазин");
     await userEvent.type(store, "Yakaboo");
 
@@ -173,7 +197,9 @@ describe("CreateBookOrderDialog book picker view", () => {
   });
 
   it("shows zero, partial and complete per-book price states", async () => {
-    renderWithProviders(<CreateBookOrderDialog onOpenChange={vi.fn()} open />);
+    renderWithProviders(
+      <CreateBookOrderDialog onCreateBook={vi.fn()} onOpenChange={vi.fn()} open />,
+    );
 
     await userEvent.click(screen.getByRole("button", { name: "Додати книгу" }));
     await screen.findByText("Доступна книга");
@@ -202,7 +228,9 @@ describe("CreateBookOrderDialog book picker view", () => {
   });
 
   it("names the negative total instead of calling the summary automatic", async () => {
-    renderWithProviders(<CreateBookOrderDialog onOpenChange={vi.fn()} open />);
+    renderWithProviders(
+      <CreateBookOrderDialog onCreateBook={vi.fn()} onOpenChange={vi.fn()} open />,
+    );
 
     await userEvent.click(screen.getByRole("button", { name: "Додати книгу" }));
     await screen.findByText("Доступна книга");
@@ -220,7 +248,9 @@ describe("CreateBookOrderDialog book picker view", () => {
   });
 
   it("keeps the submit error true to the draft instead of freezing it", async () => {
-    renderWithProviders(<CreateBookOrderDialog onOpenChange={vi.fn()} open />);
+    renderWithProviders(
+      <CreateBookOrderDialog onCreateBook={vi.fn()} onOpenChange={vi.fn()} open />,
+    );
 
     await userEvent.click(screen.getByRole("button", { name: "Додати книгу" }));
     await screen.findByText("Доступна книга");
@@ -244,7 +274,9 @@ describe("CreateBookOrderDialog book picker view", () => {
   });
 
   it("keeps shipment fields behind the shipped choice", async () => {
-    renderWithProviders(<CreateBookOrderDialog onOpenChange={vi.fn()} open />);
+    renderWithProviders(
+      <CreateBookOrderDialog onCreateBook={vi.fn()} onOpenChange={vi.fn()} open />,
+    );
 
     expect(screen.queryByLabelText("Служба доставки")).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("radio", { name: "Так, уже відправили" }));
@@ -269,7 +301,9 @@ describe("CreateBookOrderDialog book picker view", () => {
   });
 
   it("distributes only unassigned books between multiple shipments", async () => {
-    renderWithProviders(<CreateBookOrderDialog onOpenChange={vi.fn()} open />);
+    renderWithProviders(
+      <CreateBookOrderDialog onCreateBook={vi.fn()} onOpenChange={vi.fn()} open />,
+    );
 
     await userEvent.click(screen.getByRole("button", { name: "Додати книгу" }));
     await screen.findByText("Доступна книга");
@@ -339,7 +373,9 @@ describe("CreateBookOrderDialog book picker view", () => {
   });
 
   it("returns to simple mode after deleting an empty second shipment", async () => {
-    renderWithProviders(<CreateBookOrderDialog onOpenChange={vi.fn()} open />);
+    renderWithProviders(
+      <CreateBookOrderDialog onCreateBook={vi.fn()} onOpenChange={vi.fn()} open />,
+    );
 
     await userEvent.click(screen.getByRole("button", { name: "Додати книгу" }));
     await screen.findByText("Доступна книга");
@@ -360,6 +396,82 @@ describe("CreateBookOrderDialog book picker view", () => {
     expect(screen.queryByText("Усі книги розподілено")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Видалити посилку/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Розділити доставку" })).toBeVisible();
+  });
+});
+
+describe("CreateBookOrderDialog without books to order", () => {
+  it("explains an empty picker and offers to add a book", async () => {
+    answerWithNoBooks();
+    renderWithProviders(
+      <CreateBookOrderDialog onCreateBook={vi.fn()} onOpenChange={vi.fn()} open />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Додати книгу" }));
+
+    expect(await screen.findByText(bookPicker.noBooks.title)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: bookPicker.noBooks.cta })).toBeInTheDocument();
+  });
+
+  it("keeps the typed store and order number after a round trip through the picker", async () => {
+    answerWithNoBooks();
+    renderWithProviders(
+      <CreateBookOrderDialog onCreateBook={vi.fn()} onOpenChange={vi.fn()} open />,
+    );
+    await userEvent.type(screen.getByLabelText(orderCopy.store), "Yakaboo");
+    await userEvent.type(screen.getByLabelText(orderCopy.number), "YB-1042");
+
+    await userEvent.click(screen.getByRole("button", { name: "Додати книгу" }));
+    await screen.findByText(bookPicker.noBooks.title);
+    await userEvent.click(screen.getByRole("button", { name: new RegExp(bookPicker.back) }));
+
+    expect(screen.getByLabelText(orderCopy.store)).toHaveValue("Yakaboo");
+    expect(screen.getByLabelText(orderCopy.number)).toHaveValue("YB-1042");
+  });
+
+  it("asks before dropping a started order for a new book", async () => {
+    answerWithNoBooks();
+    const onCreateBook = vi.fn();
+    renderWithProviders(
+      <CreateBookOrderDialog onCreateBook={onCreateBook} onOpenChange={vi.fn()} open />,
+    );
+    await userEvent.type(screen.getByLabelText(orderCopy.store), "Yakaboo");
+
+    await userEvent.click(screen.getByRole("button", { name: "Додати книгу" }));
+    await userEvent.click(await screen.findByRole("button", { name: bookPicker.noBooks.cta }));
+
+    expect(
+      await screen.findByRole("alertdialog", { name: discardChanges.title }),
+    ).toBeInTheDocument();
+    expect(onCreateBook).not.toHaveBeenCalled();
+  });
+
+  it("leaves for a new book once the reader confirms dropping the order", async () => {
+    answerWithNoBooks();
+    const onCreateBook = vi.fn();
+    renderWithProviders(
+      <CreateBookOrderDialog onCreateBook={onCreateBook} onOpenChange={vi.fn()} open />,
+    );
+    await userEvent.type(screen.getByLabelText(orderCopy.store), "Yakaboo");
+    await userEvent.click(screen.getByRole("button", { name: "Додати книгу" }));
+    await userEvent.click(await screen.findByRole("button", { name: bookPicker.noBooks.cta }));
+
+    await userEvent.click(await screen.findByRole("button", { name: discardChanges.confirm }));
+
+    expect(onCreateBook).toHaveBeenCalledOnce();
+  });
+
+  it("leaves for a new book at once when nothing was entered", async () => {
+    answerWithNoBooks();
+    const onCreateBook = vi.fn();
+    renderWithProviders(
+      <CreateBookOrderDialog onCreateBook={onCreateBook} onOpenChange={vi.fn()} open />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Додати книгу" }));
+    await userEvent.click(await screen.findByRole("button", { name: bookPicker.noBooks.cta }));
+
+    expect(onCreateBook).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 });
 
@@ -403,7 +515,9 @@ describe("CreateBookOrderDialog submit", () => {
       );
     });
     const onOpenChange = vi.fn();
-    renderWithProviders(<CreateBookOrderDialog onOpenChange={onOpenChange} open />);
+    renderWithProviders(
+      <CreateBookOrderDialog onCreateBook={vi.fn()} onOpenChange={onOpenChange} open />,
+    );
 
     await userEvent.type(screen.getByLabelText("Магазин"), "Yakaboo");
     await userEvent.click(await screen.findByRole("option", { name: "Створити «Yakaboo»" }));

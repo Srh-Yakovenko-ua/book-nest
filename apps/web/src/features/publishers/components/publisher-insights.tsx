@@ -4,13 +4,13 @@ import type { LibraryPublishersSummary } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
-import { createSerializer } from "nuqs";
 
 import { UiIcon, type UiIconName } from "@/components/icons";
 import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
-import { LIBRARY_PUBLISHER_PRESENCE_MISSING, libraryQueryParsers } from "@/features/books";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
+
+import { buildMissingPublisherBooksHref } from "../model/missing-publisher-books-href";
 
 type PublisherInsightsProps = {
   summary: LibraryPublishersSummary;
@@ -129,12 +129,6 @@ function BestRatedPublisherRow({
       </MobilePageOverviewLink>
     </li>
   );
-}
-
-function buildMissingPublisherBooksHref() {
-  return createSerializer(libraryQueryParsers)("/books", {
-    publisherPresence: LIBRARY_PUBLISHER_PRESENCE_MISSING,
-  });
 }
 
 function InsightBlock({

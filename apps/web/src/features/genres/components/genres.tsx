@@ -7,9 +7,12 @@ import { useRef } from "react";
 
 import { TitleLeaf } from "@/components/title-leaf";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BOOK_CREATE_PATH } from "@/features/books/model/book-create-href";
 import { useRetryFocus } from "@/hooks/use-retry-focus";
 import { useRouter } from "@/i18n/navigation";
 import { assertNever } from "@/lib/assert-never";
+import { collectionChrome } from "@/lib/collection-chrome";
+import { toCollectionPresence, withPresenceRetry } from "@/lib/collection-presence";
 import { RETRY_FOCUS_RING } from "@/lib/retry-focus-ring";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +42,7 @@ const EMPTY_TITLE_KEYS = {
 } as const satisfies Record<GenresEmptyReason, string>;
 
 const GENRES_PAGE = {
+  addFirstBookPath: BOOK_CREATE_PATH,
   libraryPath: "/books",
   searchInput: "input",
 } as const;
@@ -57,6 +61,13 @@ export function Genres() {
   const overview = useGenresOverview();
   const summaryCards = useGenreSummaryCards(summary.data);
   const summaryError = summary.isLoadingError ? { onRetry: () => void summary.refetch() } : null;
+  const libraryPresence = withPresenceRetry({
+    presence: toCollectionPresence({
+      query: summary,
+      total: (data) => data.libraryBooksCount,
+    }),
+    wrapRetry: withRetryFocus,
+  });
 
   const listState = genresListState({
     hasActiveFilters: query.hasActiveFilters,
@@ -65,6 +76,10 @@ export function Genres() {
   });
   const insights =
     overview.data !== undefined && hasGenreInsights(overview.data) ? overview.data : null;
+  const chrome = collectionChrome({
+    baseTotal: summary.data?.usedGenresCount,
+    hasQuery: query.hasActiveFilters || query.hasActiveSearch,
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -80,14 +95,22 @@ export function Genres() {
         </p>
       </header>
 
-      <GenresSummaryCards cards={summaryCards} error={summaryError} isLoading={summary.isPending} />
-
-      <div className="flex flex-col gap-2.5 empty:hidden sm:hidden">
-        <GenresSummaryPanel
+      {chrome.showMetrics ? (
+        <GenresSummaryCards
           cards={summaryCards}
           error={summaryError}
           isLoading={summary.isPending}
         />
+      ) : null}
+
+      <div className="flex flex-col gap-2.5 empty:hidden sm:hidden">
+        {chrome.showMetrics ? (
+          <GenresSummaryPanel
+            cards={summaryCards}
+            error={summaryError}
+            isLoading={summary.isPending}
+          />
+        ) : null}
         {overview.isPending ? <Skeleton className="h-11 w-full rounded-xl" /> : null}
         {insights === null ? null : <GenresInsightsPanel overview={insights} />}
       </div>
@@ -108,6 +131,8 @@ export function Genres() {
             {t("resultsTitle")}
           </h2>
           <GenresContent
+            libraryPresence={libraryPresence}
+            onAddFirstBook={() => router.push(GENRES_PAGE.addFirstBookPath)}
             onClearSearch={() => {
               query.clearSearch();
               toolbarRef.current?.querySelector<HTMLInputElement>(GENRES_PAGE.searchInput)?.focus();

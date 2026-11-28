@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Controller } from "react-hook-form";
 
 import { UiIcon } from "@/components/icons";
+import { PickerNoEntities } from "@/components/picker-no-entities";
 import { Button } from "@/components/ui/button";
 import { SeriesSingleSelectPicker, SeriesSingleSelectValue } from "@/features/series";
 import { cn } from "@/lib/utils";
@@ -13,8 +14,10 @@ import { cn } from "@/lib/utils";
 import type { NoteFormControl, NoteFormErrors } from "../model/note-form-schema";
 import type { NoteLocation } from "../model/note-location";
 
+import { useSeriesPresence } from "../api/use-series-presence";
 import { noteEntityRefFromSeries } from "../model/note-entity-options";
 import { noteLocationLine } from "../model/note-location";
+import { NOTES_ENTITY_START_HREF } from "../model/notes-archive-config";
 import { NOTE_FORM_FIELD_IDS } from "./note-form-field-ids";
 
 export function SeriesNoteLinkedEntity({ series }: { series: NoteSeriesPreview }) {
@@ -29,6 +32,17 @@ export function SeriesNotePickerField({
   error: NoteFormErrors["entity"];
 }) {
   const t = useTranslations("notes.form.seriesPicker");
+  const tArchive = useTranslations("notes.archive.series.noEntities");
+  const seriesPresence = useSeriesPresence();
+
+  if (seriesPresence.kind === "ready" && seriesPresence.total === 0) {
+    return (
+      <PickerNoEntities
+        action={{ href: NOTES_ENTITY_START_HREF.series, icon: "layers", label: tArchive("cta") }}
+        message={t("empty")}
+      />
+    );
+  }
 
   return (
     <Controller
@@ -47,6 +61,7 @@ export function SeriesNotePickerField({
             loadError: t("loadError"),
             loading: t("loading"),
             loadMoreError: t("loadMoreError"),
+            noMatch: t("noMatch"),
             results: t("results"),
             resultsCount: (count) => t("resultsCount", { count }),
             retry: t("retry"),

@@ -190,13 +190,6 @@ describe("RecordsSection", () => {
     expect(title).not.toHaveClass("line-clamp-2");
   });
 
-  it("says the period has no records when there are none", () => {
-    renderRecords([]);
-
-    expect(screen.getByText(recordsText.empty)).toBeInTheDocument();
-    expect(screen.queryByRole("listitem")).not.toBeInTheDocument();
-  });
-
   it("notes in a hint that an exact peak month is picked by completed reads without a pages caveat", async () => {
     renderRecords([PEAK_MONTH]);
 

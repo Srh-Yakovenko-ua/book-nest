@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BOOK_CREATE_PATH, useLibraryPresence } from "@/features/books";
 import { useLists } from "@/features/lists";
 import { Link } from "@/i18n/navigation";
 import { assertNever } from "@/lib/assert-never";
@@ -246,6 +247,38 @@ function PickerBody({
   );
 }
 
+function PickerNoLists() {
+  const t = useTranslations("goals.picker");
+  const tBooks = useTranslations("books");
+  const library = useLibraryPresence();
+  const hasNoLibraryBooks = library.kind === "ready" && library.total === 0;
+
+  return (
+    <div className="flex flex-col items-center gap-3 px-3 py-6 text-center">
+      <p className="font-heading text-sm font-medium text-ink">{t("emptyTitle")}</p>
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        {hasNoLibraryBooks ? t("emptyNoBooksDescription") : t("emptyDescription")}
+      </p>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        {hasNoLibraryBooks ? (
+          <Button asChild>
+            <Link href={BOOK_CREATE_PATH}>
+              <UiIcon name="plus" size={16} />
+              {tBooks("firstBook.cta")}
+            </Link>
+          </Button>
+        ) : null}
+        <Button asChild variant="secondary">
+          <Link href="/lists">
+            <UiIcon name="list" size={16} />
+            {t("toLists")}
+          </Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function PickerResults({
   content,
   onChoose,
@@ -312,18 +345,7 @@ function PickerResults({
         </output>
       );
     case "no-lists":
-      return (
-        <div className="flex flex-col items-center gap-3 px-3 py-6 text-center">
-          <p className="font-heading text-sm font-medium text-ink">{t("emptyTitle")}</p>
-          <p className="text-sm leading-relaxed text-muted-foreground">{t("emptyDescription")}</p>
-          <Button asChild variant="secondary">
-            <Link href="/lists">
-              <UiIcon name="list" size={16} />
-              {t("toLists")}
-            </Link>
-          </Button>
-        </div>
-      );
+      return <PickerNoLists />;
     case "no-matches":
       return (
         <p className="px-3 py-6 text-center text-sm text-muted-foreground" role="status">

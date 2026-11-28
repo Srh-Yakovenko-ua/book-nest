@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import { describe, expect, it, vi } from "vitest";
 
+import messages from "@/messages/uk.json";
 import {
   mockIntersectionObserver,
   renderWithProviders,
@@ -21,6 +22,8 @@ vi.mock("@/i18n/navigation", () => ({
     <a href={href}>{children}</a>
   ),
 }));
+
+const emptyTitle = messages.lists.catalog.empty.title;
 
 type ViewProps = Parameters<typeof AllListsView>[0];
 
@@ -88,7 +91,7 @@ describe("AllListsView", () => {
     renderView({ isPending: true, lists: [] });
 
     expect(document.querySelector("[aria-busy]")).toBeInTheDocument();
-    expect(screen.queryByText("Створи першу тематичну добірку")).not.toBeInTheDocument();
+    expect(screen.queryByText(emptyTitle)).not.toBeInTheDocument();
   });
 
   it("shows an error alert with a retry action and hides the toolbar", async () => {
@@ -108,12 +111,19 @@ describe("AllListsView", () => {
     const onOpenLibrary = vi.fn();
     renderView({ hasAnyLists: false, lists: [], onOpenLibrary });
 
-    expect(screen.getByText("Створи першу тематичну добірку")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Створити список" })).toHaveLength(2);
+    expect(screen.getByText(emptyTitle)).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Створити список" })).toHaveLength(1);
 
     await userEvent.click(screen.getByRole("button", { name: "Перейти до всіх книг" }));
 
     expect(onOpenLibrary).toHaveBeenCalledOnce();
+  });
+
+  it("drops the library action when there is no library to open", () => {
+    renderView({ hasAnyLists: false, lists: [], onOpenLibrary: null });
+
+    expect(screen.getByText(emptyTitle)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Перейти до всіх книг" })).not.toBeInTheDocument();
   });
 
   it("offers to clear the filters when nothing matches", async () => {

@@ -5,9 +5,12 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
+import { assertNever } from "@/lib/assert-never";
+
+export type ReadingQueueDragHint = "available" | "filtered" | "hidden";
 
 type ReadingQueueToolbarProps = {
-  dragDisabled: boolean;
+  dragHint: ReadingQueueDragHint;
   filters: ReactNode;
   onClearSearch: () => void;
   onSearchChange: (value: string) => void;
@@ -15,7 +18,7 @@ type ReadingQueueToolbarProps = {
 };
 
 export function ReadingQueueToolbar({
-  dragDisabled,
+  dragHint,
   filters,
   onClearSearch,
   onSearchChange,
@@ -58,7 +61,19 @@ export function ReadingQueueToolbar({
         <div className="flex shrink-0 flex-wrap items-center gap-2.5">{filters}</div>
       </div>
 
-      {dragDisabled ? (
+      <QueueDragHint hint={dragHint} />
+    </div>
+  );
+}
+
+function QueueDragHint({ hint }: { hint: ReadingQueueDragHint }) {
+  const t = useTranslations("readingQueue.toolbar");
+
+  switch (hint) {
+    case "available":
+      return <p className="text-xs text-muted-foreground">{t("dragHint")}</p>;
+    case "filtered":
+      return (
         <div
           className="flex items-start gap-2 rounded-md border border-info/30 bg-info-soft/60 px-3 py-2 text-xs text-info"
           role="status"
@@ -66,9 +81,10 @@ export function ReadingQueueToolbar({
           <UiIcon aria-hidden className="mt-px shrink-0" name="info" size={14} />
           <span>{t("dragDisabledHint")}</span>
         </div>
-      ) : (
-        <p className="text-xs text-muted-foreground">{t("dragHint")}</p>
-      )}
-    </div>
-  );
+      );
+    case "hidden":
+      return null;
+    default:
+      return assertNever(hint);
+  }
 }

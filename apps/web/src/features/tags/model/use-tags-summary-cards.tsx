@@ -37,18 +37,24 @@ export function useTagsSummaryCards(summary: TagsSummaryView | undefined): Summa
       icon: "book",
       iconTone: "info",
       label: t("cards.taggedBooks"),
-      microfact: t("facts.booksShare", {
-        percent: percent(summary.taggedBooksCount, summary.totalBooksCount),
-      }),
+      microfact:
+        summary.totalBooksCount === 0
+          ? t("facts.noBooks")
+          : t("facts.booksShare", {
+              percent: percent(summary.taggedBooksCount, summary.totalBooksCount),
+            }),
       value: formatNumber(summary.taggedBooksCount, locale),
     },
     {
       icon: "user",
       iconTone: "genre",
       label: t("cards.taggedCharacters"),
-      microfact: t("facts.charactersShare", {
-        percent: percent(summary.taggedCharactersCount, summary.totalCharactersCount),
-      }),
+      microfact:
+        summary.totalCharactersCount === 0
+          ? t("facts.noCharacters")
+          : t("facts.charactersShare", {
+              percent: percent(summary.taggedCharactersCount, summary.totalCharactersCount),
+            }),
       value: formatNumber(summary.taggedCharactersCount, locale),
     },
     mostUsed.kind === "none"

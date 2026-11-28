@@ -16,6 +16,7 @@ import type { BookSelectOption } from "@/features/books/model/book-select-option
 import type { BookPageCeiling } from "@/lib/book-page-ceiling";
 
 import { UiIcon } from "@/components/icons";
+import { PickerNoEntities } from "@/components/picker-no-entities";
 import { SuggestionCombobox } from "@/components/suggestion-combobox";
 import {
   AlertDialog,
@@ -44,8 +45,10 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useBookPagesCount } from "@/features/books/api/use-book";
 import { useBookChapters } from "@/features/books/api/use-book-chapters";
+import { useLibraryPresence } from "@/features/books/api/use-library-presence";
 import { BookSingleSelectPicker } from "@/features/books/components/book-single-select-picker";
 import { BookSingleSelectValue } from "@/features/books/components/book-single-select-value";
+import { BOOK_CREATE_PATH } from "@/features/books/model/book-create-href";
 import {
   BookSelectOptionSchema,
   toBookSelectOption,
@@ -89,7 +92,10 @@ type QuoteMessages = {
   textRequired: string;
 };
 
-const QUOTE_BOOK_LABEL_ID = "quote-book-label";
+const QUOTE_BOOK_FIELD = {
+  addFirstBookHref: BOOK_CREATE_PATH,
+  labelId: "quote-book-label",
+} as const;
 
 export function QuoteDialog(props: QuoteDialogProps) {
   const { onOpenChange, open } = props;
@@ -239,43 +245,58 @@ function QuoteBookField({
 }) {
   const t = useTranslations("quotes.dialog");
   const tPicker = useTranslations("quotes.dialog.bookPicker");
+  const tBooks = useTranslations("books");
+  const library = useLibraryPresence();
+  const hasNoBooks = library.kind === "ready" && library.total === 0;
 
   return (
     <div className="flex flex-col gap-2">
-      <Label id={QUOTE_BOOK_LABEL_ID}>
+      <Label id={QUOTE_BOOK_FIELD.labelId}>
         {t("book")}{" "}
         <span aria-hidden className="text-destructive">
           *
         </span>
       </Label>
-      <Controller
-        control={control}
-        name="book"
-        render={({ field }) => (
-          <BookSingleSelectPicker
-            describedBy={error === undefined ? undefined : "quote-book-error"}
-            id="quote-book"
-            invalid={error !== undefined}
-            labelledBy={QUOTE_BOOK_LABEL_ID}
-            labels={{
-              change: tPicker("change"),
-              collapse: tPicker("collapse"),
-              empty: tPicker("empty"),
-              loadError: tPicker("loadError"),
-              loading: tPicker("loading"),
-              loadMoreError: tPicker("loadMoreError"),
-              results: tPicker("results"),
-              resultsCount: (count) => tPicker("resultsCount", { count }),
-              retry: tPicker("retry"),
-              search: tPicker("search"),
-            }}
-            onChange={(nextBook) => field.onChange(toBookSelectOption(nextBook))}
-            ref={field.ref}
-            required
-            value={field.value}
-          />
-        )}
-      />
+      {hasNoBooks ? (
+        <PickerNoEntities
+          action={{
+            href: QUOTE_BOOK_FIELD.addFirstBookHref,
+            icon: "plus",
+            label: tBooks("firstBook.cta"),
+          }}
+          message={tPicker("noBooks")}
+        />
+      ) : (
+        <Controller
+          control={control}
+          name="book"
+          render={({ field }) => (
+            <BookSingleSelectPicker
+              describedBy={error === undefined ? undefined : "quote-book-error"}
+              id="quote-book"
+              invalid={error !== undefined}
+              labelledBy={QUOTE_BOOK_FIELD.labelId}
+              labels={{
+                change: tPicker("change"),
+                collapse: tPicker("collapse"),
+                empty: tPicker("empty"),
+                loadError: tPicker("loadError"),
+                loading: tPicker("loading"),
+                loadMoreError: tPicker("loadMoreError"),
+                noMatch: tPicker("noMatch"),
+                results: tPicker("results"),
+                resultsCount: (count) => tPicker("resultsCount", { count }),
+                retry: tPicker("retry"),
+                search: tPicker("search"),
+              }}
+              onChange={(nextBook) => field.onChange(toBookSelectOption(nextBook))}
+              ref={field.ref}
+              required
+              value={field.value}
+            />
+          )}
+        />
+      )}
       <FieldError error={error} id="quote-book-error" />
     </div>
   );
@@ -405,8 +426,12 @@ function QuoteForm({
       {book === null ? (
         <QuoteBookField control={control} error={errors.book} />
       ) : (
-        <div aria-labelledby={QUOTE_BOOK_LABEL_ID} className="flex flex-col gap-2" role="group">
-          <Label id={QUOTE_BOOK_LABEL_ID}>{t("book")}</Label>
+        <div
+          aria-labelledby={QUOTE_BOOK_FIELD.labelId}
+          className="flex flex-col gap-2"
+          role="group"
+        >
+          <Label id={QUOTE_BOOK_FIELD.labelId}>{t("book")}</Label>
           <BookSingleSelectValue book={book} />
         </div>
       )}
